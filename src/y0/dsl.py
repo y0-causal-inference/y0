@@ -30,7 +30,7 @@ X = TypeVar('X')
 XList = Union[X, List[X]]
 
 
-def _upgrade_variables(variables):
+def _upgrade_variables(variables: XList[Variable]) -> List[Variable]:
     return [variables] if isinstance(variables, Variable) else variables
 
 
@@ -64,10 +64,10 @@ class Variable(_Mathable):
     def to_latex(self) -> str:  # noqa:D102
         return self.to_text()
 
-    def intervene(self, interventions: XList[Union[Variable, Intervention]]) -> CounterfactualVariable:
+    def intervene(self, variables: XList[Variable]) -> CounterfactualVariable:
         """Intervene on this variable with the given variable(s).
 
-        :param interventions: The variable(s) used to extend this variable as it is changed to a
+        :param variables: The variable(s) used to extend this variable as it is changed to a
             counterfactual variable
         :returns: A new counterfactual variable over this variable with the given intervention(s).
 
@@ -75,11 +75,11 @@ class Variable(_Mathable):
         """
         return CounterfactualVariable(
             name=self.name,
-            interventions=_upgrade_variables(interventions),
+            interventions=_upgrade_variables(variables),
         )
 
-    def __matmul__(self, interventions: XList[Intervention]):
-        return self.intervene(interventions)
+    def __matmul__(self, variables: XList[Variable]) -> CounterfactualVariable:
+        return self.intervene(variables)
 
     def given(self, parents: XList[Variable]) -> ConditionalProbability:
         """Create a distribution in which this variable is conditioned on the given variable(s).
@@ -110,12 +110,12 @@ class Variable(_Mathable):
     def __and__(self, children: XList[Variable]) -> JointProbability:
         return self.joint(children)
 
-    def star(self) -> Intervention:
+    def invert(self) -> Intervention:
         """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
         return Intervention(name=self.name, star=True)
 
-    def __invert__(self):
-        return self.star()
+    def __invert__(self) -> Intervention:
+        return self.invert()
 
     @classmethod
     def __class_getitem__(cls, item) -> Variable:
@@ -140,7 +140,8 @@ class Intervention(Variable):
     def to_latex(self) -> str:  # noqa:D102
         return f'{self.name}^*' if self.star else self.name
 
-    def __invert__(self):
+    def invert(self) -> Intervention:
+        """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
         return Intervention(name=self.name, star=not self.star)
 
 
@@ -156,7 +157,7 @@ class CounterfactualVariable(Variable):
     #: The name of the counterfactual variable
     name: str
     #: The interventions on the variable. Should be non-empty
-    interventions: List[Intervention]
+    interventions: List[Variable]
 
     def to_text(self) -> str:  # noqa:D102
         intervention_latex = ','.join(intervention.to_text() for intervention in self.interventions)
@@ -166,31 +167,40 @@ class CounterfactualVariable(Variable):
         intervention_latex = ','.join(intervention.to_latex() for intervention in self.interventions)
         return f'{self.name}_{{{intervention_latex}}}'
 
-    def intervene(self, interventions: XList[Intervention]) -> CounterfactualVariable:
+    def intervene(self, variables: XList[Variable]) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
 
-        :param interventions: The variable(s) used to extend this counterfactual variable's
+        :param variables: The variable(s) used to extend this counterfactual variable's
             current interventions
         :returns: A new counterfactual variable with both this counterfactual variable's interventions
             and the given intervention(s)
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        interventions = _upgrade_variables(interventions)
-        self._raise_for_overlapping_interventions(interventions)
+        variables: List[Variable] = _upgrade_variables(variables)
+        self._raise_for_overlapping_interventions(variables)
         return CounterfactualVariable(
             name=self.name,
-            interventions=[*self.interventions, *interventions],
+            interventions=[*self.interventions, *variables],
         )
 
-    def _raise_for_overlapping_interventions(self, new_interventions: List[Intervention]):
+    def _raise_for_overlapping_interventions(self, variables: List[Variable]) -> None:
+        """Raise an error if any of the given variables are already listed in interventions in this counterfactual.
+
+        :param variables: Variables to check for overlap
+        :raises ValueError: If there are overlapping variables given.
+        """
         overlaps = {
             new
-            for old, new in itt.product(self.interventions, new_interventions)
+            for old, new in itt.product(self.interventions, variables)
             if old.name == new.name
         }
         if overlaps:
             raise ValueError(f'Overlapping interventions in new interventions: {overlaps}')
+
+    def invert(self) -> Intervention:
+        """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
+        raise NotImplementedError
 
 
 @dataclass
@@ -395,7 +405,7 @@ class Sum(Expression):
 
     def __mul__(self, expression: Expression):
         if isinstance(expression, Product):
-            return Product([self, expression.expressions])
+            return Product([self, *expression.expressions])
         else:
             return Product([self, expression])
 
@@ -419,11 +429,16 @@ class Sum(Expression):
         >>> from y0.dsl import Sum, P, A, B, C
         >>> Sum[B, C](P(A | B) * P(B))
         """
-        if isinstance(ranges, tuple):
-            ranges = list(ranges)
-        else:  # a single element is not given as a tuple, such as in Sum[T]
-            ranges = [ranges]
-        return functools.partial(Sum, ranges=ranges)
+        return functools.partial(Sum, ranges=_prepare_ranges(ranges))
+
+
+def _prepare_ranges(ranges: Union[Variable, Tuple[Variable, ...]]) -> List[Variable]:
+    if isinstance(ranges, tuple):
+        return list(ranges)
+    elif isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
+        return [ranges]
+    else:
+        raise TypeError
 
 
 @dataclass
@@ -473,4 +488,4 @@ class One(Expression):
         return Fraction(self, other)
 
 
-A, B, C, D, Q, S, T, W, X, Y, Z = map(Variable, 'ABCDQSTWXYZ')
+A, B, C, D, Q, S, T, W, X, Y, Z = map(Variable, 'ABCDQSTWXYZ')  # type: ignore
