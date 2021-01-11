@@ -1,6 +1,7 @@
 graft src
 graft tests
 prune scripts
+prune notebooks
 
 recursive-include docs/source *.py
 recursive-include docs/source *.rst

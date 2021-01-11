@@ -1,8 +1,6 @@
-<!--
 <p align="center">
-  <img src="docs/source/logo.png" height="150">
+  <img src="docs/source/logo.png" height="120">
 </p>
--->
 
 <h1 align="center">
   y0
@@ -26,6 +24,9 @@
     </a>
     <a href='https://y0.readthedocs.io/en/latest/?badge=latest'>
         <img src='https://readthedocs.org/projects/y0/badge/?version=latest' alt='Documentation Status' />
+    </a>
+    <a href="https://zenodo.org/badge/latestdoi/328745468">
+        <img src="https://zenodo.org/badge/328745468.svg" alt="DOI">
     </a>
 </p>
 
