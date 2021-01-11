@@ -12,7 +12,9 @@
     <a href="https://github.com/y0-causal-inference/y0/actions?query=workflow%3ATests">
         <img alt="Tests" src="https://github.com/y0-causal-inference/y0/workflows/Tests/badge.svg" />
     </a>
-    <!-- Uncomment after deploying to PyPI
+   <a href="https://github.com/cthoyt/cookiecutter-python-package">
+      <img alt="Cookiecutter template from @cthoyt" src="https://img.shields.io/badge/Cookiecutter-python--package-yellow" /> 
+   </a>
     <a href="https://pypi.org/project/y0">
         <img alt="PyPI" src="https://img.shields.io/pypi/v/y0" />
     </a>
@@ -22,7 +24,9 @@
     <a href="https://github.com/y0-causal-inference/y0/blob/main/LICENSE">
         <img alt="PyPI - License" src="https://img.shields.io/pypi/l/y0" />
     </a>
-    -->
+    <a href='https://y0.readthedocs.io/en/latest/?badge=latest'>
+        <img src='https://readthedocs.org/projects/y0/badge/?version=latest' alt='Documentation Status' />
+    </a>
 </p>
 
 Python code for causal modeling.
