@@ -25,7 +25,7 @@
     -->
 </p>
 
-Python code for causal modeling
+Python code for causal modeling.
 
 ## 💪 Getting Started
 

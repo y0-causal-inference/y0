@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-"""Python code for causal modeling"""
+"""Python code for causal modeling."""
