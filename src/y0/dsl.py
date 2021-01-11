@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import functools
 import itertools as itt
+import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Callable, List, Tuple, TypeVar, Union
@@ -177,7 +178,7 @@ class CounterfactualVariable(Variable):
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        variables: List[Variable] = _upgrade_variables(variables)
+        variables = typing.cast(List[Variable], _upgrade_variables(variables))  # type: ignore
         self._raise_for_overlapping_interventions(variables)
         return CounterfactualVariable(
             name=self.name,
