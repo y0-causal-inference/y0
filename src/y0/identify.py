@@ -4,8 +4,9 @@
 
 from typing import Optional
 
+from ananke.graphs import ADMG
+
 from .dsl import Expression
-from .graph import MixedGraph
 
 __all__ = [
     'is_identifiable',
@@ -13,11 +14,11 @@ __all__ = [
 ]
 
 
-def is_identifiable(graph: MixedGraph, query: Expression) -> bool:
+def is_identifiable(graph: ADMG, query: Expression) -> bool:
     """Check if the expression is identifiable."""
     raise NotImplementedError
 
 
-def identify(graph: MixedGraph, query: Expression) -> Optional[Expression]:
+def identify(graph: ADMG, query: Expression) -> Optional[Expression]:
     """Get an expression from the graph or return None."""
     raise NotImplementedError

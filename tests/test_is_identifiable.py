@@ -5,7 +5,7 @@
 import unittest
 
 from y0.dsl import Expression, P, X, Y
-from y0.graph import MixedGraph, NxMixedGraph
+from y0.graph import NxMixedGraph
 from y0.identify import is_identifiable
 
 
@@ -16,9 +16,9 @@ class TestNotIdentifiable(unittest.TestCase):
     https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb.
     """
 
-    def assert_not_identifiable(self, graph: MixedGraph, query: Expression) -> None:
+    def assert_not_identifiable(self, graph: NxMixedGraph, query: Expression) -> None:
         """Asset the graph is not identifiable under the given query."""
-        self.assertFalse(is_identifiable(graph, query))
+        self.assertFalse(is_identifiable(graph.to_admg(), query))
 
     def test_figure_1a(self):
         """Test Figure 1A."""
@@ -101,7 +101,7 @@ class TestIdentifiable(unittest.TestCase):
     https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb.
     """
 
-    def assert_identifiable(self, graph: MixedGraph, query: Expression) -> None:
+    def assert_identifiable(self, graph: NxMixedGraph, query: Expression) -> None:
         """Assert the graph is identifiable under the given query."""
         self.assertTrue(is_identifiable(graph, query))
 
