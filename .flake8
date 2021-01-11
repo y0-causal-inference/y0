@@ -4,6 +4,8 @@
 #########################
 [flake8]
 ignore =
+    # Line break before binary operator (flake8 is wrong)
+    W503
     S404
     S603
 exclude =
