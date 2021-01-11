@@ -10,7 +10,7 @@
 
 <p align="center">
     <a href="https://github.com/y0-causal-inference/y0/actions?query=workflow%3ATests">
-        <img alt="Tests" src="https://github.com/y0-causal-inference/y0/workflows/Check%20mappings/badge.svg" />
+        <img alt="Tests" src="https://github.com/y0-causal-inference/y0/workflows/Tests/badge.svg" />
     </a>
     <!-- Uncomment after deploying to PyPI
     <a href="https://pypi.org/project/y0">
