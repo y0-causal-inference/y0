@@ -38,11 +38,11 @@ def _upgrade_variables(variables: XList[Variable]) -> List[Variable]:
 class _Mathable(ABC):
     @abstractmethod
     def to_text(self) -> str:
-        """Output this DSL object in internal string format."""
+        """Output this DSL object in the internal string format."""
 
     @abstractmethod
     def to_latex(self) -> str:
-        """Output this DSL object in LaTeX string format."""
+        """Output this DSL object in the LaTeX string format."""
 
     def __str__(self) -> str:
         return self.to_text()
@@ -59,10 +59,12 @@ class Variable(_Mathable):
         if self.name == 'P':
             raise ValueError('trust me, P is a bad variable name.')
 
-    def to_text(self) -> str:  # noqa:D102
+    def to_text(self) -> str:
+        """Output this variable in the internal string format."""
         return self.name
 
-    def to_latex(self) -> str:  # noqa:D102
+    def to_latex(self) -> str:
+        """Output this variable in the LaTeX string format."""
         return self.to_text()
 
     def intervene(self, variables: XList[Variable]) -> CounterfactualVariable:
@@ -135,10 +137,12 @@ class Intervention(Variable):
     #: If true, indicates this intervention represents a value different from what was observed
     star: bool = False
 
-    def to_text(self) -> str:  # noqa:D102
+    def to_text(self) -> str:
+        """Output this intervention variable in the internal string format."""
         return f'{self.name}*' if self.star else self.name
 
-    def to_latex(self) -> str:  # noqa:D102
+    def to_latex(self) -> str:
+        """Output this intervention variable in the LaTeX string format."""
         return f'{self.name}^*' if self.star else self.name
 
     def invert(self) -> Intervention:
@@ -160,11 +164,13 @@ class CounterfactualVariable(Variable):
     #: The interventions on the variable. Should be non-empty
     interventions: List[Variable]
 
-    def to_text(self) -> str:  # noqa:D102
+    def to_text(self) -> str:
+        """Output this counterfactual variable in the internal string format."""
         intervention_latex = ','.join(intervention.to_text() for intervention in self.interventions)
         return f'{self.name}_{{{intervention_latex}}}'
 
-    def to_latex(self) -> str:  # noqa:D102
+    def to_latex(self) -> str:
+        """Output this counterfactual variable in the LaTeX string format."""
         intervention_latex = ','.join(intervention.to_latex() for intervention in self.interventions)
         return f'{self.name}_{{{intervention_latex}}}'
 
@@ -210,10 +216,12 @@ class JointProbability(_Mathable):
 
     children: List[Variable]
 
-    def to_text(self) -> str:  # noqa:D102
+    def to_text(self) -> str:
+        """Output this joint probability distribution in the internal string format."""
         return ','.join(child.to_text() for child in self.children)
 
-    def to_latex(self) -> str:  # noqa:D102
+    def to_latex(self) -> str:
+        """Output this joint probability distribution in the LaTeX string format."""
         return ','.join(child.to_latex() for child in self.children)
 
     def joint(self, children: XList[Variable]) -> JointProbability:
@@ -240,11 +248,13 @@ class ConditionalProbability(_Mathable):
     child: Variable
     parents: List[Variable]
 
-    def to_text(self) -> str:  # noqa:D102
+    def to_text(self) -> str:
+        """Output this conditional probability distribution in the internal string format."""
         parents = ','.join(parent.to_text() for parent in self.parents)
         return f'{self.child.to_text()}|{parents}'
 
-    def to_latex(self) -> str:  # noqa:D102
+    def to_latex(self) -> str:
+        """Output this conditional probability distribution in the LaTeX string format."""
         parents = ','.join(parent.to_latex() for parent in self.parents)
         return f'{self.child.to_latex()}|{parents}'
 
@@ -336,10 +346,12 @@ class Probability(Expression):
             probability = JointProbability(probability)
         self.probability = probability
 
-    def to_text(self) -> str:  # noqa:D102
+    def to_text(self) -> str:
+        """Output this probability in the internal string format."""
         return f'P({self.probability.to_text()})'
 
     def to_latex(self) -> str:  # noqa:D102
+        """Output this probability in the LaTeX string format."""
         return f'P({self.probability.to_latex()})'
 
     def __repr__(self):
@@ -369,10 +381,12 @@ class Product(Expression):
 
     expressions: List[Expression]
 
-    def to_text(self):  # noqa:D102
+    def to_text(self):
+        """Output this product in the internal string format."""
         return ' '.join(expression.to_text() for expression in self.expressions)
 
     def to_latex(self):  # noqa:D102
+        """Output this product in the LaTeX string format."""
         return ' '.join(expression.to_latex() for expression in self.expressions)
 
     def __mul__(self, other: Expression):
@@ -396,11 +410,13 @@ class Sum(Expression):
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
     ranges: List[Variable] = field(default_factory=list)
 
-    def to_text(self) -> str:  # noqa:D102
+    def to_text(self) -> str:
+        """Output this sum in the internal string format."""
         ranges = ','.join(r.to_text() for r in self.ranges)
         return f'[ sum_{{{ranges}}} {self.expression.to_text()} ]'
 
-    def to_latex(self) -> str:  # noqa:D102
+    def to_latex(self) -> str:
+        """Output this sum in the LaTeX string format."""
         ranges = ','.join(r.to_latex() for r in self.ranges)
         return rf'\sum_{{{ranges}}} {self.expression.to_latex()}'
 
@@ -451,10 +467,12 @@ class Fraction(Expression):
     #: The expression in the denominator of the fraction
     denominator: Expression
 
-    def to_text(self) -> str:  # noqa:D102
+    def to_text(self) -> str:
+        """Output this fraction in the internal string format."""
         return f'frac_{{{self.numerator.to_text()}}}{{{self.denominator.to_text()}}}'
 
-    def to_latex(self) -> str:  # noqa:D102
+    def to_latex(self) -> str:
+        """Output this fraction in the LaTeX string format."""
         return rf'\frac{{{self.numerator.to_latex()}}}{{{self.denominator.to_latex()}}}'
 
     def __mul__(self, expression: Expression) -> Fraction:
@@ -473,10 +491,12 @@ class Fraction(Expression):
 class One(Expression):
     """The multiplicative identity (1)."""
 
-    def to_text(self) -> str:  # noqa:D102
+    def to_text(self) -> str:
+        """Output this identity variable in the internal string format."""
         return '1'
 
-    def to_latex(self) -> str:  # noqa:D102
+    def to_latex(self) -> str:
+        """Output this identity instance in the LaTeX string format."""
         return '1'
 
     def __rmul__(self, expression: Expression) -> Expression:
