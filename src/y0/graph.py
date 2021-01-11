@@ -23,7 +23,7 @@ class NxMixedGraph:
         self.undirected.add_node(u)
         self.undirected.add_node(v)
 
-    def add_undirected_edge(self, u, v, **attr):  # noqa:D102
+    def add_undirected_edge(self, u, v, **attr):
         """Add an undirected edge between u and v."""
         self.undirected.add_edge(u, v, **attr)
         self.directed.add_node(u)
