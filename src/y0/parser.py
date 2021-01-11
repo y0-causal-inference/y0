@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
+"""A parser for probability expressions."""
+
 from pyparsing import Forward, Group, OneOrMore, Optional, ParseResults, StringEnd, StringStart, Suppress
 
-from . import Expression, Fraction, Product, Sum
+from .dsl import Expression, Fraction, Product, Sum
 from .parser_utils import probability_pe, variables_pe
 
 __all__ = [
-    'grammar',
     'parse',
+    'grammar',
 ]
 
 expr = Forward()
@@ -50,8 +52,8 @@ sum_pe.setName('sum')
 sum_pe.setParseAction(_make_sum)
 
 fraction_pe = (
-    Suppress('frac_{') +
-    rr.setResultsName('numerator')
+    Suppress('frac_{')
+    + rr.setResultsName('numerator')
     + Suppress('}{')
     + rr.setResultsName('denominator')
     + Suppress('}')

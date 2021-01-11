@@ -40,7 +40,7 @@ class TestDSL(unittest.TestCase):
         self.assert_text('W*', ~W)
 
     def test_counterfactual_variable(self):
-        """"Test the Counterfactual Variable DSL object."""
+        """Test the Counterfactual Variable DSL object."""
         # Normal instantiation
         self.assert_text('Y_{W}', CounterfactualVariable('Y', [W]))
         self.assert_text('Y_{W*}', CounterfactualVariable('Y', [~W]))
@@ -151,7 +151,7 @@ class TestDSL(unittest.TestCase):
         # Sum with sum inside
         self.assert_text(
             "[ sum_{S,T} P(A|B) [ sum_{Q} P(C|D) ] ]",
-            Sum(P(A | B) * Sum(P(C | D), [Q]), [S, T])
+            Sum(P(A | B) * Sum(P(C | D), [Q]), [S, T]),
         )
 
     def test_jeremy(self):
@@ -188,10 +188,12 @@ class TestDSL(unittest.TestCase):
                 * Sum(Sum[X, W, Z, Y, V](P(X, W, D, Z, Y, V)))
                 * Sum(P(Z | [D, V]))
                 * Sum(Sum[X](P(Y | [X, D, V, Z, W]) * P(X)))
-                * Sum(Sum[X, W, D, Z, Y](P(X, W, D, Z, Y, V)))
+                * Sum(Sum[X, W, D, Z, Y](P(X, W, D, Z, Y, V))),
             ),
         )
 
         '''
-        [[sum_{D,Z,V} [sum_{} [sum_{X,W,Z,Y,V} P(X,W,D,Z,Y,V)]][sum_{}P(Z|D,V)][sum_{} [sum_{X} P(Y|X,D,V,Z,W)P(X|)]][sum_{} [sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V)]]]]/[ sum_{Y}[sum_{D,Z,V} [sum_{} [sum_{X,W,Z,Y,V} P(X,W,D,Z,Y,V)]][sum_{}P(Z|D,V)][sum_{} [sum_{X} P(Y|X,D,V,Z,W)P(X|)]][sum_{} [sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V)]]]]
+        [[sum_{D,Z,V} [sum_{} [sum_{X,W,Z,Y,V} P(X,W,D,Z,Y,V)]][sum_{}P(Z|D,V)][sum_{} [sum_{X} P(Y|X,D,V,Z,W)P(X|)]]
+        [sum_{} [sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V)]]]]/[ sum_{Y}[sum_{D,Z,V} [sum_{} [sum_{X,W,Z,Y,V} P(X,W,D,Z,Y,V)]]
+        [sum_{}P(Z|D,V)][sum_{} [sum_{X} P(Y|X,D,V,Z,W)P(X|)]][sum_{} [sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V)]]]]
         '''
