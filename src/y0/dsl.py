@@ -350,7 +350,7 @@ class Probability(Expression):
         """Output this probability in the internal string format."""
         return f'P({self.probability.to_text()})'
 
-    def to_latex(self) -> str:  # noqa:D102
+    def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
         return f'P({self.probability.to_latex()})'
 
@@ -385,7 +385,7 @@ class Product(Expression):
         """Output this product in the internal string format."""
         return ' '.join(expression.to_text() for expression in self.expressions)
 
-    def to_latex(self):  # noqa:D102
+    def to_latex(self):
         """Output this product in the LaTeX string format."""
         return ' '.join(expression.to_latex() for expression in self.expressions)
 
