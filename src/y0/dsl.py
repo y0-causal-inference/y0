@@ -49,7 +49,7 @@ class _Mathable(ABC):
 
 @dataclass(frozen=True)
 class Variable(_Mathable):
-    """Represents a variable, typically with a single letter."""
+    """A variable, typically with a single letter."""
 
     #: The name of the variable
     name: str
@@ -65,9 +65,11 @@ class Variable(_Mathable):
         return self.to_text()
 
     def intervene(self, interventions: XList[Union[Variable, Intervention]]) -> CounterfactualVariable:
-        """Intervene on the given variable or variables.
+        """Intervene on this variable with the given variable(s).
 
-        :param interventions: A variable (or intervention) instance or list of variables (or interventions).
+        :param interventions: The variable(s) used to extend this variable as it is changed to a
+            counterfactual variable
+        :returns: A new counterfactual variable over this variable with the given intervention(s).
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
@@ -80,7 +82,13 @@ class Variable(_Mathable):
         return self.intervene(interventions)
 
     def given(self, parents: XList[Variable]) -> ConditionalProbability:
-        """"""
+        """Create a distribution in which this variable is conditioned on the given variable(s).
+
+        :param parents: A variable or list of variables to include as conditions in the new conditional distribution
+        :returns: A new conditional probability distribution
+
+        .. note:: This function can be accessed with the or | operator.
+        """
         return ConditionalProbability(
             child=self,
             parents=_upgrade_variables(parents),
@@ -90,12 +98,20 @@ class Variable(_Mathable):
         return self.given(parents)
 
     def joint(self, children: XList[Variable]) -> JointProbability:
+        """Create a joint distribution between this variable and the given variable(s).
+
+        :param children: The variable(s) for use with this variable in a joint distribution
+        :returns: A new joint distribution over this variable and the given variables.
+
+        .. note:: This function can be accessed with the and & operator.
+        """
         return JointProbability([self, *_upgrade_variables(children)])
 
     def __and__(self, children: XList[Variable]) -> JointProbability:
         return self.joint(children)
 
     def star(self) -> Intervention:
+        """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
         return Intervention(name=self.name, star=True)
 
     def __invert__(self):
@@ -108,6 +124,11 @@ class Variable(_Mathable):
 
 @dataclass(frozen=True)
 class Intervention(Variable):
+    """An intervention variable.
+
+    An intervention variable is usually used as a subscript in a :class:`CounterfactualVariable`.
+    """
+
     #: The name of the intervention
     name: str
     #: If true, indicates this intervention represents a value different from what was observed
@@ -125,6 +146,13 @@ class Intervention(Variable):
 
 @dataclass(frozen=True)
 class CounterfactualVariable(Variable):
+    """A counterfactual variable.
+
+    Counterfactual variables are like normal variables, but can have a list of interventions.
+    Each intervention is either the same as what was observed (no star) or different from what
+    was observed (star).
+    """
+
     #: The name of the counterfactual variable
     name: str
     #: The interventions on the variable. Should be non-empty
@@ -139,6 +167,15 @@ class CounterfactualVariable(Variable):
         return f'{self.name}_{{{intervention_latex}}}'
 
     def intervene(self, interventions: XList[Intervention]) -> CounterfactualVariable:
+        """Intervene on this counterfactual variable with the given variable(s).
+
+        :param interventions: The variable(s) used to extend this counterfactual variable's
+            current interventions
+        :returns: A new counterfactual variable with both this counterfactual variable's interventions
+            and the given intervention(s)
+
+        .. note:: This function can be accessed with the matmult @ operator.
+        """
         interventions = _upgrade_variables(interventions)
         self._raise_for_overlapping_interventions(interventions)
         return CounterfactualVariable(
@@ -158,6 +195,8 @@ class CounterfactualVariable(Variable):
 
 @dataclass
 class JointProbability(_Mathable):
+    """A joint probability distribution over several variables."""
+
     children: List[Variable]
 
     def to_text(self) -> str:  # noqa:D102
@@ -167,6 +206,13 @@ class JointProbability(_Mathable):
         return ','.join(child.to_latex() for child in self.children)
 
     def joint(self, children: XList[Variable]) -> JointProbability:
+        """Create a joint distribution between the variables in this distribution the given variable(s).
+
+        :param children: The variable(s) with which this joint distribution is extended
+        :returns: A new joint distribution over all previous and given variables.
+
+        .. note:: This function can be accessed with the and & operator.
+        """
         return JointProbability([
             *self.children,
             *_upgrade_variables(children),
@@ -178,6 +224,8 @@ class JointProbability(_Mathable):
 
 @dataclass
 class ConditionalProbability(_Mathable):
+    """A conditional distribution over a single child variable and one or more parent conditional variables."""
+
     child: Variable
     parents: List[Variable]
 
@@ -190,9 +238,17 @@ class ConditionalProbability(_Mathable):
         return f'{self.child.to_latex()}|{parents}'
 
     def given(self, parents: XList[Variable]) -> ConditionalProbability:
+        """Create a new conditional distribution with this distribution's children, parents, and the given parent(s).
+
+        :param parents: A variable or list of variables to include as conditions in the new conditional distribution,
+            in addition to the variables already in this conditional distribution
+        :returns: A new conditional probability distribution
+
+        .. note:: This function can be accessed with the or | operator.
+        """
         return ConditionalProbability(
             child=self.child,
-            parents=[*self.parents, *_upgrade_variables(parents)]
+            parents=[*self.parents, *_upgrade_variables(parents)],
         )
 
     def __or__(self, parents: XList[Variable]) -> ConditionalProbability:
@@ -200,6 +256,8 @@ class ConditionalProbability(_Mathable):
 
 
 class Expression(_Mathable, ABC):
+    """The abstract class representing all expressions."""
+
     def _repr_latex_(self) -> str:  # hack for auto-display of latex in jupyter notebook
         return f'${self.to_latex()}$'
 
@@ -211,11 +269,51 @@ class Expression(_Mathable, ABC):
 
 
 class Probability(Expression):
+    """The probability over a distribution."""
+
     def __init__(
         self,
         probability: Union[Variable, List[Variable], ConditionalProbability, JointProbability],
-        *args,
-    ):
+        *args: Variable,
+    ) -> None:
+        """Create a probability expression over the given variable(s) or distribution.
+
+        :param probability: If given a :class:`ConditionalProbability` or :class:`JointProbability`,
+            creates a probability expression directly over the distribution. If given variable or
+            list of variables, conveniently creates a :class:`JointProbability` over the variable(s)
+            first.
+        :param args: If the first argument (``probability``) was given as a single variable, the
+            ``args`` variadic argument can be used to specify a list of additiona variables.
+        :raises ValueError: If varidic args are used incorrectly (i.e., in combination with a
+            list of variables, :class:`ConditionalProbability`, or :class:`JointProbability`.
+
+        .. note:: This class is so commonly used, that it is aliased as :class:`P`.
+
+        Creation with a :class:`ConditionalProbability`:
+
+        >>> from y0.dsl import P, A, B
+        >>> P(A | B)
+
+        Creation with a :class:`JointProbability`:
+
+        >>> from y0.dsl import P, A, B
+        >>> P(A & B)
+
+        Creation with a single :class:`Variable`:
+
+        >>> from y0.dsl import P, A
+        >>> P(A)
+
+        Creation with a list of :class:`Variable`:
+
+        >>> from y0.dsl import P, A, B
+        >>> P([A, B])
+
+        Creation with a list of :class:`Variable`: using variadic arguments:
+
+        >>> from y0.dsl import P, A, B
+        >>> P(A, B)
+        """
         if isinstance(probability, Variable):
             if not args:
                 probability = [probability]
@@ -256,6 +354,8 @@ P = Probability
 
 @dataclass
 class Product(Expression):
+    """Represent the product of several probability expressions."""
+
     expressions: List[Expression]
 
     def to_text(self):  # noqa:D102
@@ -278,8 +378,11 @@ class Product(Expression):
 
 @dataclass
 class Sum(Expression):
+    """Represent the sum over an expression over an optional set of variables."""
+
+    #: The expression over which the sum is done
     expression: Expression
-    # The variables over which the sum is done. Defaults to an empty list, meaning no variables.
+    #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
     ranges: List[Variable] = field(default_factory=list)
 
     def to_text(self) -> str:  # noqa:D102
@@ -301,6 +404,21 @@ class Sum(Expression):
 
     @classmethod
     def __class_getitem__(cls, ranges: Union[Variable, Tuple[Variable, ...]]) -> Callable[[Expression], Sum]:
+        """Create a partial sum object over the given ranges.
+
+        :param ranges: The variables over which the partial sum will be done
+        :returns: A partial :class:`Sum` that can be called solely on an expression
+
+        Example single variable sum:
+
+        >>> from y0.dsl import Sum, P, A, B
+        >>> Sum[B](P(A | B) * P(B))
+
+        Example multiple variable sum:
+
+        >>> from y0.dsl import Sum, P, A, B, C
+        >>> Sum[B, C](P(A | B) * P(B))
+        """
         if isinstance(ranges, tuple):
             ranges = list(ranges)
         else:  # a single element is not given as a tuple, such as in Sum[T]
@@ -310,7 +428,11 @@ class Sum(Expression):
 
 @dataclass
 class Fraction(Expression):
+    """Represents a fraction of two expressions."""
+
+    #: The expression in the numerator of the fraction
     numerator: Expression
+    #: The expression in the denominator of the fraction
     denominator: Expression
 
     def to_text(self) -> str:  # noqa:D102
@@ -319,7 +441,7 @@ class Fraction(Expression):
     def to_latex(self) -> str:  # noqa:D102
         return rf'\frac{{{self.numerator.to_latex()}}}{{{self.denominator.to_latex()}}}'
 
-    def __mul__(self, expression: Expression):
+    def __mul__(self, expression: Expression) -> Fraction:
         if isinstance(expression, Fraction):
             return Fraction(self.numerator * expression.numerator, self.denominator * expression.denominator)
         else:
@@ -333,6 +455,8 @@ class Fraction(Expression):
 
 
 class One(Expression):
+    """The multiplicative identity (1)."""
+
     def to_text(self) -> str:  # noqa:D102
         return '1'
 

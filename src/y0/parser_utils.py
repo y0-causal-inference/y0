@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+"""Utilities for the parser."""
+
 from pyparsing import Group, Optional, ParseResults, Suppress, Word, alphas, delimitedList
 
 from .dsl import (
@@ -62,7 +64,7 @@ intervention_pe.setParseAction(_make_intervention)
 interventions_pe = Optional(
     Suppress('_{')
     + delimitedList(Group(intervention_pe).setParseAction(_unpack)).setResultsName('interventions')
-    + Suppress('}')
+    + Suppress('}'),
 )
 variable_pe = letter('name') + interventions_pe
 variable_pe.setParseAction(_make_variable)
