@@ -7,6 +7,8 @@ y0 |release| Documentation
    :name: start
 
    installation
+   dsl
+   parser
    cli
 
 Indices and Tables
