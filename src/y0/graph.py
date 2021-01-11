@@ -6,9 +6,6 @@ import networkx as nx
 from ananke.graphs import ADMG
 
 
-# TODO the actual abstract implementation should evolve to meet what is
-#  required to implement the identify() algorithm.
-
 class NxMixedGraph:
     """A mixed graph based on :mod:`networkx`."""
 
