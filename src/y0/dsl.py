@@ -12,7 +12,6 @@ from typing import Callable, List, Tuple, TypeVar, Union
 
 __all__ = [
     'Variable',
-    'V',
     'Intervention',
     'CounterfactualVariable',
     'ConditionalProbability',
@@ -81,6 +80,7 @@ class Variable(_Mathable):
         return self.intervene(interventions)
 
     def given(self, parents: XList[Variable]) -> ConditionalProbability:
+        """"""
         return ConditionalProbability(
             child=self,
             parents=_upgrade_variables(parents),
@@ -104,9 +104,6 @@ class Variable(_Mathable):
     @classmethod
     def __class_getitem__(cls, item) -> Variable:
         return Variable(item)
-
-
-V = Variable
 
 
 @dataclass(frozen=True)
