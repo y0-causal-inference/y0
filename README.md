@@ -21,11 +21,9 @@
     <a href="https://pypi.org/project/y0">
         <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/y0" />
     </a>
-    <!--
     <a href="https://github.com/y0-causal-inference/y0/blob/main/LICENSE">
         <img alt="PyPI - License" src="https://img.shields.io/pypi/l/y0" />
     </a>
-    -->
     <a href='https://y0.readthedocs.io/en/latest/?badge=latest'>
         <img src='https://readthedocs.org/projects/y0/badge/?version=latest' alt='Documentation Status' />
     </a>
