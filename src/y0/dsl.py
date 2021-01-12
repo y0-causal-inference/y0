@@ -9,7 +9,7 @@ import itertools as itt
 import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Callable, List, Tuple, TypeVar, Union
+from typing import Callable, List, Tuple, TypeVar, Union, Set
 
 __all__ = [
     'Variable',
@@ -47,6 +47,9 @@ class _Mathable(ABC):
     def __str__(self) -> str:
         return self.to_text()
 
+    def get_variables(self) -> Set[Variable]:
+        return set()
+
 
 @dataclass(frozen=True)
 class Variable(_Mathable):
@@ -78,7 +81,7 @@ class Variable(_Mathable):
         """
         return CounterfactualVariable(
             name=self.name,
-            interventions=_upgrade_variables(variables),
+            interventions=[var.as_intervention() for var in _upgrade_variables(variables)],
         )
 
     def __matmul__(self, variables: XList[Variable]) -> CounterfactualVariable:
@@ -124,6 +127,11 @@ class Variable(_Mathable):
     def __class_getitem__(cls, item) -> Variable:
         return Variable(item)
 
+    def get_variables(self) -> Set[Variable]:
+        return {self}
+
+    def as_intervention(self, star=False) -> Intervention:
+        return Intervention(self.name, star)
 
 @dataclass(frozen=True)
 class Intervention(Variable):
@@ -149,6 +157,10 @@ class Intervention(Variable):
         """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
         return Intervention(name=self.name, star=not self.star)
 
+    def as_intervention(self, star=None) -> Intervention:
+        if star is None or star == self.star:
+            return self
+        return Intervention(self.name, star)
 
 @dataclass(frozen=True)
 class CounterfactualVariable(Variable):
@@ -163,6 +175,9 @@ class CounterfactualVariable(Variable):
     name: str
     #: The interventions on the variable. Should be non-empty
     interventions: List[Variable]
+
+    def __hash__(self):
+        return hash(self.to_text()) 
 
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
@@ -188,7 +203,7 @@ class CounterfactualVariable(Variable):
         self._raise_for_overlapping_interventions(variables)
         return CounterfactualVariable(
             name=self.name,
-            interventions=[*self.interventions, *variables],
+            interventions=[var.as_intervention() for var in [*self.interventions, *variables]],
         )
 
     def _raise_for_overlapping_interventions(self, variables: List[Variable]) -> None:
@@ -209,6 +224,14 @@ class CounterfactualVariable(Variable):
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
         raise NotImplementedError
 
+    def as_intervention(self, star=False) -> Intervention:
+        assert None, "No nested interventions"
+
+    def get_variables(self) -> Set[Variable]:
+        base = {self}
+        for var in self.interventions:
+            base.update(var.get_variables())
+        return base
 
 @dataclass
 class JointProbability(_Mathable):
@@ -239,6 +262,12 @@ class JointProbability(_Mathable):
 
     def __and__(self, children: XList[Variable]) -> JointProbability:
         return self.joint(children)
+
+    def get_variables(self) -> Set[Variable]:
+        base = set()
+        for var in self.children:
+            base.update(var.get_variables())
+        return base
 
 
 @dataclass
@@ -274,6 +303,12 @@ class ConditionalProbability(_Mathable):
 
     def __or__(self, parents: XList[Variable]) -> ConditionalProbability:
         return self.given(parents)
+
+    def get_variables(self) -> Set[Variable]:
+        base = self.child.get_variables()
+        for var in self.parents:
+            base.update(var.get_variables())
+        return base
 
 
 class Expression(_Mathable, ABC):
@@ -371,6 +406,9 @@ class Probability(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
 
+    def get_variables(self) -> Set[Variable]:
+        return self.probability.get_variables()
+
 
 P = Probability
 
@@ -400,6 +438,11 @@ class Product(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
 
+    def get_variables(self) -> Set[Variable]:
+        base = set()
+        for var in self.expressions:
+            base.update(var.get_variables())
+        return base
 
 @dataclass
 class Sum(Expression):
@@ -428,6 +471,12 @@ class Sum(Expression):
 
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
+
+    def get_variables(self) -> Set[Variable]:
+        base = self.expression.get_variables()
+        for var in self.ranges:
+            base.update(var.get_variables())
+        return base
 
     @classmethod
     def __class_getitem__(cls, ranges: Union[Variable, Tuple[Variable, ...]]) -> Callable[[Expression], Sum]:
@@ -487,6 +536,10 @@ class Fraction(Expression):
         else:
             return Fraction(self.numerator, self.denominator * expression)
 
+    def get_variables(self) -> Set[Variable]:
+        base = self.numerator.get_variables()
+        base.update(self.denominator.get_variables())
+        return base
 
 class One(Expression):
     """The multiplicative identity (1)."""
