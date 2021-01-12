@@ -4,10 +4,11 @@
 
 import itertools as itt
 import unittest
+from typing import Set
 
 from y0.dsl import (
-    A, B, C, ConditionalProbability, CounterfactualVariable, D, Fraction, Intervention, JointProbability, P, Q, S, Sum,
-    T, Variable, W, X, Y, Z,
+    A, B, C, ConditionalProbability, CounterfactualVariable, D, Expression, Fraction, Intervention, JointProbability, P,
+    Q, S, Sum, T, Variable, W, X, Y, Z, get_variables,
 )
 
 V = Variable('V')
@@ -197,3 +198,20 @@ class TestDSL(unittest.TestCase):
         [sum_{} [sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V)]]]]/[ sum_{Y}[sum_{D,Z,V} [sum_{} [sum_{X,W,Z,Y,V} P(X,W,D,Z,Y,V)]]
         [sum_{}P(Z|D,V)][sum_{} [sum_{X} P(Y|X,D,V,Z,W)P(X|)]][sum_{} [sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V)]]]]
         '''
+
+
+class TestGetVariables(unittest.TestCase):
+    """Test getting variables."""
+
+    def assert_has_variables(self, expression: Expression, variables: Set[str]) -> None:
+        """Assert the variables are the result of getting variables from the expression."""
+        self.assertEqual(variables, get_variables(expression))
+
+    def test_api(self):
+        """Test the high-level API for getting variables."""
+        for expression, variables in [
+            (P(A @ B), {'B'}),
+            (P(A @ ~B), {'B'}),
+        ]:
+            with self.subTest(expression=str(expression)):
+                self.assert_has_variables(expression, variables)
