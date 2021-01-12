@@ -1,6 +1,6 @@
 name: Tests
 
-on: [ push ]
+on: [ push, pull_request ]
 
 jobs:
   lint:
@@ -49,10 +49,9 @@ jobs:
         run: tox -e docs
   tests:
     name: Tests
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
         python-version: [ 3.8, 3.9 ]
     steps:
       - uses: actions/checkout@v2
