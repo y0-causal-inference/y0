@@ -26,10 +26,7 @@ def _set_star(_s, _l, tokens: ParseResults):
 
 
 def _make_intervention(_s, _l, tokens: ParseResults):
-    if tokens['star']:
-        return Intervention(name=tokens['name'], star=True)
-    else:
-        return Variable(name=tokens['name'])
+    return Intervention(name=tokens['name'], star=bool(tokens['star']))
 
 
 def _unpack(_s, _l, tokens: ParseResults):
