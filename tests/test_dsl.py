@@ -7,8 +7,8 @@ import unittest
 from typing import Set
 
 from y0.dsl import (
-    A, B, C, ConditionalProbability, CounterfactualVariable, D, Expression, Fraction, Intervention, JointProbability, P,
-    Q, S, Sum, T, Variable, W, X, Y, Z, get_variable_names, Set
+    A, B, C, ConditionalProbability, CounterfactualVariable, D, Expression, Fraction, Intervention, JointProbability,
+    P, Q, S, Sum, T, Variable, W, X, Y, Z, get_variable_names,
 )
 
 V = Variable('V')
@@ -53,7 +53,8 @@ class TestDSL(unittest.TestCase):
         self.assert_text('Y_{W*}', Y @ [~W])
 
         # Instantiation with two variables
-        self.assert_text('Y_{X,W*}', CounterfactualVariable('Y', [Intervention('X'), ~Intervention('W')]))
+        self.assert_text('Y_{X,W*}', CounterfactualVariable('Y',
+                                                            [Intervention('X'), ~Intervention('W')]))
 
         # Instantiation with matmul @ operator and single operand
         self.assert_text('Y_{W}', Y @ Intervention('W'))
@@ -199,31 +200,34 @@ class TestDSL(unittest.TestCase):
         [sum_{}P(Z|D,V)][sum_{} [sum_{X} P(Y|X,D,V,Z,W)P(X|)]][sum_{} [sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V)]]]]
         '''
 
+
 class TestGetVariables(unittest.TestCase):
-     """Test getting variables."""
+    """Test getting variables."""
 
-     def assert_has_variable_names(self, expression: Expression, variables: Set[str]) -> None:
-         """Assert the variables are the result of getting variables from the expression."""
-         self.assertEqual(variables, get_variable_names(expression))
+    def assert_has_variable_names(self, expression: Expression, variables: Set[str]) -> None:
+        """Assert the variables are the result of getting variables from the expression."""
+        self.assertEqual(variables, get_variable_names(expression))
 
-     def assert_has_variables(self, expression: Expression, variables: Set[Variable]) -> None:
-         """Assert the variables are the result of getting variables from the expression."""
-         self.assertEqual(variables, expression.get_variables())
+    def assert_has_variables(self, expression: Expression, variables: Set[Variable]) -> None:
+        """Assert the variables are the result of getting variables from the expression."""
+        self.assertEqual(variables, expression.get_variables())
 
-     def test_api(self):
-         """Test the high-level API for getting variables."""
-         for expression, variables in [
-             (P(A @ B), {'A', 'B'}),
-             (P(A @ ~B), {'A', 'B'}),
+    def test_api(self):
+        """Test the high-level API for getting variables."""
+        for expression, variables in [
+            (P(A @ B), {'A', 'B'}),
+            (P(A @ ~B), {'A', 'B'}),
         ]:
-             with self.subTest(expression=str(expression)):
-                 self.assert_has_variable_names(expression, variables)
+            with self.subTest(expression=str(expression)):
+                self.assert_has_variable_names(expression, variables)
 
-     def test_api2(self):
-         """Test the high-level API for getting variables."""
-         for expression, variables in [
-             (P(A @ B), {CounterfactualVariable('A', [Intervention('B')]), Intervention('B')}),
-             (P(A @ ~B), {CounterfactualVariable('A', [Intervention('B', True)]), Intervention('B', True)}),
+    def test_api2(self):
+        """Test the high-level API for getting variables."""
+        for expression, variables in [
+            (P(A @ B), {CounterfactualVariable('A',
+                                               [Intervention('B')]), Intervention('B')}),
+            (P(A @ ~B), {CounterfactualVariable('A',
+                                                [Intervention('B', True)]), Intervention('B', True)}),
         ]:
-             with self.subTest(expression=str(expression)):
-                 self.assert_has_variables(expression, variables)
+            with self.subTest(expression=str(expression)):
+                self.assert_has_variables(expression, variables)

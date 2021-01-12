@@ -9,7 +9,7 @@ import itertools as itt
 import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Callable, List, Tuple, TypeVar, Union, Set
+from typing import Callable, List, Set, Tuple, TypeVar, Union
 
 __all__ = [
     'Variable',
@@ -25,7 +25,7 @@ __all__ = [
     'Expression',
     'One',
     'A', 'B', 'C', 'D', 'Q', 'S', 'T', 'W', 'X', 'Y', 'Z',
-    'get_variable_names'
+    'get_variable_names',
 ]
 
 X = TypeVar('X')
@@ -49,6 +49,7 @@ class _Mathable(ABC):
         return self.to_text()
 
     def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
         return set()
 
 
@@ -82,7 +83,8 @@ class Variable(_Mathable):
         """
         return CounterfactualVariable(
             name=self.name,
-            interventions=[var.as_intervention() for var in _upgrade_variables(variables)],
+            interventions=[var.as_intervention()
+                           for var in _upgrade_variables(variables)],
         )
 
     def __matmul__(self, variables: XList[Variable]) -> CounterfactualVariable:
@@ -129,10 +131,13 @@ class Variable(_Mathable):
         return Variable(item)
 
     def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
         return {self}
 
     def as_intervention(self, star=False) -> Intervention:
+        """Make a clone of this variable as an intervention."""
         return Intervention(self.name, star)
+
 
 @dataclass(frozen=True)
 class Intervention(Variable):
@@ -159,9 +164,15 @@ class Intervention(Variable):
         return Intervention(name=self.name, star=not self.star)
 
     def as_intervention(self, star=None) -> Intervention:
+        """Return this variable as an intervention.
+
+        :param star: Specify a new star-value to obtain a clone.
+        :returns: the intervention itself or a clone.
+        """
         if star is None or star == self.star:
             return self
         return Intervention(self.name, star)
+
 
 @dataclass(frozen=True)
 class CounterfactualVariable(Variable):
@@ -178,16 +189,18 @@ class CounterfactualVariable(Variable):
     interventions: List[Variable]
 
     def __hash__(self):
-        return hash(self.to_text()) 
+        return hash(self.to_text())
 
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
-        intervention_latex = ','.join(intervention.to_text() for intervention in self.interventions)
+        intervention_latex = ','.join(intervention.to_text()
+                                      for intervention in self.interventions)
         return f'{self.name}_{{{intervention_latex}}}'
 
     def to_latex(self) -> str:
         """Output this counterfactual variable in the LaTeX string format."""
-        intervention_latex = ','.join(intervention.to_latex() for intervention in self.interventions)
+        intervention_latex = ','.join(intervention.to_latex()
+                                      for intervention in self.interventions)
         return f'{self.name}_{{{intervention_latex}}}'
 
     def intervene(self, variables: XList[Variable]) -> CounterfactualVariable:
@@ -200,11 +213,13 @@ class CounterfactualVariable(Variable):
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        variables = typing.cast(List[Variable], _upgrade_variables(variables))  # type: ignore
+        variables = typing.cast(
+            List[Variable], _upgrade_variables(variables))  # type: ignore
         self._raise_for_overlapping_interventions(variables)
         return CounterfactualVariable(
             name=self.name,
-            interventions=[var.as_intervention() for var in [*self.interventions, *variables]],
+            interventions=[var.as_intervention()
+                           for var in [*self.interventions, *variables]],
         )
 
     def _raise_for_overlapping_interventions(self, variables: List[Variable]) -> None:
@@ -219,20 +234,24 @@ class CounterfactualVariable(Variable):
             if old.name == new.name
         }
         if overlaps:
-            raise ValueError(f'Overlapping interventions in new interventions: {overlaps}')
+            raise ValueError(
+                f'Overlapping interventions in new interventions: {overlaps}')
 
     def invert(self) -> Intervention:
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
         raise NotImplementedError
 
     def as_intervention(self, star=False) -> Intervention:
-        assert None, "No nested interventions"
+        """Return this variable as an intervention. Illegal in this case."""
+        raise RuntimeError("No nested interventions")
 
     def get_variables(self) -> Set[Variable]:
-        base = {self}
+        """Get the set of variables used in this expression."""
+        base = super(CounterfactualVariable, self).get_variables()
         for var in self.interventions:
             base.update(var.get_variables())
         return base
+
 
 @dataclass
 class JointProbability(_Mathable):
@@ -265,6 +284,7 @@ class JointProbability(_Mathable):
         return self.joint(children)
 
     def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
         base = set()
         for var in self.children:
             base.update(var.get_variables())
@@ -306,6 +326,7 @@ class ConditionalProbability(_Mathable):
         return self.given(parents)
 
     def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
         base = self.child.get_variables()
         for var in self.parents:
             base.update(var.get_variables())
@@ -408,6 +429,7 @@ class Probability(Expression):
         return Fraction(self, expression)
 
     def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
         return self.probability.get_variables()
 
 
@@ -440,10 +462,12 @@ class Product(Expression):
         return Fraction(self, expression)
 
     def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
         base = set()
         for var in self.expressions:
             base.update(var.get_variables())
         return base
+
 
 @dataclass
 class Sum(Expression):
@@ -474,6 +498,7 @@ class Sum(Expression):
         return Fraction(self, expression)
 
     def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
         base = self.expression.get_variables()
         for var in self.ranges:
             base.update(var.get_variables())
@@ -502,7 +527,8 @@ class Sum(Expression):
 def _prepare_ranges(ranges: Union[Variable, Tuple[Variable, ...]]) -> List[Variable]:
     if isinstance(ranges, tuple):
         return list(ranges)
-    elif isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
+    # a single element is not given as a tuple, such as in Sum[T]
+    elif isinstance(ranges, Variable):
         return [ranges]
     else:
         raise TypeError
@@ -538,9 +564,11 @@ class Fraction(Expression):
             return Fraction(self.numerator, self.denominator * expression)
 
     def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
         base = self.numerator.get_variables()
         base.update(self.denominator.get_variables())
         return base
+
 
 class One(Expression):
     """The multiplicative identity (1)."""
