@@ -7,6 +7,7 @@ from .dsl import ConditionalProbability, Expression, P, Probability, Product, Fr
 
 def is_simple_bayes(p: Probability) -> bool:
     """Return if the probability follows the form P(Y|X)."""
+    return (
         isinstance(p.probability, ConditionalProbability)
         and 1 == len(p.probability.parents)
     )
