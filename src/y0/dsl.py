@@ -25,7 +25,7 @@ __all__ = [
     'Expression',
     'One',
     'A', 'B', 'C', 'D', 'Q', 'S', 'T', 'W', 'X', 'Y', 'Z',
-    'get_variables',
+    'get_variable_names'
 ]
 
 X = TypeVar('X')
@@ -566,9 +566,9 @@ class One(Expression):
 A, B, C, D, Q, S, T, W, X, Y, Z = map(Variable, 'ABCDQSTWXYZ')  # type: ignore
 
 
-# TODO get_variables is not an informative name that gives insight into what
+# TODO get_variable_names is not an informative name that gives insight into what
 #  this function does. Needs to be renamed.
-def get_variables(expression: Expression) -> Set[str]:
+def get_variable_names(expression: _Mathable) -> Set[str]:
     """Get the variable names."""
     return {
         variable.name
