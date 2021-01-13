@@ -50,9 +50,9 @@ class _Mathable(ABC):
     def __str__(self) -> str:
         return self.to_text()
 
+    @abstractmethod
     def get_variables(self) -> Set[Variable]:
         """Get the set of variables used in this expression."""
-        return set()
 
 
 @dataclass(frozen=True)
