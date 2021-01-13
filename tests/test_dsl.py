@@ -4,10 +4,9 @@
 
 import itertools as itt
 import unittest
-from typing import Set
 
 from y0.dsl import (
-    A, B, C, CounterfactualVariable, D, Distribution, Expression, Fraction, Intervention, One, P, Q, S, Sum, T,
+    A, B, C, CounterfactualVariable, D, Distribution, Fraction, Intervention, One, P, Q, S, Sum, T,
     Variable, W,
     X, Y, Z,
 )
@@ -236,14 +235,6 @@ class TestDSL(unittest.TestCase):
         [sum_{}P(Z|D,V)][sum_{} [sum_{X} P(Y|X,D,V,Z,W)P(X|)]][sum_{} [sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V)]]]]
         '''
 
-
-class TestGetVariables(unittest.TestCase):
-    """Test getting variables."""
-
-    def assert_has_variables(self, expression: Expression, variables: Set[Variable]) -> None:
-        """Assert the variables are the result of getting variables from the expression."""
-        self.assertEqual(variables, expression.get_variables())
-
     def test_api(self):
         """Test the high-level API for getting variables."""
         for expression, variables in [
@@ -259,4 +250,4 @@ class TestGetVariables(unittest.TestCase):
             (P(Y | X) * P(X) / P(Y), {X, Y}),
         ]:
             with self.subTest(expression=str(expression)):
-                self.assert_has_variables(expression, variables)
+                self.assertEqual(variables, expression.get_variables())
