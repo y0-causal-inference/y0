@@ -152,9 +152,9 @@ class Variable(_Mathable):
         """Get the set of variables used in this expression."""
         return {self}
 
-    def as_intervention(self, star=False) -> Intervention:
+    def as_intervention(self) -> Intervention:
         """Make a clone of this variable as an intervention."""
-        return Intervention(self.name, star)
+        return Intervention(self.name)
 
 
 @dataclass(frozen=True)
@@ -181,15 +181,13 @@ class Intervention(Variable):
         """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
         return Intervention(name=self.name, star=not self.star)
 
-    def as_intervention(self, star=None) -> Intervention:
+    def as_intervention(self) -> Intervention:
         """Return this variable as an intervention.
 
         :param star: Specify a new star-value to obtain a clone.
         :returns: the intervention itself or a clone.
         """
-        if star is None or star == self.star:
-            return self
-        return Intervention(self.name, star)
+        return self
 
 
 @dataclass(frozen=True)
