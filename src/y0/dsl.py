@@ -210,8 +210,7 @@ class CounterfactualVariable(Variable):
 
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
-        intervention_latex = ','.join(intervention.to_text()
-                                      for intervention in self.interventions)
+        intervention_latex = ','.join(intervention.to_text() for intervention in self.interventions)
         return f'{self.name}_{{{intervention_latex}}}'
 
     def to_latex(self) -> str:
@@ -235,8 +234,7 @@ class CounterfactualVariable(Variable):
         self._raise_for_overlapping_interventions(variables)
         return CounterfactualVariable(
             name=self.name,
-            interventions=[var.as_intervention()
-                           for var in [*self.interventions, *variables]],
+            interventions=[var.as_intervention() for var in [*self.interventions, *variables]],
         )
 
     def _raise_for_overlapping_interventions(self, variables: List[Variable]) -> None:
@@ -251,8 +249,7 @@ class CounterfactualVariable(Variable):
             if old.name == new.name
         }
         if overlaps:
-            raise ValueError(
-                f'Overlapping interventions in new interventions: {overlaps}')
+            raise ValueError(f'Overlapping interventions in new interventions: {overlaps}')
 
     def invert(self) -> Intervention:
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
