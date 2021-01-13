@@ -6,8 +6,8 @@ import itertools as itt
 import unittest
 
 from y0.dsl import (
-    A, B, C, ConditionalProbability, CounterfactualVariable, D, Fraction, Intervention, JointProbability, P, Q, S, Sum,
-    T, Variable, W, X, Y, Z,
+    A, B, C, CounterfactualVariable, D, Distribution, Fraction, Intervention, P, Q, S, Sum, T,
+    Variable, W, X, Y, Z,
 )
 
 V = Variable('V')
@@ -19,7 +19,7 @@ class TestDSL(unittest.TestCase):
     def assert_text(self, s: str, expression):
         """Assert the expression when it is converted to a string."""
         self.assertIsInstance(s, str)
-        self.assertEqual(s, expression.to_text())
+        self.assertEqual(s, expression.to_text(), msg=f'Expression: {repr(expression)}')
 
     def test_variable(self):
         """Test the variable DSL object."""
@@ -70,10 +70,10 @@ class TestDSL(unittest.TestCase):
             with self.subTest(a=a, b=b), self.assertRaises(ValueError):
                 Y @ Intervention('X', star=a) @ Intervention('X', star=b)
 
-    def test_conditional(self):
-        """Test the ConditionalProbability DSL object."""
+    def test_conditional_distribution(self):
+        """Test the :class:`Distribution` DSL object."""
         # Normal instantiation
-        self.assert_text('A|B', ConditionalProbability(A, [B]))
+        self.assert_text('A|B', Distribution(A, [B]))
 
         # Instantiation with list-based operand to or | operator
         self.assert_text('A|B', Variable('A') | [B])
@@ -97,28 +97,41 @@ class TestDSL(unittest.TestCase):
         self.assert_text('Y_{W,X*}|B,C', Y @ W @ ~X | B | C)
         self.assert_text('Y_{W,X*}|B_{Q*},C', Y @ W @ ~X | B @ Intervention('Q', True) | C)
 
-    def test_conditional_probability(self):
-        """Test generation of conditional probabilities."""
-        self.assert_text('P(A|B)', P(ConditionalProbability(A, [B])))
+    def test_joint_distribution(self):
+        """Test the JointProbability DSL object."""
+        self.assert_text('A,B', Distribution([A, B]))
+        self.assert_text('A,B', A & B)
+        self.assert_text('A,B,C', Distribution([A, B, C]))
+        self.assert_text('A,B,C', A & B & C)
+
+    def test_probability(self):
+        """Test generation of probabilities."""
+        # Test markov kernels (AKA has only one child variable)
+        self.assert_text('P(A|B)', P(Distribution(A, [B])))
         self.assert_text('P(A|B)', P(A | [B]))
-        self.assert_text('P(A|B,C)', P(ConditionalProbability(A, [B]) | C))
+        self.assert_text('P(A|B,C)', P(Distribution(A, [B]) | C))
         self.assert_text('P(A|B,C)', P(A | [B, C]))
         self.assert_text('P(A|B,C)', P(A | B | C))
 
-    def test_joint(self):
-        """Test the JointProbability DSL object."""
-        self.assert_text('A,B', JointProbability([A, B]))
-        self.assert_text('A,B', A & B)
-        self.assert_text('A,B,C', JointProbability([A, B, C]))
-        self.assert_text('A,B,C', A & B & C)
-
-    def test_joint_probability(self):
-        """Test generation of joint probabilities."""
-        # Shortcut for list building
+        # Test simple joint distributions
         self.assert_text('P(A,B)', P([A, B]))
         self.assert_text('P(A,B)', P(A, B))
         self.assert_text('P(A,B)', P(A & B))
         self.assert_text('P(A,B,C)', P(A & B & C))
+
+        # Test mixed with single conditional
+        self.assert_text('P(A,B|C)', P(Distribution([A, B], [C])))
+        self.assert_text('P(A,B|C)', P(Distribution([A, B], C)))
+        self.assert_text('P(A,B|C)', P(Distribution([A, B]) | C))
+        self.assert_text('P(A,B|C)', P(A & B | C))
+
+        # Test mixed with multiple conditionals
+        self.assert_text('P(A,B|C,D)', P(Distribution([A, B], [C, D])))
+        self.assert_text('P(A,B|C,D)', P(Distribution([A, B]) | C | D))
+        self.assert_text('P(A,B|C,D)', P(Distribution([A, B], [C]) | D))
+        self.assert_text('P(A,B|C,D)', P(A & B | C | D))
+        self.assert_text('P(A,B|C,D)', P(A & B | Distribution([C, D])))
+        self.assert_text('P(A,B|C,D)', P(A & B | C & D))
 
     def test_sum(self):
         """Test the Sum DSL object."""

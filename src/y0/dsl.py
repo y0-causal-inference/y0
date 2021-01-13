@@ -15,8 +15,7 @@ __all__ = [
     'Variable',
     'Intervention',
     'CounterfactualVariable',
-    'ConditionalProbability',
-    'JointProbability',
+    'Distribution',
     'P',
     'Probability',
     'Sum',
@@ -43,6 +42,9 @@ class _Mathable(ABC):
     @abstractmethod
     def to_latex(self) -> str:
         """Output this DSL object in the LaTeX string format."""
+
+    def _repr_latex_(self) -> str:  # hack for auto-display of latex in jupyter notebook
+        return f'${self.to_latex()}$'
 
     def __str__(self) -> str:
         return self.to_text()
@@ -84,23 +86,35 @@ class Variable(_Mathable):
     def __matmul__(self, variables: XList[Variable]) -> CounterfactualVariable:
         return self.intervene(variables)
 
-    def given(self, parents: XList[Variable]) -> ConditionalProbability:
+    def given(self, parents: Union[XList[Variable], Distribution]) -> Distribution:
         """Create a distribution in which this variable is conditioned on the given variable(s).
+
+        The new distribution is a Markov Kernel.
 
         :param parents: A variable or list of variables to include as conditions in the new conditional distribution
         :returns: A new conditional probability distribution
 
         .. note:: This function can be accessed with the or | operator.
         """
-        return ConditionalProbability(
-            child=self,
-            parents=_upgrade_variables(parents),
-        )
+        if not isinstance(parents, Distribution):
+            return Distribution(
+                children=[self],
+                parents=_upgrade_variables(parents),
+            )
+        elif parents.is_conditioned():
+            raise TypeError('can not be given a distribution that has conditionals')
+        else:
+            # The parents variable is actually a Distribution instance with no parents,
+            #  so its children become the parents for the new Markov Kernel distribution
+            return Distribution(
+                children=[self],
+                parents=parents.children,  # don't think about this too hard
+            )
 
-    def __or__(self, parents: XList[Variable]) -> ConditionalProbability:
+    def __or__(self, parents: XList[Variable]) -> Distribution:
         return self.given(parents)
 
-    def joint(self, children: XList[Variable]) -> JointProbability:
+    def joint(self, children: XList[Variable]) -> Distribution:
         """Create a joint distribution between this variable and the given variable(s).
 
         :param children: The variable(s) for use with this variable in a joint distribution
@@ -108,9 +122,11 @@ class Variable(_Mathable):
 
         .. note:: This function can be accessed with the and & operator.
         """
-        return JointProbability([self, *_upgrade_variables(children)])
+        return Distribution(
+            children=[self, *_upgrade_variables(children)],
+        )
 
-    def __and__(self, children: XList[Variable]) -> JointProbability:
+    def __and__(self, children: XList[Variable]) -> Distribution:
         return self.joint(children)
 
     def invert(self) -> Intervention:
@@ -211,76 +227,91 @@ class CounterfactualVariable(Variable):
 
 
 @dataclass
-class JointProbability(_Mathable):
-    """A joint probability distribution over several variables."""
+class Distribution(_Mathable):
+    """A general distribution over several child variables, conditioned by several parents."""
 
     children: List[Variable]
+    parents: List[Variable] = field(default_factory=list)
+
+    def __post_init__(self):
+        if isinstance(self.children, Variable):
+            self.children = [self.children]
+        if not self.children:
+            raise ValueError('distribution must have at least one child')
+        if isinstance(self.parents, Variable):
+            self.parents = [self.parents]
 
     def to_text(self) -> str:
-        """Output this joint probability distribution in the internal string format."""
-        return ','.join(child.to_text() for child in self.children)
+        """Output this distribution in the internal string format."""
+        children = ','.join(child.to_text() for child in self.children)
+        if self.parents:
+            parents = ','.join(parent.to_text() for parent in self.parents)
+            return f'{children}|{parents}'
+        else:
+            return children
 
     def to_latex(self) -> str:
-        """Output this joint probability distribution in the LaTeX string format."""
-        return ','.join(child.to_latex() for child in self.children)
+        """Output this distribution in the LaTeX string format."""
+        children = ','.join(child.to_latex() for child in self.children)
+        parents = ','.join(parent.to_latex() for parent in self.parents)
+        return f'{children}|{parents}'
 
-    def joint(self, children: XList[Variable]) -> JointProbability:
-        """Create a joint distribution between the variables in this distribution the given variable(s).
+    def is_conditioned(self) -> bool:
+        """Return if this distribution is conditioned."""
+        return 0 < len(self.parents)
 
-        :param children: The variable(s) with which this joint distribution is extended
-        :returns: A new joint distribution over all previous and given variables.
+    def is_markov_kernel(self) -> bool:
+        """Return if this distribution a markov kernel.
+
+        This means that there is only one child variable conditioned on one or more parent variables.
+        """
+        return len(self.children) == 1
+
+    def joint(self, children: XList[Variable]) -> Distribution:
+        """Create a new distribution including the given child variables.
+
+        :param children: The variable(s) with which this distribution's children are extended
+        :returns: A new distribution.
 
         .. note:: This function can be accessed with the and & operator.
         """
-        return JointProbability([
-            *self.children,
-            *_upgrade_variables(children),
-        ])
+        return Distribution(
+            children=[*self.children, *_upgrade_variables(children)],
+            parents=self.parents,
+        )
 
-    def __and__(self, children: XList[Variable]) -> JointProbability:
+    def __and__(self, children: XList[Variable]) -> Distribution:
         return self.joint(children)
 
+    def given(self, parents: Union[XList[Variable], Distribution]) -> Distribution:
+        """Create a new mixed distribution additionally conditioned on the given parent variables.
 
-@dataclass
-class ConditionalProbability(_Mathable):
-    """A conditional distribution over a single child variable and one or more parent conditional variables."""
-
-    child: Variable
-    parents: List[Variable]
-
-    def to_text(self) -> str:
-        """Output this conditional probability distribution in the internal string format."""
-        parents = ','.join(parent.to_text() for parent in self.parents)
-        return f'{self.child.to_text()}|{parents}'
-
-    def to_latex(self) -> str:
-        """Output this conditional probability distribution in the LaTeX string format."""
-        parents = ','.join(parent.to_latex() for parent in self.parents)
-        return f'{self.child.to_latex()}|{parents}'
-
-    def given(self, parents: XList[Variable]) -> ConditionalProbability:
-        """Create a new conditional distribution with this distribution's children, parents, and the given parent(s).
-
-        :param parents: A variable or list of variables to include as conditions in the new conditional distribution,
-            in addition to the variables already in this conditional distribution
-        :returns: A new conditional probability distribution
+        :param parents: The variable(s) with which this distribution's parents are extended
+        :returns: A new distribution
 
         .. note:: This function can be accessed with the or | operator.
         """
-        return ConditionalProbability(
-            child=self.child,
-            parents=[*self.parents, *_upgrade_variables(parents)],
-        )
+        if not isinstance(parents, Distribution):
+            return Distribution(
+                children=self.children,
+                parents=[*self.parents, *_upgrade_variables(parents)],
+            )
+        elif parents.is_conditioned():
+            raise TypeError('can not be given a distribution that has conditionals')
+        else:
+            # The parents variable is actually a Distribution instance with no parents,
+            #  so its children get appended as parents for the new mixed distribution
+            return Distribution(
+                children=self.children,
+                parents=[*self.parents, *parents.children],  # don't think about this too hard
+            )
 
-    def __or__(self, parents: XList[Variable]) -> ConditionalProbability:
+    def __or__(self, parents: XList[Variable]) -> Distribution:
         return self.given(parents)
 
 
 class Expression(_Mathable, ABC):
     """The abstract class representing all expressions."""
-
-    def _repr_latex_(self) -> str:  # hack for auto-display of latex in jupyter notebook
-        return f'${self.to_latex()}$'
 
     def __mul__(self, other):
         raise NotImplementedError
@@ -294,31 +325,35 @@ class Probability(Expression):
 
     def __init__(
         self,
-        probability: Union[Variable, List[Variable], ConditionalProbability, JointProbability],
+        distribution: Union[Variable, List[Variable], Distribution],
         *args: Variable,
     ) -> None:
         """Create a probability expression over the given variable(s) or distribution.
 
-        :param probability: If given a :class:`ConditionalProbability` or :class:`JointProbability`,
-            creates a probability expression directly over the distribution. If given variable or
-            list of variables, conveniently creates a :class:`JointProbability` over the variable(s)
-            first.
-        :param args: If the first argument (``probability``) was given as a single variable, the
-            ``args`` variadic argument can be used to specify a list of additiona variables.
+        :param distribution: If given a :class:`Distribution`, creates a probability expression
+            directly over the distribution. If given variable or list of variables, conveniently
+            creates a :class:`Distribtion` with the variable(s) as children.
+        :param args: If the first argument (``distribution``) was given as a single variable, the
+            ``args`` variadic argument can be used to specify a list of additional variables.
         :raises ValueError: If varidic args are used incorrectly (i.e., in combination with a
-            list of variables, :class:`ConditionalProbability`, or :class:`JointProbability`.
+            list of variables or :class:`Distribution`.
 
         .. note:: This class is so commonly used, that it is aliased as :class:`P`.
 
-        Creation with a :class:`ConditionalProbability`:
+        Creation with a conditional distribution:
 
         >>> from y0.dsl import P, A, B
         >>> P(A | B)
 
-        Creation with a :class:`JointProbability`:
+        Creation with a joint distribution:
 
         >>> from y0.dsl import P, A, B
         >>> P(A & B)
+
+        Creation with a mixed joint/conditional distribution:
+
+        >>> from y0.dsl import P, A, B, C
+        >>> P(A & B | C)
 
         Creation with a single :class:`Variable`:
 
@@ -335,30 +370,30 @@ class Probability(Expression):
         >>> from y0.dsl import P, A, B
         >>> P(A, B)
         """
-        if isinstance(probability, Variable):
+        if isinstance(distribution, Variable):
             if not args:
-                probability = [probability]
+                distribution = [distribution]
             elif not all(isinstance(p, Variable) for p in args):
                 raise ValueError
             else:
-                probability = [probability, *args]
-        if isinstance(probability, list):
-            probability = JointProbability(probability)
-        self.probability = probability
+                distribution = [distribution, *args]
+        if isinstance(distribution, list):
+            distribution = Distribution(children=distribution)
+        self.distribution = distribution
 
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
-        return f'P({self.probability.to_text()})'
+        return f'P({self.distribution.to_text()})'
 
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
-        return f'P({self.probability.to_latex()})'
+        return f'P({self.distribution.to_latex()})'
 
     def __repr__(self):
-        return f'P({repr(self.probability)})'
+        return f'P({repr(self.distribution)})'
 
     def __eq__(self, other):
-        return isinstance(other, Probability) and self.probability == other.probability
+        return isinstance(other, Probability) and self.distribution == other.distribution
 
     def __mul__(self, other: Expression) -> Expression:
         if isinstance(other, Product):
