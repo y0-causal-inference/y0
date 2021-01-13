@@ -223,8 +223,7 @@ class CounterfactualVariable(Variable):
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        variables = typing.cast(
-            List[Variable], _upgrade_variables(variables))  # type: ignore
+        variables = typing.cast(List[Variable], _upgrade_variables(variables))  # type: ignore
         self._raise_for_overlapping_interventions(variables)
         return CounterfactualVariable(
             name=self.name,
