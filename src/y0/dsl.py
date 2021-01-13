@@ -182,11 +182,7 @@ class Intervention(Variable):
         return Intervention(name=self.name, star=not self.star)
 
     def as_intervention(self) -> Intervention:
-        """Return this variable as an intervention.
-
-        :param star: Specify a new star-value to obtain a clone.
-        :returns: the intervention itself or a clone.
-        """
+        """Return this object, since it is already an intervention."""
         return self
 
 
@@ -253,8 +249,8 @@ class CounterfactualVariable(Variable):
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
         raise NotImplementedError
 
-    def as_intervention(self, star=False) -> Intervention:
-        """Return this variable as an intervention. Illegal in this case."""
+    def as_intervention(self) -> Intervention:
+        """Raise an error because a counterfactual can not be cast as an intervention."""
         raise RuntimeError("No nested interventions")
 
     def get_variables(self) -> Set[Variable]:
