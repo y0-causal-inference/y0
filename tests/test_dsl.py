@@ -259,10 +259,8 @@ class TestGetVariables(unittest.TestCase):
     def test_api2(self):
         """Test the high-level API for getting variables."""
         for expression, variables in [
-            (P(A @ B), {CounterfactualVariable('A',
-                                               [Intervention('B')]), Intervention('B')}),
-            (P(A @ ~B), {CounterfactualVariable('A',
-                                                [Intervention('B', True)]), Intervention('B', True)}),
+            (P(A @ B), {CounterfactualVariable('A', [Intervention('B')]), Intervention('B')}),
+            (P(A @ ~B), {CounterfactualVariable('A', [Intervention('B', True)]), Intervention('B', True)}),
         ]:
             with self.subTest(expression=str(expression)):
                 self.assert_has_variables(expression, variables)
