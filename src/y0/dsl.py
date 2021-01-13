@@ -259,10 +259,10 @@ class CounterfactualVariable(Variable):
 
     def get_variables(self) -> Set[Variable]:
         """Get the set of variables used in this expression."""
-        base = super(CounterfactualVariable, self).get_variables()
-        for var in self.interventions:
-            base.update(var.get_variables())
-        return base
+        return super().get_variables() | set(itt.chain.from_iterable(
+            intervention.get_variables()
+            for intervention in self.interventions
+        ))
 
 
 @dataclass
@@ -348,10 +348,10 @@ class Distribution(_Mathable):
 
     def get_variables(self) -> Set[Variable]:
         """Get the set of variables used in this expression."""
-        base = self.children.get_variables()
-        for var in self.parents:
-            base.update(var.get_variables())
-        return base
+        return set(itt.chain.from_iterable(
+            variable.get_variables()
+            for variable in itt.chain(self.children, self.parents)
+        ))
 
 
 class Expression(_Mathable, ABC):
@@ -454,7 +454,7 @@ class Probability(Expression):
 
     def get_variables(self) -> Set[Variable]:
         """Get the set of variables used in this expression."""
-        return self.probability.get_variables()
+        return self.distribution.get_variables()
 
 
 P = Probability
@@ -487,10 +487,10 @@ class Product(Expression):
 
     def get_variables(self) -> Set[Variable]:
         """Get the set of variables used in this expression."""
-        base = set()
-        for var in self.expressions:
-            base.update(var.get_variables())
-        return base
+        return set(itt.chain.from_iterable(
+            expression.get_variables()
+            for expression in self.expressions
+        ))
 
 
 @dataclass
@@ -523,10 +523,10 @@ class Sum(Expression):
 
     def get_variables(self) -> Set[Variable]:
         """Get the set of variables used in this expression."""
-        base = self.expression.get_variables()
-        for var in self.ranges:
-            base.update(var.get_variables())
-        return base
+        return self.expression.get_variables() | set(itt.chain.from_iterable(
+            var.get_variables()
+            for var in self.ranges
+        ))
 
     @classmethod
     def __class_getitem__(cls, ranges: Union[Variable, Tuple[Variable, ...]]) -> Callable[[Expression], Sum]:
@@ -588,9 +588,7 @@ class Fraction(Expression):
 
     def get_variables(self) -> Set[Variable]:
         """Get the set of variables used in this expression."""
-        base = self.numerator.get_variables()
-        base.update(self.denominator.get_variables())
-        return base
+        return self.numerator.get_variables() | self.denominator.get_variables()
 
 
 class One(Expression):
@@ -612,6 +610,10 @@ class One(Expression):
 
     def __truediv__(self, other: Expression) -> Fraction:
         return Fraction(self, other)
+
+    def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
+        return set()
 
 
 A, B, C, D, Q, S, T, W, X, Y, Z = map(Variable, 'ABCDQSTWXYZ')  # type: ignore
