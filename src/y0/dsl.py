@@ -551,8 +551,7 @@ class Sum(Expression):
 def _prepare_ranges(ranges: Union[Variable, Tuple[Variable, ...]]) -> List[Variable]:
     if isinstance(ranges, tuple):
         return list(ranges)
-    # a single element is not given as a tuple, such as in Sum[T]
-    elif isinstance(ranges, Variable):
+    elif isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
         return [ranges]
     else:
         raise TypeError
