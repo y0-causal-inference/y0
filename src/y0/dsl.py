@@ -34,6 +34,13 @@ def _upgrade_variables(variables: XList[Variable]) -> List[Variable]:
     return [variables] if isinstance(variables, Variable) else variables
 
 
+def _to_interventions(variables: List[Variable]) -> List[Intervention]:
+    return [
+        variable if isinstance(variable, Intervention) else Intervention(name=variable.name, star=False)
+        for variable in variables
+    ]
+
+
 class _Mathable(ABC):
     @abstractmethod
     def to_text(self) -> str:
@@ -80,7 +87,7 @@ class Variable(_Mathable):
         """
         return CounterfactualVariable(
             name=self.name,
-            interventions=_upgrade_variables(variables),
+            interventions=_to_interventions(_upgrade_variables(variables)),
         )
 
     def __matmul__(self, variables: XList[Variable]) -> CounterfactualVariable:
@@ -137,6 +144,9 @@ class Variable(_Mathable):
     def __invert__(self) -> Intervention:
         return self.invert()
 
+    def __neg__(self) -> Intervention:
+        return Intervention(name=self.name, star=False)
+
     @classmethod
     def __class_getitem__(cls, item) -> Variable:
         return Variable(item)
@@ -179,7 +189,17 @@ class CounterfactualVariable(Variable):
     #: The name of the counterfactual variable
     name: str
     #: The interventions on the variable. Should be non-empty
-    interventions: List[Variable]
+    interventions: List[Intervention]
+
+    def __post_init__(self):
+        if not self.interventions:
+            raise ValueError('should give at least one intervention')
+        for intervention in self.interventions:
+            if not isinstance(intervention, Intervention):
+                raise TypeError(
+                    f'only Intervention instances are allowed.'
+                    f' Got: ({intervention.__class__.__name__}) {intervention}',
+                )
 
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
@@ -202,6 +222,7 @@ class CounterfactualVariable(Variable):
         .. note:: This function can be accessed with the matmult @ operator.
         """
         variables = typing.cast(List[Variable], _upgrade_variables(variables))  # type: ignore
+        variables = _to_interventions(variables)
         self._raise_for_overlapping_interventions(variables)
         return CounterfactualVariable(
             name=self.name,
