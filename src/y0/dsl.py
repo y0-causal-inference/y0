@@ -85,8 +85,7 @@ class Variable(_Mathable):
         """
         return CounterfactualVariable(
             name=self.name,
-            interventions=[var.as_intervention()
-                           for var in _upgrade_variables(variables)],
+            interventions=[var.as_intervention() for var in _upgrade_variables(variables)],
         )
 
     def __matmul__(self, variables: XList[Variable]) -> CounterfactualVariable:
@@ -215,8 +214,7 @@ class CounterfactualVariable(Variable):
 
     def to_latex(self) -> str:
         """Output this counterfactual variable in the LaTeX string format."""
-        intervention_latex = ','.join(intervention.to_latex()
-                                      for intervention in self.interventions)
+        intervention_latex = ','.join(intervention.to_latex() for intervention in self.interventions)
         return f'{self.name}_{{{intervention_latex}}}'
 
     def intervene(self, variables: XList[Variable]) -> CounterfactualVariable:
