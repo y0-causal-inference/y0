@@ -84,7 +84,7 @@ class Variable(_Mathable):
         """
         return CounterfactualVariable(
             name=self.name,
-            interventions=[var.as_intervention() for var in _upgrade_variables(variables)],
+            interventions=[variable.as_intervention() for variable in _upgrade_variables(variables)],
         )
 
     def __matmul__(self, variables: XList[Variable]) -> CounterfactualVariable:
@@ -227,7 +227,7 @@ class CounterfactualVariable(Variable):
         self._raise_for_overlapping_interventions(variables)
         return CounterfactualVariable(
             name=self.name,
-            interventions=[var.as_intervention() for var in [*self.interventions, *variables]],
+            interventions=[variable.as_intervention() for variable in [*self.interventions, *variables]],
         )
 
     def _raise_for_overlapping_interventions(self, variables: List[Variable]) -> None:
@@ -519,8 +519,8 @@ class Sum(Expression):
     def get_variables(self) -> Set[Variable]:
         """Get the set of variables used in this expression."""
         return self.expression.get_variables() | set(itt.chain.from_iterable(
-            var.get_variables()
-            for var in self.ranges
+            variable.get_variables()
+            for variable in self.ranges
         ))
 
     @classmethod
