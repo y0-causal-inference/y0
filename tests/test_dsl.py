@@ -58,8 +58,7 @@ class TestDSL(unittest.TestCase):
         self.assert_text('Y_{W*}', Y @ [~W])
 
         # Instantiation with two variables
-        self.assert_text('Y_{X,W*}', CounterfactualVariable('Y',
-                                                            [Intervention('X'), ~Intervention('W')]))
+        self.assert_text('Y_{X,W*}', CounterfactualVariable('Y', [Intervention('X'), ~Intervention('W')]))
 
         # Instantiation with matmul @ operator and single operand
         self.assert_text('Y_{W}', Y @ Intervention('W'))
