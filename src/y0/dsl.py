@@ -93,6 +93,7 @@ class Variable(_Mathable):
 
         :param parents: A variable or list of variables to include as conditions in the new conditional distribution
         :returns: A new conditional probability distribution
+        :raises TypeError: If a distribution is given as the parents that contains conditionals
 
         .. note:: This function can be accessed with the or | operator.
         """
@@ -261,10 +262,7 @@ class Distribution(_Mathable):
         return 0 < len(self.parents)
 
     def is_markov_kernel(self) -> bool:
-        """Return if this distribution a markov kernel.
-
-        This means that there is only one child variable conditioned on one or more parent variables.
-        """
+        """Return if this distribution a markov kernel -> one child variable and one or more conditionals."""
         return len(self.children) == 1
 
     def joint(self, children: XList[Variable]) -> Distribution:
@@ -288,6 +286,7 @@ class Distribution(_Mathable):
 
         :param parents: The variable(s) with which this distribution's parents are extended
         :returns: A new distribution
+        :raises TypeError: If a distribution is given as the parents that contains conditionals
 
         .. note:: This function can be accessed with the or | operator.
         """
