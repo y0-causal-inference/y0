@@ -26,6 +26,11 @@ class TestDSL(unittest.TestCase):
         self.assert_text('A', Variable('A'))
         self.assert_text('A', A)  # shorthand for testing purposes
 
+    def test_stop_the_madness(self):
+        """Test that a variable can not be named "P"."""
+        with self.assertRaises(ValueError):
+            _ = Variable('P')
+
     def test_intervention(self):
         """Test the invervention DSL object."""
         self.assert_text('W*', Intervention('W', True))
@@ -106,12 +111,17 @@ class TestDSL(unittest.TestCase):
 
     def test_probability(self):
         """Test generation of probabilities."""
+        # Make sure there are children
+        with self.assertRaises(ValueError):
+            Distribution([])
+
         # Test markov kernels (AKA has only one child variable)
         self.assert_text('P(A|B)', P(Distribution(A, [B])))
         self.assert_text('P(A|B)', P(A | [B]))
         self.assert_text('P(A|B,C)', P(Distribution(A, [B]) | C))
         self.assert_text('P(A|B,C)', P(A | [B, C]))
         self.assert_text('P(A|B,C)', P(A | B | C))
+        self.assert_text('P(A|B,C)', P(A | B & C))
 
         # Test simple joint distributions
         self.assert_text('P(A,B)', P([A, B]))
@@ -130,8 +140,21 @@ class TestDSL(unittest.TestCase):
         self.assert_text('P(A,B|C,D)', P(Distribution([A, B]) | C | D))
         self.assert_text('P(A,B|C,D)', P(Distribution([A, B], [C]) | D))
         self.assert_text('P(A,B|C,D)', P(A & B | C | D))
+        self.assert_text('P(A,B|C,D)', P(A & B | [C, D]))
         self.assert_text('P(A,B|C,D)', P(A & B | Distribution([C, D])))
         self.assert_text('P(A,B|C,D)', P(A & B | C & D))
+
+    def test_conditioning_errors(self):
+        """Test erroring on conditionals."""
+        for expression in [
+            Distribution(B, C),
+            Distribution([B, C], D),
+            Distribution([B, C], [D, W]),
+        ]:
+            with self.assertRaises(TypeError):
+                _ = A | expression
+            with self.assertRaises(TypeError):
+                _ = X & Y | expression
 
     def test_sum(self):
         """Test the Sum DSL object."""

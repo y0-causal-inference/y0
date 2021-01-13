@@ -312,11 +312,13 @@ class Distribution(_Mathable):
 class Expression(_Mathable, ABC):
     """The abstract class representing all expressions."""
 
+    @abstractmethod
     def __mul__(self, other):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def __truediv__(self, other):
-        raise NotImplementedError
+        pass
 
 
 class Probability(Expression):
