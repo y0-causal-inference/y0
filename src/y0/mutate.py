@@ -2,7 +2,7 @@
 
 """Operations for mutating and simplifying expressions."""
 
-from .dsl import Distribution, Fraction, P, Probability, Product
+from .dsl import Distribution, Expression, Fraction, P, Probability, Product
 
 
 def expand_simple_bayes(p: Probability) -> Fraction:
@@ -12,13 +12,30 @@ def expand_simple_bayes(p: Probability) -> Fraction:
 
     y = p.distribution.children
     x = p.distribution.parents
+    return P(Distribution(x, y)) * P(y) / P(x)
 
-    reverse_conditional = Distribution(
-        children=p.distribution.parents,
-        parents=p.distribution.children,
+
+def _check_pair(e: Expression) -> bool:
+    if not isinstance(e, Product):
+        return False
+    if 2 != len(e.expressions):
+        return False
+
+    a, b = e.expressions
+
+    if not isinstance(a, Probability):
+        return False
+    if not isinstance(b, Probability):
+        return False
+    return check_partial_bayes(a, b) or check_partial_bayes(b, a)
+
+
+def check_partial_bayes(a: Probability, b: Probability) -> bool:
+    """Check if a and b take the form P(X,...|Y,...)P(Y,...)"""
+    return (
+        not b.distribution.is_conditioned()
+        and a.distribution.parents == b.distribution.children
     )
-
-    return P(reverse_conditional) * P(y) / P(x)
 
 
 def is_expanded_simple_bayes(frac: Fraction) -> bool:
