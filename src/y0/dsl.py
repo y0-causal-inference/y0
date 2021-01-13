@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import functools
 import itertools as itt
-import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Callable, List, Tuple, TypeVar, Union
@@ -215,29 +214,29 @@ class CounterfactualVariable(Variable):
         """Intervene on this counterfactual variable with the given variable(s).
 
         :param variables: The variable(s) used to extend this counterfactual variable's
-            current interventions
+            current interventions. Automatically converts variables to interventions.
         :returns: A new counterfactual variable with both this counterfactual variable's interventions
             and the given intervention(s)
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        variables = typing.cast(List[Variable], _upgrade_variables(variables))  # type: ignore
-        variables = _to_interventions(variables)
-        self._raise_for_overlapping_interventions(variables)
+        _variables = _upgrade_variables(variables)
+        _interventions = _to_interventions(_variables)
+        self._raise_for_overlapping_interventions(_interventions)
         return CounterfactualVariable(
             name=self.name,
-            interventions=[*self.interventions, *variables],
+            interventions=list(itt.chain(self.interventions, _interventions)),
         )
 
-    def _raise_for_overlapping_interventions(self, variables: List[Variable]) -> None:
+    def _raise_for_overlapping_interventions(self, interventions: List[Intervention]) -> None:
         """Raise an error if any of the given variables are already listed in interventions in this counterfactual.
 
-        :param variables: Variables to check for overlap
+        :param interventions: Interventions to check for overlap
         :raises ValueError: If there are overlapping variables given.
         """
         overlaps = {
             new
-            for old, new in itt.product(self.interventions, variables)
+            for old, new in itt.product(self.interventions, interventions)
             if old.name == new.name
         }
         if overlaps:
