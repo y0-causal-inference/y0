@@ -37,6 +37,7 @@ class TestDSL(unittest.TestCase):
         self.assert_text('W', Intervention('W', False))
         self.assert_text('W', Intervention('W'))  # False is the default
         self.assert_text('W', W)  # shorthand for testing purposes
+        self.assert_text('W', -W)  # An intervention from variable W
 
         # inversions using the unary ~ operator
         self.assert_text('W', ~Intervention('W', True))
@@ -47,7 +48,7 @@ class TestDSL(unittest.TestCase):
     def test_counterfactual_variable(self):
         """Test the Counterfactual Variable DSL object."""
         # Normal instantiation
-        self.assert_text('Y_{W}', CounterfactualVariable('Y', [W]))
+        self.assert_text('Y_{W}', CounterfactualVariable('Y', [-W]))
         self.assert_text('Y_{W*}', CounterfactualVariable('Y', [~W]))
 
         # Instantiation with list-based operand to matmul @ operator
