@@ -7,8 +7,7 @@ import unittest
 
 from y0.dsl import (
     A, B, C, CounterfactualVariable, D, Distribution, Fraction, Intervention, One, P, Q, S, Sum, T,
-    Variable, W,
-    X, Y, Z,
+    Variable, W, X, Y, Z,
 )
 
 V = Variable('V')
