@@ -7,8 +7,9 @@ import unittest
 from typing import Set
 
 from y0.dsl import (
-    A, B, C, CounterfactualVariable, D, Distribution, Expression, Fraction, Intervention, P, Q, S, Sum, T, Variable, W,
-    X, Y, Z, get_variable_names,
+    A, B, C, CounterfactualVariable, D, Distribution, Expression, Fraction, Intervention, One, P, Q, S, Sum, T,
+    Variable, W,
+    X, Y, Z,
 )
 
 V = Variable('V')
@@ -239,10 +240,6 @@ class TestDSL(unittest.TestCase):
 class TestGetVariables(unittest.TestCase):
     """Test getting variables."""
 
-    def assert_has_variable_names(self, expression: Expression, variables: Set[str]) -> None:
-        """Assert the variables are the result of getting variables from the expression."""
-        self.assertEqual(variables, get_variable_names(expression))
-
     def assert_has_variables(self, expression: Expression, variables: Set[Variable]) -> None:
         """Assert the variables are the result of getting variables from the expression."""
         self.assertEqual(variables, expression.get_variables())
@@ -250,17 +247,16 @@ class TestGetVariables(unittest.TestCase):
     def test_api(self):
         """Test the high-level API for getting variables."""
         for expression, variables in [
-            (P(A @ B), {'A', 'B'}),
-            (P(A @ ~B), {'A', 'B'}),
-        ]:
-            with self.subTest(expression=str(expression)):
-                self.assert_has_variable_names(expression, variables)
-
-    def test_api2(self):
-        """Test the high-level API for getting variables."""
-        for expression, variables in [
-            (P(A @ B), {CounterfactualVariable('A', [Intervention('B')]), Intervention('B')}),
-            (P(A @ ~B), {CounterfactualVariable('A', [Intervention('B', True)]), Intervention('B', True)}),
+            (A @ B, {A @ B, -B}),
+            (A @ ~B, {A @ ~B, ~B}),
+            (P(A @ B), {A @ B, -B}),
+            (P(A @ ~B), {A @ ~B, ~B}),
+            (P(A @ ~B) * P(C), {A @ ~B, ~B, C}),
+            (Sum[S](P(A @ ~B) * P(C)), {A @ ~B, ~B, C, S}),
+            (Sum[S, T](P(A @ ~B) * P(C)), {A @ ~B, ~B, C, S, T}),
+            (One() / P(A @ B), {A @ B, -B}),
+            (P(B) / P(A @ ~B), {A @ ~B, B, ~B}),
+            (P(Y | X) * P(X) / P(Y), {X, Y}),
         ]:
             with self.subTest(expression=str(expression)):
                 self.assert_has_variables(expression, variables)
