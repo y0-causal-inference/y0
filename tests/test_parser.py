@@ -33,7 +33,10 @@ class TestGrammar(unittest.TestCase):
         result_expression = parse_result.asList()[0]
         self.assertIsInstance(result_expression, expression.__class__)
         if direct:
-            self.assertEqual(expression, result_expression)
+            self.assertEqual(
+                expression, result_expression,
+                msg=f'Mismatch\nExpected: {repr(expression)}\nActual:   {repr(result_expression)}',
+            )
         else:
             self.assertEqual(text, result_expression.to_text())
 

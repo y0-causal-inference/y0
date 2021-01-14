@@ -17,7 +17,7 @@ expr = Forward()
 
 def _make_sum(_s, _l, tokens: ParseResults) -> Sum:
     return Sum(
-        ranges=tokens['ranges'].asList() if 'ranges' in tokens else [],
+        ranges=tuple(tokens['ranges'].asList()) if 'ranges' in tokens else tuple(),
         expression=tokens['expression'],
     )
 
@@ -34,7 +34,7 @@ def _make_product(_s, _l, tokens: ParseResults) -> Expression:
     if len(tokens) == 1:
         return tokens[0]
     else:
-        return Product(tokens)
+        return Product(tuple(tokens))
 
 
 # auto-product
