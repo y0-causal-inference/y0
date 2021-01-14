@@ -155,7 +155,7 @@ class Variable(_Mathable):
         return Variable(item)
 
     def get_variables(self) -> Set[Variable]:
-        """Get the set of variables used in this expression."""
+        """Get a set containing this variable."""
         return {self}
 
 
@@ -255,7 +255,7 @@ class CounterfactualVariable(Variable):
         raise NotImplementedError
 
     def get_variables(self) -> Set[Variable]:
-        """Get the set of variables used in this expression."""
+        """Get the union of this variable and its interventions."""
         return super().get_variables() | set(itt.chain.from_iterable(
             intervention.get_variables()
             for intervention in self.interventions
@@ -344,7 +344,7 @@ class Distribution(_Mathable):
         return self.given(parents)
 
     def get_variables(self) -> Set[Variable]:
-        """Get the set of variables used in this expression."""
+        """Get the set of variables used in this distribution."""
         return set(itt.chain.from_iterable(
             variable.get_variables()
             for variable in itt.chain(self.children, self.parents)
@@ -396,7 +396,7 @@ class Probability(Expression):
         return Fraction(self, expression)
 
     def get_variables(self) -> Set[Variable]:
-        """Get the set of variables used in this expression."""
+        """Get the set of variables used in the distribution in this probability."""
         return self.distribution.get_variables()
 
 
@@ -483,7 +483,7 @@ class Product(Expression):
         return Fraction(self, expression)
 
     def get_variables(self) -> Set[Variable]:
-        """Get the set of variables used in this expression."""
+        """Get the union of the variables used in each expresison in this product."""
         return set(itt.chain.from_iterable(
             expression.get_variables()
             for expression in self.expressions
@@ -519,7 +519,7 @@ class Sum(Expression):
         return Fraction(self, expression)
 
     def get_variables(self) -> Set[Variable]:
-        """Get the set of variables used in this expression."""
+        """Get the union of the variables used in the range of this sum and variables in its summand."""
         return self.expression.get_variables() | set(itt.chain.from_iterable(
             variable.get_variables()
             for variable in self.ranges
@@ -584,7 +584,7 @@ class Fraction(Expression):
             return Fraction(self.numerator, self.denominator * expression)
 
     def get_variables(self) -> Set[Variable]:
-        """Get the set of variables used in this expression."""
+        """Get the set of variables used in the numerator and denominator of this fraction."""
         return self.numerator.get_variables() | self.denominator.get_variables()
 
 
