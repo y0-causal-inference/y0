@@ -2,17 +2,34 @@
 
 """Graph data structures."""
 
+from dataclasses import dataclass, field
+
 import networkx as nx
 from ananke.graphs import ADMG
 
+__all__ = [
+    'NxMixedGraph',
+]
 
+
+@dataclass
 class NxMixedGraph:
-    """A mixed graph based on :mod:`networkx`."""
+    """A mixed graph based on a :class:`networkx.Graph` and a :class:`networkx.DiGraph`.
 
-    def __init__(self):
-        """Initialize the networkx mixed graph."""
-        self.directed = nx.DiGraph()
-        self.undirected = nx.Graph()
+    Example usage:
+
+    .. code-block:: python
+
+        graph = NxMixedGraph()
+        graph.add_directed_edge('X', 'Y')
+        graph.add_undirected_edge('X', 'Y')
+        admg_graph = graph.to_admg()
+    """
+
+    #: A directed graph
+    directed: nx.DiGraph = field(default_factory=nx.DiGraph)
+    #: A undirected graph
+    undirected: nx.Graph = field(default_factory=nx.Graph)
 
     def add_directed_edge(self, u, v, **attr):
         """Add a directed edge from u to v."""

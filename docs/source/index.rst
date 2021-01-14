@@ -9,6 +9,8 @@ y0 |release| Documentation
    installation
    dsl
    parser
+   graph
+   identification
    cli
 
 Indices and Tables
