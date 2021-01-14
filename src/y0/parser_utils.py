@@ -36,7 +36,7 @@ def _make_variable(_s, _l, tokens: ParseResults) -> Variable:
         return Variable(name=tokens['name'])
     return CounterfactualVariable(
         name=tokens['name'],
-        interventions=tokens['interventions'].asList(),
+        interventions=tuple(tokens['interventions'].asList()),
     )
 
 

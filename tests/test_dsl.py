@@ -48,8 +48,8 @@ class TestDSL(unittest.TestCase):
     def test_counterfactual_variable(self):
         """Test the Counterfactual Variable DSL object."""
         # Normal instantiation
-        self.assert_text('Y_{W}', CounterfactualVariable('Y', [-W]))
-        self.assert_text('Y_{W*}', CounterfactualVariable('Y', [~W]))
+        self.assert_text('Y_{W}', CounterfactualVariable('Y', (-W, )))
+        self.assert_text('Y_{W*}', CounterfactualVariable('Y', (~W, )))
 
         # Instantiation with list-based operand to matmul @ operator
         self.assert_text('Y_{W}', Variable('Y') @ [W])

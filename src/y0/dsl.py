@@ -8,7 +8,7 @@ import functools
 import itertools as itt
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Callable, List, Tuple, TypeVar, Union
+from typing import Callable, Iterable, List, Sequence, Tuple, TypeVar, Union
 
 __all__ = [
     'Variable',
@@ -33,11 +33,11 @@ def _upgrade_variables(variables: XList[Variable]) -> List[Variable]:
     return [variables] if isinstance(variables, Variable) else variables
 
 
-def _to_interventions(variables: List[Variable]) -> List[Intervention]:
-    return [
+def _to_interventions(variables: Sequence[Variable]) -> Sequence[Intervention]:
+    return tuple(
         variable if isinstance(variable, Intervention) else Intervention(name=variable.name, star=False)
         for variable in variables
-    ]
+    )
 
 
 class _Mathable(ABC):
@@ -188,7 +188,7 @@ class CounterfactualVariable(Variable):
     #: The name of the counterfactual variable
     name: str
     #: The interventions on the variable. Should be non-empty
-    interventions: List[Intervention]
+    interventions: Sequence[Intervention]
 
     def __post_init__(self):
         if not self.interventions:
@@ -225,10 +225,10 @@ class CounterfactualVariable(Variable):
         self._raise_for_overlapping_interventions(_interventions)
         return CounterfactualVariable(
             name=self.name,
-            interventions=list(itt.chain(self.interventions, _interventions)),
+            interventions=tuple(itt.chain(self.interventions, _interventions)),
         )
 
-    def _raise_for_overlapping_interventions(self, interventions: List[Intervention]) -> None:
+    def _raise_for_overlapping_interventions(self, interventions: Iterable[Intervention]) -> None:
         """Raise an error if any of the given variables are already listed in interventions in this counterfactual.
 
         :param interventions: Interventions to check for overlap
