@@ -39,7 +39,7 @@ def _all_counterfactual(distribution: Distribution) -> bool:
 
 def _all_intervened_same(distribution: Distribution) -> bool:
     return 1 == len({
-        variable.interventions
+        variable.interventions  # type:ignore
         for variable in distribution.children
     })
 
@@ -53,7 +53,7 @@ def _get_to(query: Distribution) -> Tuple[List[str], List[str]]:
 
     treatments = [
         intervention.name
-        for intervention in query.children[0].interventions
+        for intervention in query.children[0].interventions  # type:ignore
     ]
     outcomes = [
         variable.name
