@@ -44,7 +44,7 @@ def _make_probability(_s, _l, tokens: ParseResults) -> Probability:
     children, parents = tokens['children'].asList(), tokens['parents'].asList()
     if not children:
         raise ValueError
-    return Probability(Distribution(children=children, parents=parents))
+    return Probability(Distribution(children=tuple(children), parents=tuple(parents)))
 
 
 # The suffix "pe" refers to :class:`pyparsing.ParserElement`, which is the
