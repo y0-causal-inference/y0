@@ -345,10 +345,8 @@ class Expression(_Mathable, ABC):
 class Probability(Expression):
     """The probability over a distribution."""
 
+    #: The distribution over which the probability is expressed
     distribution: Distribution
-
-    def __hash__(self):
-        return hash((self.__class__, hash(self.distribution)))
 
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
