@@ -381,9 +381,6 @@ class Probability(Expression):
     def __repr__(self):
         return f'P({repr(self.distribution)})'
 
-    def __eq__(self, other):
-        return isinstance(other, Probability) and self.distribution == other.distribution
-
     def __mul__(self, other: Expression) -> Expression:
         if isinstance(other, Product):
             return Product((self, *other.expressions))
