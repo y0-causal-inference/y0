@@ -3,10 +3,32 @@
 """Tests for the identify algorithm."""
 
 import unittest
+from typing import Union
 
-from y0.dsl import Expression, P, X, Y
+from y0.dsl import Distribution, P, Probability, X, Y, Z
 from y0.graph import NxMixedGraph
-from y0.identify import is_identifiable
+from y0.identify import _get_to, is_identifiable
+
+
+class TestUtils(unittest.TestCase):
+    """Test utility functions for ID algorithms."""
+
+    def test_to(self):
+        """Test getting treatments and outcomes."""
+        with self.assertRaises(ValueError):
+            _get_to(P(X).distribution)
+        with self.assertRaises(ValueError):
+            _get_to(P(X, Y).distribution)
+        with self.assertRaises(ValueError):
+            _get_to(P(X @ Y, X @ Z).distribution)
+
+        for expected_t, expected_o, expression in [
+            (['X'], ['Y'], P(Y @ X)),
+            (['X'], ['Y', 'Z'], P(Y @ X, Z @ X)),
+        ]:
+            t, o = _get_to(expression.distribution)
+            self.assertEqual(expected_t, t)
+            self.assertEqual(expected_o, o)
 
 
 class TestNotIdentifiable(unittest.TestCase):
@@ -16,7 +38,7 @@ class TestNotIdentifiable(unittest.TestCase):
     https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb.
     """
 
-    def assert_not_identifiable(self, graph: NxMixedGraph, query: Expression) -> None:
+    def assert_not_identifiable(self, graph: NxMixedGraph, query: Union[Probability, Distribution]) -> None:
         """Asset the graph is not identifiable under the given query."""
         self.assertFalse(is_identifiable(graph.to_admg(), query))
 
@@ -101,9 +123,9 @@ class TestIdentifiable(unittest.TestCase):
     https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb.
     """
 
-    def assert_identifiable(self, graph: NxMixedGraph, query: Expression) -> None:
+    def assert_identifiable(self, graph: NxMixedGraph, query: Union[Probability, Distribution]) -> None:
         """Assert the graph is identifiable under the given query."""
-        self.assertTrue(is_identifiable(graph, query))
+        self.assertTrue(is_identifiable(graph.to_admg(), query))
 
     def test_figure_2a(self):
         """Test Figure 2a."""
