@@ -4,9 +4,7 @@
 
 from pyparsing import Group, Optional, ParseResults, Suppress, Word, alphas, delimitedList
 
-from .dsl import (
-    ConditionalProbability, CounterfactualVariable, Intervention, JointProbability, Probability, Variable,
-)
+from .dsl import (CounterfactualVariable, Distribution, Intervention, Probability, Variable)
 
 __all__ = [
     'probability_pe',
@@ -26,10 +24,7 @@ def _set_star(_s, _l, tokens: ParseResults):
 
 
 def _make_intervention(_s, _l, tokens: ParseResults):
-    if tokens['star']:
-        return Intervention(name=tokens['name'], star=True)
-    else:
-        return Variable(name=tokens['name'])
+    return Intervention(name=tokens['name'], star=bool(tokens['star']))
 
 
 def _unpack(_s, _l, tokens: ParseResults):
@@ -41,19 +36,15 @@ def _make_variable(_s, _l, tokens: ParseResults) -> Variable:
         return Variable(name=tokens['name'])
     return CounterfactualVariable(
         name=tokens['name'],
-        interventions=tokens['interventions'].asList(),
+        interventions=tuple(tokens['interventions'].asList()),
     )
 
 
 def _make_probability(_s, _l, tokens: ParseResults) -> Probability:
     children, parents = tokens['children'].asList(), tokens['parents'].asList()
-    if not parents:
-        return Probability(JointProbability(children=children))
     if not children:
         raise ValueError
-    if len(children) > 1:
-        raise ValueError
-    return Probability(ConditionalProbability(child=children[0], parents=parents))
+    return Probability(Distribution(children=tuple(children), parents=tuple(parents)))
 
 
 # The suffix "pe" refers to :class:`pyparsing.ParserElement`, which is the

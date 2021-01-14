@@ -1,0 +1,11 @@
+codecov:
+  branch: master
+
+coverage:
+  precision: 2
+  round: down
+  range: "60...100"
+  ignore:
+    - "tests/*"
+    - "src/y0/cli.py"
+    - "src/y0/__main__.py"
