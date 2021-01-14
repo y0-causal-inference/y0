@@ -292,8 +292,11 @@ class Distribution(_Mathable):
     def to_latex(self) -> str:
         """Output this distribution in the LaTeX string format."""
         children = ','.join(child.to_latex() for child in self.children)
-        parents = ','.join(parent.to_latex() for parent in self.parents)
-        return f'{children}|{parents}'
+        if self.parents:
+            parents = ','.join(parent.to_latex() for parent in self.parents)
+            return f'{children}|{parents}'
+        else:
+            return children
 
     def is_conditioned(self) -> bool:
         """Return if this distribution is conditioned."""
