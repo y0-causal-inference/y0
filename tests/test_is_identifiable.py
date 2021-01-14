@@ -6,7 +6,7 @@ import unittest
 from typing import Union
 
 from y0.dsl import Distribution, P, Probability, X, Y, Z
-from y0.graph import ADMGBuilder
+from y0.graph import NxMixedGraph
 from y0.identify import _get_to, is_identifiable
 
 
@@ -38,20 +38,20 @@ class TestNotIdentifiable(unittest.TestCase):
     https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb.
     """
 
-    def assert_not_identifiable(self, graph: ADMGBuilder, query: Union[Probability, Distribution]) -> None:
+    def assert_not_identifiable(self, graph: NxMixedGraph, query: Union[Probability, Distribution]) -> None:
         """Asset the graph is not identifiable under the given query."""
-        self.assertFalse(is_identifiable(graph.to_admg(), query))
+        self.assertFalse(is_identifiable(graph, query))
 
     def test_figure_1a(self):
         """Test Figure 1A."""
-        graph_1a = ADMGBuilder()
+        graph_1a = NxMixedGraph()
         graph_1a.add_directed_edge('X', 'Y')
         graph_1a.add_undirected_edge('X', 'Y')
         self.assert_not_identifiable(graph_1a, P(Y @ ~X))
 
     def test_figure_1b(self):
         """Test Figure 1B."""
-        graph_1b = ADMGBuilder()
+        graph_1b = NxMixedGraph()
         graph_1b.add_directed_edge('X', 'Z')
         graph_1b.add_directed_edge('Z', 'Y')
         graph_1b.add_undirected_edge('X', 'Z')
@@ -59,7 +59,7 @@ class TestNotIdentifiable(unittest.TestCase):
 
     def test_figure_1c(self):
         """Test Figure 1c."""
-        graph_1c = ADMGBuilder()
+        graph_1c = NxMixedGraph()
         graph_1c.add_directed_edge('X', 'Z')
         graph_1c.add_directed_edge('Z', 'Y')
         graph_1c.add_directed_edge('X', 'Y')
@@ -68,7 +68,7 @@ class TestNotIdentifiable(unittest.TestCase):
 
     def test_figure_1d(self):
         """Test Figure 1d."""
-        graph_1d = ADMGBuilder()
+        graph_1d = NxMixedGraph()
         graph_1d.add_directed_edge('X', 'Y')
         graph_1d.add_directed_edge('Z', 'Y')
         graph_1d.add_undirected_edge('X', 'Z')
@@ -77,7 +77,7 @@ class TestNotIdentifiable(unittest.TestCase):
 
     def test_figure_1e(self):
         """Test Figure 1e."""
-        graph_1e = ADMGBuilder()
+        graph_1e = NxMixedGraph()
         graph_1e.add_directed_edge('Z', 'X')
         graph_1e.add_directed_edge('X', 'Y')
         graph_1e.add_undirected_edge('X', 'Z')
@@ -86,7 +86,7 @@ class TestNotIdentifiable(unittest.TestCase):
 
     def test_figure_1f(self):
         """Test Figure 1f."""
-        graph_1f = ADMGBuilder()
+        graph_1f = NxMixedGraph()
         graph_1f.add_directed_edge('X', 'Z')
         graph_1f.add_directed_edge('Z', 'Y')
         graph_1f.add_undirected_edge('X', 'Y')
@@ -95,7 +95,7 @@ class TestNotIdentifiable(unittest.TestCase):
 
     def test_figure_1g(self):
         """Test Figure 1g."""
-        graph_1g = ADMGBuilder()
+        graph_1g = NxMixedGraph()
         graph_1g.add_directed_edge('X', 'Z1')
         graph_1g.add_directed_edge('Z1', 'Y')
         graph_1g.add_directed_edge('Z2', 'Y')
@@ -105,7 +105,7 @@ class TestNotIdentifiable(unittest.TestCase):
 
     def test_figure_1h(self):
         """Test Figure 1h."""
-        graph_1h = ADMGBuilder()
+        graph_1h = NxMixedGraph()
         graph_1h.add_directed_edge('Z', 'X')
         graph_1h.add_directed_edge('X', 'W')
         graph_1h.add_directed_edge('W', 'Y')
@@ -123,19 +123,19 @@ class TestIdentifiable(unittest.TestCase):
     https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb.
     """
 
-    def assert_identifiable(self, graph: ADMGBuilder, query: Union[Probability, Distribution]) -> None:
+    def assert_identifiable(self, graph: NxMixedGraph, query: Union[Probability, Distribution]) -> None:
         """Assert the graph is identifiable under the given query."""
-        self.assertTrue(is_identifiable(graph.to_admg(), query))
+        self.assertTrue(is_identifiable(graph, query))
 
     def test_figure_2a(self):
         """Test Figure 2a."""
-        graph_2a = ADMGBuilder()
+        graph_2a = NxMixedGraph()
         graph_2a.add_directed_edge('X', 'Y')
         self.assert_identifiable(graph_2a, P(Y @ ~X))
 
     def test_figure_2b(self):
         """Test Figure 2B."""
-        graph_2b = ADMGBuilder()
+        graph_2b = NxMixedGraph()
         graph_2b.add_directed_edge('X', 'Y')
         graph_2b.add_directed_edge('X', 'Z')
         graph_2b.add_directed_edge('Z', 'Y')
@@ -144,7 +144,7 @@ class TestIdentifiable(unittest.TestCase):
 
     def test_figure_2c(self):
         """Test Figure 2C."""
-        graph_2c = ADMGBuilder()
+        graph_2c = NxMixedGraph()
         graph_2c.add_directed_edge('X', 'Y')
         graph_2c.add_directed_edge('Z', 'X')
         graph_2c.add_directed_edge('Z', 'Y')
@@ -153,7 +153,7 @@ class TestIdentifiable(unittest.TestCase):
 
     def test_figure_2d(self):
         """Test Figure 2D."""
-        graph_2d = ADMGBuilder()
+        graph_2d = NxMixedGraph()
         graph_2d.add_directed_edge('X', 'Y')
         graph_2d.add_directed_edge('Z', 'X')
         graph_2d.add_directed_edge('Z', 'Y')
@@ -162,7 +162,7 @@ class TestIdentifiable(unittest.TestCase):
 
     def test_figure_2e(self):
         """Test Figure 2E."""
-        graph_2e = ADMGBuilder()
+        graph_2e = NxMixedGraph()
         graph_2e.add_directed_edge('X', 'Z')
         graph_2e.add_directed_edge('Z', 'Y')
         graph_2e.add_undirected_edge('X', 'Y')
@@ -170,7 +170,7 @@ class TestIdentifiable(unittest.TestCase):
 
     def test_figure_2f(self):
         """Test Figure 2f."""
-        graph_2f = ADMGBuilder()
+        graph_2f = NxMixedGraph()
         graph_2f.add_directed_edge('X', 'Y')
         graph_2f.add_directed_edge('X', 'Z1')
         graph_2f.add_directed_edge('Z1', 'Y')
@@ -182,7 +182,7 @@ class TestIdentifiable(unittest.TestCase):
 
     def test_figure_2g(self):
         """Test Figure 2g."""
-        graph_2g = ADMGBuilder()
+        graph_2g = NxMixedGraph()
         graph_2g.add_directed_edge('Z2', 'Z1')
         graph_2g.add_directed_edge('Z2', 'X')
         graph_2g.add_directed_edge('Z2', 'Z3')

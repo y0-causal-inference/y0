@@ -8,6 +8,7 @@ from ananke.graphs import ADMG
 from ananke.identification import OneLineID
 
 from .dsl import CounterfactualVariable, Distribution, Intervention, Probability, Variable
+from .graph import NxMixedGraph
 
 __all__ = [
     'is_identifiable',
@@ -62,8 +63,41 @@ def _get_to(query: Distribution) -> Tuple[List[str], List[str]]:
     return treatments, outcomes
 
 
-def is_identifiable(graph: ADMG, query: Union[Probability, Distribution]) -> bool:
-    """Check if the expression is identifiable."""
+def is_identifiable(graph: Union[ADMG, NxMixedGraph], query: Union[Probability, Distribution]) -> bool:
+    """Check if the expression is identifiable.
+
+    Example non-identifiable scenario:
+
+    .. code-block:: python
+
+        from y0.graph import NxMixedGraph
+        from y0.dsl import P, X, Y
+
+        graph = NxMixedGraph()
+        graph.add_directed_edge('X', 'Z')
+        graph.add_directed_edge('Z', 'Y')
+        graph.add_undirected_edge('X', 'Z')
+
+        assert not is_identifiable(graph, P(Y @ ~X))
+
+    Example identifiable scenario:
+
+    .. code-block:: python
+
+        from y0.graph import NxMixedGraph
+        from y0.dsl import P, X, Y
+
+        graph = NxMixedGraph()
+        graph.add_directed_edge('X', 'Y')
+        graph.add_directed_edge('X', 'Z')
+        graph.add_directed_edge('Z', 'Y')
+        graph.add_undirected_edge('Y', 'Z')
+
+        assert is_identifiable(graph, P(Y @ ~X))
+    """
+    if isinstance(graph, NxMixedGraph):
+        graph = graph.to_admg()
+
     if isinstance(query, Probability):
         query = query.distribution
 

@@ -8,21 +8,23 @@ import networkx as nx
 from ananke.graphs import ADMG
 
 __all__ = [
-    'ADMGBuilder',
+    'NxMixedGraph',
 ]
 
 
 @dataclass
-class ADMGBuilder:
+class NxMixedGraph:
     """A mixed graph based on a :class:`networkx.Graph` and a :class:`networkx.DiGraph`.
 
     Example usage:
 
     .. code-block:: python
 
-        graph = ADMGBuilder()
+        graph = NxMixedGraph()
         graph.add_directed_edge('X', 'Y')
         graph.add_undirected_edge('X', 'Y')
+
+        # Convert to an Ananke acyclic directed mixed graph
         admg_graph = graph.to_admg()
     """
 
