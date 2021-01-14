@@ -391,8 +391,6 @@ def P(  # noqa:N802
     :raises ValueError: If varidic args are used incorrectly (i.e., in combination with a
         list of variables or :class:`Distribution`.
 
-    .. note:: This class is so commonly used, that it is aliased as :class:`P`.
-
     Creation with a conditional distribution:
 
     >>> from y0.dsl import P, A, B
