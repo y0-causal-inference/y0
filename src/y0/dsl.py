@@ -8,7 +8,7 @@ import functools
 import itertools as itt
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Callable, Iterable, List, Sequence, Tuple, TypeVar, Union
+from typing import Callable, Iterable, Sequence, Tuple, TypeVar, Union
 
 __all__ = [
     'Variable',
@@ -26,10 +26,10 @@ __all__ = [
 ]
 
 X = TypeVar('X')
-XList = Union[X, List[X]]
+XSeq = Union[X, Sequence[X]]
 
 
-def _upgrade_variables(variables: XList[Variable]) -> Tuple[Variable, ...]:
+def _upgrade_variables(variables: XSeq[Variable]) -> Tuple[Variable, ...]:
     return (variables,) if isinstance(variables, Variable) else tuple(variables)
 
 
@@ -75,7 +75,7 @@ class Variable(_Mathable):
         """Output this variable in the LaTeX string format."""
         return self.to_text()
 
-    def intervene(self, variables: XList[Variable]) -> CounterfactualVariable:
+    def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
         """Intervene on this variable with the given variable(s).
 
         :param variables: The variable(s) used to extend this variable as it is changed to a
@@ -89,10 +89,10 @@ class Variable(_Mathable):
             interventions=_to_interventions(_upgrade_variables(variables)),
         )
 
-    def __matmul__(self, variables: XList[Variable]) -> CounterfactualVariable:
+    def __matmul__(self, variables: XSeq[Variable]) -> CounterfactualVariable:
         return self.intervene(variables)
 
-    def given(self, parents: Union[XList[Variable], Distribution]) -> Distribution:
+    def given(self, parents: Union[XSeq[Variable], Distribution]) -> Distribution:
         """Create a distribution in which this variable is conditioned on the given variable(s).
 
         The new distribution is a Markov Kernel.
@@ -118,10 +118,10 @@ class Variable(_Mathable):
                 parents=parents.children,  # don't think about this too hard
             )
 
-    def __or__(self, parents: XList[Variable]) -> Distribution:
+    def __or__(self, parents: XSeq[Variable]) -> Distribution:
         return self.given(parents)
 
-    def joint(self, children: XList[Variable]) -> Distribution:
+    def joint(self, children: XSeq[Variable]) -> Distribution:
         """Create a joint distribution between this variable and the given variable(s).
 
         :param children: The variable(s) for use with this variable in a joint distribution
@@ -133,7 +133,7 @@ class Variable(_Mathable):
             children=(self, *_upgrade_variables(children)),
         )
 
-    def __and__(self, children: XList[Variable]) -> Distribution:
+    def __and__(self, children: XSeq[Variable]) -> Distribution:
         return self.joint(children)
 
     def invert(self) -> Intervention:
@@ -210,7 +210,7 @@ class CounterfactualVariable(Variable):
         intervention_latex = ','.join(intervention.to_latex() for intervention in self.interventions)
         return f'{self.name}_{{{intervention_latex}}}'
 
-    def intervene(self, variables: XList[Variable]) -> CounterfactualVariable:
+    def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
 
         :param variables: The variable(s) used to extend this counterfactual variable's
@@ -285,7 +285,7 @@ class Distribution(_Mathable):
         """Return if this distribution a markov kernel -> one child variable and one or more conditionals."""
         return len(self.children) == 1
 
-    def joint(self, children: XList[Variable]) -> Distribution:
+    def joint(self, children: XSeq[Variable]) -> Distribution:
         """Create a new distribution including the given child variables.
 
         :param children: The variable(s) with which this distribution's children are extended
@@ -298,10 +298,10 @@ class Distribution(_Mathable):
             parents=self.parents,
         )
 
-    def __and__(self, children: XList[Variable]) -> Distribution:
+    def __and__(self, children: XSeq[Variable]) -> Distribution:
         return self.joint(children)
 
-    def given(self, parents: Union[XList[Variable], Distribution]) -> Distribution:
+    def given(self, parents: Union[XSeq[Variable], Distribution]) -> Distribution:
         """Create a new mixed distribution additionally conditioned on the given parent variables.
 
         :param parents: The variable(s) with which this distribution's parents are extended
@@ -325,7 +325,7 @@ class Distribution(_Mathable):
                 parents=(*self.parents, *parents.children),  # don't think about this too hard
             )
 
-    def __or__(self, parents: XList[Variable]) -> Distribution:
+    def __or__(self, parents: XSeq[Variable]) -> Distribution:
         return self.given(parents)
 
 
