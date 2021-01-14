@@ -66,6 +66,15 @@ def _get_to(query: Distribution) -> Tuple[List[str], List[str]]:
 def is_identifiable(graph: Union[ADMG, NxMixedGraph], query: Union[Probability, Distribution]) -> bool:
     """Check if the expression is identifiable.
 
+    :param graph: Either an Ananke graph or y0 NxMixedGraph that can be converted to an Ananke graph
+    :param query: A probability distribution with the following properties:
+
+        1. There are no conditions
+        2. All variables are counterfactuals
+        3. The set of interventions on each counterfactual variable are the same
+    :raises ValueError: If the given probability distribution does not meet the above properties
+    :returns: Whether the graph is identifiable under the causal query.
+
     Example non-identifiable scenario:
 
     .. code-block:: python
