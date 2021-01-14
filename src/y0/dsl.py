@@ -8,7 +8,7 @@ import functools
 import itertools as itt
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Callable, Iterable, Sequence, Tuple, TypeVar, Union
+from typing import Callable, Iterable, Sequence, Set, Tuple, TypeVar, Union
 
 __all__ = [
     'Variable',
@@ -54,6 +54,10 @@ class _Mathable(ABC):
 
     def __str__(self) -> str:
         return self.to_text()
+
+    @abstractmethod
+    def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
 
 
 @dataclass(frozen=True)
@@ -149,6 +153,10 @@ class Variable(_Mathable):
     @classmethod
     def __class_getitem__(cls, item) -> Variable:
         return Variable(item)
+
+    def get_variables(self) -> Set[Variable]:
+        """Get a set containing this variable."""
+        return {self}
 
 
 @dataclass(frozen=True)
@@ -246,6 +254,13 @@ class CounterfactualVariable(Variable):
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
         raise NotImplementedError
 
+    def get_variables(self) -> Set[Variable]:
+        """Get the union of this variable and its interventions."""
+        return super().get_variables() | set(itt.chain.from_iterable(
+            intervention.get_variables()
+            for intervention in self.interventions
+        ))
+
 
 @dataclass(frozen=True)
 class Distribution(_Mathable):
@@ -328,6 +343,13 @@ class Distribution(_Mathable):
     def __or__(self, parents: XSeq[Variable]) -> Distribution:
         return self.given(parents)
 
+    def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this distribution."""
+        return set(itt.chain.from_iterable(
+            variable.get_variables()
+            for variable in itt.chain(self.children, self.parents)
+        ))
+
 
 class Expression(_Mathable, ABC):
     """The abstract class representing all expressions."""
@@ -372,6 +394,10 @@ class Probability(Expression):
 
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
+
+    def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in the distribution in this probability."""
+        return self.distribution.get_variables()
 
 
 def P(  # noqa:N802
@@ -456,6 +482,13 @@ class Product(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
 
+    def get_variables(self) -> Set[Variable]:
+        """Get the union of the variables used in each expresison in this product."""
+        return set(itt.chain.from_iterable(
+            expression.get_variables()
+            for expression in self.expressions
+        ))
+
 
 @dataclass(frozen=True)
 class Sum(Expression):
@@ -484,6 +517,13 @@ class Sum(Expression):
 
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
+
+    def get_variables(self) -> Set[Variable]:
+        """Get the union of the variables used in the range of this sum and variables in its summand."""
+        return self.expression.get_variables() | set(itt.chain.from_iterable(
+            variable.get_variables()
+            for variable in self.ranges
+        ))
 
     @classmethod
     def __class_getitem__(cls, ranges: Union[Variable, Tuple[Variable, ...]]) -> Callable[[Expression], Sum]:
@@ -543,6 +583,10 @@ class Fraction(Expression):
         else:
             return Fraction(self.numerator, self.denominator * expression)
 
+    def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in the numerator and denominator of this fraction."""
+        return self.numerator.get_variables() | self.denominator.get_variables()
+
 
 class One(Expression):
     """The multiplicative identity (1)."""
@@ -563,6 +607,10 @@ class One(Expression):
 
     def __truediv__(self, other: Expression) -> Fraction:
         return Fraction(self, other)
+
+    def get_variables(self) -> Set[Variable]:
+        """Get the set of variables used in this expression."""
+        return set()
 
 
 A, B, C, D, Q, S, T, W, X, Y, Z = map(Variable, 'ABCDQSTWXYZ')  # type: ignore
