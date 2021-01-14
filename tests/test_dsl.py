@@ -20,6 +20,9 @@ class TestDSL(unittest.TestCase):
         """Assert the expression when it is converted to a string."""
         self.assertIsInstance(s, str)
         self.assertIsInstance(hash(expression), int)  # can the expression be hashed?
+        self.assertIsInstance(expression.to_text(), str)
+        self.assertIsInstance(expression.to_latex(), str)
+        self.assertIsInstance(expression._repr_latex_(), str)
         self.assertEqual(s, expression.to_text(), msg=f'Expression: {repr(expression)}')
 
     def test_variable(self):
