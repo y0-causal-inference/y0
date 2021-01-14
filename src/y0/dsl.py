@@ -208,9 +208,6 @@ class CounterfactualVariable(Variable):
                     f' Got: ({intervention.__class__.__name__}) {intervention}',
                 )
 
-    def __hash__(self):
-        return hash(self.to_text())
-
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
         intervention_latex = ','.join(intervention.to_text() for intervention in self.interventions)
