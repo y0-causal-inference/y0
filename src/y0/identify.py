@@ -2,12 +2,12 @@
 
 """Implementations of the identify algorithm from Shpitser and Pearl."""
 
-from typing import List, Set
+from typing import List, Set, Union
 
 from ananke.graphs import ADMG
 from ananke.identification import OneLineID
 
-from .dsl import Expression, Variable
+from .dsl import Distribution, Probability, Variable
 
 __all__ = [
     'is_identifiable',
@@ -22,8 +22,14 @@ def _get_outcomes(variables: Set[Variable]) -> List[str]:
     raise NotImplementedError
 
 
-def is_identifiable(graph: ADMG, query: Expression) -> bool:
+def is_identifiable(graph: ADMG, query: Union[Probability, Distribution]) -> bool:
     """Check if the expression is identifiable."""
+    if isinstance(query, Probability):
+        query = query.distribution
+
+    if query.is_conditioned():
+        raise ValueError('input distribution should not have any conditions')
+
     query_variables = query.get_variables()
 
     one_line_id = OneLineID(
