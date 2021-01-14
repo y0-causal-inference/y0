@@ -56,8 +56,12 @@ class _Mathable(ABC):
         return self.to_text()
 
     @abstractmethod
+    def _iter_variables(self) -> Iterable[Variable]:
+        """Iterate over variables."""
+
     def get_variables(self) -> Set[Variable]:
         """Get the set of variables used in this expression."""
+        return set(self._iter_variables())
 
 
 @dataclass(frozen=True)
@@ -154,9 +158,9 @@ class Variable(_Mathable):
     def __class_getitem__(cls, item) -> Variable:
         return Variable(item)
 
-    def get_variables(self) -> Set[Variable]:
+    def _iter_variables(self) -> Iterable[Variable]:
         """Get a set containing this variable."""
-        return {self}
+        yield self
 
 
 @dataclass(frozen=True)
@@ -254,12 +258,11 @@ class CounterfactualVariable(Variable):
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
         raise NotImplementedError
 
-    def get_variables(self) -> Set[Variable]:
+    def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of this variable and its interventions."""
-        return super().get_variables() | set(itt.chain.from_iterable(
-            intervention.get_variables()
-            for intervention in self.interventions
-        ))
+        yield from super()._iter_variables()
+        for intervention in self.interventions:
+            yield from intervention._iter_variables()
 
 
 @dataclass(frozen=True)
@@ -343,12 +346,10 @@ class Distribution(_Mathable):
     def __or__(self, parents: XSeq[Variable]) -> Distribution:
         return self.given(parents)
 
-    def get_variables(self) -> Set[Variable]:
+    def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in this distribution."""
-        return set(itt.chain.from_iterable(
-            variable.get_variables()
-            for variable in itt.chain(self.children, self.parents)
-        ))
+        for variable in itt.chain(self.children, self.parents):
+            yield from variable._iter_variables()
 
 
 class Expression(_Mathable, ABC):
@@ -392,9 +393,9 @@ class Probability(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
 
-    def get_variables(self) -> Set[Variable]:
+    def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in the distribution in this probability."""
-        return self.distribution.get_variables()
+        yield from self.distribution._iter_variables()
 
 
 def P(  # noqa:N802
@@ -479,12 +480,10 @@ class Product(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
 
-    def get_variables(self) -> Set[Variable]:
+    def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of the variables used in each expresison in this product."""
-        return set(itt.chain.from_iterable(
-            expression.get_variables()
-            for expression in self.expressions
-        ))
+        for expression in self.expressions:
+            yield from expression._iter_variables()
 
 
 @dataclass(frozen=True)
@@ -515,12 +514,11 @@ class Sum(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
 
-    def get_variables(self) -> Set[Variable]:
+    def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of the variables used in the range of this sum and variables in its summand."""
-        return self.expression.get_variables() | set(itt.chain.from_iterable(
-            variable.get_variables()
-            for variable in self.ranges
-        ))
+        yield from self.expression._iter_variables()
+        for variable in self.ranges:
+            yield from variable._iter_variables()
 
     @classmethod
     def __class_getitem__(cls, ranges: Union[Variable, Tuple[Variable, ...]]) -> Callable[[Expression], Sum]:
@@ -580,9 +578,10 @@ class Fraction(Expression):
         else:
             return Fraction(self.numerator, self.denominator * expression)
 
-    def get_variables(self) -> Set[Variable]:
+    def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in the numerator and denominator of this fraction."""
-        return self.numerator.get_variables() | self.denominator.get_variables()
+        yield from self.numerator._iter_variables()
+        yield from self.denominator._iter_variables()
 
 
 class One(Expression):
@@ -605,9 +604,9 @@ class One(Expression):
     def __truediv__(self, other: Expression) -> Fraction:
         return Fraction(self, other)
 
-    def get_variables(self) -> Set[Variable]:
+    def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in this expression."""
-        return set()
+        return iter([])
 
 
 A, B, C, D, Q, S, T, W, X, Y, Z = map(Variable, 'ABCDQSTWXYZ')  # type: ignore
