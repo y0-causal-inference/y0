@@ -158,10 +158,6 @@ class Variable(_Mathable):
         """Get the set of variables used in this expression."""
         return {self}
 
-    def as_intervention(self) -> Intervention:
-        """Make a clone of this variable as an intervention."""
-        return Intervention(self.name)
-
 
 @dataclass(frozen=True)
 class Intervention(Variable):
@@ -186,10 +182,6 @@ class Intervention(Variable):
     def invert(self) -> Intervention:
         """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
         return Intervention(name=self.name, star=not self.star)
-
-    def as_intervention(self) -> Intervention:
-        """Return this object, since it is already an intervention."""
-        return self
 
 
 @dataclass(frozen=True)
@@ -264,10 +256,6 @@ class CounterfactualVariable(Variable):
     def invert(self) -> Intervention:
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
         raise NotImplementedError
-
-    def as_intervention(self) -> Intervention:
-        """Raise an error because a counterfactual can not be cast as an intervention."""
-        raise RuntimeError("No nested interventions")
 
     def get_variables(self) -> Set[Variable]:
         """Get the set of variables used in this expression."""
