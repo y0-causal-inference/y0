@@ -10,7 +10,7 @@ from typing import Final, Sequence, Union
 
 from ananke.graphs import ADMG
 
-from .dsl import Expression
+from .dsl import Expression, Fraction, Probability, Product, Sum
 from .graph import NxMixedGraph
 
 __all__ = [
@@ -18,10 +18,33 @@ __all__ = [
 ]
 
 
+def has_markov_postcondition(expression: Expression) -> bool:
+    """Check that the expression is a sum/product of markov kernels.
+
+    :param expression: Any expression
+    :return: if the expression satisfies the sum/product of markov kernels condition
+    """
+    if isinstance(expression, Probability):
+        return expression.distribution.is_markov_kernel()
+    elif isinstance(expression, Product):
+        return all(
+            has_markov_postcondition(subexpr)
+            for subexpr in expression.expressions
+        )
+    elif isinstance(expression, Sum):
+        return has_markov_postcondition(expression.expression)
+    elif isinstance(expression, Fraction):
+        return has_markov_postcondition(expression.numerator) and has_markov_postcondition(expression.denominator)
+    else:
+        raise TypeError
+
+
 def simplify(expression: Expression, ordering: Union[NxMixedGraph, ADMG, Sequence[str]]) -> Expression:
     """Simplify an expression."""
     simplifier = Simplifier(ordering)
-    return simplifier.simplify(expression)
+    rv = simplifier.simplify(expression)
+    assert has_markov_postcondition(rv)
+    return rv
 
 
 class Simplifier:

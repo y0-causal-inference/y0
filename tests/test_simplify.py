@@ -4,9 +4,9 @@
 
 import unittest
 
-from y0.dsl import P, Sum, Variable
+from y0.dsl import A, B, C, D, P, Sum, Variable
 from y0.graph import NxMixedGraph
-from y0.simplify import simplify
+from y0.simplify import has_markov_postcondition, simplify
 
 #: Corresponds to Figure 1 in https://www.jmlr.org/papers/volume18/16-166/16-166.pdf
 figure_1 = NxMixedGraph()
@@ -40,6 +40,56 @@ equation_1 = P(Z1 | (Z2, X)) * P(Z2) * P(Y) * Sum[X](_y * _z3 * _x)
 
 class TestSimplify(unittest.TestCase):
     """Tests of the simplification algorithm."""
+
+    def test_markov_raises(self):
+        """Test the type error is raised on invalid input."""
+        for value in [
+            Variable('whatever'),
+            A @ B,
+            A @ ~B,
+            'something else',
+        ]:
+            with self.subTest(value=value), self.assertRaises(TypeError):
+                has_markov_postcondition(value)
+
+    def test_markov_postcondition(self):
+        """Test the expressions have the markov postcondition."""
+        for expression in [
+            P(A),
+            P(A | B),
+            P(A | (B, C)),
+            P(A) * P(B),
+            P(A) * P(A | B),
+            P(A | B) * P(A | C),
+            P(A) / P(B),
+            P(A) / P(A | B),
+            Sum[X](P(A)),
+            Sum[X](P(A | B)),
+            Sum[X](P(A | B) * P(B)),
+        ]:
+            with self.subTest(e=expression):
+                self.assertTrue(has_markov_postcondition(expression))
+
+    def test_missing_markov_postcondition(self):
+        """Test the expressions do not have the markov postcondition."""
+        for expression in [
+            P(A, B),
+            P(A & B | C),
+            P(A & D | (B, C)),
+            P(A, C) * P(B),
+            P(A, C) * P(A | B),
+            P(A) * P(A & C | B),
+            P(A & C | B) * P(A | C),
+            P(A) / P(B & C),
+            P(A & C) / P(B),
+            P(A) / P(A & C | B),
+            Sum[X](P(A, C)),
+            Sum[X](P(A & C | B)),
+            Sum[X](P(A & C | B) * P(B)),
+            Sum[X](P(A | B) * P(B, C)),
+        ]:
+            with self.subTest(e=str(expression)):
+                self.assertFalse(has_markov_postcondition(expression))
 
     def test_simplify_example_1(self):
         """Test the :func:`y0.simplify.simplify` function."""
