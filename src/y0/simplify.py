@@ -6,7 +6,7 @@
    inference <https://arxiv.org/abs/1806.07082>`_. arXiv 1806.07082.
 """
 
-from typing import Final, Sequence, Union
+from typing import Final, Optional, Sequence, Union
 
 from ananke.graphs import ADMG
 
@@ -74,9 +74,19 @@ def canonicalize(expression: Expression, ordering: Sequence[Union[str, Variable]
     raise NotImplementedError
 
 
-def simplify(expression: Expression, ordering: Union[NxMixedGraph, ADMG, Sequence[str]]) -> Expression:
-    """Simplify an expression."""
-    simplifier = Simplifier(ordering)
+def simplify(
+    expression: Expression,
+    graph: Union[NxMixedGraph, ADMG],
+    ordering: Optional[Sequence[Union[str, Variable]]],
+) -> Expression:
+    """Simplify an expression.
+
+    :param expression: An unsimplified expression
+    :param graph: A graph
+    :param ordering: An optional topological ordering. If not provided, one will be generated from the graph.
+    :returns: A simplified expression
+    """
+    simplifier = Simplifier(graph=graph, ordering=ordering)
     rv = simplifier.simplify(expression)
     assert has_markov_postcondition(rv)
     return rv
@@ -88,12 +98,21 @@ class Simplifier:
     #: The constant topological ordering
     ordering: Final[Sequence[str]]
 
-    def __init__(self, ordering: Union[NxMixedGraph, ADMG, Sequence[str]]):
-        if isinstance(ordering, NxMixedGraph):
-            ordering = ordering.to_admg()
-        if isinstance(ordering, ADMG):
-            ordering = ordering.topological_sort()
-        self.ordering = ordering
+    def __init__(
+        self,
+        graph: Union[NxMixedGraph, ADMG],
+        ordering: Optional[Sequence[Union[str, Variable]]] = None,
+    ) -> None:
+        if isinstance(graph, NxMixedGraph):
+            self.graph = graph.to_admg()
+        elif isinstance(graph, ADMG):
+            self.graph = graph
+        else:
+            raise TypeError
+
+        if ordering is None:
+            ordering = self.graph.topological_sort()
+        self.ordering = _upgrade_ordering(ordering)
 
     # The simplify function is implemented inside a class since there is shared state between recursive calls
     #  and this makes it much easier to reference rather than making the simplify function itself have many
