@@ -2,9 +2,10 @@
 
 """Tests of the simplification algorithm."""
 
+import itertools as itt
 import unittest
 
-from y0.dsl import A, B, C, D, P, Sum, Variable
+from y0.dsl import A, B, C, D, P, Sum, Variable, X, Y, Z
 from y0.graph import NxMixedGraph
 from y0.simplify import canonicalize, has_markov_postcondition, simplify
 
@@ -21,7 +22,7 @@ figure_1.add_undirected_edge('X', 'Z2')
 figure_1.add_undirected_edge('X', 'Z3')
 figure_1.add_undirected_edge('Y', 'Z2')
 
-X, Y, Z1, Z2, Z3 = (Variable(s) for s in 'X Y Z1 Z2 Z3'.split())
+Z1, Z2, Z3 = (Variable(s) for s in 'Z1 Z2 Z3'.split())
 
 # These are the parts of pre-equation 1 and equation 1. They don't all fit on one
 #  line so they're broken up into reusable bits
@@ -101,23 +102,48 @@ class TestCanonicalize(unittest.TestCase):
             canonicalize(P(A, B, C), [A, B, C])
 
     def test_canonicalize(self):
-        """Test canonicalizing"""
+        """Test canonicalizing."""
         for expected, expression, ordering in [
             (P(A), P(A), [A]),
             (P(A | B), P(A | B), [A, B]),
             (P(A | (B, C)), P(A | (B, C)), [A, B, C]),
             (P(A | (B, C)), P(A | (C, B)), [A, B, C]),
-            (P(A | (B, C, D)), P(A | (B, C, D)), [A, B, C, D]),
-            (P(A | (B, C, D)), P(A | (B, D, C)), [A, B, C, D]),
-            (P(A | (B, C, D)), P(A | (C, B, D)), [A, B, C, D]),
-            (P(A | (B, C, D)), P(A | (C, D, B)), [A, B, C, D]),
-            (P(A | (B, C, D)), P(A | (D, C, B)), [A, B, C, D]),
-            (P(A | (B, C, D)), P(A | (D, B, C)), [A, B, C, D]),
-            (..., P(A) * P(B), [A, B]),
-            (..., P(B) * P(A), [A, B]),
         ]:
             with self.subTest(e=str(expression), ordering=ordering):
                 self.assertEqual(expected, canonicalize(expression, ordering))
+
+        expected = P(A | (B, C, D))
+        for b, c, d in itt.permutations((B, C, D)):
+            expression = P(A | (b, c, d))
+            with self.subTest(e=str(expression)):
+                self.assertEqual(expected, canonicalize(expression, [A, B, C, D]))
+
+        expected = P(A) * P(B) * P(C)
+        for a, b, c in itt.permutations((P(A), P(B), P(C))):
+            expression = a * b * c
+            with self.subTest(e=str(expression)):
+                self.assertEqual(expected, canonicalize(expression, [A, B, C]))
+
+        expected = Sum(P(A) * P(B) * P(C))
+        for a, b, c in itt.permutations((P(A), P(B), P(C))):
+            expression = Sum(a * b * c)
+            with self.subTest(e=str(expression)):
+                self.assertEqual(expected, canonicalize(expression, [A, B, C]))
+
+        expected = Sum(P(A) * P(B) * P(C)) * P(D)
+        for a, b, c in itt.permutations((P(A), P(B), P(C))):
+            expression = P(D) * Sum(a * b * c)
+            with self.subTest(e=str(expression)):
+                self.assertEqual(expected, canonicalize(expression, [A, B, C]))
+
+        expected = (P(A) * P(B) * P(C)) / (P(X) * P(Y) * P(Z))
+        for (a, b, c), (x, y, z) in itt.product(
+            itt.permutations((P(A), P(B), P(C))),
+            itt.permutations((P(X), P(Y), P(Z))),
+        ):
+            expression = (a * b * c) / (x * y * z)
+            with self.subTest(e=str(expression)):
+                self.assertEqual(expected, canonicalize(expression, [A, B, C, X, Y, Z]))
 
 
 class TestSimplify(unittest.TestCase):

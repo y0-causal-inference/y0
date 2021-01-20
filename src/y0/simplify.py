@@ -6,7 +6,7 @@
    inference <https://arxiv.org/abs/1806.07082>`_. arXiv 1806.07082.
 """
 
-from typing import Final, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from ananke.graphs import ADMG
 
@@ -23,6 +23,7 @@ def has_markov_postcondition(expression: Expression) -> bool:
 
     :param expression: Any expression
     :return: if the expression satisfies the sum/product of markov kernels condition
+    :raises TypeError: if an object with an invalid type is passed
     """
     if isinstance(expression, Probability):
         return expression.distribution.is_markov_kernel()
@@ -40,10 +41,65 @@ def has_markov_postcondition(expression: Expression) -> bool:
 
 
 def _upgrade_ordering(variables: Sequence[Union[str, Variable]]) -> Sequence[Variable]:
-    return [
+    return tuple(
         Variable(variable) if isinstance(variable, str) else variable
         for variable in variables
-    ]
+    )
+
+
+class Canonicalizer:
+    """A data structure to support application of the canonicalize algorithm."""
+
+    def __init__(self, ordering: Sequence[Variable]) -> None:
+        """Initialize the canonicalizer.
+
+        :param ordering: A topological ordering over the variables appearing in the expression.
+        """
+        self.ordering = ordering
+        self.ordering_level = {
+            variable: level
+            for level, variable in enumerate(self.ordering)
+        }
+
+    def canonicalize(self, expression: Expression) -> Expression:
+        """Canonicalize an expression.
+
+        :param expression: An uncanonicalized expression
+        :return: A canonicalized expression
+        :raises TypeError: if an object with an invalid type is passed
+        """
+        if isinstance(expression, Probability):
+            return Probability(Distribution(
+                children=expression.distribution.children,
+                parents=tuple(sorted(expression.distribution.parents, key=self.ordering_level.__getitem__)),
+            ))
+        elif isinstance(expression, Sum):
+            return Sum(
+                expression=self.canonicalize(expression.expression),
+                ranges=expression.ranges,
+            )
+        elif isinstance(expression, Product):
+            probabilities = []
+            other = []
+            for subexpr in expression.expressions:
+                subexpr = self.canonicalize(subexpr)
+                if isinstance(subexpr, Probability):
+                    probabilities.append(subexpr)
+                else:
+                    other.append(subexpr)
+            probabilities = sorted(probabilities, key=lambda p: p.distribution.children[0].name)
+            other = sorted(other, key=self._nonatomic_key)
+            return Product((*probabilities, *other))
+        elif isinstance(expression, Fraction):
+            return Fraction(
+                numerator=self.canonicalize(expression.numerator),
+                denominator=self.canonicalize(expression.denominator),
+            )
+        else:
+            raise TypeError
+
+    def _nonatomic_key(self, expression: Expression):
+        raise NotImplementedError
 
 
 def canonicalize(expression: Expression, ordering: Sequence[Union[str, Variable]]) -> Expression:
@@ -51,7 +107,9 @@ def canonicalize(expression: Expression, ordering: Sequence[Union[str, Variable]
 
     :param expression: An expression to canonicalize
     :param ordering: A toplogical ordering
-    :return:
+    :return: A canonical expression
+    :raises ValueError: if the expression does not pass the markov postcondition
+    :raises ValueError: if the ordering has duplicates
     """
     if not has_markov_postcondition(expression):
         raise ValueError(f'can not canonicalize expression that does not have the markov postcondition: {expression}')
@@ -60,18 +118,8 @@ def canonicalize(expression: Expression, ordering: Sequence[Union[str, Variable]
     if len(set(ordering)) != len(ordering):
         raise ValueError(f'ordering has duplicates: {ordering}')
 
-    ordering_level = {
-        variable: level
-        for level, variable in enumerate(ordering)
-    }
-
-    if isinstance(expression, Probability):
-        return Probability(Distribution(
-            children=expression.distribution.children,
-            parents=tuple(sorted(expression.distribution.parents, key=ordering_level.__getitem__)),
-        ))
-
-    raise NotImplementedError
+    canonicalizer = Canonicalizer(ordering)
+    return canonicalizer.canonicalize(expression)
 
 
 def simplify(
@@ -85,10 +133,12 @@ def simplify(
     :param graph: A graph
     :param ordering: An optional topological ordering. If not provided, one will be generated from the graph.
     :returns: A simplified expression
+    :raises ValueError: if the simplified expression does not satisfy the markov postcondition
     """
-    simplifier = Simplifier(graph=graph, ordering=ordering)
+    simplifier = Simplifier(graph=graph, ordering=_upgrade_ordering(ordering) if ordering is not None else None)
     rv = simplifier.simplify(expression)
-    assert has_markov_postcondition(rv)
+    if not has_markov_postcondition(rv):
+        raise ValueError('raised if the simplified expression does not satisfy the markov postcondition')
     return rv
 
 
@@ -96,12 +146,12 @@ class Simplifier:
     """A data structure to support application of the simplify algorithm."""
 
     #: The constant topological ordering
-    ordering: Final[Sequence[str]]
+    ordering: Sequence[Variable]
 
     def __init__(
         self,
         graph: Union[NxMixedGraph, ADMG],
-        ordering: Optional[Sequence[Union[str, Variable]]] = None,
+        ordering: Optional[Sequence[Variable]] = None,
     ) -> None:
         if isinstance(graph, NxMixedGraph):
             self.graph = graph.to_admg()
@@ -111,8 +161,9 @@ class Simplifier:
             raise TypeError
 
         if ordering is None:
-            ordering = self.graph.topological_sort()
-        self.ordering = _upgrade_ordering(ordering)
+            self.ordering = [Variable(name) for name in self.graph.topological_sort()]
+        else:
+            self.ordering = ordering
 
     # The simplify function is implemented inside a class since there is shared state between recursive calls
     #  and this makes it much easier to reference rather than making the simplify function itself have many
