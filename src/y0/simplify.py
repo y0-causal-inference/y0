@@ -10,7 +10,7 @@ from typing import Final, Sequence, Union
 
 from ananke.graphs import ADMG
 
-from .dsl import Expression, Fraction, Probability, Product, Sum
+from .dsl import Distribution, Expression, Fraction, Probability, Product, Sum, Variable
 from .graph import NxMixedGraph
 
 __all__ = [
@@ -37,6 +37,41 @@ def has_markov_postcondition(expression: Expression) -> bool:
         return has_markov_postcondition(expression.numerator) and has_markov_postcondition(expression.denominator)
     else:
         raise TypeError
+
+
+def _upgrade_ordering(variables: Sequence[Union[str, Variable]]) -> Sequence[Variable]:
+    return [
+        Variable(variable) if isinstance(variable, str) else variable
+        for variable in variables
+    ]
+
+
+def canonicalize(expression: Expression, ordering: Sequence[Union[str, Variable]]) -> Expression:
+    """Canonicalize an expression that meets the markov condition with respect to the given ordering.
+
+    :param expression: An expression to canonicalize
+    :param ordering: A toplogical ordering
+    :return:
+    """
+    if not has_markov_postcondition(expression):
+        raise ValueError(f'can not canonicalize expression that does not have the markov postcondition: {expression}')
+
+    ordering = _upgrade_ordering(ordering)
+    if len(set(ordering)) != len(ordering):
+        raise ValueError(f'ordering has duplicates: {ordering}')
+
+    ordering_level = {
+        variable: level
+        for level, variable in enumerate(ordering)
+    }
+
+    if isinstance(expression, Probability):
+        return Probability(Distribution(
+            children=expression.distribution.children,
+            parents=tuple(sorted(expression.distribution.parents, key=ordering_level.__getitem__)),
+        ))
+
+    raise NotImplementedError
 
 
 def simplify(expression: Expression, ordering: Union[NxMixedGraph, ADMG, Sequence[str]]) -> Expression:

@@ -6,7 +6,7 @@ import unittest
 
 from y0.dsl import A, B, C, D, P, Sum, Variable
 from y0.graph import NxMixedGraph
-from y0.simplify import has_markov_postcondition, simplify
+from y0.simplify import canonicalize, has_markov_postcondition, simplify
 
 #: Corresponds to Figure 1 in https://www.jmlr.org/papers/volume18/16-166/16-166.pdf
 figure_1 = NxMixedGraph()
@@ -38,8 +38,8 @@ pre_equation_1 = _a * _b * _c * _e / _d
 equation_1 = P(Z1 | (Z2, X)) * P(Z2) * P(Y) * Sum[X](_y * _z3 * _x)
 
 
-class TestSimplify(unittest.TestCase):
-    """Tests of the simplification algorithm."""
+class TestMarkovCondition(unittest.TestCase):
+    """Tests for checking the markov condition."""
 
     def test_markov_raises(self):
         """Test the type error is raised on invalid input."""
@@ -90,6 +90,38 @@ class TestSimplify(unittest.TestCase):
         ]:
             with self.subTest(e=str(expression)):
                 self.assertFalse(has_markov_postcondition(expression))
+
+
+class TestCanonicalize(unittest.TestCase):
+    """Tests for the canonicalization of a simplified algorithm."""
+
+    def test_canonicalize_raises(self):
+        """Test a value error is raised for non markov-conditioning expressions."""
+        with self.assertRaises(ValueError):
+            canonicalize(P(A, B, C), [A, B, C])
+
+    def test_canonicalize(self):
+        """Test canonicalizing"""
+        for expected, expression, ordering in [
+            (P(A), P(A), [A]),
+            (P(A | B), P(A | B), [A, B]),
+            (P(A | (B, C)), P(A | (B, C)), [A, B, C]),
+            (P(A | (B, C)), P(A | (C, B)), [A, B, C]),
+            (P(A | (B, C, D)), P(A | (B, C, D)), [A, B, C, D]),
+            (P(A | (B, C, D)), P(A | (B, D, C)), [A, B, C, D]),
+            (P(A | (B, C, D)), P(A | (C, B, D)), [A, B, C, D]),
+            (P(A | (B, C, D)), P(A | (C, D, B)), [A, B, C, D]),
+            (P(A | (B, C, D)), P(A | (D, C, B)), [A, B, C, D]),
+            (P(A | (B, C, D)), P(A | (D, B, C)), [A, B, C, D]),
+            (..., P(A) * P(B), [A, B]),
+            (..., P(B) * P(A), [A, B]),
+        ]:
+            with self.subTest(e=str(expression), ordering=ordering):
+                self.assertEqual(expected, canonicalize(expression, ordering))
+
+
+class TestSimplify(unittest.TestCase):
+    """Tests of the simplification algorithm."""
 
     def test_simplify_example_1(self):
         """Test the :func:`y0.simplify.simplify` function."""
