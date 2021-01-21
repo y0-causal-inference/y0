@@ -50,6 +50,12 @@ class Canonicalizer:
             for level, variable in enumerate(self.ordering)
         }
 
+    def _canonicalize_probability(self, expression: Probability) -> Probability:
+        return Probability(Distribution(
+            children=expression.distribution.children,
+            parents=tuple(sorted(expression.distribution.parents, key=self.ordering_level.__getitem__)),
+        ))
+
     def canonicalize(self, expression: Expression) -> Expression:
         """Canonicalize an expression.
 
@@ -58,10 +64,7 @@ class Canonicalizer:
         :raises TypeError: if an object with an invalid type is passed
         """
         if isinstance(expression, Probability):  # atomic
-            return Probability(Distribution(
-                children=expression.distribution.children,
-                parents=tuple(sorted(expression.distribution.parents, key=self.ordering_level.__getitem__)),
-            ))
+            return self._canonicalize_probability(expression)
         elif isinstance(expression, Sum):
             if isinstance(expression.expression, Probability):  # also atomic
                 return expression
@@ -91,4 +94,15 @@ class Canonicalizer:
             raise TypeError
 
     def _nonatomic_key(self, expression: Expression):
+        if isinstance(expression, Probability):
+            return 0, expression.distribution.children[0].name
+        elif isinstance(expression, Product):
+            inner_keys = [
+                self._nonatomic_key(sexpr)
+                for sexpr in expression.expressions
+            ]
+            return 1, *inner_keys
+        elif isinstance(expression, Sum):
+            return 1, self._nonatomic_key(expression.expression)
+
         raise NotImplementedError('nonatomic sort not implemented')
