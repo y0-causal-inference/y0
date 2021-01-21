@@ -30,7 +30,7 @@
     </a>
 </p>
 
-Python code for causal modeling.
+`y0` (pronounced "why not?") is Python code for causal inferencing.
 
 ## 💪 Getting Started
 
