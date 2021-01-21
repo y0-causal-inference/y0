@@ -85,10 +85,11 @@ class TestCanonicalize(unittest.TestCase):
             for left, right in itt.permutations((P(D), sum_expr)):
                 self.assert_canonicalize(expected, left * right, [A, B, C, D])
 
-        expected = Sum(P(A) * P(B)) * Sum(P(C) * P(D))
-        for (a, b), (c, d) in itt.permutations(itt.product(
+        expected = P(X) * Sum(P(A) * P(B)) * Sum(P(C) * P(D))
+        for (a, b), (c, d) in itt.product(
             itt.permutations((P(A), P(B))),
             itt.permutations((P(C), P(D))),
-        )):
-            expression = Sum(a * b) * Sum(c * d)
-            self.assert_canonicalize(expected, expression * P(D), [A, B, C, D])
+        ):
+            sexpr = Sum(a * b) * Sum(c * d)
+            self.assert_canonicalize(expected, sexpr * P(X), [A, B, C, D])
+            self.assert_canonicalize(expected, P(X) * sexpr, [A, B, C, D])
