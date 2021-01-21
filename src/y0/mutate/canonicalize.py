@@ -4,7 +4,7 @@
 
 from typing import Sequence, Union
 
-from ..dsl import Distribution, Expression, Fraction, Probability, Product, Sum, Variable
+from ..dsl import Distribution, Expression, Fraction, Probability, Product, Sum, Variable, _upgrade_ordering
 from ..predicates import has_markov_postcondition
 
 __all__ = [
@@ -30,13 +30,6 @@ def canonicalize(expression: Expression, ordering: Sequence[Union[str, Variable]
 
     canonicalizer = Canonicalizer(ordering)
     return canonicalizer.canonicalize(expression)
-
-
-def _upgrade_ordering(variables: Sequence[Union[str, Variable]]) -> Sequence[Variable]:
-    return tuple(
-        Variable(variable) if isinstance(variable, str) else variable
-        for variable in variables
-    )
 
 
 def _sort_probability_key(probability: Probability) -> str:
