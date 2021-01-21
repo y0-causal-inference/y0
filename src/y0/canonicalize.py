@@ -64,12 +64,15 @@ class Canonicalizer:
         :return: A canonicalized expression
         :raises TypeError: if an object with an invalid type is passed
         """
-        if isinstance(expression, Probability):
+        if isinstance(expression, Probability):  # atomic
             return Probability(Distribution(
                 children=expression.distribution.children,
                 parents=tuple(sorted(expression.distribution.parents, key=self.ordering_level.__getitem__)),
             ))
         elif isinstance(expression, Sum):
+            if isinstance(expression.expression, Probability):  # also atomic
+                return expression
+
             return Sum(
                 expression=self.canonicalize(expression.expression),
                 ranges=expression.ranges,
