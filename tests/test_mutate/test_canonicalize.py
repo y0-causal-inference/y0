@@ -97,3 +97,9 @@ class TestCanonicalize(unittest.TestCase):
             sexpr = Sum(a * b) * Sum(c * d)
             self.assert_canonicalize(expected, sexpr * P(X), [A, B, C, D])
             self.assert_canonicalize(expected, P(X) * sexpr, [A, B, C, D])
+
+        expected = expression = Sum(P(A) / P(B))
+        self.assert_canonicalize(expected, expression, [A, B])
+
+        expected = expression = Sum(P(A) / Sum(P(B))) * Sum(P(A) / Sum(P(B) / P(C)))
+        self.assert_canonicalize(expected, expression, [A, B, C])
