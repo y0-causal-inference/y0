@@ -21,7 +21,11 @@ class TestCanonicalize(unittest.TestCase):
     def assert_canonicalize(self, expected: Expression, expression: Expression, ordering: Sequence[Variable]) -> None:
         """Check that the expression is canonicalized properly given an ordering."""
         with self.subTest(expr=str(expression), ordering=', '.join(variable.name for variable in ordering)):
-            self.assertEqual(expected, canonicalize(expression, ordering))
+            actual = canonicalize(expression, ordering)
+            self.assertEqual(
+                expected, actual,
+                msg=f'\nExpected: {str(expression)}\nActual:   {str(actual)}',
+            )
 
     def test_atomic(self):
         """Test canonicalization of atomic expressions."""
