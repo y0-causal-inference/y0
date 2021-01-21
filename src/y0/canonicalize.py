@@ -39,6 +39,10 @@ def _upgrade_ordering(variables: Sequence[Union[str, Variable]]) -> Sequence[Var
     )
 
 
+def _sort_probability_key(probability: Probability) -> str:
+    return probability.distribution.children[0].name
+
+
 class Canonicalizer:
     """A data structure to support application of the canonicalize algorithm."""
 
@@ -79,7 +83,7 @@ class Canonicalizer:
                     probabilities.append(subexpr)
                 else:
                     other.append(subexpr)
-            probabilities = sorted(probabilities, key=lambda p: p.distribution.children[0].name)
+            probabilities = sorted(probabilities, key=_sort_probability_key)
             other = sorted(other, key=self._nonatomic_key)
             return Product((*probabilities, *other))
         elif isinstance(expression, Fraction):
