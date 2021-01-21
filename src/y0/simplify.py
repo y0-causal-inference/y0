@@ -10,8 +10,7 @@ from typing import Optional, Sequence, Union
 
 from ananke.graphs import ADMG
 
-from .canonicalize import _upgrade_ordering
-from .dsl import Expression, Variable
+from .dsl import Expression, Variable, _upgrade_ordering
 from .graph import NxMixedGraph
 from .predicates import has_markov_postcondition
 
