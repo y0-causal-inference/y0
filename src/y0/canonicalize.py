@@ -91,4 +91,4 @@ class Canonicalizer:
             raise TypeError
 
     def _nonatomic_key(self, expression: Expression):
-        raise NotImplementedError
+        raise NotImplementedError('nonatomic sort not implemented')
