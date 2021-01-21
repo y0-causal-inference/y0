@@ -7,7 +7,7 @@ import unittest
 
 from y0.dsl import A, B, C, D, P, Sum, Variable, X, Y, Z
 from y0.graph import NxMixedGraph
-from y0.simplify import canonicalize, has_markov_postcondition, simplify
+from y0.simplify import canonicalize, simplify
 
 #: Corresponds to Figure 1 in https://www.jmlr.org/papers/volume18/16-166/16-166.pdf
 figure_1 = NxMixedGraph()
@@ -39,60 +39,6 @@ pre_equation_1 = _a * _b * _c * _e / _d
 equation_1 = P(Z1 | (Z2, X)) * P(Z2) * P(Y) * Sum[X](_y * _z3 * _x)
 
 
-class TestMarkovCondition(unittest.TestCase):
-    """Tests for checking the markov condition."""
-
-    def test_markov_raises(self):
-        """Test the type error is raised on invalid input."""
-        for value in [
-            Variable('whatever'),
-            A @ B,
-            A @ ~B,
-            'something else',
-        ]:
-            with self.subTest(value=value), self.assertRaises(TypeError):
-                has_markov_postcondition(value)
-
-    def test_markov_postcondition(self):
-        """Test the expressions have the markov postcondition."""
-        for expression in [
-            P(A),
-            P(A | B),
-            P(A | (B, C)),
-            P(A) * P(B),
-            P(A) * P(A | B),
-            P(A | B) * P(A | C),
-            P(A) / P(B),
-            P(A) / P(A | B),
-            Sum[X](P(A)),
-            Sum[X](P(A | B)),
-            Sum[X](P(A | B) * P(B)),
-        ]:
-            with self.subTest(e=expression):
-                self.assertTrue(has_markov_postcondition(expression))
-
-    def test_missing_markov_postcondition(self):
-        """Test the expressions do not have the markov postcondition."""
-        for expression in [
-            P(A, B),
-            P(A & B | C),
-            P(A & D | (B, C)),
-            P(A, C) * P(B),
-            P(A, C) * P(A | B),
-            P(A) * P(A & C | B),
-            P(A & C | B) * P(A | C),
-            P(A) / P(B & C),
-            P(A & C) / P(B),
-            P(A) / P(A & C | B),
-            Sum[X](P(A, C)),
-            Sum[X](P(A & C | B)),
-            Sum[X](P(A & C | B) * P(B)),
-            Sum[X](P(A | B) * P(B, C)),
-        ]:
-            with self.subTest(e=str(expression)):
-                self.assertFalse(has_markov_postcondition(expression))
-
-
 class TestCanonicalize(unittest.TestCase):
     """Tests for the canonicalization of a simplified algorithm."""
 
@@ -101,8 +47,8 @@ class TestCanonicalize(unittest.TestCase):
         with self.assertRaises(ValueError):
             canonicalize(P(A, B, C), [A, B, C])
 
-    def test_canonicalize(self):
-        """Test canonicalizing."""
+    def test_atomic(self):
+        """Test canonicalization of atomic expressions."""
         for expected, expression, ordering in [
             (P(A), P(A), [A]),
             (P(A | B), P(A | B), [A, B]),
@@ -118,24 +64,33 @@ class TestCanonicalize(unittest.TestCase):
             with self.subTest(e=str(expression)):
                 self.assertEqual(expected, canonicalize(expression, [A, B, C, D]))
 
+    def test_derived_atomic(self):
+        """Test canonicalizing."""
+        # Sum
+        expected = expression = Sum(P(A))
+        with self.subTest(e=str(expression)):
+            self.assertEqual(expected, canonicalize(expression, [A]))
+
+        # Simple product (only atomic)
         expected = P(A) * P(B) * P(C)
         for a, b, c in itt.permutations((P(A), P(B), P(C))):
             expression = a * b * c
             with self.subTest(e=str(expression)):
                 self.assertEqual(expected, canonicalize(expression, [A, B, C]))
 
+        # Sum with simple product (only atomic)
         expected = Sum(P(A) * P(B) * P(C))
         for a, b, c in itt.permutations((P(A), P(B), P(C))):
             expression = Sum(a * b * c)
             with self.subTest(e=str(expression)):
                 self.assertEqual(expected, canonicalize(expression, [A, B, C]))
 
-        expected = Sum(P(A) * P(B) * P(C)) * P(D)
-        for a, b, c in itt.permutations((P(A), P(B), P(C))):
-            expression = P(D) * Sum(a * b * c)
-            with self.subTest(e=str(expression)):
-                self.assertEqual(expected, canonicalize(expression, [A, B, C]))
+        # Fraction
+        expected = expression = P(A) / P(B)
+        with self.subTest(e=str(expression)):
+            self.assertEqual(expected, canonicalize(expression, [A, B]))
 
+        # Fraction with simple products (only atomic)
         expected = (P(A) * P(B) * P(C)) / (P(X) * P(Y) * P(Z))
         for (a, b, c), (x, y, z) in itt.product(
             itt.permutations((P(A), P(B), P(C))),
@@ -144,6 +99,14 @@ class TestCanonicalize(unittest.TestCase):
             expression = (a * b * c) / (x * y * z)
             with self.subTest(e=str(expression)):
                 self.assertEqual(expected, canonicalize(expression, [A, B, C, X, Y, Z]))
+
+    def test_mixed(self):
+        """Test mixed expressions."""
+        expected = Sum(P(A) * P(B) * P(C)) * P(D)
+        for a, b, c in itt.permutations((P(A), P(B), P(C))):
+            expression = P(D) * Sum(a * b * c)
+            with self.subTest(e=str(expression)):
+                self.assertEqual(expected, canonicalize(expression, [A, B, C]))
 
 
 class TestSimplify(unittest.TestCase):
