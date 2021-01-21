@@ -2,12 +2,11 @@
 
 """Tests of the simplification algorithm."""
 
-import itertools as itt
 import unittest
 
-from y0.dsl import A, B, C, D, P, Sum, Variable, X, Y, Z
+from y0.dsl import P, Sum, Variable, X, Y
 from y0.graph import NxMixedGraph
-from y0.simplify import canonicalize, simplify
+from y0.simplify import simplify
 
 #: Corresponds to Figure 1 in https://www.jmlr.org/papers/volume18/16-166/16-166.pdf
 figure_1 = NxMixedGraph()
@@ -37,76 +36,6 @@ _d = Sum[X, Y](_i)
 _e = Sum[X, Z3, Y](_i)
 pre_equation_1 = _a * _b * _c * _e / _d
 equation_1 = P(Z1 | (Z2, X)) * P(Z2) * P(Y) * Sum[X](_y * _z3 * _x)
-
-
-class TestCanonicalize(unittest.TestCase):
-    """Tests for the canonicalization of a simplified algorithm."""
-
-    def test_canonicalize_raises(self):
-        """Test a value error is raised for non markov-conditioning expressions."""
-        with self.assertRaises(ValueError):
-            canonicalize(P(A, B, C), [A, B, C])
-
-    def test_atomic(self):
-        """Test canonicalization of atomic expressions."""
-        for expected, expression, ordering in [
-            (P(A), P(A), [A]),
-            (P(A | B), P(A | B), [A, B]),
-            (P(A | (B, C)), P(A | (B, C)), [A, B, C]),
-            (P(A | (B, C)), P(A | (C, B)), [A, B, C]),
-        ]:
-            with self.subTest(e=str(expression), ordering=ordering):
-                self.assertEqual(expected, canonicalize(expression, ordering))
-
-        expected = P(A | (B, C, D))
-        for b, c, d in itt.permutations((B, C, D)):
-            expression = P(A | (b, c, d))
-            with self.subTest(e=str(expression)):
-                self.assertEqual(expected, canonicalize(expression, [A, B, C, D]))
-
-    def test_derived_atomic(self):
-        """Test canonicalizing."""
-        # Sum
-        expected = expression = Sum(P(A))
-        with self.subTest(e=str(expression)):
-            self.assertEqual(expected, canonicalize(expression, [A]))
-
-        # Simple product (only atomic)
-        expected = P(A) * P(B) * P(C)
-        for a, b, c in itt.permutations((P(A), P(B), P(C))):
-            expression = a * b * c
-            with self.subTest(e=str(expression)):
-                self.assertEqual(expected, canonicalize(expression, [A, B, C]))
-
-        # Sum with simple product (only atomic)
-        expected = Sum(P(A) * P(B) * P(C))
-        for a, b, c in itt.permutations((P(A), P(B), P(C))):
-            expression = Sum(a * b * c)
-            with self.subTest(e=str(expression)):
-                self.assertEqual(expected, canonicalize(expression, [A, B, C]))
-
-        # Fraction
-        expected = expression = P(A) / P(B)
-        with self.subTest(e=str(expression)):
-            self.assertEqual(expected, canonicalize(expression, [A, B]))
-
-        # Fraction with simple products (only atomic)
-        expected = (P(A) * P(B) * P(C)) / (P(X) * P(Y) * P(Z))
-        for (a, b, c), (x, y, z) in itt.product(
-            itt.permutations((P(A), P(B), P(C))),
-            itt.permutations((P(X), P(Y), P(Z))),
-        ):
-            expression = (a * b * c) / (x * y * z)
-            with self.subTest(e=str(expression)):
-                self.assertEqual(expected, canonicalize(expression, [A, B, C, X, Y, Z]))
-
-    def test_mixed(self):
-        """Test mixed expressions."""
-        expected = Sum(P(A) * P(B) * P(C)) * P(D)
-        for a, b, c in itt.permutations((P(A), P(B), P(C))):
-            expression = P(D) * Sum(a * b * c)
-            with self.subTest(e=str(expression)):
-                self.assertEqual(expected, canonicalize(expression, [A, B, C]))
 
 
 class TestSimplify(unittest.TestCase):
