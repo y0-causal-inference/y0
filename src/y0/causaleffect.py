@@ -68,7 +68,6 @@ class VermaConstraint(NamedTuple):
         .. seealso:: Extracting from R objects https://rpy2.github.io/doc/v3.4.x/html/vector.html#extracting-items
         """
         return cls(
-            lhs_cfactor=element.rx('lhs.cfactor')[0][0],
             rhs_cfactor=parse_causaleffect(_extract(element, 'rhs.cfactor')),
             rhs_expr=parse_causaleffect(_extract(element, 'rhs.expr')),
             lhs_cfactor=parse_causaleffect(_extract(element, 'lhs.cfactor')),
