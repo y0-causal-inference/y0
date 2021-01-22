@@ -1,3 +1,5 @@
+"""Test the internal y0 DSL parser."""
+
 import unittest
 
 from y0.dsl import A, B, Expression, P, Sum
@@ -20,5 +22,5 @@ class TestInternalParser(unittest.TestCase):
                 self.assertIsInstance(actual, Expression)
                 self.assertEqual(
                     expected, actual,
-                    msg=f'\nExpected: {expected}\nActual:   {actual}'
+                    msg=f'\nExpected: {expected}\nActual:   {actual}',
                 )
