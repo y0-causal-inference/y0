@@ -83,6 +83,8 @@ class Canonicalizer:
                 else:
                     other.append(subexpr)
             probabilities = sorted(probabilities, key=_sort_probability_key)
+
+            # If other is empty, this is also atomic
             other = sorted(other, key=self._nonatomic_key)
             return Product((*probabilities, *other))
         elif isinstance(expression, Fraction):
@@ -94,15 +96,21 @@ class Canonicalizer:
             raise TypeError
 
     def _nonatomic_key(self, expression: Expression):
+        """Generate a sort key for a *canonical* expression.
+
+        :param expression: A canonical expression
+        :returns: A tuple in which the first element is the integer priority for the expression
+            and the rest depends on the expression type.
+        :raises TypeError: if an invalid expression type is given
+        """
         if isinstance(expression, Probability):
             return 0, expression.distribution.children[0].name
-        elif isinstance(expression, Product):
-            inner_keys = [
-                self._nonatomic_key(sexpr)
-                for sexpr in expression.expressions
-            ]
-            return 1, *inner_keys
         elif isinstance(expression, Sum):
-            return 1, self._nonatomic_key(expression.expression)
-
-        raise NotImplementedError('nonatomic sort not implemented')
+            return 1, *self._nonatomic_key(expression.expression)
+        elif isinstance(expression, Product):
+            inner_keys = (self._nonatomic_key(sexpr) for sexpr in expression.expressions)
+            return 2, *inner_keys
+        elif isinstance(expression, Fraction):
+            return 3, self._nonatomic_key(expression.numerator), self._nonatomic_key(expression.denominator)
+        else:
+            raise TypeError
