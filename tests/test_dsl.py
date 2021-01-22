@@ -6,7 +6,7 @@ import itertools as itt
 import unittest
 
 from y0.dsl import (
-    A, B, C, CounterfactualVariable, D, Distribution, Fraction, Intervention, One, P, Q, S, Sum, T,
+    A, B, C, CounterfactualVariable, D, Distribution, Fraction, Intervention, One, P, R, S, Sum, T,
     Variable, W, X, Y, Z,
 )
 
@@ -191,8 +191,8 @@ class TestDSL(unittest.TestCase):
 
         # Sum with sum inside
         self.assert_text(
-            "[ sum_{S,T} P(A|B) [ sum_{Q} P(C|D) ] ]",
-            Sum(P(A | B) * Sum(P(C | D), (Q,)), (S, T)),
+            "[ sum_{S,T} P(A|B) [ sum_{R} P(C|D) ] ]",
+            Sum(P(A | B) * Sum(P(C | D), (R,)), (S, T)),
         )
 
     def test_jeremy(self):

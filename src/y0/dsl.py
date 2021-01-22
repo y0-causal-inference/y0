@@ -22,7 +22,7 @@ __all__ = [
     'Fraction',
     'Expression',
     'One',
-    'A', 'B', 'C', 'D', 'Q', 'S', 'T', 'W', 'X', 'Y', 'Z',
+    'A', 'B', 'C', 'D', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z',
 ]
 
 X = TypeVar('X')
@@ -612,7 +612,7 @@ class One(Expression):
         return iter([])
 
 
-A, B, C, D, Q, S, T, W, X, Y, Z = map(Variable, 'ABCDQSTWXYZ')  # type: ignore
+A, B, C, D, R, S, T, W, X, Y, Z = map(Variable, 'ABCDRSTWXYZ')  # type: ignore
 
 
 def _upgrade_ordering(variables: Sequence[Union[str, Variable]]) -> Sequence[Variable]:
