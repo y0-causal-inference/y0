@@ -16,6 +16,7 @@ later, but that will cause problems--the code will get executed twice:
 import logging
 
 import click
+from more_click import make_web_command
 
 __all__ = ['main']
 
@@ -27,6 +28,8 @@ logger = logging.getLogger(__name__)
 def main():
     """CLI for y0."""
 
+
+make_web_command('y0.app.wsgi:app', group=main)
 
 if __name__ == '__main__':
     main()
