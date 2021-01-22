@@ -613,3 +613,10 @@ class One(Expression):
 
 
 A, B, C, D, Q, S, T, W, X, Y, Z = map(Variable, 'ABCDQSTWXYZ')  # type: ignore
+
+
+def _upgrade_ordering(variables: Sequence[Union[str, Variable]]) -> Sequence[Variable]:
+    return tuple(
+        Variable(variable) if isinstance(variable, str) else variable
+        for variable in variables
+    )
