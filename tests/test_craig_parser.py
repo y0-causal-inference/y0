@@ -7,8 +7,8 @@ import unittest
 from pyparsing import ParserElement
 
 from y0.dsl import A, B, C, P, Sum, X, Y, Z
-from y0.parser import fraction_pe, grammar, sum_pe
-from y0.parser_utils import probability_pe, variable_pe
+from y0.parser.craig.grammar import fraction_pe, grammar, sum_pe
+from y0.parser.craig.utils import probability_pe, variable_pe
 
 
 class TestGrammar(unittest.TestCase):

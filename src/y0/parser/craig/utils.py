@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-"""Utilities for the parser."""
+"""Utilities for the parser for Craig-like probability expressions."""
 
 from pyparsing import Group, Optional, ParseResults, Suppress, Word, alphas, delimitedList
 
-from .dsl import (CounterfactualVariable, Distribution, Intervention, Probability, Variable)
+from ...dsl import CounterfactualVariable, Distribution, Intervention, Probability, Variable
 
 __all__ = [
     'probability_pe',
