@@ -5,13 +5,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, NamedTuple, Sequence
+from typing import Iterable, NamedTuple, Sequence, Tuple
 
 from rpy2 import robjects
 from rpy2.robjects.packages import importr, isinstalled
 from rpy2.robjects.vectors import StrVector
 
-from y0.dsl import Expression
+from y0.dsl import Expression, Variable
 from y0.graph import NxMixedGraph, figure_1
 from y0.parser import parse_causaleffect
 
@@ -56,7 +56,7 @@ class VermaConstraint(NamedTuple):
     lhs_expr: Expression
     rhs_cfactor: str
     rhs_expr: Expression
-    variables: str  # TODO should be a list of variables. What is the delimiter? need example with multiple
+    variables: Tuple[Variable, ...]
 
     @classmethod
     def from_element(cls, element) -> VermaConstraint:
@@ -72,12 +72,16 @@ class VermaConstraint(NamedTuple):
             rhs_expr=parse_causaleffect(_extract(element, 'rhs.expr')),
             lhs_cfactor=_extract(element, 'lhs.cfactor'),
             lhs_expr=parse_causaleffect(_extract(element, 'lhs.expr')),
-            variables=_parse_vars(_extract(element, 'vars')),
+            variables=_parse_vars(element),
         )
 
 
-def _parse_vars(variables: str) -> str:
-    return variables  # TODO
+def _parse_vars(element) -> Tuple[Variable, ...]:
+    _vars = element.rx('vars')
+    return tuple(
+        Variable(name)
+        for name in sorted(_vars[0])
+    )
 
 
 def _extract(element, key):

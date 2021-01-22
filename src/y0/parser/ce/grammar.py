@@ -2,6 +2,9 @@
 
 """A parser for Craig-like probability expressions based on :mod:`pyparsing`."""
 
+import logging
+
+import pyparsing
 from pyparsing import Forward, Group, OneOrMore, Optional, ParseResults, StringEnd, StringStart, Suppress
 
 from .utils import probability_pe, variables_pe
@@ -12,6 +15,7 @@ __all__ = [
     'grammar',
 ]
 
+logger = logging.getLogger(__name__)
 expr = Forward()
 
 
@@ -41,7 +45,7 @@ def _make_product(_s, _l, tokens: ParseResults) -> Expression:
 rr = OneOrMore(probability_pe | expr).setParseAction(_make_product)
 
 sum_pe = (
-    Suppress(r'\\sum_{')
+    Suppress('\\sum_{')
     + Optional(Group(variables_pe).setResultsName('ranges'))
     + Suppress('}')
     + rr.setResultsName('expression')
@@ -50,7 +54,7 @@ sum_pe.setName('sum')
 sum_pe.setParseAction(_make_sum)
 
 fraction_pe = (
-    Suppress(r'\\frac_{')
+    Suppress('\\frac_{')
     + rr.setResultsName('numerator')
     + Suppress('}{')
     + rr.setResultsName('denominator')
