@@ -10,7 +10,7 @@ from rpy2 import robjects
 from rpy2.robjects.packages import importr, isinstalled
 from rpy2.robjects.vectors import StrVector
 
-from y0.graph import napkin_graph
+from y0.graph import figure_1
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +54,11 @@ def _main():
     importr(CAUSALEFFECT)
     importr(IGRAPH)
 
-    graph_code = napkin_graph.to_causaleffect_str()
+    graph_code = figure_1.to_causaleffect_str()
     graph = robjects.r(graph_code)
     print(graph)
 
+    # Get verma constraints
     verma_constraints = robjects.r['verma.constraints']
     rv = verma_constraints(graph)
     print(rv[0].rx('rhs.cfactor'))

@@ -5,11 +5,18 @@
 import unittest
 from textwrap import dedent
 
-from y0.graph import napkin_graph
+from y0.graph import figure_1, napkin_graph
 
 
 class TestGraph(unittest.TestCase):
     """Test graph construction and conversion."""
+
+    def test_causaleffect_str_figure_1a(self):
+        expected = dedent('''
+        g <- graph.formula(A -+ B, B -+ C, C -+ D, B -+ D, D -+ B, simplify = FALSE)
+        g <- set.edge.attribute(graph = g, name = "description", index = c(4, 5), value = "U")
+        ''').strip()
+        self.assertEqual(expected, figure_1.to_causaleffect_str())
 
     def test_causaleffect_str_napkin(self):
         """Test generating R code for the napkin graph for causaleffect."""

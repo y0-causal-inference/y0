@@ -87,3 +87,10 @@ napkin_graph.add_directed_edge('W', 'V1')
 napkin_graph.add_directed_edge('V1', 'Y')
 napkin_graph.add_undirected_edge('W', 'X')
 napkin_graph.add_undirected_edge('W', 'Y')
+
+# Figure 1A from https://arxiv.org/abs/1301.0608
+figure_1 = NxMixedGraph()
+figure_1.add_directed_edge('A', 'B')
+figure_1.add_directed_edge('B', 'C')
+figure_1.add_directed_edge('C', 'D')
+figure_1.add_undirected_edge('B', 'D')
