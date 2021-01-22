@@ -2,6 +2,8 @@
 
 """Graph data structures."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 import networkx as nx
@@ -52,6 +54,21 @@ class NxMixedGraph:
         bi_edges = list(self.undirected.edges())
         vertices = list(self.directed)  # could be either since they're maintained together
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
+
+    def to_causaleffect(self):
+        """Get a causaleffect R object.
+
+        :returns: A causaleffect R object.
+
+        .. warning:: Appropriate R imports need to be done first for 'causaleffect' and 'igraph'.
+        """
+        import rpy2.robjects
+        return rpy2.robjects.r(self.to_causaleffect_str())
+
+    @classmethod
+    def from_causaleffect(cls, graph) -> NxMixedGraph:
+        """Construct an instance from a causaleffect R graph."""
+        raise NotImplementedError
 
     def to_causaleffect_str(self) -> str:
         """Get a string to be imported by R."""

@@ -12,6 +12,7 @@ class TestGraph(unittest.TestCase):
     """Test graph construction and conversion."""
 
     def test_causaleffect_str_figure_1a(self):
+        """Test generating R code for the figure 1A graph for causaleffect."""
         expected = dedent('''
         g <- graph.formula(A -+ B, B -+ C, C -+ D, B -+ D, D -+ B, simplify = FALSE)
         g <- set.edge.attribute(graph = g, name = "description", index = c(4, 5), value = "U")
