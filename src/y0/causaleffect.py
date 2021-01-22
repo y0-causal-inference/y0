@@ -54,6 +54,7 @@ class VermaConstraint(NamedTuple):
     lhs_expr: str
     rhs_cfactor: str
     rhs_expr: str
+    variables: str
 
     @classmethod
     def from_element(cls, element) -> VermaConstraint:
@@ -69,6 +70,7 @@ class VermaConstraint(NamedTuple):
             rhs_expr=element.rx('rhs.expr')[0][0],
             lhs_cfactor=element.rx('lhs.cfactor')[0][0],
             lhs_expr=element.rx('lhs.expr')[0][0],
+            variables=element.rx('vars')[0][0],
         )
 
 
