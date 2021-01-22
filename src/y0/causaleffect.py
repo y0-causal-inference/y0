@@ -11,7 +11,9 @@ from rpy2 import robjects
 from rpy2.robjects.packages import importr, isinstalled
 from rpy2.robjects.vectors import StrVector
 
+from y0.dsl import Expression
 from y0.graph import NxMixedGraph, figure_1
+from y0.parser import parse_causaleffect
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +52,11 @@ def prepare_renv(*, requirements: Iterable[str]) -> None:
 class VermaConstraint(NamedTuple):
     """Represent a Verma constraint output by causaleffect."""
 
-    lhs_cfactor: str
-    lhs_expr: str
-    rhs_cfactor: str
-    rhs_expr: str
-    variables: str
+    lhs_cfactor: Expression
+    lhs_expr: Expression
+    rhs_cfactor: Expression
+    rhs_expr: Expression
+    variables: str  # TODO should be a list of variables. What is the delimiter? need example with multiple
 
     @classmethod
     def from_element(cls, element) -> VermaConstraint:
@@ -66,12 +68,21 @@ class VermaConstraint(NamedTuple):
         .. seealso:: Extracting from R objects https://rpy2.github.io/doc/v3.4.x/html/vector.html#extracting-items
         """
         return cls(
-            rhs_cfactor=element.rx('rhs.cfactor')[0][0],
-            rhs_expr=element.rx('rhs.expr')[0][0],
             lhs_cfactor=element.rx('lhs.cfactor')[0][0],
-            lhs_expr=element.rx('lhs.expr')[0][0],
-            variables=element.rx('vars')[0][0],
+            rhs_cfactor=parse_causaleffect(_extract(element, 'rhs.cfactor')),
+            rhs_expr=parse_causaleffect(_extract(element, 'rhs.expr')),
+            lhs_cfactor=parse_causaleffect(_extract(element, 'lhs.cfactor')),
+            lhs_expr=parse_causaleffect(_extract(element, 'lhs.expr')),
+            variables=_parse_vars(_extract(element, 'vars')),
         )
+
+
+def _parse_vars(variables: str) -> str:
+    return variables  # TODO
+
+
+def _extract(element, key):
+    return element.rx(key)[0][0]
 
 
 def r_get_verma_constraints(graph) -> Sequence[VermaConstraint]:

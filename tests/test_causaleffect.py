@@ -5,6 +5,7 @@
 import unittest
 
 from y0.graph import figure_1
+from y0.parser import parse_causaleffect
 
 try:
     from y0.causaleffect import CAUSALEFFECT, IGRAPH, VermaConstraint, r_get_verma_constraints
@@ -36,10 +37,10 @@ class TestCausalEffect(unittest.TestCase):
         self.assertEqual(1, len(actual))
         self.assertEqual(
             VermaConstraint(
-                rhs_cfactor="Q[\\{D\\}](C,D)",
-                rhs_expr="\\sum_{u_{1},C}P(D|u_{1},C)P(C)P(u_{1})",
-                lhs_cfactor="\\sum_{B}Q[\\{B,D\\}](A,B,C,D)",
-                lhs_expr="\\sum_{B}P(D|A,B,C)P(B|A)",
+                rhs_cfactor=parse_causaleffect("Q[\\{D\\}](C,D)"),
+                rhs_expr=parse_causaleffect("\\sum_{u_{1},C}P(D|u_{1},C)P(C)P(u_{1})"),
+                lhs_cfactor=parse_causaleffect("\\sum_{B}Q[\\{B,D\\}](A,B,C,D)"),
+                lhs_expr=parse_causaleffect("\\sum_{B}P(D|A,B,C)P(B|A)"),
                 variables="A",
             ),
             actual[0],
