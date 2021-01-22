@@ -44,4 +44,5 @@ def parse_y0(s) -> Expression:
     >>> parse_y0('Sum[B](P(A|B) * P(B))') == Sum[B](P(A|B) * P(B))
     True
     """
-    return eval(s, {}, LOCALS)  # noqa:S307
+    r = eval(s, {}, LOCALS)  # noqa:S307
+    return r[0]
