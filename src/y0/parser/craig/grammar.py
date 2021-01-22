@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-"""A parser for probability expressions."""
+"""A parser for Craig-like probability expressions based on :mod:`pyparsing`."""
 
 from pyparsing import Forward, Group, OneOrMore, Optional, ParseResults, StringEnd, StringStart, Suppress
 
-from .dsl import Expression, Fraction, Product, Sum
-from .parser_utils import probability_pe, variables_pe
+from .utils import probability_pe, variables_pe
+from ...dsl import Expression, Fraction, Product, Sum
 
 __all__ = [
-    'parse',
+    'parse_craig',
     'grammar',
 ]
 
@@ -69,7 +69,7 @@ grammar = StringStart() + expr + StringEnd()
 grammar.setName('probabilityGrammar')
 
 
-def parse(s: str) -> Expression:
-    """Parse an expression."""
+def parse_craig(s: str) -> Expression:
+    """Parse a Craig-like probability expression."""
     x = grammar.parseString(s)
     return x.asList()[0]
