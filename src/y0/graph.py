@@ -9,6 +9,7 @@ from ananke.graphs import ADMG
 
 __all__ = [
     'NxMixedGraph',
+    'napkin_graph',
 ]
 
 
@@ -51,3 +52,13 @@ class NxMixedGraph:
         bi_edges = list(self.undirected.edges())
         vertices = list(self.directed)  # could be either since they're maintained together
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
+
+
+napkin_graph = NxMixedGraph()
+napkin_graph.add_directed_edge('W', 'R')
+napkin_graph.add_directed_edge('R', 'X')
+napkin_graph.add_directed_edge('X', 'Y')
+napkin_graph.add_directed_edge('W', 'V1')
+napkin_graph.add_directed_edge('V1', 'Y')
+napkin_graph.add_undirected_edge('W', 'X')
+napkin_graph.add_undirected_edge('W', 'Y')
