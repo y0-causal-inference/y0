@@ -52,9 +52,9 @@ def prepare_renv(*, requirements: Iterable[str]) -> None:
 class VermaConstraint(NamedTuple):
     """Represent a Verma constraint output by causaleffect."""
 
-    lhs_cfactor: Expression
+    lhs_cfactor: str
     lhs_expr: Expression
-    rhs_cfactor: Expression
+    rhs_cfactor: str
     rhs_expr: Expression
     variables: str  # TODO should be a list of variables. What is the delimiter? need example with multiple
 
@@ -68,9 +68,9 @@ class VermaConstraint(NamedTuple):
         .. seealso:: Extracting from R objects https://rpy2.github.io/doc/v3.4.x/html/vector.html#extracting-items
         """
         return cls(
-            rhs_cfactor=parse_causaleffect(_extract(element, 'rhs.cfactor')),
+            rhs_cfactor=_extract(element, 'rhs.cfactor'),
             rhs_expr=parse_causaleffect(_extract(element, 'rhs.expr')),
-            lhs_cfactor=parse_causaleffect(_extract(element, 'lhs.cfactor')),
+            lhs_cfactor=_extract(element, 'lhs.cfactor'),
             lhs_expr=parse_causaleffect(_extract(element, 'lhs.expr')),
             variables=_parse_vars(_extract(element, 'vars')),
         )
