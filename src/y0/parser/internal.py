@@ -13,6 +13,7 @@ __all__ = [
 LOCALS = {
     'P': P,
     'PROB': P,
+    'Prob': P,
     'PROBABILITY': P,
     'Probability': P,
     'SUM': Sum,
@@ -23,7 +24,7 @@ for letter in string.ascii_uppercase:
     if letter == 'P':
         continue
     LOCALS[letter] = Variable(letter)
-    for index in range(4):
+    for index in range(10):
         name = f'{letter}{index}'
         LOCALS[name] = Variable(name)
 
@@ -35,7 +36,7 @@ def parse_y0(s) -> Expression:
     """Parse a valid Python expression using the :mod:`y0.dsl` objects, written in a string.
 
     :param s: The string to parse. Should be a valid Python expression given ``from y0.dsl import *``.
-        Variables of the form A-Z, A1-Z1, A_1-Z_1, ..., A4-Z4, A_4-Z_4 are available.
+        Variables of the form A-Z, A0-Z0, A_0-Z_0, A1-Z1, A_1-Z_1, ..., A9-Z9, A_9-Z_9 are available.
     :return: An expression object.
 
     >>> from y0.parser import parse_y0
