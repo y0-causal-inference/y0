@@ -9,7 +9,7 @@ from .graph import NxMixedGraph
 #: Outcome: Y
 #: Adjusted: N/A
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 178.
-backdoor = NxMixedGraph.from_edges([
+backdoor = NxMixedGraph.from_edges(directed=[
     ('Z', 'X'),
     ('Z', 'Y'),
     ('X', 'Y'),
@@ -21,8 +21,13 @@ backdoor = NxMixedGraph.from_edges([
 #: Adjusted: N/A
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 81.
 frontdoor = NxMixedGraph.from_edges(
-    [('X', 'Z'), ('Z', 'Y')],
-    [('X', 'Y')],
+    directed=[
+        ('X', 'Z'),
+        ('Z', 'Y'),
+    ],
+    undirected=[
+        ('X', 'Y'),
+    ],
 )
 
 #: The Instrument Variable example
@@ -30,8 +35,13 @@ frontdoor = NxMixedGraph.from_edges(
 #: Outcome: Y
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 153.
 instrumental_variable = NxMixedGraph.from_edges(
-    [('Z', 'X'), ('X', 'Y')],
-    [('X', 'Y')],
+    directed=[
+        ('Z', 'X'),
+        ('X', 'Y'),
+    ],
+    undirected=[
+        ('X', 'Y'),
+    ],
 )
 
 #: The Napkin example
@@ -40,8 +50,15 @@ instrumental_variable = NxMixedGraph.from_edges(
 #: Reference: J. Pearl and D. Mackenzie. 2018. "The Book of Why: The New Science of Cause and Effect." Basic Books,
 #   p. 240.
 napkin = NxMixedGraph.from_edges(
-    [('Z2', 'Z1'), ('Z1', 'X'), ('X', 'Y')],
-    [('Z2', 'X'), ('Z2', 'Y')],
+    directed=[
+        ('Z2', 'Z1'),
+        ('Z1', 'X'),
+        ('X', 'Y'),
+    ],
+    undirected=[
+        ('Z2', 'X'),
+        ('Z2', 'Y'),
+    ],
 )
 
 #: The M-Graph example
@@ -50,32 +67,39 @@ napkin = NxMixedGraph.from_edges(
 #: Reference: S. Greenland, J. Pearl, and J.M. Robins. 1999. "Causal Diagrams for Epidemiologic Research." Epidemiology
 #: Journal, Volume 10, No. 10, pp. 37-48, 1999.
 m_graph = NxMixedGraph.from_edges(
-    [('X', 'Y')],
-    [('X', 'Z'), ('Y', 'Z')],
+    directed=[
+        ('X', 'Y'),
+    ],
+    undirected=[
+        ('X', 'Z'),
+        ('Y', 'Z'),
+    ],
 )
 
 #: The Identifiability 1 example
 #: Treatment: X
 #: Outcome: Y
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 80.
-identifiability_1 = NxMixedGraph.from_edges([
-    ('Z1', 'Z2'),
-    ('Z1', 'Z3'),
-    ('Z2', 'X'),
-    ('Z3', 'X'),
-    ('Z4', 'X'),
-    ('Z4', 'Z5'),
-    ('Z3', 'Y'),
-    ('X', 'Y'),
-    ('Z3', 'Y'),
-])
+identifiability_1 = NxMixedGraph.from_edges(
+    directed=[
+        ('Z1', 'Z2'),
+        ('Z1', 'Z3'),
+        ('Z2', 'X'),
+        ('Z3', 'X'),
+        ('Z4', 'X'),
+        ('Z4', 'Z5'),
+        ('Z3', 'Y'),
+        ('X', 'Y'),
+        ('Z3', 'Y'),
+    ],
+)
 
 #: The Identifiability 2 example
 #: Treatment: X
 #: Outcome: Y
 #: Reference: E. Bareinboim modification of Identifiability 1.
 identifiability_2 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('Z1', 'Z2'),
         ('Z1', 'Z3'),
         ('Z2', 'X'),
@@ -89,7 +113,7 @@ identifiability_2 = NxMixedGraph.from_edges(
         ('W1', 'W2'),
         ('W2', 'Y'),
     ],
-    [
+    undirected=[
         ('Z1', 'X'),
         ('Z2', 'Z3'),
         ('Z3', 'Z5'),
@@ -102,7 +126,7 @@ identifiability_2 = NxMixedGraph.from_edges(
 #: Outcome: Y
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 92.
 identifiability_3 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('Z2', 'X'),
         ('Z2', 'Z1'),
         ('Z2', 'Z3'),
@@ -110,7 +134,7 @@ identifiability_3 = NxMixedGraph.from_edges(
         ('Z3', 'Y'),
         ('Z1', 'Y'),
     ],
-    [
+    undirected=[
         ('Z2', 'X'),
         ('Z2', 'Y'),
         ('X', 'Z3'),
@@ -123,14 +147,14 @@ identifiability_3 = NxMixedGraph.from_edges(
 #: Outcome: Y
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 92.
 identifiability_4 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('X', 'Z1'),
         ('X', 'Y'),
         ('Z1', 'Z2'),
         ('Z1', 'Y'),
         ('Z2', 'Y'),
     ],
-    [
+    undirected=[
         ('X', 'Z2'),
         ('Z1', 'Y'),
     ],
@@ -141,14 +165,14 @@ identifiability_4 = NxMixedGraph.from_edges(
 #: Outcome: Y
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 119.
 identifiability_5 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('X1', 'Z'),
         ('X1', 'Y'),
         ('X1', 'X2'),
         ('Z', 'X2'),
         ('X2', 'Y'),
     ],
-    [
+    undirected=[
         ('X1', 'Z'),
         ('Z', 'Y'),
     ],
@@ -159,13 +183,13 @@ identifiability_5 = NxMixedGraph.from_edges(
 #: Outcome: Y
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 125.
 identifiability_6 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('Z1', 'X1'),
         ('X1', 'X2'),
         ('X2', 'Y'),
         ('Z2', 'Y'),
     ],
-    [
+    undirected=[
         ('Z1', 'Z2'),
         ('Z1', 'X2'),
         ('Z2', 'X2'),
@@ -176,15 +200,15 @@ identifiability_6 = NxMixedGraph.from_edges(
 #: Treatment: X
 #: Outcome: Y
 #: Reference: J. Tian. 2002. "Studies in Causal Reasoning and Learning." p. 90.
-identifiability_6 = NxMixedGraph.from_edges(
-    [
+identifiability_7 = NxMixedGraph.from_edges(
+    directed=[
         ('W1', 'W2'),
         ('W3', 'W4'),
         ('W2', 'X'),
         ('W4', 'X'),
         ('X', 'Y'),
     ],
-    [
+    undirected=[
         ('W1', 'X'),
         ('W1', 'Y'),
         ('W1', 'W3'),
@@ -206,12 +230,12 @@ identifiability_6 = NxMixedGraph.from_edges(
 #: Reference: T. Verma and J. Pearl. 1990. "Equivalence and Synthesis of Causal Models." In P. Bonissone et al., eds.,
 #: Proceedings of the 6th Conference on Uncertainty in Artificial Intelligence. Cambridge, MA: AUAI Press, p. 257.
 verma_1 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('V1', 'V2'),
         ('V2', 'V3'),
         ('V3', 'V4'),
     ],
-    [
+    undirected=[
         ('V2', 'V4'),
     ],
 )
@@ -221,13 +245,13 @@ verma_1 = NxMixedGraph.from_edges(
 #: Outcome: V5
 #: Reference: J. Tian. 2002. "Studies in Causal Reasoning and Learning." p. 70.
 verma_2 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('V1', 'V2'),
         ('V2', 'V3'),
         ('V3', 'V4'),
         ('V4', 'V5'),
     ],
-    [
+    undirected=[
         ('V1', 'V3'),
         ('V2', 'V4'),
         ('V3', 'V5'),
@@ -239,13 +263,13 @@ verma_2 = NxMixedGraph.from_edges(
 #: Outcome: V5
 #: Reference: J. Tian. 2002. "Studies in Causal Reasoning and Learning." p. 59.
 verma_3 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('V1', 'V2'),
         ('V2', 'V3'),
         ('V3', 'V4'),
         ('V4', 'V5'),
     ],
-    [
+    undirected=[
         ('V1', 'V5'),
         ('V1', 'V3'),
         ('V2', 'V4'),
@@ -257,13 +281,13 @@ verma_3 = NxMixedGraph.from_edges(
 #: Outcome: V5
 #: Reference: E. Bareinboim modification of Verma 2.
 verma_4 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('V1', 'V2'),
         ('V2', 'V3'),
         ('V3', 'V4'),
         ('V4', 'V5'),
     ],
-    [
+    undirected=[
         ('V1', 'V5'),
         ('V1', 'V3'),
         ('V2', 'V4'),
@@ -276,14 +300,14 @@ verma_4 = NxMixedGraph.from_edges(
 #: Outcome: V5
 #: Reference: E. Bareinboim modification of Verma 2.
 verma_5 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('V1', 'V2'),
         ('V2', 'V3'),
         ('V3', 'V4'),
         ('V4', 'V5'),
         ('V5', 'V6'),
     ],
-    [
+    undirected=[
         ('V0', 'V1'),
         ('V0', 'V6'),
         ('V1', 'V5'),
@@ -300,11 +324,11 @@ verma_5 = NxMixedGraph.from_edges(
 #: Nando de Freitas and K. Murphy., eds., Proceedings of the 28th Conference on Uncertainty in Artificial Intelligence.
 #: Corvallis, OR: AUAI Press, p. 114.
 z_identifiability_1 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('Z', 'X'),
         ('X', 'Y'),
     ],
-    [
+    undirected=[
         ('Z', 'X'),
         ('Z', 'Y'),
     ],
@@ -318,11 +342,11 @@ z_identifiability_1 = NxMixedGraph.from_edges(
 #: Nando de Freitas and K. Murphy., eds., Proceedings of the 28th Conference on Uncertainty in Artificial Intelligence.
 #: Corvallis, OR: AUAI Press, p. 114.
 z_identifiability_2 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('Z', 'X'),
         ('X', 'Y'),
     ],
-    [
+    undirected=[
         ('X', 'Y'),
         ('Z', 'Y'),
     ],
@@ -336,11 +360,11 @@ z_identifiability_2 = NxMixedGraph.from_edges(
 #: Nando de Freitas and K. Murphy., eds., Proceedings of the 28th Conference on Uncertainty in Artificial Intelligence.
 #: Corvallis, OR: AUAI Press, p. 114.
 z_identifiability_3 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('Z', 'Y'),
         ('X', 'Y'),
     ],
-    [
+    undirected=[
         ('X', 'Z'),
         ('Z', 'Y'),
     ],
@@ -351,13 +375,13 @@ z_identifiability_3 = NxMixedGraph.from_edges(
 #: Outcome: Y
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 153.
 identifiability_linear_1 = NxMixedGraph.from_edges(
-    [
+    directed=[
         ('X', 'Z'),
         ('X', 'W'),
         ('W', 'Y'),
         ('Z', 'Y'),
     ],
-    [
+    undirected=[
         ('X', 'Z'),
         ('W', 'Y'),
     ],
