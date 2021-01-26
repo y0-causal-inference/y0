@@ -70,7 +70,32 @@ identifiability_1 = NxMixedGraph.from_edges([
     ('Z3', 'Y'),
 ])
 
-# TODO identifiability_2
+#: The Identifiability 2 example
+#: Treatment: X
+#: Outcome: Y
+#: Reference: E. Bareinboim modification of Identifiability 1.
+identifiability_2 = NxMixedGraph.from_edges(
+    [
+        ('Z1', 'Z2'),
+        ('Z1', 'Z3'),
+        ('Z2', 'X'),
+        ('Z3', 'X'),
+        ('X', 'W0'),
+        ('W0', 'Y'),
+        ('Z4', 'Z3'),
+        ('Z4', 'Z5'),
+        ('Z5', 'Y'),
+        ('X', 'W1'),
+        ('W1', 'W2'),
+        ('W2', 'Y'),
+    ],
+    [
+        ('Z1', 'X'),
+        ('Z2', 'Z3'),
+        ('Z3', 'Z5'),
+        ('Z4', 'Y'),
+    ],
+)
 
 #: The Identifiability 3 example
 #: Treatment: X
