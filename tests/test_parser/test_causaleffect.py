@@ -17,7 +17,7 @@ class TestCausaleffectGrammar(unittest.TestCase):
     def test_sum(self):
         """Test the sum grammar."""
         for expr, s in [
-            (Sum[U_1, C](P(D | U_1 | C) * P(C) * P(U_1)), r"\\sum_{U_{1},C}P(D|U_{1},C)P(C)P(U_{1})"),
+            (Sum[U_1, C](P(D | U_1 | C) * P(C) * P(U_1)), r"\sum_{U_{1},C}P(D|U_{1},C)P(C)P(U_{1})"),
         ]:
             with self.subTest(s=s):
                 parse_result = sum_pe.parseString(s)
@@ -31,7 +31,7 @@ class TestCausaleffectGrammar(unittest.TestCase):
     def test_parse(self):
         """Test the high-level parser API."""
         for expr, s in [
-            (Sum[U_1, C](P(D | U_1 | C) * P(C) * P(U_1)), r"\\sum_{U_{1},C}P(D|U_{1},C)P(C)P(U_{1})"),
+            (Sum[U_1, C](P(D | U_1 | C) * P(C) * P(U_1)), r"\sum_{U_{1},C}P(D|U_{1},C)P(C)P(U_{1})"),
         ]:
             with self.subTest(s=s):
                 actual = parse_causaleffect(s)
