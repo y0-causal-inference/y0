@@ -183,6 +183,41 @@ identifiability_2 = NxMixedGraph.from_edges(
         ('Z4', 'Y'),
     ],
 )
+identifiability_2_example = Example(
+    graph=identifiability_2,
+    verma_constraints=[
+        ...
+    ],
+    conditional_independencies=[
+        ConditionalIndependency.create('W0', 'W1', ['X']),
+        ConditionalIndependency.create('W0', 'W2', ['X']),
+        ConditionalIndependency.create('W0', 'Z1', ['X']),
+        ConditionalIndependency.create('W0', 'Z2', ['X']),
+        ConditionalIndependency.create('W0', 'Z3', ['X']),
+        ConditionalIndependency.create('W0', 'Z4', ['X']),
+        ConditionalIndependency.create('W0', 'Z5', ['X']),
+        ConditionalIndependency.create('W1', 'Y', ['W0', 'W2', 'Z3', 'Z4', 'Z5']),
+        ConditionalIndependency.create('W1', 'Z1', ['X']),
+        ConditionalIndependency.create('W1', 'Z2', ['X']),
+        ConditionalIndependency.create('W1', 'Z3', ['X']),
+        ConditionalIndependency.create('W1', 'Z4', ['X']),
+        ConditionalIndependency.create('W1', 'Z5', ['X']),
+        ConditionalIndependency.create('W2', 'X', ['W1']),
+        ConditionalIndependency.create('W2', 'Z1', ['W1']),
+        ConditionalIndependency.create('W2', 'Z2', ['W1']),
+        ConditionalIndependency.create('W2', 'Z3', ['W1']),
+        ConditionalIndependency.create('W2', 'Z4', ['W1']),
+        ConditionalIndependency.create('X', 'Y', ['W0', 'W2', 'Z2', 'Z4', 'Z5']),
+        ConditionalIndependency.create('X', 'Z4', ['Z1', 'Z2', 'Z3']),
+        ConditionalIndependency.create('X', 'Z5', ['Z1', 'Z2', 'Z3']),
+        ConditionalIndependency.create('Y', 'Z1', ['W0', 'W2', 'Z3', 'Z4', 'Z6']),
+        ConditionalIndependency.create('Y', 'Z2', ['W0', 'W2', 'Z3', 'Z4', 'Z6']),
+        ConditionalIndependency.create('Z1', 'Z4'),
+        ConditionalIndependency.create('Z1', 'Z5'),
+        ConditionalIndependency.create('Z2', 'Z4'),
+        ConditionalIndependency.create('Z2', 'Z5', ['Z4']),
+    ]
+)
 
 #: The Identifiability 3 example
 #: Treatment: X
@@ -449,3 +484,5 @@ identifiability_linear_1 = NxMixedGraph.from_edges(
         ('W', 'Y'),
     ],
 )
+
+examples = [v for name, v in locals().items() if name.endswith('_example')]
