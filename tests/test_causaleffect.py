@@ -49,7 +49,7 @@ class TestCausalEffect(unittest.TestCase):
         self.assertEqual(
             expected_rhs_expr,
             verma_constraint.rhs_expr,
-            msg=f'Expected: {expected_rhs_expr}\nActual:  {verma_constraint.rhs_expr}'
+            msg=f'Expected: {expected_rhs_expr}\nActual:  {verma_constraint.rhs_expr}',
         )
         self.assertEqual(Sum[V2](Q[V2, V4](V1, V2, V3, V4)), verma_constraint.lhs_cfactor)
         self.assertEqual(Sum[V2](P(V4 | (V1, V2, V3)) * P(V2 | V1)), verma_constraint.lhs_expr)
