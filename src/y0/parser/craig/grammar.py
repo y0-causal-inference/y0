@@ -4,7 +4,7 @@
 
 from pyparsing import Forward, Group, OneOrMore, Optional, ParseResults, StringEnd, StringStart, Suppress
 
-from .utils import probability_pe, variables_pe
+from .utils import probability_pe, qfactor_pe, variables_pe
 from ...dsl import Expression, Fraction, Product, Sum
 
 __all__ = [
@@ -38,7 +38,7 @@ def _make_product(_s, _l, tokens: ParseResults) -> Expression:
 
 
 # auto-product
-rr = OneOrMore(probability_pe | expr).setParseAction(_make_product)
+rr = OneOrMore(probability_pe | qfactor_pe | expr).setParseAction(_make_product)
 
 sum_pe = (
     Suppress('[')
@@ -61,7 +61,7 @@ fraction_pe = (
 fraction_pe.setName('fraction')
 fraction_pe.setParseAction(_make_frac)
 
-expr << (probability_pe | sum_pe | fraction_pe)
+expr << (probability_pe | qfactor_pe | sum_pe | fraction_pe)
 
 # TODO enable products?
 

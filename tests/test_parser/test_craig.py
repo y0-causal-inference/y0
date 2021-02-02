@@ -6,9 +6,9 @@ import unittest
 
 from pyparsing import ParserElement
 
-from y0.dsl import A, B, C, P, Sum, X, Y, Z
+from y0.dsl import A, B, C, P, Q, Sum, X, Y, Z
 from y0.parser.craig.grammar import fraction_pe, grammar, sum_pe
-from y0.parser.craig.utils import probability_pe, variable_pe
+from y0.parser.craig.utils import probability_pe, qfactor_pe, variable_pe
 
 
 class TestGrammar(unittest.TestCase):
@@ -98,6 +98,19 @@ class TestGrammar(unittest.TestCase):
                     Sum(P(A)) / P(B),
                     Sum(P(A, B)) / P(A),
                     Sum[B](P(A | B) * P(B)) / Sum(P(A | B) * P(B)),
+                ],
+                g,
+            )
+
+    def test_q(self):
+        """Tests for Q factors."""
+        for g in (qfactor_pe, grammar):
+            self.assert_many(
+                [
+                    Q[A](X),
+                    Q[A, B](X),
+                    Q[A](X, Y),
+                    Q[A, B](X, Y),
                 ],
                 g,
             )

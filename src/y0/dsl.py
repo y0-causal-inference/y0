@@ -22,7 +22,9 @@ __all__ = [
     'Fraction',
     'Expression',
     'One',
-    'A', 'B', 'C', 'D', 'Q', 'S', 'T', 'W', 'X', 'Y', 'Z',
+    'Q',
+    'QFactor',
+    'A', 'B', 'C', 'D', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z',
 ]
 
 X = TypeVar('X')
@@ -72,8 +74,8 @@ class Variable(_Mathable):
     name: str
 
     def __post_init__(self):
-        if self.name == 'P':
-            raise ValueError('trust me, P is a bad variable name.')
+        if self.name in {'P', 'Q'}:
+            raise ValueError(f'trust me, {self.name} is a bad variable name.')
 
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
@@ -214,12 +216,12 @@ class CounterfactualVariable(Variable):
 
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
-        intervention_latex = ','.join(intervention.to_text() for intervention in self.interventions)
+        intervention_latex = _list_to_text(self.interventions)
         return f'{self.name}_{{{intervention_latex}}}'
 
     def to_latex(self) -> str:
         """Output this counterfactual variable in the LaTeX string format."""
-        intervention_latex = ','.join(intervention.to_latex() for intervention in self.interventions)
+        intervention_latex = _list_to_latex(self.interventions)
         return f'{self.name}_{{{intervention_latex}}}'
 
     def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
@@ -282,18 +284,18 @@ class Distribution(_Mathable):
 
     def to_text(self) -> str:
         """Output this distribution in the internal string format."""
-        children = ','.join(child.to_text() for child in self.children)
+        children = _list_to_text(self.children)
         if self.parents:
-            parents = ','.join(parent.to_text() for parent in self.parents)
+            parents = _list_to_text(self.parents)
             return f'{children}|{parents}'
         else:
             return children
 
     def to_latex(self) -> str:
         """Output this distribution in the LaTeX string format."""
-        children = ','.join(child.to_latex() for child in self.children)
+        children = _list_to_latex(self.children)
         if self.parents:
-            parents = ','.join(parent.to_latex() for parent in self.parents)
+            parents = _list_to_latex(self.parents)
             return f'{children}|{parents}'
         else:
             return children
@@ -489,6 +491,14 @@ class Product(Expression):
             yield from expression._iter_variables()
 
 
+def _list_to_text(elements: Iterable[_Mathable]) -> str:
+    return ','.join(element.to_text() for element in elements)
+
+
+def _list_to_latex(elements: Iterable[_Mathable]) -> str:
+    return ','.join(element.to_latex() for element in elements)
+
+
 @dataclass(frozen=True)
 class Sum(Expression):
     """Represent the sum over an expression over an optional set of variables."""
@@ -500,12 +510,12 @@ class Sum(Expression):
 
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
-        ranges = ','.join(r.to_text() for r in self.ranges)
+        ranges = _list_to_text(self.ranges)
         return f'[ sum_{{{ranges}}} {self.expression.to_text()} ]'
 
     def to_latex(self) -> str:
         """Output this sum in the LaTeX string format."""
-        ranges = ','.join(r.to_latex() for r in self.ranges)
+        ranges = _list_to_latex(self.ranges)
         return rf'\sum_{{{ranges}}} {self.expression.to_latex()}'
 
     def __mul__(self, expression: Expression):
@@ -612,7 +622,70 @@ class One(Expression):
         return iter([])
 
 
-A, B, C, D, Q, S, T, W, X, Y, Z = map(Variable, 'ABCDQSTWXYZ')  # type: ignore
+@dataclass(frozen=True)
+class QFactor(Expression):
+    """A function from the variables in the domain to a probability function over variables in the codomain."""
+
+    domain: Tuple[Variable, ...]
+    codomain: Tuple[Variable, ...]
+
+    @classmethod
+    def __class_getitem__(cls, codomain: Union[Variable, Tuple[Variable, ...]]):
+        """Create a partial Q Factor object over the given codomain.
+
+        :param codomain: The variables over which the partial Q Factor will be done
+        :returns: A partial :class:`QFactor` that can be called solely on an expression
+
+        Example single variable codomain Q expression:
+
+        >>> from y0.dsl import Sum, Q, A, B, C
+        >>> Q[C](A, B)
+
+        Example multiple variable codomain Q expression:
+
+        >>> from y0.dsl import Sum, Q, A, B, C, D
+        >>> Q[C, D](A, B)
+        """
+
+        def _helper(*domain: Variable):
+            return QFactor(domain=domain, codomain=_prepare_ranges(codomain))
+
+        return _helper
+
+    def to_text(self) -> str:
+        """Output this fraction in the internal string format."""
+        codomain = _list_to_latex(self.codomain)
+        domain = _list_to_text(self.domain)
+        return f'Q[{codomain}]({domain})'
+
+    def to_latex(self) -> str:
+        """Output this fraction in the LaTeX string format."""
+        codomain = _list_to_latex(self.codomain)
+        domain = _list_to_text(self.domain)
+        return rf'Q_{{{codomain}}}({{{domain}}})'
+
+    def __mul__(self, other: Expression):
+        if isinstance(other, Product):
+            return Product((self, *other.expressions))
+        elif isinstance(other, Fraction):
+            return Fraction(self * other.numerator, other.denominator)
+        else:
+            return Product((self, other))
+
+    def __truediv__(self, expression: Expression) -> Fraction:
+        if isinstance(expression, Fraction):
+            return Fraction(self * expression.denominator, expression.numerator)
+        else:
+            return Fraction(self, expression)
+
+    def _iter_variables(self) -> Iterable[Variable]:
+        yield from self.codomain
+        yield from self.domain
+
+
+Q = QFactor
+
+A, B, C, D, R, S, T, W, X, Y, Z = map(Variable, 'ABCDRSTWXYZ')  # type: ignore
 
 
 def _upgrade_ordering(variables: Sequence[Union[str, Variable]]) -> Sequence[Variable]:
