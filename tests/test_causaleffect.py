@@ -4,7 +4,7 @@
 
 import unittest
 
-from y0.dsl import A, B, C, D, P, Sum, Variable
+from y0.dsl import A, B, C, D, P, Q, Sum, Variable
 from y0.examples import verma_1
 
 try:
@@ -39,7 +39,7 @@ class TestCausalEffect(unittest.TestCase):
         self.assertEqual(1, len(actual))
         verma_constraint = actual[0]
         self.assertIsInstance(verma_constraint, VermaConstraint)
-        self.assertEqual("Q[\\{D\\}](C,D)", verma_constraint.rhs_cfactor)
+        self.assertEqual(Q[D](C, D), verma_constraint.rhs_cfactor)
 
         expected_rhs_expr = Sum[u_1, C](P(D | u_1 | C) * P(C) * P(u_1))
         self.assertEqual(
@@ -47,6 +47,6 @@ class TestCausalEffect(unittest.TestCase):
             verma_constraint.rhs_expr,
             msg=f'Expected: {expected_rhs_expr}\nActual:  {verma_constraint.rhs_expr}'
         )
-        self.assertEqual("\\sum_{B}Q[\\{B,D\\}](A,B,C,D)", verma_constraint.lhs_cfactor)
+        self.assertEqual(Sum[B](Q[B, D](A, B, C, D)), verma_constraint.lhs_cfactor)
         self.assertEqual(Sum[B](P(D | (A, B, C)) * P(B | A)), verma_constraint.lhs_expr)
         self.assertEqual((A,), verma_constraint.variables)
