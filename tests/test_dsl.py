@@ -6,8 +6,8 @@ import itertools as itt
 import unittest
 
 from y0.dsl import (
-    A, B, C, CounterfactualVariable, D, Distribution, Fraction, Intervention, One, P, R, S, Sum, T,
-    Variable, W, X, Y, Z,
+    A, B, C, CounterfactualVariable, D, Distribution, Fraction, Intervention, One, P, Q, R, S, Sum, T, Variable, W, X,
+    Y, Z,
 )
 
 V = Variable('V')
@@ -194,6 +194,13 @@ class TestDSL(unittest.TestCase):
             "[ sum_{S,T} P(A|B) [ sum_{R} P(C|D) ] ]",
             Sum(P(A | B) * Sum(P(C | D), (R,)), (S, T)),
         )
+
+    def test_q(self):
+        """Test the Q DSL object."""
+        self.assert_text("Q[A](X)", Q[A](X))
+        self.assert_text("Q[A,B](X)", Q[A, B](X))
+        self.assert_text("Q[A](X,Y)", Q[A](X, Y))
+        self.assert_text("Q[A,B](X,Y)", Q[A, B](X, Y))
 
     def test_jeremy(self):
         """Test assorted complicated objects from Jeremy."""
