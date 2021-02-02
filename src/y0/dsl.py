@@ -22,6 +22,8 @@ __all__ = [
     'Fraction',
     'Expression',
     'One',
+    'Q',
+    'QFactor',
     'A', 'B', 'C', 'D', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z',
 ]
 
@@ -72,8 +74,8 @@ class Variable(_Mathable):
     name: str
 
     def __post_init__(self):
-        if self.name == 'P':
-            raise ValueError('trust me, P is a bad variable name.')
+        if self.name in {'P', 'Q'}:
+            raise ValueError(f'trust me, {self.name} is a bad variable name.')
 
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
@@ -611,6 +613,39 @@ class One(Expression):
         """Get the set of variables used in this expression."""
         return iter([])
 
+
+@dataclass(frozen=True)
+class QFactor(Expression):
+    """A function from the variables in the domain to a probability function over variables in the codomain."""
+
+    domain: Tuple[Variable, ...]
+    codomain: Tuple[Variable, ...]
+
+    @classmethod
+    def __class_getitem__(cls, codomain: Union[Variable, Tuple[Variable, ...]]):
+        """Create a partial Q Factor object over the given codomain.
+
+        :param codomain: The variables over which the partial Q Factor will be done
+        :returns: A partial :class:`QFactor` that can be called solely on an expression
+
+        Example single variable codomain Q expression:
+
+        >>> from y0.dsl import Sum, Q, A, B, C
+        >>> Q[C](A, B)
+
+        Example multiple variable codomain Q expression:
+
+        >>> from y0.dsl import Sum, Q, A, B, C, D
+        >>> Q[C, D](A, B)
+        """
+
+        def _helper(*domain: Variable):
+            return QFactor(domain=domain, codomain=_prepare_ranges(codomain))
+
+        return _helper
+
+
+Q = QFactor
 
 A, B, C, D, R, S, T, W, X, Y, Z = map(Variable, 'ABCDRSTWXYZ')  # type: ignore
 
