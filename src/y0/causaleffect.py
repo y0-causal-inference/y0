@@ -5,49 +5,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, NamedTuple, Sequence, Tuple, Union
+from typing import NamedTuple, Sequence, Tuple, Union
 
 from rpy2 import robjects
-from rpy2.robjects.packages import importr, isinstalled
-from rpy2.robjects.vectors import StrVector
 
 from y0.dsl import Expression, Variable
 from y0.examples import verma_1
 from y0.graph import CausalEffectGraph, NxMixedGraph
 from y0.parser import parse_causaleffect
+from y0.r_utils import uses_r
 
 logger = logging.getLogger(__name__)
-
-CAUSALEFFECT = 'causaleffect'
-IGRAPH = 'igraph'
-
-R_REQUIREMENTS = [
-    CAUSALEFFECT,
-    IGRAPH,
-]
-
-
-def prepare_renv(*, requirements: Iterable[str]) -> None:
-    """Ensure the given R packages are installed.
-
-    :param requirements: A list of R packages to ensure are installed
-
-    .. seealso:: https://rpy2.github.io/doc/v3.4.x/html/introduction.html#installing-packages
-    """
-    # import R's utility package
-    utils = importr('utils')
-
-    # select a mirror for R packages
-    utils.chooseCRANmirror(ind=1)  # select the first mirror in the list
-
-    requirements = [
-        requirement
-        for requirement in requirements
-        if not isinstalled(requirement)
-    ]
-    if requirements:
-        logger.warning('installing R packages: %s', requirements)
-        utils.install_packages(StrVector(requirements))
 
 
 class VermaConstraint(NamedTuple):
@@ -89,6 +57,7 @@ def _extract(element, key):
     return element.rx(key)[0][0]
 
 
+@uses_r
 def r_get_verma_constraints(graph: Union[NxMixedGraph, CausalEffectGraph]) -> Sequence[VermaConstraint]:
     """Calculate the verma constraints on the graph using ``causaleffect``."""
     if isinstance(graph, NxMixedGraph):
@@ -101,17 +70,7 @@ def r_get_verma_constraints(graph: Union[NxMixedGraph, CausalEffectGraph]) -> Se
 
 
 def _main():
-    prepare_renv(requirements=R_REQUIREMENTS)
-
-    importr(CAUSALEFFECT)
-    importr(IGRAPH)
-
-    graph = verma_1.to_causaleffect()
-    print(graph)
-
-    # Get verma constraints
-    # see also: https://rpy2.github.io/doc/v3.4.x/html/vector.html#extracting-items
-    verma_constraints = r_get_verma_constraints(graph)
+    verma_constraints = r_get_verma_constraints(verma_1)
     print(*verma_constraints, sep='\n')
 
 

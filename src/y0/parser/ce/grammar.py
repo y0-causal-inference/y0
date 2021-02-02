@@ -82,11 +82,3 @@ def parse_causaleffect(s: str) -> Expression:
         raise
     else:
         return x.asList()[0]
-
-
-if __name__ == '__main__':
-    print(variables_pe.parseString('u'))
-    print(variables_pe.parseString('V3'))
-    print(variables_pe.parseString('u_{0}'))
-    print(probability_pe.parseString('P(u_{0})')[0])
-    print(probability_pe.parseString('P(D|u_{1},C)')[0])
