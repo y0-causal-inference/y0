@@ -662,7 +662,7 @@ class QFactor(Expression):
         """Output this fraction in the LaTeX string format."""
         codomain = _list_to_latex(self.codomain)
         domain = _list_to_text(self.domain)
-        return rf'Q \limits_{{{codomain}}}({domain})'
+        return rf'Q_{{{codomain}}}({{{domain}}})'
 
     def __mul__(self, other: Expression):
         if isinstance(other, Product):
