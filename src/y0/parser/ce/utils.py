@@ -4,8 +4,8 @@
 
 from pyparsing import Group, Optional, ParseResults, Suppress, Word, alphanums, alphas, delimitedList, nums
 
-from y0.dsl import Variable
-from y0.parser.craig.utils import _make_probability, _make_q, _unpack
+from ..craig.utils import _make_probability, _make_q, _unpack
+from ...dsl import Variable
 
 
 def _make_variable(_s, _l, tokens: ParseResults) -> Variable:

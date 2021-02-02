@@ -9,8 +9,8 @@ from pyparsing import (
     Suppress,
 )
 
-from y0.dsl import Expression, Fraction, Product, Sum
-from y0.parser.ce.utils import probability_pe, qfactor_pe, variables_pe
+from .utils import probability_pe, qfactor_pe, variables_pe
+from ...dsl import Expression, Fraction, Product, Sum
 
 __all__ = [
     'parse_causaleffect',

@@ -9,11 +9,11 @@ from typing import NamedTuple, Sequence, Tuple, Union
 
 from rpy2 import robjects
 
-from y0.dsl import Expression, Variable
-from y0.examples import verma_1
-from y0.graph import CausalEffectGraph, NxMixedGraph
-from y0.parser import parse_causaleffect
-from y0.r_utils import uses_r
+from .dsl import Expression, Variable
+from .examples import verma_1
+from .graph import CausalEffectGraph, NxMixedGraph
+from .parser import parse_causaleffect
+from .r_utils import uses_r
 
 logger = logging.getLogger(__name__)
 
