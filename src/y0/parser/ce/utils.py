@@ -2,10 +2,10 @@
 
 """A parser for causaleffect probability expressions based on :mod:`pyparsing`."""
 
-from pyparsing import Group, Optional, ParseResults, Suppress, Word, delimitedList, nums
+from pyparsing import Group, Optional, ParseResults, Suppress, Word, alphanums, alphas, delimitedList, nums
 
 from y0.dsl import Variable
-from y0.parser.craig.utils import _make_probability, _unpack, letter
+from y0.parser.craig.utils import _make_probability, _make_q, _unpack
 
 
 def _make_variable(_s, _l, tokens: ParseResults) -> Variable:
@@ -16,7 +16,7 @@ def _make_variable(_s, _l, tokens: ParseResults) -> Variable:
 
 
 subscript = Suppress('_{') + Word(nums)('subscript') + Suppress('}')
-variable_pe = letter('name') + Optional(subscript)
+variable_pe = Word(alphas, alphanums)('name') + Optional(subscript)
 variable_pe.setParseAction(_make_variable)
 variable_pe.setName('variable')
 
@@ -26,3 +26,13 @@ _parents_pe = Group(Optional(Suppress('|') + variables_pe)).setResultsName('pare
 probability_pe = Suppress('P(') + _children_pe + _parents_pe + Suppress(')')
 probability_pe.setParseAction(_make_probability)
 probability_pe.setName('probability')
+
+qfactor_pe = (
+    Suppress('Q[\\{')
+    + Group(variables_pe).setResultsName('codomain')
+    + Suppress('\\}](')
+    + Group(variables_pe).setResultsName('domain')
+    + Suppress(')')
+)
+qfactor_pe.setParseAction(_make_q)
+qfactor_pe.setName('qfactor')

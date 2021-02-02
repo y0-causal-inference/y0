@@ -5,7 +5,7 @@
 import unittest
 
 from y0.dsl import A, B, C, D, P, Sum, Variable
-from y0.graph import figure_1
+from y0.examples import verma_1
 
 try:
     from y0.causaleffect import CAUSALEFFECT, IGRAPH, VermaConstraint, r_get_verma_constraints
@@ -35,7 +35,7 @@ class TestCausalEffect(unittest.TestCase):
 
     def test_verma_constraint(self):
         """Test getting the single Verma constraint from the Figure 1A graph."""
-        actual = r_get_verma_constraints(figure_1)
+        actual = r_get_verma_constraints(verma_1)
         self.assertEqual(1, len(actual))
         verma_constraint = actual[0]
         self.assertIsInstance(verma_constraint, VermaConstraint)

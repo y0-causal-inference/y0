@@ -4,11 +4,13 @@
 
 import logging
 
-import pyparsing
-from pyparsing import Forward, Group, OneOrMore, Optional, ParseResults, StringEnd, StringStart, Suppress
+from pyparsing import (
+    Forward, Group, OneOrMore, Optional, ParseException, ParseResults, StringEnd, StringStart,
+    Suppress,
+)
 
-from .utils import probability_pe, variables_pe
-from ...dsl import Expression, Fraction, Product, Sum
+from y0.dsl import Expression, Fraction, Product, Sum
+from y0.parser.ce.utils import probability_pe, qfactor_pe, variables_pe
 
 __all__ = [
     'parse_causaleffect',
@@ -42,7 +44,7 @@ def _make_product(_s, _l, tokens: ParseResults) -> Expression:
 
 
 # auto-product
-rr = OneOrMore(probability_pe | expr).setParseAction(_make_product)
+rr = OneOrMore(probability_pe | qfactor_pe | expr).setParseAction(_make_product)
 
 sum_pe = (
     Suppress('\\sum_{')
@@ -63,7 +65,7 @@ fraction_pe = (
 fraction_pe.setName('fraction')
 fraction_pe.setParseAction(_make_frac)
 
-expr << (probability_pe | sum_pe | fraction_pe)
+expr << (probability_pe | qfactor_pe | sum_pe | fraction_pe)
 
 # TODO enable products?
 
@@ -73,12 +75,18 @@ grammar.setName('probabilityGrammar')
 
 def parse_causaleffect(s: str) -> Expression:
     """Parse a causaleffect probability expression."""
-    x = grammar.parseString(s)
-    return x.asList()[0]
+    try:
+        x = grammar.parseString(s)
+    except ParseException:
+        logger.warning('could not parse %s', s)
+        raise
+    else:
+        return x.asList()[0]
 
 
 if __name__ == '__main__':
     print(variables_pe.parseString('u'))
+    print(variables_pe.parseString('V3'))
     print(variables_pe.parseString('u_{0}'))
     print(probability_pe.parseString('P(u_{0})')[0])
     print(probability_pe.parseString('P(D|u_{1},C)')[0])

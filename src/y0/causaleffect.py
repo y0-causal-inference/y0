@@ -5,14 +5,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, NamedTuple, Sequence, Tuple
+from typing import Iterable, NamedTuple, Sequence, Tuple, Union
 
+from ananke.graphs import ADMG
 from rpy2 import robjects
 from rpy2.robjects.packages import importr, isinstalled
 from rpy2.robjects.vectors import StrVector
 
 from y0.dsl import Expression, Variable
-from y0.graph import NxMixedGraph, figure_1
+from y0.examples import verma_1
+from y0.graph import NxMixedGraph
 from y0.parser import parse_causaleffect
 
 logger = logging.getLogger(__name__)
@@ -52,9 +54,9 @@ def prepare_renv(*, requirements: Iterable[str]) -> None:
 class VermaConstraint(NamedTuple):
     """Represent a Verma constraint output by causaleffect."""
 
-    lhs_cfactor: str
+    lhs_cfactor: Expression
     lhs_expr: Expression
-    rhs_cfactor: str
+    rhs_cfactor: Expression
     rhs_expr: Expression
     variables: Tuple[Variable, ...]
 
@@ -68,9 +70,9 @@ class VermaConstraint(NamedTuple):
         .. seealso:: Extracting from R objects https://rpy2.github.io/doc/v3.4.x/html/vector.html#extracting-items
         """
         return cls(
-            rhs_cfactor=_extract(element, 'rhs.cfactor'),
+            rhs_cfactor=parse_causaleffect(_extract(element, 'rhs.cfactor')),
             rhs_expr=parse_causaleffect(_extract(element, 'rhs.expr')),
-            lhs_cfactor=_extract(element, 'lhs.cfactor'),
+            lhs_cfactor=parse_causaleffect(_extract(element, 'lhs.cfactor')),
             lhs_expr=parse_causaleffect(_extract(element, 'lhs.expr')),
             variables=_parse_vars(element),
         )
@@ -88,7 +90,7 @@ def _extract(element, key):
     return element.rx(key)[0][0]
 
 
-def r_get_verma_constraints(graph) -> Sequence[VermaConstraint]:
+def r_get_verma_constraints(graph: Union[NxMixedGraph, ADMG]) -> Sequence[VermaConstraint]:
     """Calculate the verma constraints on the graph using ``causaleffect``."""
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_causaleffect()
@@ -105,7 +107,7 @@ def _main():
     importr(CAUSALEFFECT)
     importr(IGRAPH)
 
-    graph = figure_1.to_causaleffect()
+    graph = verma_1.to_causaleffect()
     print(graph)
 
     # Get verma constraints
