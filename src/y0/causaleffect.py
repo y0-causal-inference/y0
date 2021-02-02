@@ -7,14 +7,13 @@ from __future__ import annotations
 import logging
 from typing import Iterable, NamedTuple, Sequence, Tuple, Union
 
-from ananke.graphs import ADMG
 from rpy2 import robjects
 from rpy2.robjects.packages import importr, isinstalled
 from rpy2.robjects.vectors import StrVector
 
 from y0.dsl import Expression, Variable
 from y0.examples import verma_1
-from y0.graph import NxMixedGraph
+from y0.graph import CausalEffectGraph, NxMixedGraph
 from y0.parser import parse_causaleffect
 
 logger = logging.getLogger(__name__)
@@ -90,7 +89,7 @@ def _extract(element, key):
     return element.rx(key)[0][0]
 
 
-def r_get_verma_constraints(graph: Union[NxMixedGraph, ADMG]) -> Sequence[VermaConstraint]:
+def r_get_verma_constraints(graph: Union[NxMixedGraph, CausalEffectGraph]) -> Sequence[VermaConstraint]:
     """Calculate the verma constraints on the graph using ``causaleffect``."""
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_causaleffect()

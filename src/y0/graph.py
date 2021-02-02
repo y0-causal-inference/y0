@@ -5,16 +5,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar
+from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar
 
 import networkx as nx
 from ananke.graphs import ADMG
 
 __all__ = [
     'NxMixedGraph',
+    'CausalEffectGraph',
 ]
 
 X = TypeVar('X')
+CausalEffectGraph = Any
 
 
 @dataclass
@@ -57,7 +59,7 @@ class NxMixedGraph(Generic[X]):
         vertices = list(self.directed)  # could be either since they're maintained together
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
 
-    def to_causaleffect(self):
+    def to_causaleffect(self) -> CausalEffectGraph:
         """Get a causaleffect R object.
 
         :returns: A causaleffect R object.

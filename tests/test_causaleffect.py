@@ -4,7 +4,7 @@
 
 import unittest
 
-from y0.dsl import A, B, C, D, P, Q, Sum, Variable
+from y0.dsl import P, Q, Sum, Variable
 from y0.examples import verma_1
 
 try:
@@ -15,6 +15,10 @@ else:
     missing_rpy2 = False
 
 u_1 = Variable('u_1')
+V1 = Variable('V1')
+V2 = Variable('V2')
+V3 = Variable('V3')
+V4 = Variable('V4')
 
 
 @unittest.skipIf(missing_rpy2, 'rpy2 is not installed')
@@ -39,14 +43,14 @@ class TestCausalEffect(unittest.TestCase):
         self.assertEqual(1, len(actual))
         verma_constraint = actual[0]
         self.assertIsInstance(verma_constraint, VermaConstraint)
-        self.assertEqual(Q[D](C, D), verma_constraint.rhs_cfactor)
+        self.assertEqual(Q[V4](V3, V4), verma_constraint.rhs_cfactor)
 
-        expected_rhs_expr = Sum[u_1, C](P(D | u_1 | C) * P(C) * P(u_1))
+        expected_rhs_expr = Sum[u_1, V3](P(V4 | u_1 | V3) * P(V3) * P(u_1))
         self.assertEqual(
             expected_rhs_expr,
             verma_constraint.rhs_expr,
             msg=f'Expected: {expected_rhs_expr}\nActual:  {verma_constraint.rhs_expr}'
         )
-        self.assertEqual(Sum[B](Q[B, D](A, B, C, D)), verma_constraint.lhs_cfactor)
-        self.assertEqual(Sum[B](P(D | (A, B, C)) * P(B | A)), verma_constraint.lhs_expr)
-        self.assertEqual((A,), verma_constraint.variables)
+        self.assertEqual(Sum[V2](Q[V2, V4](V1, V2, V3, V4)), verma_constraint.lhs_cfactor)
+        self.assertEqual(Sum[V2](P(V4 | (V1, V2, V3)) * P(V2 | V1)), verma_constraint.lhs_expr)
+        self.assertEqual((V1,), verma_constraint.variables)
