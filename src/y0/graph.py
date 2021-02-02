@@ -5,16 +5,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar
+from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar
 
 import networkx as nx
 from ananke.graphs import ADMG
 
 __all__ = [
     'NxMixedGraph',
+    'CausalEffectGraph',
 ]
 
 X = TypeVar('X')
+CausalEffectGraph = Any
 
 
 @dataclass
@@ -56,6 +58,46 @@ class NxMixedGraph(Generic[X]):
         bi_edges = list(self.undirected.edges())
         vertices = list(self.directed)  # could be either since they're maintained together
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
+
+    def to_causaleffect(self) -> CausalEffectGraph:
+        """Get a causaleffect R object.
+
+        :returns: A causaleffect R object.
+
+        .. warning:: Appropriate R imports need to be done first for 'causaleffect' and 'igraph'.
+        """
+        import rpy2.robjects
+        return rpy2.robjects.r(self.to_causaleffect_str())
+
+    @classmethod
+    def from_causaleffect(cls, graph) -> NxMixedGraph:
+        """Construct an instance from a causaleffect R graph."""
+        raise NotImplementedError
+
+    def to_causaleffect_str(self) -> str:
+        """Get a string to be imported by R."""
+        if not self.directed:
+            raise ValueError('graph must have some directed edges')
+
+        formula = ', '.join(
+            f'{u} -+ {v}'
+            for u, v in self.directed.edges()
+        )
+        if self.undirected:
+            formula += ''.join(
+                f', {u} -+ {v}, {v} -+ {u}'
+                for u, v in self.undirected.edges()
+            )
+
+        rv = f'g <- graph.formula({formula}, simplify = FALSE)'
+        for i in range(self.undirected.number_of_edges()):
+            idx = 2 * i + self.directed.number_of_edges() + 1
+            rv += (
+                f'\ng <- set.edge.attribute(graph = g, name = "description",'
+                f' index = c({idx}, {idx + 1}), value = "U")'
+            )
+
+        return rv
 
     @classmethod
     def from_edges(
