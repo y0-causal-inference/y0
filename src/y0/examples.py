@@ -8,7 +8,7 @@ from typing import Optional, Sequence
 
 from .dsl import P, Q, Sum, Variable, X, Y, Z1, Z2
 from .graph import NxMixedGraph
-from .struct import VermaConstraint
+from .struct import ConditionalIndependency, VermaConstraint
 
 
 @dataclass
@@ -17,6 +17,7 @@ class Example:
 
     graph: NxMixedGraph
     verma_constraints: Optional[Sequence[VermaConstraint]] = None
+    conditional_independencies: Optional[Sequence[ConditionalIndependency]] = None
 
 
 u_2 = Variable('u_2')
@@ -137,6 +138,23 @@ identifiability_1 = NxMixedGraph.from_edges(
         ('X', 'Y'),
         ('Z3', 'Y'),
     ],
+)
+identifiability_1_example = Example(
+    graph=identifiability_1,
+    conditional_independencies=(
+        ConditionalIndependency.create('X', 'Z1', ['Z2', 'Z3']),
+        ConditionalIndependency.create('X', 'Z4', ['Z1', 'Z3']),
+        ConditionalIndependency.create('X', 'Z5', ['Z4']),
+        ConditionalIndependency.create('Y', 'Z1', ['X', 'Z3', 'Z4']),
+        ConditionalIndependency.create('Y', 'Z2', ['X', 'Z1', 'Z3']),
+        ConditionalIndependency.create('Y', 'Z4', ['X', 'Z3', 'Z5']),
+        ConditionalIndependency.create('Z1', 'Z4'),
+        ConditionalIndependency.create('Z1', 'Z5'),
+        ConditionalIndependency.create('Z2', 'Z3', ['Z1']),
+        ConditionalIndependency.create('Z2', 'Z4'),
+        ConditionalIndependency.create('Z2', 'Z5'),
+        ConditionalIndependency.create('Z3', 'Z5', ['Z4']),
+    ),
 )
 
 #: The Identifiability 2 example
