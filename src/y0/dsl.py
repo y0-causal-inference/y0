@@ -25,6 +25,8 @@ __all__ = [
     'Q',
     'QFactor',
     'A', 'B', 'C', 'D', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z',
+    'V1', 'V2', 'V3', 'V4', 'V5', 'V6',
+    'Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6',
 ]
 
 X = TypeVar('X')
@@ -686,6 +688,8 @@ class QFactor(Expression):
 Q = QFactor
 
 A, B, C, D, R, S, T, W, X, Y, Z = map(Variable, 'ABCDRSTWXYZ')  # type: ignore
+V1, V2, V3, V4, V5, V6 = [Variable(f'V{i}') for i in range(1, 7)]
+Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f'Z{i}') for i in range(1, 7)]
 
 
 def _upgrade_ordering(variables: Sequence[Union[str, Variable]]) -> Sequence[Variable]:

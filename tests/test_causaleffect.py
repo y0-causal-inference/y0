@@ -8,7 +8,8 @@ from y0.dsl import P, Q, Sum, Variable
 from y0.examples import verma_1
 
 try:
-    from y0.causaleffect import VermaConstraint, r_get_verma_constraints
+    from y0.causaleffect import r_get_verma_constraints
+    from y0.struct import VermaConstraint
     from y0.r_utils import CAUSALEFFECT, IGRAPH
 except ImportError:  # rpy2 is not installed
     missing_rpy2 = True

@@ -1,8 +1,25 @@
 # -*- coding: utf-8 -*-
+# type: ignore
 
 """Examples from CausalFusion."""
 
+from dataclasses import dataclass
+from typing import Optional, Sequence
+
+from .dsl import P, Q, Sum, Variable, X, Y, Z1, Z2
 from .graph import NxMixedGraph
+from .struct import VermaConstraint
+
+
+@dataclass
+class Example:
+    """An example graph packaged with certain pre-calculated data structures."""
+
+    graph: NxMixedGraph
+    verma_constraints: Optional[Sequence[VermaConstraint]] = None
+
+
+u_2 = Variable('u_2')
 
 #: The "backdoor" example
 #: Treatment: X
@@ -14,6 +31,10 @@ backdoor = NxMixedGraph.from_edges(directed=[
     ('Z', 'Y'),
     ('X', 'Y'),
 ])
+
+backdoor_example = Example(
+    graph=backdoor,
+)
 
 #: The "frontdoor" example
 #: Treatment: X
@@ -29,6 +50,9 @@ frontdoor = NxMixedGraph.from_edges(
         ('X', 'Y'),
     ],
 )
+frontdoor_example = Example(
+    graph=frontdoor,
+)
 
 #: The Instrument Variable example
 #: Treatment: X
@@ -42,6 +66,9 @@ instrumental_variable = NxMixedGraph.from_edges(
     undirected=[
         ('X', 'Y'),
     ],
+)
+instrumental_variable_example = Example(
+    graph=instrumental_variable,
 )
 
 #: The Napkin example
@@ -60,6 +87,21 @@ napkin = NxMixedGraph.from_edges(
         ('Z2', 'Y'),
     ],
 )
+napkin_example = Example(
+    graph=napkin,
+    verma_constraints=[
+        VermaConstraint(
+            lhs_cfactor=Q[X, Y](Z1, X, Y) / Sum[Y](Q[X, Y](Z1, X, Y)),
+            lhs_expr=(
+                Sum[Z2](P(Y | (Z1, Z2, X)) * P(X | (Z2, Z1)) * P(Z2))
+                / Sum[Z2, Y](P(Y | (Z2, Z1, X)) * P(X | (Z2, Z1)) * P(Z2))
+            ),
+            rhs_cfactor=Q[Y](X, Y),
+            rhs_expr=Sum[u_2, X](P(Y | u_2 | X) * P(X) * P(u_2)),
+            variables=(Z1,),
+        ),
+    ],
+)
 
 #: The M-Graph example
 #: Treatment: X
@@ -74,6 +116,9 @@ m_graph = NxMixedGraph.from_edges(
         ('X', 'Z'),
         ('Y', 'Z'),
     ],
+)
+m_graph_example = Example(
+    graph=m_graph,
 )
 
 #: The Identifiability 1 example
