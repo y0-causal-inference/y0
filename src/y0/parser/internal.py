@@ -21,7 +21,7 @@ LOCALS = {
 }
 
 for letter in string.ascii_uppercase:
-    if letter == 'P':
+    if letter in {'P', 'Q'}:
         continue
     LOCALS[letter] = Variable(letter)
     for index in range(10):

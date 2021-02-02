@@ -259,6 +259,7 @@ class TestDSL(unittest.TestCase):
             (One() / P(A @ B), {A @ B, -B}),
             (P(B) / P(A @ ~B), {A @ ~B, B, ~B}),
             (P(Y | X) * P(X) / P(Y), {X, Y}),
+            (Q[A, B](C, D), {A, B, C, D}),
         ]:
             with self.subTest(expression=str(expression)):
                 self.assertEqual(variables, expression.get_variables())
