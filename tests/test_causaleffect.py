@@ -42,7 +42,7 @@ class TestCausalEffect(unittest.TestCase):
     def test_verma_constraint(self):
         """Test getting the single Verma constraint from the Figure 1A graph."""
         for example in examples:
-            with self.subTest():
+            with self.subTest(name=example.name):
                 actual = r_get_verma_constraints(example.graph)
                 expected = example.verma_constraints
                 self.assertEqual(set(expected or ()), set(actual))
