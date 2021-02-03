@@ -22,7 +22,7 @@ __all__ = [
 def simplify(
     expression: Expression,
     graph: Union[NxMixedGraph, ADMG],
-    ordering: Optional[Sequence[Union[str, Variable]]],
+    ordering: Optional[Sequence[Union[str, Variable]]] = None,
 ) -> Expression:
     """Simplify an expression.
 
@@ -32,7 +32,7 @@ def simplify(
     :returns: A simplified expression
     :raises ValueError: if the simplified expression does not satisfy the markov postcondition
     """
-    simplifier = Simplifier(graph=graph, ordering=_upgrade_ordering(ordering) if ordering is not None else None)
+    simplifier = Simplifier(graph=graph, ordering=ordering)
     rv = simplifier.simplify(expression)
     if not has_markov_postcondition(rv):
         raise ValueError('raised if the simplified expression does not satisfy the markov postcondition')
@@ -40,7 +40,12 @@ def simplify(
 
 
 class Simplifier:
-    """A data structure to support application of the simplify algorithm."""
+    """A data structure to support application of the simplify algorithm.
+
+    The simplify function is implemented inside a class since there is shared state between recursive calls
+    and this makes it much easier to reference rather than making the simplify function itself have many
+    arguments
+    """
 
     #: The constant topological ordering
     ordering: Sequence[Variable]
@@ -48,8 +53,13 @@ class Simplifier:
     def __init__(
         self,
         graph: Union[NxMixedGraph, ADMG],
-        ordering: Optional[Sequence[Variable]] = None,
+        ordering: Optional[Sequence[Union[str, Variable]]] = None,
     ) -> None:
+        """Instantiate the simplifier.
+
+        :param graph: A graph
+        :param ordering: An optional topological ordering. If not provided, one will be generated from the graph.
+        """
         if isinstance(graph, NxMixedGraph):
             self.graph = graph.to_admg()
         elif isinstance(graph, ADMG):
@@ -60,11 +70,12 @@ class Simplifier:
         if ordering is None:
             self.ordering = [Variable(name) for name in self.graph.topological_sort()]
         else:
-            self.ordering = ordering
+            self.ordering = _upgrade_ordering(ordering)
 
-    # The simplify function is implemented inside a class since there is shared state between recursive calls
-    #  and this makes it much easier to reference rather than making the simplify function itself have many
-    #  arguments
     def simplify(self, expression: Expression) -> Expression:
-        """Simplify the expression given the internal topological ordering."""
+        """Simplify the expression given the internal topological ordering.
+
+        :param expression: The expression to simplify
+        :returns: The simplified expression
+        """
         raise NotImplementedError
