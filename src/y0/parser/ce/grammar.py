@@ -2,16 +2,22 @@
 
 """A parser for Craig-like probability expressions based on :mod:`pyparsing`."""
 
-from pyparsing import Forward, Group, OneOrMore, Optional, ParseResults, StringEnd, StringStart, Suppress
+import logging
+
+from pyparsing import (
+    Forward, Group, OneOrMore, Optional, ParseException, ParseResults, StringEnd, StringStart,
+    Suppress,
+)
 
 from .utils import probability_pe, qfactor_pe, variables_pe
 from ...dsl import Expression, Fraction, Product, Sum
 
 __all__ = [
-    'parse_craig',
+    'parse_causaleffect',
     'grammar',
 ]
 
+logger = logging.getLogger(__name__)
 expr = Forward()
 
 
@@ -41,18 +47,16 @@ def _make_product(_s, _l, tokens: ParseResults) -> Expression:
 rr = OneOrMore(probability_pe | qfactor_pe | expr).setParseAction(_make_product)
 
 sum_pe = (
-    Suppress('[')
-    + Suppress('sum_{')
+    Suppress('\\sum_{')
     + Optional(Group(variables_pe).setResultsName('ranges'))
     + Suppress('}')
     + rr.setResultsName('expression')
-    + Suppress(']')
 )
 sum_pe.setName('sum')
 sum_pe.setParseAction(_make_sum)
 
 fraction_pe = (
-    Suppress('frac_{')
+    Suppress('\\frac_{')
     + rr.setResultsName('numerator')
     + Suppress('}{')
     + rr.setResultsName('denominator')
@@ -69,7 +73,12 @@ grammar = StringStart() + expr + StringEnd()
 grammar.setName('probabilityGrammar')
 
 
-def parse_craig(s: str) -> Expression:
-    """Parse a Craig-like probability expression."""
-    x = grammar.parseString(s)
-    return x.asList()[0]
+def parse_causaleffect(s: str) -> Expression:
+    """Parse a causaleffect probability expression."""
+    try:
+        x = grammar.parseString(s)
+    except ParseException:
+        logger.warning('could not parse %s', s)
+        raise
+    else:
+        return x.asList()[0]
