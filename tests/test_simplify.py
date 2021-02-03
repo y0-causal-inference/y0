@@ -41,6 +41,11 @@ equation_1 = P(Z1 | (Z2, X)) * P(Z2) * P(Y) * Sum[X](_y * _z3 * _x)
 class TestSimplify(unittest.TestCase):
     """Tests of the simplification algorithm."""
 
-    def test_simplify_example_1(self):
+    def test_simplify(self):
         """Test the :func:`y0.simplify.simplify` function."""
-        self.assertEqual(equation_1, simplify(pre_equation_1, figure_1))
+        for expression, graph, ordering, simplified_expression in [
+            (pre_equation_1, figure_1, None, equation_1),
+            # TODO add more examples to this list
+        ]:
+            with self.subTest():
+                self.assertEqual(simplified_expression, simplify(expression, graph=graph, ordering=ordering))
