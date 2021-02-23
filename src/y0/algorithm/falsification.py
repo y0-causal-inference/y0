@@ -1,7 +1,7 @@
 import copy
 from collections import abc
 from itertools import chain, combinations
-from typing import Optional
+from typing import Collection, Iterable, Optional, Sequence, Tuple, TypeVar
 
 import networkx as nx
 import pandas as pd
@@ -9,6 +9,8 @@ from ananke.graphs import SG
 from tqdm import tqdm
 
 from ..util.stat_utils import cressie_read
+
+X = TypeVar('X')
 
 
 class Result:
@@ -77,18 +79,19 @@ def get_augments(graph: SG):
     return augments
 
 
-def all_combinations(source, min: int = 0, max: Optional[int] = None):
+def powerset(iterable: Iterable[X], start: int = 0, stop: Optional[int] = None) -> Iterable[Collection[X]]:
     """Get successively longer combinations of the source.
 
-    :param source: List to get combinations from
-    :param min: smallest combination to get (default 0)
-    :param max: Largest combination to get (None means length of the list and is the default)
+    :param iterable: List to get combinations from
+    :param start: smallest combination to get (default 0)
+    :param stop: Largest combination to get (None means length of the list and is the default)
+
+    .. seealso: :func:`more_iterools.powerset` for a non-constrainable implementation
     """
-    max = len(source) if max is None else max
-    return list(chain.from_iterable(
-        combinations(source, size)
-        for size in range(min, max + 1)
-    ))
+    s = list(iterable)
+    if stop is None:
+        stop = len(s) + 1
+    return chain.from_iterable(combinations(s, r) for r in range(start, stop))
 
 
 class Evidence(abc.Sequence):
@@ -119,25 +122,39 @@ class Evidence(abc.Sequence):
 EVIDENCE_COLUMNS = ["A", "B", "Given", "chi^2", "p-value", "dof"]
 
 
+def iter_d_separated(
+    graph: SG,
+    *,
+    stop: Optional[int] = None,
+    verbose: bool = False,
+) -> Iterable[Tuple[str, str, Sequence[str]]]:
+    verticies = set(graph.vertices)
+    for a, b in tqdm(combinations(verticies, 2), disable=not verbose, desc="Checking d-separation"):
+        for given in powerset(verticies - {a, b}, stop=stop):
+            if are_d_separated(graph, a, b, given=given):
+                yield a, b, given
+
+
 def falsifications(
     graph: SG,
     df: pd.DataFrame,
     significance_level: float = .05,
-    max_given: Optional[int] = None,
+    stop: Optional[int] = None,
     verbose: bool = False,
 ) -> Evidence:
+    """
+
+    :param graph:
+    :param df:
+    :param significance_level:
+    :param stop: The maximum set size in the powerset of the verticies minus the d-seperable pairs
+    :param verbose:
+    :return:
+    """
     # TODO: Take G, [ConditionalIndependency...], df, etc. as params
     #       Test independencies passed
     # TODO: Make function G -> [ConditionalIndpeendency...]
-    all_nodes = set(graph.vertices)
-    all_pairs = combinations(all_nodes, 2)
-
-    to_test = [
-        (a, b, given)
-        for a, b in tqdm(all_pairs, disable=not verbose, desc="Checking d-separation")
-        for given in all_combinations(all_nodes - {a, b}, max=max_given)
-        if are_d_separated(graph, a, b, given=given)
-    ]
+    to_test = list(iter_d_separated(graph, stop=stop, verbose=verbose))
 
     variances = {
         (a, b, given): cressie_read(a, b, given, df, boolean=False)

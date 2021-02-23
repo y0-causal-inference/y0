@@ -7,30 +7,31 @@ from typing import Set
 
 import y0.examples
 from y0.algorithm import falsification
-from y0.algorithm.conditional_independencies import ConditionalIndependency, get_conditional_independencies
+from y0.algorithm.conditional_independencies import get_conditional_independencies
 from y0.examples import examples
 from y0.graph import NxMixedGraph
+from y0.struct import ConditionalIndependency
 
 
 class TestDSeparation(unittest.TestCase):
     "Test the d-separation utility."
 
     def test_mit_example(self):
-        G = y0.examples.d_separation_example.graph.to_admg()
+        graph = y0.examples.d_separation_example.graph.to_admg()
 
-        self.assertFalse(falsification.are_d_separated(G, "AA", "B", given=["D", "F"]))
-        self.assertTrue(falsification.are_d_separated(G, "AA", "B"))
-        self.assertTrue(falsification.are_d_separated(G, "D", "E", given=["C"]))
-        self.assertFalse(falsification.are_d_separated(G, "AA", "B", given=["C"]))
-        self.assertFalse(falsification.are_d_separated(G, "D", "E"))
-        self.assertFalse(falsification.are_d_separated(G, "D", "E", given=["AA", "B"]))
-        self.assertFalse(falsification.are_d_separated(G, "G", "G", given=["C"]))
+        self.assertFalse(falsification.are_d_separated(graph, "AA", "B", given=["D", "F"]))
+        self.assertTrue(falsification.are_d_separated(graph, "AA", "B"))
+        self.assertTrue(falsification.are_d_separated(graph, "D", "E", given=["C"]))
+        self.assertFalse(falsification.are_d_separated(graph, "AA", "B", given=["C"]))
+        self.assertFalse(falsification.are_d_separated(graph, "D", "E"))
+        self.assertFalse(falsification.are_d_separated(graph, "D", "E", given=["AA", "B"]))
+        self.assertFalse(falsification.are_d_separated(graph, "G", "G", given=["C"]))
 
 
 class TestGetConditionalIndependencies(unittest.TestCase):
     """Test getting conditional independencies."""
 
-    def assert_conditional_indepencencies(self, graph: NxMixedGraph, expected: Set[ConditionalIndependency]):
+    def assert_conditional_independencies(self, graph: NxMixedGraph, expected: Set[ConditionalIndependency]):
         """Assert that the graph has the correct conditional independencies."""
         conditional_independencies = get_conditional_independencies(graph.to_admg())
         self.assertTrue(
@@ -46,7 +47,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         """Test getting the conditional independencies from the example graphs."""
         for example in examples:
             with self.subTest(name=example.name):
-                self.assert_conditional_indepencencies(
+                self.assert_conditional_independencies(
                     graph=example.graph,
                     expected=example.conditional_independencies,
                 )
