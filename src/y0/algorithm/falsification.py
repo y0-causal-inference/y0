@@ -1,6 +1,7 @@
 import copy
 from collections import abc
 from itertools import chain, combinations
+from typing import Optional
 
 import networkx as nx
 import pandas as pd
