@@ -47,11 +47,8 @@ def are_d_separated(graph: SG, a, b, *, given=frozenset()) -> Result:
     graph = copy.deepcopy(graph.subgraph(keep))
 
     # Moralize (link parents of mentioned nodes)
-    parents = [graph.parents([v]) for v in graph.vertices]
-    augments = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
-
-    for edge in augments:
-        graph.add_udedge(*edge)
+    for u, v in get_augments(graph):
+        graph.add_udedge(u, v)
 
     # disorient & remove givens
     evidence_graph = disorient(graph)
@@ -71,6 +68,12 @@ def disorient(graph: SG) -> nx.Graph:
     rv.add_nodes_from(graph.vertices)
     rv.add_edges_from(chain(graph.di_edges, graph.ud_edges, graph.bi_edges))
     return rv
+
+
+def get_augments(graph: SG):
+    parents = [graph.parents([v]) for v in graph.vertices]
+    augments = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
+    return augments
 
 
 def all_combinations(source, min: int = 0, max: Optional[int] = None):
