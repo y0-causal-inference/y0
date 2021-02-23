@@ -6,7 +6,7 @@ import networkx as nx
 import pandas as pd
 from tqdm import tqdm
 
-from ..util import CITests
+from ..util.stat_utils import cressie_read
 
 
 class Result:
@@ -60,7 +60,7 @@ def are_d_separated(G, a, b, *, given=frozenset()) -> Result:
     G2 = G2.subgraph(keep)
 
     # check for path....
-    separated = not nx.has_path(G2, a, b)   # If no path, then d-separated!
+    separated = not nx.has_path(G2, a, b)  # If no path, then d-separated!
 
     return Result(separated, a, b, given, G2)
 
@@ -111,16 +111,16 @@ def falsifications(G, df, significance_level=.05, max_given=None, verbose=False)
                for given in all_combinations(all_nodes - {a, b}, max=max_given)
                if are_d_separated(G, a, b, given=given)]
 
-    variances = {(a, b, given): CITests.cressie_read(a, b, given, df, boolean=False)
+    variances = {(a, b, given): cressie_read(a, b, given, df, boolean=False)
                  for a, b, given in tqdm(to_test, desc="Checking conditionals")}
 
     # TODO: Multiple-comparisons correction
     evidence = pd.DataFrame([(a, b, given, chi, p, dof)
                              for (a, b, given), (chi, dof, p)
                              in variances.items()],
-                            columns=["A", "B", "Given", "chi^2", "p-value", "dof"])\
-                 .pipe(lambda df: df.assign(flagged=(df["p-value"] < significance_level)))\
-                 .sort_values(["flagged", "dof"], ascending=False)
+                            columns=["A", "B", "Given", "chi^2", "p-value", "dof"]) \
+        .pipe(lambda df: df.assign(flagged=(df["p-value"] < significance_level))) \
+        .sort_values(["flagged", "dof"], ascending=False)
 
     failures = evidence[evidence["flagged"]][["A", "B", "Given"]].apply(tuple, axis="columns")
     return Evidence(failures, evidence)
