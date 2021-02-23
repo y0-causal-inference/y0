@@ -12,7 +12,7 @@ from ..util.stat_utils import cressie_read
 class Result:
     """By default, acts like a boolean, but also caries evidence graph."""
 
-    def __init__(self, separated, a, b, given, evidence):
+    def __init__(self, separated: bool, a, b, given, evidence):
         """separated -- T/F judgement
            a/b/given -- The question asked
            evidence -- The end graph
@@ -33,46 +33,51 @@ class Result:
         return self.separated == other
 
 
-def are_d_separated(G, a, b, *, given=frozenset()) -> Result:
+def are_d_separated(graph, a, b, *, given=frozenset()) -> Result:
     """Tests if nodes named by a & b are d-separated in G.
+
     Given conditions can be provided with the optional 'given' parameter.
     returns T/F and the final graph (as evidence)
     """
-    named = set([a, b]).union(given)
+    named = {a, b}.union(given)
 
     # Filter to ancestors
-    keep = G.ancestors(named)
-    G = copy.deepcopy(G.subgraph(keep))
+    keep = graph.ancestors(named)
+    graph = copy.deepcopy(graph.subgraph(keep))
 
     # Moralize (link parents of mentioned nodes)
-    parents = [G.parents([v]) for v in G.vertices]
+    parents = [graph.parents([v]) for v in graph.vertices]
     augments = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
 
     for edge in augments:
-        G.add_udedge(*edge)
+        graph.add_udedge(*edge)
 
     # disorient & remove givens
-    G2 = nx.Graph()
-    G2.add_nodes_from(G.vertices)
-    G2.add_edges_from(chain(G.di_edges, G.ud_edges, G.bi_edges))
+    evidence_graph = nx.Graph()
+    evidence_graph.add_nodes_from(graph.vertices)
+    evidence_graph.add_edges_from(chain(graph.di_edges, graph.ud_edges, graph.bi_edges))
 
-    keep = set(G2.nodes) - set(given)
-    G2 = G2.subgraph(keep)
+    keep = set(evidence_graph.nodes) - set(given)
+    evidence_graph = evidence_graph.subgraph(keep)
 
     # check for path....
-    separated = not nx.has_path(G2, a, b)  # If no path, then d-separated!
+    separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
 
-    return Result(separated, a, b, given, G2)
+    return Result(separated, a, b, given=given, evidence=evidence_graph)
 
 
-def all_combinations(source, min=0, max=None):
+def all_combinations(source, min: int = 0, max: Optional[int] = None):
     """Get successively longer combinations of the source.
-    source -- List to get combinations from
-    min -- smallest combination to get (default 0)
-    max -- Largest combination to get (None means length of the list and is the default)
+
+    :param source: List to get combinations from
+    :param min: smallest combination to get (default 0)
+    :param max: Largest combination to get (None means length of the list and is the default)
     """
     max = len(source) if max is None else max
-    return [*chain(*(combinations(source, size) for size in range(min, max + 1)))]
+    return list(chain.from_iterable(
+        combinations(source, size)
+        for size in range(min, max + 1)
+    ))
 
 
 class Evidence(abc.Sequence):
@@ -100,25 +105,34 @@ class Evidence(abc.Sequence):
         return repr(self._failures) + "+evidence"
 
 
-def falsifications(G, df, significance_level=.05, max_given=None, verbose=False) -> Evidence:
+EVIDENCE_COLUMNS = ["A", "B", "Given", "chi^2", "p-value", "dof"]
+
+
+def falsifications(graph, df, significance_level=.05, max_given=None, verbose=False) -> Evidence:
     # TODO: Take G, [ConditionalIndependency...], df, etc. as params
     #       Test independencies passed
     # TODO: Make function G -> [ConditionalIndpeendency...]
-    all_nodes = set(G.vertices)
+    all_nodes = set(graph.vertices)
     all_pairs = combinations(all_nodes, 2)
 
-    to_test = [(a, b, given) for a, b in tqdm(all_pairs, desc="Checking d-separation")
-               for given in all_combinations(all_nodes - {a, b}, max=max_given)
-               if are_d_separated(G, a, b, given=given)]
+    to_test = [
+        (a, b, given)
+        for a, b in tqdm(all_pairs, desc="Checking d-separation")
+        for given in all_combinations(all_nodes - {a, b}, max=max_given)
+        if are_d_separated(graph, a, b, given=given)
+    ]
 
-    variances = {(a, b, given): cressie_read(a, b, given, df, boolean=False)
-                 for a, b, given in tqdm(to_test, desc="Checking conditionals")}
+    variances = {
+        (a, b, given): cressie_read(a, b, given, df, boolean=False)
+        for a, b, given in tqdm(to_test, desc="Checking conditionals")
+    }
 
     # TODO: Multiple-comparisons correction
-    evidence = pd.DataFrame([(a, b, given, chi, p, dof)
-                             for (a, b, given), (chi, dof, p)
-                             in variances.items()],
-                            columns=["A", "B", "Given", "chi^2", "p-value", "dof"]) \
+    rows = [
+        (a, b, given, chi, p, dof)
+        for (a, b, given), (chi, dof, p) in variances.items()
+    ]
+    evidence = pd.DataFrame(rows, columns=EVIDENCE_COLUMNS) \
         .pipe(lambda df: df.assign(flagged=(df["p-value"] < significance_level))) \
         .sort_values(["flagged", "dof"], ascending=False)
 
