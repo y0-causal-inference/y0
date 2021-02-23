@@ -4,8 +4,10 @@
 
 import unittest
 
+import pyparsing
+
 from y0.dsl import P, Q, Sum, Variable
-from y0.examples import verma_1
+from y0.examples import examples, verma_1
 
 try:
     from y0.causaleffect import r_get_verma_constraints
@@ -41,6 +43,15 @@ class TestCausalEffect(unittest.TestCase):
 
     def test_verma_constraint(self):
         """Test getting the single Verma constraint from the Figure 1A graph."""
+        for example in examples:
+            with self.subTest(name=example.name):
+                try:
+                    actual = r_get_verma_constraints(example.graph)
+                except pyparsing.ParseException:
+                    continue
+                expected = example.verma_constraints
+                self.assertEqual(set(expected or ()), set(actual))
+
         actual = r_get_verma_constraints(verma_1)
         self.assertEqual(1, len(actual))
         verma_constraint = actual[0]

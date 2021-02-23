@@ -4,12 +4,14 @@
 
 from __future__ import annotations
 
-from typing import NamedTuple, Tuple
+from operator import attrgetter
+from typing import Iterable, NamedTuple, Optional, Tuple, Union
 
-from .dsl import Expression, Variable
+from .dsl import Expression, Variable, _upgrade_ordering
 
 __all__ = [
     'VermaConstraint',
+    'ConditionalIndependency',
 ]
 
 
@@ -41,3 +43,36 @@ class VermaConstraint(NamedTuple):
             lhs_expr=parse_causaleffect(_extract(element, 'lhs.expr')),
             variables=_parse_vars(element),
         )
+
+
+class ConditionalIndependency(NamedTuple):
+    """A conditional independency."""
+
+    left: Variable
+    right: Variable
+    observations: Tuple[Variable, ...]
+
+    @property
+    def is_canonical(self) -> bool:
+        """Return if the conditional independency is canonical."""
+        return self.left.name < self.right.name and isinstance(self.observations, tuple)
+
+    @classmethod
+    def create(
+        cls,
+        left: Union[str, Variable],
+        right: Union[str, Variable],
+        observations: Optional[Iterable[Union[str, Variable]]] = None,
+    ) -> ConditionalIndependency:
+        """Create a canonical conditional independency."""
+        if isinstance(left, str):
+            left = Variable(name=left)
+        if isinstance(right, str):
+            right = Variable(name=right)
+        if left.name > right.name:
+            left, right = right, left
+        if observations is not None:
+            observations_ = tuple(sorted(set(_upgrade_ordering(observations)), key=attrgetter('name')))  # type: ignore
+        else:
+            observations_ = tuple()
+        return cls(left, right, observations_)
