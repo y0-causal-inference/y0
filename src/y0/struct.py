@@ -11,6 +11,7 @@ from .dsl import Expression, Variable, _upgrade_ordering
 
 __all__ = [
     'VermaConstraint',
+    'ConditionalIndependency',
 ]
 
 
