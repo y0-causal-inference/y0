@@ -11,7 +11,7 @@ import pandas as pd
 
 from collections import abc
 from itertools import combinations, chain
-
+from tqdm import tqdm
 import copy
 
 def are_d_separated(G, a,b, *, given=None):
@@ -90,24 +90,16 @@ def falsifications(G, df, significance_level=.05, max_given=None, verbose=False)
         def __getitem__(self, i): return self._failures[i]
         def __len__(self): return len(self._failures)
         def __repr__(self): return repr(self._failures) + "+evidence"
-    
-    wrapper = lambda v, desc: v
-    if verbose: 
-        try: 
-            import tqdm
-            wrapper = tqdm.tqdm
-        except:
-            print("TQDM not installed, verbose mode not supported")
-    
+
     all_nodes = set(G.vertices)
     all_pairs = combinations(all_nodes, 2)
 
-    to_test = [(a, b, given) for a,b in wrapper(all_pairs, desc="Checking d-separation")
+    to_test = [(a, b, given) for a,b in tqdm(all_pairs, desc="Checking d-separation")
                   for given in all_combinations(all_nodes-{a,b}, max=max_given)
                 if are_d_separated(G, a, b, given=given)]
     
     variances = {(a,b, given): CITests.cressie_read(a, b, given, df, boolean=False) 
-                 for a, b, given in wrapper(to_test, desc="Checking conditionals")}
+                 for a, b, given in tqdm(to_test, desc="Checking conditionals")}
     
     #TODO: Multiple-comparisons correction
     evidence = pd.DataFrame([(a, b, given, chi, p, dof) 
