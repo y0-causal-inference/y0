@@ -1,32 +1,30 @@
-#The MIT License (MIT)
+# The MIT License (MIT)
 #
-#Copyright (c) 2013-2017 pgmpy
+# Copyright (c) 2013-2017 pgmpy
 #
-#Permission is hereby granted, free of charge, to any person obtaining a copy of
-#this software and associated documentation files (the "Software"), to deal in
-#the Software without restriction, including without limitation the rights to
-#use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-#the Software, and to permit persons to whom the Software is furnished to do so,
-#subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+# the Software, and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
 #
-#The above copyright notice and this permission notice shall be included in all
-#copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
 #
-#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-#FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-#COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-#IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-#CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 # Originally copied from: https://github.com/pgmpy/pgmpy/blob/dev/pgmpy/estimators/CITests.py
 # 20Feb2021
 
 from warnings import warn
-
-import numpy as np
-import pandas as pd
 from scipy import stats
+
 
 def chi_square(X, Y, Z, data, boolean=True, **kwargs):
     r"""
@@ -292,7 +290,8 @@ def freeman_tuckey(X, Y, Z, data, boolean=True, **kwargs):
 
     References
     ----------
-    [1] Read, Campbell B. "Freeman—Tukey chi-squared goodness-of-fit statistics." Statistics & probability letters 18.4 (1993): 271-278.
+    [1] Read, Campbell B. "Freeman—Tukey chi-squared goodness-of-fit statistics."
+    Statistics & probability letters 18.4 (1993): 271-278.
 
     Examples
     --------
@@ -501,7 +500,8 @@ def cressie_read(X, Y, Z, data, boolean=True, **kwargs):
 
     References
     ----------
-    [1] Cressie, Noel, and Timothy RC Read. "Multinomial goodness‐of‐fit tests." Journal of the Royal Statistical Society: Series B (Methodological) 46.3 (1984): 440-464.
+    [1] Cressie, Noel, and Timothy RC Read. "Multinomial goodness‐of‐fit tests."
+    Journal of the Royal Statistical Society: Series B (Methodological) 46.3 (1984): 440-464.
 
     Examples
     --------
@@ -582,7 +582,8 @@ def power_divergence(X, Y, Z, data, boolean=True, lambda_="cressie-read", **kwar
 
     References
     ----------
-    [1] Cressie, Noel, and Timothy RC Read. "Multinomial goodness‐of‐fit tests." Journal of the Royal Statistical Society: Series B (Methodological) 46.3 (1984): 440-464.
+    [1] Cressie, Noel, and Timothy RC Read. "Multinomial goodness‐of‐fit tests."
+    Journal of the Royal Statistical Society: Series B (Methodological) 46.3 (1984): 440-464.
 
     Examples
     --------
