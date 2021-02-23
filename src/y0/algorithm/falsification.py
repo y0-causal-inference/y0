@@ -14,11 +14,14 @@ from itertools import combinations, chain
 
 import copy
 
-def are_d_separated(G, a,b, *, given=[]):
+def are_d_separated(G, a,b, *, given=None):
     """Tests if nodes named by a & b are d-separated in G.
     Given conditions can be provided with the optional 'given' parameter.
     returns T/F and the final graph (as evidence)
     """
+    if given is None:
+        given = []
+
     class Result:
         """By default, acts like a boolean, but also caries evidence graph."""
         def __init__(self, separated, a,b, given, evidence):
