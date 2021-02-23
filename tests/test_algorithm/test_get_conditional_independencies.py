@@ -5,12 +5,10 @@
 import unittest
 from typing import Set
 
+import y0.examples
 from y0.algorithm import falsification
 from y0.algorithm.conditional_independencies import ConditionalIndependency, get_conditional_independencies
-
-import y0.examples
 from y0.examples import examples
-
 from y0.graph import NxMixedGraph
 
 
