@@ -4,11 +4,12 @@
 
 from pyparsing import Group, Optional, ParseResults, Suppress, Word, alphas, delimitedList
 
-from ...dsl import CounterfactualVariable, Distribution, Intervention, Probability, Variable
+from ...dsl import CounterfactualVariable, Distribution, Intervention, Probability, QFactor, Variable
 
 __all__ = [
     'probability_pe',
     'variables_pe',
+    'qfactor_pe',
 ]
 
 
@@ -47,6 +48,11 @@ def _make_probability(_s, _l, tokens: ParseResults) -> Probability:
     return Probability(Distribution(children=tuple(children), parents=tuple(parents)))
 
 
+def _make_q(_s, _l, tokens: ParseResults) -> QFactor:
+    codomain, domain = tokens['codomain'].asList(), tokens['domain'].asList()
+    return QFactor(codomain=tuple(codomain), domain=tuple(domain))
+
+
 # The suffix "pe" refers to :class:`pyparsing.ParserElement`, which is the
 #  class in pyparsing that everything inherits from
 star_pe = Optional('*')('star').setParseAction(_set_star)
@@ -67,3 +73,13 @@ _parents_pe = Group(Optional(Suppress('|') + variables_pe)).setResultsName('pare
 probability_pe = Suppress('P(') + _children_pe + _parents_pe + Suppress(')')
 probability_pe.setParseAction(_make_probability)
 probability_pe.setName('probability')
+
+qfactor_pe = (
+    Suppress('Q[')
+    + Group(variables_pe).setResultsName('codomain')
+    + Suppress('](')
+    + Group(variables_pe).setResultsName('domain')
+    + Suppress(')')
+)
+qfactor_pe.setParseAction(_make_q)
+qfactor_pe.setName('qfactor')

@@ -4,7 +4,7 @@
 
 import string
 
-from y0.dsl import Expression, P, Sum, Variable
+from y0.dsl import Expression, P, Q, Sum, Variable
 
 __all__ = [
     'parse_y0',
@@ -18,10 +18,12 @@ LOCALS = {
     'Probability': P,
     'SUM': Sum,
     'Sum': Sum,
+    'Q': Q,
+    'QFactor': Q,
 }
 
 for letter in string.ascii_uppercase:
-    if letter == 'P':
+    if letter in {'P', 'Q'}:
         continue
     LOCALS[letter] = Variable(letter)
     for index in range(10):
@@ -44,5 +46,4 @@ def parse_y0(s) -> Expression:
     >>> parse_y0('Sum[B](P(A|B) * P(B))') == Sum[B](P(A|B) * P(B))
     True
     """
-    r = eval(s, {}, LOCALS)  # noqa:S307
-    return r[0]
+    return eval(s, {}, LOCALS)  # noqa:S307
