@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import matplotlib.pyplot as plt
 from dataclasses import dataclass, field
 from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar
 
@@ -69,6 +70,25 @@ class NxMixedGraph(Generic[X]):
         import rpy2.robjects
         return rpy2.robjects.r(self.to_causaleffect_str())
 
+    def draw(self, ax=None):
+        """Render the graph using matplotlib.
+        ax -- Axis to draw on (if none specified, makes a new one)
+        """
+        joint = nx.MultiGraph()
+        joint.add_edges_from(self.directed.edges)
+        joint.add_edges_from(self.undirected.edges)
+        layout = nx.nx_pydot.graphviz_layout(joint, prog="dot")
+
+        uProxy = nx.DiGraph() 
+        uProxy.add_edges_from(self.undirected.edges)
+
+        if ax is None: fig, ax = plt.subplots(1,1)
+        nx.draw_networkx_nodes(self.directed, pos=layout, ax=ax)
+        nx.draw_networkx_labels(self.directed, pos=layout, ax=ax)
+        nx.draw_networkx_edges(self.directed, pos=layout, edge_color="b", ax=ax)
+        nx.draw_networkx_edges(uProxy, pos=layout, ax=ax, 
+                               connectionstyle='arc3, rad=0.2', arrowstyle="-", edge_color="r")    
+    
     @classmethod
     def from_causaleffect(cls, graph) -> NxMixedGraph:
         """Construct an instance from a causaleffect R graph."""
@@ -128,3 +148,5 @@ class NxMixedGraph(Generic[X]):
             for v in vs:
                 rv.add_undirected_edge(u, v)
         return rv
+    
+
