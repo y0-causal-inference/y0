@@ -5,6 +5,14 @@ import pandas as pd
 from collections import abc
 from itertools import combinations, chain
 
+from y0.util import CITests
+import networkx as nx
+import pandas as pd
+
+from collections import abc
+from itertools import combinations, chain
+
+import copy
 
 def are_d_separated(G, a,b, *, given=[]):
     """Tests if nodes named by a & b are d-separated in G.
@@ -30,26 +38,26 @@ def are_d_separated(G, a,b, *, given=[]):
     named = set([a,b]).union(given)
     
     # Filter to ancestors
-    keep = set(chain(*(nx.ancestors(G, n) for n in named))).union(named)
-    G = nx.subgraph(G, keep).copy()
+    keep = G.ancestors(named)    
+    G = copy.deepcopy(G.subgraph(keep))
 
     # Moralize (link parents of mentioned nodes)
-    in_edges = ([*G.in_edges(n)] for n in G)
-    parents = ([*zip(*edges)][0] for edges in in_edges
-                if len(edges)>0)
-    augments = [*chain(*[combinations(nodes, 2) for nodes in parents])]
-    G.add_edges_from(augments)
+    parents = [G.parents([v]) for v in G.vertices] 
+    augments = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
+    for edge in augments: G.add_udedge(*edge)
     
     # disorient & remove givens
-    G = G.to_undirected()
-    keep = set(G.nodes()) - set(given)
-    G = G.subgraph(keep)
+    G2 = nx.Graph()
+    G2.add_nodes_from(G.vertices)
+    G2.add_edges_from(chain(G.di_edges, G.ud_edges, G.bi_edges))
+
+    keep = set(G2.nodes) - set(given)
+    G2 = G2.subgraph(keep)
 
     # check for path....
-    separated = not nx.has_path(G, a, b)   #If no path, then d-separated!
+    separated = not nx.has_path(G2, a, b)   #If no path, then d-separated!
     
-    return Result(separated, a, b, given, G)
-
+    return Result(separated, a, b, given, G2)
 
 
 def all_combinations(source, min=0, max=None):
@@ -88,9 +96,10 @@ def falsifications(G, df, significance_level=.05, max_given=None, verbose=False)
         except:
             print("TQDM not installed, verbose mode not supported")
     
-    all_nodes = set(G.nodes)
-    all_pairs = combinations(G.nodes, 2)
-    to_test = [(a,b,given) for a,b in wrapper(all_pairs, desc="Checking d-separation")
+    all_nodes = set(G.vertices)
+    all_pairs = combinations(all_nodes, 2)
+
+    to_test = [(a, b, given) for a,b in wrapper(all_pairs, desc="Checking d-separation")
                   for given in all_combinations(all_nodes-{a,b}, max=max_given)
                 if are_d_separated(G, a, b, given=given)]
     
