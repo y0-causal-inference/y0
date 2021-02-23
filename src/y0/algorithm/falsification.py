@@ -8,14 +8,11 @@ from tqdm import tqdm
 import copy
 
 
-def are_d_separated(G, a, b, *, given=None):
+def are_d_separated(G, a, b, *, given=frozenset()):
     """Tests if nodes named by a & b are d-separated in G.
     Given conditions can be provided with the optional 'given' parameter.
     returns T/F and the final graph (as evidence)
     """
-    if given is None:
-        given = []
-
     class Result:
         """By default, acts like a boolean, but also caries evidence graph."""
         def __init__(self, separated, a, b, given, evidence):
@@ -71,6 +68,10 @@ def all_combinations(source, min=0, max=None):
 
 
 def falsifications(G, df, significance_level=.05, max_given=None, verbose=False):
+    # TODO: Take G, [ConditionalIndependency...], df, etc. as params
+    #       Test independencies passed
+    # TODO: Make function G -> [ConditionalIndpeendency...]
+
     class Evidence(abc.Sequence):
         """A list of variables pairs that failed the d_sepration+covariance test.
 
