@@ -3,10 +3,12 @@
 
 """Examples from CausalFusion."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
-from .dsl import P, Q, Sum, Variable, X, Y, Z1, Z2
+from .dsl import P, Q, Sum, Variable, X, Y, Z1, Z2, Z3, Z4, Z5
 from .graph import NxMixedGraph
 from .struct import ConditionalIndependency, VermaConstraint
 
@@ -15,18 +17,19 @@ from .struct import ConditionalIndependency, VermaConstraint
 class Example:
     """An example graph packaged with certain pre-calculated data structures."""
 
+    name: str
+    reference: str
     graph: NxMixedGraph
     verma_constraints: Optional[Sequence[VermaConstraint]] = None
     conditional_independencies: Optional[Sequence[ConditionalIndependency]] = None
 
 
 u_2 = Variable('u_2')
+u_3 = Variable('u_3')
 
-#: The "backdoor" example
 #: Treatment: X
 #: Outcome: Y
 #: Adjusted: N/A
-#: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 178.
 backdoor = NxMixedGraph.from_edges(directed=[
     ('Z', 'X'),
     ('Z', 'Y'),
@@ -34,14 +37,15 @@ backdoor = NxMixedGraph.from_edges(directed=[
 ])
 
 backdoor_example = Example(
+    name='Backdoor',
+    reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
+              ' 2nd ed." Cambridge University Press, p. 178.',
     graph=backdoor,
 )
 
-#: The "frontdoor" example
 #: Treatment: X
 #: Outcome: Y
 #: Adjusted: N/A
-#: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 81.
 frontdoor = NxMixedGraph.from_edges(
     directed=[
         ('X', 'Z'),
@@ -52,13 +56,14 @@ frontdoor = NxMixedGraph.from_edges(
     ],
 )
 frontdoor_example = Example(
+    name='Frontdoor',
+    reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
+              ' 2nd ed." Cambridge University Press, p. 81.',
     graph=frontdoor,
 )
 
-#: The Instrument Variable example
 #: Treatment: X
 #: Outcome: Y
-#: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 153.
 instrumental_variable = NxMixedGraph.from_edges(
     directed=[
         ('Z', 'X'),
@@ -69,14 +74,14 @@ instrumental_variable = NxMixedGraph.from_edges(
     ],
 )
 instrumental_variable_example = Example(
+    name='Instrument Variable',
+    reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
+              ' 2nd ed." Cambridge University Press, p. 153.',
     graph=instrumental_variable,
 )
 
-#: The Napkin example
 #: Treatment: X
 #: Outcome: Y
-#: Reference: J. Pearl and D. Mackenzie. 2018. "The Book of Why: The New Science of Cause and Effect." Basic Books,
-#   p. 240.
 napkin = NxMixedGraph.from_edges(
     directed=[
         ('Z2', 'Z1'),
@@ -89,6 +94,9 @@ napkin = NxMixedGraph.from_edges(
     ],
 )
 napkin_example = Example(
+    name='Napkin',
+    reference='J. Pearl and D. Mackenzie. 2018. "The Book of Why: The New Science of Cause and Effect."'
+              ' Basic Books, p. 240.',
     graph=napkin,
     verma_constraints=[
         VermaConstraint(
@@ -104,11 +112,9 @@ napkin_example = Example(
     ],
 )
 
-#: The M-Graph example
 #: Treatment: X
 #: Outcome: Y
-#: Reference: S. Greenland, J. Pearl, and J.M. Robins. 1999. "Causal Diagrams for Epidemiologic Research." Epidemiology
-#: Journal, Volume 10, No. 10, pp. 37-48, 1999.
+#: Reference:
 m_graph = NxMixedGraph.from_edges(
     directed=[
         ('X', 'Y'),
@@ -119,13 +125,14 @@ m_graph = NxMixedGraph.from_edges(
     ],
 )
 m_graph_example = Example(
+    name='M-Graph',
+    reference='S. Greenland, J. Pearl, and J.M. Robins. 1999. "Causal Diagrams for Epidemiologic Research."'
+              ' Epidemiology Journal, Volume 10, No. 10, pp. 37-48, 1999.',
     graph=m_graph,
 )
 
-#: The Identifiability 1 example
 #: Treatment: X
 #: Outcome: Y
-#: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 80.
 identifiability_1 = NxMixedGraph.from_edges(
     directed=[
         ('Z1', 'Z2'),
@@ -140,6 +147,9 @@ identifiability_1 = NxMixedGraph.from_edges(
     ],
 )
 identifiability_1_example = Example(
+    name='Identifiability 1',
+    reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
+              ' 2nd ed." Cambridge University Press, p. 80.',
     graph=identifiability_1,
     conditional_independencies=(
         ConditionalIndependency.create('X', 'Z1', ['Z2', 'Z3']),
@@ -157,10 +167,8 @@ identifiability_1_example = Example(
     ),
 )
 
-#: The Identifiability 2 example
 #: Treatment: X
 #: Outcome: Y
-#: Reference: E. Bareinboim modification of Identifiability 1.
 identifiability_2 = NxMixedGraph.from_edges(
     directed=[
         ('Z1', 'Z2'),
@@ -181,6 +189,62 @@ identifiability_2 = NxMixedGraph.from_edges(
         ('Z2', 'Z3'),
         ('Z3', 'Z5'),
         ('Z4', 'Y'),
+    ],
+)
+identifiability_2_example = Example(
+    name='Identifiability 2',
+    reference='E. Bareinboim modification of Identifiability 1.',
+    graph=identifiability_2,
+    verma_constraints=[
+        VermaConstraint(
+            rhs_cfactor=Q[Z5](Z4, Z5),
+            rhs_expr=Sum[u_3, Z4](P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3)),
+            lhs_cfactor=Sum[Z3](Q[Z3, Z5](Z1, Z4, Z3, Z5)),
+            lhs_expr=Sum[Z3](P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z2, Z4))),
+            variables=(Z1,),
+        ),
+        VermaConstraint(
+            rhs_cfactor=Q[Z5](Z4, Z5),
+            rhs_expr=Sum[u_3, Z4](P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3)),
+            lhs_cfactor=(
+                Q[Z2, Z5](Z1, Z4, Z2, Z5)
+                / Sum[Z5](Q[Z2, Z5](Z1, Z4, Z2, Z5))
+            ),
+            lhs_expr=(
+                Sum[Z3](P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
+                / Sum[Z3, Z5](P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
+            ),
+            variables=(Z1, Z2),
+        ),
+    ],
+    conditional_independencies=[
+        ConditionalIndependency.create('W0', 'W1', ['X']),
+        ConditionalIndependency.create('W0', 'W2', ['X']),
+        ConditionalIndependency.create('W0', 'Z1', ['X']),
+        ConditionalIndependency.create('W0', 'Z2', ['X']),
+        ConditionalIndependency.create('W0', 'Z3', ['X']),
+        ConditionalIndependency.create('W0', 'Z4', ['X']),
+        ConditionalIndependency.create('W0', 'Z5', ['X']),
+        ConditionalIndependency.create('W1', 'Y', ['W0', 'W2', 'Z3', 'Z4', 'Z5']),
+        ConditionalIndependency.create('W1', 'Z1', ['X']),
+        ConditionalIndependency.create('W1', 'Z2', ['X']),
+        ConditionalIndependency.create('W1', 'Z3', ['X']),
+        ConditionalIndependency.create('W1', 'Z4', ['X']),
+        ConditionalIndependency.create('W1', 'Z5', ['X']),
+        ConditionalIndependency.create('W2', 'X', ['W1']),
+        ConditionalIndependency.create('W2', 'Z1', ['W1']),
+        ConditionalIndependency.create('W2', 'Z2', ['W1']),
+        ConditionalIndependency.create('W2', 'Z3', ['W1']),
+        ConditionalIndependency.create('W2', 'Z4', ['W1']),
+        ConditionalIndependency.create('X', 'Y', ['W0', 'W2', 'Z2', 'Z4', 'Z5']),
+        ConditionalIndependency.create('X', 'Z4', ['Z1', 'Z2', 'Z3']),
+        ConditionalIndependency.create('X', 'Z5', ['Z1', 'Z2', 'Z3']),
+        ConditionalIndependency.create('Y', 'Z1', ['W0', 'W2', 'Z3', 'Z4', 'Z6']),
+        ConditionalIndependency.create('Y', 'Z2', ['W0', 'W2', 'Z3', 'Z4', 'Z6']),
+        ConditionalIndependency.create('Z1', 'Z4'),
+        ConditionalIndependency.create('Z1', 'Z5'),
+        ConditionalIndependency.create('Z2', 'Z4'),
+        ConditionalIndependency.create('Z2', 'Z5', ['Z4']),
     ],
 )
 
@@ -449,3 +513,5 @@ identifiability_linear_1 = NxMixedGraph.from_edges(
         ('W', 'Y'),
     ],
 )
+
+examples = [v for name, v in locals().items() if name.endswith('_example')]
