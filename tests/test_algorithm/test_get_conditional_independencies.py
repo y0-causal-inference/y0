@@ -3,31 +3,22 @@
 """Test getting conditional independencies."""
 
 import unittest
-from itertools import chain
 from typing import Set
-
-from ananke.graphs import ADMG
 
 from y0.algorithm import falsification
 from y0.algorithm.conditional_independencies import ConditionalIndependency, get_conditional_independencies
+
+import y0.examples
 from y0.examples import examples
+
 from y0.graph import NxMixedGraph
 
 
 class TestDSeparation(unittest.TestCase):
     "Test the d-separation utility."
 
-    # TODO: Migrate to the ADMG representation, not just vanilla networkx
     def test_mit_example(self):
-        # Test graph and cases from http://web.mit.edu/jmn/www/6.034/d-separation.pdf
-        edges = [("AA", "C"), ("B", "C"), ("C", "D"), ("C", "E"), ("D", "F"), ("F", "G")]
-        # layout = {"AA": (0,-1), "B": (2,-1), "C": (1,-2), "D": (0, -3),
-        #          "E": (2, -3), "F":(1,-4), "G": (0,-5)}
-        G = ADMG()
-        for v in chain(*edges):
-            G.add_vertex(v)
-        for edge in edges:
-            G.add_diedge(*edge)
+        G = y0.examples.d_separation_example.graph.to_admg()
 
         self.assertFalse(falsification.are_d_separated(G, "AA", "B", given=["D", "F"]))
         self.assertTrue(falsification.are_d_separated(G, "AA", "B"))

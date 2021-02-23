@@ -191,6 +191,7 @@ identifiability_2 = NxMixedGraph.from_edges(
         ('Z4', 'Y'),
     ],
 )
+
 identifiability_2_example = Example(
     name='Identifiability 2',
     reference='E. Bareinboim modification of Identifiability 1.',
@@ -513,5 +514,20 @@ identifiability_linear_1 = NxMixedGraph.from_edges(
         ('W', 'Y'),
     ],
 )
+
+# TODO: Add conditional independencies
+d_separation_example = Example(
+    name="D-separation example",
+    reference="http://web.mit.edu/jmn/www/6.034/d-separation.pdf",
+    graph=NxMixedGraph.from_edges(
+        directed=[("AA", "C"),
+                  ("B", "C"),
+                  ("C", "D"),
+                  ("C", "E"),
+                  ("D", "F"),
+                  ("F", "G")]
+    )
+)
+
 
 examples = [v for name, v in locals().items() if name.endswith('_example')]
