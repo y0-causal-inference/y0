@@ -14,7 +14,7 @@ from wtforms import RadioField, StringField, SubmitField
 
 from y0.dsl import Expression, Variable, _upgrade_variables
 from y0.mutate.canonicalize import canonicalize
-from y0.parser import parse_craig, parse_y0
+from y0.parser import parse_causaleffect, parse_craig, parse_y0
 
 app = flask.Flask(__name__)
 app.config['WTF_CSRF_ENABLED'] = False
@@ -25,6 +25,7 @@ flask_bootstrap.Bootstrap(app)
 LANGUAGES = {
     'y0': parse_y0,
     'craig': parse_craig,
+    'ce': parse_causaleffect,
 }
 
 
@@ -39,6 +40,7 @@ class CanonicalizeForm(FlaskForm):
         choices=[
             ('y0', 'y0 DSL'),
             ('craig', 'Craig-like'),
+            ('ce', 'Causaleffect'),
         ],
     )
     submit = SubmitField('Parse')
