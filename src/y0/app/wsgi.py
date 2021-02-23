@@ -3,7 +3,7 @@
 """A web application exposing y0 functionality."""
 
 import os
-from typing import Sequence
+from typing import Optional, Sequence
 
 import flask
 import flask_bootstrap
@@ -50,9 +50,10 @@ class CanonicalizeForm(FlaskForm):
         s = self.expression.data.strip().upper()
         return LANGUAGES[self.language.data](s)
 
-    def parse_ordering(self) -> Sequence[Variable]:
+    def parse_ordering(self) -> Optional[Sequence[Variable]]:
         """Parse the ordering."""
-        return _upgrade_variables(self.ordering.data.upper().split(','))
+        if self.ordering.data:
+            return _upgrade_variables(self.ordering.data.upper().split(','))
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -66,15 +67,21 @@ def home():
             flash(f'Invalid input: {form.expression.data}')
         else:
             ordering = form.parse_ordering()
-            try:
-                canonical_expression = canonicalize(expression, ordering)
-            except KeyError as e:
-                flash(f'Missing variable in ordering: {e.args[0].name}')
+            if ordering is not None:
+                try:
+                    canonical_expression = canonicalize(expression, ordering)
+                except KeyError as e:
+                    flash(f'Missing variable in ordering: {e.args[0].name}')
+                else:
+                    flash(flask.Markup(
+                        f'Input y0:     {expression.to_text()}<br />'
+                        f'Canon y0: {canonical_expression.to_text()}',
+                    ))
             else:
                 flash(flask.Markup(
                     f'Input y0:     {expression.to_text()}<br />'
-                    f'Canon y0: {canonical_expression.to_text()}',
                 ))
+
     return render_template('home.html', form=form)
 
 
