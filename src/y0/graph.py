@@ -83,7 +83,7 @@ class NxMixedGraph(Generic[X]):
         uProxy.add_edges_from(self.undirected.edges)
 
         if ax is None:
-            fig, ax = plt.subplots(1, 1)
+            ax = plt.gca()
 
         nx.draw_networkx_nodes(self.directed, pos=layout, ax=ax)
         nx.draw_networkx_labels(self.directed, pos=layout, ax=ax)
