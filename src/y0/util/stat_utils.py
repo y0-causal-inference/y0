@@ -1,3 +1,5 @@
+# flake8: noqa
+
 # The MIT License (MIT)
 #
 # Copyright (c) 2013-2017 pgmpy

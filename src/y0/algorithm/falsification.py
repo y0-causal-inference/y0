@@ -4,6 +4,7 @@ from itertools import chain, combinations
 
 import networkx as nx
 import pandas as pd
+from ananke.graphs import SG
 from tqdm import tqdm
 
 from ..util.stat_utils import cressie_read
@@ -12,7 +13,7 @@ from ..util.stat_utils import cressie_read
 class Result:
     """By default, acts like a boolean, but also caries evidence graph."""
 
-    def __init__(self, separated: bool, a, b, given, evidence):
+    def __init__(self, separated: bool, a, b, given, evidence: nx.Graph):
         """separated -- T/F judgement
            a/b/given -- The question asked
            evidence -- The end graph
@@ -33,7 +34,7 @@ class Result:
         return self.separated == other
 
 
-def are_d_separated(graph, a, b, *, given=frozenset()) -> Result:
+def are_d_separated(graph: SG, a, b, *, given=frozenset()) -> Result:
     """Tests if nodes named by a & b are d-separated in G.
 
     Given conditions can be provided with the optional 'given' parameter.
@@ -53,9 +54,7 @@ def are_d_separated(graph, a, b, *, given=frozenset()) -> Result:
         graph.add_udedge(*edge)
 
     # disorient & remove givens
-    evidence_graph = nx.Graph()
-    evidence_graph.add_nodes_from(graph.vertices)
-    evidence_graph.add_edges_from(chain(graph.di_edges, graph.ud_edges, graph.bi_edges))
+    evidence_graph = disorient(graph)
 
     keep = set(evidence_graph.nodes) - set(given)
     evidence_graph = evidence_graph.subgraph(keep)
@@ -64,6 +63,14 @@ def are_d_separated(graph, a, b, *, given=frozenset()) -> Result:
     separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
 
     return Result(separated, a, b, given=given, evidence=evidence_graph)
+
+
+def disorient(graph: SG) -> nx.Graph:
+    """Disorient the ananke segregated graph to a simple networkx graph."""
+    rv = nx.Graph()
+    rv.add_nodes_from(graph.vertices)
+    rv.add_edges_from(chain(graph.di_edges, graph.ud_edges, graph.bi_edges))
+    return rv
 
 
 def all_combinations(source, min: int = 0, max: Optional[int] = None):
@@ -91,7 +98,7 @@ class Evidence(abc.Sequence):
     max_given -- Longest list of 'given' variables to check
     """
 
-    def __init__(self, failures, evidence):
+    def __init__(self, failures, evidence: pd.DataFrame):
         self._failures = failures
         self.evidence = evidence
 
@@ -108,7 +115,13 @@ class Evidence(abc.Sequence):
 EVIDENCE_COLUMNS = ["A", "B", "Given", "chi^2", "p-value", "dof"]
 
 
-def falsifications(graph, df, significance_level=.05, max_given=None, verbose=False) -> Evidence:
+def falsifications(
+    graph: SG,
+    df: pd.DataFrame,
+    significance_level: float = .05,
+    max_given: Optional[int] = None,
+    verbose: bool = False,
+) -> Evidence:
     # TODO: Take G, [ConditionalIndependency...], df, etc. as params
     #       Test independencies passed
     # TODO: Make function G -> [ConditionalIndpeendency...]
@@ -117,14 +130,14 @@ def falsifications(graph, df, significance_level=.05, max_given=None, verbose=Fa
 
     to_test = [
         (a, b, given)
-        for a, b in tqdm(all_pairs, desc="Checking d-separation")
+        for a, b in tqdm(all_pairs, disable=not verbose, desc="Checking d-separation")
         for given in all_combinations(all_nodes - {a, b}, max=max_given)
         if are_d_separated(graph, a, b, given=given)
     ]
 
     variances = {
         (a, b, given): cressie_read(a, b, given, df, boolean=False)
-        for a, b, given in tqdm(to_test, desc="Checking conditionals")
+        for a, b, given in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
     }
 
     # TODO: Multiple-comparisons correction

@@ -4,10 +4,10 @@
 
 from __future__ import annotations
 
-import matplotlib.pyplot as plt
 from dataclasses import dataclass, field
 from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar
 
+import matplotlib.pyplot as plt
 import networkx as nx
 from ananke.graphs import ADMG
 
@@ -72,15 +72,17 @@ class NxMixedGraph(Generic[X]):
 
     def draw(self, ax=None, title=None):
         """Render the graph using matplotlib.
-        ax -- Axis to draw on (if none specified, makes a new one)
+
+        :param ax: Axis to draw on (if none specified, makes a new one)
+        :param title: The optional title to show with the graph
         """
         joint = nx.MultiGraph()
         joint.add_edges_from(self.directed.edges)
         joint.add_edges_from(self.undirected.edges)
         layout = nx.nx_pydot.graphviz_layout(joint, prog="dot")
 
-        uProxy = nx.DiGraph()
-        uProxy.add_edges_from(self.undirected.edges)
+        u_proxy = nx.DiGraph()
+        u_proxy.add_edges_from(self.undirected.edges)
 
         if ax is None:
             ax = plt.gca()
@@ -88,8 +90,10 @@ class NxMixedGraph(Generic[X]):
         nx.draw_networkx_nodes(self.directed, pos=layout, ax=ax)
         nx.draw_networkx_labels(self.directed, pos=layout, ax=ax)
         nx.draw_networkx_edges(self.directed, pos=layout, edge_color="b", ax=ax)
-        nx.draw_networkx_edges(uProxy, pos=layout, ax=ax,
-                               connectionstyle='arc3, rad=0.2', arrowstyle="-", edge_color="r")
+        nx.draw_networkx_edges(
+            u_proxy, pos=layout, ax=ax,
+            connectionstyle='arc3, rad=0.2', arrowstyle="-", edge_color="r",
+        )
 
         if title:
             ax.set_title(title)
