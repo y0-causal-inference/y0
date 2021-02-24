@@ -6,7 +6,7 @@ import unittest
 from typing import Set
 
 import y0.examples
-from y0.algorithm.conditional_independencies import get_conditional_independencies, are_d_separated
+from y0.algorithm.conditional_independencies import are_d_separated, get_conditional_independencies
 from y0.examples import examples
 from y0.graph import NxMixedGraph
 from y0.struct import ConditionalIndependency
@@ -30,10 +30,16 @@ class TestDSeparation(unittest.TestCase):
 class TestGetConditionalIndependencies(unittest.TestCase):
     """Test getting conditional independencies."""
 
-    def assert_conditional_independencies(self,
-                                          graph: NxMixedGraph,
-                                          expected: Set[ConditionalIndependency]):
-        """Assert that the graph has the correct conditional independencies."""
+    def assert_conditional_independencies(
+        self,
+        graph: NxMixedGraph,
+        expected: Set[ConditionalIndependency],
+    ) -> None:
+        """Assert that the graph has the correct conditional independencies.
+
+        :param graph: the graph to test
+        :param expected: the set of expexted conditional independencies
+        """
         observed = get_conditional_independencies(graph.to_admg())
         self.assertTrue(
             all(
