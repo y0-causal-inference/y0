@@ -525,8 +525,24 @@ d_separation_example = Example(
                   ("C", "D"),
                   ("C", "E"),
                   ("D", "F"),
-                  ("F", "G")]
-    )
+                  ("F", "G")],
+    ),
+    conditional_independencies=[
+        ConditionalIndependency.create('AA', 'B'),
+        ConditionalIndependency.create('AA', 'D', ['C']),
+        ConditionalIndependency.create('AA', 'E', ['C']),
+        ConditionalIndependency.create('AA', 'F', ['C']),
+        ConditionalIndependency.create('AA', 'G', ['C']),
+        ConditionalIndependency.create('B', 'D', ['C']),
+        ConditionalIndependency.create('B', 'E', ['C']),
+        ConditionalIndependency.create('B', 'F', ['C']),
+        ConditionalIndependency.create('B', 'G', ['C']),
+        ConditionalIndependency.create('C', 'F', ['D']),
+        ConditionalIndependency.create('C', 'G', ['D']),
+        ConditionalIndependency.create('D', 'E', ['C']),
+        ConditionalIndependency.create('D', 'G', ['F']),
+        ConditionalIndependency.create('E', 'F', ['C'])
+    ]
 )
 
 
