@@ -30,21 +30,37 @@ class TestDSeparation(unittest.TestCase):
 class TestGetConditionalIndependencies(unittest.TestCase):
     """Test getting conditional independencies."""
 
-    def assert_conditional_independencies(self, graph: NxMixedGraph, expected: Set[ConditionalIndependency]):
+    def assert_conditional_independencies(self,
+                                          graph: NxMixedGraph,
+                                          expected: Set[ConditionalIndependency]):
         """Assert that the graph has the correct conditional independencies."""
-        conditional_independencies = get_conditional_independencies(graph.to_admg())
+        observed = get_conditional_independencies(graph.to_admg())
         self.assertTrue(
             all(
                 conditional_independency.is_canonical
-                for conditional_independency in conditional_independencies
+                for conditional_independency in observed
             ),
             msg='one or more of the returned ConditionalIndependency instances are not canonical',
         )
-        self.assertEqual(set(expected), set(conditional_independencies))
+        self.assertIsNotNone(expected, "Expected independencies is empty.")
+        self.assertIsNotNone(observed, "Observed independencies is empty.")
+
+        expected = set(expected)
+        observed = set(observed)
+        overlap = expected & observed
+        extra_observed = observed - expected
+
+        self.assertEqual(expected, overlap, "Expected independencies NOT in observed")
+        self.assertEqual({}, extra_observed, "Additional independencies observed")
+        self.assertEqual(set(expected), set(observed))
 
     def test_examples(self):
         """Test getting the conditional independencies from the example graphs."""
-        for example in examples:
+
+        testable = [e for e in examples
+                    if e.conditional_independencies is not None]
+
+        for example in testable:
             with self.subTest(name=example.name):
                 self.assert_conditional_independencies(
                     graph=example.graph,
