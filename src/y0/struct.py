@@ -56,7 +56,7 @@ class ConditionalIndependency(NamedTuple):
         left = self.left.name
         right = self.right.name
         observations = tuple(obs.name for obs in self.observations)
-        return f"ConditionalIndependency({left}, {right}, {observations})"
+        return f"ConditionalIndependency('{left}', '{right}', {observations})"
 
     @property
     def is_canonical(self) -> bool:
