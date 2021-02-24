@@ -7,7 +7,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar
 
-import matplotlib.pyplot as plt
 import networkx as nx
 from ananke.graphs import ADMG
 
@@ -85,6 +84,7 @@ class NxMixedGraph(Generic[X]):
         u_proxy.add_edges_from(self.undirected.edges)
 
         if ax is None:
+            import matplotlib.pyplot as plt
             ax = plt.gca()
 
         nx.draw_networkx_nodes(self.directed, pos=layout, ax=ax)
