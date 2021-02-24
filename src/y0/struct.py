@@ -52,6 +52,12 @@ class ConditionalIndependency(NamedTuple):
     right: Variable
     observations: Tuple[Variable, ...]
 
+    def __repr__(self):
+        left = self.left.name
+        right = self.right.name
+        observations = tuple(obs.name for obs in self.observations)
+        return f"ConditionalIndependency({left}, {right}, {observations})"
+
     @property
     def is_canonical(self) -> bool:
         """Return if the conditional independency is canonical."""
