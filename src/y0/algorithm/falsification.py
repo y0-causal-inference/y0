@@ -55,7 +55,7 @@ def falsifications(
     # TODO: Take G, [ConditionalIndependency...], df, etc. as params
     #       Test independencies passed
     # TODO: Make function G -> [ConditionalIndpeendency...]
-    to_test = list(iter_d_separated(graph, stop=stop, verbose=verbose))
+    to_test = list(iter_d_separated(graph, max_given=stop, verbose=verbose))
 
     variances = {
         (a, b, given): cressie_read(a, b, given, df, boolean=False)
