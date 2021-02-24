@@ -29,4 +29,4 @@ import-order-style = pycharm
 application-import-names =
     y0
     tests
-format = ${cyan}%(path)s${reset}:${yellow_bold}%(row)d${reset}:${green_bold}%(col)d${reset}: ${red_bold}%(code)s${reset} %(text)s
+format = ${cyan}%(path)s${reset}:${green_bold}%(row)d${reset}:${yellow}%(col)d${reset}: ${red_bold}%(code)s${reset} %(text)s
