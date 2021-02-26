@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from operator import attrgetter
 from typing import Iterable, NamedTuple, Optional, Tuple, Union
+from ananke.graphs import SG
 
 from .dsl import Expression, Variable, _upgrade_ordering
 
@@ -68,17 +69,24 @@ class ConditionalIndependency(NamedTuple):
         cls,
         left: Union[str, Variable],
         right: Union[str, Variable],
-        observations: Optional[Iterable[Union[str, Variable]]] = None,
+        observations: Optional[Iterable[Union[str, Variable]]] = tuple(),
+        graph: Optional[SG] = None
     ) -> ConditionalIndependency:
         """Create a canonical conditional independency."""
+        
         if isinstance(left, str):
             left = Variable(name=left)
         if isinstance(right, str):
             right = Variable(name=right)
         if left.name > right.name:
             left, right = right, left
-        if observations is not None:
-            observations_ = tuple(sorted(set(_upgrade_ordering(observations)), key=attrgetter('name')))  # type: ignore
-        else:
-            observations_ = tuple()
-        return cls(left, right, observations_)
+            
+        observations = set(_upgrade_ordering(observations)) # Remove duplicates, maybe make into Variables
+            
+        if graph is not None:
+            permissible = graph.ancestors([left.name,right.name])
+            observations = [obs for obs in observations if obs.name in permissible]
+            
+        observations = tuple(sorted(set(_upgrade_ordering(observations)), key=attrgetter('name')))  # type: ignore
+            
+        return cls(left, right, observations)

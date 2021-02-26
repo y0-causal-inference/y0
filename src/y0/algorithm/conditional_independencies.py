@@ -35,7 +35,12 @@ def get_conditional_independencies(graph: ADMG,
     #   According to "On the Testable Implications of Causal Models with Hidden Variables"
     #   Jin Tian, Judea Pearl (2012), should only consider variables topolgoically 'before'
     #   in the constraint set.  This procedure looks at all variables.
-    return {ConditionalIndependency.create(judgement.a, judgement.b, judgement.given)
+    #
+    #  Add the ADMG to conditional independency, have it cannonize down the givens with
+    #  the topological ordering of the graph. (only need to use the ancestors).
+    #  Then the definition of a ConditionalIndependency matches that used in the referenced
+    #  paper and the one used by causalfusion.net
+    return {ConditionalIndependency.create(judgement.a, judgement.b, judgement.given, graph=graph)
             for judgement in iter_d_separated(graph, max_given=max_given, verbose=verbose)}
 
 
