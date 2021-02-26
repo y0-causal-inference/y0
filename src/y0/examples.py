@@ -515,7 +515,6 @@ identifiability_linear_1 = NxMixedGraph.from_edges(
     ],
 )
 
-# TODO: Add conditional independencies
 d_separation_example = Example(
     name="D-separation example",
     reference="http://web.mit.edu/jmn/www/6.034/d-separation.pdf",
