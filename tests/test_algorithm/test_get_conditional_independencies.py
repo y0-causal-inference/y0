@@ -57,7 +57,12 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         extra_observed = observed - expected
 
         self.assertEqual(expected, overlap, "Expected independencies NOT in observed")
-        self.assertEqual({}, extra_observed, "Additional independencies observed")
+
+        if len(extra_observed) > 5:
+            self.assertEqual(0, len(extra_observed), "Additional independencies observed")
+        else:
+            self.assertEqual({}, len(extra_observed), "Additional independencies observed")
+        
         self.assertEqual(set(expected), set(observed))
 
     def test_examples(self):
