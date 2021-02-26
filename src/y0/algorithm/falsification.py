@@ -40,7 +40,7 @@ def falsifications(
     graph: SG,
     df: pd.DataFrame,
     significance_level: float = .05,
-    stop: Optional[int] = None,
+    max_given: Optional[int] = None,
     verbose: bool = False,
 ) -> Falsifications:
     """
@@ -55,7 +55,7 @@ def falsifications(
     # TODO: Take G, [ConditionalIndependency...], df, etc. as params
     #       Test independencies passed
     # TODO: Make function G -> [ConditionalIndpeendency...]
-    to_test = list(iter_d_separated(graph, max_given=stop, verbose=verbose))
+    to_test = list(iter_d_separated(graph, max_given=max_given, verbose=verbose))
 
     variances = {
         (a, b, given): cressie_read(a, b, given, df, boolean=False)
