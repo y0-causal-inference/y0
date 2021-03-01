@@ -8,6 +8,8 @@ from operator import attrgetter
 from typing import Iterable, NamedTuple, Optional, Tuple, Union
 from ananke.graphs import SG
 
+from itertools import chain
+
 from .dsl import Expression, Variable, _upgrade_ordering
 
 __all__ = [
@@ -84,8 +86,12 @@ class ConditionalIndependency(NamedTuple):
         observations = set(_upgrade_ordering(observations)) # Remove duplicates, maybe make into Variables
             
         if graph is not None:
-            permissible = graph.ancestors([left.name,right.name])
-            observations = [obs for obs in observations if obs.name in permissible]
+            all_edges = [edge 
+                         for pth in graph.directed_paths([left.name], [right.name])
+                         for edge in pth ]
+            permissible_nodes = set(chain(*zip(*all_edges)))
+            #permissible = graph.ancestors([left.name,right.name])
+            observations = [obs for obs in observations if obs.name in permissible_nodes]
             
         observations = tuple(sorted(set(_upgrade_ordering(observations)), key=attrgetter('name')))  # type: ignore
             
