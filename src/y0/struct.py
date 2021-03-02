@@ -86,6 +86,17 @@ class ConditionalIndependency(NamedTuple):
         observations = set(_upgrade_ordering(observations)) # Remove duplicates, maybe make into Variables
             
         if graph is not None:
+            # TODO: 
+            # * Algorithm needs to use all paths, not just directed ones
+            # * If there are multiple paths from left to right, needs to have nodes from EACH path 
+            # * Shared nodes can be after a colllision)
+            # * Only need one node along each path (not one for each node)
+            #
+            #. SUGESSTION: 
+            #.   * Create an (equivalent? d-sep d-sep).
+            #.   * Build equivalnce groups
+            #.   * Select a cannonically 'minimal' d-sep and only instantiate ConditionalIndepency for that minmal
+            
             all_edges = [edge 
                          for pth in graph.directed_paths([left.name], [right.name])
                          for edge in pth ]
