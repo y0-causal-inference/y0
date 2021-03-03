@@ -66,25 +66,29 @@ class DSeparationJudgement:
 
         For indepdencies of the form A _||_ B | {C1, C2, ...} the minmal collection will:
              * Have only one indepdency with the same A/B nodes.
-             * Have the smallest set of C nodes
-             * For sets of C nodes of the same size, replacement is made according to the 'policy' argument
+             * For sets of C nodes, replacement is made according to the 'policy' argument
 
-        The default replacement policy is lexicographic.
+        'policy' -- Function from dseparation to representation suitable for sorting
+                    (used it is used as the 'key' function in python's 'sorted').
+                    The kept d-separation in an A/B pair will be the FIRST in the
+                    group sorted according to policy.
+
+        The default replacement policy is shortest set of givens & then lexicographic.
         """
-        def grouper(dsep): return (dsep.a, dsep.b)
-        def size_order(dsep): return len(dsep.given)
-        def lex_order(dsep): return ",".join(dsep.given)
+        def _grouper(dsep):
+            """Returns a tuple of left & right side of a d-separation."""
+            return (dsep.a, dsep.b)
 
-        def same_length_as(ref):
-            return lambda other: len(ref.given) == len(other.given)
+        def _len_lex(dsep):
+            """Sort by length of givens & the lexicography a d-separation"""
+            return (len(dsep.given), ",".join(dsep.given))
 
-        dseps = sorted(dseps, key=grouper)
-        groups = {k: sorted(vs, key=size_order)
-                  for k, vs in groupby(dseps, grouper)}
-        short_groups = {k: filter(same_length_as(vs[0]), vs)
-                        for k, vs in groups.items()}
-        instances = [sorted(grp, key=lex_order)[0] for grp in short_groups.values()]
-        return instances
+        policy = _len_lex if policy is None else policy
+
+        dseps = sorted(dseps, key=_grouper)
+        instances = {k: sorted(vs, key=policy)[0]
+                     for k, vs in groupby(dseps, _grouper)}
+        return instances.values()
 
 
 def powerset(iterable: Iterable[X],
