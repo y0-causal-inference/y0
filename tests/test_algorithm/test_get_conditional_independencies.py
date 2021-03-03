@@ -50,20 +50,35 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         )
         self.assertIsNotNone(expected, "Expected independencies is empty.")
         self.assertIsNotNone(observed, "Observed independencies is empty.")
+        
+        expected_gist = [(ind.left, ind.right) for ind in expected]
+        observed_gist = [(ind.left, ind.right) for ind in observed]
+        
+        #Test that that each pair of left & right values occurs only once
+        self.assertEqual(len(expected_gist), len(set(expected_gist)), 
+                         "Malformed expected conditional independence set")
+        self.assertEqual(len(observed_gist), len(set(observed_gist)),
+                         "Malformed observed conditional independence set")
+        
+        #Test that the set of left & right pairs matches
+        self.assertEqual(set(expected_gist), set(observed_gist),
+                         "Essential independencies do not match")
 
-        expected = set(expected)
-        observed = set(observed)
-        overlap = expected & observed
-        extra_observed = observed - expected
+        
+#         # Warn if there are different 'givens'
+#         expected = set(expected)
+#         observed = set(observed)
+#         overlap = expected & observed
+#         extra_observed = observed - expected
 
-        self.assertEqual(expected, overlap, "Expected independencies NOT in observed")
+#         self.assertEqual(expected, overlap, "Expected independencies NOT in observed")
 
-        if len(extra_observed) > 5:
-            self.assertEqual(0, len(extra_observed), "Additional independencies observed")
-        else:
-            self.assertEqual(set(), extra_observed, "Additional independencies observed")
+#         if len(extra_observed) > 5:
+#             self.assertEqual(0, len(extra_observed), "Additional independencies observed")
+#         else:
+#             self.assertEqual(set(), extra_observed, "Additional independencies observed")
 
-        self.assertEqual(set(expected), set(observed))
+#         self.assertEqual(set(expected), set(observed))
 
     def test_examples(self):
         """Test getting the conditional independencies from the example graphs."""
