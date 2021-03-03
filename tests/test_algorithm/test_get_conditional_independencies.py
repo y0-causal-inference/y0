@@ -61,7 +61,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         if len(extra_observed) > 5:
             self.assertEqual(0, len(extra_observed), "Additional independencies observed")
         else:
-            self.assertEqual({}, len(extra_observed), "Additional independencies observed")
+            self.assertEqual(set(), extra_observed, "Additional independencies observed")
         
         self.assertEqual(set(expected), set(observed))
 

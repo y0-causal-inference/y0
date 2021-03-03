@@ -72,7 +72,6 @@ class ConditionalIndependency(NamedTuple):
         left: Union[str, Variable],
         right: Union[str, Variable],
         observations: Optional[Iterable[Union[str, Variable]]] = tuple(),
-        graph: Optional[SG] = None
     ) -> ConditionalIndependency:
         """Create a canonical conditional independency."""
         
@@ -84,26 +83,8 @@ class ConditionalIndependency(NamedTuple):
             left, right = right, left
             
         observations = set(_upgrade_ordering(observations)) # Remove duplicates, maybe make into Variables
-            
-        if graph is not None:
-            # TODO: 
-            # * Algorithm needs to use all paths, not just directed ones
-            # * If there are multiple paths from left to right, needs to have nodes from EACH path 
-            # * Shared nodes can be after a colllision)
-            # * Only need one node along each path (not one for each node)
-            #
-            #. SUGESSTION: 
-            #.   * Create an (equivalent? d-sep d-sep).
-            #.   * Build equivalnce groups
-            #.   * Select a cannonically 'minimal' d-sep and only instantiate ConditionalIndepency for that minmal
-            
-            all_edges = [edge 
-                         for pth in graph.directed_paths([left.name], [right.name])
-                         for edge in pth ]
-            permissible_nodes = set(chain(*zip(*all_edges)))
-            #permissible = graph.ancestors([left.name,right.name])
-            observations = [obs for obs in observations if obs.name in permissible_nodes]
-            
+        
         observations = tuple(sorted(set(_upgrade_ordering(observations)), key=attrgetter('name')))  # type: ignore
             
         return cls(left, right, observations)
+
