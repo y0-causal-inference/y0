@@ -153,7 +153,6 @@ identifiability_1_example = Example(
     graph=identifiability_1,
     conditional_independencies=(
         ConditionalIndependency.create('X', 'Z1', ['Z2', 'Z3']),
-        ConditionalIndependency.create('X', 'Z4', ['Z1', 'Z3']),
         ConditionalIndependency.create('X', 'Z5', ['Z4']),
         ConditionalIndependency.create('Y', 'Z1', ['X', 'Z3', 'Z4']),
         ConditionalIndependency.create('Y', 'Z2', ['X', 'Z1', 'Z3']),
@@ -164,6 +163,8 @@ identifiability_1_example = Example(
         ConditionalIndependency.create('Z2', 'Z4'),
         ConditionalIndependency.create('Z2', 'Z5'),
         ConditionalIndependency.create('Z3', 'Z5', ['Z4']),
+        ConditionalIndependency.create('Y', 'Z5', ['X','Z3']),
+        ConditionalIndependency.create('Z3', 'Z4'),
     ),
 )
 
