@@ -62,7 +62,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             self.assertEqual(0, len(extra_observed), "Additional independencies observed")
         else:
             self.assertEqual(set(), extra_observed, "Additional independencies observed")
-        
+
         self.assertEqual(set(expected), set(observed))
 
     def test_examples(self):

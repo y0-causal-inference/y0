@@ -33,7 +33,7 @@ def get_conditional_independencies(graph: ADMG,
 
     separations = DSeparationJudgement.minimal(iter_d_separated(graph, max_given=max_given, verbose=verbose))
     independencies = {ConditionalIndependency.create(judgement.a, judgement.b, judgement.given)
-                        for judgement in separations}
+                      for judgement in separations}
     return independencies
 
 
@@ -63,32 +63,29 @@ class DSeparationJudgement:
     @classmethod
     def minimal(cls, dseps, policy=None):
         """Given some d-separations, reduces to a 'minimal' collection.
-        
+
         For indepdencies of the form A _||_ B | {C1, C2, ...} the minmal collection will:
              * Have only one indepdency with the same A/B nodes.
              * Have the smallest set of C nodes
              * For sets of C nodes of the same size, replacement is made according to the 'policy' argument
-        
-        The default replacement policy is lexicographic.  
+
+        The default replacement policy is lexicographic.
         """
         def grouper(dsep): return (dsep.a, dsep.b)
-        def size_order(dsep):  return len(dsep.given)
-        def lex_order(dsep):  return ",".join(dsep.given)
+        def size_order(dsep): return len(dsep.given)
+        def lex_order(dsep): return ",".join(dsep.given)
+
         def same_length_as(ref):
-            return lambda other: len(ref.given)==len(other.given)
+            return lambda other: len(ref.given) == len(other.given)
 
         dseps = sorted(dseps, key=grouper)
-        groups = {k: sorted(vs, key=size_order) 
+        groups = {k: sorted(vs, key=size_order)
                   for k, vs in groupby(dseps, grouper)}
         short_groups = {k: filter(same_length_as(vs[0]), vs)
                         for k, vs in groups.items()}
         instances = [sorted(grp, key=lex_order)[0] for grp in short_groups.values()]
         return instances
-        
-            
 
-    
-    
 
 def powerset(iterable: Iterable[X],
              start: int = 0,
@@ -154,15 +151,6 @@ def iter_d_separated(graph: SG,
                      max_given: Optional[int] = None,
                      verbose: bool = False) -> Iterable[DSeparationJudgement]:
 
-    
-    # TODO: Setup this iterator to work in a "complexity order"
-    #.  Items along the path between a & b come first, then neighbors of those items and so on out.
-    #.  Do all singletons first, then all pairs, then tripples.
-    #.  Always grow the set in the same order things are checked along the path.
-    # TODO: Pair the complexity iterator with a "replacement policy" in "get_conditional_independencies"
-    #.   Default policy is:  
-    #.     for d-seps A & B, 
-    #.     if A.a = B.a & A.b = B.b & A.B.given is a subset of A.given, keep A, else keep B
     verticies = set(graph.vertices)
     for a, b in tqdm(combinations(verticies, 2), disable=not verbose, desc="Checking d-separation"):
         for given in powerset(verticies - {a, b}, stop=max_given):
