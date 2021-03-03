@@ -163,7 +163,7 @@ identifiability_1_example = Example(
         ConditionalIndependency.create('Z2', 'Z4'),
         ConditionalIndependency.create('Z2', 'Z5'),
         ConditionalIndependency.create('Z3', 'Z5', ['Z4']),
-        ConditionalIndependency.create('Y', 'Z5', ['X','Z3']),
+        ConditionalIndependency.create('Y', 'Z5', ['X', 'Z3']),
         ConditionalIndependency.create('Z3', 'Z4'),
     ),
 )

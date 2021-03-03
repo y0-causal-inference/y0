@@ -30,6 +30,16 @@ class TestDSeparation(unittest.TestCase):
 class TestGetConditionalIndependencies(unittest.TestCase):
     """Test getting conditional independencies."""
 
+    def assert_valid_ci_set(self, graph: NxMixedGraph, subject: Set[ConditionalIndependency]):
+        graph = graph.to_admg()
+        for ci in subject:
+            self.assertTrue(are_d_separated(graph, ci.left.name, ci.right.name,
+                                            given=[v.name for v in ci.observations]),
+                            f"Conditional independency is not a d-separation in {graph}")
+
+        gist = {(ci.left, ci.right) for ci in subject}
+        self.assertEqual(len(gist), len(set(gist)), "Duplicate left/right pair observed")
+
     def assert_conditional_independencies(
         self,
         graph: NxMixedGraph,
@@ -41,6 +51,9 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         :param expected: the set of expexted conditional independencies
         """
         observed = get_conditional_independencies(graph.to_admg())
+
+        self.assertIsNotNone(expected, "Expected independencies is empty.")
+        self.assertIsNotNone(observed, "Observed independencies is empty.")
         self.assertTrue(
             all(
                 conditional_independency.is_canonical
@@ -48,37 +61,16 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             ),
             msg='one or more of the returned ConditionalIndependency instances are not canonical',
         )
-        self.assertIsNotNone(expected, "Expected independencies is empty.")
-        self.assertIsNotNone(observed, "Observed independencies is empty.")
-        
-        expected_gist = [(ind.left, ind.right) for ind in expected]
-        observed_gist = [(ind.left, ind.right) for ind in observed]
-        
-        #Test that that each pair of left & right values occurs only once
-        self.assertEqual(len(expected_gist), len(set(expected_gist)), 
-                         "Malformed expected conditional independence set")
-        self.assertEqual(len(observed_gist), len(set(observed_gist)),
-                         "Malformed observed conditional independence set")
-        
-        #Test that the set of left & right pairs matches
+
+        self.assert_valid_ci_set(graph, expected)
+        self.assert_valid_ci_set(graph, observed)
+
+        expected_gist = {(ind.left, ind.right) for ind in expected}
+        observed_gist = {(ind.left, ind.right) for ind in observed}
+
+        # Test that the set of left & right pairs matches
         self.assertEqual(set(expected_gist), set(observed_gist),
                          "Essential independencies do not match")
-
-        
-#         # Warn if there are different 'givens'
-#         expected = set(expected)
-#         observed = set(observed)
-#         overlap = expected & observed
-#         extra_observed = observed - expected
-
-#         self.assertEqual(expected, overlap, "Expected independencies NOT in observed")
-
-#         if len(extra_observed) > 5:
-#             self.assertEqual(0, len(extra_observed), "Additional independencies observed")
-#         else:
-#             self.assertEqual(set(), extra_observed, "Additional independencies observed")
-
-#         self.assertEqual(set(expected), set(observed))
 
     def test_examples(self):
         """Test getting the conditional independencies from the example graphs."""
