@@ -46,9 +46,9 @@ def falsifications(
 ) -> Falsifications:
     """
 
-    :param graph:
-    :param df:
-    :param significance_level:
+    :param graph: Graph to check for consistency with the data
+    :param df: Data to check for consistency with the graph
+    :param significance_level: Significance for p-value test
     :param stop: The maximum set size in the powerset of the verticies minus the d-seperable pairs
     :param verbose:
     :return:
@@ -63,13 +63,15 @@ def falsifications(
         for left, right, given in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
     }
 
-    # TODO: Multiple-comparisons correction
     rows = [
         (left, right, given, chi, p, dof)
         for (left, right, given), (chi, dof, p) in variances.items()
     ]
-    evidence = pd.DataFrame(rows, columns=["left", "right", "given", "chi^2", "p", "dof"]) \
-        .pipe(lambda df: df.assign(flagged=(df["p"] < significance_level))) \
+
+    evidence = pd.DataFrame(rows, columns=["left", "right", "given", "chi^2", "p", "dof"])\
+        .sort_values("p")\
+        .assign(**{"Holm–Bonferroni level": significance_level / pd.Series(range(len(rows) + 1, 0, -1))})\
+        .pipe(lambda df: df.assign(flagged=(df["p"] < df["Holm–Bonferroni level"])))\
         .sort_values(["flagged", "dof"], ascending=False)
 
     failures = evidence[evidence["flagged"]][["left", "right", "given"]].apply(tuple, axis="columns")
