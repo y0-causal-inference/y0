@@ -5,7 +5,7 @@ import pandas as pd
 from ananke.graphs import SG
 from tqdm import tqdm
 
-from .conditional_independencies import iter_d_separated
+from .conditional_independencies import get_conditional_independencies
 from ..util.stat_utils import cressie_read
 
 X = TypeVar('X')
@@ -39,6 +39,7 @@ class Falsifications(abc.Sequence):
 def falsifications(
     graph: SG,
     df: pd.DataFrame,
+    to_test: Optional = None,
     significance_level: float = .05,
     max_given: Optional[int] = None,
     verbose: bool = False,
@@ -52,24 +53,24 @@ def falsifications(
     :param verbose:
     :return:
     """
-    # TODO: Take G, [ConditionalIndependency...], df, etc. as params
-    #       Test independencies passed
-    # TODO: Make function G -> [ConditionalIndpeendency...]
-    to_test = list(iter_d_separated(graph, max_given=max_given, verbose=verbose))
+    def _unwrap(vs): return [v.name for v in vs]
+
+    if to_test is None:
+        to_test = list(get_conditional_independencies(graph, max_given=max_given, verbose=verbose))
 
     variances = {
-        (a, b, given): cressie_read(a, b, given, df, boolean=False)
-        for a, b, given in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
+        (left, right, given): cressie_read(left.name, right.name, _unwrap(given), df, boolean=False)
+        for left, right, given in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
     }
 
     # TODO: Multiple-comparisons correction
     rows = [
-        (a, b, given, chi, p, dof)
-        for (a, b, given), (chi, dof, p) in variances.items()
+        (left, right, given, chi, p, dof)
+        for (left, right, given), (chi, dof, p) in variances.items()
     ]
-    evidence = pd.DataFrame(rows, columns=["a", "b", "given", "chi^2", "p", "dof"]) \
-        .pipe(lambda df: df.assign(flagged=(df["p-value"] < significance_level))) \
+    evidence = pd.DataFrame(rows, columns=["left", "right", "given", "chi^2", "p", "dof"]) \
+        .pipe(lambda df: df.assign(flagged=(df["p"] < significance_level))) \
         .sort_values(["flagged", "dof"], ascending=False)
 
-    failures = evidence[evidence["flagged"]][["A", "B", "Given"]].apply(tuple, axis="columns")
+    failures = evidence[evidence["flagged"]][["left", "right", "given"]].apply(tuple, axis="columns")
     return Falsifications(failures, evidence)
