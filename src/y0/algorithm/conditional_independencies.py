@@ -31,7 +31,7 @@ def get_conditional_independencies(graph: ADMG,
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
     """
 
-    separations = DSeparationJudgement.minimal(iter_d_separated(graph, max_given=max_given, verbose=verbose))
+    separations = DSeparationJudgement.minimal(d_separations(graph, max_given=max_given, verbose=verbose))
     independencies = {ConditionalIndependency.create(judgement.a, judgement.b, judgement.given)
                       for judgement in separations}
     return independencies
@@ -116,7 +116,11 @@ def disorient(graph: SG) -> nx.Graph:
     return rv
 
 
-def get_augments(graph: SG):
+def get_moral_links(graph: SG):
+    """
+    If a node in the graph has more than one parent BUT not a link between them,
+    generates that link.  Returns all the edges to add.
+    """
     parents = [graph.parents([v]) for v in graph.vertices]
     augments = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
     return augments
@@ -135,7 +139,7 @@ def are_d_separated(graph: SG, a, b, *, given=frozenset()) -> DSeparationJudgeme
     graph = copy.deepcopy(graph.subgraph(keep))
 
     # Moralize (link parents of mentioned nodes)
-    for u, v in get_augments(graph):
+    for u, v in get_moral_links(graph):
         graph.add_udedge(u, v)
 
     # disorient & remove givens
@@ -150,10 +154,17 @@ def are_d_separated(graph: SG, a, b, *, given=frozenset()) -> DSeparationJudgeme
     return DSeparationJudgement(separated, a, b, given=given, evidence=evidence_graph)
 
 
-def iter_d_separated(graph: SG,
-                     *,
-                     max_given: Optional[int] = None,
-                     verbose: bool = False) -> Iterable[DSeparationJudgement]:
+def d_separations(graph: SG,
+                  *,
+                  max_given: Optional[int] = None,
+                  verbose: bool = False) -> Iterable[DSeparationJudgement]:
+    """
+    Returns an iterator of all of the d-separations in the provided graph.
+
+    graph -- Graph to search for d-separations.
+    max_given -- Longest set of givens to investigate
+    verbose -- If true, prints extra output with tqdm
+    """
 
     verticies = set(graph.vertices)
     for a, b in tqdm(combinations(verticies, 2), disable=not verbose, desc="Checking d-separation"):
