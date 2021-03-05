@@ -63,11 +63,6 @@ def minimal(dseps, policy=None):
         """Sort by length of conditions & the lexicography a d-separation"""
         return (len(dsep.conditions), ",".join(dsep.conditions))
 
-    dseps = [*dseps]
-    reference = dseps[0].context
-    if not all(dsep.context == reference for dsep in dseps):
-        raise ValueError("Minimal condition is only semantically valid if all graphs have the same context.")
-
     policy = _len_lex if policy is None else policy
 
     dseps = sorted(dseps, key=_grouper)
@@ -117,7 +112,6 @@ def are_d_separated(graph: SG, a, b, *, conditions=frozenset()) -> DSeparationJu
     Additional conditions can be provided with the optional 'conditions' parameter.
     returns T/F and the final graph (as evidence)
     """
-    context = graph  # Retain for later use.
     named = {a, b}.union(conditions)
 
     # Filter to ancestors
@@ -139,8 +133,7 @@ def are_d_separated(graph: SG, a, b, *, conditions=frozenset()) -> DSeparationJu
 
     return DSeparationJudgement.create(a, b, 
                                        conditions=conditions, 
-                                       separated=separated, 
-                                       context=context)
+                                       separated=separated)
 
 
 def d_separations(graph: SG,

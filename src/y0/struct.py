@@ -48,19 +48,12 @@ class DSeparationJudgement(NamedTuple):
     """
     Given a left/right and set of additional conditions, is that d-separated
     By default, acts like a boolean, but also caries evidence graph.
-    
-    TODO: Retaining context is slightly suspect.  It tacitly assumes that
-          the context object won't be mutated after the Judgement is made.
-          It is done to make post-hoc inspection/investigation easier 
-          (used in debugging already, and useful for visualization).
-          BUT...is this a good idea? 
     """
 
     separated: Optional[bool]
     left: str
     right: str
     conditions: Tuple[str, ...]
-    context: Optional
 
     @classmethod
     def create(
@@ -70,13 +63,12 @@ class DSeparationJudgement(NamedTuple):
         conditions: Optional[Iterable[str]] = tuple(),
         *,
         separated: Optional[bool] = True,
-        context: Optional = None
     ) -> DSeparationJudgement:
         """Create a d-separation judgement in canonical form."""
 
         left, right = sorted([left, right])
         conditions = tuple(sorted(set(conditions)))
-        return cls(separated, left, right, conditions, context)
+        return cls(separated, left, right, conditions)
 
     def __bool__(self):
         return self.separated
