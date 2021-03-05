@@ -10,7 +10,7 @@ from .dsl import Expression, Variable
 
 __all__ = [
     'VermaConstraint',
-    'ConditionalIndependency',
+    'DSeparationJudgement',
 ]
 
 
@@ -44,37 +44,52 @@ class VermaConstraint(NamedTuple):
         )
 
 
-class ConditionalIndependency(NamedTuple):
-    """A conditional independency."""
+class DSeparationJudgement(NamedTuple):
+    """
+    Given a left/right and set of additional conditions, is that d-separated
+    By default, acts like a boolean, but also caries evidence graph.
+    
+    TODO: Retaining context is slightly suspect.  It tacitly assumes that
+          the context object won't be mutated after the Judgement is made.
+          It is done to make post-hoc inspection/investigation easier 
+          (used in debugging already, and useful for visualization).
+          BUT...is this a good idea? 
+    """
 
+    separated: Optional[bool]
     left: str
     right: str
-    observations: Tuple[str, ...]
-
-    def __repr__(self):
-        left = self.left.name
-        right = self.right.name
-        observations = tuple(obs.name for obs in self.observations)
-        return f"ConditionalIndependency('{left}', '{right}', {observations})"
-
-    @property
-    def is_canonical(self) -> bool:
-        """Return if the conditional independency is canonical."""
-        return self.left < self.right\
-                and isinstance(self.observations, tuple)\
-                and tuple(sorted(self.observations)) == (self.observations)
+    conditions: Tuple[str, ...]
+    context: Optional
 
     @classmethod
     def create(
         cls,
         left: str,
         right: str,
-        observations: Optional[Iterable[str]] = tuple(),
-    ) -> ConditionalIndependency:
-        """Create a canonical conditional independency."""
+        conditions: Optional[Iterable[str]] = tuple(),
+        *,
+        separated: Optional[bool] = True,
+        context: Optional = None
+    ) -> DSeparationJudgement:
+        """Create a d-separation judgement in canonical form."""
 
         left, right = sorted([left, right])
+        conditions = tuple(sorted(set(conditions)))
+        return cls(separated, left, right, conditions, context)
 
-        observations = tuple(sorted(set(observations)))
+    def __bool__(self):
+        return self.separated
 
-        return cls(left, right, observations)
+    def __repr__(self):
+        return f"{repr(self.separated)} -- '{self.left}' d-sep '{self.right}' conditioned on {self.conditions}"
+
+    def __eq__(self, other):
+        return self.separated == other
+
+    @property
+    def is_canonical(self) -> bool:
+        """Return if the conditional independency is in canonical form."""
+        return self.left < self.right\
+            and isinstance(self.conditions, tuple)\
+            and tuple(sorted(self.conditions)) == (self.conditions)

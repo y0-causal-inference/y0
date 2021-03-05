@@ -10,7 +10,7 @@ import networkx as nx
 from tqdm import tqdm
 from ananke.graphs import ADMG, SG
 
-from ..struct import ConditionalIndependency
+from ..struct import DSeparationJudgement
 
 X = TypeVar('X')
 
@@ -21,9 +21,12 @@ __all__ = [
 
 def get_conditional_independencies(graph: ADMG,
                                    *,
-                                   max_given: Optional[int] = None,
-                                   verbose: bool = False) -> Set[ConditionalIndependency]:
+                                   max_conditions: Optional[int] = None,
+                                   verbose: bool = False) -> Set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
+
+    Conditional independencies is the minmal set of d-separation judgements to cover
+    the unique left/right combinations in all valid d-separation.
 
     :param graph: An acyclic directed mixed graph
     :return: A set of conditional dependencies
@@ -31,64 +34,46 @@ def get_conditional_independencies(graph: ADMG,
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
     """
 
-    separations = DSeparationJudgement.minimal(d_separations(graph, max_given=max_given, verbose=verbose))
-    independencies = {ConditionalIndependency.create(judgement.a, judgement.b, judgement.given)
-                      for judgement in separations}
-    return independencies
+    return minimal(d_separations(graph, max_conditions=max_conditions, verbose=verbose))
 
 
-class DSeparationJudgement:
-    """By default, acts like a boolean, but also caries evidence graph."""
+def minimal(dseps, policy=None):
+    """Given some d-separations, reduces to a 'minimal' collection.
 
-    def __init__(self, separated: bool, a, b, given, evidence: Optional[nx.Graph] = None):
-        """separated -- T/F judgement
-           a/b/given -- The question asked
-           evidence -- The end graph
-        """
-        self.separated = separated
-        self.a = a
-        self.b = b
-        self.given = given
-        self.evidence = evidence
+    For indepdencies of the form A _||_ B | {C1, C2, ...} the minmal collection will:
+         * Have only one indepdency with the same A/B nodes.
+         * For sets of C nodes, replacement is made according to the 'policy' argument
 
-    def __bool__(self):
-        return self.separated
+    'policy' -- Function from dseparation to representation suitable for sorting
+                (used it is used as the 'key' function in python's 'sorted').
+                The kept d-separation in an A/B pair will be the first/minimal
+                element in the group sorted according to policy.
 
-    def __repr__(self):
-        return f"{repr(self.separated)} ('{self.a}' d-sep '{self.b}' given {self.given})"
+    The default replacement policy is shortest set of conditions & then lexicographic.
 
-    def __eq__(self, other):
-        return self.separated == other
+    TODO: Investigate a shortest + topological policy. If the model is incomplete
+          and there are unobserved links, a topological policy might be less-senstiive
+          to such model errors.
+    """
+    def _grouper(dsep):
+        """Returns a tuple of left & right side of a d-separation."""
+        return (dsep.left, dsep.right)
 
-    @classmethod
-    def minimal(cls, dseps, policy=None):
-        """Given some d-separations, reduces to a 'minimal' collection.
+    def _len_lex(dsep):
+        """Sort by length of conditions & the lexicography a d-separation"""
+        return (len(dsep.conditions), ",".join(dsep.conditions))
 
-        For indepdencies of the form A _||_ B | {C1, C2, ...} the minmal collection will:
-             * Have only one indepdency with the same A/B nodes.
-             * For sets of C nodes, replacement is made according to the 'policy' argument
+    dseps = [*dseps]
+    reference = dseps[0].context
+    if not all(dsep.context == reference for dsep in dseps):
+        raise ValueError("Minimal condition is only semantically valid if all graphs have the same context.")
 
-        'policy' -- Function from dseparation to representation suitable for sorting
-                    (used it is used as the 'key' function in python's 'sorted').
-                    The kept d-separation in an A/B pair will be the FIRST in the
-                    group sorted according to policy.
+    policy = _len_lex if policy is None else policy
 
-        The default replacement policy is shortest set of givens & then lexicographic.
-        """
-        def _grouper(dsep):
-            """Returns a tuple of left & right side of a d-separation."""
-            return (dsep.a, dsep.b)
-
-        def _len_lex(dsep):
-            """Sort by length of givens & the lexicography a d-separation"""
-            return (len(dsep.given), ",".join(dsep.given))
-
-        policy = _len_lex if policy is None else policy
-
-        dseps = sorted(dseps, key=_grouper)
-        instances = {k: sorted(vs, key=policy)[0]
-                     for k, vs in groupby(dseps, _grouper)}
-        return instances.values()
+    dseps = sorted(dseps, key=_grouper)
+    instances = {k: min(vs, key=policy)
+                 for k, vs in groupby(dseps, _grouper)}
+    return instances.values()
 
 
 def powerset(iterable: Iterable[X],
@@ -126,13 +111,14 @@ def get_moral_links(graph: SG):
     return augments
 
 
-def are_d_separated(graph: SG, a, b, *, given=frozenset()) -> DSeparationJudgement:
+def are_d_separated(graph: SG, a, b, *, conditions=frozenset()) -> DSeparationJudgement:
     """Tests if nodes named by a & b are d-separated in G.
 
-    Given conditions can be provided with the optional 'given' parameter.
+    Additional conditions can be provided with the optional 'conditions' parameter.
     returns T/F and the final graph (as evidence)
     """
-    named = {a, b}.union(given)
+    context = graph  # Retain for later use.
+    named = {a, b}.union(conditions)
 
     # Filter to ancestors
     keep = graph.ancestors(named)
@@ -142,32 +128,35 @@ def are_d_separated(graph: SG, a, b, *, given=frozenset()) -> DSeparationJudgeme
     for u, v in get_moral_links(graph):
         graph.add_udedge(u, v)
 
-    # disorient & remove givens
+    # disorient & remove conditionss
     evidence_graph = disorient(graph)
 
-    keep = set(evidence_graph.nodes) - set(given)
+    keep = set(evidence_graph.nodes) - set(conditions)
     evidence_graph = evidence_graph.subgraph(keep)
 
     # check for path....
     separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
 
-    return DSeparationJudgement(separated, a, b, given=given, evidence=evidence_graph)
+    return DSeparationJudgement.create(a, b, 
+                                       conditions=conditions, 
+                                       separated=separated, 
+                                       context=context)
 
 
 def d_separations(graph: SG,
                   *,
-                  max_given: Optional[int] = None,
+                  max_conditions: Optional[int] = None,
                   verbose: bool = False) -> Iterable[DSeparationJudgement]:
     """
     Returns an iterator of all of the d-separations in the provided graph.
 
     graph -- Graph to search for d-separations.
-    max_given -- Longest set of givens to investigate
+    max_conditions -- Longest set of conditionss to investigate
     verbose -- If true, prints extra output with tqdm
     """
 
     verticies = set(graph.vertices)
-    for a, b in tqdm(combinations(verticies, 2), disable=not verbose, desc="Checking d-separation"):
-        for given in powerset(verticies - {a, b}, stop=max_given):
-            if are_d_separated(graph, a, b, given=given):
-                yield DSeparationJudgement(True, a, b, given)
+    for a, b in tqdm(combinations(verticies, 2), disable=not verbose, desc="d-separation check"):
+        for conditions in powerset(verticies - {a, b}, stop=max_conditions):
+            rslt = are_d_separated(graph, a, b, conditions=conditions)
+            if rslt: yield rslt

@@ -9,7 +9,7 @@ import y0.examples
 from y0.algorithm.conditional_independencies import are_d_separated, get_conditional_independencies
 from y0.examples import examples
 from y0.graph import NxMixedGraph
-from y0.struct import ConditionalIndependency
+from y0.struct import DSeparationJudgement
 
 
 class TestDSeparation(unittest.TestCase):
@@ -18,32 +18,32 @@ class TestDSeparation(unittest.TestCase):
     def test_mit_example(self):
         graph = y0.examples.d_separation_example.graph.to_admg()
 
-        self.assertFalse(are_d_separated(graph, "AA", "B", given=["D", "F"]))
+        self.assertFalse(are_d_separated(graph, "AA", "B", conditions=["D", "F"]))
         self.assertTrue(are_d_separated(graph, "AA", "B"))
-        self.assertTrue(are_d_separated(graph, "D", "E", given=["C"]))
-        self.assertFalse(are_d_separated(graph, "AA", "B", given=["C"]))
+        self.assertTrue(are_d_separated(graph, "D", "E", conditions=["C"]))
+        self.assertFalse(are_d_separated(graph, "AA", "B", conditions=["C"]))
         self.assertFalse(are_d_separated(graph, "D", "E"))
-        self.assertFalse(are_d_separated(graph, "D", "E", given=["AA", "B"]))
-        self.assertFalse(are_d_separated(graph, "G", "G", given=["C"]))
+        self.assertFalse(are_d_separated(graph, "D", "E", conditions=["AA", "B"]))
+        self.assertFalse(are_d_separated(graph, "G", "G", conditions=["C"]))
 
 
 class TestGetConditionalIndependencies(unittest.TestCase):
     """Test getting conditional independencies."""
 
-    def assert_valid_ci_set(self, graph: NxMixedGraph, subject: Set[ConditionalIndependency]):
+    def assert_valid_ci_set(self, graph: NxMixedGraph, subject: Set[DSeparationJudgement]):
         graph = graph.to_admg()
         for ci in subject:
             self.assertTrue(are_d_separated(graph, ci.left, ci.right,
-                                            given=ci.observations),
+                                            conditions=ci.conditions),
                             f"Conditional independency is not a d-separation in {graph}")
 
-        gist = {(ci.left, ci.right) for ci in subject}
+        gist = [(ci.left, ci.right) for ci in subject]
         self.assertEqual(len(gist), len(set(gist)), "Duplicate left/right pair observed")
 
     def assert_conditional_independencies(
         self,
         graph: NxMixedGraph,
-        expected: Set[ConditionalIndependency],
+        expected: Set[DSeparationJudgement],
     ) -> None:
         """Assert that the graph has the correct conditional independencies.
 
@@ -59,7 +59,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
                 conditional_independency.is_canonical
                 for conditional_independency in observed
             ),
-            msg='one or more of the returned ConditionalIndependency instances are not canonical',
+            msg='one or more of the returned DSeparationJudgement instances are not canonical',
         )
 
         self.assert_valid_ci_set(graph, expected)
