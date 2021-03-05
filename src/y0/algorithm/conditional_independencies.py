@@ -131,8 +131,8 @@ def are_d_separated(graph: SG, a, b, *, conditions=frozenset()) -> DSeparationJu
     # check for path....
     separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
 
-    return DSeparationJudgement.create(a, b, 
-                                       conditions=conditions, 
+    return DSeparationJudgement.create(a, b,
+                                       conditions=conditions,
                                        separated=separated)
 
 
@@ -152,4 +152,5 @@ def d_separations(graph: SG,
     for a, b in tqdm(combinations(verticies, 2), disable=not verbose, desc="d-separation check"):
         for conditions in powerset(verticies - {a, b}, stop=max_conditions):
             rslt = are_d_separated(graph, a, b, conditions=conditions)
-            if rslt: yield rslt
+            if rslt:
+                yield rslt
