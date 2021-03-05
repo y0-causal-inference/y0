@@ -33,8 +33,8 @@ class TestGetConditionalIndependencies(unittest.TestCase):
     def assert_valid_ci_set(self, graph: NxMixedGraph, subject: Set[ConditionalIndependency]):
         graph = graph.to_admg()
         for ci in subject:
-            self.assertTrue(are_d_separated(graph, ci.left.name, ci.right.name,
-                                            given=[v.name for v in ci.observations]),
+            self.assertTrue(are_d_separated(graph, ci.left, ci.right,
+                                            given=ci.observations),
                             f"Conditional independency is not a d-separation in {graph}")
 
         gist = {(ci.left, ci.right) for ci in subject}

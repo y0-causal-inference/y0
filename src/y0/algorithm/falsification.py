@@ -53,13 +53,11 @@ def falsifications(
     :param verbose:
     :return:
     """
-    def _unwrap(vs): return [v.name for v in vs]
-
     if to_test is None:
         to_test = list(get_conditional_independencies(graph, max_given=max_given, verbose=verbose))
 
     variances = {
-        (left, right, given): cressie_read(left.name, right.name, _unwrap(given), df, boolean=False)
+        (left, right, given): cressie_read(left, right, given, df, boolean=False)
         for left, right, given in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
     }
 

@@ -4,10 +4,9 @@
 
 from __future__ import annotations
 
-from operator import attrgetter
-from typing import Iterable, NamedTuple, Optional, Tuple, Union
+from typing import Iterable, NamedTuple, Optional, Tuple
 
-from .dsl import Expression, Variable, _upgrade_ordering
+from .dsl import Expression, Variable
 
 __all__ = [
     'VermaConstraint',
@@ -48,9 +47,9 @@ class VermaConstraint(NamedTuple):
 class ConditionalIndependency(NamedTuple):
     """A conditional independency."""
 
-    left: Variable
-    right: Variable
-    observations: Tuple[Variable, ...]
+    left: str
+    right: str
+    observations: Tuple[str, ...]
 
     def __repr__(self):
         left = self.left.name
@@ -61,26 +60,21 @@ class ConditionalIndependency(NamedTuple):
     @property
     def is_canonical(self) -> bool:
         """Return if the conditional independency is canonical."""
-        return self.left.name < self.right.name and isinstance(self.observations, tuple)
+        return self.left < self.right\
+                and isinstance(self.observations, tuple)\
+                and tuple(sorted(self.observations)) == (self.observations)
 
     @classmethod
     def create(
         cls,
-        left: Union[str, Variable],
-        right: Union[str, Variable],
-        observations: Optional[Iterable[Union[str, Variable]]] = tuple(),
+        left: str,
+        right: str,
+        observations: Optional[Iterable[str]] = tuple(),
     ) -> ConditionalIndependency:
         """Create a canonical conditional independency."""
 
-        if isinstance(left, str):
-            left = Variable(name=left)
-        if isinstance(right, str):
-            right = Variable(name=right)
-        if left.name > right.name:
-            left, right = right, left
+        left, right = sorted([left, right])
 
-        observations = set(_upgrade_ordering(observations))  # Remove duplicates, maybe make into Variables
-
-        observations = tuple(sorted(set(_upgrade_ordering(observations)), key=attrgetter('name')))  # type: ignore
+        observations = tuple(sorted(set(observations)))
 
         return cls(left, right, observations)
