@@ -48,8 +48,9 @@ def falsifications(
 
     :param graph: Graph to check for consistency with the data
     :param df: Data to check for consistency with the graph
+    :param to_test: D-separations to check.  If none, they are generated.
     :param significance_level: Significance for p-value test
-    :param stop: The maximum set size in the powerset of the verticies minus the d-seperable pairs
+    :param max_given: The maximum set size in the powerset of the verticies minus the d-seperable pairs
     :param verbose:
     :return:
     """
