@@ -10,7 +10,6 @@ ignore =
     D105
     S404
     S603
-    E704  # Multiple statements on a line.  Complains about on one-line defs.
 exclude =
     .tox,
     .git,
@@ -23,8 +22,6 @@ exclude =
     *.egg-info,
     .cache,
     .eggs,
-    data,
-    .ipynb_checkpoints
 max-line-length = 120
 max-complexity = 20
 import-order-style = pycharm
