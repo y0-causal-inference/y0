@@ -4,12 +4,13 @@
 
 import copy
 from itertools import chain, combinations, groupby
-from typing import Iterable, Optional, Set, Tuple
+from typing import Iterable, Optional, Set, Tuple, Union
 
 import networkx as nx
 from ananke.graphs import SG
 from tqdm import tqdm
 
+from ..graph import NxMixedGraph
 from ..struct import DSeparationJudgement
 from ..utils import powerset
 
@@ -20,7 +21,7 @@ __all__ = [
 
 
 def get_conditional_independencies(
-    graph: SG,
+    graph: Union[NxMixedGraph, SG],
     *,
     max_conditions: Optional[int] = None,
     verbose: bool = False,
@@ -35,7 +36,8 @@ def get_conditional_independencies(
 
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
     """
-
+    if isinstance(graph, NxMixedGraph):
+        graph = graph.to_admg()
     return minimal(d_separations(graph, max_conditions=max_conditions, verbose=verbose))
 
 
@@ -124,7 +126,7 @@ def are_d_separated(graph: SG, a, b, *, conditions: Optional[Iterable[str]] = No
 
 
 def d_separations(
-    graph: SG,
+    graph: Union[NxMixedGraph, SG],
     *,
     max_conditions: Optional[int] = None,
     verbose: Optional[bool] = False,
@@ -136,6 +138,8 @@ def d_separations(
     max_conditions -- Longest set of conditions to investigate
     verbose -- If true, prints extra output with tqdm
     """
+    if isinstance(graph, NxMixedGraph):
+        graph = graph.to_admg()
     vertices = set(graph.vertices)
     for a, b in tqdm(combinations(vertices, 2), disable=not verbose, desc="d-separation check"):
         for conditions in powerset(vertices - {a, b}, stop=max_conditions):
