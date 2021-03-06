@@ -13,9 +13,10 @@ from y0.struct import DSeparationJudgement
 
 
 class TestDSeparation(unittest.TestCase):
-    "Test the d-separation utility."
+    """Test the d-separation utility."""
 
     def test_mit_example(self):
+        """Test checking D-separation on the MIT example."""
         graph = y0.examples.d_separation_example.graph.to_admg()
 
         self.assertFalse(are_d_separated(graph, "AA", "B", conditions=["D", "F"]))
@@ -30,57 +31,65 @@ class TestDSeparation(unittest.TestCase):
 class TestGetConditionalIndependencies(unittest.TestCase):
     """Test getting conditional independencies."""
 
-    def assert_valid_ci_set(self, graph: NxMixedGraph, subject: Set[DSeparationJudgement]):
+    def assert_valid_judgements(self, graph: NxMixedGraph, judgements: Set[DSeparationJudgement]) -> None:
+        """Check that a set of judgments are valid with respect to a graph."""
         graph = graph.to_admg()
-        for ci in subject:
-            self.assertTrue(are_d_separated(graph, ci.left, ci.right,
-                                            conditions=ci.conditions),
-                            f"Conditional independency is not a d-separation in {graph}")
+        for judgement in judgements:
+            self.assertTrue(
+                are_d_separated(
+                    graph,
+                    judgement.left,
+                    judgement.right,
+                    conditions=judgement.conditions,
+                ),
+                msg=f"Conditional independency is not a d-separation in {graph}",
+            )
 
-        gist = [(ci.left, ci.right) for ci in subject]
-        self.assertEqual(len(gist), len(set(gist)), "Duplicate left/right pair observed")
+        pairs = [(judgement.left, judgement.right) for judgement in judgements]
+        self.assertEqual(len(pairs), len(set(pairs)), "Duplicate left/right pair observed")
 
-    def assert_conditional_independencies(
-        self,
-        graph: NxMixedGraph,
-        expected: Set[DSeparationJudgement],
-    ) -> None:
+    def assert_has_judgements(self, graph: NxMixedGraph, judgements: Set[DSeparationJudgement]) -> None:
         """Assert that the graph has the correct conditional independencies.
 
         :param graph: the graph to test
-        :param expected: the set of expexted conditional independencies
+        :param judgements: the set of expected conditional independencies
         """
-        observed = get_conditional_independencies(graph.to_admg())
+        actual_judgements = get_conditional_independencies(graph.to_admg())
 
-        self.assertIsNotNone(expected, "Expected independencies is empty.")
-        self.assertIsNotNone(observed, "Observed independencies is empty.")
+        self.assertIsNotNone(judgements, "Expected independencies is empty.")
+        self.assertIsNotNone(actual_judgements, "Observed independencies is empty.")
         self.assertTrue(
             all(
                 conditional_independency.is_canonical
-                for conditional_independency in observed
+                for conditional_independency in actual_judgements
             ),
             msg='one or more of the returned DSeparationJudgement instances are not canonical',
         )
 
-        self.assert_valid_ci_set(graph, expected)
-        self.assert_valid_ci_set(graph, observed)
+        self.assert_valid_judgements(graph, judgements)
+        self.assert_valid_judgements(graph, actual_judgements)
 
-        expected_gist = {(ind.left, ind.right) for ind in expected}
-        observed_gist = {(ind.left, ind.right) for ind in observed}
+        expected_gist = {(ind.left, ind.right) for ind in judgements}
+        observed_gist = {(ind.left, ind.right) for ind in actual_judgements}
 
         # Test that the set of left & right pairs matches
-        self.assertEqual(set(expected_gist), set(observed_gist),
-                         "Essential independencies do not match")
+        self.assertEqual(
+            set(expected_gist),
+            set(observed_gist),
+            'Essential independencies do not match',
+        )
 
     def test_examples(self):
         """Test getting the conditional independencies from the example graphs."""
-
-        testable = [e for e in examples
-                    if e.conditional_independencies is not None]
+        testable = (
+            example
+            for example in examples
+            if example.conditional_independencies is not None
+        )
 
         for example in testable:
             with self.subTest(name=example.name):
-                self.assert_conditional_independencies(
+                self.assert_has_judgements(
                     graph=example.graph,
-                    expected=example.conditional_independencies,
+                    judgements=example.conditional_independencies,
                 )
