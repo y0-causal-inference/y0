@@ -238,11 +238,12 @@ identifiability_2_example = Example(
         DSeparationJudgement.create('W2', 'Z2', ['W1']),
         DSeparationJudgement.create('W2', 'Z3', ['W1']),
         DSeparationJudgement.create('W2', 'Z4', ['W1']),
-        DSeparationJudgement.create('X', 'Y', ['W0', 'W2', 'Z2', 'Z4', 'Z5']),
+        DSeparationJudgement.create('W2', 'Z5', ['W1']),
+        DSeparationJudgement.create('X', 'Y', ['W0', 'W2', 'Z3', 'Z4', 'Z5']),
         DSeparationJudgement.create('X', 'Z4', ['Z1', 'Z2', 'Z3']),
         DSeparationJudgement.create('X', 'Z5', ['Z1', 'Z2', 'Z3']),
-        DSeparationJudgement.create('Y', 'Z1', ['W0', 'W2', 'Z3', 'Z4', 'Z6']),
-        DSeparationJudgement.create('Y', 'Z2', ['W0', 'W2', 'Z3', 'Z4', 'Z6']),
+        DSeparationJudgement.create('Y', 'Z1', ['W0', 'W2', 'Z3', 'Z4', 'Z5']),
+        DSeparationJudgement.create('Y', 'Z2', ['W0', 'W2', 'Z3', 'Z4', 'Z5']),
         DSeparationJudgement.create('Z1', 'Z4'),
         DSeparationJudgement.create('Z1', 'Z5'),
         DSeparationJudgement.create('Z2', 'Z4'),
@@ -545,6 +546,5 @@ d_separation_example = Example(
         DSeparationJudgement.create('E', 'G', ['C'])
     ]
 )
-
 
 examples = [v for name, v in locals().items() if name.endswith('_example')]
