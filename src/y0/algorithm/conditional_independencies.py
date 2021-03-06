@@ -4,15 +4,14 @@
 
 import copy
 from itertools import chain, combinations, groupby
-from typing import Collection, Iterable, Optional, Set, TypeVar
+from typing import Iterable, Optional, Set, Tuple
 
 import networkx as nx
 from ananke.graphs import SG
 from tqdm import tqdm
 
 from ..struct import DSeparationJudgement
-
-X = TypeVar('X')
+from ..utils import powerset
 
 __all__ = [
     'are_d_separated',
@@ -20,10 +19,12 @@ __all__ = [
 ]
 
 
-def get_conditional_independencies(graph: SG,
-                                   *,
-                                   max_conditions: Optional[int] = None,
-                                   verbose: bool = False) -> Set[DSeparationJudgement]:
+def get_conditional_independencies(
+    graph: SG,
+    *,
+    max_conditions: Optional[int] = None,
+    verbose: bool = False,
+) -> Set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
 
     Conditional independencies is the minmal set of d-separation judgements to cover
@@ -38,7 +39,7 @@ def get_conditional_independencies(graph: SG,
     return minimal(d_separations(graph, max_conditions=max_conditions, verbose=verbose))
 
 
-def minimal(dseps, policy=None) -> Set[DSeparationJudgement]:
+def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSeparationJudgement]:
     """Given some d-separations, reduces to a 'minimal' collection.
 
     For indepdencies of the form A _||_ B | {C1, C2, ...} the minmal collection will:
@@ -56,43 +57,27 @@ def minimal(dseps, policy=None) -> Set[DSeparationJudgement]:
           and there are unobserved links, a topological policy might be less-senstiive
           to such model errors.
     """
-    policy = _len_lex if policy is None else policy
+    if policy is None:
+        policy = _len_lex
+    judgements = sorted(judgements, key=_judgement_grouper)
+    return {
+        min(vs, key=policy)
+        for k, vs in groupby(judgements, _judgement_grouper)
+    }
 
-    dseps = sorted(dseps, key=_grouper)
-    instances = {k: min(vs, key=policy)
-                 for k, vs in groupby(dseps, _grouper)}
-    return set(instances.values())
 
-
-def _grouper(dsep):
+def _judgement_grouper(judgement: DSeparationJudgement) -> Tuple[str, str]:
     """Returns a tuple of left & right side of a d-separation."""
-    return dsep.left, dsep.right
+    return judgement.left, judgement.right
 
 
-def _len_lex(dsep):
+def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
     """Sort by length of conditions & the lexicography a d-separation"""
-    return len(dsep.conditions), ",".join(dsep.conditions)
-
-
-def powerset(iterable: Iterable[X],
-             start: int = 0,
-             stop: Optional[int] = None) -> Iterable[Collection[X]]:
-    """Get successively longer combinations of the source.
-
-    :param iterable: List to get combinations from
-    :param start: smallest combination to get (default 0)
-    :param stop: Largest combination to get (None means length of the list and is the default)
-
-    .. seealso: :func:`more_iterools.powerset` for a non-constrainable implementation
-    """
-    s = list(iterable)
-    if stop is None:
-        stop = len(s) + 1
-    return chain.from_iterable(combinations(s, r) for r in range(start, stop))
+    return len(judgement.conditions), ",".join(judgement.conditions)
 
 
 def disorient(graph: SG) -> nx.Graph:
-    """Disorient the ananke segregated graph to a simple networkx graph."""
+    """Disorient the :mod:`ananke` segregated graph to a simple networkx graph."""
     rv = nx.Graph()
     rv.add_nodes_from(graph.vertices)
     rv.add_edges_from(chain(graph.di_edges, graph.ud_edges, graph.bi_edges))
@@ -138,20 +123,22 @@ def are_d_separated(graph: SG, a, b, *, conditions: Optional[Iterable[str]] = No
     return DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=separated)
 
 
-def d_separations(graph: SG,
-                  *,
-                  max_conditions: Optional[int] = None,
-                  verbose: bool = False) -> Iterable[DSeparationJudgement]:
+def d_separations(
+    graph: SG,
+    *,
+    max_conditions: Optional[int] = None,
+    verbose: Optional[bool] = False,
+) -> Iterable[DSeparationJudgement]:
     """
     Returns an iterator of all of the d-separations in the provided graph.
 
     graph -- Graph to search for d-separations.
-    max_conditions -- Longest set of conditionss to investigate
+    max_conditions -- Longest set of conditions to investigate
     verbose -- If true, prints extra output with tqdm
     """
-    verticies = set(graph.vertices)
-    for a, b in tqdm(combinations(verticies, 2), disable=not verbose, desc="d-separation check"):
-        for conditions in powerset(verticies - {a, b}, stop=max_conditions):
-            rslt = are_d_separated(graph, a, b, conditions=conditions)
-            if rslt:
-                yield rslt
+    vertices = set(graph.vertices)
+    for a, b in tqdm(combinations(vertices, 2), disable=not verbose, desc="d-separation check"):
+        for conditions in powerset(vertices - {a, b}, stop=max_conditions):
+            judgement = are_d_separated(graph, a, b, conditions=conditions)
+            if judgement.separated:
+                yield judgement

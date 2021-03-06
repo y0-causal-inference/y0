@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from collections import abc
 from typing import Iterable, Optional, TypeVar
 
