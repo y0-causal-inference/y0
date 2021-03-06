@@ -60,13 +60,14 @@ class DSeparationJudgement(NamedTuple):
         cls,
         left: str,
         right: str,
-        conditions: Optional[Iterable[str]] = tuple(),
+        conditions: Optional[Iterable[str]] = None,
         *,
         separated: Optional[bool] = True,
     ) -> DSeparationJudgement:
         """Create a d-separation judgement in canonical form."""
-
         left, right = sorted([left, right])
+        if conditions is None:
+            conditions = tuple()
         conditions = tuple(sorted(set(conditions)))
         return cls(separated, left, right, conditions)
 
@@ -82,6 +83,8 @@ class DSeparationJudgement(NamedTuple):
     @property
     def is_canonical(self) -> bool:
         """Return if the conditional independency is in canonical form."""
-        return self.left < self.right\
-            and isinstance(self.conditions, tuple)\
+        return (
+            self.left < self.right
+            and isinstance(self.conditions, tuple)
             and tuple(sorted(self.conditions)) == (self.conditions)
+        )

@@ -3,23 +3,24 @@
 """An implementation to get conditional independencies of an ADMG."""
 
 import copy
-from itertools import combinations, chain, groupby
-from typing import Set, Optional, Iterable, TypeVar, Collection
+from itertools import chain, combinations, groupby
+from typing import Collection, Iterable, Optional, Set, TypeVar
 
 import networkx as nx
+from ananke.graphs import SG
 from tqdm import tqdm
-from ananke.graphs import ADMG, SG
 
 from ..struct import DSeparationJudgement
 
 X = TypeVar('X')
 
 __all__ = [
+    'are_d_separated',
     'get_conditional_independencies',
 ]
 
 
-def get_conditional_independencies(graph: ADMG,
+def get_conditional_independencies(graph: SG,
                                    *,
                                    max_conditions: Optional[int] = None,
                                    verbose: bool = False) -> Set[DSeparationJudgement]:
@@ -37,7 +38,7 @@ def get_conditional_independencies(graph: ADMG,
     return minimal(d_separations(graph, max_conditions=max_conditions, verbose=verbose))
 
 
-def minimal(dseps, policy=None):
+def minimal(dseps, policy=None) -> Set[DSeparationJudgement]:
     """Given some d-separations, reduces to a 'minimal' collection.
 
     For indepdencies of the form A _||_ B | {C1, C2, ...} the minmal collection will:
@@ -55,20 +56,22 @@ def minimal(dseps, policy=None):
           and there are unobserved links, a topological policy might be less-senstiive
           to such model errors.
     """
-    def _grouper(dsep):
-        """Returns a tuple of left & right side of a d-separation."""
-        return (dsep.left, dsep.right)
-
-    def _len_lex(dsep):
-        """Sort by length of conditions & the lexicography a d-separation"""
-        return (len(dsep.conditions), ",".join(dsep.conditions))
-
     policy = _len_lex if policy is None else policy
 
     dseps = sorted(dseps, key=_grouper)
     instances = {k: min(vs, key=policy)
                  for k, vs in groupby(dseps, _grouper)}
-    return instances.values()
+    return set(instances.values())
+
+
+def _grouper(dsep):
+    """Returns a tuple of left & right side of a d-separation."""
+    return dsep.left, dsep.right
+
+
+def _len_lex(dsep):
+    """Sort by length of conditions & the lexicography a d-separation"""
+    return len(dsep.conditions), ",".join(dsep.conditions)
 
 
 def powerset(iterable: Iterable[X],
@@ -106,12 +109,13 @@ def get_moral_links(graph: SG):
     return augments
 
 
-def are_d_separated(graph: SG, a, b, *, conditions=frozenset()) -> DSeparationJudgement:
+def are_d_separated(graph: SG, a, b, *, conditions: Optional[Iterable[str]] = None) -> DSeparationJudgement:
     """Tests if nodes named by a & b are d-separated in G.
 
     Additional conditions can be provided with the optional 'conditions' parameter.
     returns T/F and the final graph (as evidence)
     """
+    conditions = set(conditions) if conditions else set()
     named = {a, b}.union(conditions)
 
     # Filter to ancestors
@@ -131,9 +135,7 @@ def are_d_separated(graph: SG, a, b, *, conditions=frozenset()) -> DSeparationJu
     # check for path....
     separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
 
-    return DSeparationJudgement.create(a, b,
-                                       conditions=conditions,
-                                       separated=separated)
+    return DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=separated)
 
 
 def d_separations(graph: SG,
@@ -147,7 +149,6 @@ def d_separations(graph: SG,
     max_conditions -- Longest set of conditionss to investigate
     verbose -- If true, prints extra output with tqdm
     """
-
     verticies = set(graph.vertices)
     for a, b in tqdm(combinations(verticies, 2), disable=not verbose, desc="d-separation check"):
         for conditions in powerset(verticies - {a, b}, stop=max_conditions):

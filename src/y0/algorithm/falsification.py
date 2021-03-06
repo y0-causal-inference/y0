@@ -1,11 +1,12 @@
 from collections import abc
-from typing import Optional, TypeVar
+from typing import Iterable, Optional, TypeVar
 
 import pandas as pd
 from ananke.graphs import SG
 from tqdm import tqdm
 
 from .conditional_independencies import get_conditional_independencies
+from ..struct import DSeparationJudgement
 from ..util.stat_utils import cressie_read
 
 X = TypeVar('X')
@@ -39,7 +40,7 @@ class Falsifications(abc.Sequence):
 def falsifications(
     graph: SG,
     df: pd.DataFrame,
-    to_test: Optional = None,
+    to_test: Optional[Iterable[DSeparationJudgement]] = None,
     significance_level: float = .05,
     max_given: Optional[int] = None,
     verbose: bool = False,
@@ -55,7 +56,7 @@ def falsifications(
     :return:
     """
     if to_test is None:
-        to_test = list(get_conditional_independencies(graph, max_given=max_given, verbose=verbose))
+        to_test = get_conditional_independencies(graph, max_conditions=max_given, verbose=verbose)
 
     variances = {
         (left, right, given): cressie_read(left, right, given, df, boolean=False)
