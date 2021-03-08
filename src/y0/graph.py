@@ -18,6 +18,8 @@ __all__ = [
 X = TypeVar('X')
 CausalEffectGraph = Any
 
+DEFAULT_TAG = 'hidden'
+
 
 @dataclass
 class NxMixedGraph(Generic[X]):
@@ -58,6 +60,44 @@ class NxMixedGraph(Generic[X]):
         bi_edges = list(self.undirected.edges())
         vertices = list(self.directed)  # could be either since they're maintained together
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
+
+    def to_labeled_dag(self, prefix: str = 'u_', start: int = 0, tag: Optional[str] = None) -> nx.DiGraph:
+        """
+
+        :param prefix: The prefix for latent variables.
+        :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
+        :param tag: The key for node data describing whether it is latent.
+        :return:
+        """
+        if tag is None:
+            tag = DEFAULT_TAG
+        rv = self.directed.copy()
+        nx.set_node_attributes(rv, False, tag)
+        for i, (u, v) in enumerate(sorted(self.undirected.edges()), start=start):
+            latent_node = f'{prefix}{i}'
+            rv.add_node(latent_node, **{tag: True})
+            rv.add_edge(latent_node, u)
+            rv.add_edge(latent_node, v)
+        return rv
+
+    @classmethod
+    def from_labeled_dag(cls, graph: nx.DiGraph, tag: Optional[str] = None) -> NxMixedGraph:
+        """Load a labeled DAG."""
+        if tag is None:
+            tag = DEFAULT_TAG
+        if any(tag not in data for data in graph.nodes.values()):
+            raise ValueError(f'missing label {tag} in one or more nodes.')
+        directed = nx.DiGraph()
+        undirected = nx.Graph()
+        for node, data in graph.nodes.items():
+            if data[tag]:
+                # this works because there are always exactly 2 children of a latent node
+                (_, a), (_, b) = list(graph.out_edges(node))
+                undirected.add_edge(a, b)
+            else:
+                directed.add_edges_from(graph.out_edges(node))
+
+        return cls(directed=directed, undirected=undirected)
 
     def to_causaleffect(self) -> CausalEffectGraph:
         """Get a causaleffect R object.
