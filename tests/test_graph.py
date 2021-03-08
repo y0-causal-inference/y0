@@ -25,6 +25,7 @@ class TestGraph(unittest.TestCase):
         """Test that the graph can be converted to a DAG, then back to an ADMG."""
         prefix = 'LATENT_'
         tag = 'latent'
+
         labeled_dag = graph.to_labeled_dag(prefix=prefix, tag=tag)
         for node in labeled_dag:
             self.assertIn(tag, labeled_dag.nodes[node], msg=f'Node: {node}')
@@ -32,17 +33,19 @@ class TestGraph(unittest.TestCase):
 
         self.assertEqual(labeled_edges, set(labeled_dag.edges()))
 
-        reconstituted = NxMixedGraph.from_labeled_dag(labeled_dag)
+        reconstituted = NxMixedGraph.from_labeled_dag(labeled_dag, tag=tag)
         self.assertEqual(set(graph.directed.nodes()), set(reconstituted.directed.nodes()))
         self.assertEqual(set(graph.undirected.nodes()), set(reconstituted.undirected.nodes()))
         self.assertEqual(set(graph.directed.edges()), set(reconstituted.directed.edges()))
         self.assertEqual(set(graph.undirected.edges()), set(reconstituted.undirected.edges()))
 
-    def test_flatten(self):
-        self.assert_labeled_convertable(
-            verma_1,
-            {
+    def test_convertable(self):
+        """Tests graphs are convertable."""
+        for graph, labeled_edges in [
+            (verma_1, {
                 ('V1', 'V2'), ('V2', 'V3'), ('V3', 'V4'),
                 ('LATENT_0', 'V2'), ('LATENT_0', 'V4'),
-            },
-        )
+            }),
+        ]:
+            with self.subTest():
+                self.assert_labeled_convertable(graph, labeled_edges)

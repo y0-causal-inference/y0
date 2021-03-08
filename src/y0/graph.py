@@ -62,12 +62,12 @@ class NxMixedGraph(Generic[X]):
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
 
     def to_labeled_dag(self, prefix: str = 'u_', start: int = 0, tag: Optional[str] = None) -> nx.DiGraph:
-        """
+        """Create a labeled DAG where bi-directed edges are assigned as nodes upstream of their two incident nodes.
 
         :param prefix: The prefix for latent variables.
         :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
         :param tag: The key for node data describing whether it is latent.
-        :return:
+        :return: A labeled DAG.
         """
         if tag is None:
             tag = DEFAULT_TAG
@@ -87,17 +87,17 @@ class NxMixedGraph(Generic[X]):
             tag = DEFAULT_TAG
         if any(tag not in data for data in graph.nodes.values()):
             raise ValueError(f'missing label {tag} in one or more nodes.')
-        directed = nx.DiGraph()
-        undirected = nx.Graph()
+
+        rv = cls()
         for node, data in graph.nodes.items():
             if data[tag]:
                 # this works because there are always exactly 2 children of a latent node
                 (_, a), (_, b) = list(graph.out_edges(node))
-                undirected.add_edge(a, b)
+                rv.add_undirected_edge(a, b)
             else:
-                directed.add_edges_from(graph.out_edges(node))
-
-        return cls(directed=directed, undirected=undirected)
+                for _, child in graph.out_edges(node):
+                    rv.add_directed_edge(node, child)
+        return rv
 
     def to_causaleffect(self) -> CausalEffectGraph:
         """Get a causaleffect R object.
