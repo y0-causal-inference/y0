@@ -1,4 +1,6 @@
-""""""
+# -*- coding: utf-8 -*-
+
+"""Implement Robin Evans' simplification algorithms."""
 
 from collections import defaultdict
 
@@ -34,26 +36,35 @@ def transform_latents_with_parents(
     suffix: str = '_PRIME',
 ) -> nx.DiGraph:
     """Transform latent variables with parents into latent variables with no parents."""
+    if tag is None:
+        tag = DEFAULT_TAG
+
     remove_nodes = []
     add_edges = []
-    new_latents = defaultdict(list)
-    for node, parents, children in iter_middle_latents(graph, tag=tag):
-        remove_nodes.append(node)
+    modified_latents = defaultdict(list)
+    for latent_node, parents, children in iter_middle_latents(graph, tag=tag):
+        remove_nodes.append(latent_node)
         add_edges.extend(itt.product(parents, children))
-        new_latents[node].extend(children)
+        modified_latents[latent_node].extend(children)
 
     graph.remove_nodes_from(remove_nodes)
     graph.add_edges_from(add_edges)
-    for latent, children in new_latents.items():
-        new_node = f"{latent}{suffix}"
-        graph.add_node(new_node, **{tag: True})
-        for child in children:
-            graph.add_edge(new_node, child)
+    _add_modified_latent(graph, modified_latents, tag=tag, suffix=suffix)
+    # Alternatively, could only remove node-parent edges and keep the name of the original latent
 
     return graph
 
 
+def _add_modified_latent(graph: nx.DiGraph, modified_latent: Mapping[str, Iterable[str]], *, tag, suffix):
+    for old_node, children in modified_latent.items():
+        new_node = f"{old_node}{suffix}"
+        graph.add_node(new_node, **{tag: True})
+        for child in children:
+            graph.add_edge(new_node, child)
+
+
 def iter_middle_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iterable[Tuple[str, Set[str], Set[str]]]:
+    """Iterate over latent nodes that have both parents and children (along with them)."""
     if tag is None:
         tag = DEFAULT_TAG
     for node, data in graph.nodes.items():
@@ -85,9 +96,9 @@ def simplification_3(
     }
     remove = []
     for (left, left_children), (right, right_children) in itt.product(latents.items(), r=2):
-        if left_children == right_children:
+        if left_children == right_children and left > right:
             # if children are the same, keep the lower sort order node
-            remove.append(max(left, right))
+            remove.append(left)
         elif left_children < right_children:
             # if left's children are a proper subset of right's children, we don't need left
             remove.append(left)
