@@ -24,14 +24,10 @@ class Falsifications(abc.Sequence):
     Has an extra 'evidence' property that is a dictionary.
       * Keys are the d-separated variable pairs
       * Values are the covariances measured between them.
-
-    verbose -- print each combination as its checked
-    max_given -- Longest list of 'given' variables to check
     """
 
     def __init__(self, failures, evidence: pd.DataFrame):
-        """
-        Create Falsifications result.
+        """Create Falsifications result.
 
         :param failures: Sequence of implications that did not pass
         :param evidence: Collection of all implications tested
@@ -56,13 +52,12 @@ def falsifications(
     max_given: Optional[int] = None,
     verbose: bool = False,
 ) -> Falsifications:
-    """
-    Test conditional indpendencies implied by a graph.
+    """Test conditional independencies implied by a graph.
 
     :param to_test: Either a graph to generate d-separation from or a list of D-separations to check.
     :param df: Data to check for consistency with a causal implications
     :param significance_level: Significance for p-value test
-    :param max_given: The maximum set size in the powerset of the verticies minus the d-seperable pairs
+    :param max_given: The maximum set size in the power set of the vertices minus the d-separable pairs
     :param verbose: If true, use tqdm for status updates.
     :return: Falsifications report
     """
@@ -72,7 +67,7 @@ def falsifications(
 
     variances = {
         (left, right, given): cressie_read(left, right, given, df, boolean=False)
-        for _, left, right, given in tqdm(implications, disable=not verbose, desc="Checking conditionals")
+        for _, left, right, given in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
     }
 
     rows = [
