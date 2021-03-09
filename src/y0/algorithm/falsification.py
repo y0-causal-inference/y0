@@ -19,7 +19,7 @@ from ..util.stat_utils import cressie_read
 
 
 class Falsifications(abc.Sequence):
-    """A list of variables pairs that failed the d_sepration+covariance test.
+    """A list of variables pairs that failed the D-separation and covariance test.
 
     Has an extra 'evidence' property that is a dictionary.
       * Keys are the d-separated variable pairs
