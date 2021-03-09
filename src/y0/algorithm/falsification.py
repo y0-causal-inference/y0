@@ -61,9 +61,8 @@ def falsifications(
     :param verbose: If true, use tqdm for status updates.
     :return: Falsifications report
     """
-    implications = to_test
     if isinstance(to_test, SG):
-        implications = get_conditional_independencies(to_test, max_conditions=max_given, verbose=verbose)
+        to_test = get_conditional_independencies(to_test, max_conditions=max_given, verbose=verbose)
 
     variances = {
         (left, right, given): cressie_read(left, right, given, df, boolean=False)
