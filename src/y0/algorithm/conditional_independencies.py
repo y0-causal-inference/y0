@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from ..graph import NxMixedGraph
 from ..struct import DSeparationJudgement
-from ..utils import powerset
+from ..util.combinatorics import powerset
 
 __all__ = [
     'are_d_separated',
