@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-"""Implement Robin Evans' simplification algorithms."""
+"""Implement Robin Evans' simplification algorithms.
+
+.. seealso:: https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf slides 34-43
+"""
 
 import itertools as itt
 from collections import defaultdict
