@@ -26,14 +26,14 @@ class TestGraph(unittest.TestCase):
         prefix = 'LATENT_'
         tag = 'latent'
 
-        labeled_dag = graph.to_labeled_dag(prefix=prefix, tag=tag)
+        labeled_dag = graph.to_latent_variable_dag(prefix=prefix, tag=tag)
         for node in labeled_dag:
             self.assertIn(tag, labeled_dag.nodes[node], msg=f'Node: {node}')
             self.assertEqual(node.startswith(prefix), labeled_dag.nodes[node][tag])
 
         self.assertEqual(labeled_edges, set(labeled_dag.edges()))
 
-        reconstituted = NxMixedGraph.from_labeled_dag(labeled_dag, tag=tag)
+        reconstituted = NxMixedGraph.from_latent_variable_dag(labeled_dag, tag=tag)
         self.assertEqual(set(graph.directed.nodes()), set(reconstituted.directed.nodes()))
         self.assertEqual(set(graph.undirected.nodes()), set(reconstituted.undirected.nodes()))
         self.assertEqual(set(graph.directed.edges()), set(reconstituted.directed.edges()))
