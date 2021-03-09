@@ -152,14 +152,18 @@ def d_separations(
     graph: Union[NxMixedGraph, SG],
     *,
     max_conditions: Optional[int] = None,
-    verbose: Optional[bool] = False
+    verbose: Optional[bool] = False,
+    truncate_success: Optional[bool] = True
 ) -> Iterable[DSeparationJudgement]:
     """
     Returns an iterator of all of the d-separations in the provided graph.
 
-    graph -- Graph to search for d-separations.
-    max_conditions -- Longest set of conditions to investigate
-    verbose -- If true, prints extra output with tqdm
+    :param graph: Graph to search for d-separations.
+    :param max_conditions: Longest set of conditions to investigate
+    :param truncate_success: If true (default), only returns on d-separation per left/right pair.
+       If false will return all d-separations up to the length indicated by max_conditions.
+    :param verbose: If true, prints extra output with tqdm
+    :return: Succesively yields true d-separation judgements
     """
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_admg()
@@ -169,3 +173,5 @@ def d_separations(
             judgement = are_d_separated(graph, a, b, conditions=conditions)
             if judgement.separated:
                 yield judgement
+                if truncate_success:
+                    break
