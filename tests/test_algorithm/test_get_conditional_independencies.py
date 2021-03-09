@@ -5,9 +5,9 @@
 import unittest
 from typing import Iterable, Set, Union
 
-from ananke.graphs import SG
+from ananke.graphs import SG, ADMG
 
-from y0.algorithm.conditional_independencies import are_d_separated, get_conditional_independencies
+from y0.algorithm.conditional_independencies import are_d_separated, get_conditional_independencies, get_moral_links
 from y0.examples import Example, d_separation_example, examples
 from y0.graph import NxMixedGraph
 from y0.struct import DSeparationJudgement
@@ -44,6 +44,30 @@ class TestDSeparation(unittest.TestCase):
                     if len(ci.conditions) > 0:
                         self.assertFalse(are_d_separated(graph, ci.left, ci.right),
                                          "Unexpected d-separation ")
+
+    def test_moral_links(self):
+        g = ADMG(vertices=("a", "b", "c"),
+                 di_edges=[("a", "c"), ("b", "c")])
+        links = set(tuple(sorted(e)) for e in get_moral_links(g))
+        self.assertEqual({("a", "b")},
+                         links,
+                         "Moral links not as expected in single-link case.")
+
+        g = ADMG(vertices=("a", "b", "aa", "bb", "c"),
+                 di_edges=[("a", "c"), ("b", "c"), ("aa", "c"), ("bb", "c")])
+        links = set(tuple(sorted(e)) for e in get_moral_links(g))
+        self.assertEqual({("a", "b"), ("a", "aa"), ("a", "bb"),
+                          ("aa", "b"), ("aa", "bb"), ("b", "bb")},
+                         links,
+                         "Moral links not as expected in multi-link case.")
+
+        g = ADMG(vertices=("a", "b", "c", "d", "e"),
+                 di_edges=[("a", "c"), ("b", "c"),
+                           ("c", "e"), ("d", "e")])
+        links = set(tuple(sorted(e)) for e in get_moral_links(g))
+        self.assertEqual({("a", "b"), ("c", "d")},
+                         links,
+                         "Moral links not as expected in multi-site case.")
 
 
 class TestGetConditionalIndependencies(unittest.TestCase):

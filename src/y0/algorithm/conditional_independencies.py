@@ -109,14 +109,14 @@ def disorient(graph: SG) -> nx.Graph:
 
 def get_moral_links(graph: SG):
     """
-    If a node in the graph has more than one parent BUT not a link between them,
-    generates that link.
+    Generates links to ensure all co-parents in a graph are linked.
+    May generate links that already exist as we assume we are not working on a multi-graph.
 
     :return: An collection of edges to add.
     """
     parents = [graph.parents([v]) for v in graph.vertices]
-    augments = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
-    return augments
+    moral_links = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
+    return moral_links
 
 
 def are_d_separated(graph: SG, a, b, *, conditions: Optional[Iterable[str]] = None) -> DSeparationJudgement:
