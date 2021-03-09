@@ -7,7 +7,7 @@ from textwrap import dedent
 from typing import Set, Tuple
 
 from y0.examples import verma_1
-from y0.graph import NxMixedGraph
+from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 
 
 class TestGraph(unittest.TestCase):
@@ -23,8 +23,8 @@ class TestGraph(unittest.TestCase):
 
     def assert_labeled_convertable(self, graph: NxMixedGraph, labeled_edges: Set[Tuple[str, str]]) -> None:
         """Test that the graph can be converted to a DAG, then back to an ADMG."""
-        prefix = 'LATENT_'
-        tag = 'latent'
+        prefix = DEFULT_PREFIX
+        tag = DEFAULT_TAG
 
         labeled_dag = graph.to_latent_variable_dag(prefix=prefix, tag=tag)
         for node in labeled_dag:
@@ -44,7 +44,7 @@ class TestGraph(unittest.TestCase):
         for graph, labeled_edges in [
             (verma_1, {
                 ('V1', 'V2'), ('V2', 'V3'), ('V3', 'V4'),
-                ('LATENT_0', 'V2'), ('LATENT_0', 'V4'),
+                (f'{DEFULT_PREFIX}0', 'V2'), (f'{DEFULT_PREFIX}0', 'V4'),
             }),
         ]:
             with self.subTest():
