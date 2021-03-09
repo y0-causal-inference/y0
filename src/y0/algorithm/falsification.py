@@ -6,11 +6,11 @@ This module includes algorithms to perform those tests.
 """
 
 from collections import abc
-from typing import Iterable, Optional, Union
-
 import pandas as pd
-from ananke.graphs import SG
+from typing import Iterable, Optional, Union
 from tqdm import tqdm
+
+from ananke.graphs import SG
 
 from .conditional_independencies import get_conditional_independencies
 from ..struct import DSeparationJudgement
@@ -30,6 +30,8 @@ class Falsifications(abc.Sequence):
 
     def __init__(self, failures, evidence: pd.DataFrame):
         """
+        Create Falsifications result.
+
         :param failures: Sequence of implications that did not pass
         :param evidence: Collection of all implications tested
         """
@@ -54,13 +56,13 @@ def falsifications(
     verbose: bool = False,
 ) -> Falsifications:
     """
-    Tests conditional indpendencies implied by a graph.
+    Test conditional indpendencies implied by a graph.
 
     :param to_test: Either a graph to generate d-separation from or a list of D-separations to check.
     :param df: Data to check for consistency with a causal implications
     :param significance_level: Significance for p-value test
     :param max_given: The maximum set size in the powerset of the verticies minus the d-seperable pairs
-    :param verbose:
+    :param verbose: If true, use tqdm for status updates.
     :return:
     """
 

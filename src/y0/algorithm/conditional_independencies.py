@@ -36,6 +36,7 @@ def get_conditional_independencies(
     :param graph: An acyclic directed mixed graph
     :param policy: Retention policy when more than one conditional independency option exists (see minimal for details)
     :param max_conditions: Maximum number of variable conditions (see d_separations)
+    :param verbose: Use verbose output when generating d-separations
     :return: A set of conditional dependencies
 
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
@@ -51,18 +52,15 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
 
     For indepdencies of the form A _||_ B | {C1, C2, ...} the minmal collection will:
          * Have only one indepdency with the same A/B nodes.
-         * For sets of C nodes, replacement is made according to the 'policy' argument
+         * If there are multiples sets of C-nodes, the kept d-separation will be the first/minimal
+           element in the group sorted according to policy argument.
 
-    'policy' -- Function from dseparation to representation suitable for sorting
-                (used it is used as the 'key' function in python's 'sorted').
-                The kept d-separation in an A/B pair will be the first/minimal
-                element in the group sorted according to policy.
+    The default policy is to sort by the shortest set of conditions & then lexicographic.
 
-    The default replacement policy is shortest set of conditions & then lexicographic.
-
-    TODO: Investigate a shortest + topological policy. If the model is incomplete
-          and there are unobserved links, a topological policy might be less-senstiive
-          to such model errors.
+    :param judgements: Collection of judgements to minimize
+    :param policy: Function from d-separation to a representation suitable for sorting
+       (used it is used as the 'key' function in python's 'sorted').
+    :return: A set of judgements that is minimal (as described above)
     """
     if policy is None:
         policy = _len_lex
@@ -74,9 +72,10 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
 
 
 def topological_policy(graph):
-    """
-    Selection policy for d-separation minimization that prefers elements
-    small collections, and then items eaerlier in topological order.
+    """Selection policy for d-separation minimization that uses topological ordering.
+
+    This policy will prefers small collections, and collections with variables earlier
+    in topological order for collections of the same size.
 
     :param graph: ADMG
     :return: A function suitable for use as a sort key on d-separations
@@ -97,10 +96,7 @@ def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
 
 
 def disorient(graph: SG) -> nx.Graph:
-    """
-    Disorient the :mod:`ananke` mixed directed/undirected into
-    a unidrected (networkx) graph.
-    """
+    """Convert an :mod:`ananke` mixed directed/undirected into a unidrected (networkx) graph."""
     rv = nx.Graph()
     rv.add_nodes_from(graph.vertices)
     rv.add_edges_from(chain(graph.di_edges, graph.ud_edges, graph.bi_edges))
@@ -112,6 +108,7 @@ def get_moral_links(graph: SG):
     Generates links to ensure all co-parents in a graph are linked.
     May generate links that already exist as we assume we are not working on a multi-graph.
 
+    :param graph: Graph to process
     :return: An collection of edges to add.
     """
     parents = [graph.parents([v]) for v in graph.vertices]
@@ -122,7 +119,13 @@ def get_moral_links(graph: SG):
 def are_d_separated(graph: SG, a, b, *, conditions: Optional[Iterable[str]] = None) -> DSeparationJudgement:
     """Tests if nodes named by a & b are d-separated in G.
 
-    Additional conditions can be provided with the optional 'conditions' parameter.
+    a & b can be provided in either order and the order of conditiosn does not matter.
+    However DSeparationJudgement may put htigns in canonical order.
+
+    :param graph: Graph to test
+    :param a: A node in the graph
+    :param b: A node in the graph
+    :param conditions: A collection of graph nodes
     :return: T/F and the final graph (as evidence)
     """
     conditions = set(conditions) if conditions else set()
@@ -155,18 +158,18 @@ def d_separations(
     verbose: Optional[bool] = False,
     truncate_success: Optional[bool] = True
 ) -> Iterable[DSeparationJudgement]:
-    """
-    Returns an iterator of all of the d-separations in the provided graph.
+    """Generator of d-separations in the provided graph.
 
     :param graph: Graph to search for d-separations.
     :param max_conditions: Longest set of conditions to investigate
     :param truncate_success: If true (default), only returns on d-separation per left/right pair.
-       If false will return all d-separations up to the length indicated by max_conditions.
+       If false will return *all* d-separations (up to the length indicated by max_conditions).
     :param verbose: If true, prints extra output with tqdm
-    :return: Succesively yields true d-separation judgements
+    :yields: Succesively yields true d-separation judgements
     """
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_admg()
+
     vertices = set(graph.vertices)
     for a, b in tqdm(combinations(vertices, 2), disable=not verbose, desc="d-separation check"):
         for conditions in powerset(vertices - {a, b}, stop=max_conditions):

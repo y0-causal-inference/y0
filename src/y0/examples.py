@@ -6,9 +6,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Sequence
-import pkgutil
 import io
+import pkgutil
+from typing import Optional, Sequence
 import pandas as pd
 
 from .dsl import P, Q, Sum, Variable, X, Y, Z1, Z2, Z3, Z4, Z5
@@ -189,7 +189,7 @@ identifiability_2 = NxMixedGraph.from_edges(
         ('W1', 'W2'),
         ('W2', 'Y'),
         ('Z4', 'Z3'),
-        ('Z3', 'Y')
+        ('Z3', 'Y'),
     ],
     undirected=[
         ('Z1', 'X'),
@@ -527,12 +527,14 @@ d_separation_example = Example(
     name="D-separation example",
     reference="http://web.mit.edu/jmn/www/6.034/d-separation.pdf",
     graph=NxMixedGraph.from_edges(
-        directed=[("AA", "C"),
-                  ("B", "C"),
-                  ("C", "D"),
-                  ("C", "E"),
-                  ("D", "F"),
-                  ("F", "G")],
+        directed=[
+            ("AA", "C"),
+            ("B", "C"),
+            ("C", "D"),
+            ("C", "E"),
+            ("D", "F"),
+            ("F", "G"),
+        ],
     ),
     conditional_independencies=[
         DSeparationJudgement.create('AA', 'B'),
@@ -549,7 +551,7 @@ d_separation_example = Example(
         DSeparationJudgement.create('D', 'E', ['C']),
         DSeparationJudgement.create('D', 'G', ['F']),
         DSeparationJudgement.create('E', 'F', ['C']),
-        DSeparationJudgement.create('E', 'G', ['C'])
+        DSeparationJudgement.create('E', 'G', ['C']),
     ]
 )
 
@@ -565,7 +567,9 @@ asia_example = Example(
             ("Tub", "Either"),
             ("Lung", "Either"),
             ("Either", "Xray"), ("Either", "Dysp"),
-            ("Bronc", "Dysp")]),
+            ("Bronc", "Dysp"),
+        ],
+    ),
     data=pd.read_csv(io.StringIO(_asia_data)).replace({"yes": 1, "no": -1})
 )
 
