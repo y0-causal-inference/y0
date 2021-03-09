@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar
+from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar, Union
 
 import networkx as nx
 from ananke.graphs import ADMG
@@ -17,6 +17,7 @@ __all__ = [
     'DEFAULT_TAG',
     'admg_to_latent_variable_dag',
     'admg_from_latent_variable_dag',
+    'set_latent',
 ]
 
 X = TypeVar('X')
@@ -244,3 +245,15 @@ def _latent_dag(
         rv.add_edge(latent_node, u)
         rv.add_edge(latent_node, v)
     return rv
+
+
+def set_latent(graph: nx.DiGraph, latent_nodes: Union[str, Iterable[str]], tag: Optional[str] = None) -> None:
+    """Quickly set the latent variables in a graph."""
+    if tag is None:
+        tag = DEFAULT_TAG
+    if isinstance(latent_nodes, str):
+        latent_nodes = [latent_nodes]
+
+    latent_nodes = set(latent_nodes)
+    for node, data in graph.nodes(data=True):
+        data[tag] = node in latent_nodes
