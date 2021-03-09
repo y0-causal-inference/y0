@@ -184,6 +184,8 @@ identifiability_2 = NxMixedGraph.from_edges(
         ('X', 'W1'),
         ('W1', 'W2'),
         ('W2', 'Y'),
+        ('Z4', 'Z3'),
+        ('Z3', 'Y')
     ],
     undirected=[
         ('Z1', 'X'),
