@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 
+"""
+Causal graphs have implications that can be tested in the context of a specific dataset.
+This module includes algorithms to perform those tests.
+"""
+
 from collections import abc
-from typing import Iterable, Optional, TypeVar
+from typing import Iterable, Optional, Union
 
 import pandas as pd
 from ananke.graphs import SG
@@ -10,8 +15,6 @@ from tqdm import tqdm
 from .conditional_independencies import get_conditional_independencies
 from ..struct import DSeparationJudgement
 from ..util.stat_utils import cressie_read
-
-X = TypeVar('X')
 
 
 class Falsifications(abc.Sequence):
@@ -26,6 +29,10 @@ class Falsifications(abc.Sequence):
     """
 
     def __init__(self, failures, evidence: pd.DataFrame):
+        """
+        :param failures: Sequence of implications that did not pass
+        :param evidence: Collection of all implications tested
+        """
         self._failures = failures
         self.evidence = evidence
 
@@ -40,29 +47,30 @@ class Falsifications(abc.Sequence):
 
 
 def falsifications(
-    graph: SG,
+    to_test: Union[SG, Iterable[DSeparationJudgement]],
     df: pd.DataFrame,
-    to_test: Optional[Iterable[DSeparationJudgement]] = None,
     significance_level: float = .05,
     max_given: Optional[int] = None,
     verbose: bool = False,
 ) -> Falsifications:
     """
+    Tests conditional indpendencies implied by a graph.
 
-    :param graph: Graph to check for consistency with the data
-    :param df: Data to check for consistency with the graph
-    :param to_test: D-separations to check.  If none, they are generated.
+    :param to_test: Either a graph to generate d-separation from or a list of D-separations to check.
+    :param df: Data to check for consistency with a causal implications
     :param significance_level: Significance for p-value test
     :param max_given: The maximum set size in the powerset of the verticies minus the d-seperable pairs
     :param verbose:
     :return:
     """
-    if to_test is None:
-        to_test = get_conditional_independencies(graph, max_conditions=max_given, verbose=verbose)
+
+    implications = to_test
+    if isinstance(to_test, SG):
+        implications = get_conditional_independencies(to_test, max_conditions=max_given, verbose=verbose)
 
     variances = {
         (left, right, given): cressie_read(left, right, given, df, boolean=False)
-        for _, left, right, given in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
+        for _, left, right, given in tqdm(implications, disable=not verbose, desc="Checking conditionals")
     }
 
     rows = [
