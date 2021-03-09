@@ -162,7 +162,7 @@ identifiability_1_example = Example(
         DSeparationJudgement.create('Z2', 'Z3', ['Z1']),
         DSeparationJudgement.create('Z2', 'Z4'),
         DSeparationJudgement.create('Z2', 'Z5'),
-        DSeparationJudgement.create('Z3', 'Z5', ['Z4']),
+        DSeparationJudgement.create('Z3', 'Z5'),
         DSeparationJudgement.create('Y', 'Z5', ['X', 'Z3']),
         DSeparationJudgement.create('Z3', 'Z4'),
     ),
@@ -249,7 +249,7 @@ identifiability_2_example = Example(
         DSeparationJudgement.create('Z1', 'Z4'),
         DSeparationJudgement.create('Z1', 'Z5'),
         DSeparationJudgement.create('Z2', 'Z4'),
-        DSeparationJudgement.create('Z2', 'Z5', ['Z4']),
+        DSeparationJudgement.create('Z2', 'Z5'),
     ],
 )
 
