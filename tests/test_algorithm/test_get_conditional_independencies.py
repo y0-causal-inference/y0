@@ -28,6 +28,23 @@ class TestDSeparation(unittest.TestCase):
         self.assertFalse(are_d_separated(graph, "D", "E", conditions=["AA", "B"]))
         self.assertFalse(are_d_separated(graph, "G", "G", conditions=["C"]))
 
+    def test_examples(self):
+        testable = (
+            example
+            for example in examples
+            if example.conditional_independencies is not None
+        )
+
+        for example in testable:
+            with self.subTest(name=example.name):
+                graph = example.graph.to_admg()
+                for ci in example.conditional_independencies:
+                    self.assertTrue(are_d_separated(graph, ci.left, ci.right, conditions=ci.conditions),
+                                    "Expected d-separation not found")
+                    if len(ci.conditions) > 0:
+                        self.assertFalse(are_d_separated(graph, ci.left, ci.right),
+                                         "Unexpected d-separation ")
+
 
 class TestGetConditionalIndependencies(unittest.TestCase):
     """Test getting conditional independencies."""
