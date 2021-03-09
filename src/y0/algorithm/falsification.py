@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""
-Causal graphs have implications that can be tested in the context of a specific dataset.
+"""Causal graphs have implications that can be tested in the context of a specific dataset.
 
 This module includes algorithms to perform those tests.
 """
@@ -22,8 +21,9 @@ class Falsifications(abc.Sequence):
     """A list of variables pairs that failed the D-separation and covariance test.
 
     Has an extra 'evidence' property that is a dictionary.
-      * Keys are the d-separated variable pairs
-      * Values are the covariances measured between them.
+
+    - Keys are the d-separated variable pairs
+    - Values are the covariances measured between them.
     """
 
     def __init__(self, failures, evidence: pd.DataFrame):

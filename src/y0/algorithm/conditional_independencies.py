@@ -3,11 +3,12 @@
 """An implementation to get conditional independencies of an ADMG."""
 
 import copy
+from functools import partial
 from itertools import chain, combinations, groupby
 from typing import Iterable, Optional, Set, Tuple, Union
 
 import networkx as nx
-from ananke.graphs import SG
+from ananke.graphs import ADMG, SG
 from tqdm import tqdm
 
 from ..graph import NxMixedGraph
@@ -54,10 +55,11 @@ def get_conditional_independencies(
 def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSeparationJudgement]:
     """Given some d-separations, reduces to a 'minimal' collection.
 
-    For indepdencies of the form A _||_ B | {C1, C2, ...} the minmal collection will:
-         * Have only one indepdency with the same A/B nodes.
-         * If there are multiples sets of C-nodes, the kept d-separation will be the first/minimal
-           element in the group sorted according to `policy` argument.
+    For indepdencies of the form A _||_ B | {C1, C2, ...} the minimal collection will::
+
+    - Have only one independency with the same A/B nodes.
+    - If there are multiples sets of C-nodes, the kept d-separation will be the first/minimal
+      element in the group sorted according to `policy` argument.
 
     The default policy is to sort by the shortest set of conditions & then lexicographic.
 
@@ -74,7 +76,7 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
     }
 
 
-def topological_policy(graph):
+def topological_policy(graph: ADMG):
     """Sort d-separations by condition length and topological order.
 
     This policy will prefers small collections, and collections with variables earlier
@@ -84,8 +86,14 @@ def topological_policy(graph):
     :return: A function suitable for use as a sort key on d-separations
     """
     order = graph.topological_sort()
-    return lambda dsep: (len(dsep.conditions),
-                         sum((order.index(v) for v in dsep.conditions)))
+    return partial(_topological_policy, order=order)
+
+
+def _topological_policy(judgement: DSeparationJudgement, order):
+    return (
+        len(judgement.conditions),
+        sum((order.index(v) for v in judgement.conditions)),
+    )
 
 
 def _judgement_grouper(judgement: DSeparationJudgement) -> Tuple[str, str]:
@@ -99,7 +107,7 @@ def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
 
 
 def disorient(graph: SG) -> nx.Graph:
-    """Convert an :mod:`ananke` mixed directed/undirected into a unidrected (networkx) graph."""
+    """Convert an :mod:`ananke` mixed directed/undirected into a undirected (networkx) graph."""
     rv = nx.Graph()
     rv.add_nodes_from(graph.vertices)
     rv.add_edges_from(chain(graph.di_edges, graph.ud_edges, graph.bi_edges))
@@ -107,8 +115,7 @@ def disorient(graph: SG) -> nx.Graph:
 
 
 def get_moral_links(graph: SG):
-    """
-    Generate links to ensure all co-parents in a graph are linked.
+    """Generate links to ensure all co-parents in a graph are linked.
 
     May generate links that already exist as we assume we are not working on a multi-graph.
 
@@ -120,11 +127,11 @@ def get_moral_links(graph: SG):
     return moral_links
 
 
-def are_d_separated(graph: SG, a, b, *, conditions: Optional[Iterable[str]] = None) -> DSeparationJudgement:
+def are_d_separated(graph: SG, a: str, b: str, *, conditions: Optional[Iterable[str]] = None) -> DSeparationJudgement:
     """Test if nodes named by a & b are d-separated in G.
 
-    a & b can be provided in either order and the order of conditiosn does not matter.
-    However DSeparationJudgement may put htigns in canonical order.
+    a & b can be provided in either order and the order of conditions does not matter.
+    However DSeparationJudgement may put things in canonical order.
 
     :param graph: Graph to test
     :param a: A node in the graph
@@ -143,7 +150,7 @@ def are_d_separated(graph: SG, a, b, *, conditions: Optional[Iterable[str]] = No
     for u, v in get_moral_links(graph):
         graph.add_udedge(u, v)
 
-    # disorient & remove conditionss
+    # disorient & remove conditions
     evidence_graph = disorient(graph)
 
     keep = set(evidence_graph.nodes) - set(conditions)
@@ -168,7 +175,7 @@ def d_separations(
     :param max_conditions: Longest set of conditions to investigate
     :param return_all: If false (default) only returns the first d-separation per left/right pair.
     :param verbose: If true, prints extra output with tqdm
-    :yields: Succesively yields true d-separation judgements
+    :yields: True d-separation judgements
     """
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_admg()
