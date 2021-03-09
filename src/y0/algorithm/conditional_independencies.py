@@ -16,6 +16,7 @@ from ..utils import powerset
 
 __all__ = [
     'are_d_separated',
+    'minimal',
     'get_conditional_independencies',
 ]
 
@@ -23,6 +24,7 @@ __all__ = [
 def get_conditional_independencies(
     graph: Union[NxMixedGraph, SG],
     *,
+    policy=None,
     max_conditions: Optional[int] = None,
     verbose: bool = False,
 ) -> Set[DSeparationJudgement]:
@@ -32,13 +34,16 @@ def get_conditional_independencies(
     the unique left/right combinations in all valid d-separation.
 
     :param graph: An acyclic directed mixed graph
+    :param policy: Retention policy when more than one conditional independency option exists (see minimal for details)
+    :param max_conditions: Maximum number of variable conditions (see d_separations)
     :return: A set of conditional dependencies
 
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
     """
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_admg()
-    return minimal(d_separations(graph, max_conditions=max_conditions, verbose=verbose))
+    return minimal(d_separations(graph, max_conditions=max_conditions, verbose=verbose),
+                   policy=topological_policy(graph))
 
 
 def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSeparationJudgement]:
@@ -66,6 +71,15 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
         min(vs, key=policy)
         for k, vs in groupby(judgements, _judgement_grouper)
     }
+
+
+def topological_policy(graph):
+    """
+    :param graph: ADMG
+    """
+    order = graph.topological_sort()
+    return lambda dsep: (len(dsep.conditions),
+                         sum((order.index(v) for v in dsep.conditions)))
 
 
 def _judgement_grouper(judgement: DSeparationJudgement) -> Tuple[str, str]:
@@ -129,7 +143,7 @@ def d_separations(
     graph: Union[NxMixedGraph, SG],
     *,
     max_conditions: Optional[int] = None,
-    verbose: Optional[bool] = False,
+    verbose: Optional[bool] = False
 ) -> Iterable[DSeparationJudgement]:
     """
     Returns an iterator of all of the d-separations in the provided graph.
