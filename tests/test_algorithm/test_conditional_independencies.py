@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Test getting conditional independencies."""
+"""Test getting conditional independencies (and related)."""
 
 import unittest
 from typing import Iterable, Set, Union
@@ -29,6 +29,13 @@ class TestDSeparation(unittest.TestCase):
         self.assertFalse(are_d_separated(graph, "G", "G", conditions=["C"]))
 
     def test_examples(self):
+        """
+        Check that example conditional independencies are d-separations and
+        that removing the conditions (if present) makes them not d-separations.
+
+        This test is using convenient examples to ensure that the d-separation algorithm
+        isn't just always returning true or false.
+        """
         testable = (
             example
             for example in examples
@@ -46,6 +53,17 @@ class TestDSeparation(unittest.TestCase):
                                          "Unexpected d-separation ")
 
     def test_moral_links(self):
+        """
+        Adding 'moral links' is part of the d-separation algorithm.
+        This test covers several cases around moral links to ensure that they are added when needed.
+        """
+        g = ADMG(vertices=("a", "b", "c"),
+                 di_edges=[("a", "b"), ("b", "c")])
+        links = set(tuple(sorted(e)) for e in get_moral_links(g))
+        self.assertEqual(set(),
+                         links,
+                         "Unexpected moral links added.")
+
         g = ADMG(vertices=("a", "b", "c"),
                  di_edges=[("a", "c"), ("b", "c")])
         links = set(tuple(sorted(e)) for e in get_moral_links(g))
