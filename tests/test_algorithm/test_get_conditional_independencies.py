@@ -63,12 +63,19 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         observed_pairs = {(judgement.left, judgement.right) for judgement in observed_judgements}
         self.assertEqual(expected_pairs, observed_pairs, "Judgements do not find same separable pairs")
 
-#         # Test that the set of left & right pairs matches
-#         self.assertEqual(
-#             judgements,
-#             actual_judgements,
-#             msg='Judgements do not match',
-#         )
+        def _get_match(ref, options):
+            """Finds judgement in options that has the same left/right pair as the reference judgement"""
+            for alt in options:
+                if ref.left == alt.left and ref.right == alt.right:
+                    return alt
+            return None
+
+        for judgement in asserted_judgements:
+            with self.subTest(name=judgement):
+                matching = _get_match(judgement, observed_judgements)
+                self.assertIsNotNone(matching, "No matching judgement found")
+                self.assertGreaterEqual(len(judgement.conditions), len(matching.conditions),
+                                        "Observed conditional independence more complicated than reference.")
 
     def assert_valid_judgements(self, graph: Union[NxMixedGraph, SG], judgements: Set[DSeparationJudgement]) -> None:
         """Check that a set of judgments are valid with respect to a graph."""
