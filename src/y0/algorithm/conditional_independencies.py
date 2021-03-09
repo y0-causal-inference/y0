@@ -53,13 +53,12 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
     For indepdencies of the form A _||_ B | {C1, C2, ...} the minmal collection will:
          * Have only one indepdency with the same A/B nodes.
          * If there are multiples sets of C-nodes, the kept d-separation will be the first/minimal
-           element in the group sorted according to policy argument.
+           element in the group sorted according to `policy` argument.
 
     The default policy is to sort by the shortest set of conditions & then lexicographic.
 
     :param judgements: Collection of judgements to minimize
-    :param policy: Function from d-separation to a representation suitable for sorting
-    (used it is used as the 'key' function in python's 'sorted').
+    :param policy: Function from d-separation to a representation suitable for sorting.
     :return: A set of judgements that is minimal (as described above)
     """
     if policy is None:
@@ -106,7 +105,7 @@ def disorient(graph: SG) -> nx.Graph:
 def get_moral_links(graph: SG):
     """
     Generate links to ensure all co-parents in a graph are linked.
-    
+
     May generate links that already exist as we assume we are not working on a multi-graph.
 
     :param graph: Graph to process
@@ -157,14 +156,13 @@ def d_separations(
     *,
     max_conditions: Optional[int] = None,
     verbose: Optional[bool] = False,
-    truncate_success: Optional[bool] = True,
+    return_all: Optional[bool] = False,
 ) -> Iterable[DSeparationJudgement]:
     """Generate d-separations in the provided graph.
 
     :param graph: Graph to search for d-separations.
     :param max_conditions: Longest set of conditions to investigate
-    :param truncate_success: If true (default), only returns on d-separation per left/right pair.
-    If false will return *all* d-separations (up to the length indicated by max_conditions).
+    :param return_all: If false (default) only returns the first d-separation per left/right pair.
     :param verbose: If true, prints extra output with tqdm
     :yields: Succesively yields true d-separation judgements
     """
@@ -177,5 +175,5 @@ def d_separations(
             judgement = are_d_separated(graph, a, b, conditions=conditions)
             if judgement.separated:
                 yield judgement
-                if truncate_success:
+                if not return_all:
                     break
