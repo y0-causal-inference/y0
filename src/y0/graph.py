@@ -13,10 +13,21 @@ from ananke.graphs import ADMG
 __all__ = [
     'NxMixedGraph',
     'CausalEffectGraph',
+    'DEFULT_PREFIX',
+    'DEFAULT_TAG',
+    'admg_to_latent_variable_dag',
+    'admg_from_latent_variable_dag',
 ]
 
 X = TypeVar('X')
 CausalEffectGraph = Any
+
+#: The default key in a latent variable DAG represented as a :class:`networkx.DiGraph`
+#: for nodes that corresond to "latent" variables
+DEFAULT_TAG = 'hidden'
+#: The default prefix for latent variables in a latent variable DAG represented. After the prefix,
+#: there will be a number assigned that's incremented during construction.
+DEFULT_PREFIX = 'u_'
 
 
 @dataclass
@@ -58,6 +69,48 @@ class NxMixedGraph(Generic[X]):
         bi_edges = list(self.undirected.edges())
         vertices = list(self.directed)  # could be either since they're maintained together
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
+
+    def to_latent_variable_dag(
+        self,
+        *,
+        prefix: Optional[str] = None,
+        start: int = 0,
+        tag: Optional[str] = None,
+    ) -> nx.DiGraph:
+        """Create a labeled DAG where bi-directed edges are assigned as nodes upstream of their two incident nodes.
+
+        :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
+        :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
+        :param tag: The key for node data describing whether it is latent.
+            If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
+        :return: A latent variable DAG.
+        """
+        return _latent_dag(
+            di_edges=self.directed.edges(),
+            bi_edges=self.undirected.edges(),
+            prefix=prefix,
+            start=start,
+            tag=tag,
+        )
+
+    @classmethod
+    def from_latent_variable_dag(cls, graph: nx.DiGraph, tag: Optional[str] = None) -> NxMixedGraph:
+        """Load a labeled DAG."""
+        if tag is None:
+            tag = DEFAULT_TAG
+        if any(tag not in data for data in graph.nodes.values()):
+            raise ValueError(f'missing label {tag} in one or more nodes.')
+
+        rv = cls()
+        for node, data in graph.nodes.items():
+            if data[tag]:
+                # this works because there are always exactly 2 children of a latent node
+                (_, a), (_, b) = list(graph.out_edges(node))
+                rv.add_undirected_edge(a, b)
+            else:
+                for _, child in graph.out_edges(node):
+                    rv.add_directed_edge(node, child)
+        return rv
 
     def to_causaleffect(self) -> CausalEffectGraph:
         """Get a causaleffect R object.
@@ -128,3 +181,66 @@ class NxMixedGraph(Generic[X]):
             for v in vs:
                 rv.add_undirected_edge(u, v)
         return rv
+
+
+def admg_to_latent_variable_dag(
+    graph: ADMG,
+    prefix: Optional[str] = None,
+    start: int = 0,
+    tag: Optional[str] = None,
+) -> nx.DiGraph:
+    """Convert an ADMG to a latent variable DAG.
+
+    :param graph: An ADMG
+    :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
+    :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
+    :param tag: The key for node data describing whether it is latent.
+        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
+    :return: A latent variable DAG.
+    """
+    return _latent_dag(
+        graph.di_edges,
+        graph.bi_edges,
+        prefix=prefix,
+        start=start,
+        tag=tag,
+    )
+
+
+def admg_from_latent_variable_dag(graph: nx.DiGraph) -> ADMG:
+    """Convert a latent variable DAG to an ADMG."""
+    return NxMixedGraph.from_latent_variable_dag(graph).to_admg()
+
+
+def _latent_dag(
+    di_edges: Iterable[Tuple[str, str]],
+    bi_edges: Iterable[Tuple[str, str]],
+    *,
+    prefix: Optional[str] = None,
+    start: int = 0,
+    tag: Optional[str] = None,
+) -> nx.DiGraph:
+    """Create a labeled DAG where bi-directed edges are assigned as nodes upstream of their two incident nodes.
+
+    :param di_edges: A list of directional edges
+    :param bi_edges: A list of bi-directional edges
+    :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
+    :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
+    :param tag: The key for node data describing whether it is latent.
+        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
+    :return: A latent variable DAG.
+    """
+    if tag is None:
+        tag = DEFAULT_TAG
+    if prefix is None:
+        prefix = DEFULT_PREFIX
+
+    rv = nx.DiGraph()
+    rv.add_edges_from(di_edges)
+    nx.set_node_attributes(rv, False, tag)
+    for i, (u, v) in enumerate(sorted(bi_edges), start=start):
+        latent_node = f'{prefix}{i}'
+        rv.add_node(latent_node, **{tag: True})
+        rv.add_edge(latent_node, u)
+        rv.add_edge(latent_node, v)
+    return rv
