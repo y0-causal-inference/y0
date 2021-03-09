@@ -62,7 +62,7 @@ def falsifications(
 
     variances = {
         (left, right, given): cressie_read(left, right, given, df, boolean=False)
-        for left, right, given in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
+        for _, left, right, given in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
     }
 
     rows = [

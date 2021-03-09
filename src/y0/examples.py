@@ -7,6 +7,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional, Sequence
+import pkgutil
+import io
+import pandas as pd
 
 from .dsl import P, Q, Sum, Variable, X, Y, Z1, Z2, Z3, Z4, Z5
 from .graph import NxMixedGraph
@@ -22,6 +25,7 @@ class Example:
     graph: NxMixedGraph
     verma_constraints: Optional[Sequence[VermaConstraint]] = None
     conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
+    data: Optional[pd.DataFrame] = None
 
 
 u_2 = Variable('u_2')
@@ -547,6 +551,22 @@ d_separation_example = Example(
         DSeparationJudgement.create('E', 'F', ['C']),
         DSeparationJudgement.create('E', 'G', ['C'])
     ]
+)
+
+_asia_data = str(pkgutil.get_data(__package__, "data/asia.csv"), 'utf-8')
+
+asia_example = Example(
+    name="Asia dataset",
+    reference="https://www.bnlearn.com/documentation/man/asia.html",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            ("Asia", "Tub"),
+            ("Smoke", "Lung"), ("Smoke", "Bronc"),
+            ("Tub", "Either"),
+            ("Lung", "Either"),
+            ("Either", "Xray"), ("Either", "Dysp"),
+            ("Bronc", "Dysp")]),
+    data=pd.read_csv(io.StringIO(_asia_data)).replace({"yes": 1, "no": -1})
 )
 
 examples = [v for name, v in locals().items() if name.endswith('_example')]
