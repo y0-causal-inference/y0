@@ -43,8 +43,12 @@ def get_conditional_independencies(
     """
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_admg()
-    return minimal(d_separations(graph, max_conditions=max_conditions, verbose=verbose),
-                   policy=topological_policy(graph))
+    if policy is None:
+        policy = topological_policy(graph)
+    return minimal(
+        d_separations(graph, max_conditions=max_conditions, verbose=verbose),
+        policy=policy,
+    )
 
 
 def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSeparationJudgement]:
