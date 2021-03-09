@@ -75,7 +75,11 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
 
 def topological_policy(graph):
     """
+    Selection policy for d-separation minimization that prefers elements
+    small collections, and then items eaerlier in topological order.
+
     :param graph: ADMG
+    :return: A function suitable for use as a sort key on d-separations
     """
     order = graph.topological_sort()
     return lambda dsep: (len(dsep.conditions),
@@ -93,7 +97,10 @@ def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
 
 
 def disorient(graph: SG) -> nx.Graph:
-    """Disorient the :mod:`ananke` segregated graph to a simple networkx graph."""
+    """
+    Disorient the :mod:`ananke` mixed directed/undirected into
+    a unidrected (networkx) graph.
+    """
     rv = nx.Graph()
     rv.add_nodes_from(graph.vertices)
     rv.add_edges_from(chain(graph.di_edges, graph.ud_edges, graph.bi_edges))
@@ -103,7 +110,9 @@ def disorient(graph: SG) -> nx.Graph:
 def get_moral_links(graph: SG):
     """
     If a node in the graph has more than one parent BUT not a link between them,
-    generates that link.  Returns all the edges to add.
+    generates that link.
+
+    :return: An collection of edges to add.
     """
     parents = [graph.parents([v]) for v in graph.vertices]
     augments = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
@@ -114,7 +123,7 @@ def are_d_separated(graph: SG, a, b, *, conditions: Optional[Iterable[str]] = No
     """Tests if nodes named by a & b are d-separated in G.
 
     Additional conditions can be provided with the optional 'conditions' parameter.
-    returns T/F and the final graph (as evidence)
+    :return: T/F and the final graph (as evidence)
     """
     conditions = set(conditions) if conditions else set()
     named = {a, b}.union(conditions)
