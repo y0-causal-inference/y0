@@ -115,10 +115,10 @@ def iter_middle_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iter
     :yields: Nodes with both parents and children, along with the set of parents and set of children
     """
     for node in iter_latents(graph, tag=tag):
-        parents = {parent for parent, _ in graph.in_edges(node)}
+        parents = set(graph.predecessors(node))
         if 0 == len(parents):
             continue
-        children = {child for _, child in graph.out_edges(node)}
+        children = set(graph.successors(node))
         if 0 == len(children):
             continue
         yield node, parents, children
@@ -138,7 +138,7 @@ def remove_redundant_latents(graph: nx.DiGraph, tag: Optional[str] = None) -> Tu
 
 def _iter_redundant_latents(graph, *, tag: Optional[str] = None) -> Iterable[str]:
     latents: Mapping[str, Set[str]] = {
-        node: {child for _, child in graph.out_edges(node)}
+        node: set(graph.successors(node))
         for node in iter_latents(graph, tag=tag)
     }
     for (left, left_children), (right, right_children) in itt.product(latents.items(), repeat=2):
