@@ -24,6 +24,8 @@
 # Originally copied from: https://github.com/pgmpy/pgmpy/blob/dev/pgmpy/estimators/CITests.py
 # 20Feb2021
 
+"""Statitistical tests for conditional independence with conditions."""
+
 from warnings import warn
 from scipy import stats
 
