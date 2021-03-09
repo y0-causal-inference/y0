@@ -80,11 +80,13 @@ def falsifications(
         for (left, right, given), (chi, dof, p) in variances.items()
     ]
 
-    evidence = pd.DataFrame(rows, columns=["left", "right", "given", "chi^2", "p", "dof"])\
-        .sort_values("p")\
-        .assign(**{"Holm–Bonferroni level": significance_level / pd.Series(range(len(rows) + 1, 0, -1))})\
-        .pipe(lambda df: df.assign(flagged=(df["p"] < df["Holm–Bonferroni level"])))\
+    evidence = (
+        pd.DataFrame(rows, columns=["left", "right", "given", "chi^2", "p", "dof"])
+        .sort_values("p")
+        .assign(**{"Holm–Bonferroni level": significance_level / pd.Series(range(len(rows) + 1, 0, -1))})
+        .pipe(lambda df: df.assign(flagged=(df["p"] < df["Holm–Bonferroni level"])))
         .sort_values(["flagged", "dof"], ascending=False)
+    )
 
     failures = evidence[evidence["flagged"]][["left", "right", "given"]].apply(tuple, axis="columns")
     return Falsifications(failures, evidence)
