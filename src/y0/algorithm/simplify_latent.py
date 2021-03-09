@@ -19,6 +19,20 @@ __all__ = [
 DEFAULT_SUFFIX = '_prime'
 
 
+def iter_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iterable[str]:
+    """Iterate over nodes marked as latent.
+
+    :param graph: A latent variable DAG
+    :param tag: The tag for which variables are latent
+    :yields: Nodes that are latent
+    """
+    if tag is None:
+        tag = DEFAULT_TAG
+    for node, data in graph.nodes(data=True):
+        if data[tag]:
+            yield node
+
+
 def remove_widow_latents(graph: nx.DiGraph, tag: Optional[str] = None) -> Tuple[nx.DiGraph, Set[str]]:
     """Remove latents with no children (in-place).
 
@@ -38,10 +52,8 @@ def iter_widow_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Itera
     :param tag: The tag for which variables are latent
     :yields: Nodes with no children
     """
-    if tag is None:
-        tag = DEFAULT_TAG
-    for node, data in graph.nodes.items():
-        if data[tag] and 0 == len(graph.out_edges(node)):
+    for node in iter_latents(graph, tag=tag):
+        if not graph.out_edges(node):
             yield node
 
 
@@ -57,11 +69,6 @@ def transform_latents_with_parents(
     :param suffix: The suffix to postpend to transformed latent variables.
     :returns: The graph, modified in place
     """
-    if tag is None:
-        tag = DEFAULT_TAG
-    if suffix is None:
-        suffix = DEFAULT_SUFFIX
-
     remove_nodes: List[str] = []
     add_edges: List[Tuple[str, str]] = []
     modified_latents: DefaultDict[str, List[str]] = defaultdict(list)
@@ -78,7 +85,18 @@ def transform_latents_with_parents(
     return graph
 
 
-def _add_modified_latent(graph: nx.DiGraph, modified_latent: Mapping[str, Iterable[str]], *, tag, suffix):
+def _add_modified_latent(
+    graph: nx.DiGraph,
+    modified_latent: Mapping[str, Iterable[str]],
+    *,
+    tag: Optional[str] = None,
+    suffix: Optional[str] = None,
+) -> None:
+    if tag is None:
+        tag = DEFAULT_TAG
+    if suffix is None:
+        suffix = DEFAULT_SUFFIX
+
     for old_node, children in modified_latent.items():
         new_node = f"{old_node}{suffix}"
         graph.add_node(new_node, **{tag: True})
@@ -93,11 +111,7 @@ def iter_middle_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iter
     :param tag: The tag for which variables are latent
     :yields: Nodes with both parents and children, along with the set of parents and set of children
     """
-    if tag is None:
-        tag = DEFAULT_TAG
-    for node, data in graph.nodes.items():
-        if not data[tag]:
-            continue
+    for node in iter_latents(graph, tag=tag):
         parents = {parent for parent, _ in graph.in_edges(node)}
         if 0 == len(parents):
             continue
@@ -120,12 +134,9 @@ def remove_redundant_latents(graph: nx.DiGraph, tag: Optional[str] = None) -> Tu
 
 
 def _iter_redundant_latents(graph, *, tag: Optional[str] = None) -> Iterable[str]:
-    if tag is None:
-        tag = DEFAULT_TAG
     latents: Mapping[str, Set[str]] = {
         node: {child for _, child in graph.out_edges(node)}
-        for node, data in graph.nodes.items()
-        if data[tag]
+        for node in iter_latents(graph, tag=tag)
     }
     for (left, left_children), (right, right_children) in itt.product(latents.items(), repeat=2):
         if left_children == right_children and left > right:

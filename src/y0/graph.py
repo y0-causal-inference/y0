@@ -255,5 +255,5 @@ def set_latent(graph: nx.DiGraph, latent_nodes: Union[str, Iterable[str]], tag: 
         latent_nodes = [latent_nodes]
 
     latent_nodes = set(latent_nodes)
-    for _, data in graph.nodes(data=True):
-        data[tag] = graph in latent_nodes
+    for node, data in graph.nodes(data=True):
+        data[tag] = node in latent_nodes

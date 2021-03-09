@@ -7,8 +7,7 @@ import unittest
 import networkx as nx
 
 from y0.algorithm.simplify_latent import (
-    DEFAULT_SUFFIX, remove_redundant_latents, remove_widow_latents,
-    transform_latents_with_parents,
+    DEFAULT_SUFFIX, iter_latents, remove_redundant_latents, remove_widow_latents, transform_latents_with_parents,
 )
 from y0.graph import set_latent
 
@@ -19,8 +18,8 @@ class TestSimplify(unittest.TestCase):
     def assert_latent_variable_dag_equal(self, expected, actual) -> None:
         """Check two latent variable DAGs are the same."""
         self.assertEqual(
-            set(sorted(expected)),
-            set(sorted(actual)),
+            sorted(expected),
+            sorted(actual),
             msg='Nodes are incorrect',
         )
         self.assertEqual(
@@ -29,8 +28,8 @@ class TestSimplify(unittest.TestCase):
             msg='Tags are incorrect',
         )
         self.assertEqual(
-            set(sorted(expected.edges())),
-            set(sorted(actual.edges())),
+            sorted(expected.edges()),
+            sorted(actual.edges()),
         )
 
     def test_remove_widows(self):
@@ -43,9 +42,13 @@ class TestSimplify(unittest.TestCase):
             ('U', 'X3'),
             ('U', 'W'),
         ])
-        set_latent(graph, ['U', 'W'])
+        latents = {'U', 'W'}
+        set_latent(graph, latents)
+        self.assertEqual(latents, set(iter_latents(graph)))
+
         # Apply the simplification
-        remove_widow_latents(graph)
+        _, removed = remove_widow_latents(graph)
+        self.assertEqual({'W'}, removed)
 
         expected = nx.DiGraph()
         expected.add_edges_from([
@@ -74,6 +77,7 @@ class TestSimplify(unittest.TestCase):
             ('X2', 'Y1'), ('X2', 'Y2'), ('X2', 'Y3'),
             (f'U{DEFAULT_SUFFIX}', 'Y1'), (f'U{DEFAULT_SUFFIX}', 'Y2'), (f'U{DEFAULT_SUFFIX}', 'Y3'),
         ])
+        set_latent(expected, f'U{DEFAULT_SUFFIX}')
 
         self.assert_latent_variable_dag_equal(expected, graph)
 
