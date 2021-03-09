@@ -5,7 +5,7 @@
 import unittest
 from typing import Iterable, Set, Union
 
-from ananke.graphs import SG, ADMG
+from ananke.graphs import ADMG, SG
 
 from y0.algorithm.conditional_independencies import are_d_separated, get_conditional_independencies, get_moral_links
 from y0.examples import Example, d_separation_example, examples
@@ -121,7 +121,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         self.assertEqual(expected_pairs, observed_pairs, "Judgements do not find same separable pairs")
 
         def _get_match(ref, options):
-            """Finds judgement in options that has the same left/right pair as the reference judgement"""
+            """Find a judgement that has the same left/right pair as the reference judgement."""
             for alt in options:
                 if ref.left == alt.left and ref.right == alt.right:
                     return alt
@@ -130,7 +130,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         for judgement in asserted_judgements:
             with self.subTest(name=judgement):
                 matching = _get_match(judgement, observed_judgements)
-                self.assertIsNotNone(matching, "No matching judgement found")
+                self.assertIsNotNone(matching, "No matching judgement found.")
                 self.assertGreaterEqual(len(judgement.conditions), len(matching.conditions),
                                         "Observed conditional independence more complicated than reference.")
 

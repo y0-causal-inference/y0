@@ -22,6 +22,7 @@ def powerset(
     :param iterable: List to get combinations from
     :param start: smallest combination to get (default 0)
     :param stop: Largest combination to get (None means length of the list and is the default)
+    :return: Iterator of powerset of values.
 
     .. seealso: :func:`more_iterools.powerset` for a non-constrainable implementation
     """

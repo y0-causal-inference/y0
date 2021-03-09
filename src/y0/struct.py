@@ -46,7 +46,8 @@ class VermaConstraint(NamedTuple):
 
 class DSeparationJudgement(NamedTuple):
     """
-    Given a left/right and set of additional conditions, is that d-separated
+    Are left/right d-separated givent the additional conditions?
+
     By default, acts like a boolean, but also caries evidence graph.
     """
 

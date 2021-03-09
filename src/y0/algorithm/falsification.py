@@ -2,15 +2,16 @@
 
 """
 Causal graphs have implications that can be tested in the context of a specific dataset.
+
 This module includes algorithms to perform those tests.
 """
 
 from collections import abc
-import pandas as pd
 from typing import Iterable, Optional, Union
-from tqdm import tqdm
 
 from ananke.graphs import SG
+import pandas as pd
+from tqdm import tqdm
 
 from .conditional_independencies import get_conditional_independencies
 from ..struct import DSeparationJudgement
@@ -63,9 +64,8 @@ def falsifications(
     :param significance_level: Significance for p-value test
     :param max_given: The maximum set size in the powerset of the verticies minus the d-seperable pairs
     :param verbose: If true, use tqdm for status updates.
-    :return:
+    :return: Falsifications report
     """
-
     implications = to_test
     if isinstance(to_test, SG):
         implications = get_conditional_independencies(to_test, max_conditions=max_given, verbose=verbose)

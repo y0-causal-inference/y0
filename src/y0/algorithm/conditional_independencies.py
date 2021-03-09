@@ -72,7 +72,7 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
 
 
 def topological_policy(graph):
-    """Selection policy for d-separation minimization that uses topological ordering.
+    """Sort d-separations by condition length and topological order.
 
     This policy will prefers small collections, and collections with variables earlier
     in topological order for collections of the same size.
@@ -86,12 +86,15 @@ def topological_policy(graph):
 
 
 def _judgement_grouper(judgement: DSeparationJudgement) -> Tuple[str, str]:
-    """Returns a tuple of left & right side of a d-separation."""
+    """Simplify d-separation to just left & right element.
+
+    Suitable for grouping d-separations by left/right pairs.
+    """
     return judgement.left, judgement.right
 
 
 def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
-    """Sort by length of conditions & the lexicography a d-separation"""
+    """Sort by length of conditions & the lexicography a d-separation."""
     return len(judgement.conditions), ",".join(judgement.conditions)
 
 
@@ -117,7 +120,7 @@ def get_moral_links(graph: SG):
 
 
 def are_d_separated(graph: SG, a, b, *, conditions: Optional[Iterable[str]] = None) -> DSeparationJudgement:
-    """Tests if nodes named by a & b are d-separated in G.
+    """Test if nodes named by a & b are d-separated in G.
 
     a & b can be provided in either order and the order of conditiosn does not matter.
     However DSeparationJudgement may put htigns in canonical order.
@@ -156,7 +159,7 @@ def d_separations(
     *,
     max_conditions: Optional[int] = None,
     verbose: Optional[bool] = False,
-    truncate_success: Optional[bool] = True
+    truncate_success: Optional[bool] = True,
 ) -> Iterable[DSeparationJudgement]:
     """Generator of d-separations in the provided graph.
 

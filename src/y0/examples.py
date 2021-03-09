@@ -5,10 +5,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import io
 import pkgutil
 from typing import Optional, Sequence
+from dataclasses import dataclass
+
 import pandas as pd
 
 from .dsl import P, Q, Sum, Variable, X, Y, Z1, Z2, Z3, Z4, Z5
@@ -552,7 +553,7 @@ d_separation_example = Example(
         DSeparationJudgement.create('D', 'G', ['F']),
         DSeparationJudgement.create('E', 'F', ['C']),
         DSeparationJudgement.create('E', 'G', ['C']),
-    ]
+    ],
 )
 
 _asia_data = str(pkgutil.get_data(__package__, "data/asia.csv"), 'utf-8')
@@ -570,7 +571,7 @@ asia_example = Example(
             ("Bronc", "Dysp"),
         ],
     ),
-    data=pd.read_csv(io.StringIO(_asia_data)).replace({"yes": 1, "no": -1})
+    data=pd.read_csv(io.StringIO(_asia_data)).replace({"yes": 1, "no": -1}),
 )
 
 examples = [v for name, v in locals().items() if name.endswith('_example')]
