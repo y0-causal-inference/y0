@@ -8,13 +8,15 @@ from typing import DefaultDict, Iterable, List, Mapping, Optional, Set, Tuple
 
 import networkx as nx
 
+from ..graph import DEFAULT_TAG
+
 __all__ = [
     'remove_widow_latents',
     'transform_latents_with_parents',
     'remove_redundant_latents',
 ]
 
-DEFAULT_TAG = 'latent'
+DEFAULT_SUFFIX = '_prime'
 
 
 def remove_widow_latents(graph: nx.DiGraph, tag: Optional[str] = None) -> Tuple[nx.DiGraph, Set[str]]:
@@ -46,7 +48,7 @@ def iter_widow_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Itera
 def transform_latents_with_parents(
     graph: nx.DiGraph,
     tag: Optional[str] = None,
-    suffix: str = '_PRIME',
+    suffix: Optional[str] = None,
 ) -> nx.DiGraph:
     """Transform latent variables with parents into latent variables with no parents.
 
@@ -57,6 +59,8 @@ def transform_latents_with_parents(
     """
     if tag is None:
         tag = DEFAULT_TAG
+    if suffix is None:
+        suffix = DEFAULT_SUFFIX
 
     remove_nodes: List[str] = []
     add_edges: List[Tuple[str, str]] = []
