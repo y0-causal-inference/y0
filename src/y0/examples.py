@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import io
 import pkgutil
-from typing import Optional, Sequence
 from dataclasses import dataclass
+from typing import Optional, Sequence
 
 import pandas as pd
 

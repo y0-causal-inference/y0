@@ -59,7 +59,7 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
 
     :param judgements: Collection of judgements to minimize
     :param policy: Function from d-separation to a representation suitable for sorting
-       (used it is used as the 'key' function in python's 'sorted').
+    (used it is used as the 'key' function in python's 'sorted').
     :return: A set of judgements that is minimal (as described above)
     """
     if policy is None:
@@ -86,10 +86,7 @@ def topological_policy(graph):
 
 
 def _judgement_grouper(judgement: DSeparationJudgement) -> Tuple[str, str]:
-    """Simplify d-separation to just left & right element.
-
-    Suitable for grouping d-separations by left/right pairs.
-    """
+    """Simplify d-separation to just left & right element (for grouping left/right pairs)."""
     return judgement.left, judgement.right
 
 
@@ -108,7 +105,8 @@ def disorient(graph: SG) -> nx.Graph:
 
 def get_moral_links(graph: SG):
     """
-    Generates links to ensure all co-parents in a graph are linked.
+    Generate links to ensure all co-parents in a graph are linked.
+    
     May generate links that already exist as we assume we are not working on a multi-graph.
 
     :param graph: Graph to process
@@ -161,12 +159,12 @@ def d_separations(
     verbose: Optional[bool] = False,
     truncate_success: Optional[bool] = True,
 ) -> Iterable[DSeparationJudgement]:
-    """Generator of d-separations in the provided graph.
+    """Generate d-separations in the provided graph.
 
     :param graph: Graph to search for d-separations.
     :param max_conditions: Longest set of conditions to investigate
     :param truncate_success: If true (default), only returns on d-separation per left/right pair.
-       If false will return *all* d-separations (up to the length indicated by max_conditions).
+    If false will return *all* d-separations (up to the length indicated by max_conditions).
     :param verbose: If true, prints extra output with tqdm
     :yields: Succesively yields true d-separation judgements
     """
