@@ -78,9 +78,13 @@ def falsifications(
         pd.DataFrame(rows, columns=["left", "right", "given", "chi^2", "p", "dof"])
         .sort_values("p")
         .assign(**{"Holm–Bonferroni level": significance_level / pd.Series(range(len(rows) + 1, 0, -1))})
-        .pipe(lambda df: df.assign(flagged=(df["p"] < df["Holm–Bonferroni level"])))
+        .pipe(_assign_flags)
         .sort_values(["flagged", "dof"], ascending=False)
     )
 
     failures = evidence[evidence["flagged"]][["left", "right", "given"]].apply(tuple, axis="columns")
     return Falsifications(failures, evidence)
+
+
+def _assign_flags(df: pd.DataFrame) -> pd.DataFrame:
+    return df.assign(flagged=(df["p"] < df["Holm–Bonferroni level"]))
