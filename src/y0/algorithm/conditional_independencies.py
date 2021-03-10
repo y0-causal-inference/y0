@@ -26,7 +26,7 @@ def get_conditional_independencies(
     graph: Union[NxMixedGraph, SG],
     *,
     policy=None,
-    **kwargs
+    **kwargs,
 ) -> Set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
 
