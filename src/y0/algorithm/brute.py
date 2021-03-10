@@ -29,18 +29,20 @@ def brute(graph: nx.DiGraph, cause: str, effect: str):
     """
     rows = []
     for latents, lvdag in iterate_lvdags(graph, skip={cause, effect}):
-        print(latents)
-        print(lvdag.nodes.data())
+        # Book keeping
+        pre_nodes, pre_edges = lvdag.number_of_nodes(), lvdag.number_of_edges()
+
         # Apply the robin evans algorithms
         simplify_latent_dag(lvdag)
+        post_nodes, post_edges = lvdag.number_of_nodes(), lvdag.number_of_edges()
+
         # Convert the latent variable DAG to an ADMG
         admg = admg_from_latent_variable_dag(lvdag)
+
         # Check if the ADMG is identifiable under the (simple) causal query
-        try:
-            result = is_identifiable(admg, P(Variable(effect) @ ~Variable(cause)))
-        except KeyError:
-            result = 'not viable'
-        rows.append((result, sorted(latents)))
+        identifiable = is_identifiable(admg, P(Variable(effect) @ ~Variable(cause)))
+
+        rows.append((identifiable, pre_nodes, pre_edges, post_nodes, post_edges, sorted(latents)))
     return rows
 
 
@@ -63,8 +65,12 @@ def iterate_lvdags(graph: nx.DiGraph, skip: Optional[Iterable[str]] = None) -> I
 
 def main():
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
-    rows = brute(igf_graph, cause='PI3K', effect='Erk')
-    print(tabulate(rows, headers=['Result', 'Latent Variables']))
+    rows = [
+        (result, post_nodes - pre_nodes, post_edges - pre_edges, len(latents), ', '.join(latents))
+        for result, pre_nodes, pre_edges, post_nodes, post_edges, latents in
+        brute(igf_graph, cause='PI3K', effect='Erk')
+    ]
+    print(tabulate(rows, headers=['ID?', 'Node Simp.', 'Edge Simp.', 'N', 'Latents']))
 
 
 if __name__ == '__main__':

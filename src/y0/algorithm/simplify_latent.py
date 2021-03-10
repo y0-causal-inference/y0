@@ -29,30 +29,41 @@ DEFAULT_SUFFIX = '_prime'
 
 class SimplifyResults(NamedTuple):
     graph: nx.DiGraph
-    step_1_nodes: List[str]
-    step_1_edges: List[Tuple[str, str]]
-    step_1_latents: Mapping[str, Set[str]]
+    # step_1_nodes: List[str]
+    # step_1_edges: List[Tuple[str, str]]
+    # step_1_latents: Mapping[str, Set[str]]
     widows: Set[str]
     redundant: Set[str]
 
 
-def simplify_latent_dag(graph: nx.DiGraph):
+def _check_lv_annotations(graph, tag: Optional[str] = None):
+    if tag is None:
+        tag = DEFAULT_TAG
+    missing = {
+        node
+        for node, data in graph.nodes(data=True)
+        if tag not in data
+    }
+    if missing:
+        raise ValueError(f'missing tag {tag} in nodes: {sorted(missing)}')
+
+
+def simplify_latent_dag(graph: nx.DiGraph, tag: Optional[str] = None):
     """Apply Robin Evans' three algorithms in succession."""
-    _, remove_nodes, add_edges, modified_latents = transform_latents_with_parents(graph)
+    if tag is None:
+        tag = DEFAULT_TAG
 
-    print('AFTER TRANSFORM')
-    print(graph.nodes.data())
+    _ = transform_latents_with_parents(graph, tag=tag)
+    # _check_lv_annotations(graph, tag=tag)
 
-    _, widows = remove_widow_latents(graph)
+    _, widows = remove_widow_latents(graph, tag=tag)
+    # _check_lv_annotations(graph, tag=tag)
 
+    _, redundant = remove_redundant_latents(graph, tag=tag)
+    # _check_lv_annotations(graph, tag=tag)
 
-
-    _, redundant = remove_redundant_latents(graph)
     return SimplifyResults(
         graph=graph,
-        step_1_nodes=remove_nodes,
-        step_1_edges=add_edges,
-        step_1_latents=modified_latents,
         widows=widows,
         redundant=redundant,
     )
@@ -67,9 +78,11 @@ def iter_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iterable[st
     """
     if tag is None:
         tag = DEFAULT_TAG
-    for node, data in graph.nodes(data=True):
+
+    # should start with nodes the highest up (closest to source)
+    for node in nx.topological_sort(graph):
         try:
-            if data[tag]:
+            if graph.nodes[node][tag]:
                 yield node
         except KeyError:
             logger.warning('missing tag %s for node %s', tag, node)
@@ -104,7 +117,7 @@ def transform_latents_with_parents(
     graph: nx.DiGraph,
     tag: Optional[str] = None,
     suffix: Optional[str] = None,
-) -> Tuple[nx.DiGraph, Set[str], Set[Tuple[str, str]], Mapping[str, List[str]]]:
+) -> nx.DiGraph:
     """Transform latent variables with parents into latent variables with no parents.
 
     :param graph: A latent variable DAG
@@ -112,20 +125,19 @@ def transform_latents_with_parents(
     :param suffix: The suffix to postpend to transformed latent variables.
     :returns: The graph, modified in place
     """
-    remove_nodes: List[str] = []
+    remove_nodes: Set[str] = set()
     add_edges: List[Tuple[str, str]] = []
     modified_latents: DefaultDict[str, List[str]] = defaultdict(list)
     for latent_node, parents, children in iter_middle_latents(graph, tag=tag):
-        remove_nodes.append(latent_node)
-        add_edges.extend(itt.product(parents, children))
-        modified_latents[latent_node].extend(children)
+        graph.remove_node(latent_node)
+        graph.add_edges_from(itt.product(parents, children))
 
-    graph.remove_nodes_from(remove_nodes)
-    graph.add_edges_from(add_edges)
-    _add_modified_latent(graph, modified_latents, tag=tag, suffix=suffix)
-    # Alternatively, could only remove node-parent edges and keep the name of the original latent
+        new_node = f"{latent_node}{suffix}"
+        graph.add_node(new_node, **{tag: True})
+        for child in children:
+            graph.add_edge(new_node, child)
 
-    return graph, remove_nodes, add_edges, dict(modified_latents)
+    return graph
 
 
 def _add_modified_latent(
