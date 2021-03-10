@@ -123,6 +123,36 @@ class NxMixedGraph(Generic[X]):
         import rpy2.robjects
         return rpy2.robjects.r(self.to_causaleffect_str())
 
+    def draw(self, ax=None, title=None):
+        """Render the graph using matplotlib.
+
+        :param ax: Axis to draw on (if none specified, makes a new one)
+        :param title: The optional title to show with the graph
+        """
+        joint = nx.MultiGraph()
+        joint.add_edges_from(self.directed.edges)
+        joint.add_edges_from(self.undirected.edges)
+        layout = nx.nx_pydot.graphviz_layout(joint, prog="dot")
+
+        u_proxy = nx.DiGraph()
+        u_proxy.add_edges_from(self.undirected.edges)
+
+        if ax is None:
+            import matplotlib.pyplot as plt
+            ax = plt.gca()
+
+        nx.draw_networkx_nodes(self.directed, pos=layout, ax=ax)
+        nx.draw_networkx_labels(self.directed, pos=layout, ax=ax)
+        nx.draw_networkx_edges(self.directed, pos=layout, edge_color="b", ax=ax)
+        nx.draw_networkx_edges(
+            u_proxy, pos=layout, ax=ax,
+            connectionstyle='arc3, rad=0.2', arrowstyle="-", edge_color="r",
+        )
+
+        if title:
+            ax.set_title(title)
+        ax.axis('off')
+
     @classmethod
     def from_causaleffect(cls, graph) -> NxMixedGraph:
         """Construct an instance from a causaleffect R graph."""

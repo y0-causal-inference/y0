@@ -4,14 +4,13 @@
 
 from __future__ import annotations
 
-from operator import attrgetter
-from typing import Iterable, NamedTuple, Optional, Tuple, Union
+from typing import Iterable, NamedTuple, Optional, Tuple
 
-from .dsl import Expression, Variable, _upgrade_ordering
+from .dsl import Expression, Variable
 
 __all__ = [
     'VermaConstraint',
-    'ConditionalIndependency',
+    'DSeparationJudgement',
 ]
 
 
@@ -45,34 +44,48 @@ class VermaConstraint(NamedTuple):
         )
 
 
-class ConditionalIndependency(NamedTuple):
-    """A conditional independency."""
+class DSeparationJudgement(NamedTuple):
+    """
+    Record if a left/right pair are d-separated given the conditions.
 
-    left: Variable
-    right: Variable
-    observations: Tuple[Variable, ...]
+    By default, acts like a boolean, but also caries evidence graph.
+    """
 
-    @property
-    def is_canonical(self) -> bool:
-        """Return if the conditional independency is canonical."""
-        return self.left.name < self.right.name and isinstance(self.observations, tuple)
+    separated: Optional[bool]
+    left: str
+    right: str
+    conditions: Tuple[str, ...]
 
     @classmethod
     def create(
         cls,
-        left: Union[str, Variable],
-        right: Union[str, Variable],
-        observations: Optional[Iterable[Union[str, Variable]]] = None,
-    ) -> ConditionalIndependency:
-        """Create a canonical conditional independency."""
-        if isinstance(left, str):
-            left = Variable(name=left)
-        if isinstance(right, str):
-            right = Variable(name=right)
-        if left.name > right.name:
-            left, right = right, left
-        if observations is not None:
-            observations_ = tuple(sorted(set(_upgrade_ordering(observations)), key=attrgetter('name')))  # type: ignore
-        else:
-            observations_ = tuple()
-        return cls(left, right, observations_)
+        left: str,
+        right: str,
+        conditions: Optional[Iterable[str]] = None,
+        *,
+        separated: Optional[bool] = True,
+    ) -> DSeparationJudgement:
+        """Create a d-separation judgement in canonical form."""
+        left, right = sorted([left, right])
+        if conditions is None:
+            conditions = tuple()
+        conditions = tuple(sorted(set(conditions)))
+        return cls(separated, left, right, conditions)
+
+    def __bool__(self):
+        return self.separated
+
+    def __repr__(self):
+        return f"{repr(self.separated)} -- '{self.left}' d-sep '{self.right}' conditioned on {self.conditions}"
+
+    def __eq__(self, other):
+        return self.separated == other
+
+    @property
+    def is_canonical(self) -> bool:
+        """Return if the conditional independency is in canonical form."""
+        return (
+            self.left < self.right
+            and isinstance(self.conditions, tuple)
+            and tuple(sorted(self.conditions)) == (self.conditions)
+        )

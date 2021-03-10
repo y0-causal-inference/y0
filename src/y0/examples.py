@@ -9,10 +9,12 @@ from dataclasses import dataclass
 from typing import Optional, Sequence
 
 import networkx as nx
+import pandas as pd
 
 from .dsl import P, Q, Sum, Variable, X, Y, Z1, Z2, Z3, Z4, Z5
 from .graph import NxMixedGraph
-from .struct import ConditionalIndependency, VermaConstraint
+from .resources import ASIA_PATH
+from .struct import DSeparationJudgement, VermaConstraint
 
 
 @dataclass
@@ -23,7 +25,8 @@ class Example:
     reference: str
     graph: NxMixedGraph
     verma_constraints: Optional[Sequence[VermaConstraint]] = None
-    conditional_independencies: Optional[Sequence[ConditionalIndependency]] = None
+    conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
+    data: Optional[pd.DataFrame] = None
 
 
 u_2 = Variable('u_2')
@@ -154,18 +157,19 @@ identifiability_1_example = Example(
               ' 2nd ed." Cambridge University Press, p. 80.',
     graph=identifiability_1,
     conditional_independencies=(
-        ConditionalIndependency.create('X', 'Z1', ['Z2', 'Z3']),
-        ConditionalIndependency.create('X', 'Z4', ['Z1', 'Z3']),
-        ConditionalIndependency.create('X', 'Z5', ['Z4']),
-        ConditionalIndependency.create('Y', 'Z1', ['X', 'Z3', 'Z4']),
-        ConditionalIndependency.create('Y', 'Z2', ['X', 'Z1', 'Z3']),
-        ConditionalIndependency.create('Y', 'Z4', ['X', 'Z3', 'Z5']),
-        ConditionalIndependency.create('Z1', 'Z4'),
-        ConditionalIndependency.create('Z1', 'Z5'),
-        ConditionalIndependency.create('Z2', 'Z3', ['Z1']),
-        ConditionalIndependency.create('Z2', 'Z4'),
-        ConditionalIndependency.create('Z2', 'Z5'),
-        ConditionalIndependency.create('Z3', 'Z5', ['Z4']),
+        DSeparationJudgement.create('X', 'Z1', ['Z2', 'Z3']),
+        DSeparationJudgement.create('X', 'Z5', ['Z4']),
+        DSeparationJudgement.create('Y', 'Z1', ['X', 'Z3', 'Z4']),
+        DSeparationJudgement.create('Y', 'Z2', ['X', 'Z1', 'Z3']),
+        DSeparationJudgement.create('Y', 'Z4', ['X', 'Z3', 'Z5']),
+        DSeparationJudgement.create('Z1', 'Z4'),
+        DSeparationJudgement.create('Z1', 'Z5'),
+        DSeparationJudgement.create('Z2', 'Z3', ['Z1']),
+        DSeparationJudgement.create('Z2', 'Z4'),
+        DSeparationJudgement.create('Z2', 'Z5'),
+        DSeparationJudgement.create('Z3', 'Z5'),
+        DSeparationJudgement.create('Y', 'Z5', ['X', 'Z3']),
+        DSeparationJudgement.create('Z3', 'Z4'),
     ),
 )
 
@@ -185,6 +189,8 @@ identifiability_2 = NxMixedGraph.from_edges(
         ('X', 'W1'),
         ('W1', 'W2'),
         ('W2', 'Y'),
+        ('Z4', 'Z3'),
+        ('Z3', 'Y'),
     ],
     undirected=[
         ('Z1', 'X'),
@@ -193,6 +199,7 @@ identifiability_2 = NxMixedGraph.from_edges(
         ('Z4', 'Y'),
     ],
 )
+
 identifiability_2_example = Example(
     name='Identifiability 2',
     reference='E. Bareinboim modification of Identifiability 1.',
@@ -220,33 +227,34 @@ identifiability_2_example = Example(
         ),
     ],
     conditional_independencies=[
-        ConditionalIndependency.create('W0', 'W1', ['X']),
-        ConditionalIndependency.create('W0', 'W2', ['X']),
-        ConditionalIndependency.create('W0', 'Z1', ['X']),
-        ConditionalIndependency.create('W0', 'Z2', ['X']),
-        ConditionalIndependency.create('W0', 'Z3', ['X']),
-        ConditionalIndependency.create('W0', 'Z4', ['X']),
-        ConditionalIndependency.create('W0', 'Z5', ['X']),
-        ConditionalIndependency.create('W1', 'Y', ['W0', 'W2', 'Z3', 'Z4', 'Z5']),
-        ConditionalIndependency.create('W1', 'Z1', ['X']),
-        ConditionalIndependency.create('W1', 'Z2', ['X']),
-        ConditionalIndependency.create('W1', 'Z3', ['X']),
-        ConditionalIndependency.create('W1', 'Z4', ['X']),
-        ConditionalIndependency.create('W1', 'Z5', ['X']),
-        ConditionalIndependency.create('W2', 'X', ['W1']),
-        ConditionalIndependency.create('W2', 'Z1', ['W1']),
-        ConditionalIndependency.create('W2', 'Z2', ['W1']),
-        ConditionalIndependency.create('W2', 'Z3', ['W1']),
-        ConditionalIndependency.create('W2', 'Z4', ['W1']),
-        ConditionalIndependency.create('X', 'Y', ['W0', 'W2', 'Z2', 'Z4', 'Z5']),
-        ConditionalIndependency.create('X', 'Z4', ['Z1', 'Z2', 'Z3']),
-        ConditionalIndependency.create('X', 'Z5', ['Z1', 'Z2', 'Z3']),
-        ConditionalIndependency.create('Y', 'Z1', ['W0', 'W2', 'Z3', 'Z4', 'Z6']),
-        ConditionalIndependency.create('Y', 'Z2', ['W0', 'W2', 'Z3', 'Z4', 'Z6']),
-        ConditionalIndependency.create('Z1', 'Z4'),
-        ConditionalIndependency.create('Z1', 'Z5'),
-        ConditionalIndependency.create('Z2', 'Z4'),
-        ConditionalIndependency.create('Z2', 'Z5', ['Z4']),
+        DSeparationJudgement.create('W0', 'W1', ['X']),
+        DSeparationJudgement.create('W0', 'W2', ['X']),
+        DSeparationJudgement.create('W0', 'Z1', ['X']),
+        DSeparationJudgement.create('W0', 'Z2', ['X']),
+        DSeparationJudgement.create('W0', 'Z3', ['X']),
+        DSeparationJudgement.create('W0', 'Z4', ['X']),
+        DSeparationJudgement.create('W0', 'Z5', ['X']),
+        DSeparationJudgement.create('W1', 'Y', ['W0', 'W2', 'Z3', 'Z4', 'Z5']),
+        DSeparationJudgement.create('W1', 'Z1', ['X']),
+        DSeparationJudgement.create('W1', 'Z2', ['X']),
+        DSeparationJudgement.create('W1', 'Z3', ['X']),
+        DSeparationJudgement.create('W1', 'Z4', ['X']),
+        DSeparationJudgement.create('W1', 'Z5', ['X']),
+        DSeparationJudgement.create('W2', 'X', ['W1']),
+        DSeparationJudgement.create('W2', 'Z1', ['W1']),
+        DSeparationJudgement.create('W2', 'Z2', ['W1']),
+        DSeparationJudgement.create('W2', 'Z3', ['W1']),
+        DSeparationJudgement.create('W2', 'Z4', ['W1']),
+        DSeparationJudgement.create('W2', 'Z5', ['W1']),
+        DSeparationJudgement.create('X', 'Y', ['W0', 'W2', 'Z3', 'Z4', 'Z5']),
+        DSeparationJudgement.create('X', 'Z4', ['Z1', 'Z2', 'Z3']),
+        DSeparationJudgement.create('X', 'Z5', ['Z1', 'Z2', 'Z3']),
+        DSeparationJudgement.create('Y', 'Z1', ['W0', 'W2', 'Z3', 'Z4', 'Z5']),
+        DSeparationJudgement.create('Y', 'Z2', ['W0', 'W2', 'Z3', 'Z4', 'Z5']),
+        DSeparationJudgement.create('Z1', 'Z4'),
+        DSeparationJudgement.create('Z1', 'Z5'),
+        DSeparationJudgement.create('Z2', 'Z4'),
+        DSeparationJudgement.create('Z2', 'Z5'),
     ],
 )
 
@@ -514,6 +522,54 @@ identifiability_linear_1 = NxMixedGraph.from_edges(
         ('X', 'Z'),
         ('W', 'Y'),
     ],
+)
+
+d_separation_example = Example(
+    name="D-separation example",
+    reference="http://web.mit.edu/jmn/www/6.034/d-separation.pdf",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            ("AA", "C"),
+            ("B", "C"),
+            ("C", "D"),
+            ("C", "E"),
+            ("D", "F"),
+            ("F", "G"),
+        ],
+    ),
+    conditional_independencies=[
+        DSeparationJudgement.create('AA', 'B'),
+        DSeparationJudgement.create('AA', 'D', ['C']),
+        DSeparationJudgement.create('AA', 'E', ['C']),
+        DSeparationJudgement.create('AA', 'F', ['C']),
+        DSeparationJudgement.create('AA', 'G', ['C']),
+        DSeparationJudgement.create('B', 'D', ['C']),
+        DSeparationJudgement.create('B', 'E', ['C']),
+        DSeparationJudgement.create('B', 'F', ['C']),
+        DSeparationJudgement.create('B', 'G', ['C']),
+        DSeparationJudgement.create('C', 'F', ['D']),
+        DSeparationJudgement.create('C', 'G', ['D']),
+        DSeparationJudgement.create('D', 'E', ['C']),
+        DSeparationJudgement.create('D', 'G', ['F']),
+        DSeparationJudgement.create('E', 'F', ['C']),
+        DSeparationJudgement.create('E', 'G', ['C']),
+    ],
+)
+
+asia_example = Example(
+    name="Asia dataset",
+    reference="https://www.bnlearn.com/documentation/man/asia.html",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            ("Asia", "Tub"),
+            ("Smoke", "Lung"), ("Smoke", "Bronc"),
+            ("Tub", "Either"),
+            ("Lung", "Either"),
+            ("Either", "Xray"), ("Either", "Dysp"),
+            ("Bronc", "Dysp"),
+        ],
+    ),
+    data=pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1}),
 )
 
 examples = [v for name, v in locals().items() if name.endswith('_example')]
