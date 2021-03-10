@@ -23,10 +23,11 @@ exclude =
     .cache,
     .eggs,
     data
+    .ipynb_checkpoints
 max-line-length = 120
 max-complexity = 20
 import-order-style = pycharm
 application-import-names =
     y0
     tests
-format = ${cyan}%(path)s${reset}:${green_bold}%(row)d${reset}:${yellow}%(col)d${reset}: ${red_bold}%(code)s${reset} %(text)s
+format = ${red}%(code)s${reset} ${cyan}%(path)s${reset}:${red_bold}%(row)d${reset} %(text)s
