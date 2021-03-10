@@ -5,21 +5,57 @@
 .. seealso:: https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf slides 34-43
 """
 
-import itertools as itt
 from collections import defaultdict
-from typing import DefaultDict, Iterable, List, Mapping, Optional, Set, Tuple
 
+import itertools as itt
+import logging
 import networkx as nx
+from typing import DefaultDict, Iterable, List, Mapping, NamedTuple, Optional, Set, Tuple
 
 from ..graph import DEFAULT_TAG
 
 __all__ = [
+    'simplify_latent_dag',
+    'SimplifyResults',
     'remove_widow_latents',
     'transform_latents_with_parents',
     'remove_redundant_latents',
 ]
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_SUFFIX = '_prime'
+
+
+class SimplifyResults(NamedTuple):
+    graph: nx.DiGraph
+    step_1_nodes: List[str]
+    step_1_edges: List[Tuple[str, str]]
+    step_1_latents: Mapping[str, Set[str]]
+    widows: Set[str]
+    redundant: Set[str]
+
+
+def simplify_latent_dag(graph: nx.DiGraph):
+    """Apply Robin Evans' three algorithms in succession."""
+    _, remove_nodes, add_edges, modified_latents = transform_latents_with_parents(graph)
+
+    print('AFTER TRANSFORM')
+    print(graph.nodes.data())
+
+    _, widows = remove_widow_latents(graph)
+
+
+
+    _, redundant = remove_redundant_latents(graph)
+    return SimplifyResults(
+        graph=graph,
+        step_1_nodes=remove_nodes,
+        step_1_edges=add_edges,
+        step_1_latents=modified_latents,
+        widows=widows,
+        redundant=redundant,
+    )
 
 
 def iter_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iterable[str]:
@@ -32,8 +68,12 @@ def iter_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iterable[st
     if tag is None:
         tag = DEFAULT_TAG
     for node, data in graph.nodes(data=True):
-        if data[tag]:
-            yield node
+        try:
+            if data[tag]:
+                yield node
+        except KeyError:
+            logger.warning('missing tag %s for node %s', tag, node)
+            raise
 
 
 def remove_widow_latents(graph: nx.DiGraph, tag: Optional[str] = None) -> Tuple[nx.DiGraph, Set[str]]:
@@ -64,7 +104,7 @@ def transform_latents_with_parents(
     graph: nx.DiGraph,
     tag: Optional[str] = None,
     suffix: Optional[str] = None,
-) -> nx.DiGraph:
+) -> Tuple[nx.DiGraph, Set[str], Set[Tuple[str, str]], Mapping[str, List[str]]]:
     """Transform latent variables with parents into latent variables with no parents.
 
     :param graph: A latent variable DAG
@@ -85,7 +125,7 @@ def transform_latents_with_parents(
     _add_modified_latent(graph, modified_latents, tag=tag, suffix=suffix)
     # Alternatively, could only remove node-parent edges and keep the name of the original latent
 
-    return graph
+    return graph, remove_nodes, add_edges, dict(modified_latents)
 
 
 def _add_modified_latent(
