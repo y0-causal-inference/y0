@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import itertools as itt
 from dataclasses import dataclass, field
 from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar, Union
 
@@ -105,11 +106,10 @@ class NxMixedGraph(Generic[X]):
         rv = cls()
         for node, data in graph.nodes.items():
             if data[tag]:
-                # this works because there are always exactly 2 children of a latent node
-                (_, a), (_, b) = list(graph.out_edges(node))
-                rv.add_undirected_edge(a, b)
+                for a, b in itt.combinations(graph.successors(node), 2):
+                    rv.add_undirected_edge(a, b)
             else:
-                for _, child in graph.out_edges(node):
+                for child in graph.successors(node):
                     rv.add_directed_edge(node, child)
         return rv
 
