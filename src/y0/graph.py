@@ -237,6 +237,7 @@ def _latent_dag(
         prefix = DEFULT_PREFIX
 
     rv = nx.DiGraph()
+    rv.add_nodes_from(itt.chain.from_iterable(bi_edges))
     rv.add_edges_from(di_edges)
     nx.set_node_attributes(rv, False, tag)
     for i, (u, v) in enumerate(sorted(bi_edges), start=start):
