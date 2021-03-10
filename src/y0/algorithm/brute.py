@@ -9,12 +9,13 @@ import networkx as nx
 from ananke.graphs import ADMG
 from more_itertools import powerset
 from tabulate import tabulate
+from tqdm import tqdm
 from typing import Iterable, List, NamedTuple, Optional, Set, Tuple
 
 from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.dsl import P, Variable
 from y0.examples import igf_graph
-from y0.graph import admg_from_latent_variable_dag, set_latent
+from y0.graph import NxMixedGraph, admg_from_latent_variable_dag, set_latent
 from y0.identify import is_identifiable
 
 
@@ -90,15 +91,34 @@ def iterate_lvdags(graph: nx.DiGraph, skip: Optional[Iterable[str]] = None) -> I
         yield latents, yv
 
 
+def draw_results(results: Iterable[Result], path: str, ncols: int = 10, xratio: float = 4.0, yratio=4.0) -> None:
+    """Draw identifiable ADMGs to a file."""
+    import matplotlib.pyplot as plt
+
+    identifiable_results = [result for result in results if result.identifiable]
+
+    nrows = len(identifiable_results) // ncols
+    fig, axes = plt.subplots(ncols=ncols, nrows=nrows, figsize=(ncols * xratio, nrows * yratio))
+    for result, ax in zip(tqdm(identifiable_results, desc='generating chart'), axes.ravel()):
+        x = NxMixedGraph.from_admg(result.admg)
+        x.draw(ax=ax)
+        ax.set_title(', '.join(result.latents))
+
+    tqdm.write('saving')
+    fig.savefig(path, dpi=300)
+
+
 def main():
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
     results = brute(igf_graph, cause='PI3K', effect='Erk')
     rows = [
-        (result, post_nodes - pre_nodes, post_edges - pre_edges, len(latents), ', '.join(latents))
-        for result, pre_nodes, pre_edges, post_nodes, post_edges, latents, _, _ in results
+        (i, result, post_nodes - pre_nodes, post_edges - pre_edges, len(latents), ', '.join(latents))
+        for i, (result, pre_nodes, pre_edges, post_nodes, post_edges, latents, _, _) in enumerate(results, start=1)
 
     ]
-    print(tabulate(rows, headers=['ID?', 'Node Simp.', 'Edge Simp.', 'N', 'Latents']))
+    print(tabulate(rows, headers=['Row', 'ID?', 'Node Simp.', 'Edge Simp.', 'N', 'Latents']))
+
+    draw_results(results, 'ifg_identifiable_configs.svg')
 
 
 if __name__ == '__main__':
