@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% import "bootstrap/form.html" as wtf %}
+{% import "bootstrap/utils.html" as util %}
+
+{% block title %}y0 Parser{% endblock %}
+
+{% block content %}
+<div class="container" style="margin-top: 50px; margin-bottom: 50px">
+    {{ util.render_messages(dismissible=True, container=False) }}
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-sm-8 col-lg-8">
+            <div class="card">
+                <h5 class="card-header text-center">y0 Canonicalizer</h5>
+                <div class="card-body">
+                    <p>Enter a probability expression satisfying the markov postcondition.</p>
+                    {{ wtf.render_form(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
