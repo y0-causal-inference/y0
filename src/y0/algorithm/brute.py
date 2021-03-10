@@ -5,12 +5,14 @@
 .. seealso:: https://docs.google.com/presentation/d/1klBOjGtRkXOMSDgOCLChBTBJZ0dFxJPn9IPRLAlv_N8/edit?usp=sharing
 """
 
+import itertools as itt
+from typing import Iterable, List, NamedTuple, Optional, Set, Tuple, Union
+
 import networkx as nx
 from ananke.graphs import ADMG
 from more_itertools import powerset
 from tabulate import tabulate
 from tqdm import tqdm
-from typing import Iterable, List, NamedTuple, Optional, Set, Tuple
 
 from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.dsl import P, Variable
@@ -41,6 +43,7 @@ def brute(graph: nx.DiGraph, cause: str, effect: str) -> List[Result]:
     :param graph: A regular DAG
     :param cause: The node that gets perturbed.
     :param effect: The node that we're interested in.
+    :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2)
     """
     return [
         _get_result(lvdag, latents, cause, effect)
@@ -91,21 +94,35 @@ def iterate_lvdags(graph: nx.DiGraph, skip: Optional[Iterable[str]] = None) -> I
         yield latents, yv
 
 
-def draw_results(results: Iterable[Result], path: str, ncols: int = 10, xratio: float = 4.0, yratio=4.0) -> None:
+def draw_results(
+    results: Iterable[Result],
+    path: Union[str, Iterable[str]],
+    ncols: int = 10,
+    x_ratio: float = 3.5,
+    y_ratio: float = 3.5,
+) -> None:
     """Draw identifiable ADMGs to a file."""
     import matplotlib.pyplot as plt
 
+    if isinstance(path, str):
+        path = [path]
+
     identifiable_results = [result for result in results if result.identifiable]
 
-    nrows = len(identifiable_results) // ncols
-    fig, axes = plt.subplots(ncols=ncols, nrows=nrows, figsize=(ncols * xratio, nrows * yratio))
-    for result, ax in zip(tqdm(identifiable_results, desc='generating chart'), axes.ravel()):
-        x = NxMixedGraph.from_admg(result.admg)
-        x.draw(ax=ax)
-        ax.set_title(', '.join(result.latents))
+    nrows = 1 + len(identifiable_results) // ncols
+    fig, axes = plt.subplots(ncols=ncols, nrows=nrows, figsize=(ncols * x_ratio, nrows * y_ratio))
+    it = itt.zip_longest(axes.ravel(), tqdm(identifiable_results, desc='generating chart'))
+    for i, (ax, result) in enumerate(it, start=1):
+        if result is None:
+            ax.axis('off')
+        else:
+            mixed_graph = NxMixedGraph.from_admg(result.admg)
+            mixed_graph.draw(ax=ax, title=f'{i}) ' + ','.join(result.latents))
 
-    tqdm.write('saving')
-    fig.savefig(path, dpi=300)
+    plt.tight_layout()
+
+    for _path in tqdm(path, desc='saving'):
+        fig.savefig(_path, dpi=400)
 
 
 def main():
@@ -118,7 +135,7 @@ def main():
     ]
     print(tabulate(rows, headers=['Row', 'ID?', 'Node Simp.', 'Edge Simp.', 'N', 'Latents']))
 
-    draw_results(results, 'ifg_identifiable_configs.svg')
+    draw_results(results, ['ifg_identifiable_configs.png', 'ifg_identifiable_configs.svg'])
 
 
 if __name__ == '__main__':

@@ -5,12 +5,11 @@
 .. seealso:: https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf slides 34-43
 """
 
-from collections import defaultdict
-
 import itertools as itt
 import logging
+from typing import Iterable, Mapping, NamedTuple, Optional, Set, Tuple
+
 import networkx as nx
-from typing import DefaultDict, Iterable, List, Mapping, NamedTuple, Optional, Set, Tuple
 
 from ..graph import DEFAULT_TAG
 
@@ -28,10 +27,9 @@ DEFAULT_SUFFIX = '_prime'
 
 
 class SimplifyResults(NamedTuple):
+    """Results from the simplification of a LV-DAG."""
+
     graph: nx.DiGraph
-    # step_1_nodes: List[str]
-    # step_1_edges: List[Tuple[str, str]]
-    # step_1_latents: Mapping[str, Set[str]]
     widows: Set[str]
     redundant: Set[str]
 
@@ -81,12 +79,8 @@ def iter_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iterable[st
 
     # should start with nodes the highest up (closest to source)
     for node in nx.topological_sort(graph):
-        try:
-            if graph.nodes[node][tag]:
-                yield node
-        except KeyError:
-            logger.warning('missing tag %s for node %s', tag, node)
-            raise
+        if graph.nodes[node][tag]:
+            yield node
 
 
 def remove_widow_latents(graph: nx.DiGraph, tag: Optional[str] = None) -> Tuple[nx.DiGraph, Set[str]]:
@@ -125,9 +119,6 @@ def transform_latents_with_parents(
     :param suffix: The suffix to postpend to transformed latent variables.
     :returns: The graph, modified in place
     """
-    remove_nodes: Set[str] = set()
-    add_edges: List[Tuple[str, str]] = []
-    modified_latents: DefaultDict[str, List[str]] = defaultdict(list)
     for latent_node, parents, children in iter_middle_latents(graph, tag=tag):
         graph.remove_node(latent_node)
         graph.add_edges_from(itt.product(parents, children))
