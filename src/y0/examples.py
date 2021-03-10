@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import io
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
@@ -569,7 +568,7 @@ asia_example = Example(
             ("Bronc", "Dysp"),
         ],
     ),
-    data=pd.read_csv(io.StringIO(ASIA_PATH)).replace({"yes": 1, "no": -1}),
+    data=pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1}),
 )
 
 examples = [v for name, v in locals().items() if name.endswith('_example')]
