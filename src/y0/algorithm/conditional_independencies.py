@@ -5,7 +5,7 @@
 import copy
 from functools import partial
 from itertools import chain, combinations, groupby
-from typing import Iterable, Optional, Set, Tuple, Union
+from typing import Iterable, List, Optional, Set, Tuple, Union
 
 import networkx as nx
 from ananke.graphs import ADMG, SG
@@ -112,7 +112,7 @@ def disorient(graph: SG) -> nx.Graph:
     return rv
 
 
-def get_moral_links(graph: SG):
+def get_moral_links(graph: SG) -> List[Tuple[str, str]]:
     """Generate links to ensure all co-parents in a graph are linked.
 
     May generate links that already exist as we assume we are not working on a multi-graph.
