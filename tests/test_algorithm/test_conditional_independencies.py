@@ -44,46 +44,52 @@ class TestDSeparation(unittest.TestCase):
             with self.subTest(name=example.name):
                 graph = example.graph.to_admg()
                 for ci in example.conditional_independencies:
-                    self.assertTrue(are_d_separated(graph, ci.left, ci.right, conditions=ci.conditions),
-                                    "Expected d-separation not found")
-                    if len(ci.conditions) > 0:
-                        self.assertFalse(are_d_separated(graph, ci.left, ci.right),
-                                         "Unexpected d-separation ")
+                    self.assertTrue(
+                        are_d_separated(graph, ci.left, ci.right, conditions=ci.conditions),
+                        msg="Expected d-separation not found",
+                    )
+                    if ci.conditions:
+                        self.assertFalse(are_d_separated(graph, ci.left, ci.right), msg="Unexpected d-separation")
 
     def test_moral_links(self):
         """Test adding 'moral links' (part of the d-separation algorithm).
 
         This test covers several cases around moral links to ensure that they are added when needed.
         """
-        g = ADMG(vertices=("a", "b", "c"),
-                 di_edges=[("a", "b"), ("b", "c")])
-        links = set(tuple(sorted(e)) for e in get_moral_links(g))
-        self.assertEqual(set(),
-                         links,
-                         "Unexpected moral links added.")
+        graph = ADMG(
+            vertices=("a", "b", "c"),
+            di_edges=[("a", "b"), ("b", "c")],
+        )
+        links = set(tuple(sorted(e)) for e in get_moral_links(graph))
+        self.assertEqual(set(), links, msg="Unexpected moral links added.")
 
-        g = ADMG(vertices=("a", "b", "c"),
-                 di_edges=[("a", "c"), ("b", "c")])
-        links = set(tuple(sorted(e)) for e in get_moral_links(g))
-        self.assertEqual({("a", "b")},
-                         links,
-                         "Moral links not as expected in single-link case.")
+        graph = ADMG(
+            vertices=("a", "b", "c"),
+            di_edges=[("a", "c"), ("b", "c")],
+        )
+        links = set(tuple(sorted(e)) for e in get_moral_links(graph))
+        self.assertEqual({("a", "b")}, links, msg="Moral links not as expected in single-link case.")
 
-        g = ADMG(vertices=("a", "b", "aa", "bb", "c"),
-                 di_edges=[("a", "c"), ("b", "c"), ("aa", "c"), ("bb", "c")])
-        links = set(tuple(sorted(e)) for e in get_moral_links(g))
-        self.assertEqual({("a", "b"), ("a", "aa"), ("a", "bb"),
-                          ("aa", "b"), ("aa", "bb"), ("b", "bb")},
-                         links,
-                         "Moral links not as expected in multi-link case.")
+        graph = ADMG(
+            vertices=("a", "b", "aa", "bb", "c"),
+            di_edges=[("a", "c"), ("b", "c"), ("aa", "c"), ("bb", "c")],
+        )
+        links = set(tuple(sorted(e)) for e in get_moral_links(graph))
+        self.assertEqual(
+            {
+                ("a", "b"), ("a", "aa"), ("a", "bb"),
+                ("aa", "b"), ("aa", "bb"), ("b", "bb"),
+            },
+            links,
+            msg="Moral links not as expected in multi-link case.",
+        )
 
-        g = ADMG(vertices=("a", "b", "c", "d", "e"),
-                 di_edges=[("a", "c"), ("b", "c"),
-                           ("c", "e"), ("d", "e")])
-        links = set(tuple(sorted(e)) for e in get_moral_links(g))
-        self.assertEqual({("a", "b"), ("c", "d")},
-                         links,
-                         "Moral links not as expected in multi-site case.")
+        graph = ADMG(
+            vertices=("a", "b", "c", "d", "e"),
+            di_edges=[("a", "c"), ("b", "c"), ("c", "e"), ("d", "e")],
+        )
+        links = set(tuple(sorted(e)) for e in get_moral_links(graph))
+        self.assertEqual({("a", "b"), ("c", "d")}, links, msg="Moral links not as expected in multi-site case.")
 
 
 class TestGetConditionalIndependencies(unittest.TestCase):
@@ -131,8 +137,10 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             with self.subTest(name=judgement):
                 matching = _get_match(judgement, observed_judgements)
                 self.assertIsNotNone(matching, "No matching judgement found.")
-                self.assertGreaterEqual(len(judgement.conditions), len(matching.conditions),
-                                        "Observed conditional independence more complicated than reference.")
+                self.assertGreaterEqual(
+                    len(judgement.conditions), len(matching.conditions),
+                    msg="Observed conditional independence more complicated than reference.",
+                )
 
     def assert_valid_judgements(self, graph: Union[NxMixedGraph, SG], judgements: Set[DSeparationJudgement]) -> None:
         """Check that a set of judgments are valid with respect to a graph."""
