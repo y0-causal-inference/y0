@@ -26,8 +26,7 @@ def get_conditional_independencies(
     graph: Union[NxMixedGraph, SG],
     *,
     policy=None,
-    max_conditions: Optional[int] = None,
-    verbose: bool = False,
+    **kwargs
 ) -> Set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
 
@@ -36,8 +35,7 @@ def get_conditional_independencies(
 
     :param graph: An acyclic directed mixed graph
     :param policy: Retention policy when more than one conditional independency option exists (see minimal for details)
-    :param max_conditions: Maximum number of variable conditions (see d_separations)
-    :param verbose: Use verbose output when generating d-separations
+    :param kwargs: Other keyword arguments are passed to d_separations
     :return: A set of conditional dependencies
 
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
@@ -47,7 +45,7 @@ def get_conditional_independencies(
     if policy is None:
         policy = topological_policy(graph)
     return minimal(
-        d_separations(graph, max_conditions=max_conditions, verbose=verbose),
+        d_separations(graph, **kwargs),
         policy=policy,
     )
 
