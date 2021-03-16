@@ -7,6 +7,7 @@
 
 import itertools as itt
 import logging
+import textwrap
 from pathlib import Path
 from typing import Iterable, List, NamedTuple, Optional, Set, Tuple, Union
 
@@ -14,7 +15,6 @@ import click
 import networkx as nx
 from ananke.graphs import ADMG
 from more_click import verbose_option
-from more_itertools import powerset
 from tabulate import tabulate
 from tqdm import tqdm
 
@@ -22,6 +22,7 @@ from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.dsl import P, Variable
 from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_from_latent_variable_dag, admg_to_latent_variable_dag, set_latent
 from y0.identify import is_identifiable
+from y0.util.combinatorics import powerset
 
 __all__ = [
     'taheri_design_admg',
@@ -52,6 +53,7 @@ def taheri_design_admg(
     effect: str,
     *,
     tag: Optional[str] = None,
+    stop: Optional[int] = None,
 ) -> List[Result]:
     """Run the brute force implementation of the Taheri Design algorithm on an ADMG.
 
@@ -60,6 +62,7 @@ def taheri_design_admg(
     :param effect: The node that we're interested in.
     :param tag: The key for node data describing whether it is latent.
         If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
+    :param stop: Largest combination to get (None means length of the list and is the default)
     :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2 - # bidirected edges)
     """
     if tag is None:
@@ -72,10 +75,17 @@ def taheri_design_admg(
         for node, data in dag.nodes(data=True)
         if data[tag]
     }
-    return _help(graph=dag, cause=cause, effect=effect, skip=fixed_latents | {cause, effect}, tag=tag)
+    return _help(graph=dag, cause=cause, effect=effect, skip=fixed_latents | {cause, effect}, tag=tag, stop=stop)
 
 
-def taheri_design_dag(graph: nx.DiGraph, cause: str, effect: str, tag: Optional[str] = None) -> List[Result]:
+def taheri_design_dag(
+    graph: nx.DiGraph,
+    cause: str,
+    effect: str,
+    *,
+    tag: Optional[str] = None,
+    stop: Optional[int] = None,
+) -> List[Result]:
     """Run the brute force implementation of the Taheri Design algorithm on a DAG.
 
     Identify all latent variable configurations inducible over the given DAG that result
@@ -86,15 +96,16 @@ def taheri_design_dag(graph: nx.DiGraph, cause: str, effect: str, tag: Optional[
     :param effect: The node that we're interested in.
     :param tag: The key for node data describing whether it is latent.
         If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
+    :param stop: Largest combination to get (None means length of the list and is the default)
     :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2)
     """
-    return _help(graph=graph, cause=cause, effect=effect, skip={cause, effect}, tag=tag)
+    return _help(graph=graph, cause=cause, effect=effect, skip={cause, effect}, tag=tag, stop=stop)
 
 
-def _help(graph, cause, effect, skip, *, tag: Optional[str] = None):
+def _help(graph, cause, effect, skip, *, tag: Optional[str] = None, stop: Optional[str] = None):
     return [
         _get_result(lvdag, latents, cause, effect, tag=tag)
-        for latents, lvdag in iterate_lvdags(graph, skip=skip, tag=tag)
+        for latents, lvdag in iterate_lvdags(graph, skip=skip, tag=tag, stop=stop)
     ]
 
 
@@ -134,6 +145,7 @@ def iterate_lvdags(
     skip: Optional[Iterable[str]] = None,
     *,
     tag: Optional[str] = None,
+    stop: Optional[str] = None,
 ) -> Iterable[Tuple[Set[str], nx.DiGraph]]:
     """Iterate over all possible latent variable configurations for the given graph.
 
@@ -142,14 +154,15 @@ def iterate_lvdags(
         a causal query will be used here to avoid setting them as latent (since they can not be).
     :param tag: The key for node data describing whether it is latent.
         If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
+    :param stop: Largest combination to get (None means length of the list and is the default)
     :yields: latent variable DAGs for all possible latent variable configurations over the original DAG
     """
     nodes = set(graph)
     if skip:
         nodes.difference_update(skip)
-    # TODO optimize traversal through power set space
-    it = powerset(sorted(nodes))
-    it = tqdm(it, total=2**len(nodes), desc='LV powerset')
+    if stop is None:
+        stop = len(nodes) - 1
+    it = powerset(sorted(nodes), stop=stop, reverse=True, use_tqdm=True, tqdm_kwargs=dict(desc='LV powerset'))
     for latents in it:
         yv = graph.copy()
         set_latent(yv, latents, tag=tag)
@@ -160,8 +173,9 @@ def draw_results(
     results: Iterable[Result],
     path: Union[str, Path, Iterable[str], Iterable[Path]],
     ncols: int = 10,
-    x_ratio: float = 3.5,
-    y_ratio: float = 3.5,
+    x_ratio: float = 4.2,
+    y_ratio: float = 4.2,
+    max_size: Optional[int] = None
 ) -> None:
     """Draw identifiable ADMGs to a file."""
     import matplotlib.pyplot as plt
@@ -169,21 +183,31 @@ def draw_results(
     if isinstance(path, str):
         path = [path]
 
-    identifiable_results = [result for result in results if result.identifiable]
+    rendered_results = [result for result in results if result.identifiable]
+    if max_size is not None:
+        rendered_results = [
+            result
+            for result in results
+            if len(result.admg.vertices) - len(result.latents) < max_size
+        ]
 
-    nrows = 1 + len(identifiable_results) // ncols
+    logger.debug('rendering %s identifiable queries', rendered_results)
+
+    nrows = 1 + len(rendered_results) // ncols
     fig, axes = plt.subplots(ncols=ncols, nrows=nrows, figsize=(ncols * x_ratio, nrows * y_ratio))
-    it = itt.zip_longest(axes.ravel(), tqdm(identifiable_results, desc='generating chart'))
+    it = itt.zip_longest(axes.ravel(), tqdm(rendered_results, desc='generating chart'))
     for i, (ax, result) in enumerate(it, start=1):
         if result is None:
             ax.axis('off')
         else:
             mixed_graph = NxMixedGraph.from_admg(result.admg)
-            mixed_graph.draw(ax=ax, title=f'{i}) ' + ','.join(result.latents))
+            title = f'{i}) ' + ', '.join(result.latents)
+            mixed_graph.draw(ax=ax, title='\n'.join(textwrap.wrap(title, width=45)))
 
     plt.tight_layout()
 
     for _path in tqdm(path, desc='saving'):
+        logger.debug('saving to %s', _path)
         fig.savefig(_path, dpi=400)
 
 
@@ -206,15 +230,15 @@ def main():
 
     viral_pathogenesis_admg = from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
 
-    results = taheri_design_admg(viral_pathogenesis_admg, cause='EGFR', effect='CytokineStorm')
+    results = taheri_design_admg(viral_pathogenesis_admg, cause='EGFR', effect='CytokineStorm', stop=3)
     draw_results(results, [
-        pystow.join('y0', 'viral_pathogenesis_egfr.png'),
+        # pystow.join('y0', 'viral_pathogenesis_egfr.png'),
         pystow.join('y0', 'viral_pathogenesis_egfr.svg'),
     ])
 
-    results = taheri_design_admg(viral_pathogenesis_admg, cause=r'sIL6R\alpha', effect='CytokineStorm')
+    results = taheri_design_admg(viral_pathogenesis_admg, cause=r'sIL6R\alpha', effect='CytokineStorm', stop=2)
     draw_results(results, [
-        pystow.join('y0', 'viral_pathogenesis_sIL6ra.png'),
+        # pystow.join('y0', 'viral_pathogenesis_sIL6ra.png'),
         pystow.join('y0', 'viral_pathogenesis_sIL6ra.svg'),
     ])
 
@@ -222,7 +246,7 @@ def main():
     results = taheri_design_dag(igf_graph, cause='PI3K', effect='Erk')
     print_results(results)
     draw_results(results, [
-        pystow.join('y0', 'ifg_identifiable_configs.png'),
+        # pystow.join('y0', 'ifg_identifiable_configs.png'),
         pystow.join('y0', 'ifg_identifiable_configs.svg'),
     ])
 
