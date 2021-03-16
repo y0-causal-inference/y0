@@ -284,7 +284,7 @@ def main():
         pystow.join('y0', 'viral_pathogenesis_sIL6ra.svg'),
     ])
 
-    from y0.case_studies import igf_graph
+    from y0.examples import igf_graph
     results = taheri_design_dag(igf_graph, cause='PI3K', effect='Erk')
     print_results(results)
     draw_results(results, [
