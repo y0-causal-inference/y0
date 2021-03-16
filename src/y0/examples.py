@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
+import networkx as nx
 import pandas as pd
 
 from .dsl import P, Q, Sum, Variable, X, Y, Z1, Z2, Z3, Z4, Z5
@@ -572,3 +573,18 @@ asia_example = Example(
 )
 
 examples = [v for name, v in locals().items() if name.endswith('_example')]
+
+#: The IGF directed graph example from Sara
+igf_graph = nx.DiGraph([
+    ('EGF', 'SOS'),
+    ('EGF', 'PI3K'),
+    ('IGF', 'SOS'),
+    ('IGF', 'PI3K'),
+    ('SOS', 'Ras'),
+    ('Ras', 'PI3K'),
+    ('Ras', 'Raf'),
+    ('PI3K', 'Akt'),
+    ('Akt', 'Raf'),
+    ('Raf', 'Mek'),
+    ('Mek', 'Erk'),
+])

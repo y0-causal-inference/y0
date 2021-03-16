@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import itertools as itt
 import json
 from dataclasses import dataclass, field
 from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar, Union
@@ -73,6 +74,11 @@ class NxMixedGraph(Generic[X]):
         vertices = list(self.directed)  # could be either since they're maintained together
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
 
+    @classmethod
+    def from_admg(cls, admg: ADMG) -> NxMixedGraph:
+        """Create from an ADMG."""
+        return cls.from_edges(directed=admg.di_edges, undirected=admg.bi_edges)
+
     def to_latent_variable_dag(
         self,
         *,
@@ -107,11 +113,10 @@ class NxMixedGraph(Generic[X]):
         rv = cls()
         for node, data in graph.nodes.items():
             if data[tag]:
-                # this works because there are always exactly 2 children of a latent node
-                (_, a), (_, b) = list(graph.out_edges(node))
-                rv.add_undirected_edge(a, b)
+                for a, b in itt.combinations(graph.successors(node), 2):
+                    rv.add_undirected_edge(a, b)
             else:
-                for _, child in graph.out_edges(node):
+                for child in graph.successors(node):
                     rv.add_directed_edge(node, child)
         return rv
 
@@ -260,9 +265,15 @@ def admg_to_latent_variable_dag(
     )
 
 
-def admg_from_latent_variable_dag(graph: nx.DiGraph) -> ADMG:
-    """Convert a latent variable DAG to an ADMG."""
-    return NxMixedGraph.from_latent_variable_dag(graph).to_admg()
+def admg_from_latent_variable_dag(graph: nx.DiGraph, *, tag: Optional[str] = None) -> ADMG:
+    """Convert a latent variable DAG to an ADMG.
+
+    :param graph: A latent variable directed acyclic graph (LV-DAG)
+    :param tag: The key for node data describing whether it is latent.
+        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
+    :return: An ADMG
+    """
+    return NxMixedGraph.from_latent_variable_dag(graph, tag=tag).to_admg()
 
 
 def _latent_dag(
@@ -289,6 +300,7 @@ def _latent_dag(
         prefix = DEFULT_PREFIX
 
     rv = nx.DiGraph()
+    rv.add_nodes_from(itt.chain.from_iterable(bi_edges))
     rv.add_edges_from(di_edges)
     nx.set_node_attributes(rv, False, tag)
     for i, (u, v) in enumerate(sorted(bi_edges), start=start):
