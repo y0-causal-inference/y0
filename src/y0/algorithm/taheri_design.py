@@ -16,8 +16,8 @@ from tabulate import tabulate
 from tqdm import tqdm
 
 from y0.algorithm.simplify_latent import simplify_latent_dag
+from y0.case_studies import igf_graph
 from y0.dsl import P, Variable
-from y0.examples import igf_graph
 from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_from_latent_variable_dag, admg_to_latent_variable_dag, set_latent
 from y0.identify import is_identifiable
 
