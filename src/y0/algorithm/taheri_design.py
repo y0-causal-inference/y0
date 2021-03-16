@@ -48,6 +48,8 @@ def taheri_design_admg(graph: ADMG, cause: str, effect: str, *, tag: Optional[st
     :param graph: An ADMG
     :param cause: The node that gets perturbed.
     :param effect: The node that we're interested in.
+    :param tag: The key for node data describing whether it is latent.
+        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
     :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2 - # bidirected edges)
     """
     if tag is None:
@@ -58,10 +60,10 @@ def taheri_design_admg(graph: ADMG, cause: str, effect: str, *, tag: Optional[st
         for node, data in dag.nodes(data=True)
         if data[tag]
     }
-    return _help(graph=dag, cause=cause, effect=effect, skip=fixed_latents | {cause, effect})
+    return _help(graph=dag, cause=cause, effect=effect, skip=fixed_latents | {cause, effect}, tag=tag)
 
 
-def taheri_design_dag(graph: nx.DiGraph, cause: str, effect: str) -> List[Result]:
+def taheri_design_dag(graph: nx.DiGraph, cause: str, effect: str, tag: Optional[str] = None) -> List[Result]:
     """Run the brute force implementation of the Taheri Design algorithm on a DAG.
 
     Identify all latent variable configurations inducible over the given DAG that result
@@ -70,28 +72,30 @@ def taheri_design_dag(graph: nx.DiGraph, cause: str, effect: str) -> List[Result
     :param graph: A regular DAG
     :param cause: The node that gets perturbed.
     :param effect: The node that we're interested in.
+    :param tag: The key for node data describing whether it is latent.
+        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
     :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2)
     """
-    return _help(graph=graph, cause=cause, effect=effect, skip={cause, effect})
+    return _help(graph=graph, cause=cause, effect=effect, skip={cause, effect}, tag=tag)
 
 
-def _help(graph, cause, effect, skip):
+def _help(graph, cause, effect, skip, *, tag: Optional[str] = None):
     return [
         _get_result(lvdag, latents, cause, effect)
         for latents, lvdag in iterate_lvdags(graph, skip=skip)
     ]
 
 
-def _get_result(lvdag, latents, cause, effect) -> Result:
+def _get_result(lvdag, latents, cause, effect, *, tag: Optional[str] = None) -> Result:
     # Book keeping
     pre_nodes, pre_edges = lvdag.number_of_nodes(), lvdag.number_of_edges()
 
     # Apply the robin evans algorithms
-    simplify_latent_dag(lvdag)
+    simplify_latent_dag(lvdag, tag=tag)
     post_nodes, post_edges = lvdag.number_of_nodes(), lvdag.number_of_edges()
 
     # Convert the latent variable DAG to an ADMG
-    admg = admg_from_latent_variable_dag(lvdag)
+    admg = admg_from_latent_variable_dag(lvdag, tag=tag)
 
     # Check if the ADMG is identifiable under the (simple) causal query
     identifiable = is_identifiable(admg, P(Variable(effect) @ ~Variable(cause)))

@@ -243,9 +243,15 @@ def admg_to_latent_variable_dag(
     )
 
 
-def admg_from_latent_variable_dag(graph: nx.DiGraph) -> ADMG:
-    """Convert a latent variable DAG to an ADMG."""
-    return NxMixedGraph.from_latent_variable_dag(graph).to_admg()
+def admg_from_latent_variable_dag(graph: nx.DiGraph, *, tag: Optional[str] = None) -> ADMG:
+    """Convert a latent variable DAG to an ADMG.
+
+    :param graph: A latent variable directed acyclic graph (LV-DAG)
+    :param tag: The key for node data describing whether it is latent.
+        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
+    :return: An ADMG
+    """
+    return NxMixedGraph.from_latent_variable_dag(graph, tag=tag).to_admg()
 
 
 def _latent_dag(
