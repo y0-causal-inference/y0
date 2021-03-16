@@ -175,7 +175,7 @@ def draw_results(
     ncols: int = 10,
     x_ratio: float = 4.2,
     y_ratio: float = 4.2,
-    max_size: Optional[int] = None
+    max_size: Optional[int] = None,
 ) -> None:
     """Draw identifiable ADMGs to a file."""
     import matplotlib.pyplot as plt
