@@ -34,31 +34,14 @@ class SimplifyResults(NamedTuple):
     redundant: Set[str]
 
 
-def _check_lv_annotations(graph, tag: Optional[str] = None):
-    if tag is None:
-        tag = DEFAULT_TAG
-    missing = {
-        node
-        for node, data in graph.nodes(data=True)
-        if tag not in data
-    }
-    if missing:
-        raise ValueError(f'missing tag {tag} in nodes: {sorted(missing)}')
-
-
 def simplify_latent_dag(graph: nx.DiGraph, tag: Optional[str] = None):
     """Apply Robin Evans' three algorithms in succession."""
     if tag is None:
         tag = DEFAULT_TAG
 
     _ = transform_latents_with_parents(graph, tag=tag)
-    # _check_lv_annotations(graph, tag=tag)
-
     _, widows = remove_widow_latents(graph, tag=tag)
-    # _check_lv_annotations(graph, tag=tag)
-
     _, redundant = remove_redundant_latents(graph, tag=tag)
-    # _check_lv_annotations(graph, tag=tag)
 
     return SimplifyResults(
         graph=graph,
@@ -76,7 +59,6 @@ def iter_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iterable[st
     """
     if tag is None:
         tag = DEFAULT_TAG
-
     # should start with nodes the highest up (closest to source)
     for node in nx.topological_sort(graph):
         if graph.nodes[node][tag]:
