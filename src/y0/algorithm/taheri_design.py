@@ -268,9 +268,9 @@ def main():
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
     import pystow
     from y0.resources import VIRAL_PATHOGENESIS_PATH
-    from y0.graph import from_causalfusion_path
+    from y0.graph import NxMixedGraph
 
-    viral_pathogenesis_admg = from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
+    viral_pathogenesis_admg = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
 
     results = taheri_design_admg(viral_pathogenesis_admg, cause='EGFR', effect='CytokineStorm', stop=5)
     draw_results(results, [
