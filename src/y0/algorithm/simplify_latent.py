@@ -121,6 +121,8 @@ def transform_latents_with_parents(
     """
     if tag is None:
         tag = DEFAULT_TAG
+    if suffix is None:
+        suffix = DEFAULT_SUFFIX
     for latent_node, parents, children in iter_middle_latents(graph, tag=tag):
         graph.remove_node(latent_node)
         graph.add_edges_from(itt.product(parents, children))
