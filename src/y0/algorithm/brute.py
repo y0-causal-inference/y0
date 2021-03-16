@@ -18,8 +18,15 @@ from tqdm import tqdm
 from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.dsl import P, Variable
 from y0.examples import igf_graph
-from y0.graph import NxMixedGraph, admg_from_latent_variable_dag, set_latent
+from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_from_latent_variable_dag, admg_to_latent_variable_dag, set_latent
 from y0.identify import is_identifiable
+
+__all__ = [
+    'taheri_design_admg',
+    'taheri_design_dag',
+    'Result',
+    'draw_results',
+]
 
 
 class Result(NamedTuple):
@@ -35,8 +42,27 @@ class Result(NamedTuple):
     admg: ADMG
 
 
-def brute(graph: nx.DiGraph, cause: str, effect: str) -> List[Result]:
-    """Run the brute force algorithm.
+def taheri_design_admg(graph: ADMG, cause: str, effect: str, *, tag: Optional[str] = None) -> List[Result]:
+    """Run the brute force implementation of the Taheri Design algorithm on an ADMG.
+
+    :param graph: An ADMG
+    :param cause: The node that gets perturbed.
+    :param effect: The node that we're interested in.
+    :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2 - # bidirected edges)
+    """
+    if tag is None:
+        tag = DEFAULT_TAG
+    dag = admg_to_latent_variable_dag(graph, tag=tag)
+    fixed_latents = {
+        node
+        for node, data in dag.nodes(data=True)
+        if data[tag]
+    }
+    return _help(graph=dag, cause=cause, effect=effect, skip=fixed_latents | {cause, effect})
+
+
+def taheri_design_dag(graph: nx.DiGraph, cause: str, effect: str) -> List[Result]:
+    """Run the brute force implementation of the Taheri Design algorithm on a DAG.
 
     Identify all latent variable configurations inducible over the given DAG that result
     in an identifiable ADMG under the causal query corresponding to the given cause/effect.
@@ -46,9 +72,13 @@ def brute(graph: nx.DiGraph, cause: str, effect: str) -> List[Result]:
     :param effect: The node that we're interested in.
     :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2)
     """
+    return _help(graph=graph, cause=cause, effect=effect, skip={cause, effect})
+
+
+def _help(graph, cause, effect, skip):
     return [
         _get_result(lvdag, latents, cause, effect)
-        for latents, lvdag in iterate_lvdags(graph, skip={cause, effect})
+        for latents, lvdag in iterate_lvdags(graph, skip=skip)
     ]
 
 
@@ -89,6 +119,7 @@ def iterate_lvdags(graph: nx.DiGraph, skip: Optional[Iterable[str]] = None) -> I
     nodes = set(graph)
     if skip:
         nodes.difference_update(skip)
+    # TODO optimize traversal through power set space
     for latents in powerset(sorted(nodes)):
         yv = graph.copy()
         set_latent(yv, latents)
@@ -128,11 +159,10 @@ def draw_results(
 
 def main():
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
-    results = brute(igf_graph, cause='PI3K', effect='Erk')
+    results = taheri_design_dag(igf_graph, cause='PI3K', effect='Erk')
     rows = [
         (i, result, post_nodes - pre_nodes, post_edges - pre_edges, len(latents), ', '.join(latents))
         for i, (result, pre_nodes, pre_edges, post_nodes, post_edges, latents, _, _) in enumerate(results, start=1)
-
     ]
     print(tabulate(rows, headers=['Row', 'ID?', 'Node Simp.', 'Edge Simp.', 'N', 'Latents']))
 
