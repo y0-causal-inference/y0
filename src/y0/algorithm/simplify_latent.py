@@ -119,6 +119,8 @@ def transform_latents_with_parents(
     :param suffix: The suffix to postpend to transformed latent variables.
     :returns: The graph, modified in place
     """
+    if tag is None:
+        tag = DEFAULT_TAG
     for latent_node, parents, children in iter_middle_latents(graph, tag=tag):
         graph.remove_node(latent_node)
         graph.add_edges_from(itt.product(parents, children))
