@@ -6,6 +6,7 @@
 """
 
 import itertools as itt
+from pathlib import Path
 from typing import Iterable, List, NamedTuple, Optional, Set, Tuple, Union
 
 import networkx as nx
@@ -96,7 +97,7 @@ def iterate_lvdags(graph: nx.DiGraph, skip: Optional[Iterable[str]] = None) -> I
 
 def draw_results(
     results: Iterable[Result],
-    path: Union[str, Iterable[str]],
+    path: Union[str, Path, Iterable[str], Iterable[Path]],
     ncols: int = 10,
     x_ratio: float = 3.5,
     y_ratio: float = 3.5,
