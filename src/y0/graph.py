@@ -5,11 +5,13 @@
 from __future__ import annotations
 
 import itertools as itt
+import json
 from dataclasses import dataclass, field
 from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar, Union
 
 import networkx as nx
 from ananke.graphs import ADMG
+from networkx.utils import open_file
 
 __all__ = [
     'NxMixedGraph',
@@ -19,6 +21,8 @@ __all__ = [
     'admg_to_latent_variable_dag',
     'admg_from_latent_variable_dag',
     'set_latent',
+    'from_causalfusion_path',
+    'from_causalfusion_json',
 ]
 
 X = TypeVar('X')
@@ -299,3 +303,23 @@ def set_latent(graph: nx.DiGraph, latent_nodes: Union[str, Iterable[str]], tag: 
     latent_nodes = set(latent_nodes)
     for node, data in graph.nodes(data=True):
         data[tag] = node in latent_nodes
+
+
+@open_file(0)
+def from_causalfusion_path(file) -> NxMixedGraph:
+    """Load a graph from a CausalFusion JSON file."""
+    return from_causalfusion_json(json.load(file))
+
+
+def from_causalfusion_json(data) -> NxMixedGraph:
+    """Load a graph from a CausalFusion JSON object."""
+    rv = NxMixedGraph()
+    for edge in data['edges']:
+        u, v = edge['from'], edge['to']
+        if edge['type'] == 'directed':
+            rv.add_directed_edge(u, v)
+        elif edge['type'] == 'bidirected':
+            rv.add_undirected_edge(u, v)
+        else:
+            raise ValueError(f'unhandled edge type: {edge["type"]}')
+    return rv

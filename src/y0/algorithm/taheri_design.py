@@ -6,17 +6,19 @@
 """
 
 import itertools as itt
+import logging
 from pathlib import Path
 from typing import Iterable, List, NamedTuple, Optional, Set, Tuple, Union
 
+import click
 import networkx as nx
 from ananke.graphs import ADMG
+from more_click import verbose_option
 from more_itertools import powerset
 from tabulate import tabulate
 from tqdm import tqdm
 
 from y0.algorithm.simplify_latent import simplify_latent_dag
-from y0.case_studies import igf_graph
 from y0.dsl import P, Variable
 from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_from_latent_variable_dag, admg_to_latent_variable_dag, set_latent
 from y0.identify import is_identifiable
@@ -27,6 +29,8 @@ __all__ = [
     'Result',
     'draw_results',
 ]
+
+logger = logging.getLogger(__name__)
 
 
 class Result(NamedTuple):
@@ -42,8 +46,13 @@ class Result(NamedTuple):
     admg: ADMG
 
 
-def taheri_design_admg(graph: Union[ADMG, NxMixedGraph], cause: str, effect: str, *, tag: Optional[str] = None) -> List[
-    Result]:
+def taheri_design_admg(
+    graph: Union[ADMG, NxMixedGraph],
+    cause: str,
+    effect: str,
+    *,
+    tag: Optional[str] = None,
+) -> List[Result]:
     """Run the brute force implementation of the Taheri Design algorithm on an ADMG.
 
     :param graph: An ADMG
@@ -84,8 +93,8 @@ def taheri_design_dag(graph: nx.DiGraph, cause: str, effect: str, tag: Optional[
 
 def _help(graph, cause, effect, skip, *, tag: Optional[str] = None):
     return [
-        _get_result(lvdag, latents, cause, effect)
-        for latents, lvdag in iterate_lvdags(graph, skip=skip)
+        _get_result(lvdag, latents, cause, effect, tag=tag)
+        for latents, lvdag in iterate_lvdags(graph, skip=skip, tag=tag)
     ]
 
 
@@ -120,21 +129,30 @@ def _get_result(lvdag, latents, cause, effect, *, tag: Optional[str] = None) -> 
     )
 
 
-def iterate_lvdags(graph: nx.DiGraph, skip: Optional[Iterable[str]] = None) -> Iterable[Tuple[Set[str], nx.DiGraph]]:
+def iterate_lvdags(
+    graph: nx.DiGraph,
+    skip: Optional[Iterable[str]] = None,
+    *,
+    tag: Optional[str] = None,
+) -> Iterable[Tuple[Set[str], nx.DiGraph]]:
     """Iterate over all possible latent variable configurations for the given graph.
 
     :param graph: A regularDAG
     :param skip: Nodes to skip in the power set of all possible latent variables. Often, the cause and effect from
         a causal query will be used here to avoid setting them as latent (since they can not be).
+    :param tag: The key for node data describing whether it is latent.
+        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
     :yields: latent variable DAGs for all possible latent variable configurations over the original DAG
     """
     nodes = set(graph)
     if skip:
         nodes.difference_update(skip)
     # TODO optimize traversal through power set space
-    for latents in powerset(sorted(nodes)):
+    it = powerset(sorted(nodes))
+    it = tqdm(it, total=2**len(nodes), desc='LV powerset')
+    for latents in it:
         yv = graph.copy()
-        set_latent(yv, latents)
+        set_latent(yv, latents, tag=tag)
         yield latents, yv
 
 
@@ -169,16 +187,44 @@ def draw_results(
         fig.savefig(_path, dpi=400)
 
 
-def main():
-    """Run the algorithm on the IGF graph with the PI3K/Erk example."""
-    results = taheri_design_dag(igf_graph, cause='PI3K', effect='Erk')
+def print_results(results: List[Result], file=None) -> None:
+    """Print a set of results."""
     rows = [
         (i, result, post_nodes - pre_nodes, post_edges - pre_edges, len(latents), ', '.join(latents))
         for i, (result, pre_nodes, pre_edges, post_nodes, post_edges, latents, _, _) in enumerate(results, start=1)
     ]
-    print(tabulate(rows, headers=['Row', 'ID?', 'Node Simp.', 'Edge Simp.', 'N', 'Latents']))
+    print(tabulate(rows, headers=['Row', 'ID?', 'Node Simp.', 'Edge Simp.', 'N', 'Latents']), file=file)
 
-    draw_results(results, ['ifg_identifiable_configs.png', 'ifg_identifiable_configs.svg'])
+
+@click.command()
+@verbose_option
+def main():
+    """Run the algorithm on the IGF graph with the PI3K/Erk example."""
+    import pystow
+    from y0.resources import VIRAL_PATHOGENESIS_PATH
+    from y0.graph import from_causalfusion_path
+
+    viral_pathogenesis_admg = from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
+
+    results = taheri_design_admg(viral_pathogenesis_admg, cause='EGFR', effect='CytokineStorm')
+    draw_results(results, [
+        pystow.join('y0', 'viral_pathogenesis_egfr.png'),
+        pystow.join('y0', 'viral_pathogenesis_egfr.svg'),
+    ])
+
+    results = taheri_design_admg(viral_pathogenesis_admg, cause=r'sIL6R\alpha', effect='CytokineStorm')
+    draw_results(results, [
+        pystow.join('y0', 'viral_pathogenesis_sIL6ra.png'),
+        pystow.join('y0', 'viral_pathogenesis_sIL6ra.svg'),
+    ])
+
+    from y0.case_studies import igf_graph
+    results = taheri_design_dag(igf_graph, cause='PI3K', effect='Erk')
+    print_results(results)
+    draw_results(results, [
+        pystow.join('y0', 'ifg_identifiable_configs.png'),
+        pystow.join('y0', 'ifg_identifiable_configs.svg'),
+    ])
 
 
 if __name__ == '__main__':
