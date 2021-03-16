@@ -311,9 +311,9 @@ def from_causalfusion_path(file) -> NxMixedGraph:
     return from_causalfusion_json(json.load(file))
 
 
-def from_causalfusion_json(data) -> NxMixedGraph:
+def from_causalfusion_json(data: Mapping[str, Any]) -> NxMixedGraph:
     """Load a graph from a CausalFusion JSON object."""
-    rv = NxMixedGraph()
+    rv: NxMixedGraph = NxMixedGraph()
     for edge in data['edges']:
         u, v = edge['from'], edge['to']
         if edge['type'] == 'directed':

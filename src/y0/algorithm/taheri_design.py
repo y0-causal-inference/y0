@@ -102,7 +102,7 @@ def taheri_design_dag(
     return _help(graph=graph, cause=cause, effect=effect, skip={cause, effect}, tag=tag, stop=stop)
 
 
-def _help(graph, cause, effect, skip, *, tag: Optional[str] = None, stop: Optional[str] = None):
+def _help(graph, cause, effect, skip, *, tag: Optional[str] = None, stop: Optional[int] = None):
     return [
         _get_result(lvdag, latents, cause, effect, tag=tag)
         for latents, lvdag in iterate_lvdags(graph, skip=skip, tag=tag, stop=stop)
