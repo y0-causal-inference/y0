@@ -1,0 +1,2675 @@
+{
+  "name": "IL6-AMP-w-EGFR_IL6-STAT3",
+  "nodes": [
+    {
+      "id": "5c59a78a-30ef-4be0-bfba-48bc9d26fad0",
+      "name": "SARS-CoV-2",
+      "label": "SARS-CoV-2",
+      "type": "latent",
+      "metadata": {
+        "functionInfo": [],
+        "x": -60,
+        "y": -870,
+        "label": "                      ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "S5Qj7JqWPxskqyqxMBO3fmWdnx9k3XVS",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        "oldType": "basic",
+        "newType": "latent"
+      }
+    },
+    {
+      "id": "ebed1ed7-9cfb-40ac-abea-5ea4ea2c5663",
+      "name": "ACE2",
+      "label": "ACE2",
+      "type": "basic",
+      "metadata": {
+        "functionInfo": [],
+        "x": 90,
+        "y": -870,
+        "label": "           ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "dHWtnKN5hbMYvkD9mkOZfNjXapWIear8",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "caef9da3-513b-4049-b088-4d7d539cc849",
+      "name": "Angiotensin-II",
+      "label": "Angiotensin-II",
+      "type": "latent",
+      "metadata": {
+        "functionInfo": [],
+        "x": 240,
+        "y": -870,
+        "label": "                         ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "772zpvU7NAKgn76T1VQhZEIyCYQxOB37",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        "oldType": "basic",
+        "newType": "latent"
+      }
+    },
+    {
+      "id": "564cd70b-2981-4af9-9a00-2d4ee3cf66f3",
+      "name": "AGTR1",
+      "label": "AGTR1",
+      "type": "latent",
+      "metadata": {
+        "functionInfo": [],
+        "x": 390,
+        "y": -870,
+        "label": "             ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "1QlKavJpVUwbQYhD6a9Mjx1JYeNW7ZhE",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        "oldType": "basic",
+        "newType": "latent"
+      }
+    },
+    {
+      "id": "d394c4b4-e063-48a7-9a06-6ae5ce3ae75a",
+      "name": "ADAM17",
+      "label": "ADAM17",
+      "type": "latent",
+      "metadata": {
+        "functionInfo": [],
+        "x": 510,
+        "y": -870,
+        "label": "                 ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "NcQxLSJosjApDUBe7J3Z9imyhbs8InBS",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        "oldType": "basic",
+        "newType": "latent"
+      }
+    },
+    {
+      "id": "ce4e71b6-13ec-47f0-805b-765a828d4eb7",
+      "name": "sIL6R\\alpha",
+      "label": "sIL6R\\alpha",
+      "type": "basic",
+      "metadata": {
+        "functionInfo": [],
+        "x": 510,
+        "y": -750,
+        "label": "             ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "76LJ1kDTfmb2q8Dlspk6QAsgDHZCOhrx",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "78f08d57-d587-4a53-854e-02dfd57e2a6d",
+      "name": "IL6-STAT3",
+      "label": "IL6-STAT3",
+      "type": "basic",
+      "metadata": {
+        "functionInfo": [],
+        "x": 360,
+        "y": -660,
+        "label": "                   ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "d3mNa4Y9PLp0x2dC6OUJz3ffCJVnnGat",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "0e7bc804-7ab6-4303-8bf1-13627c316421",
+      "name": "TNF\\alpha",
+      "label": "TNF\\alpha",
+      "type": "basic",
+      "metadata": {
+        "functionInfo": [],
+        "x": 390,
+        "y": -750,
+        "label": "           ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "x8rUxo5IZVDLn7wxdcAIhFdOiCsv21nL",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "0c2fa321-522f-4849-98f0-3a69ac37f8e1",
+      "name": "EGF",
+      "label": "EGF",
+      "type": "basic",
+      "metadata": {
+        "functionInfo": [],
+        "x": 240,
+        "y": -810,
+        "label": "         ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "GwFwG8YFm1lWNvDbpuFeyZfX3W7NWNIb",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "b63b6e7f-82ae-48e8-a0ab-3a3e48a10bf5",
+      "name": "EGFR",
+      "label": "EGFR",
+      "type": "basic",
+      "metadata": {
+        "functionInfo": [],
+        "x": 240,
+        "y": -750,
+        "label": "            ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "J9Hj95a2t4itzuV1GK38sZ6YvLce2w3T",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        "group": "treatment"
+      }
+    },
+    {
+      "id": "ea6463f0-2c9f-461a-a20e-ea8213d250f0",
+      "name": "PRR",
+      "label": "PRR",
+      "type": "basic",
+      "metadata": {
+        "functionInfo": [],
+        "x": -60,
+        "y": -750,
+        "label": "         ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "Ky1paYsFBvmtTl8f2XdjfNOIJPjEQcVQ",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "45676775-d921-44e8-8497-1def1f8778ea",
+      "name": "NFkB",
+      "label": "NFkB",
+      "type": "basic",
+      "metadata": {
+        "functionInfo": [],
+        "x": 90,
+        "y": -660,
+        "label": "           ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "Lm8twFqQbSqWce8dkpt1ThTfB0ahRayd",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "b3c65aba-5b15-43ed-b3cb-6f7310d92200",
+      "name": "IL6-AMP",
+      "label": "IL6-AMP",
+      "type": "basic",
+      "metadata": {
+        "functionInfo": [],
+        "x": 210,
+        "y": -570,
+        "label": "                 ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "fWXoVnm2euVWunkJg88aDqfGveHjbz6r",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "7c34442d-ca46-47d9-81f9-2cb147cee345",
+      "name": "CytokineStorm",
+      "label": "CytokineStorm",
+      "type": "basic",
+      "metadata": {
+        "functionInfo": [],
+        "x": 210,
+        "y": -480,
+        "label": "                         ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "jF3jgVGJEALa7zDXHrzdA1uuoWdtAf8U",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "group": "outcome"
+      }
+    },
+    {
+      "id": "e38df436-9cab-4514-93db-50427420cea3",
+      "name": "Tocilizumab",
+      "label": "Tocilizumab",
+      "type": "latent",
+      "metadata": {
+        "functionInfo": [],
+        "x": 510,
+        "y": -660,
+        "label": "                     ",
+        "shape": "box",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "OWwk0SZpKPIWqp2BawZ7K1eXdb750WoC",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "labelType": "rect_double_border",
+        "drawDoubleBorder": true,
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        "oldType": "basic",
+        "newType": "latent"
+      }
+    },
+    {
+      "id": "46cce0c3-9b88-4478-bf9f-f1fed47b4092",
+      "name": "Gofi",
+      "label": "Gofi",
+      "type": "basic",
+      "metadata": {
+        "x": 120,
+        "y": -810,
+        "label": "        ",
+        "shape": "ellipse",
+        "fontSize": 14,
+        "sizeLabelMode": 5,
+        "font": {
+          "size": 14
+        },
+        "size": 14,
+        "labelNodeId": "2uF3XLGfezmPoGr0yms7TLX3SoMcHV1A",
+        "labelNodeOffset": {
+          "x": 0,
+          "y": 20
+        },
+        "labelOffset": {
+          "x": 0,
+          "y": 0
+        },
+        "shadow": {
+          "color": "#00000080",
+          "size": 0,
+          "x": 0,
+          "y": 0
+        },
+        "distributionInfo": {
+          "data_type": "discrete",
+          "metadata": {
+            "probabilityInfo": [
+              0.5,
+              0.5
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0->EBED1ED7-9CFB-40AC-ABEA-5EA4EA2C5663",
+      "from": "SARS-CoV-2",
+      "to": "ACE2",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "EBED1ED7-9CFB-40AC-ABEA-5EA4EA2C5663->CAEF9DA3-513B-4049-B088-4D7D539CC849",
+      "from": "ACE2",
+      "to": "Angiotensin-II",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "CAEF9DA3-513B-4049-B088-4D7D539CC849->564CD70B-2981-4AF9-9A00-2D4EE3CF66F3",
+      "from": "Angiotensin-II",
+      "to": "AGTR1",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "564CD70B-2981-4AF9-9A00-2D4EE3CF66F3->D394C4B4-E063-48A7-9A06-6AE5CE3AE75A",
+      "from": "AGTR1",
+      "to": "ADAM17",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A->0C2FA321-522F-4849-98F0-3A69AC37F8E1",
+      "from": "ADAM17",
+      "to": "EGF",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A->0E7BC804-7AB6-4303-8BF1-13627C316421",
+      "from": "ADAM17",
+      "to": "TNF\\alpha",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "CE4E71B6-13EC-47F0-805B-765A828D4EB7->78F08D57-D587-4A53-854E-02DFD57E2A6D",
+      "from": "sIL6R\\alpha",
+      "to": "IL6-STAT3",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "0E7BC804-7AB6-4303-8BF1-13627C316421->45676775-D921-44E8-8497-1DEF1F8778EA",
+      "from": "TNF\\alpha",
+      "to": "NFkB",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "0C2FA321-522F-4849-98F0-3A69AC37F8E1->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+      "from": "EGF",
+      "to": "EGFR",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5->45676775-D921-44E8-8497-1DEF1F8778EA",
+      "from": "EGFR",
+      "to": "NFkB",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "EA6463F0-2C9F-461A-A20E-EA8213D250F0->45676775-D921-44E8-8497-1DEF1F8778EA",
+      "from": "PRR",
+      "to": "NFkB",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0->EA6463F0-2C9F-461A-A20E-EA8213D250F0",
+      "from": "SARS-CoV-2",
+      "to": "PRR",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "45676775-D921-44E8-8497-1DEF1F8778EA->B3C65ABA-5B15-43ED-B3CB-6F7310D92200",
+      "from": "NFkB",
+      "to": "IL6-AMP",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "78F08D57-D587-4A53-854E-02DFD57E2A6D->B3C65ABA-5B15-43ED-B3CB-6F7310D92200",
+      "from": "IL6-STAT3",
+      "to": "IL6-AMP",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "B3C65ABA-5B15-43ED-B3CB-6F7310D92200->7C34442D-CA46-47D9-81F9-2CB147CEE345",
+      "from": "IL6-AMP",
+      "to": "CytokineStorm",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "E38DF436-9CAB-4514-93DB-50427420CEA3->CE4E71B6-13EC-47F0-805B-765A828D4EB7",
+      "from": "Tocilizumab",
+      "to": "sIL6R\\alpha",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A->CE4E71B6-13EC-47F0-805B-765A828D4EB7",
+      "from": "ADAM17",
+      "to": "sIL6R\\alpha",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    },
+    {
+      "id": "EA6463F0-2C9F-461A-A20E-EA8213D250F0--45676775-D921-44E8-8497-1DEF1F8778EA",
+      "from": "PRR",
+      "to": "NFkB",
+      "type": "bidirected",
+      "metadata": {
+        "latentNodeIds": [
+          "1wBUUTkrT7vuH1sJOE2w8SVXY7gsxfDb"
+        ],
+        "latentEdgeIds": [
+          "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB->EA6463F0-2C9F-461A-A20E-EA8213D250F0",
+          "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB->45676775-D921-44E8-8497-1DEF1F8778EA"
+        ],
+        "curvature": 0.7,
+        "isLabelDraggable": true,
+        "smooth": {
+          "type": "curvedCW",
+          "roundness": 0.35,
+          "enabled": true
+        },
+        "label": ""
+      }
+    },
+    {
+      "id": "0E7BC804-7AB6-4303-8BF1-13627C316421--B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+      "from": "TNF\\alpha",
+      "to": "EGFR",
+      "type": "bidirected",
+      "metadata": {
+        "latentNodeIds": [
+          "MZYIioR7vhvMuaWYNhfxdEiu0rt9Vio6"
+        ],
+        "latentEdgeIds": [
+          "MZYIIOR7VHVMUAWYNHFXDEIU0RT9VIO6->0E7BC804-7AB6-4303-8BF1-13627C316421",
+          "MZYIIOR7VHVMUAWYNHFXDEIU0RT9VIO6->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5"
+        ],
+        "curvature": -0.7,
+        "isLabelDraggable": true,
+        "smooth": {
+          "type": "curvedCCW",
+          "roundness": -0.35,
+          "enabled": true
+        },
+        "label": ""
+      }
+    },
+    {
+      "id": "5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0--CAEF9DA3-513B-4049-B088-4D7D539CC849",
+      "from": "SARS-CoV-2",
+      "to": "Angiotensin-II",
+      "type": "bidirected",
+      "metadata": {
+        "latentNodeIds": [
+          "eoU1zLAyW2ahNW64JXOqUky2mb5IUPsR"
+        ],
+        "latentEdgeIds": [
+          "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR->5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0",
+          "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR->CAEF9DA3-513B-4049-B088-4D7D539CC849"
+        ],
+        "curvature": 0.7,
+        "isLabelDraggable": true,
+        "smooth": {
+          "type": "curvedCW",
+          "roundness": 0.35,
+          "enabled": true
+        },
+        "label": ""
+      }
+    },
+    {
+      "id": "78F08D57-D587-4A53-854E-02DFD57E2A6D--B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+      "from": "IL6-STAT3",
+      "to": "EGFR",
+      "type": "bidirected",
+      "metadata": {
+        "latentNodeIds": [
+          "j2mEAs7pI7fA0a5qKD3SEOxpa4ikxB4x"
+        ],
+        "latentEdgeIds": [
+          "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X->78F08D57-D587-4A53-854E-02DFD57E2A6D",
+          "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5"
+        ],
+        "curvature": 0.7,
+        "isLabelDraggable": true,
+        "smooth": {
+          "type": "curvedCW",
+          "roundness": 0.35,
+          "enabled": true
+        },
+        "label": ""
+      }
+    },
+    {
+      "id": "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A--CE4E71B6-13EC-47F0-805B-765A828D4EB7",
+      "from": "ADAM17",
+      "to": "sIL6R\\alpha",
+      "type": "bidirected",
+      "metadata": {
+        "latentNodeIds": [
+          "Jc5z3oNfLUufCi7uMZeoaBVMyNny84iq"
+        ],
+        "latentEdgeIds": [
+          "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ->D394C4B4-E063-48A7-9A06-6AE5CE3AE75A",
+          "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ->CE4E71B6-13EC-47F0-805B-765A828D4EB7"
+        ],
+        "curvature": 0.7,
+        "isLabelDraggable": true,
+        "smooth": {
+          "type": "curvedCW",
+          "roundness": 0.35,
+          "enabled": true
+        },
+        "label": ""
+      }
+    },
+    {
+      "id": "0C2FA321-522F-4849-98F0-3A69AC37F8E1--B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+      "from": "EGF",
+      "to": "EGFR",
+      "type": "bidirected",
+      "metadata": {
+        "latentNodeIds": [
+          "z5Z8RYTAEoDyjXXstGyyup0NXuvf4OFR"
+        ],
+        "latentEdgeIds": [
+          "Z5Z8RYTAEODYJXXSTGYYUP0NXUVF4OFR->0C2FA321-522F-4849-98F0-3A69AC37F8E1",
+          "Z5Z8RYTAEODYJXXSTGYYUP0NXUVF4OFR->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5"
+        ],
+        "curvature": -0.7,
+        "isLabelDraggable": true,
+        "smooth": {
+          "type": "curvedCCW",
+          "roundness": -0.35,
+          "enabled": true
+        },
+        "label": ""
+      }
+    },
+    {
+      "id": "46CCE0C3-9B88-4478-BF9F-F1FED47B4092->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+      "from": "Gofi",
+      "to": "EGFR",
+      "type": "directed",
+      "metadata": {
+        "isLabelDraggable": true,
+        "label": ""
+      }
+    }
+  ],
+  "task": {
+    "id": "358D2C0779DC31B3",
+    "type": "ID",
+    "definitions": [
+      {
+        "name": "treatment",
+        "label": "Treatment"
+      },
+      {
+        "name": "outcome",
+        "label": "Outcome"
+      },
+      {
+        "name": "adjusted",
+        "label": "Adjusted"
+      },
+      {
+        "name": "external",
+        "label": "External Data"
+      },
+      {
+        "name": "*_exp",
+        "label": "Z^{*}"
+      },
+      {
+        "name": "*_obs",
+        "label": "P^{*}(v)"
+      }
+    ],
+    "sets": {
+      "0": [],
+      "1": [],
+      "2": [],
+      "external": [],
+      "*_exp": [],
+      "*_obs": [],
+      "treatment": [
+        "EGFR"
+      ],
+      "outcome": [
+        "CytokineStorm"
+      ],
+      "adjusted": []
+    },
+    "collections": {
+      "*_exp": [
+        []
+      ]
+    }
+  },
+  "metadata": {
+    "latentNodesMap": {
+      "2AQOFUJEIFBK5SE8LJ8M5QLYIM4JMW89": {
+        "id": "2aQofujEIfBk5sE8lJ8m5qLyiM4jmW89",
+        "name": "U_{EGFEGFR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 150,
+          "y": -750,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "2aQofujEIfBk5sE8lJ8m5qLyiM4jmW89",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFEGFR}"
+      },
+      "VB2KO0CPZQWYA6SKBALPONZCFI2SUGJV": {
+        "id": "vB2kO0cpzQWyA6SKBaLponZcFi2SuGJv",
+        "name": "U_{NFkBPRR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 42,
+          "y": -750,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "vB2kO0cpzQWyA6SKBaLponZcFi2SuGJv",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{NFkBPRR}"
+      },
+      "MZYIIOR7VHVMUAWYNHFXDEIU0RT9VIO6": {
+        "id": "MZYIioR7vhvMuaWYNhfxdEiu0rt9Vio6",
+        "name": "U_{EGFRTNF\\alpha}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 315,
+          "y": -795,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "MZYIioR7vhvMuaWYNhfxdEiu0rt9Vio6",
+          "label": "                  ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFRTNF\\alpha}"
+      },
+      "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR": {
+        "id": "eoU1zLAyW2ahNW64JXOqUky2mb5IUPsR",
+        "name": "U_{Angiotensin-IISARS-CoV-2}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 90,
+          "y": -960,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "eoU1zLAyW2ahNW64JXOqUky2mb5IUPsR",
+          "label": "                                   ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{Angiotensin-IISARS-CoV-2}"
+      },
+      "KWFOLQLBFQR0OGJNRZ2VJB4GRFRP4DMX": {
+        "id": "KwfOLQlbFQR0oGJnrz2vjB4gRfRp4dmx",
+        "name": "U_{EGFRIL6-STAT3}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 300.33486652308,
+          "y": -705.44648869744,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "KwfOLQlbFQR0oGJnrz2vjB4gRfRp4dmx",
+          "label": "                       ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFRIL6-STAT3}"
+      },
+      "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ": {
+        "id": "Jc5z3oNfLUufCi7uMZeoaBVMyNny84iq",
+        "name": "U_{ADAM17sIL6R\\alpha}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 546,
+          "y": -810,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "Jc5z3oNfLUufCi7uMZeoaBVMyNny84iq",
+          "label": "                       ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{ADAM17sIL6R\\alpha}"
+      },
+      "B10OGML24MA0PBRPFDDRHYDZDVIKWOPK": {
+        "id": "B10oGmL24mA0pbRpfDdRHYdZdvIkWopK",
+        "name": "U_{EGFEGFR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 120,
+          "y": -810,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "B10oGmL24mA0pbRpfDdRHYdZdvIkWopK",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFEGFR}"
+      },
+      "J6PMVEND6RW6CS1NC27OL3WTTISTEAFP": {
+        "id": "J6pmvend6Rw6CS1Nc27Ol3wTTistEAfP",
+        "name": "U_{NFkBPRR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 42,
+          "y": -750,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "J6pmvend6Rw6CS1Nc27Ol3wTTistEAfP",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{NFkBPRR}"
+      },
+      "O7ISRB0JWI7ZK0179HKEOVYPVL2RN53E": {
+        "id": "o7IsRB0jWi7ZK0179hkEOVypvl2Rn53e",
+        "name": "U_{EGFRIL6-STAT3}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 300.33486652308,
+          "y": -705.44648869744,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "o7IsRB0jWi7ZK0179hkEOVypvl2Rn53e",
+          "label": "                       ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFRIL6-STAT3}"
+      },
+      "WVXOVNPF8R1CZNWDVVWKSGXXXC0U1MM9": {
+        "id": "WvXovNPF8r1CzNWDVVWksgXxxC0u1mm9",
+        "name": "U_{EGFEGFR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 222,
+          "y": -780,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "WvXovNPF8r1CzNWDVVWksgXxxC0u1mm9",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFEGFR}"
+      },
+      "QWZG96SRDIGAJM5KQSNFRGJ0IVKRQ2NH": {
+        "id": "QWZg96SrdIGajm5kQsnfrgJ0IVKRQ2NH",
+        "name": "U_{NFkBPRR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 42,
+          "y": -750,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "QWZg96SrdIGajm5kQsnfrgJ0IVKRQ2NH",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{NFkBPRR}"
+      },
+      "K6HFCR6GEZTKKDEO00PWOAXLGI95OCQL": {
+        "id": "K6hFcr6gEztKkDEO00pWoAxLGi95ocQL",
+        "name": "U_{EGFRIL6-STAT3}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 300.33486652308,
+          "y": -705.44648869744,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "K6hFcr6gEztKkDEO00pWoAxLGi95ocQL",
+          "label": "                       ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFRIL6-STAT3}"
+      },
+      "P4NKTSCEOT3BJTFRNU3MPTL37C4XV4K7": {
+        "id": "p4nKTsCEOT3BJtFRnu3mptL37c4Xv4K7",
+        "name": "U_{EGFEGFR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 222,
+          "y": -780,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "p4nKTsCEOT3BJtFRnu3mptL37c4Xv4K7",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFEGFR}"
+      },
+      "0UCON38L6RGWMP1064XYD3INR1CQZ7PI": {
+        "id": "0ucoN38l6rGWmP1064xYd3INR1CqZ7pI",
+        "name": "U_{NFkBPRR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 42,
+          "y": -750,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "0ucoN38l6rGWmP1064xYd3INR1CqZ7pI",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{NFkBPRR}"
+      },
+      "HUN7AQRR1CVVZGOVPQCQIBB04CI2XS7Y": {
+        "id": "HUn7AqRr1cVVZgOVPQCqIbb04cI2xs7Y",
+        "name": "U_{EGFEGFR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 222,
+          "y": -780,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "HUn7AqRr1cVVZgOVPQCqIbb04cI2xs7Y",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFEGFR}"
+      },
+      "OW4LNFMTE7FPKDJZPIAMKAB7XU5O40MB": {
+        "id": "Ow4LNfmtE7fpkdJZPiamkAb7Xu5O40Mb",
+        "name": "U_{NFkBPRR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 42,
+          "y": -750,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "Ow4LNfmtE7fpkdJZPiamkAb7Xu5O40Mb",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{NFkBPRR}"
+      },
+      "2TR0C3LHISVFSALR5QPTJZZQFN2I5BQB": {
+        "id": "2tR0c3lhIsVFsAlr5QpTjzzqFN2i5bQb",
+        "name": "U_{EGFRIL6-STAT3}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 300.33486652308,
+          "y": -705.44648869744,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "2tR0c3lhIsVFsAlr5QpTjzzqFN2i5bQb",
+          "label": "                       ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFRIL6-STAT3}"
+      },
+      "2AOPWPOUEIHVNLKIQISEU0RH3YZZLHTZ": {
+        "id": "2aopWpOUEihvnlkiqiSEU0Rh3yzzlHTz",
+        "name": "U_{EGFEGFR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 222,
+          "y": -780,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "2aopWpOUEihvnlkiqiSEU0Rh3yzzlHTz",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFEGFR}"
+      },
+      "WCB7QPSR31ADNTO4PUS8V5EXR0SJITGO": {
+        "id": "WCb7qPsr31aDnTo4pus8V5exr0SjITgo",
+        "name": "U_{NFkBPRR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 42,
+          "y": -750,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "WCb7qPsr31aDnTo4pus8V5exr0SjITgo",
+          "label": "                ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{NFkBPRR}"
+      },
+      "QKJCZ8HKDFSC2LRESWZUXDG0HYWGZZ58": {
+        "id": "QKjCZ8hKDFSc2LresWZuXDG0HYWgzz58",
+        "name": "U_{EGFRIL6-STAT3}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 300.33486652308,
+          "y": -705.44648869744,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ],
+          "id": "QKjCZ8hKDFSc2LresWZuXDG0HYWgzz58",
+          "label": "                       ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          }
+        },
+        "label": "U_{EGFRIL6-STAT3}"
+      },
+      "Z5Z8RYTAEODYJXXSTGYYUP0NXUVF4OFR": {
+        "id": "z5Z8RYTAEoDyjXXstGyyup0NXuvf4OFR",
+        "name": "U_{EGFEGFR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 222,
+          "y": -780,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ]
+        }
+      },
+      "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB": {
+        "id": "1wBUUTkrT7vuH1sJOE2w8SVXY7gsxfDb",
+        "name": "U_{NFkBPRR}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 42,
+          "y": -750,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ]
+        }
+      },
+      "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X": {
+        "id": "j2mEAs7pI7fA0a5qKD3SEOxpa4ikxB4x",
+        "name": "U_{EGFRIL6-STAT3}",
+        "type": "latent",
+        "metadata": {
+          "latent": true,
+          "x": 300.33486652308,
+          "y": -705.44648869744,
+          "probabilityInfo": [
+            0.5,
+            0.5
+          ]
+        }
+      },
+      "E38DF436-9CAB-4514-93DB-50427420CEA3": {
+        "id": "e38df436-9cab-4514-93db-50427420cea3",
+        "name": "Tocilizumab",
+        "label": "Tocilizumab",
+        "type": "latent",
+        "metadata": {
+          "functionInfo": [],
+          "x": 510,
+          "y": -660,
+          "label": "                     ",
+          "shape": "box",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeId": "OWwk0SZpKPIWqp2BawZ7K1eXdb750WoC",
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          },
+          "labelOffset": {
+            "x": 0,
+            "y": 0
+          },
+          "shadow": {
+            "color": "#00000080",
+            "size": 0,
+            "x": 0,
+            "y": 0
+          },
+          "labelType": "rect_double_border",
+          "drawDoubleBorder": true,
+          "distributionInfo": {
+            "data_type": "discrete",
+            "metadata": {
+              "probabilityInfo": [
+                0.5,
+                0.5
+              ]
+            }
+          },
+          "id": "e38df436-9cab-4514-93db-50427420cea3",
+          "oldType": "basic",
+          "newType": "latent"
+        }
+      },
+      "564CD70B-2981-4AF9-9A00-2D4EE3CF66F3": {
+        "id": "564cd70b-2981-4af9-9a00-2d4ee3cf66f3",
+        "name": "AGTR1",
+        "label": "AGTR1",
+        "type": "latent",
+        "metadata": {
+          "functionInfo": [],
+          "x": 390,
+          "y": -870,
+          "label": "             ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeId": "1QlKavJpVUwbQYhD6a9Mjx1JYeNW7ZhE",
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          },
+          "labelOffset": {
+            "x": 0,
+            "y": 0
+          },
+          "shadow": {
+            "color": "#00000080",
+            "size": 0,
+            "x": 0,
+            "y": 0
+          },
+          "distributionInfo": {
+            "data_type": "discrete",
+            "metadata": {
+              "probabilityInfo": [
+                0.5,
+                0.5
+              ]
+            }
+          },
+          "id": "564cd70b-2981-4af9-9a00-2d4ee3cf66f3",
+          "oldType": "basic",
+          "newType": "latent"
+        }
+      },
+      "CAEF9DA3-513B-4049-B088-4D7D539CC849": {
+        "id": "caef9da3-513b-4049-b088-4d7d539cc849",
+        "name": "Angiotensin-II",
+        "label": "Angiotensin-II",
+        "type": "latent",
+        "metadata": {
+          "functionInfo": [],
+          "x": 240,
+          "y": -870,
+          "label": "                         ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeId": "772zpvU7NAKgn76T1VQhZEIyCYQxOB37",
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          },
+          "labelOffset": {
+            "x": 0,
+            "y": 0
+          },
+          "shadow": {
+            "color": "#00000080",
+            "size": 0,
+            "x": 0,
+            "y": 0
+          },
+          "distributionInfo": {
+            "data_type": "discrete",
+            "metadata": {
+              "probabilityInfo": [
+                0.5,
+                0.5
+              ]
+            }
+          },
+          "id": "caef9da3-513b-4049-b088-4d7d539cc849",
+          "oldType": "basic",
+          "newType": "latent"
+        }
+      },
+      "5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0": {
+        "id": "5c59a78a-30ef-4be0-bfba-48bc9d26fad0",
+        "name": "SARS-CoV-2",
+        "label": "SARS-CoV-2",
+        "type": "latent",
+        "metadata": {
+          "functionInfo": [],
+          "x": -60,
+          "y": -870,
+          "label": "                      ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeId": "S5Qj7JqWPxskqyqxMBO3fmWdnx9k3XVS",
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          },
+          "labelOffset": {
+            "x": 0,
+            "y": 0
+          },
+          "shadow": {
+            "color": "#00000080",
+            "size": 0,
+            "x": 0,
+            "y": 0
+          },
+          "distributionInfo": {
+            "data_type": "discrete",
+            "metadata": {
+              "probabilityInfo": [
+                0.5,
+                0.5
+              ]
+            }
+          },
+          "id": "5c59a78a-30ef-4be0-bfba-48bc9d26fad0",
+          "oldType": "basic",
+          "newType": "latent"
+        }
+      },
+      "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A": {
+        "id": "d394c4b4-e063-48a7-9a06-6ae5ce3ae75a",
+        "name": "ADAM17",
+        "label": "ADAM17",
+        "type": "latent",
+        "metadata": {
+          "functionInfo": [],
+          "x": 510,
+          "y": -870,
+          "label": "                 ",
+          "shape": "ellipse",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14,
+          "labelNodeId": "NcQxLSJosjApDUBe7J3Z9imyhbs8InBS",
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          },
+          "labelOffset": {
+            "x": 0,
+            "y": 0
+          },
+          "shadow": {
+            "color": "#00000080",
+            "size": 0,
+            "x": 0,
+            "y": 0
+          },
+          "distributionInfo": {
+            "data_type": "discrete",
+            "metadata": {
+              "probabilityInfo": [
+                0.5,
+                0.5
+              ]
+            }
+          },
+          "id": "d394c4b4-e063-48a7-9a06-6ae5ce3ae75a",
+          "oldType": "basic",
+          "newType": "latent"
+        }
+      }
+    },
+    "latentEdgesMap": {
+      "VB2KO0CPZQWYA6SKBALPONZCFI2SUGJV->PRR": {
+        "id": "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB->EA6463F0-2C9F-461A-A20E-EA8213D250F0",
+        "from": "U_{NFkBPRR}",
+        "to": "PRR",
+        "type": "directed",
+        "metadata": {
+          "id": "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB->EA6463F0-2C9F-461A-A20E-EA8213D250F0",
+          "from": "1wBUUTkrT7vuH1sJOE2w8SVXY7gsxfDb",
+          "to": "ea6463f0-2c9f-461a-a20e-ea8213d250f0",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "VB2KO0CPZQWYA6SKBALPONZCFI2SUGJV->NFKB": {
+        "id": "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB->45676775-D921-44E8-8497-1DEF1F8778EA",
+        "from": "U_{NFkBPRR}",
+        "to": "NFkB",
+        "type": "directed",
+        "metadata": {
+          "id": "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB->45676775-D921-44E8-8497-1DEF1F8778EA",
+          "from": "1wBUUTkrT7vuH1sJOE2w8SVXY7gsxfDb",
+          "to": "45676775-d921-44e8-8497-1def1f8778ea",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "MZYIIOR7VHVMUAWYNHFXDEIU0RT9VIO6->EGFR": {
+        "id": "MZYIIOR7VHVMUAWYNHFXDEIU0RT9VIO6->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+        "from": "U_{EGFRTNF\\alpha}",
+        "to": "EGFR",
+        "type": "directed",
+        "metadata": {
+          "id": "MZYIIOR7VHVMUAWYNHFXDEIU0RT9VIO6->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+          "from": "MZYIioR7vhvMuaWYNhfxdEiu0rt9Vio6",
+          "to": "b63b6e7f-82ae-48e8-a0ab-3a3e48a10bf5",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "MZYIIOR7VHVMUAWYNHFXDEIU0RT9VIO6->TNF\\ALPHA": {
+        "id": "MZYIIOR7VHVMUAWYNHFXDEIU0RT9VIO6->0E7BC804-7AB6-4303-8BF1-13627C316421",
+        "from": "U_{EGFRTNF\\alpha}",
+        "to": "TNF\\alpha",
+        "type": "directed",
+        "metadata": {
+          "id": "MZYIIOR7VHVMUAWYNHFXDEIU0RT9VIO6->0E7BC804-7AB6-4303-8BF1-13627C316421",
+          "from": "MZYIioR7vhvMuaWYNhfxdEiu0rt9Vio6",
+          "to": "0e7bc804-7ab6-4303-8bf1-13627c316421",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR->SARS-COV-2": {
+        "id": "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR->5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0",
+        "from": "U_{Angiotensin-IISARS-CoV-2}",
+        "to": "SARS-CoV-2",
+        "type": "directed",
+        "metadata": {
+          "id": "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR->5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0",
+          "from": "eoU1zLAyW2ahNW64JXOqUky2mb5IUPsR",
+          "to": "5c59a78a-30ef-4be0-bfba-48bc9d26fad0",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR->ANGIOTENSIN-II": {
+        "id": "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR->CAEF9DA3-513B-4049-B088-4D7D539CC849",
+        "from": "U_{Angiotensin-IISARS-CoV-2}",
+        "to": "Angiotensin-II",
+        "type": "directed",
+        "metadata": {
+          "id": "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR->CAEF9DA3-513B-4049-B088-4D7D539CC849",
+          "from": "eoU1zLAyW2ahNW64JXOqUky2mb5IUPsR",
+          "to": "caef9da3-513b-4049-b088-4d7d539cc849",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "KWFOLQLBFQR0OGJNRZ2VJB4GRFRP4DMX->EGFR": {
+        "id": "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "EGFR",
+        "type": "directed",
+        "metadata": {
+          "id": "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+          "from": "j2mEAs7pI7fA0a5qKD3SEOxpa4ikxB4x",
+          "to": "b63b6e7f-82ae-48e8-a0ab-3a3e48a10bf5",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "KWFOLQLBFQR0OGJNRZ2VJB4GRFRP4DMX->IL6-STAT3": {
+        "id": "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X->78F08D57-D587-4A53-854E-02DFD57E2A6D",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "IL6-STAT3",
+        "type": "directed",
+        "metadata": {
+          "id": "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X->78F08D57-D587-4A53-854E-02DFD57E2A6D",
+          "from": "j2mEAs7pI7fA0a5qKD3SEOxpa4ikxB4x",
+          "to": "78f08d57-d587-4a53-854e-02dfd57e2a6d",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ->ADAM17": {
+        "id": "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ->D394C4B4-E063-48A7-9A06-6AE5CE3AE75A",
+        "from": "U_{ADAM17sIL6R\\alpha}",
+        "to": "ADAM17",
+        "type": "directed",
+        "metadata": {
+          "id": "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ->D394C4B4-E063-48A7-9A06-6AE5CE3AE75A",
+          "from": "Jc5z3oNfLUufCi7uMZeoaBVMyNny84iq",
+          "to": "d394c4b4-e063-48a7-9a06-6ae5ce3ae75a",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ->SIL6R\\ALPHA": {
+        "id": "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ->CE4E71B6-13EC-47F0-805B-765A828D4EB7",
+        "from": "U_{ADAM17sIL6R\\alpha}",
+        "to": "sIL6R\\alpha",
+        "type": "directed",
+        "metadata": {
+          "id": "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ->CE4E71B6-13EC-47F0-805B-765A828D4EB7",
+          "from": "Jc5z3oNfLUufCi7uMZeoaBVMyNny84iq",
+          "to": "ce4e71b6-13ec-47f0-805b-765a828d4eb7",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "J6PMVEND6RW6CS1NC27OL3WTTISTEAFP->PRR": {
+        "id": "J6pmvend6Rw6CS1Nc27Ol3wTTistEAfP->PRR",
+        "from": "U_{NFkBPRR}",
+        "to": "PRR",
+        "type": "directed"
+      },
+      "J6PMVEND6RW6CS1NC27OL3WTTISTEAFP->NFKB": {
+        "id": "J6pmvend6Rw6CS1Nc27Ol3wTTistEAfP->NFkB",
+        "from": "U_{NFkBPRR}",
+        "to": "NFkB",
+        "type": "directed"
+      },
+      "O7ISRB0JWI7ZK0179HKEOVYPVL2RN53E->EGFR": {
+        "id": "o7IsRB0jWi7ZK0179hkEOVypvl2Rn53e->EGFR",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "EGFR",
+        "type": "directed"
+      },
+      "O7ISRB0JWI7ZK0179HKEOVYPVL2RN53E->IL6-STAT3": {
+        "id": "o7IsRB0jWi7ZK0179hkEOVypvl2Rn53e->IL6-STAT3",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "IL6-STAT3",
+        "type": "directed"
+      },
+      "B10OGML24MA0PBRPFDDRHYDZDVIKWOPK->0C2FA321-522F-4849-98F0-3A69AC37F8E1": {
+        "id": "Z5Z8RYTAEODYJXXSTGYYUP0NXUVF4OFR->0C2FA321-522F-4849-98F0-3A69AC37F8E1",
+        "from": "U_{EGFEGFR}",
+        "to": "EGF",
+        "type": "directed",
+        "metadata": {
+          "id": "Z5Z8RYTAEODYJXXSTGYYUP0NXUVF4OFR->0C2FA321-522F-4849-98F0-3A69AC37F8E1",
+          "from": "z5Z8RYTAEoDyjXXstGyyup0NXuvf4OFR",
+          "to": "0c2fa321-522f-4849-98f0-3a69ac37f8e1",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "B10OGML24MA0PBRPFDDRHYDZDVIKWOPK->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5": {
+        "id": "Z5Z8RYTAEODYJXXSTGYYUP0NXUVF4OFR->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+        "from": "U_{EGFEGFR}",
+        "to": "EGFR",
+        "type": "directed",
+        "metadata": {
+          "id": "Z5Z8RYTAEODYJXXSTGYYUP0NXUVF4OFR->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+          "from": "z5Z8RYTAEoDyjXXstGyyup0NXuvf4OFR",
+          "to": "b63b6e7f-82ae-48e8-a0ab-3a3e48a10bf5",
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "WVXOVNPF8R1CZNWDVVWKSGXXXC0U1MM9->EGF": {
+        "id": "WvXovNPF8r1CzNWDVVWksgXxxC0u1mm9->EGF",
+        "from": "U_{EGFEGFR}",
+        "to": "EGF",
+        "type": "directed"
+      },
+      "WVXOVNPF8R1CZNWDVVWKSGXXXC0U1MM9->EGFR": {
+        "id": "WvXovNPF8r1CzNWDVVWksgXxxC0u1mm9->EGFR",
+        "from": "U_{EGFEGFR}",
+        "to": "EGFR",
+        "type": "directed"
+      },
+      "QWZG96SRDIGAJM5KQSNFRGJ0IVKRQ2NH->PRR": {
+        "id": "QWZg96SrdIGajm5kQsnfrgJ0IVKRQ2NH->PRR",
+        "from": "U_{NFkBPRR}",
+        "to": "PRR",
+        "type": "directed"
+      },
+      "QWZG96SRDIGAJM5KQSNFRGJ0IVKRQ2NH->NFKB": {
+        "id": "QWZg96SrdIGajm5kQsnfrgJ0IVKRQ2NH->NFkB",
+        "from": "U_{NFkBPRR}",
+        "to": "NFkB",
+        "type": "directed"
+      },
+      "K6HFCR6GEZTKKDEO00PWOAXLGI95OCQL->EGFR": {
+        "id": "K6hFcr6gEztKkDEO00pWoAxLGi95ocQL->EGFR",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "EGFR",
+        "type": "directed"
+      },
+      "K6HFCR6GEZTKKDEO00PWOAXLGI95OCQL->IL6-STAT3": {
+        "id": "K6hFcr6gEztKkDEO00pWoAxLGi95ocQL->IL6-STAT3",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "IL6-STAT3",
+        "type": "directed"
+      },
+      "P4NKTSCEOT3BJTFRNU3MPTL37C4XV4K7->EGF": {
+        "id": "p4nKTsCEOT3BJtFRnu3mptL37c4Xv4K7->EGF",
+        "from": "U_{EGFEGFR}",
+        "to": "EGF",
+        "type": "directed"
+      },
+      "P4NKTSCEOT3BJTFRNU3MPTL37C4XV4K7->EGFR": {
+        "id": "p4nKTsCEOT3BJtFRnu3mptL37c4Xv4K7->EGFR",
+        "from": "U_{EGFEGFR}",
+        "to": "EGFR",
+        "type": "directed"
+      },
+      "0UCON38L6RGWMP1064XYD3INR1CQZ7PI->PRR": {
+        "id": "0ucoN38l6rGWmP1064xYd3INR1CqZ7pI->PRR",
+        "from": "U_{NFkBPRR}",
+        "to": "PRR",
+        "type": "directed"
+      },
+      "0UCON38L6RGWMP1064XYD3INR1CQZ7PI->NFKB": {
+        "id": "0ucoN38l6rGWmP1064xYd3INR1CqZ7pI->NFkB",
+        "from": "U_{NFkBPRR}",
+        "to": "NFkB",
+        "type": "directed"
+      },
+      "HUN7AQRR1CVVZGOVPQCQIBB04CI2XS7Y->EGF": {
+        "id": "HUn7AqRr1cVVZgOVPQCqIbb04cI2xs7Y->EGF",
+        "from": "U_{EGFEGFR}",
+        "to": "EGF",
+        "type": "directed"
+      },
+      "HUN7AQRR1CVVZGOVPQCQIBB04CI2XS7Y->EGFR": {
+        "id": "HUn7AqRr1cVVZgOVPQCqIbb04cI2xs7Y->EGFR",
+        "from": "U_{EGFEGFR}",
+        "to": "EGFR",
+        "type": "directed"
+      },
+      "OW4LNFMTE7FPKDJZPIAMKAB7XU5O40MB->PRR": {
+        "id": "Ow4LNfmtE7fpkdJZPiamkAb7Xu5O40Mb->PRR",
+        "from": "U_{NFkBPRR}",
+        "to": "PRR",
+        "type": "directed"
+      },
+      "OW4LNFMTE7FPKDJZPIAMKAB7XU5O40MB->NFKB": {
+        "id": "Ow4LNfmtE7fpkdJZPiamkAb7Xu5O40Mb->NFkB",
+        "from": "U_{NFkBPRR}",
+        "to": "NFkB",
+        "type": "directed"
+      },
+      "2TR0C3LHISVFSALR5QPTJZZQFN2I5BQB->EGFR": {
+        "id": "2tR0c3lhIsVFsAlr5QpTjzzqFN2i5bQb->EGFR",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "EGFR",
+        "type": "directed"
+      },
+      "2TR0C3LHISVFSALR5QPTJZZQFN2I5BQB->IL6-STAT3": {
+        "id": "2tR0c3lhIsVFsAlr5QpTjzzqFN2i5bQb->IL6-STAT3",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "IL6-STAT3",
+        "type": "directed"
+      },
+      "2AOPWPOUEIHVNLKIQISEU0RH3YZZLHTZ->EGF": {
+        "id": "2aopWpOUEihvnlkiqiSEU0Rh3yzzlHTz->EGF",
+        "from": "U_{EGFEGFR}",
+        "to": "EGF",
+        "type": "directed"
+      },
+      "2AOPWPOUEIHVNLKIQISEU0RH3YZZLHTZ->EGFR": {
+        "id": "2aopWpOUEihvnlkiqiSEU0Rh3yzzlHTz->EGFR",
+        "from": "U_{EGFEGFR}",
+        "to": "EGFR",
+        "type": "directed"
+      },
+      "WCB7QPSR31ADNTO4PUS8V5EXR0SJITGO->PRR": {
+        "id": "WCb7qPsr31aDnTo4pus8V5exr0SjITgo->PRR",
+        "from": "U_{NFkBPRR}",
+        "to": "PRR",
+        "type": "directed"
+      },
+      "WCB7QPSR31ADNTO4PUS8V5EXR0SJITGO->NFKB": {
+        "id": "WCb7qPsr31aDnTo4pus8V5exr0SjITgo->NFkB",
+        "from": "U_{NFkBPRR}",
+        "to": "NFkB",
+        "type": "directed"
+      },
+      "QKJCZ8HKDFSC2LRESWZUXDG0HYWGZZ58->EGFR": {
+        "id": "QKjCZ8hKDFSc2LresWZuXDG0HYWgzz58->EGFR",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "EGFR",
+        "type": "directed"
+      },
+      "QKJCZ8HKDFSC2LRESWZUXDG0HYWGZZ58->IL6-STAT3": {
+        "id": "QKjCZ8hKDFSc2LresWZuXDG0HYWgzz58->IL6-STAT3",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "IL6-STAT3",
+        "type": "directed"
+      },
+      "Z5Z8RYTAEODYJXXSTGYYUP0NXUVF4OFR->EGF": {
+        "id": "z5Z8RYTAEoDyjXXstGyyup0NXuvf4OFR->EGF",
+        "from": "U_{EGFEGFR}",
+        "to": "EGF",
+        "type": "directed"
+      },
+      "Z5Z8RYTAEODYJXXSTGYYUP0NXUVF4OFR->EGFR": {
+        "id": "z5Z8RYTAEoDyjXXstGyyup0NXuvf4OFR->EGFR",
+        "from": "U_{EGFEGFR}",
+        "to": "EGFR",
+        "type": "directed"
+      },
+      "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB->PRR": {
+        "id": "1wBUUTkrT7vuH1sJOE2w8SVXY7gsxfDb->PRR",
+        "from": "U_{NFkBPRR}",
+        "to": "PRR",
+        "type": "directed"
+      },
+      "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB->NFKB": {
+        "id": "1wBUUTkrT7vuH1sJOE2w8SVXY7gsxfDb->NFkB",
+        "from": "U_{NFkBPRR}",
+        "to": "NFkB",
+        "type": "directed"
+      },
+      "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X->EGFR": {
+        "id": "j2mEAs7pI7fA0a5qKD3SEOxpa4ikxB4x->EGFR",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "EGFR",
+        "type": "directed"
+      },
+      "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X->IL6-STAT3": {
+        "id": "j2mEAs7pI7fA0a5qKD3SEOxpa4ikxB4x->IL6-STAT3",
+        "from": "U_{EGFRIL6-STAT3}",
+        "to": "IL6-STAT3",
+        "type": "directed"
+      },
+      "E38DF436-9CAB-4514-93DB-50427420CEA3->CE4E71B6-13EC-47F0-805B-765A828D4EB7": {
+        "id": "E38DF436-9CAB-4514-93DB-50427420CEA3->CE4E71B6-13EC-47F0-805B-765A828D4EB7",
+        "from": "Tocilizumab",
+        "to": "sIL6R\\alpha",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "EA6463F0-2C9F-461A-A20E-EA8213D250F0--45676775-D921-44E8-8497-1DEF1F8778EA": {
+        "id": "EA6463F0-2C9F-461A-A20E-EA8213D250F0--45676775-D921-44E8-8497-1DEF1F8778EA",
+        "from": "PRR",
+        "to": "NFkB",
+        "type": "bidirected",
+        "metadata": {
+          "latentNodeIds": [
+            "1wBUUTkrT7vuH1sJOE2w8SVXY7gsxfDb"
+          ],
+          "latentEdgeIds": [
+            "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB->EA6463F0-2C9F-461A-A20E-EA8213D250F0",
+            "1WBUUTKRT7VUH1SJOE2W8SVXY7GSXFDB->45676775-D921-44E8-8497-1DEF1F8778EA"
+          ],
+          "curvature": 0.7,
+          "isLabelDraggable": true,
+          "smooth": {
+            "type": "curvedCW",
+            "roundness": 0.35,
+            "enabled": true
+          },
+          "label": ""
+        }
+      },
+      "45676775-D921-44E8-8497-1DEF1F8778EA->B3C65ABA-5B15-43ED-B3CB-6F7310D92200": {
+        "id": "45676775-D921-44E8-8497-1DEF1F8778EA->B3C65ABA-5B15-43ED-B3CB-6F7310D92200",
+        "from": "NFkB",
+        "to": "IL6-AMP",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "B3C65ABA-5B15-43ED-B3CB-6F7310D92200->7C34442D-CA46-47D9-81F9-2CB147CEE345": {
+        "id": "B3C65ABA-5B15-43ED-B3CB-6F7310D92200->7C34442D-CA46-47D9-81F9-2CB147CEE345",
+        "from": "IL6-AMP",
+        "to": "CytokineStorm",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "CE4E71B6-13EC-47F0-805B-765A828D4EB7->78F08D57-D587-4A53-854E-02DFD57E2A6D": {
+        "id": "CE4E71B6-13EC-47F0-805B-765A828D4EB7->78F08D57-D587-4A53-854E-02DFD57E2A6D",
+        "from": "sIL6R\\alpha",
+        "to": "IL6-STAT3",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "78F08D57-D587-4A53-854E-02DFD57E2A6D--B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5": {
+        "id": "78F08D57-D587-4A53-854E-02DFD57E2A6D--B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5",
+        "from": "IL6-STAT3",
+        "to": "EGFR",
+        "type": "bidirected",
+        "metadata": {
+          "latentNodeIds": [
+            "j2mEAs7pI7fA0a5qKD3SEOxpa4ikxB4x"
+          ],
+          "latentEdgeIds": [
+            "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X->78F08D57-D587-4A53-854E-02DFD57E2A6D",
+            "J2MEAS7PI7FA0A5QKD3SEOXPA4IKXB4X->B63B6E7F-82AE-48E8-A0AB-3A3E48A10BF5"
+          ],
+          "curvature": 0.7,
+          "isLabelDraggable": true,
+          "smooth": {
+            "type": "curvedCW",
+            "roundness": 0.35,
+            "enabled": true
+          },
+          "label": ""
+        }
+      },
+      "78F08D57-D587-4A53-854E-02DFD57E2A6D->B3C65ABA-5B15-43ED-B3CB-6F7310D92200": {
+        "id": "78F08D57-D587-4A53-854E-02DFD57E2A6D->B3C65ABA-5B15-43ED-B3CB-6F7310D92200",
+        "from": "IL6-STAT3",
+        "to": "IL6-AMP",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "EBED1ED7-9CFB-40AC-ABEA-5EA4EA2C5663->CAEF9DA3-513B-4049-B088-4D7D539CC849": {
+        "id": "EBED1ED7-9CFB-40AC-ABEA-5EA4EA2C5663->CAEF9DA3-513B-4049-B088-4D7D539CC849",
+        "from": "ACE2",
+        "to": "Angiotensin-II",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "CAEF9DA3-513B-4049-B088-4D7D539CC849->564CD70B-2981-4AF9-9A00-2D4EE3CF66F3": {
+        "id": "CAEF9DA3-513B-4049-B088-4D7D539CC849->564CD70B-2981-4AF9-9A00-2D4EE3CF66F3",
+        "from": "Angiotensin-II",
+        "to": "AGTR1",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0--CAEF9DA3-513B-4049-B088-4D7D539CC849": {
+        "id": "5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0--CAEF9DA3-513B-4049-B088-4D7D539CC849",
+        "from": "SARS-CoV-2",
+        "to": "Angiotensin-II",
+        "type": "bidirected",
+        "metadata": {
+          "latentNodeIds": [
+            "eoU1zLAyW2ahNW64JXOqUky2mb5IUPsR"
+          ],
+          "latentEdgeIds": [
+            "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR->5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0",
+            "EOU1ZLAYW2AHNW64JXOQUKY2MB5IUPSR->CAEF9DA3-513B-4049-B088-4D7D539CC849"
+          ],
+          "curvature": 0.7,
+          "isLabelDraggable": true,
+          "smooth": {
+            "type": "curvedCW",
+            "roundness": 0.35,
+            "enabled": true
+          },
+          "label": ""
+        }
+      },
+      "5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0->EBED1ED7-9CFB-40AC-ABEA-5EA4EA2C5663": {
+        "id": "5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0->EBED1ED7-9CFB-40AC-ABEA-5EA4EA2C5663",
+        "from": "SARS-CoV-2",
+        "to": "ACE2",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0->EA6463F0-2C9F-461A-A20E-EA8213D250F0": {
+        "id": "5C59A78A-30EF-4BE0-BFBA-48BC9D26FAD0->EA6463F0-2C9F-461A-A20E-EA8213D250F0",
+        "from": "SARS-CoV-2",
+        "to": "PRR",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "564CD70B-2981-4AF9-9A00-2D4EE3CF66F3->D394C4B4-E063-48A7-9A06-6AE5CE3AE75A": {
+        "id": "564CD70B-2981-4AF9-9A00-2D4EE3CF66F3->D394C4B4-E063-48A7-9A06-6AE5CE3AE75A",
+        "from": "AGTR1",
+        "to": "ADAM17",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A--CE4E71B6-13EC-47F0-805B-765A828D4EB7": {
+        "id": "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A--CE4E71B6-13EC-47F0-805B-765A828D4EB7",
+        "from": "ADAM17",
+        "to": "sIL6R\\alpha",
+        "type": "bidirected",
+        "metadata": {
+          "latentNodeIds": [
+            "Jc5z3oNfLUufCi7uMZeoaBVMyNny84iq"
+          ],
+          "latentEdgeIds": [
+            "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ->D394C4B4-E063-48A7-9A06-6AE5CE3AE75A",
+            "JC5Z3ONFLUUFCI7UMZEOABVMYNNY84IQ->CE4E71B6-13EC-47F0-805B-765A828D4EB7"
+          ],
+          "curvature": 0.7,
+          "isLabelDraggable": true,
+          "smooth": {
+            "type": "curvedCW",
+            "roundness": 0.35,
+            "enabled": true
+          },
+          "label": ""
+        }
+      },
+      "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A->0C2FA321-522F-4849-98F0-3A69AC37F8E1": {
+        "id": "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A->0C2FA321-522F-4849-98F0-3A69AC37F8E1",
+        "from": "ADAM17",
+        "to": "EGF",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A->0E7BC804-7AB6-4303-8BF1-13627C316421": {
+        "id": "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A->0E7BC804-7AB6-4303-8BF1-13627C316421",
+        "from": "ADAM17",
+        "to": "TNF\\alpha",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      },
+      "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A->CE4E71B6-13EC-47F0-805B-765A828D4EB7": {
+        "id": "D394C4B4-E063-48A7-9A06-6AE5CE3AE75A->CE4E71B6-13EC-47F0-805B-765A828D4EB7",
+        "from": "ADAM17",
+        "to": "sIL6R\\alpha",
+        "type": "directed",
+        "metadata": {
+          "isLabelDraggable": true,
+          "label": ""
+        }
+      }
+    },
+    "isLabelOutsideNode": false,
+    "gridSize": 30,
+    "latentNodeMode": false,
+    "nonParametricMode": true,
+    "knownEdges": [],
+    "zoom": {
+      "scale": 1.2984272583499,
+      "position": {
+        "x": 175.36777459428,
+        "y": -718.81933321385
+      }
+    },
+    "annotations": {
+      "S5Qj7JqWPxskqyqxMBO3fmWdnx9k3XVS": {
+        "id": "S5Qj7JqWPxskqyqxMBO3fmWdnx9k3XVS",
+        "type": "label",
+        "metadata": {
+          "targetId": "5c59a78a-30ef-4be0-bfba-48bc9d26fad0",
+          "label": "",
+          "x": -60,
+          "y": -890,
+          "labelNodeId": "7mgfc1qfS8yBEStBSQ9k8WV4bwQTLw3F",
+          "labelNodeOffset": {
+            "x": 0,
+            "y": 20
+          },
+          "shape": "box",
+          "fontSize": 14,
+          "sizeLabelMode": 5,
+          "font": {
+            "size": 14
+          },
+          "size": 14
+        }
+      },
+      "dHWtnKN5hbMYvkD9mkOZfNjXapWIear8": {
+        "id": "dHWtnKN5hbMYvkD9mkOZfNjXapWIear8",
+        "type": "label",
+        "metadata": {
+          "targetId": "ebed1ed7-9cfb-40ac-abea-5ea4ea2c5663",
+          "label": "     ",
+          "x": 90,
+          "y": -890
+        }
+      },
+      "772zpvU7NAKgn76T1VQhZEIyCYQxOB37": {
+        "id": "772zpvU7NAKgn76T1VQhZEIyCYQxOB37",
+        "type": "label",
+        "metadata": {
+          "targetId": "caef9da3-513b-4049-b088-4d7d539cc849",
+          "label": "     ",
+          "x": 240,
+          "y": -890
+        }
+      },
+      "1QlKavJpVUwbQYhD6a9Mjx1JYeNW7ZhE": {
+        "id": "1QlKavJpVUwbQYhD6a9Mjx1JYeNW7ZhE",
+        "type": "label",
+        "metadata": {
+          "targetId": "564cd70b-2981-4af9-9a00-2d4ee3cf66f3",
+          "label": "     ",
+          "x": 390,
+          "y": -890
+        }
+      },
+      "NcQxLSJosjApDUBe7J3Z9imyhbs8InBS": {
+        "id": "NcQxLSJosjApDUBe7J3Z9imyhbs8InBS",
+        "type": "label",
+        "metadata": {
+          "targetId": "d394c4b4-e063-48a7-9a06-6ae5ce3ae75a",
+          "label": "     ",
+          "x": 510,
+          "y": -890
+        }
+      },
+      "76LJ1kDTfmb2q8Dlspk6QAsgDHZCOhrx": {
+        "id": "76LJ1kDTfmb2q8Dlspk6QAsgDHZCOhrx",
+        "type": "label",
+        "metadata": {
+          "targetId": "ce4e71b6-13ec-47f0-805b-765a828d4eb7",
+          "label": "     ",
+          "x": 510,
+          "y": -770
+        }
+      },
+      "d3mNa4Y9PLp0x2dC6OUJz3ffCJVnnGat": {
+        "id": "d3mNa4Y9PLp0x2dC6OUJz3ffCJVnnGat",
+        "type": "label",
+        "metadata": {
+          "targetId": "78f08d57-d587-4a53-854e-02dfd57e2a6d",
+          "label": "     ",
+          "x": 360,
+          "y": -680
+        }
+      },
+      "x8rUxo5IZVDLn7wxdcAIhFdOiCsv21nL": {
+        "id": "x8rUxo5IZVDLn7wxdcAIhFdOiCsv21nL",
+        "type": "label",
+        "metadata": {
+          "targetId": "0e7bc804-7ab6-4303-8bf1-13627c316421",
+          "label": "     ",
+          "x": 390,
+          "y": -770
+        }
+      },
+      "GwFwG8YFm1lWNvDbpuFeyZfX3W7NWNIb": {
+        "id": "GwFwG8YFm1lWNvDbpuFeyZfX3W7NWNIb",
+        "type": "label",
+        "metadata": {
+          "targetId": "0c2fa321-522f-4849-98f0-3a69ac37f8e1",
+          "label": "     ",
+          "x": 240,
+          "y": -830
+        }
+      },
+      "J9Hj95a2t4itzuV1GK38sZ6YvLce2w3T": {
+        "id": "J9Hj95a2t4itzuV1GK38sZ6YvLce2w3T",
+        "type": "label",
+        "metadata": {
+          "targetId": "b63b6e7f-82ae-48e8-a0ab-3a3e48a10bf5",
+          "label": "     ",
+          "x": 240,
+          "y": -770
+        }
+      },
+      "Ky1paYsFBvmtTl8f2XdjfNOIJPjEQcVQ": {
+        "id": "Ky1paYsFBvmtTl8f2XdjfNOIJPjEQcVQ",
+        "type": "label",
+        "metadata": {
+          "targetId": "ea6463f0-2c9f-461a-a20e-ea8213d250f0",
+          "label": "     ",
+          "x": -60,
+          "y": -770
+        }
+      },
+      "Lm8twFqQbSqWce8dkpt1ThTfB0ahRayd": {
+        "id": "Lm8twFqQbSqWce8dkpt1ThTfB0ahRayd",
+        "type": "label",
+        "metadata": {
+          "targetId": "45676775-d921-44e8-8497-1def1f8778ea",
+          "label": "     ",
+          "x": 90,
+          "y": -680
+        }
+      },
+      "fWXoVnm2euVWunkJg88aDqfGveHjbz6r": {
+        "id": "fWXoVnm2euVWunkJg88aDqfGveHjbz6r",
+        "type": "label",
+        "metadata": {
+          "targetId": "b3c65aba-5b15-43ed-b3cb-6f7310d92200",
+          "label": "     ",
+          "x": 210,
+          "y": -590
+        }
+      },
+      "jF3jgVGJEALa7zDXHrzdA1uuoWdtAf8U": {
+        "id": "jF3jgVGJEALa7zDXHrzdA1uuoWdtAf8U",
+        "type": "label",
+        "metadata": {
+          "targetId": "7c34442d-ca46-47d9-81f9-2cb147cee345",
+          "label": "     ",
+          "x": 210,
+          "y": -500
+        }
+      },
+      "OWwk0SZpKPIWqp2BawZ7K1eXdb750WoC": {
+        "id": "OWwk0SZpKPIWqp2BawZ7K1eXdb750WoC",
+        "type": "label",
+        "metadata": {
+          "targetId": "e38df436-9cab-4514-93db-50427420cea3",
+          "label": "     ",
+          "x": 510,
+          "y": -680
+        }
+      },
+      "7mgfc1qfS8yBEStBSQ9k8WV4bwQTLw3F": {
+        "id": "7mgfc1qfS8yBEStBSQ9k8WV4bwQTLw3F",
+        "type": "label",
+        "metadata": {
+          "targetId": "S5Qj7JqWPxskqyqxMBO3fmWdnx9k3XVS",
+          "label": "",
+          "x": -60,
+          "y": -910
+        }
+      },
+      "2uF3XLGfezmPoGr0yms7TLX3SoMcHV1A": {
+        "id": "2uF3XLGfezmPoGr0yms7TLX3SoMcHV1A",
+        "type": "label",
+        "metadata": {
+          "targetId": "46cce0c3-9b88-4478-bf9f-f1fed47b4092",
+          "label": "     ",
+          "x": 120,
+          "y": -830
+        }
+      }
+    }
+  },
+  "project_id": "235DF350D9A1A729",
+  "_fileType": "graph"
+}

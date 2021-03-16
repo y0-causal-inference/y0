@@ -4,11 +4,13 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar, Union
 
 import networkx as nx
 from ananke.graphs import ADMG
+from networkx.utils import open_file
 
 __all__ = [
     'NxMixedGraph',
@@ -211,6 +213,26 @@ class NxMixedGraph(Generic[X]):
         for u, vs in undirected.items():
             for v in vs:
                 rv.add_undirected_edge(u, v)
+        return rv
+
+    @classmethod
+    @open_file(1)
+    def from_causalfusion_path(cls, file) -> NxMixedGraph:
+        """Load a graph from a CausalFusion JSON file."""
+        return cls.from_causalfusion_json(json.load(file))
+
+    @classmethod
+    def from_causalfusion_json(cls, data: Mapping[str, Any]) -> NxMixedGraph:
+        """Load a graph from a CausalFusion JSON object."""
+        rv = cls()
+        for edge in data['edges']:
+            u, v = edge['from'], edge['to']
+            if edge['type'] == 'directed':
+                rv.add_directed_edge(u, v)
+            elif edge['type'] == 'bidirected':
+                rv.add_undirected_edge(u, v)
+            else:
+                raise ValueError(f'unhandled edge type: {edge["type"]}')
         return rv
 
 

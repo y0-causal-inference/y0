@@ -8,6 +8,7 @@ from typing import Set, Tuple
 
 from y0.examples import verma_1
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
+from y0.resources import VIRAL_PATHOGENESIS_PATH
 
 
 class TestGraph(unittest.TestCase):
@@ -40,7 +41,7 @@ class TestGraph(unittest.TestCase):
         self.assertEqual(set(graph.undirected.edges()), set(reconstituted.undirected.edges()))
 
     def test_convertable(self):
-        """Tests graphs are convertable."""
+        """Test graphs are convertable."""
         for graph, labeled_edges in [
             (verma_1, {
                 ('V1', 'V2'), ('V2', 'V3'), ('V3', 'V4'),
@@ -49,3 +50,8 @@ class TestGraph(unittest.TestCase):
         ]:
             with self.subTest():
                 self.assert_labeled_convertable(graph, labeled_edges)
+
+    def test_from_causalfusion(self):
+        """Test importing a CausalFusion graph."""
+        graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
+        self.assertIsInstance(graph, NxMixedGraph)
