@@ -42,7 +42,8 @@ class Result(NamedTuple):
     admg: ADMG
 
 
-def taheri_design_admg(graph: ADMG, cause: str, effect: str, *, tag: Optional[str] = None) -> List[Result]:
+def taheri_design_admg(graph: Union[ADMG, NxMixedGraph], cause: str, effect: str, *, tag: Optional[str] = None) -> List[
+    Result]:
     """Run the brute force implementation of the Taheri Design algorithm on an ADMG.
 
     :param graph: An ADMG
@@ -54,6 +55,8 @@ def taheri_design_admg(graph: ADMG, cause: str, effect: str, *, tag: Optional[st
     """
     if tag is None:
         tag = DEFAULT_TAG
+    if isinstance(graph, NxMixedGraph):
+        graph = graph.to_admg()
     dag = admg_to_latent_variable_dag(graph, tag=tag)
     fixed_latents = {
         node
