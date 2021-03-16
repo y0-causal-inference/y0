@@ -145,7 +145,7 @@ def iterate_lvdags(
     skip: Optional[Iterable[str]] = None,
     *,
     tag: Optional[str] = None,
-    stop: Optional[str] = None,
+    stop: Optional[int] = None,
 ) -> Iterable[Tuple[Set[str], nx.DiGraph]]:
     """Iterate over all possible latent variable configurations for the given graph.
 
