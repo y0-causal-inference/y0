@@ -21,8 +21,6 @@ __all__ = [
     'admg_to_latent_variable_dag',
     'admg_from_latent_variable_dag',
     'set_latent',
-    'from_causalfusion_path',
-    'from_causalfusion_json',
 ]
 
 X = TypeVar('X')
@@ -222,6 +220,26 @@ class NxMixedGraph(Generic[X]):
                 rv.add_undirected_edge(u, v)
         return rv
 
+    @classmethod
+    @open_file(1)
+    def from_causalfusion_path(cls, file) -> NxMixedGraph:
+        """Load a graph from a CausalFusion JSON file."""
+        return cls.from_causalfusion_json(json.load(file))
+
+    @classmethod
+    def from_causalfusion_json(cls, data: Mapping[str, Any]) -> NxMixedGraph:
+        """Load a graph from a CausalFusion JSON object."""
+        rv = cls()
+        for edge in data['edges']:
+            u, v = edge['from'], edge['to']
+            if edge['type'] == 'directed':
+                rv.add_directed_edge(u, v)
+            elif edge['type'] == 'bidirected':
+                rv.add_undirected_edge(u, v)
+            else:
+                raise ValueError(f'unhandled edge type: {edge["type"]}')
+        return rv
+
 
 def admg_to_latent_variable_dag(
     graph: ADMG,
@@ -303,23 +321,3 @@ def set_latent(graph: nx.DiGraph, latent_nodes: Union[str, Iterable[str]], tag: 
     latent_nodes = set(latent_nodes)
     for node, data in graph.nodes(data=True):
         data[tag] = node in latent_nodes
-
-
-@open_file(0)
-def from_causalfusion_path(file) -> NxMixedGraph:
-    """Load a graph from a CausalFusion JSON file."""
-    return from_causalfusion_json(json.load(file))
-
-
-def from_causalfusion_json(data: Mapping[str, Any]) -> NxMixedGraph:
-    """Load a graph from a CausalFusion JSON object."""
-    rv: NxMixedGraph = NxMixedGraph()
-    for edge in data['edges']:
-        u, v = edge['from'], edge['to']
-        if edge['type'] == 'directed':
-            rv.add_directed_edge(u, v)
-        elif edge['type'] == 'bidirected':
-            rv.add_undirected_edge(u, v)
-        else:
-            raise ValueError(f'unhandled edge type: {edge["type"]}')
-    return rv
