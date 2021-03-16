@@ -100,6 +100,11 @@ def _get_result(lvdag, latents, cause, effect, *, tag: Optional[str] = None) -> 
     # Convert the latent variable DAG to an ADMG
     admg = admg_from_latent_variable_dag(lvdag, tag=tag)
 
+    if cause not in admg.vertices:
+        raise KeyError(f'ADMG missing cause: {cause}')
+    if effect not in admg.vertices:
+        raise KeyError(f'ADMG missing effect: {effect}')
+
     # Check if the ADMG is identifiable under the (simple) causal query
     identifiable = is_identifiable(admg, P(Variable(effect) @ ~Variable(cause)))
 
