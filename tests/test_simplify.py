@@ -38,15 +38,19 @@ pre_equation_1 = _a * _b * _c * _e / _d
 equation_1 = P(Z1 | (Z2, X)) * P(Z2) * P(Y) * Sum[X](_y * _z3 * _x)
 
 figure_3 = NxMixedGraph()
-figure_3.add_directed_edge('W','X')
-figure_3.add_directed_edge('Z','W')
-figure_3.add_directed_edge('Y','Z')
-figure_3.add_directed_edge('Z','X')
-figure_3.add_directed_edge('Y','X')
+figure_3.add_directed_edge('W', 'X')
+figure_3.add_directed_edge('Z', 'W')
+figure_3.add_directed_edge('Y', 'Z')
+figure_3.add_directed_edge('Z', 'X')
+figure_3.add_directed_edge('Y', 'X')
 
-pre_equation_3 = Sum[Z,Y](P(Y) * P(Z | Y) * P(X | (W, Z, Y) ))
-topological_ordering_3 = ['X', 'W', 'Z','Y']
+W, X, Y, Z = (Variable(s) for s in 'W X Y Z'.split())
+pre_equation_3 = Sum[Z, Y](P(Y) * P(Z | Y) * P(X | (W, Z, Y)))
+equation_3 = Sum[Z](P(X | W, Z) * P(Z))
+topological_ordering_3 = ['X', 'W', 'Z', 'Y']
 M = set(['W'])
+
+
 class TestSimplify(unittest.TestCase):
     """Tests of the simplification algorithm."""
 
