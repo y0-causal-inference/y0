@@ -37,7 +37,16 @@ _e = Sum[X, Z3, Y](_i)
 pre_equation_1 = _a * _b * _c * _e / _d
 equation_1 = P(Z1 | (Z2, X)) * P(Z2) * P(Y) * Sum[X](_y * _z3 * _x)
 
+figure_3 = NxMixedGraph()
+figure_3.add_directed_edge('W','X')
+figure_3.add_directed_edge('Z','W')
+figure_3.add_directed_edge('Y','Z')
+figure_3.add_directed_edge('Z','X')
+figure_3.add_directed_edge('Y','X')
 
+pre_equation_3 = Sum[Z,Y](P(Y) * P(Z | Y) * P(X | (W, Z, Y) ))
+topological_ordering_3 = ['X', 'W', 'Z','Y']
+M = set(['W'])
 class TestSimplify(unittest.TestCase):
     """Tests of the simplification algorithm."""
 
@@ -49,3 +58,27 @@ class TestSimplify(unittest.TestCase):
         ]:
             with self.subTest():
                 self.assertEqual(simplified_expression, simplify(expression, graph=graph, ordering=ordering))
+
+    def test_insert(self):
+        """Test the :func:`y0.simplify.insert` function."""
+        pass
+
+    def test_join(self):
+        """Test the :func:`y0.simplify.join` function."""
+        pass
+
+    def test_deconstruct(self):
+        """Test the :func:`y0.simplify.deconstruct` function."""
+        pass
+
+    def test_extract(self):
+        """Test the :func:`y0.simplify.extract` function."""
+        pass
+
+    def test_qsimplify(self):
+        """Test the :func:`y0.simplify.qsimplify` function."""
+        pass
+
+    def test_factorize(self):
+        """Test the :func:`y0.simplify.factorize` function."""
+        pass
