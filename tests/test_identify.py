@@ -101,8 +101,8 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge('Z', 'Y')
         graph.add_undirected_edge('X', 'Y')
         #print(identify(graph,Y@X).to_text())
-        expr = '[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(Y|X,Z) P(X) ] ] ]'
-
+        #expr = '[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(Y|X,Z) P(X) ] ] ]'
+        expr = '[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]'
 #         self.assertEqual(
 #             (
 #                 Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ)))
@@ -111,3 +111,7 @@ class TestIdentify(unittest.TestCase):
 #             identify(graph, Y@X),
 #         )
         self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
+
+
+if __name__ == '__main__':
+    unittest.main()
