@@ -11,6 +11,7 @@ y0 |release| Documentation
    parser
    graph
    examples
+   mutation
    identification
    cli
 
