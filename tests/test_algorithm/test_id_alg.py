@@ -41,7 +41,7 @@ class TestIdentify(unittest.TestCase):
         """Test Figure 2A."""
         graph = NxMixedGraph()
         graph.add_directed_edge('X', 'Y')
-        #print(identify(graph,Y@X).to_text())
+        print(identify(graph,Y@X).to_text())
         expr = '[ sum_{} P(Y|X) ]'
         #self.assert_identify(P_XY / Sum[Y](P_XY), graph, Y@X)
         self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
@@ -54,7 +54,7 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge('X', 'Z')
         graph.add_directed_edge('Z', 'Y')
         graph.add_undirected_edge('Y', 'Z')
-        #print(identify(graph,Y@X).to_text())
+        print(identify(graph,Y@X).to_text())
         expr = '[ sum_{Z} P(Z|X) P(Y|X,Z) ]'
         #self.assertEqual(
         #    Sum[Z](Sum[Y](P_XY) / (Sum[Z](Sum[Y](P_XY))) * (P_XY / Sum[Y](P_XY))),
@@ -69,7 +69,7 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge('Z', 'X')
         graph.add_directed_edge('Z', 'Y')
         graph.add_undirected_edge('Y', 'Z')
-        #print(identify(graph,Y@X).to_text())
+        print(identify(graph,Y@X).to_text())
         expr = '[ sum_{Z} P(Z) P(Y|X,Z) ]'
 
         #self.assertEqual(
@@ -85,7 +85,7 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge('Z', 'X')
         graph.add_directed_edge('Z', 'Y')
         graph.add_undirected_edge('X', 'Z')
-        #print(identify(graph,Y@X).to_text())
+        print(identify(graph,Y@X).to_text())
         expr = '[ sum_{Z} [ sum_{} P(Y|X,Z) ] [ sum_{} [ sum_{X,Y} P(X,Y,Z) ] ] ]'
 
 #         self.assertEqual(
@@ -100,9 +100,11 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge('X', 'Z')
         graph.add_directed_edge('Z', 'Y')
         graph.add_undirected_edge('X', 'Y')
-        #print(identify(graph,Y@X).to_text())
+        print('ID output:', identify(graph,Y@X).to_text())
         #expr = '[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(Y|X,Z) P(X) ] ] ]'
+        
         expr = '[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]'
+        print('Expected:',grammar.parseString(expr)[0])
 #         self.assertEqual(
 #             (
 #                 Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ)))
