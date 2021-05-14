@@ -8,7 +8,3 @@ __all__ = [
     'canonicalize','conditional_to_fraction'  
 ]
 
-def conditional_to_fraction( a: Probability ):
-    if a.distribution.is_conditioned():
-        children, parents = a.distribution.children, a.distribution.parents
-        return P(children + parents )/Sum[parents](P(children + parents ))

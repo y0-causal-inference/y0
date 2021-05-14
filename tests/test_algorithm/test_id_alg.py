@@ -8,7 +8,7 @@ from y0.algorithm.identify import identify  # does not exist yet
 from y0.dsl import Expression, P, Sum, X, Y, Z
 from y0.graph import NxMixedGraph
 from y0.mutate import canonicalize
-
+from y0.parser import parse_craig
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
 
@@ -41,7 +41,8 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge("X", "Y")
         print(identify(graph, Y @ X).to_text())
         expr = "[ sum_{} P(Y|X) ]"
-        self.assert_identify(P_XY / Sum[Y](P_XY), graph, Y @ X)
+        frac_expr = P_XY / Sum[Y](P_XY)
+        self.assert_identify(parse_craig(expr), graph, Y @ X)
 
     def test_figure_2b(self):
         """Test Figure 2B."""
@@ -52,8 +53,10 @@ class TestIdentify(unittest.TestCase):
         graph.add_undirected_edge("Y", "Z")
         print(identify(graph, Y @ X).to_text())
         expr = "[ sum_{Z} P(Z|X) P(Y|X,Z) ]"
+        cond_expr = Sum[Z](P(Z|X)*P(Y|X,Z))
+        frac_expr = Sum[Z](Sum[Y](P_XY) / (Sum[Z](Sum[Y](P_XY))) * (P_XY / Sum[Y](P_XY)))
         self.assert_expr_equal(
-            Sum[Z](Sum[Y](P_XY) / (Sum[Z](Sum[Y](P_XY))) * (P_XY / Sum[Y](P_XY))),
+            parse_craig(expr),
             identify(graph, Y @ X),
         )
 
@@ -66,18 +69,19 @@ class TestIdentify(unittest.TestCase):
         graph.add_undirected_edge("Y", "Z")
         print(identify(graph, Y @ X).to_text())
         expr = "[ sum_{Z} P(Z) P(Y|X,Z) ]"
-
-        self.assert_expr_equal(
-            Sum[Z](
+        cond_expr = Sum[Z](P(Z)* P(Y|X,Z))
+        frac_expr = Sum[Z](
                 Sum[X, Y](P_XYZ) / (Sum[Z](Sum[X, Y](P_XYZ))) * (P_XYZ / Sum[Y](P_XYZ))
-            ),
+            )
+        self.assert_expr_equal(
+            parse_craig(expr),
             identify(graph, Y @ X),
         )
         # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
     def test_figure_2d(self):
         """Test Figure 2D.
-        expr = '[ sum_{Z} [ sum_{} P(Y|X,Z) ] [ sum_{} [ sum_{X,Y} P(X,Y,Z) ] ] ]'
+        frac_expr = Sum[Z](Sum[X, Y](P_XYZ) * P_XYZ / Sum[Y](P_XYZ))
         """
         graph = NxMixedGraph()
         graph.add_directed_edge("X", "Y")
@@ -86,27 +90,29 @@ class TestIdentify(unittest.TestCase):
         graph.add_undirected_edge("X", "Z")
         print(identify(graph, Y @ X).to_text())
 
+        expr = '[ sum_{Z} [ sum_{} P(Y|X,Z) ] [ sum_{} [ sum_{X,Y} P(X,Y,Z) ] ] ]'
         self.assert_expr_equal(
-            Sum[Z](Sum[X, Y](P_XYZ) * P_XYZ / Sum[Y](P_XYZ)),
+            parse_craig( expr ),
             identify(graph, Y @ X),
         )
         # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
     def test_figure_2e(self):
-        """Test Figure 2E.
-        expr = '[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]"""
+        """Test Figure 2E."""
         graph = NxMixedGraph()
         graph.add_directed_edge("X", "Z")
         graph.add_directed_edge("Z", "Y")
         graph.add_undirected_edge("X", "Y")
-
-        self.assert_expr_equal(
-            (
+        expr = '[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]'
+        cond_expr =             Sum[Z](P(Z|X))*Sum[X](P(X)*P(Y|X,Z))
+        frac_expr = (
                 Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ)))
                 * Sum[X](
                     P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
                 )
-            ),
+            )
+        self.assert_expr_equal(
+            parse_craig(expr),
             identify(graph, Y @ X),
         )
         # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
