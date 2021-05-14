@@ -5,28 +5,12 @@
 import unittest
 
 from y0.algorithm.identify import identify  # does not exist yet
-from y0.algorithm.identify.utils import causal_graph as cg
 from y0.dsl import Expression, P, Sum, X, Y, Z
 from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize import canonicalize
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
-
-
-def nxmixedgraph_to_craig(graph: NxMixedGraph):
-    di_edges = list(self.directed.edges())
-    bi_edges = list(self.undirected.edges())
-    vertices = list(self.directed)  # could be either since they're maintained together
-    str_list = [f"{U} => {V}" for U, V in di_edges]
-    type_dict = dict([(U, "continuous") for U in vertices])
-    graph_craig = cg.str_graph(str_list, "SCM", type_dict)
-    graph_craig.add_confound([[U, V] for U, V in bi_edges])
-    return graph_craig
-
-
-def cause_effect_from_query(query: Expression):
-    return ["X"], ["Y"]
 
 
 class TestIdentify(unittest.TestCase):
