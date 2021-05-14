@@ -7,7 +7,12 @@ from y0.dsl import Expression
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
 from y0.parser.craig.grammar import grammar
-from y0.algorithm.identify.utils import str_graph, nxmixedgraph_to_causal_graph, nxmixedgraph_to_bel2scm_causal_graph
+from y0.algorithm.identify.utils import (
+    str_graph,
+    nxmixedgraph_to_causal_graph,
+    nxmixedgraph_to_bel2scm_causal_graph,
+)
+
 
 def identify(graph: NxMixedGraph, query: Expression) -> Expression:
     """Currently a wrapper for bel2scm.causal_graph.id_alg()"""
@@ -15,10 +20,8 @@ def identify(graph: NxMixedGraph, query: Expression) -> Expression:
     outcomes = _get_outcomes(query.get_variables())
     cg = nxmixedgraph_to_causal_graph(graph)
     expr = cg.id_alg(outcomes, treatments)
-    #expr = id_alg(graph, outcomes, treatments)
+    # expr = id_alg(graph, outcomes, treatments)
     return grammar.parseString(expr)[0]
-
-
 
 
 # def str_list(node_list):

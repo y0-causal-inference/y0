@@ -24,8 +24,9 @@ class TestIdentify(unittest.TestCase):
         expected_canonical = canonicalize(expected, ordering)
         actual_canonical = canonicalize(actual, ordering)
         self.assertEqual(
-            expected_canonical, actual_canonical,
-            msg=f'\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}',
+            expected_canonical,
+            actual_canonical,
+            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
         )
 
     def assert_identify(
@@ -103,8 +104,8 @@ class TestIdentify(unittest.TestCase):
             (
                 Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ)))
                 * Sum[X](
-                P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
-            )
+                    P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
+                )
             ),
             identify(graph, Y @ X),
         )
