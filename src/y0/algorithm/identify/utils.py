@@ -2,7 +2,7 @@
 
 """Utilities for identifiaction algorithms"""
 
-from bel2scm import causal_graph
+#
 
 from y0.graph import NxMixedGraph
 import networkx as nx
@@ -16,7 +16,8 @@ __all__ = [
 # TODO copy code for causal_graph class
 
 def nxmixedgraph_to_bel2scm_causal_graph(graph: NxMixedGraph):
-    """Converts NxMixedGraph to y0.algorithm.identify.utils.causal_graph"""
+    """Converts NxMixedGraph to bel2scm.causal_graph"""
+    from bel2scm import causal_graph
     di_edges = list(graph.directed.edges())
     bi_edges = list(graph.undirected.edges())
     vertices = list(graph.directed)  # could be either since they're maintained together
