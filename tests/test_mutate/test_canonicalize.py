@@ -7,16 +7,11 @@ import unittest
 from typing import Sequence
 
 from y0.dsl import A, B, C, D, Expression, P, Sum, Variable, X, Y, Z
-from y0.mutate.canonicalize import canonicalize
+from y0.mutate import canonicalize
 
 
 class TestCanonicalize(unittest.TestCase):
     """Tests for the canonicalization of a simplified algorithm."""
-
-    def test_canonicalize_raises(self):
-        """Test a value error is raised for non markov-conditioning expressions."""
-        with self.assertRaises(ValueError):
-            canonicalize(P(A, B, C), [A, B, C])
 
     def assert_canonicalize(self, expected: Expression, expression: Expression, ordering: Sequence[Variable]) -> None:
         """Check that the expression is canonicalized properly given an ordering."""
@@ -95,11 +90,31 @@ class TestCanonicalize(unittest.TestCase):
             itt.permutations((P(C), P(D))),
         ):
             sexpr = Sum(a * b) * Sum(c * d)
-            self.assert_canonicalize(expected, sexpr * P(X), [A, B, C, D])
-            self.assert_canonicalize(expected, P(X) * sexpr, [A, B, C, D])
+            self.assert_canonicalize(expected, sexpr * P(X), [A, B, C, D, X])
+            self.assert_canonicalize(expected, P(X) * sexpr, [A, B, C, D, X])
 
         expected = expression = Sum(P(A) / P(B))
         self.assert_canonicalize(expected, expression, [A, B])
 
         expected = expression = Sum(P(A) / Sum(P(B))) * Sum(P(A) / Sum(P(B) / P(C)))
         self.assert_canonicalize(expected, expression, [A, B, C])
+
+    def test_non_markov(self):
+        """Test non-markov distributions (e.g., with multiple children)."""
+        for c1, c2 in itt.permutations([A, B]):
+            # No conditions
+            self.assert_canonicalize(P(A & B), P(c1 & c2), [A, B])
+            # One condition, C
+            self.assert_canonicalize(P(A & B | C), P(c1 & c2 | C), [A, B, C])
+            # Two conditions, C and D
+            for p1, p2 in itt.permutations([C, D]):
+                self.assert_canonicalize(P(A & B | C | D), P(c1 & c2 | (p1, p2)), [A, B, C, D])
+
+        for c1, c2, c3 in itt.permutations([A, B, C]):
+            self.assert_canonicalize(P(A, B, C), P(c1, c2, c3), [A, B, C])
+            for p1, p2, p3 in itt.permutations([X, Y, Z]):
+                self.assert_canonicalize(
+                    P(A & B & C | (X, Y, Z)),
+                    P(c1 & c2 & c3 | (p1 & p2 & p3)),
+                    [A, B, C, X, Y, Z],
+                )

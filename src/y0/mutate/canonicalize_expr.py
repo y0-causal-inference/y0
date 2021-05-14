@@ -2,33 +2,29 @@
 
 """Implementation of the canonicalization algorithm."""
 
-from typing import Sequence, Union
+from operator import attrgetter
+from typing import Optional, Sequence, Tuple, Union
 
 from ..dsl import Distribution, Expression, Fraction, Probability, Product, Sum, Variable, _upgrade_ordering
-from ..predicates import has_markov_postcondition
 
 __all__ = [
     'canonicalize',
 ]
 
 
-def canonicalize(expression: Expression, ordering: Sequence[Union[str, Variable]]) -> Expression:
+def canonicalize(expression: Expression, ordering: Optional[Sequence[Union[str, Variable]]] = None) -> Expression:
     """Canonicalize an expression that meets the markov condition with respect to the given ordering.
 
     :param expression: An expression to canonicalize
-    :param ordering: A toplogical ordering
+    :param ordering: A toplogical ordering. If none is given, it is assigned by sort order of the variable names.
     :return: A canonical expression
-    :raises ValueError: if the expression does not pass the markov postcondition
-    :raises ValueError: if the ordering has duplicates
     """
-    if not has_markov_postcondition(expression):
-        raise ValueError(f'can not canonicalize expression that does not have the markov postcondition: {expression}')
+    if ordering is None:  # use alphabetical ordering
+        _ordering: Sequence[Variable] = sorted(expression.get_variables(), key=attrgetter('name'))
+    else:
+        _ordering = _upgrade_ordering(ordering)
 
-    ordering = _upgrade_ordering(ordering)
-    if len(set(ordering)) != len(ordering):
-        raise ValueError(f'ordering has duplicates: {ordering}')
-
-    canonicalizer = Canonicalizer(ordering)
+    canonicalizer = Canonicalizer(_ordering)
     return canonicalizer.canonicalize(expression)
 
 
@@ -43,7 +39,12 @@ class Canonicalizer:
         """Initialize the canonicalizer.
 
         :param ordering: A topological ordering over the variables appearing in the expression.
+
+        :raises ValueError: if the ordering has duplicates
         """
+        if len(set(ordering)) != len(ordering):
+            raise ValueError(f'ordering has duplicates: {ordering}')
+
         self.ordering = ordering
         self.ordering_level = {
             variable: level
@@ -52,9 +53,12 @@ class Canonicalizer:
 
     def _canonicalize_probability(self, expression: Probability) -> Probability:
         return Probability(Distribution(
-            children=expression.distribution.children,
-            parents=tuple(sorted(expression.distribution.parents, key=self.ordering_level.__getitem__)),
+            children=self._sorted(expression.distribution.children),
+            parents=self._sorted(expression.distribution.parents),
         ))
+
+    def _sorted(self, variables: Tuple[Variable, ...]) -> Tuple[Variable, ...]:
+        return tuple(sorted(variables, key=self.ordering_level.__getitem__))
 
     def canonicalize(self, expression: Expression) -> Expression:
         """Canonicalize an expression.
