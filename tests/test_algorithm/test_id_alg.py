@@ -7,7 +7,7 @@ import unittest
 from y0.algorithm.identify import identify  # does not exist yet
 from y0.dsl import Expression, P, Sum, X, Y, Z
 from y0.graph import NxMixedGraph
-from y0.mutate.canonicalize import canonicalize
+from y0.mutate import canonicalize
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
