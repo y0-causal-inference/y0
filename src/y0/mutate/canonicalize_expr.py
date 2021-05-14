@@ -18,8 +18,6 @@ def canonicalize(expression: Expression, ordering: Optional[Sequence[Union[str, 
     :param expression: An expression to canonicalize
     :param ordering: A toplogical ordering. If none is given, it is assigned by sort order of the variable names.
     :return: A canonical expression
-    :raises ValueError: if the expression does not pass the markov postcondition
-    :raises ValueError: if the ordering has duplicates
     """
     if ordering is None:  # use alphabetical ordering
         _ordering: Sequence[Variable] = sorted(expression.get_variables(), key=attrgetter('name'))
@@ -41,6 +39,8 @@ class Canonicalizer:
         """Initialize the canonicalizer.
 
         :param ordering: A topological ordering over the variables appearing in the expression.
+
+        :raises ValueError: if the ordering has duplicates
         """
         if len(set(ordering)) != len(ordering):
             raise ValueError(f'ordering has duplicates: {ordering}')
