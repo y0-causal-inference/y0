@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 
-
 """Tests for the identify algorithm."""
 
 import unittest
 
-from bel2scm import causal_graph as cg
-from y0.parser.craig.grammar import grammar
+from y0.algorithm.identify import identify  # does not exist yet
+from y0.algorithm.identify.utils import causal_graph as cg
 from y0.dsl import Expression, P, Sum, X, Y, Z
 from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize import canonicalize
-
-# MixedGraph,
-from y0.algorithm.identify import identify  # does not exist yet
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
@@ -120,8 +116,8 @@ class TestIdentify(unittest.TestCase):
             (
                 Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ)))
                 * Sum[X](
-                    P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
-                )
+                P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
+            )
             ),
             identify(graph, Y @ X),
         )
