@@ -27,7 +27,7 @@ copyright = f'{date.today().year}, Jeremy Zucker and Charles Tapley Hoyt'
 author = 'Jeremy Zucker and Charles Tapley Hoyt'
 
 # The full version, including alpha/beta/rc tags.
-release = '0.0.2-dev'
+release = '0.0.6-dev'
 
 # The short X.Y version.
 parsed_version = re.match(
@@ -226,6 +226,8 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'https://docs.python.org/3/': None,
+    'networkx': ('https://networkx.org/documentation/latest/', None),
+    'ananke': ('https://ananke.readthedocs.io/en/latest', None),
 }
 
 autoclass_content = 'both'

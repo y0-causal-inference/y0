@@ -9,6 +9,10 @@ y0 |release| Documentation
    installation
    dsl
    parser
+   graph
+   examples
+   mutation
+   identification
    cli
 
 Indices and Tables

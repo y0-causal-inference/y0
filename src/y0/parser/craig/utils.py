@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
-"""Utilities for the parser."""
+"""Utilities for the parser for Craig-like probability expressions."""
 
 from pyparsing import Group, Optional, ParseResults, Suppress, Word, alphas, delimitedList
 
-from .dsl import (CounterfactualVariable, Distribution, Intervention, Probability, Variable)
+from ...dsl import CounterfactualVariable, Distribution, Intervention, Probability, QFactor, Variable
 
 __all__ = [
     'probability_pe',
     'variables_pe',
+    'qfactor_pe',
 ]
 
 
@@ -24,10 +25,7 @@ def _set_star(_s, _l, tokens: ParseResults):
 
 
 def _make_intervention(_s, _l, tokens: ParseResults):
-    if tokens['star']:
-        return Intervention(name=tokens['name'], star=True)
-    else:
-        return Variable(name=tokens['name'])
+    return Intervention(name=tokens['name'], star=bool(tokens['star']))
 
 
 def _unpack(_s, _l, tokens: ParseResults):
@@ -39,7 +37,7 @@ def _make_variable(_s, _l, tokens: ParseResults) -> Variable:
         return Variable(name=tokens['name'])
     return CounterfactualVariable(
         name=tokens['name'],
-        interventions=tokens['interventions'].asList(),
+        interventions=tuple(tokens['interventions'].asList()),
     )
 
 
@@ -47,7 +45,12 @@ def _make_probability(_s, _l, tokens: ParseResults) -> Probability:
     children, parents = tokens['children'].asList(), tokens['parents'].asList()
     if not children:
         raise ValueError
-    return Probability(Distribution(children=children, parents=parents))
+    return Probability(Distribution(children=tuple(children), parents=tuple(parents)))
+
+
+def _make_q(_s, _l, tokens: ParseResults) -> QFactor:
+    codomain, domain = tokens['codomain'].asList(), tokens['domain'].asList()
+    return QFactor(codomain=tuple(codomain), domain=tuple(domain))
 
 
 # The suffix "pe" refers to :class:`pyparsing.ParserElement`, which is the
@@ -70,3 +73,13 @@ _parents_pe = Group(Optional(Suppress('|') + variables_pe)).setResultsName('pare
 probability_pe = Suppress('P(') + _children_pe + _parents_pe + Suppress(')')
 probability_pe.setParseAction(_make_probability)
 probability_pe.setName('probability')
+
+qfactor_pe = (
+    Suppress('Q[')
+    + Group(variables_pe).setResultsName('codomain')
+    + Suppress('](')
+    + Group(variables_pe).setResultsName('domain')
+    + Suppress(')')
+)
+qfactor_pe.setParseAction(_make_q)
+qfactor_pe.setName('qfactor')
