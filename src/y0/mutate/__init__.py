@@ -2,7 +2,7 @@
 
 """Functions that mutate probability expressions."""
 
-from .canonicalize import canonicalize
+from .canonicalize_expr import canonicalize
 
 __all__ = [
     'canonicalize',
