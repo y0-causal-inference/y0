@@ -21,8 +21,11 @@ class TestIdentify(unittest.TestCase):
         expected_vars = expected.get_variables()
         self.assertEqual(expected_vars, actual.get_variables())
         ordering = list(expected_vars)
+        expected_canonical = canonicalize(expected, ordering)
+        actual_canonical = canonicalize(actual, ordering)
         self.assertEqual(
-            canonicalize(expected, ordering), canonicalize(actual, ordering)
+            expected_canonical, actual_canonical,
+            msg=f'\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}',
         )
 
     def assert_identify(
