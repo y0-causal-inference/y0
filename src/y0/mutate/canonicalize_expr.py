@@ -22,13 +22,11 @@ def canonicalize(expression: Expression, ordering: Optional[Sequence[Union[str, 
     :raises ValueError: if the ordering has duplicates
     """
     if ordering is None:  # use alphabetical ordering
-        ordering = sorted(expression.get_variables(), key=attrgetter('name'))
+        _ordering: Sequence[Variable] = sorted(expression.get_variables(), key=attrgetter('name'))
     else:
-        ordering = _upgrade_ordering(ordering)
-        if len(set(ordering)) != len(ordering):
-            raise ValueError(f'ordering has duplicates: {ordering}')
+        _ordering = _upgrade_ordering(ordering)
 
-    canonicalizer = Canonicalizer(ordering)
+    canonicalizer = Canonicalizer(_ordering)
     return canonicalizer.canonicalize(expression)
 
 
@@ -44,6 +42,9 @@ class Canonicalizer:
 
         :param ordering: A topological ordering over the variables appearing in the expression.
         """
+        if len(set(ordering)) != len(ordering):
+            raise ValueError(f'ordering has duplicates: {ordering}')
+
         self.ordering = ordering
         self.ordering_level = {
             variable: level
