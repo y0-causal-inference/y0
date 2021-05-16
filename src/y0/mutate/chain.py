@@ -17,7 +17,7 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
     :param reorder: Should the variables be reordered with respect to the ordering before expanding? This is important
         because there are a variety of equivalent expressions that can't be directly matched.
     :param ordering: An ordering to be used if ``reorder`` is true. If none, automatically generates a canonical
-        ordering using :func:`y0.dsl.get_canonical_ordering`.
+        ordering using :func:`y0.dsl.ensure_ordering`.
     :return: A product representing the expanded distribution, in which each probability term is a markov kernel
 
     :raises NotImplementedError: if the distribution has conditions

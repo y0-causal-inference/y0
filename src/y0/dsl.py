@@ -720,7 +720,15 @@ def ensure_ordering(
     *,
     ordering: OrderingHint = None,
 ) -> Sequence[Variable]:
-    """Get a canonical ordering of the variables in the expression, or pass one through."""
+    """Get a canonical ordering of the variables in the expression, or pass one through.
+
+    The canonical ordering of the variables in a given expression is based on the alphabetical
+    sort order of the variables based on their names.
+
+    :param expression: The expression to get a canonical ordering from.
+    :param ordering: A given ordering to pass through if not none, otherwise calculate it.
+    :returns: The ordering
+    """
     if ordering is not None:
         return _upgrade_ordering(ordering)
     # use alphabetical ordering
