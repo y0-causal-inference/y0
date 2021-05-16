@@ -8,7 +8,8 @@ import functools
 import itertools as itt
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Callable, Iterable, Sequence, Set, Tuple, TypeVar, Union
+from operator import attrgetter
+from typing import Callable, Iterable, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 __all__ = [
     'Variable',
@@ -27,6 +28,8 @@ __all__ = [
     'A', 'B', 'C', 'D', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z',
     'V1', 'V2', 'V3', 'V4', 'V5', 'V6',
     'Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6',
+    # Helpers
+    'get_canonical_ordering',
 ]
 
 X = TypeVar('X')
@@ -78,6 +81,15 @@ class Variable(_Mathable):
     def __post_init__(self):
         if self.name in {'P', 'Q'}:
             raise ValueError(f'trust me, {self.name} is a bad variable name.')
+
+    @classmethod
+    def norm(cls, name: Union[str, Variable]) -> Variable:
+        if isinstance(name, str):
+            return Variable(name)
+        elif isinstance(name, Variable):
+            return name
+        else:
+            raise TypeError
 
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
@@ -278,7 +290,7 @@ class Distribution(_Mathable):
 
     def __post_init__(self):
         if isinstance(self.children, (list, Variable)):
-            raise TypeError
+            raise TypeError(f'children of wrong type: {type(self.children)}')
         if isinstance(self.parents, (list, Variable)):
             raise TypeError
         if not self.children:
@@ -694,6 +706,20 @@ Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f'Z{i}') for i in range(1, 7)]
 
 def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Sequence[Variable]:
     return tuple(
-        Variable(variable) if isinstance(variable, str) else variable
+        Variable.norm(variable)
         for variable in variables
     )
+
+
+OrderingHint = Optional[Sequence[Union[str, Variable]]]
+
+
+def get_canonical_ordering(
+    expression: Expression,
+    *,
+    ordering: OrderingHint = None,
+) -> Sequence[Variable]:
+    if ordering is not None:
+        return _upgrade_ordering(ordering)
+    # use alphabetical ordering
+    return sorted(expression.get_variables(), key=attrgetter('name'))
