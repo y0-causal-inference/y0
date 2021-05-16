@@ -29,7 +29,7 @@ __all__ = [
     'V1', 'V2', 'V3', 'V4', 'V5', 'V6',
     'Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6',
     # Helpers
-    'get_canonical_ordering',
+    'ensure_ordering',
 ]
 
 X = TypeVar('X')
@@ -84,6 +84,7 @@ class Variable(_Mathable):
 
     @classmethod
     def norm(cls, name: Union[str, Variable]) -> Variable:
+        """Automatically upgrade a string to a variable."""
         if isinstance(name, str):
             return Variable(name)
         elif isinstance(name, Variable):
@@ -714,11 +715,12 @@ def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Sequence[Var
 OrderingHint = Optional[Sequence[Union[str, Variable]]]
 
 
-def get_canonical_ordering(
+def ensure_ordering(
     expression: Expression,
     *,
     ordering: OrderingHint = None,
 ) -> Sequence[Variable]:
+    """Get a canonical ordering of the variables in the expression, or pass one through."""
     if ordering is not None:
         return _upgrade_ordering(ordering)
     # use alphabetical ordering

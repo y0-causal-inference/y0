@@ -5,7 +5,7 @@
 import unittest
 
 from y0.dsl import A, B, P, W, X, Y, Z
-from y0.mutate import chain_expand, markov_kernel_to_fraction
+from y0.mutate import chain_expand, probability_to_fraction
 
 
 class TestChain(unittest.TestCase):
@@ -25,5 +25,5 @@ class TestChain(unittest.TestCase):
 
     def test_bayes_expand(self):
         """Test expanding a conditional probability with Bayes' Theorem."""
-        self.assertEqual(P(A, B) / P(B), markov_kernel_to_fraction(P(A | B)))
-        self.assertEqual(P(W, X, Y, Z) / P(X, Y, Z), markov_kernel_to_fraction(P(W | (X, Y, Z))))
+        self.assertEqual(P(A, B) / P(B), probability_to_fraction(P(A | B)))
+        self.assertEqual(P(W, X, Y, Z) / P(X, Y, Z), probability_to_fraction(P(W | (X, Y, Z))))

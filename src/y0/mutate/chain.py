@@ -2,11 +2,11 @@
 
 """Operations for mutating and simplifying expressions."""
 
-from ..dsl import Distribution, Fraction, OrderingHint, P, Probability, Product, get_canonical_ordering
+from ..dsl import Distribution, Fraction, OrderingHint, P, Probability, Product, ensure_ordering
 
 __all__ = [
     'chain_expand',
-    'markov_kernel_to_fraction',
+    'probability_to_fraction',
 ]
 
 
@@ -19,6 +19,9 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
     :param ordering: An ordering to be used if ``reorder`` is true. If none, automatically generates a canonical
         ordering using :func:`y0.dsl.get_canonical_ordering`.
     :return: A product representing the expanded distribution, in which each probability term is a markov kernel
+
+    :raises NotImplementedError: if the distribution has conditions
+    :raises ValueError: if the ordering is passed explicitly and it does not cover all variables
 
     Two variables:
 
@@ -37,11 +40,13 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
     >>> chain_expand(P(X, Y, Z)) == P(X | (Y, Z)) * P(Y | Z) * P(Z)
     """
     # TODO how does this change for a conditioned distribution P(X, Y | Z)? Does Z just come along for the ride?
-    assert not p.distribution.is_conditioned()
+    if p.distribution.is_conditioned():
+        raise NotImplementedError
 
     if reorder:
-        _ordering = get_canonical_ordering(p, ordering=ordering)
-        assert all(v in _ordering for v in p.distribution.children)
+        _ordering = ensure_ordering(p, ordering=ordering)
+        if any(v not in _ordering for v in p.distribution.children):
+            raise ValueError
         ordered_children = tuple(
             v
             for v in _ordering
@@ -56,11 +61,13 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
     ))
 
 
-def markov_kernel_to_fraction(p: Probability) -> Fraction:
+def probability_to_fraction(p: Probability) -> Fraction:
     r"""Convert a markov kernel into a fraction.
 
     :param p: The given probability expression
     :returns: A fraction representing the joint distribution
+
+    :raises NotImplementedError: if the distribution is not a markov kernel
 
     One condition:
 
@@ -72,5 +79,6 @@ def markov_kernel_to_fraction(p: Probability) -> Fraction:
     .. math::
         P(A | X_n, \dots, X_1) = \frac{P(A,X_n,\dots,X_1)}{P(X_n,\dots,X_1)}
     """
-    assert p.distribution.is_markov_kernel()
+    if not p.distribution.is_markov_kernel():
+        raise NotImplementedError
     return P(p.distribution.children + p.distribution.parents) / P(p.distribution.parents)

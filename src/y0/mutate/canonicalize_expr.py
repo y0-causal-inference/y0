@@ -4,7 +4,7 @@
 
 from typing import Optional, Sequence, Tuple, Union
 
-from ..dsl import Distribution, Expression, Fraction, Probability, Product, Sum, Variable, get_canonical_ordering
+from ..dsl import Distribution, Expression, Fraction, Probability, Product, Sum, Variable, ensure_ordering
 
 __all__ = [
     'canonicalize',
@@ -18,7 +18,7 @@ def canonicalize(expression: Expression, ordering: Optional[Sequence[Union[str, 
     :param ordering: A toplogical ordering. If none is given, it is assigned by sort order of the variable names.
     :return: A canonical expression
     """
-    canonicalizer = Canonicalizer(get_canonical_ordering(expression, ordering=ordering))
+    canonicalizer = Canonicalizer(ensure_ordering(expression, ordering=ordering))
     return canonicalizer.canonicalize(expression)
 
 
