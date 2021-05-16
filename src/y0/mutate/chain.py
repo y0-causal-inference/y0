@@ -6,12 +6,12 @@ from ..dsl import Distribution, Fraction, OrderingHint, P, Probability, Product,
 
 __all__ = [
     'chain_expand',
-    'probability_to_fraction',
+    'fraction_expand',
 ]
 
 
 def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint = None) -> Product:
-    r"""Expand a joint probability to a product of conditional probabilities on single variables.
+    r"""Expand a probability distribution to a product of conditional probabilities on single variables.
 
     :param p: The given probability expression
     :param reorder: Should the variables be reordered with respect to the ordering before expanding? This is important
@@ -61,8 +61,8 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
     ))
 
 
-def probability_to_fraction(p: Probability) -> Fraction:
-    r"""Convert a markov kernel into a fraction.
+def fraction_expand(p: Probability) -> Fraction:
+    r"""Expand a probability distribution with fractions.
 
     :param p: The given probability expression
     :returns: A fraction representing the joint distribution
