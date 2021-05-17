@@ -359,7 +359,7 @@ class cg_graph:
             return expr_out
 
         # line 3
-        elif w_set:
+        elif w_set:  # TODO @jeremy needs test case
             # print('Begin Step 3')
             # print(w_set)
             expr_out = self.id_alg(y, x + w_set, p_expr, graph_temp)
