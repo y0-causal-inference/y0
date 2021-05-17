@@ -2,6 +2,9 @@
 
 import networkx as nx
 import numpy as np
+from typing import Union
+
+from ananke.graphs import ADMG
 
 from y0.dsl import Expression
 from y0.graph import NxMixedGraph
@@ -14,8 +17,10 @@ from y0.algorithm.identify.utils import (
 )
 
 
-def identify(graph: NxMixedGraph, query: Expression) -> Expression:
+def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
     """Currently a wrapper for bel2scm.causal_graph.id_alg()"""
+    if isinstance(graph, ADMG):
+        graph = NxMixedGraph.from_admg(graph)
     treatments = _get_treatments(query.get_variables())
     outcomes = _get_outcomes(query.get_variables())
     cg = nxmixedgraph_to_causal_graph(graph)
