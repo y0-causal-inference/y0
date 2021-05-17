@@ -17,6 +17,10 @@ class TestChain(unittest.TestCase):
         self.assertEqual(P(X | (Y, Z)) * P(Y | Z) * P(Z), chain_expand(P(X, Y, Z), reorder=True))
         self.assertEqual(P(W | (X, Y, Z)) * P(X | (Y, Z)) * P(Y | Z) * P(Z), chain_expand(P(W, X, Y, Z), reorder=True))
 
+        # Test that conditions come along for the ride
+        self.assertEqual(P(X | (Y, A)) * P(Y | A), chain_expand(P(X & Y | A), reorder=True))
+        self.assertEqual(P(X | (Y, A, B)) * P(Y | (A, B)), chain_expand(P(X & Y | (A, B)), reorder=True))
+
     def test_chain_expand_no_reordering(self):
         """Test expanding a joint probability to a product of conditional probabilities."""
         self.assertEqual(P(X | Y) * P(Y), chain_expand(P(X, Y), reorder=False))

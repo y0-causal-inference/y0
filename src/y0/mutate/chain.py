@@ -21,7 +21,6 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
         ordering using :func:`y0.dsl.ensure_ordering`.
     :return: A product representing the expanded distribution, in which each probability term is a markov kernel
 
-    :raises NotImplementedError: if the distribution has conditions
     :raises ValueError: if the ordering is passed explicitly and it does not cover all variables
 
     Two variables:
@@ -37,13 +36,13 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
     .. math::
         P(X_n,\dots,X_1) = P(X_n|X_{n-1},\dots,X_1) \times P(X_{n-1},\dots,X_1)
 
-    >>> from y0.dsl import P, X, Y, Z
+    >>> from y0.dsl import P, A, X, Y, Z
     >>> chain_expand(P(X, Y, Z)) == P(X | (Y, Z)) * P(Y | Z) * P(Z)
-    """
-    # TODO how does this change for a conditioned distribution P(X, Y | Z)? Does Z just come along for the ride?
-    if p.distribution.is_conditioned():
-        raise NotImplementedError
 
+    Extra conditions come along for the ride.
+
+    >>> chain_expand(P(X & Y | A)) == P(X | (Y, Z, A)) * P(Y | (Z, A)) * P(Z | A)
+    """
     if reorder:
         _ordering = ensure_ordering(p, ordering=ordering)
         if any(v not in _ordering for v in p.distribution.children):
@@ -57,7 +56,7 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
         ordered_children = p.distribution.children
 
     return Product(tuple(
-        P(Distribution(children=(ordered_children[i],)).given(ordered_children[i + 1:]))
+        P(Distribution(children=(ordered_children[i],)).given(ordered_children[i + 1:] + p.distribution.parents))
         for i in range(len(ordered_children))
     ))
 
