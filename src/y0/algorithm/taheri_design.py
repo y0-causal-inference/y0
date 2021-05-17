@@ -19,7 +19,7 @@ from tabulate import tabulate
 from tqdm import tqdm
 
 from y0.algorithm.simplify_latent import simplify_latent_dag
-from y0.dsl import P, Variable
+from y0.dsl import Expression, P, Variable
 from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_from_latent_variable_dag, admg_to_latent_variable_dag
 from y0.identify import is_identifiable
 from y0.util.combinatorics import powerset
@@ -38,6 +38,7 @@ class Result(NamedTuple):
     """Results from the LV-DAG check."""
 
     identifiable: bool
+    identifiability_expr: Optional[Expression]
     pre_nodes: int
     pre_edges: int
     post_nodes: int
@@ -108,7 +109,14 @@ def taheri_design_dag(
     :param stop: Largest combination to get (None means length of the list and is the default)
     :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2)
     """
-    return _help(graph=graph, cause=cause, effect=effect, fixed_observed={cause, effect}, tag=tag, stop=stop)
+    return _help(
+        graph=graph,
+        cause=cause,
+        effect=effect,
+        fixed_observed={cause, effect},
+        tag=tag,
+        stop=stop,
+    )
 
 
 def _help(
@@ -122,7 +130,14 @@ def _help(
     stop: Optional[int] = None,
 ) -> List[Result]:
     return [
-        _get_result(lvdag=lvdag, latents=latents, observed=observed, cause=cause, effect=effect, tag=tag)
+        _get_result(
+            lvdag=lvdag,
+            latents=latents,
+            observed=observed,
+            cause=cause,
+            effect=effect,
+            tag=tag,
+        )
         for latents, observed, lvdag in iterate_lvdags(
             graph,
             fixed_observed=fixed_observed,
@@ -133,7 +148,14 @@ def _help(
     ]
 
 
-def _get_result(lvdag, latents, observed, cause, effect, *, tag: Optional[str] = None) -> Result:
+def _get_result(
+    lvdag,
+    latents,
+    observed,
+    cause, effect,
+    *,
+    tag: Optional[str] = None,
+) -> Result:
     # Book keeping
     pre_nodes, pre_edges = lvdag.number_of_nodes(), lvdag.number_of_edges()
 
@@ -150,14 +172,17 @@ def _get_result(lvdag, latents, observed, cause, effect, *, tag: Optional[str] =
         raise KeyError(f'ADMG missing effect: {effect}')
 
     # Check if the ADMG is identifiable under the (simple) causal query
-    identifiable = is_identifiable(admg, P(Variable(effect) @ ~Variable(cause)))
+    query = P(Variable(effect) @ ~Variable(cause))
+    identifiable = is_identifiable(admg, query)
+    identifiability_expr = None
 
     return Result(
         identifiable,
-        pre_nodes,
-        pre_edges,
-        post_nodes,
-        post_edges,
+        identifiability_expr=identifiability_expr,
+        pre_nodes=pre_nodes,
+        pre_edges=pre_edges,
+        post_nodes=post_nodes,
+        post_edges=post_edges,
         latents=sorted(latents),
         observed=sorted(observed),
         lvdag=lvdag,
@@ -244,20 +269,29 @@ def draw_results(
         else:
             mixed_graph = NxMixedGraph.from_admg(result.admg)
             title = f'{i}) Latent: ' + ', '.join(result.latents)
+            if result.identifiability_expr is not None:
+                title += f'\n${result.identifiability_expr.to_latex()}$'
             mixed_graph.draw(ax=ax, title='\n'.join(textwrap.wrap(title, width=45)))
 
-    plt.tight_layout()
+    fig.tight_layout()
 
     for _path in tqdm(path, desc='saving'):
-        logger.debug('saving to %s', _path)
+        logger.info('saving to %s', _path)
         fig.savefig(_path, dpi=400)
 
 
 def print_results(results: List[Result], file=None) -> None:
     """Print a set of results."""
     rows = [
-        (i, result, post_nodes - pre_nodes, post_edges - pre_edges, len(latents), ', '.join(latents))
-        for i, (result, pre_nodes, pre_edges, post_nodes, post_edges, latents, _, _, _) in enumerate(results, start=1)
+        (
+            i,
+            result.identifiable,
+            result.post_nodes - result.pre_nodes,
+            result.post_edges - result.pre_edges,
+            len(result.latents),
+            ', '.join(result.latents),
+        )
+        for i, result in enumerate(results, start=1)
     ]
     print(tabulate(rows, headers=['Row', 'ID?', 'Node Simp.', 'Edge Simp.', 'N', 'Latents']), file=file)
 
