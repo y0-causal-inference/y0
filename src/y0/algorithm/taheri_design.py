@@ -18,6 +18,7 @@ from more_click import verbose_option
 from tabulate import tabulate
 from tqdm import tqdm
 
+from y0.algorithm.identify import identify
 from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.dsl import Expression, P, Variable
 from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_from_latent_variable_dag, admg_to_latent_variable_dag
@@ -174,7 +175,7 @@ def _get_result(
     # Check if the ADMG is identifiable under the (simple) causal query
     query = P(Variable(effect) @ ~Variable(cause))
     identifiable = is_identifiable(admg, query)
-    identifiability_expr = None
+    identifiability_expr = identify(admg, query)
 
     return Result(
         identifiable,

@@ -4,11 +4,13 @@
 
 import unittest
 
-from y0.algorithm.identify import identify  # does not exist yet
+from y0.algorithm.identify import identify
+from y0.algorithm.taheri_design import _get_result, iterate_lvdags
 from y0.dsl import Expression, P, Sum, X, Y, Z
-from y0.graph import NxMixedGraph
+from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_to_latent_variable_dag
 from y0.mutate import canonicalize
 from y0.parser import parse_craig
+from y0.resources import VIRAL_PATHOGENESIS_PATH
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
@@ -104,6 +106,36 @@ class TestIdentify(unittest.TestCase):
         )
         self.assert_identify(parse_craig(expr), graph, Y @ X)
         # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
+
+    def test_taheri(self):
+        """Test that all graphs produced by Sara's design algorithm can be run with :func:`identify`."""
+        graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
+
+        cause = 'EGFR'
+        effect = 'CytokineStorm'
+        stop = 5
+        tag = DEFAULT_TAG
+        dag = admg_to_latent_variable_dag(graph.to_admg(), tag=tag)
+        fixed_latent = {
+            node
+            for node, data in dag.nodes(data=True)
+            if data[tag]
+        }
+        for latents, observed, lvdag in iterate_lvdags(
+            dag,
+            fixed_observed={cause, effect},
+            fixed_latents=fixed_latent,
+            stop=stop,
+        ):
+            with self.subTest(latents=latents):
+                result = _get_result(
+                    lvdag=lvdag,
+                    latents=latents,
+                    observed=observed,
+                    cause=cause,
+                    effect=effect,
+                )
+                self.assertIsNotNone(result)  # throwaway test
 
 
 if __name__ == "__main__":
