@@ -627,6 +627,8 @@ class Fraction(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         if isinstance(expression, Fraction):
             return Fraction(self.numerator * expression.denominator, self.denominator * expression.numerator)
+        elif isinstance(expression, One):
+            return self
         else:
             return Fraction(self.numerator, self.denominator * expression)
 
@@ -634,6 +636,23 @@ class Fraction(Expression):
         """Get the set of variables used in the numerator and denominator of this fraction."""
         yield from self.numerator._iter_variables()
         yield from self.denominator._iter_variables()
+
+    def simplify(self) -> Expression:
+        """Simplify this fraction."""
+        if isinstance(self.denominator, One):
+            return self.numerator
+        if isinstance(self.numerator, One):
+            return self
+        if self._t(Probability):
+            return One()
+        return self
+
+    def _t(self, t) -> bool:
+        return (
+            isinstance(self.numerator, t)
+            and isinstance(self.denominator, t)
+            and self.numerator == self.denominator
+        )
 
 
 class One(Expression):
@@ -655,6 +674,9 @@ class One(Expression):
 
     def __truediv__(self, other: Expression) -> Fraction:
         return Fraction(self, other)
+
+    def __eq__(self, other):
+        return isinstance(other, One)  # all ones are equal
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in this expression."""
