@@ -5,6 +5,7 @@ import numpy as np
 from typing import Union
 
 from ananke.graphs import ADMG
+from pyparsing import ParseException
 
 from y0.dsl import Expression
 from y0.graph import NxMixedGraph
@@ -26,8 +27,12 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
     cg = nxmixedgraph_to_causal_graph(graph)
     expr = cg.id_alg(outcomes, treatments)
     # expr = id_alg(graph, outcomes, treatments)
-    return grammar.parseString(expr)[0]
-
+    try:
+        r = grammar.parseString(expr)
+    except ParseException:
+        raise ValueError(f'graph produced unparsable expression: {expr}')
+    else:
+        return r[0]
 
 # def str_list(node_list):
 #     """ return a string listing the nodes in node_list - this is used in the ID and IDC algorithms """
