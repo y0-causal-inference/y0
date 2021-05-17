@@ -643,16 +643,61 @@ class Fraction(Expression):
             return self.numerator
         if isinstance(self.numerator, One):
             return self
-        if self._t(Probability):
+        if self.numerator == self.denominator:
             return One()
+        if isinstance(self.numerator, Product) and isinstance(self.denominator, Product):
+            return self._simplify_parts(self.numerator.expressions, self.denominator.expressions)
+        elif isinstance(self.numerator, Product):
+            return self._simplify_parts(self.numerator.expressions, [self.denominator])
+        elif isinstance(self.denominator, Product):
+            return self._simplify_parts([self.numerator], self.denominator.expressions)
         return self
 
-    def _t(self, t) -> bool:
+    @classmethod
+    def _simplify_parts(cls, numerator: Sequence[Expression], denominator: Sequence[Expression]) -> Expression:
+        """Calculate the minimum fraction.
+
+        :param numerator: A sequence of expressions that are multiplied in the product in the numerator
+        :param denominator: A sequence of expressions that are multiplied in the product in the denominator
+        :returns: A simplified fraction.
+        """
+        new_numerator, new_denominator = cls._simplify_parts_helper(numerator, denominator)
+        if new_numerator and new_denominator:
+            return Fraction(_expression_or_product(new_numerator), _expression_or_product(new_denominator))
+        elif new_numerator:
+            return _expression_or_product(new_numerator)
+        elif new_denominator:
+            return One() / _expression_or_product(new_denominator)
+        else:
+            return One()
+
+    @staticmethod
+    def _simplify_parts_helper(
+        numerator: Sequence[Expression],
+        denominator: Sequence[Expression],
+    ) -> Tuple[Tuple[Expression, ...], Tuple[Expression, ...]]:
+        numerator_cancelled = set()
+        denominator_cancelled = set()
+        for i, n_expr in enumerate(numerator):
+            for j, d_expr in enumerate(denominator):
+                if j in denominator_cancelled:
+                    continue
+                if n_expr == d_expr:
+                    numerator_cancelled.add(i)
+                    denominator_cancelled.add(j)
+                    break
         return (
-            isinstance(self.numerator, t)
-            and isinstance(self.denominator, t)
-            and self.numerator == self.denominator
+            tuple(expr for i, expr in enumerate(numerator) if i not in numerator_cancelled),
+            tuple(expr for i, expr in enumerate(denominator) if i not in denominator_cancelled),
         )
+
+
+def _expression_or_product(e: Sequence[Expression]) -> Expression:
+    if not e:
+        raise ValueError
+    if 1 == len(e):
+        return e[0]
+    return Product(tuple(e))
 
 
 class One(Expression):

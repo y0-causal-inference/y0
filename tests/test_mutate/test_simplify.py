@@ -21,5 +21,14 @@ class TestCancel(unittest.TestCase):
             ('product', (P(A) * P(B)) / (P(A) * P(B))),
         ]:
             with self.subTest(type=label):
-                # self.assertIsInstance(frac, Fraction)
                 self.assertEqual(one, frac.simplify(), msg=f'\n\nActual:{frac}')
+
+    def test_fraction_simplify(self):
+        """Test cancelling on products."""
+        for label, expected, frac in [
+            ('leave num.', P(B), (P(A) * P(B)) / P(A)),
+            ('leave den.', one / P(B), P(A) / (P(A) * P(B))),
+            ('unordered', one, (P(A) * P(B)) / (P(B) * P(A))),
+        ]:
+            with self.subTest(type=label):
+                self.assertEqual(expected, frac.simplify(), msg=f'\n\nActual:{frac}')
