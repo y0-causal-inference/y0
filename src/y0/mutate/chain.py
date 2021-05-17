@@ -7,6 +7,7 @@ from ..dsl import Distribution, Fraction, OrderingHint, P, Probability, Product,
 __all__ = [
     'chain_expand',
     'fraction_expand',
+    'bayes_expand',
 ]
 
 
@@ -67,18 +68,29 @@ def fraction_expand(p: Probability) -> Fraction:
     :param p: The given probability expression
     :returns: A fraction representing the joint distribution
 
-    :raises NotImplementedError: if the distribution is not a markov kernel
-
-    One condition:
+    The simple case has one child variable ($A$) and one parent variable ($B$):
 
     .. math::
         P(A | B) = \frac{P(A,B)}{P(B)}
 
-    Many conditions:
+    In general, with many children $Y_i$ and many parents $X_i$:
 
     .. math::
-        P(A | X_n, \dots, X_1) = \frac{P(A,X_n,\dots,X_1)}{P(X_n,\dots,X_1)}
+        P(Y_1,\dots,Y_n | X_1, \dots, X_m) = \frac{P(Y_1,\dots,Y_n,X_1,\dots,X_m)}{P(X_1,\dots,X_m)}
     """
-    if not p.distribution.is_markov_kernel():
-        raise NotImplementedError
-    return P(p.distribution.children + p.distribution.parents) / P(p.distribution.parents)
+    return p.uncondition() / P(p.distribution.parents)
+
+
+def bayes_expand(p: Probability) -> Fraction:
+    r"""Expand a probability distribution using Bayes' theorem.
+
+    :param p: The given probability expression, with arbitrary number of children and parents
+    :returns: A fraction representing the joint distribution
+
+    .. math::
+        P(Y_1,\dots,Y_n|X_1,\dots,X_m)
+        = \frac{P(Y_1,\dots,Y_n,X_1,\dots,X_m)}{\sum_{Y_1,\dots,Y_n} P(Y_1,\dots,Y_n,X_1,\dots,X_m)}
+
+    .. note:: This expansion will create a different but equal expression to :func:`fraction_expand`.
+    """
+    return p.uncondition().marginalize(p.distribution.children)

@@ -323,6 +323,12 @@ class Distribution(_Mathable):
         """Return if this distribution a markov kernel -> one child variable and one or more conditionals."""
         return len(self.children) == 1
 
+    def uncondition(self) -> Distribution:
+        """Return a new distribution that is not conditioned on the parents."""
+        return Distribution(
+            children=(*self.children, *self.parents),
+        )
+
     def joint(self, children: XSeq[Variable]) -> Distribution:
         """Create a new distribution including the given child variables.
 
@@ -412,6 +418,27 @@ class Probability(Expression):
 
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
+
+    def uncondition(self) -> Probability:
+        """Return a new probability where the underlying distribution is no longer conditioned by the parents.
+
+        :returns: A new probability over a distribution over the children and parents of the previous distribution
+
+        >>> from y0.dsl import P, A, B
+        >>> P(A | B).uncondition() == P(A, B)
+        """
+        return Probability(self.distribution.uncondition())
+
+    def marginalize(self, ranges: XSeq[Variable]) -> Fraction:
+        """Return this probability distribution, marginalized by the given variables.
+
+        :param ranges: A variable or list of variables over which to marganilize this probability's distribution
+        :returns: A fraction in which the denominator is represents the sum over the given ranges
+
+        >>> from y0.dsl import P, A, B
+        >>> P(A, B).marginalize(A) == P(A, B) / Sum[A](P(A, B))
+        """
+        return self / Sum(expression=self, ranges=_prepare_ranges(ranges))
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in the distribution in this probability."""
@@ -568,13 +595,10 @@ class Sum(Expression):
         return functools.partial(Sum, ranges=_prepare_ranges(ranges))
 
 
-def _prepare_ranges(ranges: Union[Variable, Tuple[Variable, ...]]) -> Tuple[Variable, ...]:
-    if isinstance(ranges, tuple):
-        return tuple(ranges)
-    elif isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
+def _prepare_ranges(ranges: XSeq[Variable]) -> Tuple[Variable, ...]:
+    if isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
         return (ranges,)
-    else:
-        raise TypeError
+    return tuple(ranges)
 
 
 @dataclass(frozen=True)
