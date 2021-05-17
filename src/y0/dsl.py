@@ -627,6 +627,8 @@ class Fraction(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         if isinstance(expression, Fraction):
             return Fraction(self.numerator * expression.denominator, self.denominator * expression.numerator)
+        elif isinstance(expression, One):
+            return self
         else:
             return Fraction(self.numerator, self.denominator * expression)
 
@@ -634,6 +636,68 @@ class Fraction(Expression):
         """Get the set of variables used in the numerator and denominator of this fraction."""
         yield from self.numerator._iter_variables()
         yield from self.denominator._iter_variables()
+
+    def simplify(self) -> Expression:
+        """Simplify this fraction."""
+        if isinstance(self.denominator, One):
+            return self.numerator
+        if isinstance(self.numerator, One):
+            return self
+        if self.numerator == self.denominator:
+            return One()
+        if isinstance(self.numerator, Product) and isinstance(self.denominator, Product):
+            return self._simplify_parts(self.numerator.expressions, self.denominator.expressions)
+        elif isinstance(self.numerator, Product):
+            return self._simplify_parts(self.numerator.expressions, [self.denominator])
+        elif isinstance(self.denominator, Product):
+            return self._simplify_parts([self.numerator], self.denominator.expressions)
+        return self
+
+    @classmethod
+    def _simplify_parts(cls, numerator: Sequence[Expression], denominator: Sequence[Expression]) -> Expression:
+        """Calculate the minimum fraction.
+
+        :param numerator: A sequence of expressions that are multiplied in the product in the numerator
+        :param denominator: A sequence of expressions that are multiplied in the product in the denominator
+        :returns: A simplified fraction.
+        """
+        new_numerator, new_denominator = cls._simplify_parts_helper(numerator, denominator)
+        if new_numerator and new_denominator:
+            return Fraction(_expression_or_product(new_numerator), _expression_or_product(new_denominator))
+        elif new_numerator:
+            return _expression_or_product(new_numerator)
+        elif new_denominator:
+            return One() / _expression_or_product(new_denominator)
+        else:
+            return One()
+
+    @staticmethod
+    def _simplify_parts_helper(
+        numerator: Sequence[Expression],
+        denominator: Sequence[Expression],
+    ) -> Tuple[Tuple[Expression, ...], Tuple[Expression, ...]]:
+        numerator_cancelled = set()
+        denominator_cancelled = set()
+        for i, n_expr in enumerate(numerator):
+            for j, d_expr in enumerate(denominator):
+                if j in denominator_cancelled:
+                    continue
+                if n_expr == d_expr:
+                    numerator_cancelled.add(i)
+                    denominator_cancelled.add(j)
+                    break
+        return (
+            tuple(expr for i, expr in enumerate(numerator) if i not in numerator_cancelled),
+            tuple(expr for i, expr in enumerate(denominator) if i not in denominator_cancelled),
+        )
+
+
+def _expression_or_product(e: Sequence[Expression]) -> Expression:
+    if not e:
+        raise ValueError
+    if 1 == len(e):
+        return e[0]
+    return Product(tuple(e))
 
 
 class One(Expression):
@@ -655,6 +719,9 @@ class One(Expression):
 
     def __truediv__(self, other: Expression) -> Fraction:
         return Fraction(self, other)
+
+    def __eq__(self, other):
+        return isinstance(other, One)  # all ones are equal
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in this expression."""
