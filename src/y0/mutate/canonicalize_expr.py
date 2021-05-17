@@ -2,10 +2,9 @@
 
 """Implementation of the canonicalization algorithm."""
 
-from operator import attrgetter
 from typing import Optional, Sequence, Tuple, Union
 
-from ..dsl import Distribution, Expression, Fraction, Probability, Product, Sum, Variable, _upgrade_ordering
+from ..dsl import Distribution, Expression, Fraction, Probability, Product, Sum, Variable, ensure_ordering
 
 __all__ = [
     'canonicalize',
@@ -19,12 +18,7 @@ def canonicalize(expression: Expression, ordering: Optional[Sequence[Union[str, 
     :param ordering: A toplogical ordering. If none is given, it is assigned by sort order of the variable names.
     :return: A canonical expression
     """
-    if ordering is None:  # use alphabetical ordering
-        _ordering: Sequence[Variable] = sorted(expression.get_variables(), key=attrgetter('name'))
-    else:
-        _ordering = _upgrade_ordering(ordering)
-
-    canonicalizer = Canonicalizer(_ordering)
+    canonicalizer = Canonicalizer(ensure_ordering(expression, ordering=ordering))
     return canonicalizer.canonicalize(expression)
 
 
