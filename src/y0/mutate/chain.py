@@ -21,7 +21,6 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
         ordering using :func:`y0.dsl.ensure_ordering`.
     :return: A product representing the expanded distribution, in which each probability term is a markov kernel
 
-    :raises NotImplementedError: if the distribution has conditions
     :raises ValueError: if the ordering is passed explicitly and it does not cover all variables
 
     Two variables:
