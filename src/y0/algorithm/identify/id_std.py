@@ -14,12 +14,12 @@ from y0.parser.craig.grammar import grammar
 from y0.algorithm.identify.utils import (
     str_graph,
     nxmixedgraph_to_causal_graph,
-    nxmixedgraph_to_bel2scm_causal_graph,
+    #nxmixedgraph_to_bel2scm_causal_graph,
 )
 
 
 def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
-    """Currently a wrapper for bel2scm.causal_graph.id_alg()"""
+    """Currently a wrapper for y0.algorithm.identifiy.utils.causal_graph.id_alg()"""
     if isinstance(graph, ADMG):
         graph = NxMixedGraph.from_admg(graph)
     treatments = _get_treatments(query.get_variables())

@@ -408,7 +408,7 @@ class cg_graph:
                 # line 5
                 if sorted(s_sets_prime[0]) == sorted(graph_temp.nodes):  # TODO @jeremy needs test case
 
-                    node_list = [ind for ind in s_sets2[0]]
+                    node_list = [ind for ind in s_sets_prime[0]]
                     node_list2 = [ind for ind in graph_temp.nodes if ind in s_sets[0]]
 
                     str_out = (

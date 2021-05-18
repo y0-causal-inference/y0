@@ -6,7 +6,7 @@ import unittest
 
 from y0.algorithm.identify import identify
 from y0.algorithm.taheri_design import _get_result, iterate_lvdags
-from y0.dsl import Expression, P, Sum, X, Y, Z
+from y0.dsl import Expression, P, Sum, X, Y, Z, W1, W2, Y1, Y2
 from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_to_latent_variable_dag
 from y0.mutate import canonicalize
 from y0.parser import parse_craig
@@ -107,6 +107,19 @@ class TestIdentify(unittest.TestCase):
         self.assert_identify(parse_craig(expr), graph, Y @ X)
         # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
+    def test_figure_3a(self):
+        """Test Figure 3a. A graph hedge-less for P(y1,y2|do(x))"""
+        graph = NxMixedGraph()
+        #W1,W2,Y1,Y2 = Variable('W1'), Variable('W2'), Variable('Y1'), Variable('Y2')
+        graph.add_directed_edge("X", "Y1")
+        graph.add_directed_edge("W1", "X")
+        graph.add_directed_edge("W2", "Y2")
+        graph.add_undirected_edge("W1", "W2")
+        graph.add_undirected_edge("W1", "Y1")
+        graph.add_undirected_edge("W1", "Y2")
+        graph.add_undirected_edge("X", "W2")
+        cond_expr = Sum[W2](P(Y1,W2))*Sum[W1](P(Y1|(X,W1))*P(W1))
+        self.assert_identify(cond_expr, graph, P(Y1 @ X, Y2 @ X))
     def test_taheri(self):
         """Test that all graphs produced by Sara's design algorithm can be run with :func:`identify`."""
         graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)

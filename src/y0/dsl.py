@@ -27,6 +27,8 @@ __all__ = [
     'QFactor',
     'A', 'B', 'C', 'D', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z',
     'V1', 'V2', 'V3', 'V4', 'V5', 'V6',
+    'W1', 'W2', 'W3', 'W4', 'W5', 'W6',
+    'Y1', 'Y2', 'Y3', 'Y4', 'Y5', 'Y6',
     'Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6',
     # Helpers
     'ensure_ordering',
@@ -793,6 +795,8 @@ Q = QFactor
 
 A, B, C, D, R, S, T, W, X, Y, Z = map(Variable, 'ABCDRSTWXYZ')  # type: ignore
 V1, V2, V3, V4, V5, V6 = [Variable(f'V{i}') for i in range(1, 7)]
+W1, W2, W3, W4, W5, W6 = [Variable(f'W{i}') for i in range(1, 7)]
+Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f'Y{i}') for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f'Z{i}') for i in range(1, 7)]
 
 
