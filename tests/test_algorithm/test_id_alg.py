@@ -39,7 +39,9 @@ class TestIdentify(unittest.TestCase):
         self.assert_expr_equal(expression, identify(graph, query))
 
     def test_figure_2a(self):
-        """Test Figure 2A."""
+        """Test Figure 2A.
+        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.
+        """
         graph = NxMixedGraph()
         graph.add_directed_edge("X", "Y")
         print(identify(graph, Y @ X).to_text())
@@ -48,7 +50,9 @@ class TestIdentify(unittest.TestCase):
         self.assert_identify(parse_craig(expr), graph, Y @ X)
 
     def test_figure_2b(self):
-        """Test Figure 2B."""
+        """Test Figure 2B.
+        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.
+        """
         graph = NxMixedGraph()
         graph.add_directed_edge("X", "Y")
         graph.add_directed_edge("X", "Z")
@@ -63,7 +67,9 @@ class TestIdentify(unittest.TestCase):
         self.assert_identify(parse_craig(expr), graph, Y @ X)
 
     def test_figure_2c(self):
-        """Test Figure 2C."""
+        """Test Figure 2C.
+        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.
+        """
         graph = NxMixedGraph()
         graph.add_directed_edge("X", "Y")
         graph.add_directed_edge("Z", "X")
@@ -94,7 +100,9 @@ class TestIdentify(unittest.TestCase):
         # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
     def test_figure_2e(self):
-        """Test Figure 2E."""
+        """Test Figure 2E.
+        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.
+        """
         graph = NxMixedGraph()
         graph.add_directed_edge("X", "Z")
         graph.add_directed_edge("Z", "Y")
@@ -108,7 +116,9 @@ class TestIdentify(unittest.TestCase):
         # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
     def test_figure_3a(self):
-        """Test Figure 3a. A graph hedge-less for P(y1,y2|do(x))"""
+        """Test Figure 3a. A graph hedge-less for P(y1,y2|do(x))
+        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.
+        """
         graph = NxMixedGraph()
         #W1,W2,Y1,Y2 = Variable('W1'), Variable('W2'), Variable('Y1'), Variable('Y2')
         graph.add_directed_edge("X", "Y1")
