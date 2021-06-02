@@ -7,7 +7,7 @@ from typing import Union
 from ananke.graphs import ADMG
 from pyparsing import ParseException
 
-from y0.dsl import Expression
+from y0.dsl import Expression, Sum, Product, Variable, P
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
 from y0.parser.craig.grammar import grammar
@@ -26,13 +26,33 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
     outcomes = _get_outcomes(query.get_variables())
     cg = nxmixedgraph_to_causal_graph(graph)
     expr = cg.id_alg(outcomes, treatments)
+    return expr
     # expr = id_alg(graph, outcomes, treatments)
-    try:
-        r = grammar.parseString(expr)
-    except ParseException:
-        raise ValueError(f'graph produced unparsable expression: {expr}')
-    else:
-        return r[0]
+    # try:
+    #     r = grammar.parseString(expr)
+    # except ParseException:
+    #     raise ValueError(f'graph produced unparsable expression: {expr}')
+    # else:
+    #     return r[0]
+
+
+def line_1( interventions, outcomes, variables ):
+        """Line 1 of ID algorithm
+        If no action has been taken, the effect on $\mathbf Y$ is just the marginal of the observational distribution
+        :param interventions:  X variables
+        :param outcomes: Y variables
+        :param variables:  All nodes in the graph
+        :returns:  The marginal of the outcome variables
+        :raises ValueError:  There should not be any interventional variables
+        """
+
+        if len(interventions) > 0:
+            raise ValueError("Interventions is nonempty")
+        return Sum(P(*[Variable(v)
+                       for v in variables]),
+                     [Variable(v)
+                      for v in variables - outcomes])
+
 
 # def str_list(node_list):
 #     """ return a string listing the nodes in node_list - this is used in the ID and IDC algorithms """
