@@ -108,13 +108,17 @@ class TestCanonicalize(unittest.TestCase):
             self.assert_canonicalize(P(A & B | C), P(c1 & c2 | C), [A, B, C])
             # Two conditions, C and D
             for p1, p2 in itt.permutations([C, D]):
-                self.assert_canonicalize(P(A & B | C | D), P(c1 & c2 | (p1, p2)), [A, B, C, D])
+                expected = P(A & B | C | D)
+                expression = P(c1 & c2 | (p1, p2))
+                ordering = [A, B, C, D]
+                self.assert_canonicalize(expected, expression, ordering)
+                self.assert_canonicalize(Sum(expected), Sum(expression), ordering)
 
         for c1, c2, c3 in itt.permutations([A, B, C]):
             self.assert_canonicalize(P(A, B, C), P(c1, c2, c3), [A, B, C])
             for p1, p2, p3 in itt.permutations([X, Y, Z]):
-                self.assert_canonicalize(
-                    P(A & B & C | (X, Y, Z)),
-                    P(c1 & c2 & c3 | (p1 & p2 & p3)),
-                    [A, B, C, X, Y, Z],
-                )
+                expected = P(A & B & C | (X, Y, Z))
+                expression = P(c1 & c2 & c3 | (p1 & p2 & p3))
+                ordering = [A, B, C, X, Y, Z]
+                self.assert_canonicalize(expected, expression, ordering)
+                self.assert_canonicalize(Sum(expected), Sum(expression), ordering)
