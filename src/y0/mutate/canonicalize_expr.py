@@ -64,9 +64,6 @@ class Canonicalizer:
         if isinstance(expression, Probability):  # atomic
             return self._canonicalize_probability(expression)
         elif isinstance(expression, Sum):
-            if isinstance(expression.expression, Probability):  # also atomic
-                return expression
-
             return Sum(
                 expression=self.canonicalize(expression.expression),
                 ranges=expression.ranges,
