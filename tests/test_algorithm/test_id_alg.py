@@ -41,58 +41,36 @@ class TestIdentify(unittest.TestCase):
         self.assert_expr_equal(expression, identify(graph, query))
 
     def test_line_1(self):
-        """Tests that line 1 of ID algorithm works correctly
-
+        r"""Tests that line 1 of ID algorithm works correctly
         If no action has been taken, the effect on $\mathbf Y$ is just the marginal of the observational distribution
         $P(\mathbf v)$ on $\mathbf Y$.
         """
-        self.assert_expr_equal(Sum[Z](P(Y,Z)),
-                               line_1(set(),
-                                      {'Y'},
-                                      {'Y','Z'}))
-        self.assert_expr_equal(P(Y,Z),
-                               line_1(set(),
-                                      {'Y','Z'},
-                                      {'Y','Z'}))
+        self.assert_expr_equal(Sum[Z](P(Y, Z)), line_1(set(), {"Y"}, {"Y", "Z"}))
+        self.assert_expr_equal(Sum(P(Y, Z), []), line_1(set(), {"Y", "Z"}, {"Y", "Z"}))
 
-
-
-
-    def test_line_2( self ):
-        """
-        2. If we are interested in the effect on $\mathbf Y$, it is sufficient to restrict our attention on the parts of the model ancestral to $\mathbf Y$.
-        """
+    def test_line_2(self):
+        r"""2. If we are interested in the effect on $\mathbf Y$, it is sufficient to restrict our attention on the parts of the model ancestral to $\mathbf Y$."""
         pass
 
-    def test_line_3( self ):
-        """
-3. Forces an action on any node where such an action would have no effect on $\mathbf Y$—assuming we already acted on $\mathbf X$. Since actions remove incoming arrows, we can view line 3 as simplifying the causal graph we consider by removing certain arcs from the graph, without affecting the overall answer.
-        """
+    def test_line_3(self):
+        r"""3. Forces an action on any node where such an action would have no effect on $\mathbf Y$—assuming we already acted on $\mathbf X$. Since actions remove incoming arrows, we can view line 3 as simplifying the causal graph we consider by removing certain arcs from the graph, without affecting the overall answer."""
         pass
 
-    def test_line_4( self ):
-        """
-4. The key line of the algorithm, it decomposes the problem into a set of smaller problems using the key property of *c-component factorization* of causal models. If the entire graph is a single C-component already, further problem decomposition is impossible, and we must provide base cases. $\mathbf{ID}$ has three base cases.
-        """
-        pass
-    def test_line_5( self ):
-        """
-5. Fails because it finds two C-components, the graph $G$ itself, and a subgraph $S$ that does not contain any $\mathbf X$ nodes. But that is exactly one of the properties of C-forests that make up a hedge. In fact, it turns out that it is always possible to recover a hedge from these two c-components.
-        """
+    def test_line_4(self):
+        r"""4. The key line of the algorithm, it decomposes the problem into a set of smaller problems using the key property of *c-component factorization* of causal models. If the entire graph is a single C-component already, further problem decomposition is impossible, and we must provide base cases. $\mathbf{ID}$ has three base cases."""
         pass
 
-    def test_line_6( self ):
-        """
-6. Asserts that if there are no bidirected arcs from X to the other nodes in the current subproblem under consideration, then we can replace acting on X by conditioning, and thus solve the subproblem.
-        """
+    def test_line_5(self):
+        r"""5. Fails because it finds two C-components, the graph $G$ itself, and a subgraph $S$ that does not contain any $\mathbf X$ nodes. But that is exactly one of the properties of C-forests that make up a hedge. In fact, it turns out that it is always possible to recover a hedge from these two c-components."""
         pass
 
-    def test_line_7( self ):
-        """
-7. The most complex case where $\mathbf X$ is partitioned into two sets, $\mathbf W$ which contain bidirected arcs into other nodes in the subproblem, and $\mathbf Z$ which do not. In this situation, identifying $P(\mathbf y|do(\mathbf x))$ from $P(v)$ is equivalent to identifying $P(\mathbf y|do(\mathbf w))$ from $P(\mathbf V|do(\mathbf z))$, since $P(\mathbf y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))$. But the term $P(\mathbf V|do(\mathbf z))$ is identifiable using the previous base case, so we can consider the subproblem of identifying $P(\mathbf y|do(\mathbf w))$.
-        """
+    def test_line_6(self):
+        r"""6. Asserts that if there are no bidirected arcs from X to the other nodes in the current subproblem under consideration, then we can replace acting on X by conditioning, and thus solve the subproblem."""
         pass
 
+    def test_line_7(self):
+        r"""7. The most complex case where $\mathbf X$ is partitioned into two sets, $\mathbf W$ which contain bidirected arcs into other nodes in the subproblem, and $\mathbf Z$ which do not. In this situation, identifying $P(\mathbf y|do(\mathbf x))$ from $P(v)$ is equivalent to identifying $P(\mathbf y|do(\mathbf w))$ from $P(\mathbf V|do(\mathbf z))$, since $P(\mathbf y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))$. But the term $P(\mathbf V|do(\mathbf z))$ is identifiable using the previous base case, so we can consider the subproblem of identifying $P(\mathbf y|do(\mathbf w))$."""
+        pass
 
     # def test_figure_2a(self):
     #     """Test Figure 2A.
