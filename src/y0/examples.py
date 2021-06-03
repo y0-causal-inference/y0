@@ -187,7 +187,17 @@ line_1_example_b = Example(
     estimand=P(Y,Z)
     )
 
-
+#Line 2 example
+line_2_example = Example(
+    name="intervention not ancestral to outcome",
+    reference="out of the mind of JZ",
+    graph=NxMixedGraph.from_edges(
+        directed=[('Z','Y'), ('Y', 'X')],
+        undirected=[('Z', 'X')]
+    ),
+    query=P(Y @ X),
+    estimand=Sum[Z](P(Y,Z))
+)
 #: Treatment: X
 #: Outcome: Y
 identifiability_1 = NxMixedGraph.from_edges(

@@ -4,15 +4,15 @@
 
 import unittest
 
-from y0.algorithm.identify import identify, line_1, ancestors_and_self
+from y0.algorithm.identify import identify, line_1, line_2, ancestors_and_self
 from y0.algorithm.taheri_design import _get_result, iterate_lvdags
 from y0.dsl import Expression, P, Sum, X, Y, Z, W1, W2, Y1, Y2
 from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_to_latent_variable_dag
 from y0.mutate import canonicalize
 from y0.parser import parse_craig
 from y0.resources import VIRAL_PATHOGENESIS_PATH
-from y0.examples import line_1_example_a, line_1_example_b
-
+from y0.examples import line_1_example_a, line_1_example_b, line_2_example
+from y0.identify import _get_outcomes, _get_treatments
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
 
@@ -63,12 +63,26 @@ class TestIdentify(unittest.TestCase):
         If no action has been taken, the effect on $\mathbf Y$ is just the marginal of the observational distribution
         $P(\mathbf v)$ on $\mathbf Y$.
         """
-        self.assert_expr_equal(Sum[Z](P(Y, Z)), line_1(set(), {"Y"}, {"Y", "Z"}))
-        self.assert_expr_equal(Sum(P(Y, Z), []), line_1(set(), {"Y", "Z"}, {"Y", "Z"}))
+        self.assert_expr_equal(Sum[Z](P(Y, Z)),
+                               line_1(outcomes={"Y"},
+                                      treatments=set(),
+                                      estimand= P(Y, Z),
+                                      G=line_1_example_a.graph))
+        self.assert_expr_equal(Sum(P(Y, Z), []),
+                               line_1(outcomes={"Y", "Z"},
+                                      treatments=set(),
+                                      estimand = P(Y,Z),
+                                      G=line_1_example_b.graph))
 
     def test_line_2(self):
         r"""2. If we are interested in the effect on $\mathbf Y$, it is sufficient to restrict our attention on the parts of the model ancestral to $\mathbf Y$."""
-        pass
+        treatments = set(_get_treatments( line_2_example.query.get_variables()))
+        outcomes = set(_get_outcomes( line_2_example.query.get_variables()))
+        self.assert_expr_equal(line_2_example.estimand,
+                               line_2(outcomes,
+                                      treatments,
+                                      estimand=P(X, Y, Z),
+                                      G=line_2_example.graph))
 
     def test_line_3(self):
         r"""3. Forces an action on any node where such an action would have no effect on $\mathbf Y$—assuming we already acted on $\mathbf X$. Since actions remove incoming arrows, we can view line 3 as simplifying the causal graph we consider by removing certain arcs from the graph, without affecting the overall answer."""

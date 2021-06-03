@@ -37,26 +37,28 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
     #     return r[0]
 
 
-def line_1( X: set, Y: set, V: set ) -> Expression:
+def line_1(outcomes: set, treatments: set, estimand: Expression, G: NxMixedGraph ) -> Expression:
         r"""Line 1 of ID algorithm
         If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of the observational distribution
-        :param X:  interventions
-        :param Y:  outcomes
-        :param V:  All nodes in the graph
+        :param outcomes:
+        :param interventions:
+        :param P: Probabilistic expression
+        :param G: NxMixedGraph
         :returns:  The marginal of the outcome variables
         :raises ValueError:  There should not be any interventional variables
         """
+        V = G.directed.nodes()
 
-        if len(X) > 0:
+        if len(treatments) > 0:
             raise ValueError("Interventions is nonempty")
         return Sum(P(*[Variable(v)
                        for v in V]),
                      [Variable(v)
-                      for v in V - Y])
+                       for v in V - outcomes])
 
 
 
-def line_2( X: set, Y: set, P: Expression, G: NxMixedGraph  ) -> Expression:
+def line_2( outcomes: set, treatments: set, estimand: Expression, G: NxMixedGraph  ) -> Expression:
     r"""Line 2 of the ID algorithm.
     If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention on the parts of the model ancestral to :math:`\mathbf Y`.
     :param X: set of interventions
@@ -67,11 +69,16 @@ def line_2( X: set, Y: set, P: Expression, G: NxMixedGraph  ) -> Expression:
     :raises Fail: if the query is not identifiable.
     """
     V = G.directed.nodes()
-    ancestors_and_Y_in_G = ancestors_and_self( G, Y )
+    ancestors_and_Y_in_G = ancestors_and_self( G, outcomes )
     not_ancestors_of_Y = V - ancestors_and_Y_in_G
-    G_ancestral_to_Y
+    G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
     if len(not_ancestors_of_Y) != 0:
-        return identify(Y, X & ancestors_and_Y_in_G, Sum(P, list(not_ancestors_of_Y)), G
+        return line_1( outcomes,
+                       treatments & ancestors_and_Y_in_G,
+                       Sum(P, list(not_ancestors_of_Y)),
+                       G_ancestral_to_Y)
+    else:
+        raise ValueError("No ancestors of Y")
 
 # def str_list(node_list):
 #     """ return a string listing the nodes in node_list - this is used in the ID and IDC algorithms """
