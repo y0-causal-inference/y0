@@ -12,6 +12,7 @@ from y0.dsl import Variable, P, Sum, Product
 __all__ = [
     "str_graph",
     "nxmixedgraph_to_causal_graph",
+    "ancestors_and_self"
 ]
 
 
@@ -19,6 +20,14 @@ __all__ = [
 
 class Fail(Exception):
     pass
+
+
+def ancestors_and_self( G: NxMixedGraph, Y: set ) -> set:
+    """Ancestors of a set include the set itself"""
+    ancestors_and_self = Y.copy()
+    for y in Y:
+        ancestors_and_self |= nx.algorithms.dag.ancestors( G.directed, y )
+    return ancestors_and_self
 
 def nxmixedgraph_to_bel2scm_causal_graph(graph: NxMixedGraph):
     """Converts NxMixedGraph to bel2scm.causal_graph"""
