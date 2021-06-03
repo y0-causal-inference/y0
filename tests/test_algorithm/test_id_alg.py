@@ -50,6 +50,12 @@ class TestIdentify(unittest.TestCase):
         self.assertEqual({"X", "Z"}, ancestors_and_self(graph, {"Z"}))
         self.assertEqual({"X"}, ancestors_and_self(graph, {"X"}))
 
+    def test_subgraph(self):
+        """Tests whether the subgraph restriction algorithm returns the correct subgraph"""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Z")
+        graph.add_directed_edge("Z", "Y")
+        graph.add_undirected_edge("Z", "Y")
 
 
     def test_line_1(self):

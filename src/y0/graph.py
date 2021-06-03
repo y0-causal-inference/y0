@@ -55,6 +55,25 @@ class NxMixedGraph(Generic[X]):
     #: A undirected graph
     undirected: nx.Graph = field(default_factory=nx.Graph)
 
+
+    def subgraph( self, vertices: X) -> NxMixedGraph:
+        """Return a subgraph given a set of vertices
+        :param V: a set of nodes
+        :returns:  NxMixedGraph subgraph
+        """
+
+        directed   = dict([(u,[]) for u in vertices])
+        undirected = dict([(u,[]) for u in vertices])
+
+        for u, v in self.directed.edges():
+            if u in vertices and v in vertices:
+                directed[u].append(v)
+        for u, v in self.undirected.edges():
+            if u in vertices and v in vertices:
+                undirected[u].append(v)
+
+        return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
+
     def add_directed_edge(self, u: X, v: X, **attr) -> None:
         """Add a directed edge from u to v."""
         self.directed.add_edge(u, v, **attr)
@@ -76,8 +95,14 @@ class NxMixedGraph(Generic[X]):
 
     @classmethod
     def from_admg(cls, admg: ADMG) -> NxMixedGraph:
-        """Create from an ADMG."""
-        return cls.from_edges(directed=admg.di_edges, undirected=admg.bi_edges)
+        """Create from an ADMG. Note that vertices can exist without edges"""
+        directed   = dict([(u,[]) for u in admg.vertices])
+        undirected = dict([(u,[]) for u in admg.vertices])
+        for u, v in admg.di_edges:
+            directed[u].append(v)
+        for u, v in admg.bi_edges:
+            undirected[u].append(v)
+        return cls.from_adj(directed=directed, undirected=undirected)
 
     def to_latent_variable_dag(
         self,
@@ -180,7 +205,7 @@ class NxMixedGraph(Generic[X]):
                 for u, v in self.undirected.edges()
             )
 
-        rv = f'g <- graph.formula({formula}, simplify = FALSE)'
+        rv= f'g <- graph.formula({formula}, simplify = FALSE)'
         for i in range(self.undirected.number_of_edges()):
             idx = 2 * i + self.directed.number_of_edges() + 1
             rv += (

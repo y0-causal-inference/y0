@@ -42,12 +42,16 @@ backdoor = NxMixedGraph.from_edges(directed=[
     ('X', 'Y'),
 ])
 
+
+
 backdoor_example = Example(
     name='Backdoor',
     reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
               ' 2nd ed." Cambridge University Press, p. 178.',
     graph=backdoor,
 )
+
+
 
 #: Treatment: X
 #: Outcome: Y
@@ -137,6 +141,22 @@ m_graph_example = Example(
               ' Epidemiology Journal, Volume 10, No. 10, pp. 37-48, 1999.',
     graph=m_graph,
 )
+
+# NxMixedGraph containing vertices without edges
+vertices_without_edges = Example(
+    name="Vertices-without-Edges",
+    reference='out of the mind of JZ (patent pending). See NFT for details',
+    graph=NxMixedGraph.from_adj(
+        directed  ={'W': [],
+                    'X': ['Y'],
+                    'Y': ['Z'],
+                    'Z': []},
+        undirected={'W':[],
+                    'X':['Z'],
+                    'Y':[],
+                    'Z':[]}),
+    )
+
 
 # Line 1 example
 line_1_example_a = Example(

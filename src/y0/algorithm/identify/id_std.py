@@ -14,6 +14,7 @@ from y0.parser.craig.grammar import grammar
 from y0.algorithm.identify.utils import (
     str_graph,
     nxmixedgraph_to_causal_graph,
+   ancestors_and_self
     #nxmixedgraph_to_bel2scm_causal_graph,
 )
 
@@ -54,23 +55,23 @@ def line_1( X: set, Y: set, V: set ) -> Expression:
                       for v in V - Y])
 
 
-def ancestors_and_self( G: NxMixedGraph, Y: set ) -> set:
-    """Ancestors of a set include the set itself"""
-    ancestors_and_self = Y.copy()
-    for y in Y:
-        ancestors_and_self |= nx.algorithms.dag.ancestors( G.directed, y )
-    return ancestors_and_self
 
-def line_2( G: NxMixedGraph, Y: set, V: set ) -> Expression:
+def line_2( X: set, Y: set, P: Expression, G: NxMixedGraph  ) -> Expression:
     r"""Line 2 of the ID algorithm.
     If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention on the parts of the model ancestral to :math:`\mathbf Y`.
-    :param graph:  NxMixedGraph
+    :param X: set of interventions
     :param Y: set of outcomes
+    :param P: Probabilistic expression
+    :param G: ADMG
     :returns:  The probability expression
     :raises Fail: if the query is not identifiable.
     """
-    ancestors_and_Y = ancestors_and_self( G, Y )
-
+    V = G.directed.nodes()
+    ancestors_and_Y_in_G = ancestors_and_self( G, Y )
+    not_ancestors_of_Y = V - ancestors_and_Y_in_G
+    G_ancestral_to_Y
+    if len(not_ancestors_of_Y) != 0:
+        return identify(Y, X & ancestors_and_Y_in_G, Sum(P, list(not_ancestors_of_Y)), G
 
 # def str_list(node_list):
 #     """ return a string listing the nodes in node_list - this is used in the ID and IDC algorithms """

@@ -12,7 +12,8 @@ from y0.dsl import Variable, P, Sum, Product
 __all__ = [
     "str_graph",
     "nxmixedgraph_to_causal_graph",
-    "ancestors_and_self"
+    "ancestors_and_self",
+    #"subgraph"
 ]
 
 
@@ -29,6 +30,13 @@ def ancestors_and_self( G: NxMixedGraph, Y: set ) -> set:
         ancestors_and_self |= nx.algorithms.dag.ancestors( G.directed, y )
     return ancestors_and_self
 
+def subgraph( G: NxMixedGraph, V: set ) -> NxMixedGraph:
+    """Restrict mixed graph to the specified set of nodes
+    :param G: NxMixedGraph
+    :param V: specified set of nodes
+    :returns: Subgraph
+    """
+    pass
 def nxmixedgraph_to_bel2scm_causal_graph(graph: NxMixedGraph):
     """Converts NxMixedGraph to bel2scm.causal_graph"""
     from bel2scm import causal_graph
