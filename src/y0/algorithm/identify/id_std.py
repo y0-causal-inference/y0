@@ -36,22 +36,40 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
     #     return r[0]
 
 
-def line_1( interventions, outcomes, variables ):
-        """Line 1 of ID algorithm
-        If no action has been taken, the effect on $\mathbf Y$ is just the marginal of the observational distribution
-        :param interventions:  X variables
-        :param outcomes: Y variables
-        :param variables:  All nodes in the graph
+def line_1( X: set, Y: set, V: set ) -> Expression:
+        r"""Line 1 of ID algorithm
+        If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of the observational distribution
+        :param X:  interventions
+        :param Y:  outcomes
+        :param V:  All nodes in the graph
         :returns:  The marginal of the outcome variables
         :raises ValueError:  There should not be any interventional variables
         """
 
-        if len(interventions) > 0:
+        if len(X) > 0:
             raise ValueError("Interventions is nonempty")
         return Sum(P(*[Variable(v)
-                       for v in variables]),
+                       for v in V]),
                      [Variable(v)
-                      for v in variables - outcomes])
+                      for v in V - Y])
+
+
+def ancestors_and_self( G: NxMixedGraph, Y: set ) -> set:
+    """Ancestors of a set include the set itself"""
+    ancestors_and_self = Y.copy()
+    for y in Y:
+        ancestors_and_self |= nx.algorithms.dag.ancestors( G.directed, y )
+    return ancestors_and_self
+
+def line_2( G: NxMixedGraph, Y: set, V: set ) -> Expression:
+    r"""Line 2 of the ID algorithm.
+    If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention on the parts of the model ancestral to :math:`\mathbf Y`.
+    :param graph:  NxMixedGraph
+    :param Y: set of outcomes
+    :returns:  The probability expression
+    :raises Fail: if the query is not identifiable.
+    """
+    ancestors_and_Y = ancestors_and_self( G, Y )
 
 
 # def str_list(node_list):

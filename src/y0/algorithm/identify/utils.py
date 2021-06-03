@@ -291,23 +291,6 @@ class cg_graph:
         return True
 
 
-    def line_1( self, interventions, outcomes, variables ):
-        """Line 1 of ID algorithm
-        If no action has been taken, the effect on $\mathbf Y$ is just the marginal of the observational distribution
-        :param interventions:  X variables
-        :param outcomes: Y variables
-        :param variables:  All nodes in the graph
-        :returns:  The marginal of the outcome variables
-        :raises ValueError:  There should not be any interventional variables
-        """
-
-        if len(interventions) > 0:
-            raise ValueError("Interventions is nonempty")
-        return Sum(P(*[Variable(v)
-                       for v in variables],
-                     [Variable(v)
-                      for v in variables - outcomes]))
-
 
     def id_alg(self, y, x, p_in=None, graph_in=None):
         """calculate P(y | do(x)) or return failure if this is not possible"""

@@ -4,7 +4,7 @@
 
 import unittest
 
-from y0.algorithm.identify import identify, line_1
+from y0.algorithm.identify import identify, line_1, ancestors_and_self
 from y0.algorithm.taheri_design import _get_result, iterate_lvdags
 from y0.dsl import Expression, P, Sum, X, Y, Z, W1, W2, Y1, Y2
 from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_to_latent_variable_dag
@@ -39,6 +39,18 @@ class TestIdentify(unittest.TestCase):
     ):
         """Assert that the graph returns the same."""
         self.assert_expr_equal(expression, identify(graph, query))
+
+    def test_ancestors_and_self(self):
+        """Tests whether the ancestors_and_self actually returns the ancestors and itself"""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Z")
+        graph.add_directed_edge("Z", "Y")
+        graph.add_undirected_edge("X", "Y")
+        self.assertEqual({"X", "Y", "Z"}, ancestors_and_self(graph, {"Y"}))
+        self.assertEqual({"X", "Z"}, ancestors_and_self(graph, {"Z"}))
+        self.assertEqual({"X"}, ancestors_and_self(graph, {"X"}))
+
+
 
     def test_line_1(self):
         r"""Tests that line 1 of ID algorithm works correctly
