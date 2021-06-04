@@ -4,9 +4,7 @@ from typing import Union
 
 from ananke.graphs import ADMG
 
-from y0.algorithm.identify.utils import (
-    ancestors_and_self, nxmixedgraph_to_causal_graph,
-)  # nxmixedgraph_to_bel2scm_causal_graph,
+from y0.algorithm.identify.utils import ancestors_and_self, nxmixedgraph_to_causal_graph
 from y0.dsl import Expression, P, Sum, Variable
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
