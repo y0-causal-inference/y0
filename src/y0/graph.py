@@ -55,15 +55,14 @@ class NxMixedGraph(Generic[X]):
     #: A undirected graph
     undirected: nx.Graph = field(default_factory=nx.Graph)
 
-
-    def subgraph( self, vertices: X) -> NxMixedGraph:
+    def subgraph(self, vertices: Collection[X]) -> NxMixedGraph:
         """Return a subgraph given a set of vertices
-        :param V: a set of nodes
-        :returns:  NxMixedGraph subgraph
-        """
 
-        directed   = dict([(u,[]) for u in vertices])
-        undirected = dict([(u,[]) for u in vertices])
+        :param vertices: a set of nodes
+        :returns: A new NxMixedGraph subgraph
+        """
+        directed = dict([(u, []) for u in vertices])
+        undirected = dict([(u, []) for u in vertices])
 
         for u, v in self.directed.edges():
             if u in vertices and v in vertices:
@@ -96,8 +95,8 @@ class NxMixedGraph(Generic[X]):
     @classmethod
     def from_admg(cls, admg: ADMG) -> NxMixedGraph:
         """Create from an ADMG. Note that vertices can exist without edges"""
-        directed   = dict([(u,[]) for u in admg.vertices])
-        undirected = dict([(u,[]) for u in admg.vertices])
+        directed = dict([(u, []) for u in admg.vertices])
+        undirected = dict([(u, []) for u in admg.vertices])
         for u, v in admg.di_edges:
             directed[u].append(v)
         for u, v in admg.bi_edges:
@@ -205,7 +204,7 @@ class NxMixedGraph(Generic[X]):
                 for u, v in self.undirected.edges()
             )
 
-        rv= f'g <- graph.formula({formula}, simplify = FALSE)'
+        rv = f'g <- graph.formula({formula}, simplify = FALSE)'
         for i in range(self.undirected.number_of_edges()):
             idx = 2 * i + self.directed.number_of_edges() + 1
             rv += (
