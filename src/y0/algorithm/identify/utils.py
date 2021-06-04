@@ -31,14 +31,6 @@ def ancestors_and_self(graph: NxMixedGraph, sources: set[str]) -> set[str]:
     return rv
 
 
-def subgraph(G: NxMixedGraph, V: set) -> NxMixedGraph:
-    """Restrict mixed graph to the specified set of nodes.
-
-    :param G: NxMixedGraph
-    :param V: specified set of nodes
-    :returns: Subgraph
-    """
-    pass
 
 
 def nxmixedgraph_to_bel2scm_causal_graph(graph: NxMixedGraph):
