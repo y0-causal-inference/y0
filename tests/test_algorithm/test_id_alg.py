@@ -4,15 +4,13 @@
 
 import unittest
 
-from y0.algorithm.identify import identify, line_1, line_2, ancestors_and_self
-from y0.algorithm.taheri_design import _get_result, iterate_lvdags
-from y0.dsl import Expression, P, Sum, X, Y, Z, W1, W2, Y1, Y2
-from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_to_latent_variable_dag
-from y0.mutate import canonicalize
-from y0.parser import parse_craig
-from y0.resources import VIRAL_PATHOGENESIS_PATH
+from y0.algorithm.identify import ancestors_and_self, identify, line_1, line_2
+from y0.dsl import Expression, P, Sum, X, Y, Z
 from y0.examples import line_1_example_a, line_1_example_b, line_2_example
+from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
+from y0.mutate import canonicalize
+
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
 
@@ -57,56 +55,95 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge("Z", "Y")
         graph.add_undirected_edge("Z", "Y")
 
-
     def test_line_1(self):
-        r"""Tests that line 1 of ID algorithm works correctly
-        If no action has been taken, the effect on $\mathbf Y$ is just the marginal of the observational distribution
-        $P(\mathbf v)$ on $\mathbf Y$.
+        r"""Test that line 1 of ID algorithm works correctly.
+
+        If no action has been taken, the effect on $\mathbf Y$ is just the marginal of
+        the observational distribution $P(\mathbf v)$ on $\mathbf Y$.
         """
-        self.assert_expr_equal(Sum[Z](P(Y, Z)),
-                               line_1(outcomes={"Y"},
-                                      treatments=set(),
-                                      estimand= P(Y, Z),
-                                      G=line_1_example_a.graph))
-        self.assert_expr_equal(Sum(P(Y, Z), []),
-                               line_1(outcomes={"Y", "Z"},
-                                      treatments=set(),
-                                      estimand = P(Y,Z),
-                                      G=line_1_example_b.graph))
+        self.assert_expr_equal(
+            Sum(P(Y, Z), (Z,)),
+            line_1(
+                outcomes={"Y"},
+                treatments=set(),
+                estimand=P(Y, Z),
+                G=line_1_example_a.graph,
+            ),
+        )
+        self.assert_expr_equal(
+            Sum(P(Y, Z)),
+            line_1(
+                outcomes={"Y", "Z"},
+                treatments=set(),
+                estimand=P(Y, Z),
+                G=line_1_example_b.graph,
+            ),
+        )
 
     def test_line_2(self):
-        r"""2. If we are interested in the effect on $\mathbf Y$, it is sufficient to restrict our attention on the parts of the model ancestral to $\mathbf Y$."""
-        treatments = set(_get_treatments( line_2_example.query.get_variables()))
-        outcomes = set(_get_outcomes( line_2_example.query.get_variables()))
-        self.assert_expr_equal(line_2_example.estimand,
-                               line_2(outcomes,
-                                      treatments,
-                                      estimand=P(X, Y, Z),
-                                      G=line_2_example.graph))
+        r"""Test line 2 of the identification algorithm.
+
+        2. If we are interested in the effect on $\mathbf Y$, it is sufficient to restrict our
+        attention on the parts of the model ancestral to $\mathbf Y$.
+        """
+        treatments = set(_get_treatments(line_2_example.query.get_variables()))
+        outcomes = set(_get_outcomes(line_2_example.query.get_variables()))
+        self.assert_expr_equal(
+            line_2_example.estimand,
+            line_2(outcomes, treatments, estimand=P(X, Y, Z), G=line_2_example.graph),
+        )
 
     def test_line_3(self):
-        r"""3. Forces an action on any node where such an action would have no effect on $\mathbf Y$—assuming we already acted on $\mathbf X$. Since actions remove incoming arrows, we can view line 3 as simplifying the causal graph we consider by removing certain arcs from the graph, without affecting the overall answer."""
-        pass
+        r"""Test line 3 of the identification algorithm.
+
+        3. Forces an action on any node where such an action would have no effect on $\mathbf Y$—assuming
+        we already acted on $\mathbf X$. Since actions remove incoming arrows, we can view line 3 as
+        simplifying the causal graph we consider by removing certain arcs from the graph, without
+        affecting the overall answer.
+        """
 
     def test_line_4(self):
-        r"""4. The key line of the algorithm, it decomposes the problem into a set of smaller problems using the key property of *c-component factorization* of causal models. If the entire graph is a single C-component already, further problem decomposition is impossible, and we must provide base cases. $\mathbf{ID}$ has three base cases."""
-        pass
+        r"""Test line 4 of the identification algorithm.
+
+        4. The key line of the algorithm, it decomposes the problem into a set of smaller problems
+        using the key property of *c-component factorization* of causal models. If the entire graph
+        is a single C-component already, further problem decomposition is impossible, and we must
+        provide base cases. $\mathbf{ID}$ has three base cases.
+        """
 
     def test_line_5(self):
-        r"""5. Fails because it finds two C-components, the graph $G$ itself, and a subgraph $S$ that does not contain any $\mathbf X$ nodes. But that is exactly one of the properties of C-forests that make up a hedge. In fact, it turns out that it is always possible to recover a hedge from these two c-components."""
-        pass
+        r"""Test line 5 of the identification algorithm.
+
+        5. Fails because it finds two C-components, the graph $G$ itself, and a subgraph $S$ that
+        does not contain any $\mathbf X$ nodes. But that is exactly one of the properties of C-forests
+        that make up a hedge. In fact, it turns out that it is always possible to recover a hedge
+        from these two c-components.
+        """
 
     def test_line_6(self):
-        r"""6. Asserts that if there are no bidirected arcs from X to the other nodes in the current subproblem under consideration, then we can replace acting on X by conditioning, and thus solve the subproblem."""
-        pass
+        r"""Test line 6 of the identification algorithm.
+
+        6. Asserts that if there are no bidirected arcs from X to the other nodes in the current
+        subproblem under consideration, then we can replace acting on X by conditioning, and thus
+        solve the subproblem.
+        """
 
     def test_line_7(self):
-        r"""7. The most complex case where $\mathbf X$ is partitioned into two sets, $\mathbf W$ which contain bidirected arcs into other nodes in the subproblem, and $\mathbf Z$ which do not. In this situation, identifying $P(\mathbf y|do(\mathbf x))$ from $P(v)$ is equivalent to identifying $P(\mathbf y|do(\mathbf w))$ from $P(\mathbf V|do(\mathbf z))$, since $P(\mathbf y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))$. But the term $P(\mathbf V|do(\mathbf z))$ is identifiable using the previous base case, so we can consider the subproblem of identifying $P(\mathbf y|do(\mathbf w))$."""
-        pass
+        r"""Test line 2 of the identification algorithm.
+
+        7. The most complex case where $\mathbf X$ is partitioned into two sets, $\mathbf W$ which
+        contain bidirected arcs into other nodes in the subproblem, and $\mathbf Z$ which do not.
+        In this situation, identifying $P(\mathbf y|do(\mathbf x))$ from $P(v)$ is equivalent to
+        identifying $P(\mathbf y|do(\mathbf w))$ from $P(\mathbf V|do(\mathbf z))$, since
+        $P(\mathbf y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))$. But the term
+        $P(\mathbf V|do(\mathbf z))$ is identifiable using the previous base case, so we can consider
+        the subproblem of identifying $P(\mathbf y|do(\mathbf w))$.
+        """
 
     # def test_figure_2a(self):
     #     """Test Figure 2A.
-    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.
+    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
+    #     Journal of Machine Learning Research.
     #     """
     #     graph = NxMixedGraph()
     #     graph.add_directed_edge("X", "Y")
@@ -118,7 +155,8 @@ class TestIdentify(unittest.TestCase):
 
     # def test_figure_2b(self):
     #     """Test Figure 2B.
-    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.
+    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
+    #     Journal of Machine Learning Research.
     #     """
     #     graph = NxMixedGraph()
     #     graph.add_directed_edge("X", "Y")
@@ -135,7 +173,8 @@ class TestIdentify(unittest.TestCase):
 
     # def test_figure_2c(self):
     #     """Test Figure 2C.
-    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.
+    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
+    #     Journal of Machine Learning Research.
     #     """
     #     graph = NxMixedGraph()
     #     graph.add_directed_edge("X", "Y")
@@ -168,7 +207,8 @@ class TestIdentify(unittest.TestCase):
 
     # def test_figure_2e(self):
     #     """Test Figure 2E.
-    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.
+    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
+    #     Journal of Machine Learning Research.
     #     """
     #     graph = NxMixedGraph()
     #     graph.add_directed_edge("X", "Z")
@@ -184,7 +224,8 @@ class TestIdentify(unittest.TestCase):
 
     # def test_figure_3a(self):
     #     """Test Figure 3a. A graph hedge-less for P(y1,y2|do(x))
-    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.
+    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
+    #     Journal of Machine Learning Research.
     #     """
     #     graph = NxMixedGraph()
     #     #W1,W2,Y1,Y2 = Variable('W1'), Variable('W2'), Variable('Y1'), Variable('Y2')

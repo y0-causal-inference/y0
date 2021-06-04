@@ -85,6 +85,10 @@ class NxMixedGraph(Generic[X]):
         self.directed.add_node(u)
         self.directed.add_node(v)
 
+    def nodes(self) -> Collection[X]:
+        """Get the nodes in the graph."""
+        return self.directed.nodes()
+
     def to_admg(self) -> ADMG:
         """Get an ADMG instance."""
         di_edges = list(self.directed.edges())

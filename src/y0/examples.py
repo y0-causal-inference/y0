@@ -6,15 +6,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 
 import networkx as nx
 import pandas as pd
 
-from .dsl import P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5, Expression
+from .dsl import Expression, P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5
 from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
+
+
+@dataclass
+class Identification:
+    query: Expression
+    estimand: Expression
 
 
 @dataclass
@@ -27,8 +33,8 @@ class Example:
     verma_constraints: Optional[Sequence[VermaConstraint]] = None
     conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
     data: Optional[pd.DataFrame] = None
-    query: Optional[Expression] = Y @ X
-    estimand: Optional[Expression] = P(Y|X)
+    identifications: Optional[List[Identification]] = None
+
 
 u_2 = Variable('u_2')
 u_3 = Variable('u_3')
@@ -42,16 +48,12 @@ backdoor = NxMixedGraph.from_edges(directed=[
     ('X', 'Y'),
 ])
 
-
-
 backdoor_example = Example(
     name='Backdoor',
     reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
               ' 2nd ed." Cambridge University Press, p. 178.',
     graph=backdoor,
 )
-
-
 
 #: Treatment: X
 #: Outcome: Y
@@ -122,7 +124,6 @@ napkin_example = Example(
     ],
 )
 
-
 #: Treatment: X
 #: Outcome: Y
 #: Reference:
@@ -147,35 +148,38 @@ vertices_without_edges = Example(
     name="Vertices-without-Edges",
     reference='out of the mind of JZ (patent pending). See NFT for details',
     graph=NxMixedGraph.from_adj(
-        directed  ={'W': [],
-                    'X': ['Y'],
-                    'Y': ['Z'],
-                    'Z': []},
-        undirected={'W':[],
-                    'X':['Z'],
-                    'Y':[],
-                    'Z':[]}),
-    )
-
+        directed={
+            'W': [],
+            'X': ['Y'],
+            'Y': ['Z'],
+            'Z': []
+        },
+        undirected={
+            'W': [],
+            'X': ['Z'],
+            'Y': [],
+            'Z': []
+        }),
+)
 
 # Line 1 example
 line_1_example_a = Example(
     name="Line 1 of ID algorithm",
     reference="out of the mind of JZ",
-    graph = NxMixedGraph.from_edges(
+    graph=NxMixedGraph.from_edges(
         directed=[
             ('Z', 'Y'),
-            ]
-        ),
-    query=Y,
-    estimand=Sum[Z](P(Y,Z))
-    )
-
+        ]
+    ),
+    identifications=[
+        Identification(query=Y, estimand=Sum[Z](P(Y, Z))),
+    ]
+)
 
 line_1_example_b = Example(
     name="Line 1 of ID algorithm",
     reference="out of the mind of JZ",
-    graph = NxMixedGraph.from_edges(
+    graph=NxMixedGraph.from_edges(
         directed=[
             ('Z', 'Y'),
         ],
@@ -183,20 +187,25 @@ line_1_example_b = Example(
             ('Z', 'Y'),
         ],
     ),
-    query=[Y,Z],
-    estimand=P(Y,Z)
-    )
+    identifications=[
+        Identification(query=[Y, Z], estimand=P(Y, Z)),
+    ],
+)
 
-#Line 2 example
+# Line 2 example
 line_2_example = Example(
     name="intervention not ancestral to outcome",
     reference="out of the mind of JZ",
     graph=NxMixedGraph.from_edges(
-        directed=[('Z','Y'), ('Y', 'X')],
+        directed=[('Z', 'Y'), ('Y', 'X')],
         undirected=[('Z', 'X')]
     ),
-    query=P(Y @ X),
-    estimand=Sum[Z](P(Y,Z))
+    identifications=[
+        Identification(
+            query=P(Y @ X),
+            estimand=Sum[Z](P(Y, Z))
+        ),
+    ],
 )
 #: Treatment: X
 #: Outcome: Y
@@ -635,61 +644,63 @@ asia_example = Example(
 )
 
 complete_hierarchy_figure_2c_example = Example(
-    name = "Shpitser et al (2008) figure 2d",
-    reference = " Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.",
-    graph = NxMixedGraph.from_edges(
-        directed = [
+    name="Shpitser et al (2008) figure 2d",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
+              "Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[
             ("X", "Y"),
             ("Z", "X"),
             ("Z", "Y"),
         ],
-        undirected = [
+        undirected=[
             ("X", "Z")
         ],
     ),
 )
 
 complete_hierarchy_figure_2d_example = Example(
-    name = "Shpitser et al (2008) figure 2d",
-    reference = " Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.",
-    graph = NxMixedGraph.from_edges(
-        directed = [
+    name="Shpitser et al (2008) figure 2d",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
+              "Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[
             ("X", "Y"),
             ("Z", "X"),
             ("Z", "Y"),
         ],
-        undirected = [
+        undirected=[
             ("X", "Z")
         ],
     ),
 )
 
-
 complete_hierarchy_figure_2e_example = Example(
-    name = "Shpitser et al (2008) figure 2e",
-    reference = " Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.",
-    graph = NxMixedGraph.from_edges(
-        directed = [
+    name="Shpitser et al (2008) figure 2e",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
+              "Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[
             ("X", "Z"),
             ("Z", "Y"),
         ],
-        undirected = [
+        undirected=[
             ("X", "Y")
         ],
     ),
 )
 
-
 complete_hierarchy_figure_3a_example = Example(
-    name = "Shpitser et al 2008 figure 3a",
-    reference = "Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. Journal of Machine Learning Research.",
-    graph = NxMixedGraph.from_edges(
+    name="Shpitser et al 2008 figure 3a",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy."
+              " Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
         directed=[
             ("X", "Y1"),
             ("W1", "X"),
             ("W2", "Y2")
         ],
-        undirected = [
+        undirected=[
             ("W1", "W2"),
             ("W1", "Y1"),
             ("W1", "Y2"),
