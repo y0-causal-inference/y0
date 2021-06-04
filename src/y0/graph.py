@@ -94,10 +94,10 @@ class NxMixedGraph(Generic[X]):
         :param vertices: a set of nodes to remove from graph
         :returns:  NxMixedGraph subgraph
         """
-        directed   = dict([(u,[]) for u in self.directed.nodes()
+        directed   = dict([(u,[]) for u in self.nodes()
                            if u not in vertices
         ])
-        undirected = dict([(u,[]) for u in self.undirected.nodes()
+        undirected = dict([(u,[]) for u in self.nodes()
                            if u not in vertices
         ])
 

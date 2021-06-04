@@ -103,7 +103,8 @@ class TestGraph(unittest.TestCase):
         self.assert_graph_equal( expected, actual )
 
     def assert_graph_equal(self, expected, actual):
-        """Assert that two NxMixedGraphs are structurally equivalent"""
+        """Assert that two NxMixedGraphs are structurally equivalent.
+        This includes bidirected edges regardless of the order the vertices are specified"""
         self.assertEqual(set(expected.directed.nodes()), set(actual.directed.nodes()))
         self.assertEqual(set(expected.undirected.nodes()), set(actual.undirected.nodes()))
         expected_di_edges   = set(expected.directed.edges())
@@ -112,3 +113,7 @@ class TestGraph(unittest.TestCase):
         actual_bi_edges     = set([frozenset([u,v]) for u, v in actual.undirected.edges()])
         self.assertEqual(expected_di_edges, actual_di_edges)
         self.assertEqual(expected_bi_edges, actual_bi_edges)
+
+    def test_from_adj(self):
+        """Make sure that the adjacency graph is not a multigraph"""
+        pass
