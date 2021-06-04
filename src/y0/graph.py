@@ -57,10 +57,10 @@ class NxMixedGraph(Generic[X]):
 
     def subgraph(self, vertices: Collection[X]) -> NxMixedGraph:
         """Return a subgraph given a set of vertices
-
-        :param vertices: a set of nodes
-        :returns: A new NxMixedGraph subgraph
+        :param vertices: a subset of nodes
+        :returns:  NxMixedGraph subgraph
         """
+
         directed = dict([(u, []) for u in vertices])
         undirected = dict([(u, []) for u in vertices])
 
@@ -73,13 +73,50 @@ class NxMixedGraph(Generic[X]):
 
         return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
 
-    def add_directed_edge(self, u: X, v: X, **attr) -> None:
+    def intervene( self, vertices: Collection[X]) -> NxMixedGraph:
+        """Return a mutilated graph given a set of interventions
+        :param vertices: a subset of nodes from which to remove incoming edges
+        :returns:  NxMixedGraph subgraph
+        """
+        directed   = dict([(u,[]) for u in self.nodes()])
+        undirected = dict([(u,[]) for u in self.nodes()])
+
+        for u, v in self.directed.edges():
+            if v not in vertices:
+                directed[u].append(v)
+        for u, v in self.undirected.edges():
+            if (u not in vertices) and (v not in vertices):
+                undirected[u].append(v)
+        return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
+
+    def remove_nodes_from( self, vertices: Collection[X]) -> NxMixedGraph:
+        """Return a subgraph that does not contain any of the specified vertices
+        :param vertices: a set of nodes to remove from graph
+        :returns:  NxMixedGraph subgraph
+        """
+        directed   = dict([(u,[]) for u in self.directed.nodes()
+                           if u not in vertices
+        ])
+        undirected = dict([(u,[]) for u in self.undirected.nodes()
+                           if u not in vertices
+        ])
+
+        for u, v in self.directed.edges():
+            if (u not in vertices) and (v not in vertices):
+                directed[u].append(v)
+        for u, v in self.undirected.edges():
+            if (u not in vertices) and (v not in vertices):
+                undirected[u].append(v)
+        return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
+
+
+    def add_directed_edge(self, u: Collection[X], v: Collection[X], **attr) -> None:
         """Add a directed edge from u to v."""
         self.directed.add_edge(u, v, **attr)
         self.undirected.add_node(u)
         self.undirected.add_node(v)
 
-    def add_undirected_edge(self, u: X, v: X, **attr) -> None:
+    def add_undirected_edge(self, u: Collection[X], v: Collection[X], **attr) -> None:
         """Add an undirected edge between u and v."""
         self.undirected.add_edge(u, v, **attr)
         self.directed.add_node(u)
@@ -115,7 +152,6 @@ class NxMixedGraph(Generic[X]):
         tag: Optional[str] = None,
     ) -> nx.DiGraph:
         """Create a labeled DAG where bi-directed edges are assigned as nodes upstream of their two incident nodes.
-
         :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
         :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
         :param tag: The key for node data describing whether it is latent.

@@ -207,6 +207,37 @@ line_2_example = Example(
         ),
     ],
 )
+
+line_3_example = Example(
+    name="node has no effect on outcome",
+    reference="out of the mind of JZ",
+    graph=NxMixedGraph.from_edges(
+        directed=[('Z','X'), ('X','Y')],
+        undirected=[('Z','X')]
+        ),
+    identifications=[
+        Identification(
+            query=P(Y @ X),
+            estimand=P(Y | X)
+        ),
+    ],
+)
+
+
+line_4_example = Example(
+    name="graph without X decomposes into multiple C components",
+    reference="out of the mind of JZ",
+    graph=NxMixedGraph.from_edges(
+        directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
+        undirected=[("Z","X"), ("M", "Y")]
+        ),
+    identifications=[
+        Identification(
+            query=P(Y @ X),
+            estimand=Sum[Z](P(Y|X,Z)*P(Z))
+        ),
+    ],
+)
 #: Treatment: X
 #: Outcome: Y
 identifiability_1 = NxMixedGraph.from_edges(

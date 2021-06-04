@@ -27,22 +27,30 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
     # else:
     #     return r[0]
 
+def ID(outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
+    # line 1
+    if len(treatments) == 0:
+        return line_1( outcomes, treatments, estimand, G )
+
+    # line 2
+    if len(G.directed.nodes() - ancestors_and_self( G, outcomes)) > 0:
+        return line_2( outcomes, treatments, estimand, G)
+
+    # line 3
+
 
 def line_1(*, outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph) -> Expression:
     r"""Line 1 of ID algorithm.
 
     If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
     the observational distribution
-
-    :param outcomes:
-    :param treatments:
-    :param estimand: Probabilistic expression
-    :param G: NxMixedGraph
-    :returns: The marginal of the outcome variables
-    :raises ValueError: There should not be any interventional variables
-    """
-    if treatments:
-        raise ValueError("Interventions is nonempty")
+        :param outcomes:
+        :param interventions:
+        :param estimand: Probabilistic expression
+        :param G: NxMixedGraph
+        :returns:  The marginal of the outcome variables
+        :raises ValueError:  There should not be any interventional variables
+        """
 
     V = set(G.nodes())
     return Sum(
@@ -53,7 +61,6 @@ def line_1(*, outcomes: set[str], treatments: set[str], estimand: Expression, G:
 
 def line_2(*, outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph) -> Expression:
     r"""Line 2 of the ID algorithm.
-
     If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention
     on the parts of the model ancestral to :math:`\mathbf Y`.
 
@@ -66,7 +73,7 @@ def line_2(*, outcomes: set[str], treatments: set[str], estimand: Expression, G:
     """
     V = set(G.nodes())
     ancestors_and_Y_in_G = ancestors_and_self(G, outcomes)
-    not_ancestors_of_Y = V - ancestors_and_Y_in_G
+    not_ancestors_of_Y = V.difference(ancestors_and_Y_in_G)
     G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
     if len(not_ancestors_of_Y) == 0:
         raise ValueError("No ancestors of Y")
@@ -76,6 +83,23 @@ def line_2(*, outcomes: set[str], treatments: set[str], estimand: Expression, G:
         estimand=Sum(P, list(not_ancestors_of_Y)),
         G=G_ancestral_to_Y,
     )
+
+def line_3( outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
+    r"""Line 3 of ID algorithm.
+Forces an action on any node where such an action would have no effect on :math:\mathbf Y`—assuming we already acted on :math:`\mathbf X`. Since actions remove incoming arrows, we can view line 3 as simplifying the causal graph we consider by removing certain arcs from the graph, without affecting the overall answer.
+    :param outcomes:
+    :param treatments:
+    :param estimand: Current probabilistic expression
+    :param G: ADMG
+    :returns:  The new estimand
+    :raises Fail: if the query is not identifiable.
+    """
+    vertices = G.directed.nodes()
+    G_bar_x = G.intervene( treatments )
+    no_effect_nodes = (vertices - treatments) - ancestors_and_self( G_bar_x, outcomes )
+    if len(no_effect_nodes) > 0:
+        return ID( outcomes, treatments & no_effect_nodes, estimand, G)
+
 
 # def str_list(node_list):
 #     """ return a string listing the nodes in node_list - this is used in the ID and IDC algorithms """

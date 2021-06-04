@@ -13,7 +13,6 @@ __all__ = [
     "str_graph",
     "nxmixedgraph_to_causal_graph",
     "ancestors_and_self",
-    #"subgraph"
 ]
 
 
@@ -29,8 +28,6 @@ def ancestors_and_self(graph: NxMixedGraph, sources: set[str]) -> set[str]:
     for source in sources:
         rv.update(nx.algorithms.dag.ancestors(graph.directed, source))
     return rv
-
-
 
 
 def nxmixedgraph_to_bel2scm_causal_graph(graph: NxMixedGraph):

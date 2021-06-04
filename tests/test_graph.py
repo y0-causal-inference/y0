@@ -68,6 +68,31 @@ class TestGraph(unittest.TestCase):
         subgraph.add_directed_edge("X", "Y")
         self.assert_graph_equal(expected=subgraph, actual=graph.subgraph({"X", "Y"}))
 
+    def test_intervention(self):
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y" )
+        graph.add_directed_edge("Z", "X" )
+        graph.add_undirected_edge("X", "Z")
+        graph.add_undirected_edge("X", "Y")
+        graph.add_undirected_edge("Y", "Z")
+        self.assert_graph_equal( expected=graph, actual=graph.intervene(set()) )
+        intervened_graph = NxMixedGraph()
+        intervened_graph.add_directed_edge("X", "Y")
+        intervened_graph.add_undirected_edge("Z", "Y")
+        self.assert_graph_equal(expected=intervened_graph, actual=graph.intervene({"X"}))
+
+    def test_remove_nodes_from(self):
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y" )
+        graph.add_directed_edge("Z", "X" )
+        graph.add_undirected_edge("X", "Z")
+        graph.add_undirected_edge("X", "Y")
+        graph.add_undirected_edge("Y", "Z")
+        self.assert_graph_equal( expected=graph, actual=graph.intervene(set()) )
+        subgraph = NxMixedGraph()
+        subgraph.add_undirected_edge("Z", "Y")
+        self.assert_graph_equal(expected=subgraph, actual=graph.remove_nodes_from({"X"}))
+
     def test_from_admg(self):
         """Test that all ADMGs can be converted to NxMixedGraph"""
         admg = ADMG(vertices=['W', 'X','Y', 'Z'],
