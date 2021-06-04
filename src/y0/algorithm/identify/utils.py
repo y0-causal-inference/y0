@@ -23,20 +23,24 @@ class Fail(Exception):
     pass
 
 
-def ancestors_and_self( G: NxMixedGraph, Y: set ) -> set:
-    """Ancestors of a set include the set itself"""
-    ancestors_and_self = Y.copy()
-    for y in Y:
-        ancestors_and_self |= nx.algorithms.dag.ancestors( G.directed, y )
-    return ancestors_and_self
+def ancestors_and_self(graph: NxMixedGraph, sources: set[str]) -> set[str]:
+    """Ancestors of a set include the set itself."""
+    rv = sources.copy()
+    for source in sources:
+        rv.update(nx.algorithms.dag.ancestors(graph.directed, source))
+    return rv
 
-def subgraph( G: NxMixedGraph, V: set ) -> NxMixedGraph:
-    """Restrict mixed graph to the specified set of nodes
+
+def subgraph(G: NxMixedGraph, V: set) -> NxMixedGraph:
+    """Restrict mixed graph to the specified set of nodes.
+
     :param G: NxMixedGraph
     :param V: specified set of nodes
     :returns: Subgraph
     """
     pass
+
+
 def nxmixedgraph_to_bel2scm_causal_graph(graph: NxMixedGraph):
     """Converts NxMixedGraph to bel2scm.causal_graph"""
     from bel2scm import causal_graph

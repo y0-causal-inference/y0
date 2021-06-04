@@ -86,12 +86,18 @@ class TestIdentify(unittest.TestCase):
         2. If we are interested in the effect on $\mathbf Y$, it is sufficient to restrict our
         attention on the parts of the model ancestral to $\mathbf Y$.
         """
-        treatments = set(_get_treatments(line_2_example.query.get_variables()))
-        outcomes = set(_get_outcomes(line_2_example.query.get_variables()))
-        self.assert_expr_equal(
-            line_2_example.estimand,
-            line_2(outcomes, treatments, estimand=P(X, Y, Z), G=line_2_example.graph),
-        )
+        for identification in line_2_example.identifications:
+            treatments = set(_get_treatments(identification.query.get_variables()))
+            outcomes = set(_get_outcomes(identification.query.get_variables()))
+            self.assert_expr_equal(
+                identification.estimand,
+                line_2(
+                    outcomes=outcomes,
+                    treatments=treatments,
+                    estimand=P(X, Y, Z),
+                    G=line_2_example.graph,
+                ),
+            )
 
     def test_line_3(self):
         r"""Test line 3 of the identification algorithm.

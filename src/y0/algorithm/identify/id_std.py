@@ -28,53 +28,53 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
     #     return r[0]
 
 
-def line_1(outcomes: set, treatments: set, estimand: Expression, G: NxMixedGraph) -> Expression:
+def line_1(*, outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph) -> Expression:
     r"""Line 1 of ID algorithm.
 
     If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
     the observational distribution
 
     :param outcomes:
-    :param interventions:
-    :param P: Probabilistic expression
+    :param treatments:
+    :param estimand: Probabilistic expression
     :param G: NxMixedGraph
-    :returns:  The marginal of the outcome variables
-    :raises ValueError:  There should not be any interventional variables
+    :returns: The marginal of the outcome variables
+    :raises ValueError: There should not be any interventional variables
     """
-    V = set(G.nodes())
-
-    if len(treatments) > 0:
+    if treatments:
         raise ValueError("Interventions is nonempty")
+
+    V = set(G.nodes())
     return Sum(
         P(*[Variable(v) for v in V]),
-        tuple(Variable(v) for v in V - outcomes),
+        tuple(Variable(v) for v in V.difference(outcomes)),
     )
 
 
-def line_2(outcomes: set, treatments: set, estimand: Expression, G: NxMixedGraph) -> Expression:
+def line_2(*, outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph) -> Expression:
     r"""Line 2 of the ID algorithm.
 
     If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention
     on the parts of the model ancestral to :math:`\mathbf Y`.
 
-    :param X: set of interventions
-    :param Y: set of outcomes
-    :param P: Probabilistic expression
+    :param outcomes: set of outcomes
+    :param treatments: set of interventions
+    :param estimand: Probabilistic expression
     :param G: ADMG
-    :returns:  The probability expression
+    :returns: The probability expression
     :raises Fail: if the query is not identifiable.
     """
-    V = G.directed.nodes()
+    V = set(G.nodes())
     ancestors_and_Y_in_G = ancestors_and_self(G, outcomes)
     not_ancestors_of_Y = V - ancestors_and_Y_in_G
     G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
     if len(not_ancestors_of_Y) == 0:
         raise ValueError("No ancestors of Y")
     return line_1(
-        outcomes,
-        treatments & ancestors_and_Y_in_G,
-        Sum(P, list(not_ancestors_of_Y)),
-        G_ancestral_to_Y,
+        outcomes=outcomes,
+        treatments=treatments & ancestors_and_Y_in_G,
+        estimand=Sum(P, list(not_ancestors_of_Y)),
+        G=G_ancestral_to_Y,
     )
 
 # def str_list(node_list):
