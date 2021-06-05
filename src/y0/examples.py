@@ -238,6 +238,12 @@ line_4_example = Example(
         ),
     ],
 )
+
+cyclic_directed_example = Example(
+    name="Cyclic directed graph",
+    reference="out of the mind of JZ and ZW",
+    graph=NxMixedGraph.from_edges(directed   = [('a','b'), ('a', 'c'), ('b', 'a')])
+)
 #: Treatment: X
 #: Outcome: Y
 identifiability_1 = NxMixedGraph.from_edges(

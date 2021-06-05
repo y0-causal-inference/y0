@@ -5,8 +5,8 @@
 import unittest
 from textwrap import dedent
 from typing import Set, Tuple
-
-from y0.examples import verma_1, vertices_without_edges
+import networkx as nx
+from y0.examples import verma_1, vertices_without_edges, cyclic_directed_example
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from ananke.graphs import ADMG
 from y0.resources import VIRAL_PATHOGENESIS_PATH
@@ -116,4 +116,18 @@ class TestGraph(unittest.TestCase):
 
     def test_from_adj(self):
         """Make sure that the adjacency graph is not a multigraph"""
-        pass
+        directed   = dict([('a', ['b', 'c']), ('b', ['a']), ('c', [])])
+        expected = cyclic_directed_example.graph
+        self.assert_graph_equal(expected, NxMixedGraph.from_adj(directed=directed, undirected={}))
+
+    def test_is_acyclic(self):
+        "Make sure the directed edges are acyclic"""
+        self.assertFalse(nx.algorithms.dag.is_directed_acyclic_graph(cyclic_directed_example.graph.directed))
+
+    def test_is_not_multigraph(self):
+        "Make sure the undirected edges are not inverses of each other."
+        redundant_edges = [('a', 'b'), ('b','a')]
+        directed_edges = [('a', 'b')]
+        expected = NxMixedGraph.from_edges(directed=[('a','b')], undirected=[('a','b')])
+        actual = NxMixedGraph.from_edges(directed=directed_edges, undirected=redundant_edges)
+        self.assert_graph_equal(expected, actual)
