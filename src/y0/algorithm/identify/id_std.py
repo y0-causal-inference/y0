@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union
+from typing import Union, Set
 
 from ananke.graphs import ADMG
-
+import networkx as nx
 from y0.algorithm.identify.utils import ancestors_and_self, nxmixedgraph_to_causal_graph
 from y0.dsl import Expression, P, Sum, Variable
 from y0.graph import NxMixedGraph
@@ -27,7 +27,7 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
     # else:
     #     return r[0]
 
-def ID(*, outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
+def ID(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
     # line 1
     if len(treatments) == 0:
         return line_1( outcomes, treatments, estimand, G )
@@ -39,7 +39,7 @@ def ID(*, outcomes: set[str], treatments: set[str], estimand: Expression, G: NxM
     # line 3
 
 
-def line_1(*, outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph) -> Expression:
+def line_1(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph) -> Expression:
     r"""Line 1 of ID algorithm.
 
     If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
@@ -59,7 +59,7 @@ def line_1(*, outcomes: set[str], treatments: set[str], estimand: Expression, G:
     )
 
 
-def line_2(*, outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph) -> Expression:
+def line_2(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph) -> Expression:
     r"""Line 2 of the ID algorithm.
     If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention
     on the parts of the model ancestral to :math:`\mathbf Y`.
@@ -77,14 +77,14 @@ def line_2(*, outcomes: set[str], treatments: set[str], estimand: Expression, G:
     G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
     if len(not_ancestors_of_Y) == 0:
         raise ValueError("No ancestors of Y")
-    return ID(
+    return dict(
         outcomes=outcomes,
         treatments=treatments & ancestors_and_Y_in_G,
         estimand=Sum(P, list(not_ancestors_of_Y)),
         G=G_ancestral_to_Y,
     )
 
-def line_3(*,  outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
+def line_3(*,  outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
     r"""Line 3 of ID algorithm.
 Forces an action on any node where such an action would have no effect on :math:\mathbf Y`—assuming we already acted on :math:`\mathbf X`. Since actions remove incoming arrows, we can view line 3 as simplifying the causal graph we consider by removing certain arcs from the graph, without affecting the overall answer.
     :param outcomes:
@@ -98,11 +98,15 @@ Forces an action on any node where such an action would have no effect on :math:
     G_bar_x = G.intervene( treatments )
     no_effect_nodes = (vertices - treatments) - ancestors_and_self( G_bar_x, outcomes )
     if len(no_effect_nodes) > 0:
-        return ID( outcomes, treatments & no_effect_nodes, estimand, G)
+        return dict( outcomes, treatments & no_effect_nodes, estimand, G)
 
 
-def line_4(*, outcomes: set[str], treatments: set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
-    r"""4. The key line of the algorithm, it decomposes the problem into a set of smaller problems using the key property of *c-component factorization* of causal models. If the entire graph is a single C-component already, further problem decomposition is impossible, and we must provide base cases. :math:`\mathbf{ID}` has three base cases.
+def line_4(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
+    r"""Line 4 of the ID algorithm
+    4. The key line of the algorithm, it decomposes the problem into a set of smaller problems
+    using the key property of *c-component factorization* of causal models. If the entire graph
+    is a single C-component already, further problem decomposition is impossible, and we must
+    provide base cases. :math:`\mathbf{ID}` has three base cases.
     """
     V = G.nodes()
     C_components_of_G = get_c_components( G )
@@ -117,7 +121,7 @@ def line_4(*, outcomes: set[str], treatments: set[str], estimand: Expression, G:
                                 G=G)
                              for district in C_components_of_G_without_X]),
                    list(V - (treatments | outcomes )))
-    elif  C_components_of_G_without_X == set(S):
+    elif  C_components_of_G_without_X == set([S]):
         if C_components_of_G == [frozenset(V)]:
             line_5(outcomes=outcomes, treatments=treatments, estimand=estimand, G=G)
         elif S in  C_components_of_G:
@@ -127,7 +131,7 @@ def line_4(*, outcomes: set[str], treatments: set[str], estimand: Expression, G:
         else:
             for district in C_components_of_G:
                 if S in district:
-                    return ID(outcomes=outcomes,
+                    return dict(outcomes=outcomes,
                               treatments=treatments & district,
                               estimand=Product(*[P(v | list(
                                   (set(parents[:parents.index(v)]) & district) |
@@ -135,7 +139,23 @@ def line_4(*, outcomes: set[str], treatments: set[str], estimand: Expression, G:
                                                  for v in district]),
                               G = G.subgraph(district))
 
-def line_6(*, outcomes: set[str], treatments, set[str], estimand: Expression, G: NxMixedGraph ):
+def line_5(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ):
+    r"""line 5 of the identification algorithm.
+
+        5. Fails because it finds two C-components, the graph :math:`G` itself, and a subgraph :math:`S` that
+        does not contain any :math:`\mathbf X` nodes. But that is exactly one of the properties of C-forests
+        that make up a hedge. In fact, it turns out that it is always possible to recover a hedge
+        from these two c-components.
+    """
+
+    V = G.nodes()
+    C_components_of_G = get_c_components( G )
+    C_components_of_G_without_X = get_c_components( G.remove_nodes_from( treatments )  )
+
+    if C_components_of_G == [frozenset(V)]:
+            raise Fail(C_components_of_G, C_components_of_G_without_X)
+
+def line_6(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ):
     V = G.nodes()
     C_components_of_G = get_c_components( G )
     C_components_of_G_without_X = get_c_components( G.remove_nodes_from( treatments )  )
@@ -146,9 +166,11 @@ def line_6(*, outcomes: set[str], treatments, set[str], estimand: Expression, G:
                              for v in S]),
                    list(V - (outcomes | treatments)))
 
-def line_7(*, outcomes: set[str], treatments, set[str], estimand: Expression, G: NxMixedGraph ):
+def line_7(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ):
     r"""Line 7 of the ID algorithm.
-    The most complex case where :math:`\mathbf X` is partitioned into two sets, :math:`\mathbf W` which contain bidirected arcs into other nodes in the subproblem, and :math:`\mathbf Z` which do not. In this situation, identifying :math:`P(\mathbf y|do(\mathbf x))` from :math:`P(v)` is equivalent to identifying :math:`P(\mathbf y|do(\mathbf w))` from :math:`P(\mathbf V|do(\mathbf z))`, since :math:`P(\mathbf y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))`. But the term :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the previous base case, so we can consider the subproblem of identifying :math:`P(\mathbf y|do(\mathbf w))`.
+    The most complex case where :math:`\mathbf X` is partitioned into two sets, :math:`\mathbf W` which contain bidirected arcs into other nodes in the subproblem, and :math:`\mathbf Z` which do not. In this situation, identifying :math:`P(\mathbf y|do(\mathbf x))` from :math:`P(v)` is equivalent to identifying :math:`P(\mathbf y|do(\mathbf w))` from :math:`P(\mathbf V|do(\mathbf z))`, since :math:`P(\mathbf y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))`. But the term :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the previous base case, so we can consider the subproblem of identifying :math:`P(\mathbf y|do(\mathbf w))`
+.. math::
+\text{ if }(\exists S')S\subset S'\in C(G) \\ \text{ return }\mathbf{ID}\left(\mathbf y, \mathbf x\cap S', \prod_{\{i|V_i\in S'\}}P(V_i|V_\pi^{(i-1)}\cap S', V_\pi^{(i-1)} - S'), G_{S'}\right)
     """
     V = G.nodes()
     C_components_of_G = get_c_components( G )
@@ -156,25 +178,18 @@ def line_7(*, outcomes: set[str], treatments, set[str], estimand: Expression, G:
     S = C_components_of_G_without_X[0]
     parents = list(nx.topological_sort( G.directed ))
     for district in C_components_of_G:
-        if S in district:
-            return ID(outcomes  =outcomes,
-                      treatments=treatments & district,
-                      estimand  =Product(*[P(v | list(
-                          (set(parents[:parents.index(v)]) & district) |
-                          (set(parents[:parents.index(v)]) - district)))
-                                         for v in district]
-                      ),
-                      G         =G.subgraph(district))
+        if S < district:
+            return dict(outcomes   = outcomes,
+                        treatments = treatments & district,
+                        estimand   = Product(*[ P(v | parents[:parents.index(v)])
+                                                for v in district]
+                        ),
+                        G          = G.subgraph(district))
+        #  list(
+        #  (set(parents[:parents.index(v)]) & district) |
+        #  (set(parents[:parents.index(v)]) - district)))
 
-def line_5(*, outcomes: set[str], treatments, set[str], estimand: Expression, G: NxMixedGraph ):
-    V = G.nodes()
-    C_components_of_G = get_c_components( G )
-    C_components_of_G_without_X = get_c_components( G.remove_nodes_from( treatments )  )
-
-    if C_components_of_G == [frozenset(V)]:
-            raise Fail(C_components_of_G, C_components_of_G_without_X)
-
-def get_c_components(G: NxMixedGraph ) -> set[str]:
+def get_c_components(G: NxMixedGraph ) -> Set[str]:
     return [frozenset(district)
             for district in nx.connected_components(G.undirected)]
 # def str_list(node_list):

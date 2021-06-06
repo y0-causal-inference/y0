@@ -4,7 +4,7 @@
 
 import unittest
 
-from y0.algorithm.identify import ancestors_and_self, identify, line_1, line_2
+from y0.algorithm.identify import ancestors_and_self, identify, line_1, line_2, line_3, line_4, line_5, line_6, line_7, get_c_components
 from y0.dsl import Expression, P, Sum, X, Y, Z
 from y0.examples import line_1_example_a, line_1_example_b, line_2_example
 from y0.graph import NxMixedGraph
@@ -55,11 +55,24 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge("Z", "Y")
         graph.add_undirected_edge("Z", "Y")
 
+    def test_get_c_components(self):
+        """Tests that get_c_components works correctly"""
+        g1 = NxMixedGraph().from_edges(directed=[('X','Y'), ('Z','X'), ('Z','Y')])
+        c1 = [frozenset('X'), frozenset('Y'), frozenset('Z')]
+        g2 = NxMixedGraph().from_edges(directed=[('X','Y')], undirected=[('X','Y')])
+        c2 = [frozenset(['X', 'Y'])]
+        g3 = NxMixedGraph().from_edges(directed=[('X','M'),("M","Y")], undirected=[('X','Y')])
+        c3 = [frozenset(['X','Y']), frozenset('M')]
+        for g, c in [(g1,c1), (g2,c2), (g3,c3)]:
+            self.assertEqual(c, get_c_components(g))
+
+
+
     def test_line_1(self):
         r"""Test that line 1 of ID algorithm works correctly.
 
-        If no action has been taken, the effect on $\mathbf Y$ is just the marginal of
-        the observational distribution $P(\mathbf v)$ on $\mathbf Y$.
+        If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
+        the observational distribution :math:`P(\mathbf v)` on :math:`\mathbf Y`.
         """
         self.assert_expr_equal(
             Sum(P(Y, Z), (Z,)),
@@ -83,8 +96,8 @@ class TestIdentify(unittest.TestCase):
     def test_line_2(self):
         r"""Test line 2 of the identification algorithm.
 
-        2. If we are interested in the effect on $\mathbf Y$, it is sufficient to restrict our
-        attention on the parts of the model ancestral to $\mathbf Y$.
+        2. If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our
+        attention on the parts of the model ancestral to :math:`\mathbf Y`.
         """
         for identification in line_2_example.identifications:
             treatments = set(_get_treatments(identification.query.get_variables()))
@@ -102,11 +115,19 @@ class TestIdentify(unittest.TestCase):
     def test_line_3(self):
         r"""Test line 3 of the identification algorithm.
 
-        3. Forces an action on any node where such an action would have no effect on $\mathbf Y$—assuming
-        we already acted on $\mathbf X$. Since actions remove incoming arrows, we can view line 3 as
+        3. Forces an action on any node where such an action would have no effect on :math:`\mathbf Y`—assuming
+        we already acted on :math:`\mathbf X`. Since actions remove incoming arrows, we can view line 3 as
         simplifying the causal graph we consider by removing certain arcs from the graph, without
         affecting the overall answer.
         """
+        for identification in line_3_example.identifications:
+            self.assert_expr_equal( identification.estimand,
+                                    line_3(outcomes   = set(_get_outcomes( identification.query.get_variables())),
+                                           treatments = set(_get_treatments( identification.query.get_variables())),
+                                           estimand   = P(X,Y,Z),
+                                           G          = line_3_example.graph))
+
+
 
     def test_line_4(self):
         r"""Test line 4 of the identification algorithm.
@@ -114,18 +135,19 @@ class TestIdentify(unittest.TestCase):
         4. The key line of the algorithm, it decomposes the problem into a set of smaller problems
         using the key property of *c-component factorization* of causal models. If the entire graph
         is a single C-component already, further problem decomposition is impossible, and we must
-        provide base cases. $\mathbf{ID}$ has three base cases.
+        provide base cases. :math:`\mathbf{ID}` has three base cases.
         """
+        pass
 
     def test_line_5(self):
         r"""Test line 5 of the identification algorithm.
 
-        5. Fails because it finds two C-components, the graph $G$ itself, and a subgraph $S$ that
-        does not contain any $\mathbf X$ nodes. But that is exactly one of the properties of C-forests
+        5. Fails because it finds two C-components, the graph :math:`G` itself, and a subgraph :math:`S` that
+        does not contain any :math:`\mathbf X` nodes. But that is exactly one of the properties of C-forests
         that make up a hedge. In fact, it turns out that it is always possible to recover a hedge
         from these two c-components.
         """
-
+        pass
     def test_line_6(self):
         r"""Test line 6 of the identification algorithm.
 
@@ -133,19 +155,19 @@ class TestIdentify(unittest.TestCase):
         subproblem under consideration, then we can replace acting on X by conditioning, and thus
         solve the subproblem.
         """
-
+        pass
     def test_line_7(self):
         r"""Test line 2 of the identification algorithm.
 
-        7. The most complex case where $\mathbf X$ is partitioned into two sets, $\mathbf W$ which
-        contain bidirected arcs into other nodes in the subproblem, and $\mathbf Z$ which do not.
-        In this situation, identifying $P(\mathbf y|do(\mathbf x))$ from $P(v)$ is equivalent to
-        identifying $P(\mathbf y|do(\mathbf w))$ from $P(\mathbf V|do(\mathbf z))$, since
-        $P(\mathbf y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))$. But the term
-        $P(\mathbf V|do(\mathbf z))$ is identifiable using the previous base case, so we can consider
-        the subproblem of identifying $P(\mathbf y|do(\mathbf w))$.
+        7. The most complex case where :math:`\mathbf X` is partitioned into two sets, :math:`\mathbf W` which
+        contain bidirected arcs into other nodes in the subproblem, and :math:`\mathbf Z` which do not.
+        In this situation, identifying :math:`P(\mathbf y|do(\mathbf x))` from :math:`P(v)` is equivalent to
+        identifying :math:`P(\mathbf y|do(\mathbf w))` from :math:`P(\mathbf V|do(\mathbf z))`, since
+        :math:`P(\mathbf y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))`. But the term
+        :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the previous base case, so we can consider
+        the subproblem of identifying :math:`P(\mathbf y|do(\mathbf w))`.
         """
-
+        pass
     # def test_figure_2a(self):
     #     """Test Figure 2A.
     #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.

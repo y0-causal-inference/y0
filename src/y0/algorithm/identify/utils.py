@@ -3,7 +3,7 @@
 """Utilities for identifiaction algorithms"""
 
 #
-
+from typing import Set
 from y0.graph import NxMixedGraph
 import networkx as nx
 import numpy as np
@@ -22,7 +22,7 @@ class Fail(Exception):
     pass
 
 
-def ancestors_and_self(graph: NxMixedGraph, sources: set[str]) -> set[str]:
+def ancestors_and_self(graph: NxMixedGraph, sources: Set[str]):
     """Ancestors of a set include the set itself."""
     rv = sources.copy()
     for source in sources:
