@@ -38,6 +38,13 @@ class TestIdentify(unittest.TestCase):
         """Assert that the graph returns the same."""
         self.assert_expr_equal(expression, identify(graph, query))
 
+    def assert_ID_input( self, expected, actual ):
+        """Assert that the recursive call to ID has the correct input parameters"""
+        self.assertEqual(expected['outcomes'], actual['outcomes'])
+        self.assertEqual(expected['treatments'], actual['treatments'])
+        self.assert_expr_equal(expected['estimand'], actual['estimand'])
+        self.assert_graph_equal(expected['G'], actual['G'])
+
     def test_ancestors_and_self(self):
         """Tests whether the ancestors_and_self actually returns the ancestors and itself"""
         graph = NxMixedGraph()
@@ -100,15 +107,19 @@ class TestIdentify(unittest.TestCase):
         attention on the parts of the model ancestral to :math:`\mathbf Y`.
         """
         for identification in line_2_example.identifications:
-            treatments = set(_get_treatments(identification.query.get_variables()))
-            outcomes = set(_get_outcomes(identification.query.get_variables()))
-            self.assert_expr_equal(
-                identification.estimand,
+            expected = dict(outcomes   = identification.outcomes,
+                            treatments = identification.treatments,
+                            estimand   = identification.estimand,
+                            G          = identification.graph
+
+            self.assert_ID_input(
+                expected,
                 line_2(
-                    outcomes=outcomes,
-                    treatments=treatments,
-                    estimand=P(X, Y, Z),
-                    G=line_2_example.graph,
+                    outcomes   = set(_get_outcomes(identification.query)),
+                    treatments = set(_get_treatments(identification.query)),
+                    estimand   = P(*[Variable(v)
+                                     for v in line_2_example.graph.nodes())),
+                    G          = line_2_example.graph,
                 ),
             )
 
@@ -121,11 +132,16 @@ class TestIdentify(unittest.TestCase):
         affecting the overall answer.
         """
         for identification in line_3_example.identifications:
-            self.assert_expr_equal( identification.estimand,
-                                    line_3(outcomes   = set(_get_outcomes( identification.query.get_variables())),
-                                           treatments = set(_get_treatments( identification.query.get_variables())),
-                                           estimand   = P(X,Y,Z),
-                                           G          = line_3_example.graph))
+            self.assert_ID_input(
+                expected = dict(
+                    outcomes=identification.outcomes,
+                    treatments=identification.treatments,
+                    estimand=identification.estimand,
+                    G = identification.graph),
+                actual = line_3(outcomes   = set(_get_outcomes( identification.query.get_variables())),
+                                treatments = set(_get_treatments( identification.query.get_variables())),
+                                estimand   = P(X,Y,Z),
+                                G          = line_3_example.graph))
 
 
 
@@ -137,7 +153,7 @@ class TestIdentify(unittest.TestCase):
         is a single C-component already, further problem decomposition is impossible, and we must
         provide base cases. :math:`\mathbf{ID}` has three base cases.
         """
-        pass
+
 
     def test_line_5(self):
         r"""Test line 5 of the identification algorithm.

@@ -61,6 +61,7 @@ def line_1(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
 
 def line_2(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph) -> Expression:
     r"""Line 2 of the ID algorithm.
+
     If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention
     on the parts of the model ancestral to :math:`\mathbf Y`.
 
@@ -86,13 +87,21 @@ def line_2(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
 
 def line_3(*,  outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
     r"""Line 3 of ID algorithm.
-Forces an action on any node where such an action would have no effect on :math:\mathbf Y`—assuming we already acted on :math:`\mathbf X`. Since actions remove incoming arrows, we can view line 3 as simplifying the causal graph we consider by removing certain arcs from the graph, without affecting the overall answer.
+
+    Forces an action on any node where such an action would have no
+    effect on :math:\mathbf Y`—assuming we already acted on
+    :math:`\mathbf X`. Since actions remove incoming arrows, we can
+    view line 3 as simplifying the causal graph we consider by
+    removing certain arcs from the graph, without affecting the
+    overall answer.
+
     :param outcomes:
     :param treatments:
     :param estimand: Current probabilistic expression
     :param G: ADMG
     :returns:  The new estimand
     :raises Fail: if the query is not identifiable.
+
     """
     vertices = G.directed.nodes()
     G_bar_x = G.intervene( treatments )
@@ -103,10 +112,14 @@ Forces an action on any node where such an action would have no effect on :math:
 
 def line_4(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
     r"""Line 4 of the ID algorithm
-    4. The key line of the algorithm, it decomposes the problem into a set of smaller problems
-    using the key property of *c-component factorization* of causal models. If the entire graph
-    is a single C-component already, further problem decomposition is impossible, and we must
-    provide base cases. :math:`\mathbf{ID}` has three base cases.
+
+    The key line of the algorithm, it decomposes the problem into a set
+    of smaller problems using the key property of *c-component
+    factorization* of causal models. If the entire graph is a single
+    C-component already, further problem decomposition is impossible,
+    and we must provide base cases. :math:`\mathbf{ID}` has three base
+    cases.
+
     """
     V = G.nodes()
     C_components_of_G = get_c_components( G )
@@ -115,12 +128,20 @@ def line_4(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
     parents = list(nx.topological_sort( G.directed ))
 
     if len(C_components_of_G_without_X) > 1:
-        return Sum(Product(*[ID(outcomes=district,
-                                treatments=V - district,
-                                estimand=estimand,
-                                G=G)
-                             for district in C_components_of_G_without_X]),
-                   list(V - (treatments | outcomes )))
+        return [Identification(
+                   query=P(*[Variable(d) @ list(V - district)
+                             for d in district]),
+                   outcomes=district,
+                   treatments=V - district,
+                   estimand=estimand,
+                   G=G)
+                for district in C_components_of_G_without_X]
+        # return Sum(Product(*[ID(outcomes=district,
+        #                         treatments=V - district,
+        #                         estimand=estimand,
+        #                         G=G)
+        #                      for district in C_components_of_G_without_X]),
+        #            list(V - (treatments | outcomes )))
     elif  C_components_of_G_without_X == set([S]):
         if C_components_of_G == [frozenset(V)]:
             line_5(outcomes=outcomes, treatments=treatments, estimand=estimand, G=G)
@@ -142,10 +163,12 @@ def line_4(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
 def line_5(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ):
     r"""line 5 of the identification algorithm.
 
-        5. Fails because it finds two C-components, the graph :math:`G` itself, and a subgraph :math:`S` that
-        does not contain any :math:`\mathbf X` nodes. But that is exactly one of the properties of C-forests
-        that make up a hedge. In fact, it turns out that it is always possible to recover a hedge
-        from these two c-components.
+    Fails because it finds two C-components, the graph :math:`G`
+    itself, and a subgraph :math:`S` that does not contain any
+    :math:`\mathbf X` nodes. But that is exactly one of the properties
+    of C-forests that make up a hedge. In fact, it turns out that it
+    is always possible to recover a hedge from these two c-components.
+
     """
 
     V = G.nodes()
@@ -168,9 +191,25 @@ def line_6(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
 
 def line_7(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ):
     r"""Line 7 of the ID algorithm.
-    The most complex case where :math:`\mathbf X` is partitioned into two sets, :math:`\mathbf W` which contain bidirected arcs into other nodes in the subproblem, and :math:`\mathbf Z` which do not. In this situation, identifying :math:`P(\mathbf y|do(\mathbf x))` from :math:`P(v)` is equivalent to identifying :math:`P(\mathbf y|do(\mathbf w))` from :math:`P(\mathbf V|do(\mathbf z))`, since :math:`P(\mathbf y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))`. But the term :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the previous base case, so we can consider the subproblem of identifying :math:`P(\mathbf y|do(\mathbf w))`
+
+   The most complex case where :math:`\mathbf X` is partitioned into
+   two sets, :math:`\mathbf W` which contain bidirected arcs into
+   other nodes in the subproblem, and :math:`\mathbf Z` which do
+   not. In this situation, identifying :math:`P(\mathbf y|do(\mathbf
+   x))` from :math:`P(v)` is equivalent to identifying
+   :math:`P(\mathbf y|do(\mathbf w))` from :math:`P(\mathbf
+   V|do(\mathbf z))`, since :math:`P(\mathbf y|do(\mathbf x)) =
+   P(\mathbf y|do(\mathbf w), do(\mathbf z))`. But the term
+   :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the
+   previous base case, so we can consider the subproblem of
+   identifying :math:`P(\mathbf y|do(\mathbf w))`
 .. math::
-\text{ if }(\exists S')S\subset S'\in C(G) \\ \text{ return }\mathbf{ID}\left(\mathbf y, \mathbf x\cap S', \prod_{\{i|V_i\in S'\}}P(V_i|V_\pi^{(i-1)}\cap S', V_\pi^{(i-1)} - S'), G_{S'}\right)
+
+   \text{ if }(\exists S')S\subset S'\in C(G) \\
+   \text{ return }\mathbf{ID}\left(\mathbf y, \mathbf x\cap S',
+   \prod_{\{i|V_i\in S'\}}P(V_i|V_\pi^{(i-1)}\cap S', V_\pi^{(i-1)} -
+   S'), G_{S'}\right)
+
     """
     V = G.nodes()
     C_components_of_G = get_c_components( G )

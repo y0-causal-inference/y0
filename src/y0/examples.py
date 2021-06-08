@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Set
 
 import networkx as nx
 import pandas as pd
@@ -21,6 +21,8 @@ from .struct import DSeparationJudgement, VermaConstraint
 class Identification:
     query: Expression
     estimand: Expression
+    graph: NxMixedGraph
+
 
 
 @dataclass
@@ -163,7 +165,7 @@ vertices_without_edges = Example(
 )
 
 # Line 1 example
-line_1_example_a = Example(
+line_1_example = Example(
     name="Line 1 of ID algorithm",
     reference="out of the mind of JZ",
     graph=NxMixedGraph.from_edges(
@@ -172,25 +174,22 @@ line_1_example_a = Example(
         ]
     ),
     identifications=[
-        Identification(query=Y, estimand=Sum[Z](P(Y, Z))),
+        Identification(input_query=P(Y),
+                       input_estimand=P(Y,Z),
+                       input_graph=NxMixedGraph.from_edges(directed=[('Z','Y')])),
+                       output_query = P(Y),
+                       output_estimand=Sum[Z](P(Y, Z)),
+                       output_graph=NxMixedGraph.from_edges(directed=[('Z','Y')])),
+        Identification(input_query=P(Y,Z),
+                       input_estimand=P(Y,Z),
+                       input_graph=NxMixedGraph.from_edges(directed=[('Z','Y')]),
+                       output_query=P(Y,Z),
+                       output_estimand=Sum(P(Y, Z),[]),
+                       output_graph=NxMixedGraph.from_edges(directed=[('Z','Y')]))
+
     ]
 )
 
-line_1_example_b = Example(
-    name="Line 1 of ID algorithm",
-    reference="out of the mind of JZ",
-    graph=NxMixedGraph.from_edges(
-        directed=[
-            ('Z', 'Y'),
-        ],
-        undirected=[
-            ('Z', 'Y'),
-        ],
-    ),
-    identifications=[
-        Identification(query=[Y, Z], estimand=P(Y, Z)),
-    ],
-)
 
 # Line 2 example
 line_2_example = Example(
@@ -202,8 +201,15 @@ line_2_example = Example(
     ),
     identifications=[
         Identification(
-            query=P(Y @ X),
-            estimand=Sum[Z](P(Y, Z))
+            input_query=P(Y @ X),
+            input_estimand=P(X,Y,Z),
+            input_graph=NxMixedGraph.from_edges(
+                directed=[('Z', 'Y'), ('Y', 'X')],
+                undirected=[('Z', 'X')]
+            ),
+            output_query=P(Y),
+            output_estimand=Sum[Z](P(Y, Z)),
+            output_graph=NxMixedGraph.from_edges(directed=[('Z','Y')])
         ),
     ],
 )
@@ -217,8 +223,17 @@ line_3_example = Example(
         ),
     identifications=[
         Identification(
-            query=P(Y @ X),
-            estimand=P(Y | X)
+            input_query=P(Y @ X),
+            input_estimand=P(X, Y, Z),
+            input_graph=NxMixedGraph.from_edges(
+                directed=[('Z','X'), ('X','Y')],
+                undirected=[('Z','X')]
+            ),
+            output_query=P(Y @ [X, Z]),
+            output_estimand=P(X, Y, Z),
+            output_graph=NxMixedGraph.from_edges(
+                directed=[('Z','X'), ('X','Y')],
+                undirected=[('Z','X')])
         ),
     ],
 )
@@ -233,16 +248,67 @@ line_4_example = Example(
         ),
     identifications=[
         Identification(
-            query=P(Y @ X),
-            estimand=Sum[Z](P(Y|X,Z)*P(Z))
+            input_query=P(Y @ X),
+            input_estimand=P(M,X,Y,Z),
+            input_graph=NxMixedGraph.from_edges(
+                directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
+                undirected=[("Z","X"), ("M", "Y")]
+            )
+            output_query=P(X @ [M, Y, Z]),
+            output_estimand=P(M,X,Y,Z),
+            output_graph=NxMixedGraph.from_edges(
+                directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
+                undirected=[("Z","X"), ("M", "Y")]
+            ),
+        Identification(
+            input_query=P(Y @ X),
+            input_estimand=P(M,X,Y,Z),
+            input_graph=NxMixedGraph.from_edges(
+                directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
+                undirected=[("Z","X"), ("M", "Y")]
+            )
+            output_query=P(M @ [X,Y,Z]),
+            output_estimand=P(M,X,Y,Z),
+            output_graph=NxMixedGraph.from_edges(
+                directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
+                undirected=[("Z","X"), ("M", "Y")])
         ),
+        Identification(
+            input_query=P(Y @ X),
+            input_estimand=P(M,X,Y,Z),
+            input_graph=NxMixedGraph.from_edges(
+                directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
+                undirected=[("Z","X"), ("M", "Y")]
+            )
+            output_query=P(Y @ [X,M,Z]),
+            output_estimand=P(M,X,Y,Z),
+            output_graph=NxMixedGraph.from_edges(
+                directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
+                undirected=[("Z","X"), ("M", "Y")]
+            )
+        ),
+        Identification(
+            input_query=P(Y @ X),
+            input_estimand=P(M,X,Y,Z),
+            input_graph=NxMixedGraph.from_edges(
+                directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
+                undirected=[("Z","X"), ("M", "Y")]
+            )
+            output_query=P(Z @ [M,X,Y]),
+            output_estimand=P(M,X,Y,Z),
+            output_graph=NxMixedGraph.from_edges(
+                directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
+                undirected=[("Z","X"), ("M", "Y")]
+            )
+        ),
+
     ],
 )
 
 cyclic_directed_example = Example(
     name="Cyclic directed graph",
     reference="out of the mind of JZ and ZW",
-    graph=NxMixedGraph.from_edges(directed   = [('a','b'), ('a', 'c'), ('b', 'a')])
+    graph=NxGraph.from_edges(directed   = [('a','b'), ('a', 'c'), ('b', 'a')]
 )
 #: Treatment: X
 #: Outcome: Y
