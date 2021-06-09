@@ -3,12 +3,12 @@
 """Utilities for identifiaction algorithms"""
 
 #
-from typing import Set
+from typing import Set, List
 from y0.graph import NxMixedGraph
 import networkx as nx
 import numpy as np
-from y0.dsl import Variable, P, Sum, Product
-
+from y0.dsl import Variable, P, Sum, Product, Expression
+from y0.identify import _get_outcomes, _get_treatments
 __all__ = [
     "str_graph",
     "nxmixedgraph_to_causal_graph",
@@ -22,11 +22,23 @@ class Fail(Exception):
     pass
 
 
+def query_to_outcomes_and_treatments(*,  query: Expression ) -> List[Set[str]]:
+    return set(query.get_variables()), set(_get_treatments(query.get_variables()))
+
+def outcomes_and_treatments_to_query(*, outcomes: Set[str], treatments: Set[str]) -> Expression:
+    if len(treatments) == 0:
+        return P(*[Variable(y) for y in outcomes])
+    else:
+        return P(*[Variable(y) @ [Variable(x) for x in treatments]
+                   for y in outcomes])
+
+
 def ancestors_and_self(graph: NxMixedGraph, sources: Set[str]):
     """Ancestors of a set include the set itself."""
     rv = sources.copy()
     for source in sources:
-        rv.update(nx.algorithms.dag.ancestors(graph.directed, source))
+        if source in graph.nodes():
+            rv.update(nx.algorithms.dag.ancestors(graph.directed, source))
     return rv
 
 

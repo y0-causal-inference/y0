@@ -4,7 +4,7 @@
 
 import unittest
 
-from y0.algorithm.identify import ancestors_and_self, identify, line_1, line_2, line_3, line_4, line_5, line_6, line_7, get_c_components
+from y0.algorithm.identify import ancestors_and_self, identify, line_1, line_2, line_3, line_4, line_5, line_6, line_7, get_c_components, outcomes_and_treatments_to_query, query_to_outcomes_and_treatments
 from y0.dsl import Expression, P, Sum, X, Y, Z
 from y0.examples import line_1_example, line_2_example, line_3_example, line_4_example, Identification
 from y0.graph import NxMixedGraph
@@ -118,11 +118,12 @@ class TestIdentify(unittest.TestCase):
         affecting the overall answer.
         """
         for identification in line_3_example.identifications:
+            outcomes, treatments = query_to_outcomes_and_treatments(query=identification['id_in'][0].query )
             self.assert_identification_equal(
                 expected = identification['id_out'][0],
                 actual   = line_3(
-                    outcomes=set(_get_outcomes(identification['id_in'][0].query.get_variables())),
-                    treatments=set(_get_treatments(identification['id_in'][0].query.get_variables())),
+                    outcomes=outcomes,
+                    treatments=treatments,
                     estimand=identification['id_in'][0].estimand,
                     G = identification['id_in'][0].graph))
 
@@ -138,9 +139,10 @@ class TestIdentify(unittest.TestCase):
         provide base cases. :math:`\mathbf{ID}` has three base cases.
         """
         for identification in line_4_example.identifications:
+            outcomes, treatments = query_to_outcomes_and_treatments(query= identification['id_in'][0].query )
             actuals = line_4(
-                outcomes   = set(_get_outcomes(identification['id_in'][0].query.get_variables())),
-                treatments = set(_get_treatments(identification['id_in'][0].query.get_variables())),
+                outcomes   = outcomes,
+                treatments = treatments,
                 estimand   = identification['id_in'][0].estimand,
                 G          = identification['id_in'][0].graph)
             expecteds = identification['id_out']
