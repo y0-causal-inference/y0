@@ -16,7 +16,7 @@ from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
 from .mutate import expr_equal
-from .algorithm.identify import query_to_outcomes_and_treatments, outcomes_and_treatments_to_query
+from .algorithm.identify import query_to_outcomes_and_treatments, outcomes_and_treatments_to_query, Identification
 
 
 

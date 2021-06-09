@@ -4,18 +4,19 @@
 
 #
 from typing import Set, List
+from dataclasses import dataclass
 from y0.graph import NxMixedGraph
 import networkx as nx
 import numpy as np
 from y0.dsl import Variable, P, Sum, Product, Expression
 from y0.identify import _get_outcomes, _get_treatments
-from y0.algorithm.identify import Identification
 
 __all__ = [
     "str_graph",
     "nxmixedgraph_to_causal_graph",
     "ancestors_and_self",
     "Identification",
+    'expr_equal'
 ]
 
 
@@ -32,13 +33,24 @@ class Identification:
     estimand: Expression
     graph: NxMixedGraph
 
-    def __eq__(self, other: Identification):
+    def __eq__(self, other):
         return (
             expr_equal(self.query, other.query)
             and expr_equal(self.estimand, other.estimand)
             and (self.graph == other.graph)
         )
 
+def expr_equal( expected: Expression, actual: Expression ) -> bool:
+    expected_outcomes, expected_treatments = query_to_outcomes_and_treatments( query = expected )
+    actual_outcomes, actual_treatments = query_to_outcomes_and_treatments( query = actual )
+
+    actual_vars = actual.get_variables()
+    if (expected_outcomes != actual_outcomes) or (expected_treatments != actual_treatments):
+        return False
+    ordering = list(expected.get_variables())
+    expected_canonical = canonicalize(expected, ordering)
+    actual_canonical = canonicalize(actual, ordering)
+    return expected_canonical == actual_canonical
 
 def query_to_outcomes_and_treatments(*, query: Expression) -> List[Set[str]]:
     return set(_get_outcomes(query.get_variables())), set(

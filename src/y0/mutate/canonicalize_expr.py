@@ -8,20 +8,8 @@ from ..dsl import Distribution, Expression, Fraction, Probability, Product, Sum,
 
 __all__ = [
     'canonicalize',
-    'expr_equal'
 ]
 
-def expr_equal( expected: Expression, actual: Expression ) -> bool:
-    expected_outcomes, expected_treatments = query_to_outcomes_and_treatments( query = expected )
-    actual_outcomes, actual_treatments = query_to_outcomes_and_treatments( query = actual )
-
-    actual_vars = actual.get_variables()
-    if (expected_outcomes != actual_outcomes) or (expected_treatments != actual_treatments):
-        return False
-    ordering = list(expected.get_variables())
-    expected_canonical = canonicalize(expected, ordering)
-    actual_canonical = canonicalize(actual, ordering)
-    return expected_canonical == actual_canonical
 
 def canonicalize(expression: Expression, ordering: Optional[Sequence[Union[str, Variable]]] = None) -> Expression:
     """Canonicalize an expression that meets the markov condition with respect to the given ordering.

@@ -4,12 +4,12 @@
 
 import unittest
 
-from y0.algorithm.identify import ancestors_and_self, identify, line_1, line_2, line_3, line_4, line_5, line_6, line_7, get_c_components, outcomes_and_treatments_to_query, query_to_outcomes_and_treatments, Identification
+from y0.algorithm.identify import ancestors_and_self, identify, line_1, line_2, line_3, line_4, line_5, line_6, line_7, get_c_components, outcomes_and_treatments_to_query, query_to_outcomes_and_treatments, Identification, expr_equal
 from y0.dsl import Expression, P, Sum, X, Y, Z
 from y0.examples import line_1_example, line_2_example, line_3_example, line_4_example
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
-from y0.mutate import canonicalize, expr_equal
+from y0.mutate import canonicalize
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
