@@ -224,7 +224,7 @@ line_2_example = Example(
             ],
             id_out = [Identification(
                 query=P(Y),
-                estimand=Sum[Z](P(Y, Z)),
+                estimand=Sum[X](P(Y, X, Z)),
                 graph=NxMixedGraph.from_edges(directed=[('Z','Y')]))
             ]
         )
