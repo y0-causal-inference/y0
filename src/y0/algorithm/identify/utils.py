@@ -10,7 +10,7 @@ import networkx as nx
 import numpy as np
 from y0.dsl import Variable, P, Sum, Product, Expression
 from y0.identify import _get_outcomes, _get_treatments
-
+from y0.mutate import canonicalize
 __all__ = [
     "str_graph",
     "nxmixedgraph_to_causal_graph",
@@ -47,7 +47,7 @@ def expr_equal( expected: Expression, actual: Expression ) -> bool:
     actual_vars = actual.get_variables()
     if (expected_outcomes != actual_outcomes) or (expected_treatments != actual_treatments):
         return False
-    ordering = list(expected.get_variables())
+    ordering = expected.get_variables()
     expected_canonical = canonicalize(expected, ordering)
     actual_canonical = canonicalize(actual, ordering)
     return expected_canonical == actual_canonical
@@ -64,7 +64,7 @@ def outcomes_and_treatments_to_query(
     if len(treatments) == 0:
         return P(*[Variable(y) for y in outcomes])
     else:
-        return P(*[Variable(y) @ [Variable(x) for x in treatments] for y in outcomes])
+        return P(*[Variable(y) @ {Variable(x) for x in treatments} for y in outcomes])
 
 
 def ancestors_and_self(graph: NxMixedGraph, sources: Set[str]):

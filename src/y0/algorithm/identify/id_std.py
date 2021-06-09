@@ -94,18 +94,9 @@ def line_2(
     G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
     if len(not_ancestors_of_Y) == 0:
         raise ValueError("No ancestors of Y")
-    if len(treatments & ancestors_and_Y_in_G) == 0:
-        query = P(*[Variable(y) for y in outcomes])
-    else:
-        query = P(
-            *[
-                Variable(y)
-                @ [Variable(x) for x in list(treatments & ancestors_and_Y_in_G)]
-                for y in outcomes
-            ]
-        )
     return Identification(
-        query=query,
+        query = outcomes_and_treatments_to_query(outcomes = outcomes,
+                                                 treatments = treatments & ancestors_and_Y_in_G),
         estimand=Sum(estimand, [Variable(v) for v in not_ancestors_of_Y]),
         graph=G_ancestral_to_Y,
     )
@@ -135,12 +126,8 @@ def line_3(
     G_bar_x = G.intervene(treatments)
     no_effect_nodes = (vertices - treatments) - ancestors_and_self(G_bar_x, outcomes)
     if len(no_effect_nodes) > 0:
-        query = P(
-            *[
-                Variable(y) @ [Variable(x) for x in list(treatments | no_effect_nodes)]
-                for y in outcomes
-            ]
-        )
+        query = outcomes_and_treatments_to_query(outcomes = outcomes,
+                                                 treatments = treatments | no_effect_nodes)
         return Identification(query=query, estimand=estimand, graph=G)
 
 

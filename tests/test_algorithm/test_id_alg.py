@@ -149,13 +149,13 @@ class TestIdentify(unittest.TestCase):
                 G          = identification['id_in'][0].graph)
             expecteds = identification['id_out']
             self.assertEqual(len(expecteds), len(actuals))
-            match = {}
+            match = []
             for expected in expecteds:
                 for actual in actuals:
                     if expected == actual:
                         self.assert_identification_equal(
                                   expected, actual)
-                        match[expected] = actual
+                        match.append((expected, actual))
             self.assertEqual(len(expecteds), len(match))
 
 

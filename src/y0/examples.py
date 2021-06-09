@@ -15,8 +15,7 @@ from .dsl import Expression, P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5
 from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
-from .mutate import expr_equal
-from .algorithm.identify import query_to_outcomes_and_treatments, outcomes_and_treatments_to_query, Identification
+from .algorithm.identify import query_to_outcomes_and_treatments, outcomes_and_treatments_to_query, Identification, expr_equal
 
 
 
@@ -241,7 +240,7 @@ line_3_example = Example(
                     undirected=[('Z','X')]))
             ],
             id_out = [Identification(
-                query=P(Y @ [X, Z]),
+                query=P(Y @ {X, Z}),
                 estimand=P(X, Y, Z),
                 graph=NxMixedGraph.from_edges(
                     directed=[('Z','X'), ('X','Y')],
@@ -270,13 +269,13 @@ line_4_example = Example(
             ],
             id_out= [
                 Identification(
-                    query=P(M @ [X,Z], Y @ [X, Z]),
+                    query=P(M @ {X,Z}, Y @ {X, Z}),
                     estimand=P(M,X,Y,Z),
                     graph=NxMixedGraph.from_edges(
                         directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
                         undirected=[("Z","X"), ("M", "Y")])),
                 Identification(
-                    query=P(Z @ [M,X,Y]),
+                    query=P(Z @ {M,X,Y}),
                     estimand=P(M,X,Y,Z),
                     graph=NxMixedGraph.from_edges(
                         directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
