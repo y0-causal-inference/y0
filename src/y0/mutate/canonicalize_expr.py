@@ -12,11 +12,13 @@ __all__ = [
 ]
 
 def expr_equal( expected: Expression, actual: Expression ) -> bool:
-    expected_vars = expected.get_variables()
+    expected_outcomes, expected_treatments = query_to_outcomes_and_treatments( query = expected )
+    actual_outcomes, actual_treatments = query_to_outcomes_and_treatments( query = actual )
+
     actual_vars = actual.get_variables()
-    if expected_vars != actual_vars:
+    if (expected_outcomes != actual_outcomes) or (expected_treatments != actual_treatments):
         return False
-    ordering = list(expected_vars)
+    ordering = list(expected.get_variables())
     expected_canonical = canonicalize(expected, ordering)
     actual_canonical = canonicalize(actual, ordering)
     return expected_canonical == actual_canonical

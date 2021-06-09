@@ -23,7 +23,7 @@ class Fail(Exception):
 
 
 def query_to_outcomes_and_treatments(*,  query: Expression ) -> List[Set[str]]:
-    return set(query.get_variables()), set(_get_treatments(query.get_variables()))
+    return set(_get_outcomes(query.get_variables())), set(_get_treatments(query.get_variables()))
 
 def outcomes_and_treatments_to_query(*, outcomes: Set[str], treatments: Set[str]) -> Expression:
     if len(treatments) == 0:
@@ -37,8 +37,7 @@ def ancestors_and_self(graph: NxMixedGraph, sources: Set[str]):
     """Ancestors of a set include the set itself."""
     rv = sources.copy()
     for source in sources:
-        if source in graph.nodes():
-            rv.update(nx.algorithms.dag.ancestors(graph.directed, source))
+        rv.update(nx.algorithms.dag.ancestors(graph.directed, source))
     return rv
 
 

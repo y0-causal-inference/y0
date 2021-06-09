@@ -21,9 +21,11 @@ class TestIdentify(unittest.TestCase):
 
     def assert_expr_equal(self, expected: Expression, actual: Expression):
         """Assert that two expressions are the same"""
-        expected_vars = expected.get_variables()
-        self.assertEqual(expected_vars, actual.get_variables())
-        ordering = list(expected_vars)
+        expected_outcomes, expected_treatments = query_to_outcomes_and_treatments( query=expected )
+        actual_outcomes, actual_treatments = query_to_outcomes_and_treatments( query = actual )
+        self.assertEqual(expected_treatments, actual_treatments)
+        self.assertEqual(expected_outcomes, actual_outcomes)
+        ordering = list(expected.get_variables())
         expected_canonical = canonicalize(expected, ordering)
         actual_canonical = canonicalize(actual, ordering)
         self.assertEqual(
