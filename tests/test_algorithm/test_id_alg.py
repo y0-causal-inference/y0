@@ -25,7 +25,7 @@ class TestIdentify(unittest.TestCase):
         actual_outcomes, actual_treatments = query_to_outcomes_and_treatments( query = actual )
         self.assertEqual(expected_treatments, actual_treatments)
         self.assertEqual(expected_outcomes, actual_outcomes)
-        ordering = list(expected.get_variables())
+        ordering = expected.get_variables()
         expected_canonical = canonicalize(expected, ordering)
         actual_canonical = canonicalize(actual, ordering)
         self.assertEqual(
