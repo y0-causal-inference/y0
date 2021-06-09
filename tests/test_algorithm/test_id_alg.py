@@ -4,7 +4,22 @@
 
 import unittest
 
-from y0.algorithm.identify import ancestors_and_self, identify, line_1, line_2, line_3, line_4, line_5, line_6, line_7, get_c_components, outcomes_and_treatments_to_query, query_to_outcomes_and_treatments, Identification, expr_equal
+from y0.algorithm.identify import (
+    ancestors_and_self,
+    identify,
+    line_1,
+    line_2,
+    line_3,
+    line_4,
+    line_5,
+    line_6,
+    line_7,
+    get_c_components,
+    outcomes_and_treatments_to_query,
+    query_to_outcomes_and_treatments,
+    Identification,
+    expr_equal,
+)
 from y0.dsl import Expression, P, Sum, X, Y, Z
 from y0.examples import line_1_example, line_2_example, line_3_example, line_4_example
 from y0.graph import NxMixedGraph
@@ -15,14 +30,17 @@ P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
 
 
-
 class TestIdentify(unittest.TestCase):
     """Test cases from https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb."""
 
     def assert_expr_equal(self, expected: Expression, actual: Expression):
         """Assert that two expressions are the same"""
-        expected_outcomes, expected_treatments = query_to_outcomes_and_treatments( query=expected )
-        actual_outcomes, actual_treatments = query_to_outcomes_and_treatments( query = actual )
+        expected_outcomes, expected_treatments = query_to_outcomes_and_treatments(
+            query=expected
+        )
+        actual_outcomes, actual_treatments = query_to_outcomes_and_treatments(
+            query=actual
+        )
         self.assertEqual(expected_treatments, actual_treatments)
         self.assertEqual(expected_outcomes, actual_outcomes)
         ordering = expected.get_variables()
@@ -40,7 +58,9 @@ class TestIdentify(unittest.TestCase):
         """Assert that the graph returns the same."""
         self.assert_expr_equal(expression, identify(graph, query))
 
-    def assert_identification_equal( self, expected: Identification, actual: Identification ):
+    def assert_identification_equal(
+        self, expected: Identification, actual: Identification
+    ):
         """Assert that the recursive call to ID has the correct input parameters"""
 
         self.assert_expr_equal(expected.query, actual.query)
@@ -66,16 +86,16 @@ class TestIdentify(unittest.TestCase):
 
     def test_get_c_components(self):
         """Tests that get_c_components works correctly"""
-        g1 = NxMixedGraph().from_edges(directed=[('X','Y'), ('Z','X'), ('Z','Y')])
-        c1 = [frozenset('X'), frozenset('Y'), frozenset('Z')]
-        g2 = NxMixedGraph().from_edges(directed=[('X','Y')], undirected=[('X','Y')])
-        c2 = [frozenset(['X', 'Y'])]
-        g3 = NxMixedGraph().from_edges(directed=[('X','M'),("M","Y")], undirected=[('X','Y')])
-        c3 = [frozenset(['X','Y']), frozenset('M')]
-        for g, c in [(g1,c1), (g2,c2), (g3,c3)]:
+        g1 = NxMixedGraph().from_edges(directed=[("X", "Y"), ("Z", "X"), ("Z", "Y")])
+        c1 = [frozenset("X"), frozenset("Y"), frozenset("Z")]
+        g2 = NxMixedGraph().from_edges(directed=[("X", "Y")], undirected=[("X", "Y")])
+        c2 = [frozenset(["X", "Y"])]
+        g3 = NxMixedGraph().from_edges(
+            directed=[("X", "M"), ("M", "Y")], undirected=[("X", "Y")]
+        )
+        c3 = [frozenset(["X", "Y"]), frozenset("M")]
+        for g, c in [(g1, c1), (g2, c2), (g3, c3)]:
             self.assertEqual(c, get_c_components(g))
-
-
 
     def test_line_1(self):
         r"""Test that line 1 of ID algorithm works correctly.
@@ -85,13 +105,19 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_1_example.identifications:
             self.assert_expr_equal(
-                expected = identification['id_out'][0].estimand,
-                actual   = line_1(
-                    outcomes=set(_get_outcomes(identification['id_in'][0].query.get_variables())),
-                    treatments=set(_get_treatments(identification['id_in'][0].query.get_variables())),
-                    estimand=identification['id_in'][0].estimand,
-                    G=identification['id_in'][0].graph,
-                )
+                expected=identification["id_out"][0].estimand,
+                actual=line_1(
+                    outcomes=set(
+                        _get_outcomes(identification["id_in"][0].query.get_variables())
+                    ),
+                    treatments=set(
+                        _get_treatments(
+                            identification["id_in"][0].query.get_variables()
+                        )
+                    ),
+                    estimand=identification["id_in"][0].estimand,
+                    G=identification["id_in"][0].graph,
+                ),
             )
 
     def test_line_2(self):
@@ -102,12 +128,18 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_2_example.identifications:
             self.assert_identification_equal(
-                expected = identification['id_out'][0],
-                actual  = line_2(
-                    outcomes   = set(_get_outcomes(identification['id_in'][0].query.get_variables())),
-                    treatments = set(_get_treatments(identification['id_in'][0].query.get_variables())),
-                    estimand   = identification['id_in'][0].estimand,
-                    G          =  identification['id_in'][0].graph
+                expected=identification["id_out"][0],
+                actual=line_2(
+                    outcomes=set(
+                        _get_outcomes(identification["id_in"][0].query.get_variables())
+                    ),
+                    treatments=set(
+                        _get_treatments(
+                            identification["id_in"][0].query.get_variables()
+                        )
+                    ),
+                    estimand=identification["id_in"][0].estimand,
+                    G=identification["id_in"][0].graph,
                 ),
             )
 
@@ -120,17 +152,18 @@ class TestIdentify(unittest.TestCase):
         affecting the overall answer.
         """
         for identification in line_3_example.identifications:
-            outcomes, treatments = query_to_outcomes_and_treatments(query=identification['id_in'][0].query )
+            outcomes, treatments = query_to_outcomes_and_treatments(
+                query=identification["id_in"][0].query
+            )
             self.assert_identification_equal(
-                expected = identification['id_out'][0],
-                actual   = line_3(
+                expected=identification["id_out"][0],
+                actual=line_3(
                     outcomes=outcomes,
                     treatments=treatments,
-                    estimand=identification['id_in'][0].estimand,
-                    G = identification['id_in'][0].graph))
-
-
-
+                    estimand=identification["id_in"][0].estimand,
+                    G=identification["id_in"][0].graph,
+                ),
+            )
 
     def test_line_4(self):
         r"""Test line 4 of the identification algorithm.
@@ -141,24 +174,24 @@ class TestIdentify(unittest.TestCase):
         provide base cases. :math:`\mathbf{ID}` has three base cases.
         """
         for identification in line_4_example.identifications:
-            outcomes, treatments = query_to_outcomes_and_treatments(query= identification['id_in'][0].query )
+            outcomes, treatments = query_to_outcomes_and_treatments(
+                query=identification["id_in"][0].query
+            )
             actuals = line_4(
-                outcomes   = outcomes,
-                treatments = treatments,
-                estimand   = identification['id_in'][0].estimand,
-                G          = identification['id_in'][0].graph)
-            expecteds = identification['id_out']
+                outcomes=outcomes,
+                treatments=treatments,
+                estimand=identification["id_in"][0].estimand,
+                G=identification["id_in"][0].graph,
+            )
+            expecteds = identification["id_out"]
             self.assertEqual(len(expecteds), len(actuals))
             match = []
             for expected in expecteds:
                 for actual in actuals:
                     if expected == actual:
-                        self.assert_identification_equal(
-                                  expected, actual)
+                        self.assert_identification_equal(expected, actual)
                         match.append((expected, actual))
             self.assertEqual(len(expecteds), len(match))
-
-
 
     def test_line_5(self):
         r"""Test line 5 of the identification algorithm.
@@ -169,6 +202,7 @@ class TestIdentify(unittest.TestCase):
         from these two c-components.
         """
         pass
+
     def test_line_6(self):
         r"""Test line 6 of the identification algorithm.
 
@@ -177,6 +211,7 @@ class TestIdentify(unittest.TestCase):
         solve the subproblem.
         """
         pass
+
     def test_line_7(self):
         r"""Test line 2 of the identification algorithm.
 
@@ -189,6 +224,7 @@ class TestIdentify(unittest.TestCase):
         the subproblem of identifying :math:`P(\mathbf y|do(\mathbf w))`.
         """
         pass
+
     # def test_figure_2a(self):
     #     """Test Figure 2A.
     #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
