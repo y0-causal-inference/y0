@@ -64,6 +64,10 @@ def line_2(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
     If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention
     on the parts of the model ancestral to :math:`\mathbf Y`.
 
+.. math::
+    \text{if }\mathbf V - An(\mathbf Y)_G \neq \emptyset \\
+    \text{ return } \mathbf{ ID}\left(\mathbf y, \mathbf x\cap An(\mathbf Y)_G, \sum_{\mathbf V - An(Y)_G}P, G_{An(\mathbf Y)}\right)
+
     :param outcomes: set of outcomes
     :param treatments: set of interventions
     :param estimand: Probabilistic expression
@@ -77,11 +81,15 @@ def line_2(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
     G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
     if len(not_ancestors_of_Y) == 0:
         raise ValueError("No ancestors of Y")
-    return Identification(
-        query=P(*[Variable(y) @ [Variable(x)
+    if len(treatments & ancestors_and_Y_in_G) == 0:
+        query = P(*[Variable(y) for y in outcomes])
+    else:
+        query = P(*[Variable(y) @ [Variable(x)
                                  for x in list(treatments & ancestors_and_Y_in_G)]
-               for y in outcomes]),
-        estimand=Sum(P, [Variable(v) for v in not_ancestors_of_Y]),
+               for y in outcomes])
+    return Identification(
+        query= query,
+        estimand=Sum(estimand, [Variable(v) for v in not_ancestors_of_Y]),
         graph=G_ancestral_to_Y,
     )
 
