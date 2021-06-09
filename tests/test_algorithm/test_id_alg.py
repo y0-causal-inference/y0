@@ -43,7 +43,7 @@ class TestIdentify(unittest.TestCase):
 
         self.assert_expr_equal(expected.query, actual.query)
         self.assert_expr_equal(expected.estimand, actual.estimand)
-        self.assert_graph_equal(expected.graph, actual.graph)
+        self.assertEqual(expected.graph, actual.graph)
 
     def test_ancestors_and_self(self):
         """Tests whether the ancestors_and_self actually returns the ancestors and itself"""
