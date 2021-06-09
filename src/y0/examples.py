@@ -16,16 +16,9 @@ from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
 from .mutate import expr_equal
+from .algorithm.identify import query_to_outcomes_and_treatments, outcomes_and_treatments_to_query
 
 
-
-@dataclass
-class Identification:
-    query: Expression
-    estimand: Expression
-    graph: NxMixedGraph
-    def __eq__( self, other: Identification ):
-        return expr_equal(self.query, other.query) and expr_equal(self.estimand, other.estimand) and (self.graph == other.graph)
 
 
 @dataclass
@@ -277,19 +270,7 @@ line_4_example = Example(
             ],
             id_out= [
                 Identification(
-                    query=P(X @ [M, Y, Z]),
-                    estimand=P(M,X,Y,Z),
-                    graph=NxMixedGraph.from_edges(
-                        directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
-                        undirected=[("Z","X"), ("M", "Y")])),
-                Identification(
-                    query=P(M @ [X,Y,Z]),
-                    estimand=P(M,X,Y,Z),
-                    graph=NxMixedGraph.from_edges(
-                        directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],
-                        undirected=[("Z","X"), ("M", "Y")])),
-                Identification(
-                    query=P(Y @ [X,M,Z]),
+                    query=P(M @ [X,Z], Y @ [X, Z]),
                     estimand=P(M,X,Y,Z),
                     graph=NxMixedGraph.from_edges(
                         directed=[("X", "M"), ('Z','X'), ('Z', 'Y'), ("M", "Y")],

@@ -164,12 +164,12 @@ def line_4(
     parents = list(nx.topological_sort(G.directed))
 
     if len(C_components_of_G_without_X) > 1:
-        query = outcomes_and_treatments_to_query(outcomes=district, treatments=V-district)
+
         return [
             Identification(
-                query=query,
+                query = outcomes_and_treatments_to_query(outcomes=district, treatments=V-district),
                 estimand=estimand,
-                G=G,
+                graph=G,
             )
             for district in C_components_of_G_without_X
         ]

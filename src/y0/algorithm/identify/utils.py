@@ -9,28 +9,50 @@ import networkx as nx
 import numpy as np
 from y0.dsl import Variable, P, Sum, Product, Expression
 from y0.identify import _get_outcomes, _get_treatments
+from y0.algorithm.identify import Identification
+
 __all__ = [
     "str_graph",
     "nxmixedgraph_to_causal_graph",
     "ancestors_and_self",
+    "Identification",
 ]
 
 
 # TODO copy code for causal_graph class
 
+
 class Fail(Exception):
     pass
 
 
-def query_to_outcomes_and_treatments(*,  query: Expression ) -> List[Set[str]]:
-    return set(_get_outcomes(query.get_variables())), set(_get_treatments(query.get_variables()))
+@dataclass
+class Identification:
+    query: Expression
+    estimand: Expression
+    graph: NxMixedGraph
 
-def outcomes_and_treatments_to_query(*, outcomes: Set[str], treatments: Set[str]) -> Expression:
+    def __eq__(self, other: Identification):
+        return (
+            expr_equal(self.query, other.query)
+            and expr_equal(self.estimand, other.estimand)
+            and (self.graph == other.graph)
+        )
+
+
+def query_to_outcomes_and_treatments(*, query: Expression) -> List[Set[str]]:
+    return set(_get_outcomes(query.get_variables())), set(
+        _get_treatments(query.get_variables())
+    )
+
+
+def outcomes_and_treatments_to_query(
+    *, outcomes: Set[str], treatments: Set[str]
+) -> Expression:
     if len(treatments) == 0:
         return P(*[Variable(y) for y in outcomes])
     else:
-        return P(*[Variable(y) @ [Variable(x) for x in treatments]
-                   for y in outcomes])
+        return P(*[Variable(y) @ [Variable(x) for x in treatments] for y in outcomes])
 
 
 def ancestors_and_self(graph: NxMixedGraph, sources: Set[str]):
@@ -311,8 +333,6 @@ class cg_graph:
 
         return True
 
-
-
     def id_alg(self, y, x, p_in=None, graph_in=None):
         """calculate P(y | do(x)) or return failure if this is not possible"""
 
@@ -368,13 +388,19 @@ class cg_graph:
 
             # print('Step 1')
 
-            return Sum(P(*[Variable(node) for node in graph_temp.nodes]), [Variable(node) for node in node_list])
+            return Sum(
+                P(*[Variable(node) for node in graph_temp.nodes]),
+                [Variable(node) for node in node_list],
+            )
 
         # line 2
         elif v_not_anc_y:
 
             x_temp = [item for item in y_anc if item in x]
-            str_out = Sum(P(Variable(v) for v in graph_temp.nodes), [Variable(v) for v in v_not_anc_y])
+            str_out = Sum(
+                P(Variable(v) for v in graph_temp.nodes),
+                [Variable(v) for v in v_not_anc_y],
+            )
             graph_anc = graph_temp.subgraph(y_anc)
 
             # print('Begin Step 2')
@@ -421,7 +447,6 @@ class cg_graph:
 
                 # print('End Step 4')
 
-
                 return Sum(Product(str_out), [Variable(v) for v in node_list])
 
             else:
@@ -432,13 +457,16 @@ class cg_graph:
                 ]
 
                 # line 5
-                if sorted(s_sets_prime[0]) == sorted(graph_temp.nodes):  # TODO @jeremy needs test case
+                if sorted(s_sets_prime[0]) == sorted(
+                    graph_temp.nodes
+                ):  # TODO @jeremy needs test case
 
                     node_list = [ind for ind in s_sets_prime[0]]
                     node_list2 = [ind for ind in graph_temp.nodes if ind in s_sets[0]]
 
                     raise Fail(
-                f"Identification Failure: C-components of U {node_list} and C-components of (U-x) {node_list2} form a hedge")
+                        f"Identification Failure: C-components of U {node_list} and C-components of (U-x) {node_list2} form a hedge"
+                    )
 
                 # line 6
                 elif np.any(
@@ -453,12 +481,14 @@ class cg_graph:
                         parents = list(graph_temp.predecessors(item))
 
                         if parents:
-                            str_out +=[ P(Variable(item) | [Variable(p) for p in parents])]
+                            str_out += [
+                                P(Variable(item) | [Variable(p) for p in parents])
+                            ]
                         else:
-                            str_out += [P(Variable( item ))]
+                            str_out += [P(Variable(item))]
                     # print(s_sets[0])
                     # print('Step 6')
-                    return Sum(Product( str_out ), [Variable(v) for v in node_list])
+                    return Sum(Product(str_out), [Variable(v) for v in node_list])
 
                 # line 7
                 elif np.any(
@@ -489,7 +519,9 @@ class cg_graph:
                         ]
 
                         if par_set:
-                            str_out += [P(Variable(item) | [Variable(p) for p in par_set])]
+                            str_out += [
+                                P(Variable(item) | [Variable(p) for p in par_set])
+                            ]
                         else:
                             str_out += [P(Variable(item))]
 
@@ -510,7 +542,6 @@ class cg_graph:
 
                     print("error")
                     return ""
-
 
     def craig_id_alg(self, y, x, p_in=None, graph_in=None):
         """calculate P(y | do(x)) or return failure if this is not possible"""
@@ -631,7 +662,9 @@ class cg_graph:
                 ]
 
                 # line 5
-                if sorted(s_sets_prime[0]) == sorted(graph_temp.nodes):  # TODO @jeremy needs test case
+                if sorted(s_sets_prime[0]) == sorted(
+                    graph_temp.nodes
+                ):  # TODO @jeremy needs test case
 
                     node_list = [ind for ind in s_sets_prime[0]]
                     node_list2 = [ind for ind in graph_temp.nodes if ind in s_sets[0]]
