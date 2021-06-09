@@ -131,7 +131,7 @@ def line_3(
     :raises Fail: if the query is not identifiable.
 
     """
-    vertices = G.directed.nodes()
+    vertices = G.nodes()
     G_bar_x = G.intervene(treatments)
     no_effect_nodes = (vertices - treatments) - ancestors_and_self(G_bar_x, outcomes)
     if len(no_effect_nodes) > 0:
@@ -164,11 +164,10 @@ def line_4(
     parents = list(nx.topological_sort(G.directed))
 
     if len(C_components_of_G_without_X) > 1:
+        query = outcomes_and_treatments_to_query(outcomes=district, treatments=V-district)
         return [
             Identification(
-                query=P(*[Variable(d) @ list(V - district) for d in district]),
-                outcomes=district,
-                treatments=V - district,
+                query=query,
                 estimand=estimand,
                 G=G,
             )
