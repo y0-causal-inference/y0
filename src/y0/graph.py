@@ -385,3 +385,10 @@ def set_latent(graph: nx.DiGraph, latent_nodes: Union[str, Iterable[str]], tag: 
     latent_nodes = set(latent_nodes)
     for node, data in graph.nodes(data=True):
         data[tag] = node in latent_nodes
+
+def __eq__( self, other: NxMixedGraph ):
+    """MxMixedGraph node, directed edge and undirected edge equality"""
+    return ( set(self.nodes()) == set(other.nodes())) and (
+        set(self.directed.edges()) == set(other.directed.edges())) and (
+            set([frozenset([u,v]) for u, v in self.undirected.edges()]) ==
+            set([frozenset([u,v]) for u, v in other.undirected.edges()]))

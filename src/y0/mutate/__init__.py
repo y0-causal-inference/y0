@@ -10,4 +10,5 @@ __all__ = [
     'chain_expand',
     'fraction_expand',
     'bayes_expand',
+    'expr_equal'
 ]

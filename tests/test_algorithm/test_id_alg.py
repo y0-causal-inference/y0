@@ -9,10 +9,11 @@ from y0.dsl import Expression, P, Sum, X, Y, Z
 from y0.examples import line_1_example_a, line_1_example_b, line_2_example
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
-from y0.mutate import canonicalize
+from y0.mutate import canonicalize, expr_equal
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
+
 
 
 class TestIdentify(unittest.TestCase):
@@ -20,7 +21,6 @@ class TestIdentify(unittest.TestCase):
 
     def assert_expr_equal(self, expected: Expression, actual: Expression):
         """Assert that two expressions are the same"""
-        print(f"expected: {str(expected)}\nactual: {str(actual)}")
         expected_vars = expected.get_variables()
         self.assertEqual(expected_vars, actual.get_variables())
         ordering = list(expected_vars)
@@ -38,12 +38,12 @@ class TestIdentify(unittest.TestCase):
         """Assert that the graph returns the same."""
         self.assert_expr_equal(expression, identify(graph, query))
 
-    def assert_ID_input( self, expected, actual ):
+    def assert_identification_equal( self, expected: Identification, actual: Identification ):
         """Assert that the recursive call to ID has the correct input parameters"""
-        self.assertEqual(expected['outcomes'], actual['outcomes'])
-        self.assertEqual(expected['treatments'], actual['treatments'])
-        self.assert_expr_equal(expected['estimand'], actual['estimand'])
-        self.assert_graph_equal(expected['G'], actual['G'])
+
+        self.assert_expr_equal(expected.query, actual.query)
+        self.assert_expr_equal(expected.estimand, actual.estimand)
+        self.assert_graph_equal(expected.graph, actual.graph)
 
     def test_ancestors_and_self(self):
         """Tests whether the ancestors_and_self actually returns the ancestors and itself"""
@@ -81,24 +81,16 @@ class TestIdentify(unittest.TestCase):
         If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
         the observational distribution :math:`P(\mathbf v)` on :math:`\mathbf Y`.
         """
-        self.assert_expr_equal(
-            Sum(P(Y, Z), (Z,)),
-            line_1(
-                outcomes={"Y"},
-                treatments=set(),
-                estimand=P(Y, Z),
-                G=line_1_example_a.graph,
-            ),
-        )
-        self.assert_expr_equal(
-            Sum(P(Y, Z)),
-            line_1(
-                outcomes={"Y", "Z"},
-                treatments=set(),
-                estimand=P(Y, Z),
-                G=line_1_example_b.graph,
-            ),
-        )
+        for identification in line_1_example.identifications:
+            self.assert_expr_equal(
+                expected = identification['id_out'][0].estimand,
+                actual   = line_1(
+                    outcomes=set(_get_outcomes(identification['id_in'][0].query.get_variables())),
+                    treatments=set(_get_treatments(identification['id_in'][0].query.get_variables())),
+                    estimand=identification['id_in'][0].estimand,
+                    G=identification['id_in'][0].graph,
+                )
+            )
 
     def test_line_2(self):
         r"""Test line 2 of the identification algorithm.
@@ -107,19 +99,13 @@ class TestIdentify(unittest.TestCase):
         attention on the parts of the model ancestral to :math:`\mathbf Y`.
         """
         for identification in line_2_example.identifications:
-            expected = dict(outcomes   = identification.outcomes,
-                            treatments = identification.treatments,
-                            estimand   = identification.estimand,
-                            G          = identification.graph
-
-            self.assert_ID_input(
-                expected,
-                line_2(
-                    outcomes   = set(_get_outcomes(identification.query)),
-                    treatments = set(_get_treatments(identification.query)),
-                    estimand   = P(*[Variable(v)
-                                     for v in line_2_example.graph.nodes())),
-                    G          = line_2_example.graph,
+            self.assert_identification_equal(
+                expected = identification['id_out'][0],
+                actual  = line_2(
+                    outcomes   = set(_get_outcomes(identification['id_in'][0].query.get_variables())),
+                    treatments = set(_get_treatments(identification['id_in'][0].query.get_variables())),
+                    estimand   = identification['id_in'][0].estimand,
+                    G          =  identification['id_in'][0].graph
                 ),
             )
 
@@ -132,16 +118,14 @@ class TestIdentify(unittest.TestCase):
         affecting the overall answer.
         """
         for identification in line_3_example.identifications:
-            self.assert_ID_input(
-                expected = dict(
-                    outcomes=identification.outcomes,
-                    treatments=identification.treatments,
-                    estimand=identification.estimand,
-                    G = identification.graph),
-                actual = line_3(outcomes   = set(_get_outcomes( identification.query.get_variables())),
-                                treatments = set(_get_treatments( identification.query.get_variables())),
-                                estimand   = P(X,Y,Z),
-                                G          = line_3_example.graph))
+            self.assert_identification_equal(
+                expected = identification['id_out'][0],
+                actual   = line_3(
+                    outcomes=set(_get_outcomes(identification['id_in'][0].query.get_variables())),
+                    treatments=set(_get_treatments(identification['id_in'][0].query.get_variables())),
+                    estimand=identification['id_in'][0].estimand,
+                    G = identification['id_in'][0].graph))
+
 
 
 
@@ -153,6 +137,23 @@ class TestIdentify(unittest.TestCase):
         is a single C-component already, further problem decomposition is impossible, and we must
         provide base cases. :math:`\mathbf{ID}` has three base cases.
         """
+        for identification in line_4_example.identifications:
+            actuals = line_4(
+                outcomes   = set(_get_outcomes(identification['id_in'][0].query.get_variables())),
+                treatments = set(_get_treatments(identification['id_in'][0].query.get_variables())),
+                estimand   = identification['id_in'][0].estimand,
+                G          = identification['id_in'][0].graph)
+            expecteds = identification['id_out']
+            self.assertEqual(len(expecteds), len(equals))
+            match = {}
+            for expected in expecteds:
+                for actual in actuals:
+                    if expected == actual:
+                        self.assert_identification_equal(
+                                  expected, actual)
+                        match[expected] = actual
+            self.assertEqual(len(expecteds), len(match))
+
 
 
     def test_line_5(self):

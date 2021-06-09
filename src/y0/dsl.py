@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from operator import attrgetter
 from typing import Callable, Iterable, Optional, Sequence, Set, Tuple, TypeVar, Union
 
+
 __all__ = [
     'Variable',
     'Intervention',
@@ -32,6 +33,7 @@ __all__ = [
     'Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6',
     # Helpers
     'ensure_ordering',
+
 ]
 
 X = TypeVar('X')
@@ -47,6 +49,7 @@ def _to_interventions(variables: Sequence[Variable]) -> Tuple[Intervention, ...]
         variable if isinstance(variable, Intervention) else Intervention(name=variable.name, star=False)
         for variable in variables
     )
+
 
 
 class _Mathable(ABC):
