@@ -115,9 +115,10 @@ def line_3(*,  outcomes: Set[str], treatments: Set[str], estimand: Expression, G
     G_bar_x = G.intervene( treatments )
     no_effect_nodes = (vertices - treatments) - ancestors_and_self( G_bar_x, outcomes )
     if len(no_effect_nodes) > 0:
-        return Identification( query=P(*[Variable(y) @ [Variable(x)
-                                                        for x in list(treatments & no_effect_nodes)]
-                                         for y in outcomes]),
+        query=P(*[Variable(y) @ [Variable(x)
+                                 for x in list(treatments | no_effect_nodes)]
+                  for y in outcomes]),
+        return Identification( query=query,
                                estimand = estimand,
                                graph = G)
 
