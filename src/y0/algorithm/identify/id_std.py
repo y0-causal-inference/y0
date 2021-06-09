@@ -117,7 +117,7 @@ def line_3(*,  outcomes: Set[str], treatments: Set[str], estimand: Expression, G
     if len(no_effect_nodes) > 0:
         query=P(*[Variable(y) @ [Variable(x)
                                  for x in list(treatments | no_effect_nodes)]
-                  for y in outcomes]),
+                  for y in outcomes])
         return Identification( query=query,
                                estimand = estimand,
                                graph = G)
