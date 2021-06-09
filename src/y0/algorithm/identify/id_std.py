@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Set
-
+from typing import Union, Set, List
 from ananke.graphs import ADMG
 import networkx as nx
 from y0.algorithm.identify.utils import ancestors_and_self, nxmixedgraph_to_causal_graph
 from y0.dsl import Expression, P, Sum, Variable
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
-
+from y0.examples import Identification
 
 def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
     """Currently a wrapper for y0.algorithm.identifiy.utils.causal_graph.id_alg()"""
@@ -59,7 +58,7 @@ def line_1(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
     )
 
 
-def line_2(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph) -> Expression:
+def line_2(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph) -> Identification:
     r"""Line 2 of the ID algorithm.
 
     If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention
@@ -78,14 +77,15 @@ def line_2(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
     G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
     if len(not_ancestors_of_Y) == 0:
         raise ValueError("No ancestors of Y")
-    return dict(
-        outcomes=outcomes,
-        treatments=treatments & ancestors_and_Y_in_G,
-        estimand=Sum(P, list(not_ancestors_of_Y)),
-        G=G_ancestral_to_Y,
+    return Identification(
+        query=P(*[Variable(y) @ [Variable(x)
+                                 for x in list(treatments & ancestors_and_Y_in_G)]
+               for y in outcomes]),
+        estimand=Sum(P, [Variable(v) for v in not_ancestors_of_Y]),
+        graph=G_ancestral_to_Y,
     )
 
-def line_3(*,  outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
+def line_3(*,  outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ) -> Identification:
     r"""Line 3 of ID algorithm.
 
     Forces an action on any node where such an action would have no
@@ -107,10 +107,14 @@ def line_3(*,  outcomes: Set[str], treatments: Set[str], estimand: Expression, G
     G_bar_x = G.intervene( treatments )
     no_effect_nodes = (vertices - treatments) - ancestors_and_self( G_bar_x, outcomes )
     if len(no_effect_nodes) > 0:
-        return dict( outcomes, treatments & no_effect_nodes, estimand, G)
+        return Identification( query=P(*[Variable(y) @ [Variable(x)
+                                                        for x in list(treatments & no_effect_nodes)]
+                                         for y in outcomes]),
+                               estimand = estimand,
+                               graph = G)
 
 
-def line_4(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ) -> Expression:
+def line_4(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph ) -> List[Identification]:
     r"""Line 4 of the ID algorithm
 
     The key line of the algorithm, it decomposes the problem into a set

@@ -17,6 +17,8 @@ from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
 from .mutate import expr_equal
 
+
+
 @dataclass
 class Identification:
     query: Expression
@@ -256,7 +258,7 @@ line_3_example = Example(
     ],
 )
 
-
+M = Variable('M')
 line_4_example = Example(
     name="graph without X decomposes into multiple C components",
     reference="out of the mind of JZ",
@@ -308,7 +310,7 @@ line_4_example = Example(
 cyclic_directed_example = Example(
     name="Cyclic directed graph",
     reference="out of the mind of JZ and ZW",
-    graph=NxGraph.from_edges(directed   = [('a','b'), ('a', 'c'), ('b', 'a')])
+    graph=NxMixedGraph.from_edges(directed   = [('a','b'), ('a', 'c'), ('b', 'a')])
 )
 #: Treatment: X
 #: Outcome: Y
