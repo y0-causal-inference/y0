@@ -8,12 +8,12 @@ from y0.algorithm.identify import (
     Identification,
     ancestors_and_self,
     get_c_components,
+    get_outcomes_and_treatments,
     identify,
     line_1,
     line_2,
     line_3,
     line_4,
-    query_to_outcomes_and_treatments,
 )
 from y0.dsl import Expression, P, X, Y, Z
 from y0.examples import line_1_example, line_2_example, line_3_example, line_4_example
@@ -30,12 +30,10 @@ class TestIdentify(unittest.TestCase):
 
     def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
         """Assert that two expressions are the same."""
-        expected_outcomes, expected_treatments = query_to_outcomes_and_treatments(
+        expected_outcomes, expected_treatments = get_outcomes_and_treatments(
             query=expected
         )
-        actual_outcomes, actual_treatments = query_to_outcomes_and_treatments(
-            query=actual
-        )
+        actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
         self.assertEqual(expected_treatments, actual_treatments)
         self.assertEqual(expected_outcomes, actual_outcomes)
         ordering = expected.get_variables()
@@ -146,7 +144,7 @@ class TestIdentify(unittest.TestCase):
         affecting the overall answer.
         """
         for identification in line_3_example.identifications:
-            outcomes, treatments = query_to_outcomes_and_treatments(
+            outcomes, treatments = get_outcomes_and_treatments(
                 query=identification["id_in"][0].query
             )
             self.assert_identification_equal(
@@ -168,7 +166,7 @@ class TestIdentify(unittest.TestCase):
         provide base cases. :math:`\mathbf{ID}` has three base cases.
         """
         for identification in line_4_example.identifications:
-            outcomes, treatments = query_to_outcomes_and_treatments(
+            outcomes, treatments = get_outcomes_and_treatments(
                 query=identification["id_in"][0].query
             )
             actuals = line_4(

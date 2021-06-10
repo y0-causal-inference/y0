@@ -3,9 +3,7 @@
 """Utilities for identifiaction algorithms"""
 
 from dataclasses import dataclass
-
-#
-from typing import List, Set
+from typing import Any, Set, Tuple
 
 import networkx as nx
 import numpy as np
@@ -28,43 +26,47 @@ __all__ = [
 
 
 class Fail(Exception):
-    pass
+    """Raised on failure of the identification algorithm."""
 
 
 @dataclass
 class Identification:
+    """A package of a query and resulting estimand from identification on a graph."""
+
     query: Expression
     estimand: Expression
     graph: NxMixedGraph
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
+        """Check fi the query, estimand, and graph are equal."""
         return (
-            expr_equal(self.query, other.query)
+            isinstance(other, Identification)
+            and expr_equal(self.query, other.query)
             and expr_equal(self.estimand, other.estimand)
             and (self.graph == other.graph)
         )
 
 
 def expr_equal(expected: Expression, actual: Expression) -> bool:
-    expected_outcomes, expected_treatments = query_to_outcomes_and_treatments(
-        query=expected
-    )
-    actual_outcomes, actual_treatments = query_to_outcomes_and_treatments(query=actual)
+    """Return if two expressions are equal after canonicalization."""
+    expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
+    actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
 
-    actual_vars = actual.get_variables()
     if (expected_outcomes != actual_outcomes) or (
         expected_treatments != actual_treatments
     ):
         return False
-    ordering = expected.get_variables()
+    ordering = tuple(expected.get_variables())  # need to impose ordering, any will do.
     expected_canonical = canonicalize(expected, ordering)
     actual_canonical = canonicalize(actual, ordering)
     return expected_canonical == actual_canonical
 
 
-def query_to_outcomes_and_treatments(*, query: Expression) -> List[Set[str]]:
-    return set(_get_outcomes(query.get_variables())), set(
-        _get_treatments(query.get_variables())
+def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[str], Set[str]]:
+    """Get outcomes and treatments sets from the query expression."""
+    return (
+        set(_get_outcomes(query.get_variables())),
+        set(_get_treatments(query.get_variables())),
     )
 
 
@@ -835,7 +837,6 @@ class cg_graph:
             )
 
             if d_sep:
-
                 return self.idc_alg(
                     y,
                     x + [item],

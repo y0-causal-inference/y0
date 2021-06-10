@@ -18,5 +18,5 @@ from .utils import (
     ancestors_and_self,
     expr_equal,
     outcomes_and_treatments_to_query,
-    query_to_outcomes_and_treatments,
+    get_outcomes_and_treatments,
 )
