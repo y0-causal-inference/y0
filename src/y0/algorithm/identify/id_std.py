@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Set, List
-from ananke.graphs import ADMG
+from typing import List, Set, Union
+
 import networkx as nx
+from ananke.graphs import ADMG
+
 from y0.algorithm.identify.utils import (
     ancestors_and_self,
     nxmixedgraph_to_causal_graph,
     outcomes_and_treatments_to_query,
-    query_to_outcomes_and_treatments,
 )
 from y0.dsl import Expression, P, Sum, Variable
 from y0.graph import NxMixedGraph

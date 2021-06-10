@@ -2,13 +2,16 @@
 
 """Utilities for identifiaction algorithms"""
 
-#
-from typing import Set, List
 from dataclasses import dataclass
-from y0.graph import NxMixedGraph
+
+#
+from typing import List, Set
+
 import networkx as nx
 import numpy as np
-from y0.dsl import Variable, P, Sum, Product, Expression
+
+from y0.dsl import Expression, P, Product, Sum, Variable
+from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
 from y0.mutate import canonicalize
 

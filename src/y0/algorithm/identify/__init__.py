@@ -3,6 +3,7 @@
 """Identification algorithms."""
 
 from .id_std import (
+    get_c_components,
     identify,
     line_1,
     line_2,
@@ -11,12 +12,11 @@ from .id_std import (
     line_5,
     line_6,
     line_7,
-    get_c_components,
 )
 from .utils import (
-    ancestors_and_self,
-    query_to_outcomes_and_treatments,
-    outcomes_and_treatments_to_query,
     Identification,
+    ancestors_and_self,
     expr_equal,
+    outcomes_and_treatments_to_query,
+    query_to_outcomes_and_treatments,
 )

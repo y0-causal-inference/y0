@@ -65,20 +65,21 @@ class NxMixedGraph(Generic[X]):
     #: A undirected graph
     undirected: nx.Graph = field(default_factory=nx.Graph)
 
-    def __eq__(self, other: NxMixedGraph):
-        """MxMixedGraph node, directed edge and undirected edge equality"""
+    def __eq__(self, other: Any) -> bool:
+        """Check for equality of nodes, directed edges, and undirected edges."""
         return (
-            (self.nodes() == other.nodes())
+            isinstance(other, NxMixedGraph)
+            and self.nodes() == other.nodes()
             and (self.directed.edges() == other.directed.edges())
             and (self.undirected.edges() == other.undirected.edges())
         )
 
     def subgraph(self, vertices: Collection[X]) -> NxMixedGraph:
-        """Return a subgraph given a set of vertices
-        :param vertices: a subset of nodes
-        :returns:  NxMixedGraph subgraph
-        """
+        """Return a subgraph given a set of vertices.
 
+        :param vertices: a subset of nodes
+        :returns: A NxMixedGraph subgraph
+        """
         directed = dict([(u, []) for u in vertices])
         undirected = dict([(u, []) for u in vertices])
 
@@ -89,12 +90,13 @@ class NxMixedGraph(Generic[X]):
             if u in vertices and v in vertices:
                 undirected[u].append(v)
 
-        return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
+        return self.from_adj(directed=directed, undirected=undirected)
 
     def intervene(self, vertices: Collection[X]) -> NxMixedGraph:
-        """Return a mutilated graph given a set of interventions
+        """Return a mutilated graph given a set of interventions.
+
         :param vertices: a subset of nodes from which to remove incoming edges
-        :returns:  NxMixedGraph subgraph
+        :returns: A NxMixedGraph subgraph
         """
         directed = dict([(u, []) for u in self.nodes()])
         undirected = dict([(u, []) for u in self.nodes()])
@@ -105,10 +107,12 @@ class NxMixedGraph(Generic[X]):
         for u, v in self.undirected.edges():
             if (u not in vertices) and (v not in vertices):
                 undirected[u].append(v)
-        return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
+
+        return self.from_adj(directed=directed, undirected=undirected)
 
     def remove_nodes_from(self, vertices: Collection[X]) -> NxMixedGraph:
-        """Return a subgraph that does not contain any of the specified vertices
+        """Return a subgraph that does not contain any of the specified vertices.
+
         :param vertices: a set of nodes to remove from graph
         :returns:  NxMixedGraph subgraph
         """
@@ -121,7 +125,8 @@ class NxMixedGraph(Generic[X]):
         for u, v in self.undirected.edges():
             if (u not in vertices) and (v not in vertices):
                 undirected[u].append(v)
-        return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
+
+        return self.from_adj(directed=directed, undirected=undirected)
 
     def add_directed_edge(self, u: Collection[X], v: Collection[X], **attr) -> None:
         """Add a directed edge from u to v."""
@@ -150,7 +155,7 @@ class NxMixedGraph(Generic[X]):
 
     @classmethod
     def from_admg(cls, admg: ADMG) -> NxMixedGraph:
-        """Create from an ADMG. Note that vertices can exist without edges"""
+        """Create from an ADMG. Note that vertices can exist without edges."""
         directed = dict([(u, []) for u in admg.vertices])
         undirected = dict([(u, []) for u in admg.vertices])
         for u, v in admg.di_edges:
@@ -167,6 +172,7 @@ class NxMixedGraph(Generic[X]):
         tag: Optional[str] = None,
     ) -> nx.DiGraph:
         """Create a labeled DAG where bi-directed edges are assigned as nodes upstream of their two incident nodes.
+
         :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
         :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
         :param tag: The key for node data describing whether it is latent.

@@ -5,22 +5,17 @@
 import unittest
 
 from y0.algorithm.identify import (
+    Identification,
     ancestors_and_self,
+    get_c_components,
     identify,
     line_1,
     line_2,
     line_3,
     line_4,
-    line_5,
-    line_6,
-    line_7,
-    get_c_components,
-    outcomes_and_treatments_to_query,
     query_to_outcomes_and_treatments,
-    Identification,
-    expr_equal,
 )
-from y0.dsl import Expression, P, Sum, X, Y, Z
+from y0.dsl import Expression, P, X, Y, Z
 from y0.examples import line_1_example, line_2_example, line_3_example, line_4_example
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
@@ -33,8 +28,8 @@ P_XYZ = P(X, Y, Z)
 class TestIdentify(unittest.TestCase):
     """Test cases from https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb."""
 
-    def assert_expr_equal(self, expected: Expression, actual: Expression):
-        """Assert that two expressions are the same"""
+    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
+        """Assert that two expressions are the same."""
         expected_outcomes, expected_treatments = query_to_outcomes_and_treatments(
             query=expected
         )
@@ -61,14 +56,13 @@ class TestIdentify(unittest.TestCase):
     def assert_identification_equal(
         self, expected: Identification, actual: Identification
     ):
-        """Assert that the recursive call to ID has the correct input parameters"""
-
+        """Assert that the recursive call to ID has the correct input parameters."""
         self.assert_expr_equal(expected.query, actual.query)
         self.assert_expr_equal(expected.estimand, actual.estimand)
         self.assertEqual(expected.graph, actual.graph)
 
     def test_ancestors_and_self(self):
-        """Tests whether the ancestors_and_self actually returns the ancestors and itself"""
+        """Test whether the ancestors_and_self actually returns the ancestors and itself."""
         graph = NxMixedGraph()
         graph.add_directed_edge("X", "Z")
         graph.add_directed_edge("Z", "Y")
@@ -78,14 +72,14 @@ class TestIdentify(unittest.TestCase):
         self.assertEqual({"X"}, ancestors_and_self(graph, {"X"}))
 
     def test_subgraph(self):
-        """Tests whether the subgraph restriction algorithm returns the correct subgraph"""
+        """Test whether the subgraph restriction algorithm returns the correct subgraph."""
         graph = NxMixedGraph()
         graph.add_directed_edge("X", "Z")
         graph.add_directed_edge("Z", "Y")
         graph.add_undirected_edge("Z", "Y")
 
     def test_get_c_components(self):
-        """Tests that get_c_components works correctly"""
+        """Test that get_c_components works correctly."""
         g1 = NxMixedGraph().from_edges(directed=[("X", "Y"), ("Z", "X"), ("Z", "Y")])
         c1 = [frozenset("X"), frozenset("Y"), frozenset("Z")]
         g2 = NxMixedGraph().from_edges(directed=[("X", "Y")], undirected=[("X", "Y")])
