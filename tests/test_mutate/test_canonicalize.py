@@ -37,6 +37,15 @@ class TestCanonicalize(unittest.TestCase):
             expression = P(A | (b, c, d))
             self.assert_canonicalize(expected, expression, [A, B, C, D])
 
+    def test_atomic_interventions(self):
+        """Test canonicalization of atomic expressions containing interventions."""
+        for expected, expression, ordering in [
+            (P(A @ X), P(A @ X), [A, X]),
+            (P(A @ [X, Y]), P(A @ [X, Y]), [A, X, Y]),
+            (P(A @ [X, Y]), P(A @ [Y, X]), [A, X, Y]),
+        ]:
+            self.assert_canonicalize(expected, expression, ordering)
+
     def test_derived_atomic(self):
         """Test canonicalizing."""
         # Sum
