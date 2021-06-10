@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 from operator import attrgetter
 from typing import Callable, Iterable, Optional, Sequence, Set, Tuple, TypeVar, Union
 
-
 __all__ = [
     "Variable",
     "Intervention",
