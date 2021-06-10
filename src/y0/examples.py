@@ -6,21 +6,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Sequence, Set, Dict
+from typing import Dict, List, Optional, Sequence
 
 import networkx as nx
 import pandas as pd
 
-from .dsl import Expression, P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5
+from .algorithm.identify import (
+    Identification,
+)
+from .dsl import P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5
 from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
-from .algorithm.identify import (
-    query_to_outcomes_and_treatments,
-    outcomes_and_treatments_to_query,
-    Identification,
-    expr_equal,
-)
 
 
 @dataclass
@@ -200,7 +197,6 @@ line_1_example = Example(
     ],
 )
 
-
 # Line 2 example
 line_2_example = Example(
     name="intervention not ancestral to outcome",
@@ -301,7 +297,6 @@ line_4_example = Example(
         ),
     ],
 )
-
 
 cyclic_directed_example = Example(
     name="Cyclic directed graph",
