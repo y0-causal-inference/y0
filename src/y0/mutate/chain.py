@@ -2,16 +2,26 @@
 
 """Operations for mutating and simplifying expressions."""
 
-from ..dsl import Distribution, Fraction, OrderingHint, P, Probability, Product, ensure_ordering
+from ..dsl import (
+    Distribution,
+    Fraction,
+    OrderingHint,
+    P,
+    Probability,
+    Product,
+    ensure_ordering,
+)
 
 __all__ = [
-    'chain_expand',
-    'fraction_expand',
-    'bayes_expand',
+    "chain_expand",
+    "fraction_expand",
+    "bayes_expand",
 ]
 
 
-def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint = None) -> Product:
+def chain_expand(
+    p: Probability, *, reorder: bool = True, ordering: OrderingHint = None
+) -> Product:
     r"""Expand a probability distribution to a product of conditional probabilities on single variables.
 
     :param p: The given probability expression
@@ -47,18 +57,20 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
         _ordering = ensure_ordering(p, ordering=ordering)
         if any(v not in _ordering for v in p.distribution.children):
             raise ValueError
-        ordered_children = tuple(
-            v
-            for v in _ordering
-            if v in p.distribution.children
-        )
+        ordered_children = tuple(v for v in _ordering if v in p.distribution.children)
     else:
         ordered_children = p.distribution.children
 
-    return Product(tuple(
-        P(Distribution(children=(ordered_children[i],)).given(ordered_children[i + 1:] + p.distribution.parents))
-        for i in range(len(ordered_children))
-    ))
+    return Product(
+        tuple(
+            P(
+                Distribution(children=(ordered_children[i],)).given(
+                    ordered_children[i + 1 :] + p.distribution.parents
+                )
+            )
+            for i in range(len(ordered_children))
+        )
+    )
 
 
 def fraction_expand(p: Probability) -> Fraction:

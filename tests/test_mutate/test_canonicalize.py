@@ -13,13 +13,19 @@ from y0.mutate import canonicalize
 class TestCanonicalize(unittest.TestCase):
     """Tests for the canonicalization of a simplified algorithm."""
 
-    def assert_canonicalize(self, expected: Expression, expression: Expression, ordering: Sequence[Variable]) -> None:
+    def assert_canonicalize(
+        self, expected: Expression, expression: Expression, ordering: Sequence[Variable]
+    ) -> None:
         """Check that the expression is canonicalized properly given an ordering."""
-        with self.subTest(expr=str(expression), ordering=', '.join(variable.name for variable in ordering)):
+        with self.subTest(
+            expr=str(expression),
+            ordering=", ".join(variable.name for variable in ordering),
+        ):
             actual = canonicalize(expression, ordering)
             self.assertEqual(
-                expected, actual,
-                msg=f'\nExpected: {str(expression)}\nActual:   {str(actual)}',
+                expected,
+                actual,
+                msg=f"\nExpected: {str(expression)}\nActual:   {str(actual)}",
             )
 
     def test_atomic(self):

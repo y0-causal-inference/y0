@@ -7,30 +7,30 @@ import string
 from y0.dsl import Expression, P, Q, Sum, Variable
 
 __all__ = [
-    'parse_y0',
+    "parse_y0",
 ]
 
 LOCALS = {
-    'P': P,
-    'PROB': P,
-    'Prob': P,
-    'PROBABILITY': P,
-    'Probability': P,
-    'SUM': Sum,
-    'Sum': Sum,
-    'Q': Q,
-    'QFactor': Q,
+    "P": P,
+    "PROB": P,
+    "Prob": P,
+    "PROBABILITY": P,
+    "Probability": P,
+    "SUM": Sum,
+    "Sum": Sum,
+    "Q": Q,
+    "QFactor": Q,
 }
 
 for letter in string.ascii_uppercase:
-    if letter in {'P', 'Q'}:
+    if letter in {"P", "Q"}:
         continue
     LOCALS[letter] = Variable(letter)
     for index in range(10):
-        name = f'{letter}{index}'
+        name = f"{letter}{index}"
         LOCALS[name] = Variable(name)
 
-        name_underscored = f'{letter}_{index}'
+        name_underscored = f"{letter}_{index}"
         LOCALS[name_underscored] = Variable(name_underscored)
 
 

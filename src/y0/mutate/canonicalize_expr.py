@@ -5,16 +5,26 @@
 from typing import Mapping, Optional, Sequence, Tuple, Union
 
 from ..dsl import (
-    CounterfactualVariable, Distribution, Expression, Fraction, Intervention, Probability, Product, Sum, Variable,
+    CounterfactualVariable,
+    Distribution,
+    Expression,
+    Fraction,
+    Intervention,
+    Probability,
+    Product,
+    Sum,
+    Variable,
     ensure_ordering,
 )
 
 __all__ = [
-    'canonicalize',
+    "canonicalize",
 ]
 
 
-def canonicalize(expression: Expression, ordering: Optional[Sequence[Union[str, Variable]]] = None) -> Expression:
+def canonicalize(
+    expression: Expression, ordering: Optional[Sequence[Union[str, Variable]]] = None
+) -> Expression:
     """Canonicalize an expression that meets the markov condition with respect to the given ordering.
 
     :param expression: An expression to canonicalize
@@ -43,31 +53,36 @@ class Canonicalizer:
         :raises ValueError: if the ordering has duplicates
         """
         if len(set(ordering)) != len(ordering):
-            raise ValueError(f'ordering has duplicates: {ordering}')
+            raise ValueError(f"ordering has duplicates: {ordering}")
 
         self.ordering = ordering
         self.ordering_level = {
-            variable.name: level
-            for level, variable in enumerate(self.ordering)
+            variable.name: level for level, variable in enumerate(self.ordering)
         }
 
     def _canonicalize_probability(self, expression: Probability) -> Probability:
-        return Probability(Distribution(
-            children=self._sorted(expression.distribution.children),
-            parents=self._sorted(expression.distribution.parents),
-        ))
+        return Probability(
+            Distribution(
+                children=self._sorted(expression.distribution.children),
+                parents=self._sorted(expression.distribution.parents),
+            )
+        )
 
     def _sorted(self, variables: Tuple[Variable, ...]) -> Tuple[Variable, ...]:
-        return tuple(sorted(
-            (self._canonicalize_variable(variable) for variable in variables),
-            key=self._sorted_key,
-        ))
+        return tuple(
+            sorted(
+                (self._canonicalize_variable(variable) for variable in variables),
+                key=self._sorted_key,
+            )
+        )
 
     def _canonicalize_variable(self, variable: Variable) -> Variable:
         if isinstance(variable, CounterfactualVariable):
             return CounterfactualVariable(
                 name=variable.name,
-                interventions=tuple(sorted(variable.interventions, key=self._intervention_key)),
+                interventions=tuple(
+                    sorted(variable.interventions, key=self._intervention_key)
+                ),
             )
         else:
             return variable
@@ -128,9 +143,15 @@ class Canonicalizer:
         elif isinstance(expression, Sum):
             return 1, *self._nonatomic_key(expression.expression)
         elif isinstance(expression, Product):
-            inner_keys = (self._nonatomic_key(sexpr) for sexpr in expression.expressions)
+            inner_keys = (
+                self._nonatomic_key(sexpr) for sexpr in expression.expressions
+            )
             return 2, *inner_keys
         elif isinstance(expression, Fraction):
-            return 3, self._nonatomic_key(expression.numerator), self._nonatomic_key(expression.denominator)
+            return (
+                3,
+                self._nonatomic_key(expression.numerator),
+                self._nonatomic_key(expression.denominator),
+            )
         else:
             raise TypeError

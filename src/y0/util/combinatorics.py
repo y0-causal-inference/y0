@@ -9,10 +9,10 @@ from typing import Any, Collection, Iterable, Mapping, Optional, TypeVar
 from tqdm import tqdm
 
 __all__ = [
-    'powerset',
+    "powerset",
 ]
 
-X = TypeVar('X')
+X = TypeVar("X")
 
 
 def powerset(

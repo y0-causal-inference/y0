@@ -17,12 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 @uses_r
-def r_get_verma_constraints(graph: Union[NxMixedGraph, CausalEffectGraph]) -> Sequence[VermaConstraint]:
+def r_get_verma_constraints(
+    graph: Union[NxMixedGraph, CausalEffectGraph]
+) -> Sequence[VermaConstraint]:
     """Calculate the verma constraints on the graph using ``causaleffect``."""
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_causaleffect()
-    verma_constraints = robjects.r['verma.constraints']
-    return [
-        VermaConstraint.from_element(row)
-        for row in verma_constraints(graph)
-    ]
+    verma_constraints = robjects.r["verma.constraints"]
+    return [VermaConstraint.from_element(row) for row in verma_constraints(graph)]

@@ -12,13 +12,13 @@ from rpy2.robjects.vectors import StrVector
 from .dsl import Variable
 
 __all__ = [
-    'uses_r',
+    "uses_r",
 ]
 
 logger = logging.getLogger(__name__)
 
-CAUSALEFFECT = 'causaleffect'
-IGRAPH = 'igraph'
+CAUSALEFFECT = "causaleffect"
+IGRAPH = "igraph"
 R_REQUIREMENTS = [
     CAUSALEFFECT,
     IGRAPH,
@@ -33,18 +33,16 @@ def prepare_renv(requirements: Iterable[str]) -> None:
     .. seealso:: https://rpy2.github.io/doc/v3.4.x/html/introduction.html#installing-packages
     """
     # import R's utility package
-    utils = importr('utils')
+    utils = importr("utils")
 
     # select a mirror for R packages
     utils.chooseCRANmirror(ind=1)  # select the first mirror in the list
 
     uninstalled_requirements = [
-        requirement
-        for requirement in requirements
-        if not isinstalled(requirement)
+        requirement for requirement in requirements if not isinstalled(requirement)
     ]
     if uninstalled_requirements:
-        logger.warning('installing R packages: %s', uninstalled_requirements)
+        logger.warning("installing R packages: %s", uninstalled_requirements)
         utils.install_packages(StrVector(uninstalled_requirements))
 
     for requirement in requirements:
@@ -70,11 +68,8 @@ def uses_r(f):
 
 
 def _parse_vars(element) -> Tuple[Variable, ...]:
-    _vars = element.rx('vars')
-    return tuple(
-        Variable(name)
-        for name in sorted(_vars[0])
-    )
+    _vars = element.rx("vars")
+    return tuple(Variable(name) for name in sorted(_vars[0]))
 
 
 def _extract(element, key):

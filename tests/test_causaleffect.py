@@ -18,14 +18,14 @@ except ImportError:  # rpy2 is not installed
 else:
     missing_rpy2 = False
 
-u_1 = Variable('u_1')
-V1 = Variable('V1')
-V2 = Variable('V2')
-V3 = Variable('V3')
-V4 = Variable('V4')
+u_1 = Variable("u_1")
+V1 = Variable("V1")
+V2 = Variable("V2")
+V3 = Variable("V3")
+V4 = Variable("V4")
 
 
-@unittest.skipIf(missing_rpy2, 'rpy2 is not installed')
+@unittest.skipIf(missing_rpy2, "rpy2 is not installed")
 class TestCausalEffect(unittest.TestCase):
     """Tests for the causaleffect wrapper."""
 
@@ -39,7 +39,7 @@ class TestCausalEffect(unittest.TestCase):
             importr(CAUSALEFFECT)
             importr(IGRAPH)
         except PackageNotInstalledError:
-            raise unittest.SkipTest('R packages not properly installed.')
+            raise unittest.SkipTest("R packages not properly installed.")
 
     def test_verma_constraint(self):
         """Test getting the single Verma constraint from the Figure 1A graph."""
@@ -62,8 +62,12 @@ class TestCausalEffect(unittest.TestCase):
         self.assertEqual(
             expected_rhs_expr,
             verma_constraint.rhs_expr,
-            msg=f'Expected: {expected_rhs_expr}\nActual:  {verma_constraint.rhs_expr}',
+            msg=f"Expected: {expected_rhs_expr}\nActual:  {verma_constraint.rhs_expr}",
         )
-        self.assertEqual(Sum[V2](Q[V2, V4](V1, V2, V3, V4)), verma_constraint.lhs_cfactor)
-        self.assertEqual(Sum[V2](P(V4 | (V1, V2, V3)) * P(V2 | V1)), verma_constraint.lhs_expr)
+        self.assertEqual(
+            Sum[V2](Q[V2, V4](V1, V2, V3, V4)), verma_constraint.lhs_cfactor
+        )
+        self.assertEqual(
+            Sum[V2](P(V4 | (V1, V2, V3)) * P(V2 | V1)), verma_constraint.lhs_expr
+        )
         self.assertEqual((V1,), verma_constraint.variables)

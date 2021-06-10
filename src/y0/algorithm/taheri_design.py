@@ -20,15 +20,20 @@ from tqdm import tqdm
 
 from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.dsl import Expression, P, Variable
-from y0.graph import DEFAULT_TAG, NxMixedGraph, admg_from_latent_variable_dag, admg_to_latent_variable_dag
+from y0.graph import (
+    DEFAULT_TAG,
+    NxMixedGraph,
+    admg_from_latent_variable_dag,
+    admg_to_latent_variable_dag,
+)
 from y0.identify import is_identifiable
 from y0.util.combinatorics import powerset
 
 __all__ = [
-    'taheri_design_admg',
-    'taheri_design_dag',
-    'Result',
-    'draw_results',
+    "taheri_design_admg",
+    "taheri_design_dag",
+    "Result",
+    "draw_results",
 ]
 
 logger = logging.getLogger(__name__)
@@ -72,11 +77,7 @@ def taheri_design_admg(
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_admg()
     dag = admg_to_latent_variable_dag(graph, tag=tag)
-    fixed_latent = {
-        node
-        for node, data in dag.nodes(data=True)
-        if data[tag]
-    }
+    fixed_latent = {node for node, data in dag.nodes(data=True) if data[tag]}
     return _help(
         graph=dag,
         cause=cause,
@@ -152,7 +153,8 @@ def _get_result(
     lvdag,
     latents,
     observed,
-    cause, effect,
+    cause,
+    effect,
     *,
     tag: Optional[str] = None,
 ) -> Result:
@@ -167,9 +169,9 @@ def _get_result(
     admg = admg_from_latent_variable_dag(lvdag, tag=tag)
 
     if cause not in admg.vertices:
-        raise KeyError(f'ADMG missing cause: {cause}')
+        raise KeyError(f"ADMG missing cause: {cause}")
     if effect not in admg.vertices:
-        raise KeyError(f'ADMG missing effect: {effect}')
+        raise KeyError(f"ADMG missing effect: {effect}")
 
     # Check if the ADMG is identifiable under the (simple) causal query
     query = P(Variable(effect) @ ~Variable(cause))
@@ -222,7 +224,13 @@ def iterate_lvdags(
 
     if stop is None:
         stop = len(inducible_nodes) - 1
-    it = powerset(sorted(inducible_nodes), stop=stop, reverse=True, use_tqdm=True, tqdm_kwargs=dict(desc='LV powerset'))
+    it = powerset(
+        sorted(inducible_nodes),
+        stop=stop,
+        reverse=True,
+        use_tqdm=True,
+        tqdm_kwargs=dict(desc="LV powerset"),
+    )
 
     graph = graph.copy()
     for node in fixed_observed:
@@ -258,25 +266,27 @@ def draw_results(
             if len(result.admg.vertices) - len(result.latents) < max_size
         ]
 
-    logger.debug('rendering %s identifiable queries', rendered_results)
+    logger.debug("rendering %s identifiable queries", rendered_results)
 
     nrows = 1 + len(rendered_results) // ncols
-    fig, axes = plt.subplots(ncols=ncols, nrows=nrows, figsize=(ncols * x_ratio, nrows * y_ratio))
-    it = itt.zip_longest(axes.ravel(), tqdm(rendered_results, desc='generating chart'))
+    fig, axes = plt.subplots(
+        ncols=ncols, nrows=nrows, figsize=(ncols * x_ratio, nrows * y_ratio)
+    )
+    it = itt.zip_longest(axes.ravel(), tqdm(rendered_results, desc="generating chart"))
     for i, (ax, result) in enumerate(it, start=1):
         if result is None:
-            ax.axis('off')
+            ax.axis("off")
         else:
             mixed_graph = NxMixedGraph.from_admg(result.admg)
-            title = f'{i}) Latent: ' + ', '.join(result.latents)
+            title = f"{i}) Latent: " + ", ".join(result.latents)
             if result.identifiability_expr is not None:
-                title += f'\n${result.identifiability_expr.to_latex()}$'
-            mixed_graph.draw(ax=ax, title='\n'.join(textwrap.wrap(title, width=45)))
+                title += f"\n${result.identifiability_expr.to_latex()}$"
+            mixed_graph.draw(ax=ax, title="\n".join(textwrap.wrap(title, width=45)))
 
     fig.tight_layout()
 
-    for _path in tqdm(path, desc='saving'):
-        logger.info('saving to %s', _path)
+    for _path in tqdm(path, desc="saving"):
+        logger.info("saving to %s", _path)
         fig.savefig(_path, dpi=400)
 
 
@@ -289,11 +299,16 @@ def print_results(results: List[Result], file=None) -> None:
             result.post_nodes - result.pre_nodes,
             result.post_edges - result.pre_edges,
             len(result.latents),
-            ', '.join(result.latents),
+            ", ".join(result.latents),
         )
         for i, result in enumerate(results, start=1)
     ]
-    print(tabulate(rows, headers=['Row', 'ID?', 'Node Simp.', 'Edge Simp.', 'N', 'Latents']), file=file)
+    print(
+        tabulate(
+            rows, headers=["Row", "ID?", "Node Simp.", "Edge Simp.", "N", "Latents"]
+        ),
+        file=file,
+    )
 
 
 @click.command()
@@ -304,28 +319,44 @@ def main():
     from y0.resources import VIRAL_PATHOGENESIS_PATH
     from y0.graph import NxMixedGraph
 
-    viral_pathogenesis_admg = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
+    viral_pathogenesis_admg = NxMixedGraph.from_causalfusion_path(
+        VIRAL_PATHOGENESIS_PATH
+    )
 
-    results = taheri_design_admg(viral_pathogenesis_admg, cause='EGFR', effect='CytokineStorm', stop=5)
-    draw_results(results, [
-        pystow.join('y0', 'viral_pathogenesis_egfr.png'),
-        pystow.join('y0', 'viral_pathogenesis_egfr.svg'),
-    ])
+    results = taheri_design_admg(
+        viral_pathogenesis_admg, cause="EGFR", effect="CytokineStorm", stop=5
+    )
+    draw_results(
+        results,
+        [
+            pystow.join("y0", "viral_pathogenesis_egfr.png"),
+            pystow.join("y0", "viral_pathogenesis_egfr.svg"),
+        ],
+    )
 
-    results = taheri_design_admg(viral_pathogenesis_admg, cause=r'sIL6R\alpha', effect='CytokineStorm', stop=5)
-    draw_results(results, [
-        pystow.join('y0', 'viral_pathogenesis_sIL6ra.png'),
-        pystow.join('y0', 'viral_pathogenesis_sIL6ra.svg'),
-    ])
+    results = taheri_design_admg(
+        viral_pathogenesis_admg, cause=r"sIL6R\alpha", effect="CytokineStorm", stop=5
+    )
+    draw_results(
+        results,
+        [
+            pystow.join("y0", "viral_pathogenesis_sIL6ra.png"),
+            pystow.join("y0", "viral_pathogenesis_sIL6ra.svg"),
+        ],
+    )
 
     from y0.examples import igf_graph
-    results = taheri_design_dag(igf_graph, cause='PI3K', effect='Erk')
+
+    results = taheri_design_dag(igf_graph, cause="PI3K", effect="Erk")
     print_results(results)
-    draw_results(results, [
-        pystow.join('y0', 'ifg_identifiable_configs.png'),
-        pystow.join('y0', 'ifg_identifiable_configs.svg'),
-    ])
+    draw_results(
+        results,
+        [
+            pystow.join("y0", "ifg_identifiable_configs.png"),
+            pystow.join("y0", "ifg_identifiable_configs.svg"),
+        ],
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

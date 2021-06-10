@@ -9,8 +9,8 @@ from typing import Iterable, NamedTuple, Optional, Tuple
 from .dsl import Expression, Variable
 
 __all__ = [
-    'VermaConstraint',
-    'DSeparationJudgement',
+    "VermaConstraint",
+    "DSeparationJudgement",
 ]
 
 
@@ -34,12 +34,13 @@ class VermaConstraint(NamedTuple):
         """
         from .parser import parse_causaleffect
         from .r_utils import _extract, _parse_vars
+
         print(element)
         return cls(
-            rhs_cfactor=parse_causaleffect(_extract(element, 'rhs.cfactor')),
-            rhs_expr=parse_causaleffect(_extract(element, 'rhs.expr')),
-            lhs_cfactor=parse_causaleffect(_extract(element, 'lhs.cfactor')),
-            lhs_expr=parse_causaleffect(_extract(element, 'lhs.expr')),
+            rhs_cfactor=parse_causaleffect(_extract(element, "rhs.cfactor")),
+            rhs_expr=parse_causaleffect(_extract(element, "rhs.expr")),
+            lhs_cfactor=parse_causaleffect(_extract(element, "lhs.cfactor")),
+            lhs_expr=parse_causaleffect(_extract(element, "lhs.expr")),
             variables=_parse_vars(element),
         )
 

@@ -12,27 +12,47 @@ from operator import attrgetter
 from typing import Callable, Iterable, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 __all__ = [
-    'Variable',
-    'Intervention',
-    'CounterfactualVariable',
-    'Distribution',
-    'P',
-    'Probability',
-    'Sum',
-    'Product',
-    'Fraction',
-    'Expression',
-    'One',
-    'Q',
-    'QFactor',
-    'A', 'B', 'C', 'D', 'R', 'S', 'T', 'W', 'X', 'Y', 'Z',
-    'V1', 'V2', 'V3', 'V4', 'V5', 'V6',
-    'Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6',
+    "Variable",
+    "Intervention",
+    "CounterfactualVariable",
+    "Distribution",
+    "P",
+    "Probability",
+    "Sum",
+    "Product",
+    "Fraction",
+    "Expression",
+    "One",
+    "Q",
+    "QFactor",
+    "A",
+    "B",
+    "C",
+    "D",
+    "R",
+    "S",
+    "T",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "Z1",
+    "Z2",
+    "Z3",
+    "Z4",
+    "Z5",
+    "Z6",
     # Helpers
-    'ensure_ordering',
+    "ensure_ordering",
 ]
 
-X = TypeVar('X')
+X = TypeVar("X")
 XSeq = Union[X, Sequence[X]]
 
 
@@ -42,7 +62,9 @@ def _upgrade_variables(variables: XSeq[Variable]) -> Tuple[Variable, ...]:
 
 def _to_interventions(variables: Sequence[Variable]) -> Tuple[Intervention, ...]:
     return tuple(
-        variable if isinstance(variable, Intervention) else Intervention(name=variable.name, star=False)
+        variable
+        if isinstance(variable, Intervention)
+        else Intervention(name=variable.name, star=False)
         for variable in variables
     )
 
@@ -57,7 +79,7 @@ class _Mathable(ABC):
         """Output this DSL object in the LaTeX string format."""
 
     def _repr_latex_(self) -> str:  # hack for auto-display of latex in jupyter notebook
-        return f'${self.to_latex()}$'
+        return f"${self.to_latex()}$"
 
     def __str__(self) -> str:
         return self.to_text()
@@ -79,8 +101,8 @@ class Variable(_Mathable):
     name: str
 
     def __post_init__(self):
-        if self.name in {'P', 'Q'}:
-            raise ValueError(f'trust me, {self.name} is a bad variable name.')
+        if self.name in {"P", "Q"}:
+            raise ValueError(f"trust me, {self.name} is a bad variable name.")
 
     @classmethod
     def norm(cls, name: Union[str, Variable]) -> Variable:
@@ -134,7 +156,7 @@ class Variable(_Mathable):
                 parents=_upgrade_variables(parents),
             )
         elif parents.is_conditioned():
-            raise TypeError('can not be given a distribution that has conditionals')
+            raise TypeError("can not be given a distribution that has conditionals")
         else:
             # The parents variable is actually a Distribution instance with no parents,
             #  so its children become the parents for the new Markov Kernel distribution
@@ -194,11 +216,11 @@ class Intervention(Variable):
 
     def to_text(self) -> str:
         """Output this intervention variable in the internal string format."""
-        return f'{self.name}*' if self.star else self.name
+        return f"{self.name}*" if self.star else self.name
 
     def to_latex(self) -> str:
         """Output this intervention variable in the LaTeX string format."""
-        return f'{self.name}^*' if self.star else self.name
+        return f"{self.name}^*" if self.star else self.name
 
     def invert(self) -> Intervention:
         """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
@@ -221,23 +243,23 @@ class CounterfactualVariable(Variable):
 
     def __post_init__(self):
         if not self.interventions:
-            raise ValueError('should give at least one intervention')
+            raise ValueError("should give at least one intervention")
         for intervention in self.interventions:
             if not isinstance(intervention, Intervention):
                 raise TypeError(
-                    f'only Intervention instances are allowed.'
-                    f' Got: ({intervention.__class__.__name__}) {intervention}',
+                    f"only Intervention instances are allowed."
+                    f" Got: ({intervention.__class__.__name__}) {intervention}",
                 )
 
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
         intervention_latex = _list_to_text(self.interventions)
-        return f'{self.name}_{{{intervention_latex}}}'
+        return f"{self.name}_{{{intervention_latex}}}"
 
     def to_latex(self) -> str:
         """Output this counterfactual variable in the LaTeX string format."""
         intervention_latex = _list_to_latex(self.interventions)
-        return f'{self.name}_{{{intervention_latex}}}'
+        return f"{self.name}_{{{intervention_latex}}}"
 
     def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
@@ -257,7 +279,9 @@ class CounterfactualVariable(Variable):
             interventions=(*self.interventions, *_interventions),
         )
 
-    def _raise_for_overlapping_interventions(self, interventions: Iterable[Intervention]) -> None:
+    def _raise_for_overlapping_interventions(
+        self, interventions: Iterable[Intervention]
+    ) -> None:
         """Raise an error if any of the given variables are already listed in interventions in this counterfactual.
 
         :param interventions: Interventions to check for overlap
@@ -269,7 +293,9 @@ class CounterfactualVariable(Variable):
             if old.name == new.name
         }
         if overlaps:
-            raise ValueError(f'Overlapping interventions in new interventions: {overlaps}')
+            raise ValueError(
+                f"Overlapping interventions in new interventions: {overlaps}"
+            )
 
     def invert(self) -> Intervention:
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
@@ -291,18 +317,18 @@ class Distribution(_Mathable):
 
     def __post_init__(self):
         if isinstance(self.children, (list, Variable)):
-            raise TypeError(f'children of wrong type: {type(self.children)}')
+            raise TypeError(f"children of wrong type: {type(self.children)}")
         if isinstance(self.parents, (list, Variable)):
             raise TypeError
         if not self.children:
-            raise ValueError('distribution must have at least one child')
+            raise ValueError("distribution must have at least one child")
 
     def to_text(self) -> str:
         """Output this distribution in the internal string format."""
         children = _list_to_text(self.children)
         if self.parents:
             parents = _list_to_text(self.parents)
-            return f'{children}|{parents}'
+            return f"{children}|{parents}"
         else:
             return children
 
@@ -311,7 +337,7 @@ class Distribution(_Mathable):
         children = _list_to_latex(self.children)
         if self.parents:
             parents = _list_to_latex(self.parents)
-            return f'{children}|{parents}'
+            return f"{children}|{parents}"
         else:
             return children
 
@@ -360,13 +386,16 @@ class Distribution(_Mathable):
                 parents=(*self.parents, *_upgrade_variables(parents)),
             )
         elif parents.is_conditioned():
-            raise TypeError('can not be given a distribution that has conditionals')
+            raise TypeError("can not be given a distribution that has conditionals")
         else:
             # The parents variable is actually a Distribution instance with no parents,
             #  so its children get appended as parents for the new mixed distribution
             return Distribution(
                 children=self.children,
-                parents=(*self.parents, *parents.children),  # don't think about this too hard
+                parents=(
+                    *self.parents,
+                    *parents.children,
+                ),  # don't think about this too hard
             )
 
     def __or__(self, parents: XSeq[Variable]) -> Distribution:
@@ -399,14 +428,14 @@ class Probability(Expression):
 
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
-        return f'P({self.distribution.to_text()})'
+        return f"P({self.distribution.to_text()})"
 
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
-        return f'P({self.distribution.to_latex()})'
+        return f"P({self.distribution.to_latex()})"
 
     def __repr__(self):
-        return f'P({repr(self.distribution)})'
+        return f"P({repr(self.distribution)})"
 
     def __mul__(self, other: Expression) -> Expression:
         if isinstance(other, Product):
@@ -510,11 +539,11 @@ class Product(Expression):
 
     def to_text(self):
         """Output this product in the internal string format."""
-        return ' '.join(expression.to_text() for expression in self.expressions)
+        return " ".join(expression.to_text() for expression in self.expressions)
 
     def to_latex(self):
         """Output this product in the LaTeX string format."""
-        return ' '.join(expression.to_latex() for expression in self.expressions)
+        return " ".join(expression.to_latex() for expression in self.expressions)
 
     def __mul__(self, other: Expression):
         if isinstance(other, Product):
@@ -534,11 +563,11 @@ class Product(Expression):
 
 
 def _list_to_text(elements: Iterable[_Mathable]) -> str:
-    return ','.join(element.to_text() for element in elements)
+    return ",".join(element.to_text() for element in elements)
 
 
 def _list_to_latex(elements: Iterable[_Mathable]) -> str:
-    return ','.join(element.to_latex() for element in elements)
+    return ",".join(element.to_latex() for element in elements)
 
 
 @dataclass(frozen=True)
@@ -553,12 +582,12 @@ class Sum(Expression):
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
         ranges = _list_to_text(self.ranges)
-        return f'[ sum_{{{ranges}}} {self.expression.to_text()} ]'
+        return f"[ sum_{{{ranges}}} {self.expression.to_text()} ]"
 
     def to_latex(self) -> str:
         """Output this sum in the LaTeX string format."""
         ranges = _list_to_latex(self.ranges)
-        return rf'\sum_{{{ranges}}} {self.expression.to_latex()}'
+        return rf"\sum_{{{ranges}}} {self.expression.to_latex()}"
 
     def __mul__(self, expression: Expression):
         if isinstance(expression, Product):
@@ -576,7 +605,9 @@ class Sum(Expression):
             yield from variable._iter_variables()
 
     @classmethod
-    def __class_getitem__(cls, ranges: Union[Variable, Tuple[Variable, ...]]) -> Callable[[Expression], Sum]:
+    def __class_getitem__(
+        cls, ranges: Union[Variable, Tuple[Variable, ...]]
+    ) -> Callable[[Expression], Sum]:
         """Create a partial sum object over the given ranges.
 
         :param ranges: The variables over which the partial sum will be done
@@ -596,7 +627,9 @@ class Sum(Expression):
 
 
 def _prepare_ranges(ranges: XSeq[Variable]) -> Tuple[Variable, ...]:
-    if isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
+    if isinstance(
+        ranges, Variable
+    ):  # a single element is not given as a tuple, such as in Sum[T]
         return (ranges,)
     return tuple(ranges)
 
@@ -612,21 +645,27 @@ class Fraction(Expression):
 
     def to_text(self) -> str:
         """Output this fraction in the internal string format."""
-        return f'frac_{{{self.numerator.to_text()}}}{{{self.denominator.to_text()}}}'
+        return f"frac_{{{self.numerator.to_text()}}}{{{self.denominator.to_text()}}}"
 
     def to_latex(self) -> str:
         """Output this fraction in the LaTeX string format."""
-        return rf'\frac{{{self.numerator.to_latex()}}}{{{self.denominator.to_latex()}}}'
+        return rf"\frac{{{self.numerator.to_latex()}}}{{{self.denominator.to_latex()}}}"
 
     def __mul__(self, expression: Expression) -> Fraction:
         if isinstance(expression, Fraction):
-            return Fraction(self.numerator * expression.numerator, self.denominator * expression.denominator)
+            return Fraction(
+                self.numerator * expression.numerator,
+                self.denominator * expression.denominator,
+            )
         else:
             return Fraction(self.numerator * expression, self.denominator)
 
     def __truediv__(self, expression: Expression) -> Fraction:
         if isinstance(expression, Fraction):
-            return Fraction(self.numerator * expression.denominator, self.denominator * expression.numerator)
+            return Fraction(
+                self.numerator * expression.denominator,
+                self.denominator * expression.numerator,
+            )
         elif isinstance(expression, One):
             return self
         else:
@@ -645,8 +684,12 @@ class Fraction(Expression):
             return self
         if self.numerator == self.denominator:
             return One()
-        if isinstance(self.numerator, Product) and isinstance(self.denominator, Product):
-            return self._simplify_parts(self.numerator.expressions, self.denominator.expressions)
+        if isinstance(self.numerator, Product) and isinstance(
+            self.denominator, Product
+        ):
+            return self._simplify_parts(
+                self.numerator.expressions, self.denominator.expressions
+            )
         elif isinstance(self.numerator, Product):
             return self._simplify_parts(self.numerator.expressions, [self.denominator])
         elif isinstance(self.denominator, Product):
@@ -654,16 +697,23 @@ class Fraction(Expression):
         return self
 
     @classmethod
-    def _simplify_parts(cls, numerator: Sequence[Expression], denominator: Sequence[Expression]) -> Expression:
+    def _simplify_parts(
+        cls, numerator: Sequence[Expression], denominator: Sequence[Expression]
+    ) -> Expression:
         """Calculate the minimum fraction.
 
         :param numerator: A sequence of expressions that are multiplied in the product in the numerator
         :param denominator: A sequence of expressions that are multiplied in the product in the denominator
         :returns: A simplified fraction.
         """
-        new_numerator, new_denominator = cls._simplify_parts_helper(numerator, denominator)
+        new_numerator, new_denominator = cls._simplify_parts_helper(
+            numerator, denominator
+        )
         if new_numerator and new_denominator:
-            return Fraction(_expression_or_product(new_numerator), _expression_or_product(new_denominator))
+            return Fraction(
+                _expression_or_product(new_numerator),
+                _expression_or_product(new_denominator),
+            )
         elif new_numerator:
             return _expression_or_product(new_numerator)
         elif new_denominator:
@@ -687,8 +737,14 @@ class Fraction(Expression):
                     denominator_cancelled.add(j)
                     break
         return (
-            tuple(expr for i, expr in enumerate(numerator) if i not in numerator_cancelled),
-            tuple(expr for i, expr in enumerate(denominator) if i not in denominator_cancelled),
+            tuple(
+                expr for i, expr in enumerate(numerator) if i not in numerator_cancelled
+            ),
+            tuple(
+                expr
+                for i, expr in enumerate(denominator)
+                if i not in denominator_cancelled
+            ),
         )
 
 
@@ -705,11 +761,11 @@ class One(Expression):
 
     def to_text(self) -> str:
         """Output this identity variable in the internal string format."""
-        return '1'
+        return "1"
 
     def to_latex(self) -> str:
         """Output this identity instance in the LaTeX string format."""
-        return '1'
+        return "1"
 
     def __rmul__(self, expression: Expression) -> Expression:
         return expression
@@ -762,13 +818,13 @@ class QFactor(Expression):
         """Output this fraction in the internal string format."""
         codomain = _list_to_latex(self.codomain)
         domain = _list_to_text(self.domain)
-        return f'Q[{codomain}]({domain})'
+        return f"Q[{codomain}]({domain})"
 
     def to_latex(self) -> str:
         """Output this fraction in the LaTeX string format."""
         codomain = _list_to_latex(self.codomain)
         domain = _list_to_text(self.domain)
-        return rf'Q_{{{codomain}}}({{{domain}}})'
+        return rf"Q_{{{codomain}}}({{{domain}}})"
 
     def __mul__(self, other: Expression):
         if isinstance(other, Product):
@@ -791,16 +847,13 @@ class QFactor(Expression):
 
 Q = QFactor
 
-A, B, C, D, R, S, T, W, X, Y, Z = map(Variable, 'ABCDRSTWXYZ')  # type: ignore
-V1, V2, V3, V4, V5, V6 = [Variable(f'V{i}') for i in range(1, 7)]
-Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f'Z{i}') for i in range(1, 7)]
+A, B, C, D, R, S, T, W, X, Y, Z = map(Variable, "ABCDRSTWXYZ")  # type: ignore
+V1, V2, V3, V4, V5, V6 = [Variable(f"V{i}") for i in range(1, 7)]
+Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
 
 
 def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Sequence[Variable]:
-    return tuple(
-        Variable.norm(variable)
-        for variable in variables
-    )
+    return tuple(Variable.norm(variable) for variable in variables)
 
 
 OrderingHint = Optional[Sequence[Union[str, Variable]]]
@@ -823,4 +876,4 @@ def ensure_ordering(
     if ordering is not None:
         return _upgrade_ordering(ordering)
     # use alphabetical ordering
-    return sorted(expression.get_variables(), key=attrgetter('name'))
+    return sorted(expression.get_variables(), key=attrgetter("name"))
