@@ -2,9 +2,12 @@
 
 """Implementation of the canonicalization algorithm."""
 
-from typing import Optional, Sequence, Tuple, Union
+from typing import Mapping, Optional, Sequence, Tuple, Union
 
-from ..dsl import Distribution, Expression, Fraction, Probability, Product, Sum, Variable, ensure_ordering
+from ..dsl import (
+    CounterfactualVariable, Distribution, Expression, Fraction, Intervention, Probability, Product, Sum, Variable,
+    ensure_ordering,
+)
 
 __all__ = [
     'canonicalize',
@@ -29,6 +32,9 @@ def _sort_probability_key(probability: Probability) -> str:
 class Canonicalizer:
     """A data structure to support application of the canonicalize algorithm."""
 
+    ordering: Sequence[Variable]
+    ordering_level: Mapping[str, int]
+
     def __init__(self, ordering: Sequence[Variable]) -> None:
         """Initialize the canonicalizer.
 
@@ -41,7 +47,7 @@ class Canonicalizer:
 
         self.ordering = ordering
         self.ordering_level = {
-            variable: level
+            variable.name: level
             for level, variable in enumerate(self.ordering)
         }
 
@@ -52,7 +58,26 @@ class Canonicalizer:
         ))
 
     def _sorted(self, variables: Tuple[Variable, ...]) -> Tuple[Variable, ...]:
-        return tuple(sorted(variables, key=self.ordering_level.__getitem__))
+        return tuple(sorted(
+            (self._canonicalize_variable(variable) for variable in variables),
+            key=self._sorted_key,
+        ))
+
+    def _canonicalize_variable(self, variable: Variable) -> Variable:
+        if isinstance(variable, CounterfactualVariable):
+            return CounterfactualVariable(
+                name=variable.name,
+                interventions=tuple(sorted(variable.interventions, key=self._intervention_key)),
+            )
+        else:
+            return variable
+
+    @staticmethod
+    def _intervention_key(intervention: Intervention):
+        return intervention.name, intervention.star
+
+    def _sorted_key(self, variable: Variable) -> int:
+        return self.ordering_level[variable.name]
 
     def canonicalize(self, expression: Expression) -> Expression:
         """Canonicalize an expression.
