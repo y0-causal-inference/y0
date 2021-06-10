@@ -14,17 +14,18 @@ class TestInternalParser(unittest.TestCase):
         for expected, s in [
             (
                 Sum[B](P(A | B) * P(B)) / Sum(P(A | B) * P(B)),
-                'Sum[B](P(A | B) * P(B)) / Sum(P(A | B) * P(B))',
+                "Sum[B](P(A | B) * P(B)) / Sum(P(A | B) * P(B))",
             ),
             (
                 Q[A](B) * P(A | B),
-                'Q[A](B) * P(A | B)',
+                "Q[A](B) * P(A | B)",
             ),
         ]:
             with self.subTest(s=s):
                 actual = parse_y0(s)
                 self.assertIsInstance(actual, Expression)
                 self.assertEqual(
-                    expected, actual,
-                    msg=f'\nExpected: {expected}\nActual:   {actual}',
+                    expected,
+                    actual,
+                    msg=f"\nExpected: {expected}\nActual:   {actual}",
                 )
