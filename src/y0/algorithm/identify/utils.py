@@ -11,12 +11,13 @@ import numpy as np
 from y0.dsl import Variable, P, Sum, Product, Expression
 from y0.identify import _get_outcomes, _get_treatments
 from y0.mutate import canonicalize
+
 __all__ = [
     "str_graph",
     "nxmixedgraph_to_causal_graph",
     "ancestors_and_self",
     "Identification",
-    'expr_equal'
+    "expr_equal",
 ]
 
 
@@ -40,17 +41,23 @@ class Identification:
             and (self.graph == other.graph)
         )
 
-def expr_equal( expected: Expression, actual: Expression ) -> bool:
-    expected_outcomes, expected_treatments = query_to_outcomes_and_treatments( query = expected )
-    actual_outcomes, actual_treatments = query_to_outcomes_and_treatments( query = actual )
+
+def expr_equal(expected: Expression, actual: Expression) -> bool:
+    expected_outcomes, expected_treatments = query_to_outcomes_and_treatments(
+        query=expected
+    )
+    actual_outcomes, actual_treatments = query_to_outcomes_and_treatments(query=actual)
 
     actual_vars = actual.get_variables()
-    if (expected_outcomes != actual_outcomes) or (expected_treatments != actual_treatments):
+    if (expected_outcomes != actual_outcomes) or (
+        expected_treatments != actual_treatments
+    ):
         return False
     ordering = expected.get_variables()
     expected_canonical = canonicalize(expected, ordering)
     actual_canonical = canonicalize(actual, ordering)
     return expected_canonical == actual_canonical
+
 
 def query_to_outcomes_and_treatments(*, query: Expression) -> List[Set[str]]:
     return set(_get_outcomes(query.get_variables())), set(

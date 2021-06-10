@@ -7,31 +7,41 @@ from __future__ import annotations
 import itertools as itt
 import json
 from dataclasses import dataclass, field
-from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Collection,
+    Generic,
+    Iterable,
+    Mapping,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import networkx as nx
 from ananke.graphs import ADMG
 from networkx.utils import open_file
 
 __all__ = [
-    'NxMixedGraph',
-    'CausalEffectGraph',
-    'DEFULT_PREFIX',
-    'DEFAULT_TAG',
-    'admg_to_latent_variable_dag',
-    'admg_from_latent_variable_dag',
-    'set_latent',
+    "NxMixedGraph",
+    "CausalEffectGraph",
+    "DEFULT_PREFIX",
+    "DEFAULT_TAG",
+    "admg_to_latent_variable_dag",
+    "admg_from_latent_variable_dag",
+    "set_latent",
 ]
 
-X = TypeVar('X')
+X = TypeVar("X")
 CausalEffectGraph = Any
 
 #: The default key in a latent variable DAG represented as a :class:`networkx.DiGraph`
 #: for nodes that corresond to "latent" variables
-DEFAULT_TAG = 'hidden'
+DEFAULT_TAG = "hidden"
 #: The default prefix for latent variables in a latent variable DAG represented. After the prefix,
 #: there will be a number assigned that's incremented during construction.
-DEFULT_PREFIX = 'u_'
+DEFULT_PREFIX = "u_"
 
 
 @dataclass
@@ -55,11 +65,13 @@ class NxMixedGraph(Generic[X]):
     #: A undirected graph
     undirected: nx.Graph = field(default_factory=nx.Graph)
 
-    def __eq__( self, other: NxMixedGraph ):
+    def __eq__(self, other: NxMixedGraph):
         """MxMixedGraph node, directed edge and undirected edge equality"""
-        return (self.nodes() == other.nodes()) and (
-            self.directed.edges() == other.directed.edges()) and (
-                self.undirected.edges() == other.undirected.edges())
+        return (
+            (self.nodes() == other.nodes())
+            and (self.directed.edges() == other.directed.edges())
+            and (self.undirected.edges() == other.undirected.edges())
+        )
 
     def subgraph(self, vertices: Collection[X]) -> NxMixedGraph:
         """Return a subgraph given a set of vertices
@@ -79,13 +91,13 @@ class NxMixedGraph(Generic[X]):
 
         return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
 
-    def intervene( self, vertices: Collection[X]) -> NxMixedGraph:
+    def intervene(self, vertices: Collection[X]) -> NxMixedGraph:
         """Return a mutilated graph given a set of interventions
         :param vertices: a subset of nodes from which to remove incoming edges
         :returns:  NxMixedGraph subgraph
         """
-        directed   = dict([(u,[]) for u in self.nodes()])
-        undirected = dict([(u,[]) for u in self.nodes()])
+        directed = dict([(u, []) for u in self.nodes()])
+        undirected = dict([(u, []) for u in self.nodes()])
 
         for u, v in self.directed.edges():
             if v not in vertices:
@@ -95,17 +107,13 @@ class NxMixedGraph(Generic[X]):
                 undirected[u].append(v)
         return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
 
-    def remove_nodes_from( self, vertices: Collection[X]) -> NxMixedGraph:
+    def remove_nodes_from(self, vertices: Collection[X]) -> NxMixedGraph:
         """Return a subgraph that does not contain any of the specified vertices
         :param vertices: a set of nodes to remove from graph
         :returns:  NxMixedGraph subgraph
         """
-        directed   = dict([(u,[]) for u in self.nodes()
-                           if u not in vertices
-        ])
-        undirected = dict([(u,[]) for u in self.nodes()
-                           if u not in vertices
-        ])
+        directed = dict([(u, []) for u in self.nodes() if u not in vertices])
+        undirected = dict([(u, []) for u in self.nodes() if u not in vertices])
 
         for u, v in self.directed.edges():
             if (u not in vertices) and (v not in vertices):
@@ -114,7 +122,6 @@ class NxMixedGraph(Generic[X]):
             if (u not in vertices) and (v not in vertices):
                 undirected[u].append(v)
         return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
-
 
     def add_directed_edge(self, u: Collection[X], v: Collection[X], **attr) -> None:
         """Add a directed edge from u to v."""
@@ -136,7 +143,9 @@ class NxMixedGraph(Generic[X]):
         """Get an ADMG instance."""
         di_edges = list(self.directed.edges())
         bi_edges = list(self.undirected.edges())
-        vertices = list(self.directed)  # could be either since they're maintained together
+        vertices = list(
+            self.directed
+        )  # could be either since they're maintained together
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
 
     @classmethod
@@ -173,12 +182,14 @@ class NxMixedGraph(Generic[X]):
         )
 
     @classmethod
-    def from_latent_variable_dag(cls, graph: nx.DiGraph, tag: Optional[str] = None) -> NxMixedGraph:
+    def from_latent_variable_dag(
+        cls, graph: nx.DiGraph, tag: Optional[str] = None
+    ) -> NxMixedGraph:
         """Load a labeled DAG."""
         if tag is None:
             tag = DEFAULT_TAG
         if any(tag not in data for data in graph.nodes.values()):
-            raise ValueError(f'missing label {tag} in one or more nodes.')
+            raise ValueError(f"missing label {tag} in one or more nodes.")
 
         rv = cls()
         for node, data in graph.nodes.items():
@@ -198,6 +209,7 @@ class NxMixedGraph(Generic[X]):
         .. warning:: Appropriate R imports need to be done first for 'causaleffect' and 'igraph'.
         """
         import rpy2.robjects
+
         return rpy2.robjects.r(self.to_causaleffect_str())
 
     def draw(self, ax=None, title=None):
@@ -216,19 +228,24 @@ class NxMixedGraph(Generic[X]):
 
         if ax is None:
             import matplotlib.pyplot as plt
+
             ax = plt.gca()
 
         nx.draw_networkx_nodes(self.directed, pos=layout, ax=ax)
         nx.draw_networkx_labels(self.directed, pos=layout, ax=ax)
         nx.draw_networkx_edges(self.directed, pos=layout, edge_color="b", ax=ax)
         nx.draw_networkx_edges(
-            u_proxy, pos=layout, ax=ax,
-            connectionstyle='arc3, rad=0.2', arrowstyle="-", edge_color="r",
+            u_proxy,
+            pos=layout,
+            ax=ax,
+            connectionstyle="arc3, rad=0.2",
+            arrowstyle="-",
+            edge_color="r",
         )
 
         if title:
             ax.set_title(title)
-        ax.axis('off')
+        ax.axis("off")
 
     @classmethod
     def from_causaleffect(cls, graph) -> NxMixedGraph:
@@ -238,19 +255,15 @@ class NxMixedGraph(Generic[X]):
     def to_causaleffect_str(self) -> str:
         """Get a string to be imported by R."""
         if not self.directed:
-            raise ValueError('graph must have some directed edges')
+            raise ValueError("graph must have some directed edges")
 
-        formula = ', '.join(
-            f'{u} -+ {v}'
-            for u, v in self.directed.edges()
-        )
+        formula = ", ".join(f"{u} -+ {v}" for u, v in self.directed.edges())
         if self.undirected:
-            formula += ''.join(
-                f', {u} -+ {v}, {v} -+ {u}'
-                for u, v in self.undirected.edges()
+            formula += "".join(
+                f", {u} -+ {v}, {v} -+ {u}" for u, v in self.undirected.edges()
             )
 
-        rv = f'g <- graph.formula({formula}, simplify = FALSE)'
+        rv = f"g <- graph.formula({formula}, simplify = FALSE)"
         for i in range(self.undirected.number_of_edges()):
             idx = 2 * i + self.directed.number_of_edges() + 1
             rv += (
@@ -300,11 +313,11 @@ class NxMixedGraph(Generic[X]):
     def from_causalfusion_json(cls, data: Mapping[str, Any]) -> NxMixedGraph:
         """Load a graph from a CausalFusion JSON object."""
         rv = cls()
-        for edge in data['edges']:
-            u, v = edge['from'], edge['to']
-            if edge['type'] == 'directed':
+        for edge in data["edges"]:
+            u, v = edge["from"], edge["to"]
+            if edge["type"] == "directed":
                 rv.add_directed_edge(u, v)
-            elif edge['type'] == 'bidirected':
+            elif edge["type"] == "bidirected":
                 rv.add_undirected_edge(u, v)
             else:
                 raise ValueError(f'unhandled edge type: {edge["type"]}')
@@ -335,7 +348,9 @@ def admg_to_latent_variable_dag(
     )
 
 
-def admg_from_latent_variable_dag(graph: nx.DiGraph, *, tag: Optional[str] = None) -> ADMG:
+def admg_from_latent_variable_dag(
+    graph: nx.DiGraph, *, tag: Optional[str] = None
+) -> ADMG:
     """Convert a latent variable DAG to an ADMG.
 
     :param graph: A latent variable directed acyclic graph (LV-DAG)
@@ -374,14 +389,18 @@ def _latent_dag(
     rv.add_edges_from(di_edges)
     nx.set_node_attributes(rv, False, tag)
     for i, (u, v) in enumerate(sorted(bi_edges), start=start):
-        latent_node = f'{prefix}{i}'
+        latent_node = f"{prefix}{i}"
         rv.add_node(latent_node, **{tag: True})
         rv.add_edge(latent_node, u)
         rv.add_edge(latent_node, v)
     return rv
 
 
-def set_latent(graph: nx.DiGraph, latent_nodes: Union[str, Iterable[str]], tag: Optional[str] = None) -> None:
+def set_latent(
+    graph: nx.DiGraph,
+    latent_nodes: Union[str, Iterable[str]],
+    tag: Optional[str] = None,
+) -> None:
     """Quickly set the latent variables in a graph."""
     if tag is None:
         tag = DEFAULT_TAG
