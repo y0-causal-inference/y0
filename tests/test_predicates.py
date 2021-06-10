@@ -14,10 +14,10 @@ class TestMarkovCondition(unittest.TestCase):
     def test_markov_raises(self):
         """Test the type error is raised on invalid input."""
         for value in [
-            Variable('whatever'),
+            Variable("whatever"),
             A @ B,
             A @ ~B,
-            'something else',
+            "something else",
         ]:
             with self.subTest(value=value), self.assertRaises(TypeError):
                 has_markov_postcondition(value)

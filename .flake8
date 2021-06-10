@@ -10,6 +10,8 @@ ignore =
     D105
     S404
     S603
+    # Black conflicts with E203
+    E203
 exclude =
     .tox,
     .git,

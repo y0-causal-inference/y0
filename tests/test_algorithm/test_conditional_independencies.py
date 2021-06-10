@@ -7,7 +7,11 @@ from typing import Iterable, Set, Union
 
 from ananke.graphs import ADMG, SG
 
-from y0.algorithm.conditional_independencies import are_d_separated, get_conditional_independencies, get_moral_links
+from y0.algorithm.conditional_independencies import (
+    are_d_separated,
+    get_conditional_independencies,
+    get_moral_links,
+)
 from y0.examples import Example, d_separation_example, examples
 from y0.graph import NxMixedGraph
 from y0.struct import DSeparationJudgement
@@ -45,11 +49,16 @@ class TestDSeparation(unittest.TestCase):
                 graph = example.graph.to_admg()
                 for ci in example.conditional_independencies:
                     self.assertTrue(
-                        are_d_separated(graph, ci.left, ci.right, conditions=ci.conditions),
+                        are_d_separated(
+                            graph, ci.left, ci.right, conditions=ci.conditions
+                        ),
                         msg="Expected d-separation not found",
                     )
                     if ci.conditions:
-                        self.assertFalse(are_d_separated(graph, ci.left, ci.right), msg="Unexpected d-separation")
+                        self.assertFalse(
+                            are_d_separated(graph, ci.left, ci.right),
+                            msg="Unexpected d-separation",
+                        )
 
     def test_moral_links(self):
         """Test adding 'moral links' (part of the d-separation algorithm).
@@ -68,7 +77,9 @@ class TestDSeparation(unittest.TestCase):
             di_edges=[("a", "c"), ("b", "c")],
         )
         links = set(tuple(sorted(e)) for e in get_moral_links(graph))
-        self.assertEqual({("a", "b")}, links, msg="Moral links not as expected in single-link case.")
+        self.assertEqual(
+            {("a", "b")}, links, msg="Moral links not as expected in single-link case."
+        )
 
         graph = ADMG(
             vertices=("a", "b", "aa", "bb", "c"),
@@ -77,8 +88,12 @@ class TestDSeparation(unittest.TestCase):
         links = set(tuple(sorted(e)) for e in get_moral_links(graph))
         self.assertEqual(
             {
-                ("a", "b"), ("a", "aa"), ("a", "bb"),
-                ("aa", "b"), ("aa", "bb"), ("b", "bb"),
+                ("a", "b"),
+                ("a", "aa"),
+                ("a", "bb"),
+                ("aa", "b"),
+                ("aa", "bb"),
+                ("b", "bb"),
             },
             links,
             msg="Moral links not as expected in multi-link case.",
@@ -89,7 +104,11 @@ class TestDSeparation(unittest.TestCase):
             di_edges=[("a", "c"), ("b", "c"), ("c", "e"), ("d", "e")],
         )
         links = set(tuple(sorted(e)) for e in get_moral_links(graph))
-        self.assertEqual({("a", "b"), ("c", "d")}, links, msg="Moral links not as expected in multi-site case.")
+        self.assertEqual(
+            {("a", "b"), ("c", "d")},
+            links,
+            msg="Moral links not as expected in multi-site case.",
+        )
 
 
 class TestGetConditionalIndependencies(unittest.TestCase):
@@ -103,7 +122,9 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             judgements=example.conditional_independencies,
         )
 
-    def assert_has_judgements(self, graph: Union[NxMixedGraph, SG], judgements: Iterable[DSeparationJudgement]) -> None:
+    def assert_has_judgements(
+        self, graph: Union[NxMixedGraph, SG], judgements: Iterable[DSeparationJudgement]
+    ) -> None:
         """Assert that the graph has the correct conditional independencies.
 
         :param graph: the graph to test
@@ -116,15 +137,23 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         self.assertIsNotNone(observed_judgements, "Observed independencies is empty.")
         self.assertTrue(
             all(judgement.is_canonical for judgement in observed_judgements),
-            msg='one or more of the returned DSeparationJudgement instances are not canonical',
+            msg="one or more of the returned DSeparationJudgement instances are not canonical",
         )
 
         self.assert_valid_judgements(graph, asserted_judgements)
         self.assert_valid_judgements(graph, observed_judgements)
 
-        expected_pairs = {(judgement.left, judgement.right) for judgement in asserted_judgements}
-        observed_pairs = {(judgement.left, judgement.right) for judgement in observed_judgements}
-        self.assertEqual(expected_pairs, observed_pairs, "Judgements do not find same separable pairs")
+        expected_pairs = {
+            (judgement.left, judgement.right) for judgement in asserted_judgements
+        }
+        observed_pairs = {
+            (judgement.left, judgement.right) for judgement in observed_judgements
+        }
+        self.assertEqual(
+            expected_pairs,
+            observed_pairs,
+            "Judgements do not find same separable pairs",
+        )
 
         def _get_match(ref, options):
             """Find a judgement that has the same left/right pair as the reference judgement."""
@@ -138,11 +167,14 @@ class TestGetConditionalIndependencies(unittest.TestCase):
                 matching = _get_match(judgement, observed_judgements)
                 self.assertIsNotNone(matching, "No matching judgement found.")
                 self.assertGreaterEqual(
-                    len(judgement.conditions), len(matching.conditions),
+                    len(judgement.conditions),
+                    len(matching.conditions),
                     msg="Observed conditional independence more complicated than reference.",
                 )
 
-    def assert_valid_judgements(self, graph: Union[NxMixedGraph, SG], judgements: Set[DSeparationJudgement]) -> None:
+    def assert_valid_judgements(
+        self, graph: Union[NxMixedGraph, SG], judgements: Set[DSeparationJudgement]
+    ) -> None:
         """Check that a set of judgments are valid with respect to a graph."""
         if isinstance(graph, NxMixedGraph):
             graph = graph.to_admg()
@@ -158,7 +190,9 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             )
 
         pairs = [(judgement.left, judgement.right) for judgement in judgements]
-        self.assertEqual(len(pairs), len(set(pairs)), "Duplicate left/right pair observed")
+        self.assertEqual(
+            len(pairs), len(set(pairs)), "Duplicate left/right pair observed"
+        )
 
     def test_examples(self):
         """Test getting the conditional independencies from the example graphs."""

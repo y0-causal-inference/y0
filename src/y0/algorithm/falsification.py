@@ -48,7 +48,7 @@ class Falsifications(abc.Sequence):
 def falsifications(
     to_test: Union[SG, Iterable[DSeparationJudgement]],
     df: pd.DataFrame,
-    significance_level: float = .05,
+    significance_level: float = 0.05,
     max_given: Optional[int] = None,
     verbose: bool = False,
 ) -> Falsifications:
@@ -62,11 +62,15 @@ def falsifications(
     :return: Falsifications report
     """
     if isinstance(to_test, SG):
-        to_test = get_conditional_independencies(to_test, max_conditions=max_given, verbose=verbose)
+        to_test = get_conditional_independencies(
+            to_test, max_conditions=max_given, verbose=verbose
+        )
 
     variances = {
         (left, right, given): cressie_read(left, right, given, df, boolean=False)
-        for _, left, right, given in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
+        for _, left, right, given in tqdm(
+            to_test, disable=not verbose, desc="Checking conditionals"
+        )
     }
 
     rows = [
@@ -77,12 +81,19 @@ def falsifications(
     evidence = (
         pd.DataFrame(rows, columns=["left", "right", "given", "chi^2", "p", "dof"])
         .sort_values("p")
-        .assign(**{"Holm–Bonferroni level": significance_level / pd.Series(range(len(rows) + 1, 0, -1))})
+        .assign(
+            **{
+                "Holm–Bonferroni level": significance_level
+                / pd.Series(range(len(rows) + 1, 0, -1))
+            }
+        )
         .pipe(_assign_flags)
         .sort_values(["flagged", "dof"], ascending=False)
     )
 
-    failures = evidence[evidence["flagged"]][["left", "right", "given"]].apply(tuple, axis="columns")
+    failures = evidence[evidence["flagged"]][["left", "right", "given"]].apply(
+        tuple, axis="columns"
+    )
     return Falsifications(failures, evidence)
 
 
