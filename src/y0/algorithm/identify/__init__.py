@@ -19,4 +19,5 @@ from .utils import (
     expr_equal,
     outcomes_and_treatments_to_query,
     get_outcomes_and_treatments,
+    Fail
 )

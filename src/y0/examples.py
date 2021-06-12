@@ -296,6 +296,50 @@ line_4_example = Example(
     ],
 )
 
+line_5_example = Example(
+    name="graph containing a hedge",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
+    graph=NxMixedGraph.from_edges(directed=[('X', 'Y')], undirected=[('X','Y')]),
+    identifications=[
+        dict(
+            id_in=[
+                Identification(
+                    query=P(Y @ X),
+                    estimand=P(X,Y),
+                    graph=NxMixedGraph.from_edges(directed=[('X', 'Y')], undirected=[('X','Y')])
+                )
+            ],
+        )
+    ]
+)
+
+line_6_example = Example(
+    name="If there are no bidirected arcs from X to the other nodes in the current subproblem under consideration, then we can replace acting on X by conditioning, and thus solve the subproblem.",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
+    graph=NxMixedGraph.from_edges(directed=[('X','Y'), ('X','Z'), ('Z','Y')],
+                       undirected=[('X', 'Z')]),
+    identifications=[
+        dict(
+            id_in=[
+                Identification(
+                    query=P(Y @ {X, Z}),
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(directed=[('X','Y'), ('X','Z'), ('Z','Y')],
+                                       undirected=[('X', 'Z')])
+                )
+            ],
+            id_out=[
+                Identification(
+                    query=P(Y @ {X, Z}),
+                    estimand=P(Y|X, Z),
+                    graph=NxMixedGraph.from_edges(directed=[('X','Y'), ('X','Z'), ('Z','Y')],
+                                       undirected=[('X', 'Z')]))
+            ]
+        )
+    ]
+)
+
+
 cyclic_directed_example = Example(
     name="Cyclic directed graph",
     reference="out of the mind of JZ and ZW",

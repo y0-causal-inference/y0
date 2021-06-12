@@ -14,9 +14,20 @@ from y0.algorithm.identify import (
     line_2,
     line_3,
     line_4,
+    line_5,
+    line_6,
+    line_7,
+    Fail
 )
-from y0.dsl import Expression, P, X, Y, Z
-from y0.examples import line_1_example, line_2_example, line_3_example, line_4_example
+from y0.dsl import Expression, P, Sum, X, Y, Z
+from y0.examples import (
+    line_1_example,
+    line_2_example,
+    line_3_example,
+    line_4_example,
+    line_5_example,
+    line_6_example
+)
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
 from y0.mutate import canonicalize
@@ -193,7 +204,17 @@ class TestIdentify(unittest.TestCase):
         that make up a hedge. In fact, it turns out that it is always possible to recover a hedge
         from these two c-components.
         """
-        pass
+        for identification in line_5_example.identifications:
+            outcomes, treatments = get_outcomes_and_treatments(
+                query=identification["id_in"][0].query
+            )
+            with self.assertRaises(Fail):
+                line_5(
+                    outcomes=outcomes,
+                    treatments=treatments,
+                    estimand=identification["id_in"][0].estimand,
+                    G=identification["id_in"][0].graph
+                )
 
     def test_line_6(self):
         r"""Test line 6 of the identification algorithm.
@@ -202,7 +223,20 @@ class TestIdentify(unittest.TestCase):
         subproblem under consideration, then we can replace acting on X by conditioning, and thus
         solve the subproblem.
         """
-        pass
+        for identification in line_6_example.identifications:
+            outcomes, treatments = get_outcomes_and_treatments(
+                query=identification["id_in"][0].query
+            )
+            self.assert_expr_equal(
+                expected=identification["id_out"][0].estimand,
+                actual=line_6(
+                    outcomes=outcomes,
+                    treatments=treatments,
+                    estimand=identification["id_in"][0].estimand,
+                    G=identification["id_in"][0].graph,
+                ),
+            )
+
 
     def test_line_7(self):
         r"""Test line 2 of the identification algorithm.

@@ -13,7 +13,7 @@ from y0.algorithm.identify.utils import (
 from y0.dsl import Expression, P, Sum, Variable
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
-from .utils import Identification
+from .utils import Identification, Fail
 
 
 def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
@@ -226,6 +226,16 @@ def line_5(
 def line_6(
     *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
 ):
+    r"""Line 6 of the ID algorithm.
+
+ Asserts that if there are no bidirected arcs from :math:`X` to the other nodes in the current subproblem under consideration, then we can replace acting on :math:`X` by conditioning, and thus solve the subproblem.
+
+..math::
+
+    \text{ if }S\in C(G) \\
+    \text{ return }\sum_{S - \mathbf y}\prod_{\{i|V_i\in S\}}P\left(v_i|v_\pi^{(i-1)}\right)
+
+    """
     V = G.nodes()
     C_components_of_G = get_c_components(G)
     C_components_of_G_without_X = get_c_components(G.remove_nodes_from(treatments))
@@ -269,9 +279,8 @@ def line_7(
     parents = list(nx.topological_sort(G.directed))
     for district in C_components_of_G:
         if S < district:
-            return dict(
-                outcomes=outcomes,
-                treatments=treatments & district,
+            return Identification(
+                query=to_query(outcomes=outcomes, treatments=treatments & district),
                 estimand=Product(
                     *[P(v | parents[: parents.index(v)]) for v in district]
                 ),

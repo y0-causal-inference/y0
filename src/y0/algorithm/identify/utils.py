@@ -19,6 +19,7 @@ __all__ = [
     "ancestors_and_self",
     "Identification",
     "expr_equal",
+    "Fail"
 ]
 
 
