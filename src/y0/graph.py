@@ -302,9 +302,11 @@ class NxMixedGraph(Generic[X]):
         """Make a mixed graph from a pair of adjacency lists."""
         rv = cls()
         for u, vs in directed.items():
+            rv.directed.add_node(u)
             for v in vs:
                 rv.add_directed_edge(u, v)
         for u, vs in undirected.items():
+            rv.undirected.add_node(u)
             for v in vs:
                 rv.add_undirected_edge(u, v)
         return rv

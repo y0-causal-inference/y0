@@ -10,7 +10,7 @@ from y0.algorithm.identify.utils import (
     nxmixedgraph_to_causal_graph,
     outcomes_and_treatments_to_query,
 )
-from y0.dsl import Expression, P, Sum, Variable
+from y0.dsl import Expression, P, Sum, Variable, Product
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
 from .utils import Identification, Fail
@@ -236,16 +236,25 @@ def line_6(
     \text{ return }\sum_{S - \mathbf y}\prod_{\{i|V_i\in S\}}P\left(v_i|v_\pi^{(i-1)}\right)
 
     """
-    V = G.nodes()
+    y = {Variable(y) for y in outcomes}
+    x = {Variable(x) for x in treatments}
+    V = {Variable(v) for v in G.nodes()}
     C_components_of_G = get_c_components(G)
     C_components_of_G_without_X = get_c_components(G.remove_nodes_from(treatments))
-    S = C_components_of_G_without_X[0]
-    parents = list(nx.topological_sort(G.directed))
-    if S in C_components_of_G:
-        return Sum(
-            Product(*[P(v | parents[: parents.index(v)]) for v in S]),
-            list(V - (outcomes | treatments)),
-        )
+
+    parents = [Variable(p) for p in nx.topological_sort(G.directed)]
+    if C_components_of_G_without_X[0] in C_components_of_G:
+        S = {Variable(s) for s in C_components_of_G_without_X[0]}
+        if len(S - y) == 0:
+            estimand = Product([P(v | parents[: parents.index(v)])
+                      for v in S])
+        else:
+            estimand = Sum(
+                Product([P(v | parents[: parents.index(v)])
+                      for v in S]),
+                S - y
+            )
+        return estimand
 
 
 def line_7(

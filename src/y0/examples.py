@@ -322,7 +322,7 @@ line_6_example = Example(
         dict(
             id_in=[
                 Identification(
-                    query=P(Y @ {X, Z}),
+                    query=P(Y @ [X, Z]),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[('X','Y'), ('X','Z'), ('Z','Y')],
                                        undirected=[('X', 'Z')])
@@ -331,7 +331,7 @@ line_6_example = Example(
             id_out=[
                 Identification(
                     query=P(Y @ {X, Z}),
-                    estimand=P(Y|X, Z),
+                    estimand=P(Y| [X, Z]),
                     graph=NxMixedGraph.from_edges(directed=[('X','Y'), ('X','Z'), ('Z','Y')],
                                        undirected=[('X', 'Z')]))
             ]
