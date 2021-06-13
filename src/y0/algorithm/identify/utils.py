@@ -21,7 +21,7 @@ __all__ = [
     "expr_equal",
     "Fail",
     "get_outcomes_and_treatments",
-    "outcomes_and_treatments_to_query"
+    "outcomes_and_treatments_to_query",
 ]
 
 

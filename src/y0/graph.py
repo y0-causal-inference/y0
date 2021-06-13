@@ -288,7 +288,9 @@ class NxMixedGraph(Generic[X]):
     ) -> NxMixedGraph:
         """Make a mixed graph from a pair of edge lists."""
         if directed is None and undirected is None:
-            raise ValueError('must provide at least one of directed/undirected edge lists')
+            raise ValueError(
+                "must provide at least one of directed/undirected edge lists"
+            )
         rv = cls()
         for u, v in directed or []:
             rv.add_directed_edge(u, v)

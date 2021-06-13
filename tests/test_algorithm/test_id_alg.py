@@ -5,6 +5,7 @@
 import unittest
 
 from y0.algorithm.identify import (
+    Fail,
     Identification,
     ancestors_and_self,
     get_c_components,
@@ -17,9 +18,8 @@ from y0.algorithm.identify import (
     line_5,
     line_6,
     line_7,
-    Fail
 )
-from y0.dsl import Expression, P, Sum, X, Y, Z
+from y0.dsl import Expression, P, X, Y, Z
 from y0.examples import (
     line_1_example,
     line_2_example,
@@ -27,7 +27,7 @@ from y0.examples import (
     line_4_example,
     line_5_example,
     line_6_example,
-    line_7_example
+    line_7_example,
 )
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
@@ -48,7 +48,7 @@ class TestIdentify(unittest.TestCase):
         actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
         self.assertEqual(expected_treatments, actual_treatments)
         self.assertEqual(expected_outcomes, actual_outcomes)
-        ordering = expected.get_variables()
+        ordering = tuple(expected.get_variables())
         expected_canonical = canonicalize(expected, ordering)
         actual_canonical = canonicalize(actual, ordering)
         self.assertEqual(
@@ -214,7 +214,7 @@ class TestIdentify(unittest.TestCase):
                     outcomes=outcomes,
                     treatments=treatments,
                     estimand=identification["id_in"][0].estimand,
-                    G=identification["id_in"][0].graph
+                    G=identification["id_in"][0].graph,
                 )
 
     def test_line_6(self):
@@ -237,7 +237,6 @@ class TestIdentify(unittest.TestCase):
                     G=identification["id_in"][0].graph,
                 ),
             )
-
 
     def test_line_7(self):
         r"""Test line 2 of the identification algorithm.
@@ -263,7 +262,6 @@ class TestIdentify(unittest.TestCase):
                     G=identification["id_in"][0].graph,
                 ),
             )
-
 
     # def test_figure_2a(self):
     #     """Test Figure 2A.

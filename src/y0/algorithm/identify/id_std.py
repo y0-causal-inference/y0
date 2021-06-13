@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Set, Union
+from typing import FrozenSet, List, Set, Union
 
 import networkx as nx
 from ananke.graphs import ADMG
@@ -9,16 +9,15 @@ from y0.algorithm.identify.utils import (
     ancestors_and_self,
     nxmixedgraph_to_causal_graph,
     outcomes_and_treatments_to_query,
-    get_outcomes_and_treatments
 )
-from y0.dsl import Expression, P, Sum, Variable, Product
+from y0.dsl import Expression, P, Product, Sum, Variable
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
-from .utils import Identification, Fail
+from .utils import Fail, Identification
 
 
-def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
-    """Currently a wrapper for y0.algorithm.identifiy.utils.causal_graph.id_alg()"""
+def identify(graph: Union[ADMG, NxMixedGraph], query: Expression):
+    """Run the identification algorithm."""
     if isinstance(graph, ADMG):
         graph = NxMixedGraph.from_admg(graph)
     treatments = _get_treatments(query.get_variables())
@@ -37,14 +36,14 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression) -> Expression:
 
 def ID(
     *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
-) -> Expression:
+):
     # line 1
     if len(treatments) == 0:
-        return line_1(outcomes, treatments, estimand, G)
+        return line_1(outcomes=outcomes, treatments=treatments, estimand=estimand, G=G)
 
     # line 2
     if len(G.directed.nodes() - ancestors_and_self(G, outcomes)) > 0:
-        return line_2(outcomes, treatments, estimand, G)
+        return line_2(outcomes=outcomes, treatments=treatments, estimand=estimand, G=G)
 
     # line 3
 
@@ -52,18 +51,18 @@ def ID(
 def line_1(
     *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
 ) -> Expression:
-    r"""Line 1 of ID algorithm.
+    r"""Run line 1 of identification algorithm.
 
     If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
     the observational distribution
-        :param outcomes:
-        :param interventions:
-        :param estimand: Probabilistic expression
-        :param G: NxMixedGraph
-        :returns:  The marginal of the outcome variables
-        :raises ValueError:  There should not be any interventional variables
-    """
 
+    :param outcomes:
+    :param treatments:
+    :param estimand: Probabilistic expression
+    :param G: NxMixedGraph
+    :returns:  The marginal of the outcome variables
+    :raises ValueError:  There should not be any interventional variables
+    """
     V = set(G.nodes())
     return Sum(
         P(*[Variable(v) for v in V]),
@@ -74,14 +73,16 @@ def line_1(
 def line_2(
     *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
 ) -> Identification:
-    r"""Line 2 of the ID algorithm.
+    r"""Run line 2 of the identification algorithm.
 
     If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention
     on the parts of the model ancestral to :math:`\mathbf Y`.
 
-.. math::
-    \text{if }\mathbf V - An(\mathbf Y)_G \neq \emptyset \\
-    \text{ return } \mathbf{ ID}\left(\mathbf y, \mathbf x\cap An(\mathbf Y)_G, \sum_{\mathbf V - An(Y)_G}P, G_{An(\mathbf Y)}\right)
+    .. math::
+
+        \text{if }\mathbf V - An(\mathbf Y)_G \neq \emptyset \\
+        \text{ return } \mathbf{ ID}\left(\mathbf y, \mathbf x\cap An(\mathbf Y)_G, \sum_{\mathbf V -
+         An(Y)_G}P, G_{An(\mathbf Y)}\right)
 
     :param outcomes: set of outcomes
     :param treatments: set of interventions
@@ -100,7 +101,7 @@ def line_2(
         query=outcomes_and_treatments_to_query(
             outcomes=outcomes, treatments=treatments & ancestors_and_Y_in_G
         ),
-        estimand=Sum(estimand, [Variable(v) for v in not_ancestors_of_Y]),
+        estimand=Sum(estimand, tuple(Variable(v) for v in not_ancestors_of_Y)),
         graph=G_ancestral_to_Y,
     )
 
@@ -108,7 +109,7 @@ def line_2(
 def line_3(
     *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
 ) -> Identification:
-    r"""Line 3 of ID algorithm.
+    r"""Run line 3 of the identification algorithm.
 
     Forces an action on any node where such an action would have no
     effect on :math:\mathbf Y`—assuming we already acted on
@@ -123,11 +124,10 @@ def line_3(
     :param G: ADMG
     :returns:  The new estimand
     :raises Fail: if the query is not identifiable.
-
     """
     vertices = G.nodes()
-    G_bar_x = G.intervene(treatments)
-    no_effect_nodes = (vertices - treatments) - ancestors_and_self(G_bar_x, outcomes)
+    g_bar_x = G.intervene(treatments)
+    no_effect_nodes = (vertices - treatments) - ancestors_and_self(g_bar_x, outcomes)
     if len(no_effect_nodes) > 0:
         query = outcomes_and_treatments_to_query(
             outcomes=outcomes, treatments=treatments | no_effect_nodes
@@ -138,7 +138,7 @@ def line_3(
 def line_4(
     *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
 ) -> List[Identification]:
-    r"""Line 4 of the ID algorithm
+    r"""Run line 4 of the identification algorithm.
 
     The key line of the algorithm, it decomposes the problem into a set
     of smaller problems using the key property of *c-component
@@ -146,16 +146,14 @@ def line_4(
     C-component already, further problem decomposition is impossible,
     and we must provide base cases. :math:`\mathbf{ID}` has three base
     cases.
-
     """
     V = G.nodes()
-    C_components_of_G = get_c_components(G)
-    C_components_of_G_without_X = get_c_components(G.remove_nodes_from(treatments))
-    S = C_components_of_G_without_X[0]
+    c_components = get_c_components(G)
+    c_components_without_x = get_c_components(G.remove_nodes_from(treatments))
+    S = c_components_without_x[0]
     parents = list(nx.topological_sort(G.directed))
 
-    if len(C_components_of_G_without_X) > 1:
-
+    if len(c_components_without_x) > 1:
         return [
             Identification(
                 query=outcomes_and_treatments_to_query(
@@ -164,7 +162,7 @@ def line_4(
                 estimand=estimand,
                 graph=G,
             )
-            for district in C_components_of_G_without_X
+            for district in c_components_without_x
         ]
         # return Sum(Product(*[ID(outcomes=district,
         #                         treatments=V - district,
@@ -172,50 +170,47 @@ def line_4(
         #                         G=G)
         #                      for district in C_components_of_G_without_X]),
         #            list(V - (treatments | outcomes )))
-    elif C_components_of_G_without_X == set([S]):
-        if C_components_of_G == [frozenset(V)]:
+    elif c_components_without_x == {S}:
+        if c_components == [frozenset(V)]:
             line_5(outcomes=outcomes, treatments=treatments, estimand=estimand, G=G)
-        elif S in C_components_of_G:
+        elif S in c_components:
             return Sum(
                 Product(*[P(v | parents[: parents.index(v)]) for v in S]),
                 list(V - (outcomes | treatments)),
             )
         else:
-            for district in C_components_of_G:
+            for district in c_components:
                 if S in district:
+                    givens = [
+                        list(
+                            (set(parents[: parents.index(v)]) & district)
+                            | (set(parents[: parents.index(v)]) - district)
+                        )
+                        for v in district
+                    ]
+                    factors = [P(v | given) for v, given in zip(district, givens)]
                     return Identification(
                         query=outcomes_and_treatments_to_query(
                             outcomes, treatments & district
                         ),
-                        estimand=Product(
-                            *[
-                                P(
-                                    v
-                                    | list(
-                                        (set(parents[: parents.index(v)]) & district)
-                                        | (set(parents[: parents.index(v)]) - district)
-                                    )
-                                )
-                                for v in district
-                            ]
-                        ),
+                        estimand=Product(factors),
                         graph=G.subgraph(district),
                     )
+    else:
+        raise NotImplementedError
 
 
 def line_5(
     *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
-):
-    r"""line 5 of the identification algorithm.
+) -> None:
+    r"""Run line 5 of the identification algorithm.
 
     Fails because it finds two C-components, the graph :math:`G`
     itself, and a subgraph :math:`S` that does not contain any
     :math:`\mathbf X` nodes. But that is exactly one of the properties
     of C-forests that make up a hedge. In fact, it turns out that it
     is always possible to recover a hedge from these two c-components.
-
     """
-
     V = G.nodes()
     C_components_of_G = get_c_components(G)
     C_components_of_G_without_X = get_c_components(G.remove_nodes_from(treatments))
@@ -227,15 +222,15 @@ def line_5(
 def line_6(
     *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
 ):
-    r"""Line 6 of the ID algorithm.
+    r"""Run line 6 of the identification algorithm.
 
- Asserts that if there are no bidirected arcs from :math:`X` to the other nodes in the current subproblem under consideration, then we can replace acting on :math:`X` by conditioning, and thus solve the subproblem.
+    Asserts that if there are no bidirected arcs from :math:`X` to the other nodes in the current subproblem
+    under consideration, then we can replace acting on :math:`X` by conditioning, and thus solve the subproblem.
 
-..math::
+    ..math::
 
-    \text{ if }S\in C(G) \\
-    \text{ return }\sum_{S - \mathbf y}\prod_{\{i|V_i\in S\}}P\left(v_i|v_\pi^{(i-1)}\right)
-
+        \text{ if }S\in C(G) \\
+        \text{ return }\sum_{S - \mathbf y}\prod_{\{i|V_i\in S\}}P\left(v_i|v_\pi^{(i-1)}\right)
     """
     y = {Variable(y) for y in outcomes}
     x = {Variable(x) for x in treatments}
@@ -247,13 +242,13 @@ def line_6(
     if C_components_of_G_without_X[0] in C_components_of_G:
         S = {Variable(s) for s in C_components_of_G_without_X[0]}
         if len(S - y) == 0:
-            estimand = Product([P(v | parents[: parents.index(v)])
-                      for v in S])
+            estimand = Product(tuple(P(v | parents[: parents.index(v)]) for v in S))
         else:
             estimand = Sum(
-                Product([P(v | parents[: parents.index(v)])
-                      for v in S]),
-                S - y
+                expression=Product(
+                    tuple(P(v | parents[: parents.index(v)]) for v in S)
+                ),
+                ranges=tuple(S - y),
             )
         return estimand
 
@@ -261,7 +256,7 @@ def line_6(
 def line_7(
     *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
 ):
-    r"""Line 7 of the ID algorithm.
+    r"""Run line 7 of the identification algorithm.
 
    The most complex case where :math:`\mathbf X` is partitioned into
    two sets, :math:`\mathbf W` which contain bidirected arcs into
@@ -274,13 +269,13 @@ def line_7(
    :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the
    previous base case, so we can consider the subproblem of
    identifying :math:`P(\mathbf y|do(\mathbf w))`
-.. math::
 
-   \text{ if }(\exists S')S\subset S'\in C(G) \\
-   \text{ return }\mathbf{ID}\left(\mathbf y, \mathbf x\cap S',
-   \prod_{\{i|V_i\in S'\}}P(V_i|V_\pi^{(i-1)}\cap S', V_\pi^{(i-1)} -
-   S'), G_{S'}\right)
+    .. math::
 
+       \text{ if }(\exists S')S\subset S'\in C(G) \\
+       \text{ return }\mathbf{ID}\left(\mathbf y, \mathbf x\cap S',
+       \prod_{\{i|V_i\in S'\}}P(V_i|V_\pi^{(i-1)}\cap S', V_\pi^{(i-1)} -
+       S'), G_{S'}\right)
     """
     V = {Variable(v) for v in G.nodes()}
 
@@ -292,11 +287,11 @@ def line_7(
         S_prime = {Variable(s) for s in district}
         if S < S_prime:
             return Identification(
-                query=outcomes_and_treatments_to_query(outcomes=outcomes,
-                                                       treatments=treatments & district),
+                query=outcomes_and_treatments_to_query(
+                    outcomes=outcomes, treatments=treatments & district
+                ),
                 estimand=Product(
-                    [P(v | parents[: parents.index(v)])
-                     for v in S_prime]
+                    tuple(P(v | parents[: parents.index(v)]) for v in S_prime)
                 ),
                 graph=G.subgraph(district),
             )
@@ -305,8 +300,10 @@ def line_7(
         #  (set(parents[:parents.index(v)]) - district)))
 
 
-def get_c_components(G: NxMixedGraph) -> Set[str]:
-    return [frozenset(district) for district in nx.connected_components(G.undirected)]
+def get_c_components(graph: NxMixedGraph) -> List[FrozenSet]:
+    return [
+        frozenset(district) for district in nx.connected_components(graph.undirected)
+    ]
 
 
 # def str_list(node_list):
