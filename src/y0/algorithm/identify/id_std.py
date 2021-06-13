@@ -9,6 +9,7 @@ from y0.algorithm.identify.utils import (
     ancestors_and_self,
     nxmixedgraph_to_causal_graph,
     outcomes_and_treatments_to_query,
+    get_outcomes_and_treatments
 )
 from y0.dsl import Expression, P, Sum, Variable, Product
 from y0.graph import NxMixedGraph
@@ -281,19 +282,23 @@ def line_7(
    S'), G_{S'}\right)
 
     """
-    V = G.nodes()
+    V = {Variable(v) for v in G.nodes()}
+
     C_components_of_G = get_c_components(G)
     C_components_of_G_without_X = get_c_components(G.remove_nodes_from(treatments))
-    S = C_components_of_G_without_X[0]
-    parents = list(nx.topological_sort(G.directed))
+    S = {Variable(s) for s in C_components_of_G_without_X[0]}
+    parents = [Variable(p) for p in nx.topological_sort(G.directed)]
     for district in C_components_of_G:
-        if S < district:
+        S_prime = {Variable(s) for s in district}
+        if S < S_prime:
             return Identification(
-                query=to_query(outcomes=outcomes, treatments=treatments & district),
+                query=outcomes_and_treatments_to_query(outcomes=outcomes,
+                                                       treatments=treatments & district),
                 estimand=Product(
-                    *[P(v | parents[: parents.index(v)]) for v in district]
+                    [P(v | parents[: parents.index(v)])
+                     for v in S_prime]
                 ),
-                G=G.subgraph(district),
+                graph=G.subgraph(district),
             )
         #  list(
         #  (set(parents[:parents.index(v)]) & district) |

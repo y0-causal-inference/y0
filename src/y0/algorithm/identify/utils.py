@@ -19,7 +19,9 @@ __all__ = [
     "ancestors_and_self",
     "Identification",
     "expr_equal",
-    "Fail"
+    "Fail",
+    "get_outcomes_and_treatments",
+    "outcomes_and_treatments_to_query"
 ]
 
 

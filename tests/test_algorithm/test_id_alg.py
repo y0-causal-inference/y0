@@ -26,7 +26,8 @@ from y0.examples import (
     line_3_example,
     line_4_example,
     line_5_example,
-    line_6_example
+    line_6_example,
+    line_7_example
 )
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
@@ -249,7 +250,20 @@ class TestIdentify(unittest.TestCase):
         :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the previous base case, so we can consider
         the subproblem of identifying :math:`P(\mathbf y|do(\mathbf w))`.
         """
-        pass
+        for identification in line_7_example.identifications:
+            outcomes, treatments = get_outcomes_and_treatments(
+                query=identification["id_in"][0].query
+            )
+            self.assert_identification_equal(
+                expected=identification["id_out"][0],
+                actual=line_7(
+                    outcomes=outcomes,
+                    treatments=treatments,
+                    estimand=identification["id_in"][0].estimand,
+                    G=identification["id_in"][0].graph,
+                ),
+            )
+
 
     # def test_figure_2a(self):
     #     """Test Figure 2A.
