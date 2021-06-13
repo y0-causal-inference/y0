@@ -134,6 +134,9 @@ def line_3(
         )
         return Identification(query=query, estimand=estimand, graph=G)
 
+    # TODO what happens if it gets here
+    raise NotImplementedError
+
 
 def line_4(
     *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
@@ -188,10 +191,10 @@ def line_4(
                         )
                         for v in district
                     ]
-                    factors = [P(v | given) for v, given in zip(district, givens)]
+                    factors = tuple(P(v | given) for v, given in zip(district, givens))
                     return Identification(
                         query=outcomes_and_treatments_to_query(
-                            outcomes, treatments & district
+                            outcomes=outcomes, treatments=treatments & district
                         ),
                         estimand=Product(factors),
                         graph=G.subgraph(district),

@@ -79,7 +79,9 @@ def outcomes_and_treatments_to_query(
     if len(treatments) == 0:
         return P(*[Variable(y) for y in outcomes])
     else:
-        return P(*[Variable(y) @ {Variable(x) for x in treatments} for y in outcomes])
+        return P(
+            *[Variable(y) @ tuple(Variable(x) for x in treatments) for y in outcomes]
+        )
 
 
 def ancestors_and_self(graph: NxMixedGraph, sources: Set[str]):
