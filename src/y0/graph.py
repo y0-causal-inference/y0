@@ -12,6 +12,7 @@ from typing import (
     Collection,
     Generic,
     Iterable,
+    List,
     Mapping,
     Optional,
     Tuple,
@@ -81,8 +82,8 @@ class NxMixedGraph(Generic[X]):
         :param vertices: a subset of nodes
         :returns: A NxMixedGraph subgraph
         """
-        directed = dict([(u, []) for u in vertices])
-        undirected = dict([(u, []) for u in vertices])
+        directed: Mapping[X, List[X]] = dict([(u, []) for u in vertices])
+        undirected: Mapping[X, List[X]] = dict([(u, []) for u in vertices])
 
         for u, v in self.directed.edges():
             if u in vertices and v in vertices:
@@ -99,8 +100,8 @@ class NxMixedGraph(Generic[X]):
         :param vertices: a subset of nodes from which to remove incoming edges
         :returns: A NxMixedGraph subgraph
         """
-        directed = dict([(u, []) for u in self.nodes()])
-        undirected = dict([(u, []) for u in self.nodes()])
+        directed: Mapping[X, List[X]] = dict([(u, []) for u in self.nodes()])
+        undirected: Mapping[X, List[X]] = dict([(u, []) for u in self.nodes()])
 
         for u, v in self.directed.edges():
             if v not in vertices:
@@ -117,8 +118,12 @@ class NxMixedGraph(Generic[X]):
         :param vertices: a set of nodes to remove from graph
         :returns:  NxMixedGraph subgraph
         """
-        directed = dict([(u, []) for u in self.nodes() if u not in vertices])
-        undirected = dict([(u, []) for u in self.nodes() if u not in vertices])
+        directed: Mapping[X, List[X]] = dict(
+            [(u, []) for u in self.nodes() if u not in vertices]
+        )
+        undirected: Mapping[X, List[X]] = dict(
+            [(u, []) for u in self.nodes() if u not in vertices]
+        )
 
         for u, v in self.directed.edges():
             if (u not in vertices) and (v not in vertices):
@@ -129,13 +134,13 @@ class NxMixedGraph(Generic[X]):
 
         return self.from_adj(directed=directed, undirected=undirected)
 
-    def add_directed_edge(self, u: Collection[X], v: Collection[X], **attr) -> None:
+    def add_directed_edge(self, u: X, v: X, **attr) -> None:
         """Add a directed edge from u to v."""
         self.directed.add_edge(u, v, **attr)
         self.undirected.add_node(u)
         self.undirected.add_node(v)
 
-    def add_undirected_edge(self, u: Collection[X], v: Collection[X], **attr) -> None:
+    def add_undirected_edge(self, u: X, v: X, **attr) -> None:
         """Add an undirected edge between u and v."""
         self.undirected.add_edge(u, v, **attr)
         self.directed.add_node(u)
@@ -157,8 +162,8 @@ class NxMixedGraph(Generic[X]):
     @classmethod
     def from_admg(cls, admg: ADMG) -> NxMixedGraph:
         """Create from an ADMG. Note that vertices can exist without edges."""
-        directed = dict([(u, []) for u in admg.vertices])
-        undirected = dict([(u, []) for u in admg.vertices])
+        directed: Mapping[X, List[X]] = dict([(u, []) for u in admg.vertices])
+        undirected: Mapping[X, List[X]] = dict([(u, []) for u in admg.vertices])
         for u, v in admg.di_edges:
             directed[u].append(v)
         for u, v in admg.bi_edges:
