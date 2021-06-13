@@ -299,72 +299,83 @@ line_4_example = Example(
 line_5_example = Example(
     name="graph containing a hedge",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(directed=[('X', 'Y')], undirected=[('X','Y')]),
+    graph=NxMixedGraph.from_edges(directed=[("X", "Y")], undirected=[("X", "Y")]),
     identifications=[
         dict(
             id_in=[
                 Identification(
                     query=P(Y @ X),
-                    estimand=P(X,Y),
-                    graph=NxMixedGraph.from_edges(directed=[('X', 'Y')], undirected=[('X','Y')])
+                    estimand=P(X, Y),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Y")], undirected=[("X", "Y")]
+                    ),
                 )
             ],
         )
-    ]
+    ],
 )
 
 line_6_example = Example(
     name="If there are no bidirected arcs from X to the other nodes in the current subproblem under consideration, then we can replace acting on X by conditioning, and thus solve the subproblem.",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(directed=[('X','Y'), ('X','Z'), ('Z','Y')],
-                       undirected=[('X', 'Z')]),
+    graph=NxMixedGraph.from_edges(
+        directed=[("X", "Y"), ("X", "Z"), ("Z", "Y")], undirected=[("X", "Z")]
+    ),
     identifications=[
         dict(
             id_in=[
                 Identification(
                     query=P(Y @ [X, Z]),
                     estimand=P(X, Y, Z),
-                    graph=NxMixedGraph.from_edges(directed=[('X','Y'), ('X','Z'), ('Z','Y')],
-                                       undirected=[('X', 'Z')])
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Y"), ("X", "Z"), ("Z", "Y")],
+                        undirected=[("X", "Z")],
+                    ),
                 )
             ],
             id_out=[
                 Identification(
                     query=P(Y @ {X, Z}),
-                    estimand=P(Y| [X, Z]),
-                    graph=NxMixedGraph.from_edges(directed=[('X','Y'), ('X','Z'), ('Z','Y')],
-                                       undirected=[('X', 'Z')]))
-            ]
+                    estimand=P(Y | [X, Z]),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Y"), ("X", "Z"), ("Z", "Y")],
+                        undirected=[("X", "Z")],
+                    ),
+                )
+            ],
         )
-    ]
+    ],
 )
 
-W1,Y1 = Variable('W1'), Variable('Y1')
+W1, Y1 = Variable("W1"), Variable("Y1")
 line_7_example = Example(
     name="line 7 example, figure 5a and b",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(directed=[('X','Y1'), ('W1','Y1')],
-                                  undirected=[('W1','Y1')]),
+    graph=NxMixedGraph.from_edges(
+        directed=[("X", "Y1"), ("W1", "Y1")], undirected=[("W1", "Y1")]
+    ),
     identifications=[
         dict(
             id_in=[
                 Identification(
                     query=P(Y1 @ [X, W1]),
                     estimand=P(X, Y1, W1),
-                    graph=NxMixedGraph.from_edges(directed=[('X','Y1'), ('W1','X')],
-                                                  undirected=[('W1','Y1')]),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Y1"), ("W1", "X")], undirected=[("W1", "Y1")]
+                    ),
                 )
             ],
             id_out=[
                 Identification(
                     query=P(Y1 @ W1),
-                    estimand=P(Y1| [X, W1])*P(W1),
-                    graph=NxMixedGraph.from_edges(directed=[],
-                                                  undirected=[('W1','Y1')])
+                    estimand=P(Y1 | [X, W1]) * P(W1),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[], undirected=[("W1", "Y1")]
+                    ),
                 )
-            ]
+            ],
         )
-    ]
+    ],
 )
 cyclic_directed_example = Example(
     name="Cyclic directed graph",
