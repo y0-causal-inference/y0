@@ -21,6 +21,7 @@ from typing import (
 
 import networkx as nx
 from ananke.graphs import ADMG
+from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
 __all__ = [
@@ -140,7 +141,7 @@ class NxMixedGraph(Generic[X]):
         self.directed.add_node(u)
         self.directed.add_node(v)
 
-    def nodes(self) -> Collection[X]:
+    def nodes(self) -> NodeView:
         """Get the nodes in the graph."""
         return self.directed.nodes()
 
