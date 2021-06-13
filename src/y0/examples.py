@@ -369,9 +369,7 @@ line_7_example = Example(
                 Identification(
                     query=P(Y1 @ W1),
                     estimand=P(Y1 | [X, W1]) * P(W1),
-                    graph=NxMixedGraph.from_edges(
-                        directed=[], undirected=[("W1", "Y1")]
-                    ),
+                    graph=NxMixedGraph.from_edges(undirected=[("W1", "Y1")]),
                 )
             ],
         )
