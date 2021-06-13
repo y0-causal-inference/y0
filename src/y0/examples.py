@@ -341,7 +341,7 @@ line_6_example = Example(
 
 W1,Y1 = Variable('W1'), Variable('Y1')
 line_7_example = Example(
-    name="line 7 example, figure 5a and b from Shpitser's thesis",
+    name="line 7 example, figure 5a and b",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
     graph=NxMixedGraph.from_edges(directed=[('X','Y1'), ('W1','Y1')],
                                   undirected=[('W1','Y1')]),
@@ -359,9 +359,9 @@ line_7_example = Example(
                 Identification(
                     query=P(Y1 @ W1),
                     estimand=P(Y1| [X, W1])*P(W1),
-                    graph=NxMixedGraph.from_adj(directed={ 'W1':[], 'Y1':[]},
-                                       undirected={ 'W1':['Y1'], 'Y1':[]})
-                    )
+                    graph=NxMixedGraph.from_edges(directed=[],
+                                                  undirected=[('W1','Y1')])
+                )
             ]
         )
     ]
