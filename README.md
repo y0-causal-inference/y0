@@ -82,7 +82,7 @@ This project has been supported by several organizations (in alphabetical order)
 
 - [Harvard Program in Therapeutic Science - Laboratory of Systems Pharmacology](https://hits.harvard.edu/the-program/laboratory-of-systems-pharmacology/)
 
-### Funding
+### 💰 Funding
 
 The development of the Y0 Causal Inference Engine has been funded by the following grants:
 
@@ -90,7 +90,7 @@ The development of the Y0 Causal Inference Engine has been funded by the followi
 |----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|-----------------|
 | DARPA                                                    | [Automating Scientific Knowledge Extraction (ASKE)](https://www.darpa.mil/program/automating-scientific-knowledge-extraction) | HR00111990009   |
 
-## 🍪 Cookiecutter
+### 🍪 Cookiecutter
 
 This package was created with [@audreyr](https://github.com/audreyr)'s
 [cookiecutter](https://github.com/cookiecutter/cookiecutter) package using [@cthoyt](https://github.com/cthoyt)'s
