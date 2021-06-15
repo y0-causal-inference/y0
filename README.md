@@ -89,7 +89,7 @@ The development of the Y0 Causal Inference Engine has been funded by the followi
 | Funding Body                                             | Program                                                                                                                       | Grant           |
 |----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|-----------------|
 | DARPA                                                    | [Automating Scientific Knowledge Extraction (ASKE)](https://www.darpa.mil/program/automating-scientific-knowledge-extraction) | HR00111990009   |
-| PNNL Data Model Convergence Initiative    | [Causal Inference and Machine Learning Methods for Analysis of Security Constrained Unit Commitment (SCY0)](https://www.darpa.mil/program/automating-scientific-knowledge-extraction)[https://www.pnnl.gov/projects/dmc/converged-applications-projects] | 90001   |
+| PNNL Data Model Convergence Initiative    | [Causal Inference and Machine Learning Methods for Analysis of Security Constrained Unit Commitment (SCY0)](https://www.pnnl.gov/projects/dmc/converged-applications-projects) | 90001   |
 
 ### 🍪 Cookiecutter
 
