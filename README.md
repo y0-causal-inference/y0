@@ -81,6 +81,7 @@ involved.
 This project has been supported by several organizations (in alphabetical order):
 
 - [Harvard Program in Therapeutic Science - Laboratory of Systems Pharmacology](https://hits.harvard.edu/the-program/laboratory-of-systems-pharmacology/)
+- [Pacific Northwest National Laboratory](https://www.pnnl.org/)
 
 ### 💰 Funding
 
