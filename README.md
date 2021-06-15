@@ -65,14 +65,32 @@ $ pip install -e .
 
 ## ⚖️ License
 
-The code in this package is licensed under the MIT License.
+The code in this package is licensed under the [BSD-3-Clause
+license](https://github.com/y0-causal-inference/y0/blob/master/LICENSE).
 
 ## 🙏 Contributing
+
 Contributions, whether filing an issue, making a pull request, or forking, are appreciated. See
 [CONTRIBUTING.rst](https://github.com/y0-causal-inference/y0/blob/master/CONTRIBUTING.rst) for more information on getting
 involved.
 
-## 🍪 Cookiecutter Acknowledgement
+## Acknowledgements
+
+### Supporters
+
+This project has been supported by several organizations (in alphabetical order):
+
+- [Harvard Program in Therapeutic Science - Laboratory of Systems Pharmacology](https://hits.harvard.edu/the-program/laboratory-of-systems-pharmacology/)
+
+### Funding
+
+The development of the Y0 Causal Inference Engine has been funded by the following grants:
+
+| Funding Body                                             | Program                                                                                                                       | Grant           |
+|----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| DARPA                                                    | [Automating Scientific Knowledge Extraction (ASKE)](https://www.darpa.mil/program/automating-scientific-knowledge-extraction) | HR00111990009   |
+
+## 🍪 Cookiecutter
 
 This package was created with [@audreyr](https://github.com/audreyr)'s
 [cookiecutter](https://github.com/cookiecutter/cookiecutter) package using [@cthoyt](https://github.com/cthoyt)'s
