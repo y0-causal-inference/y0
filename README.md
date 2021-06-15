@@ -92,7 +92,7 @@ The development of the Y0 Causal Inference Engine has been funded by the followi
 
 ### 🍪 Cookiecutter
 
-This package was created with [@audreyr](https://github.com/audreyr)'s
+This package was created with [@audreyfeldroy](https://github.com/audreyfeldroy)'s
 [cookiecutter](https://github.com/cookiecutter/cookiecutter) package using [@cthoyt](https://github.com/cthoyt)'s
 [cookiecutter-python-package](https://github.com/cthoyt/cookiecutter-python-package) template.
 
