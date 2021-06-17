@@ -19,7 +19,7 @@ from typing import (
     TypeVar,
     Union,
 )
-
+from .dsl import Variable
 import networkx as nx
 from ananke.graphs import ADMG
 from networkx.classes.reportviews import NodeView
@@ -66,6 +66,39 @@ class NxMixedGraph(Generic[X]):
     directed: nx.DiGraph = field(default_factory=nx.DiGraph)
     #: A undirected graph
     undirected: nx.Graph = field(default_factory=nx.Graph)
+
+    def str_nodes_to_variable_nodes(self) -> NxMixedGraph:
+        directed: Mapping[X, List[X]] = dict(
+            [
+                (u, []) if type(u) is Variable else (Variable(str(u)), [])
+                for u in self.nodes()
+            ]
+        )
+        undirected: Mapping[X, List[X]] = dict(
+            [
+                (u, []) if type(u) is Variable else (Variable(str(u)), [])
+                for u in self.nodes()
+            ]
+        )
+        for u, v in self.directed.edges():
+            if type(u) is Variable and type(v) is Variable:
+                directed[u].append(v)
+            elif type(u) is Variable:
+                directed[u].append(Variable(str(v)))
+            elif type(v) is Variable:
+                directed[Variable(u)].append(v)
+            else:
+                directed[Variable(str(u))].append(Variable(str(v)))
+        for u, v in self.undirected.edges():
+            if type(u) is Variable and type(v) is Variable:
+                undirected[u].append(v)
+            elif type(u) is Variable:
+                undirected[u].append(Variable(str(v)))
+            elif type(v) is Variable:
+                undirected[Variable(str(u))].append(v)
+            else:
+                undirected[Variable(str(u))].append(Variable(str(v)))
+        return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
 
     def __eq__(self, other: Any) -> bool:
         """Check for equality of nodes, directed edges, and undirected edges."""
@@ -309,7 +342,7 @@ class NxMixedGraph(Generic[X]):
         directed: Mapping[X, Collection[X]],
         undirected: Mapping[X, Collection[X]],
     ) -> NxMixedGraph:
-        """Make a mixed graph from a pair of adjacency lists."""
+        """Make a mixed graph from a pair of adjacencyacency lists."""
         rv = cls()
         for u, vs in directed.items():
             rv.directed.add_node(u)

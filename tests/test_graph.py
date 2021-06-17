@@ -8,7 +8,7 @@ from typing import Set, Tuple
 
 import networkx as nx
 from ananke.graphs import ADMG
-
+from y0.dsl import Variable
 from y0.examples import cyclic_directed_example, verma_1, vertices_without_edges
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
@@ -71,6 +71,20 @@ class TestGraph(unittest.TestCase):
         ]:
             with self.subTest():
                 self.assert_labeled_convertable(graph, labeled_edges)
+
+    def test_str_nodes_to_variable_nodes(self):
+        """Test converting a str node NxMixedGraph to a Variable node NxMixedGraph"""
+        graph = NxMixedGraph.from_edges(
+            directed=[("X", "Y"), ("Y", "Z")], undirected=[("X", "Z")]
+        )
+
+        expected = NxMixedGraph.from_edges(
+            directed=[(Variable("X"), Variable("Y")), (Variable("Y"), Variable("Z"))],
+            undirected=[(Variable("X"), Variable("Z"))],
+        )
+        self.assert_graph_equal(
+            expected=expected, actual=graph.str_nodes_to_variable_nodes()
+        )
 
     def test_from_causalfusion(self):
         """Test importing a CausalFusion graph."""
