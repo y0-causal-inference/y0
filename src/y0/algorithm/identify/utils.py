@@ -10,7 +10,7 @@ from typing import Any, Set, Tuple, TypeVar
 import networkx as nx
 import numpy as np
 
-from y0.dsl import Expression, P, Product, Sum, Variable
+from y0.dsl import Expression, P, Product, Sum, Variable, _upgrade_ordering
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcome_variables, _get_treatment_variables
 from y0.mutate import canonicalize
@@ -104,14 +104,7 @@ def outcomes_and_treatments_to_query(
 ) -> Expression:
     if len(treatments) == 0:
         return P(outcomes)
-    return P(
-        (
-            y @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
-            if type(y) is Variable
-            else Variable(y) @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
-        )
-        for y in outcomes
-    )
+    return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
 
 
 def ancestors_and_self(graph: NxMixedGraph[X], sources: Set[X]) -> Set[X]:
