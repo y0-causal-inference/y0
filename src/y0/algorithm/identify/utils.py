@@ -68,8 +68,8 @@ def expr_equal(expected: Expression, actual: Expression) -> bool:
 def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[Variable], Set[Variable]]:
     """Get outcomes and treatments sets from the query expression."""
     return (
-        {Variable(y) for y in _get_outcomes(query.get_variables())},
-        {Variable(x) for x in _get_treatments(query.get_variables())},
+        set(_get_outcomes(query.get_variables())),
+        set(_get_treatments(query.get_variables()))
     )
 
 
