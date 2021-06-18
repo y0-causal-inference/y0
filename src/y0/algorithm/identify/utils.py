@@ -3,14 +3,14 @@
 """Utilities for identifiaction algorithms"""
 
 from dataclasses import dataclass
-from typing import Any, Set, Tuple
+from typing import Any, Set, Tuple, TypeVar
 
 import networkx as nx
 import numpy as np
 
 from y0.dsl import Expression, P, Product, Sum, Variable
 from y0.graph import NxMixedGraph
-from y0.identify import _get_outcomes, _get_treatments
+from y0.identify import _get_outcome_variables, _get_treatment_variables
 from y0.mutate import canonicalize
 
 __all__ = [
@@ -23,6 +23,8 @@ __all__ = [
     "get_outcomes_and_treatments",
     "outcomes_and_treatments_to_query",
 ]
+
+X = TypeVar("X")
 
 
 # TODO copy code for causal_graph class
@@ -70,8 +72,8 @@ def get_outcomes_and_treatments(
 ) -> Tuple[Set[Variable], Set[Variable]]:
     """Get outcomes and treatments sets from the query expression."""
     return (
-        set(_get_outcomes(query.get_variables())),
-        set(_get_treatments(query.get_variables())),
+        _get_outcome_variables(query.get_variables()),
+        _get_treatment_variables(query.get_variables()),
     )
 
 
@@ -92,7 +94,7 @@ def outcomes_and_treatments_to_query(
         )
 
 
-def ancestors_and_self(graph: NxMixedGraph, sources: Set[str]):
+def ancestors_and_self(graph: NxMixedGraph[X], sources: Set[X]) -> Set[X]:
     """Ancestors of a set include the set itself."""
     rv = sources.copy()
     for source in sources:

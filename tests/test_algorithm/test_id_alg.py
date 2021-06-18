@@ -120,7 +120,7 @@ class TestIdentify(unittest.TestCase):
                         )
                     ),
                     estimand=identification["id_in"][0].estimand,
-                    G=identification["id_in"][0].graph,
+                    graph=identification["id_in"][0].graph,
                 ),
             )
 
