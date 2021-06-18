@@ -5,12 +5,12 @@
 from __future__ import annotations
 
 import functools
-import inspect
 import itertools as itt
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from inspect import isgenerator
 from operator import attrgetter
-from typing import Callable, Iterable, Optional, Sequence, Set, Tuple, TypeVar, Union
+from typing import Callable, Iterator, Iterable, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 __all__ = [
     "Variable",
@@ -476,7 +476,17 @@ class Probability(Expression):
 
 
 def P(  # noqa:N802
-    distribution: Union[str, Variable, Sequence[str], Sequence[Variable], Distribution],
+    distribution: Union[
+        str,
+        Sequence[str],
+        Set[str],
+        Iterator[str],
+        Variable,
+        Sequence[Variable],
+        Set[Variable],
+        Iterator[Variable],
+        Distribution,
+    ],
     *args: Union[str, Variable],
 ) -> Probability:
     """Create a probability expression over the given variable(s) or distribution.
@@ -540,18 +550,14 @@ def P(  # noqa:N802
         return Probability(distribution=distribution)
 
     children: Tuple[Variable, ...]
-    if isinstance(distribution, str):
-        children = (Variable(distribution),)
-    elif isinstance(distribution, Variable):
-        children = (distribution, *_upgrade_ordering(args))
-    elif isinstance(distribution, (list, tuple, set)) or inspect.isgenerator(
-        distribution
-    ):
+    if isinstance(distribution, (str, Variable)):
+        children = (Variable.norm(distribution), *_upgrade_ordering(args))
+    elif isinstance(distribution, (list, tuple, set)) or isgenerator(distribution):
         if args:
             raise ValueError(
                 "can not use variadic arguments with combination of first arg"
             )
-        children = _upgrade_ordering(args)
+        children = _sorted_variables(_upgrade_ordering(distribution))
     else:
         raise TypeError(
             f"invalid distribution type: {type(distribution)} {distribution}"
@@ -880,7 +886,9 @@ V1, V2, V3, V4, V5, V6 = [Variable(f"V{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
 
 
-def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Tuple[Variable, ...]:
+def _upgrade_ordering(
+    variables: Iterable[Union[str, Variable]]
+) -> Tuple[Variable, ...]:
     return tuple(Variable.norm(variable) for variable in variables)
 
 
@@ -904,4 +912,8 @@ def ensure_ordering(
     if ordering is not None:
         return _upgrade_ordering(ordering)
     # use alphabetical ordering
-    return sorted(expression.get_variables(), key=attrgetter("name"))
+    return _sorted_variables(expression.get_variables())
+
+
+def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
+    return tuple(sorted(variables, key=attrgetter("name")))

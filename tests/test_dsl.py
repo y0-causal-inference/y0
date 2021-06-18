@@ -144,7 +144,7 @@ class TestDSL(unittest.TestCase):
             Distribution(tuple())
 
         self.assert_text("P(A)", P(A))
-        self.assert_text("P(A)", P('A'))
+        self.assert_text("P(A)", P("A"))
         self.assert_text("P(A)", P(Distribution((A,))))
 
         # Test markov kernels (AKA has only one child variable)
@@ -157,13 +157,17 @@ class TestDSL(unittest.TestCase):
 
         # Test simple joint distributions
         self.assert_text("P(A,B)", P((A, B)))
+        self.assert_text("P(A,B)", P([A, B]))
+        self.assert_text("P(A,B)", P({A, B}))
         self.assert_text("P(A,B)", P(A, B))
         self.assert_text("P(A,B)", P(A & B))
-        self.assert_text("P(A,B)", P('A', 'B'))
-        self.assert_text("P(A,B)", P(['A', 'B']))
+        self.assert_text("P(A,B)", P("A", "B"))
+        self.assert_text("P(A,B)", P(["A", "B"]))
         self.assert_text("P(A,B,C)", P(A & B & C))
-        self.assert_text("P(A,B,C)", P('A', 'B', 'C'))
-        self.assert_text("P(A,B,C)", P(['A', 'B', 'C']))
+        self.assert_text("P(A,B,C)", P("A", "B", "C"))
+        self.assert_text("P(A,B,C)", P(["A", "B", "C"]))
+        self.assert_text("P(A,B,C)", P((name for name in 'ABC')))
+        self.assert_text("P(A,B,C)", P((Variable(name) for name in 'ABC')))
 
         # Test mixed with single conditional
         self.assert_text("P(A,B|C)", P(Distribution((A, B), (C,))))
