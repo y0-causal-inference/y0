@@ -104,13 +104,8 @@ class TestIdentify(unittest.TestCase):
             self.assert_expr_equal(
                 expected=identification["id_out"][0].estimand,
                 actual=line_1(
-                    outcomes=set(_get_outcomes(identification["id_in"][0].query.get_variables())),
-                    treatments=set(
-                        _get_treatments(identification["id_in"][0].query.get_variables())
-                    ),
-                    estimand=identification["id_in"][0].estimand,
-                    graph=identification["id_in"][0].graph,
-                ),
+                    identification["id_in"][0]
+                                   ),
             )
 
     def test_line_2(self):
@@ -120,16 +115,12 @@ class TestIdentify(unittest.TestCase):
         attention on the parts of the model ancestral to :math:`\mathbf Y`.
         """
         for identification in line_2_example.identifications:
+            id_out = identification["id_out"][0]
+            id_out.graph = id_out.graph.str_nodes_to_variable_nodes()
             self.assert_identification_equal(
-                expected=identification["id_out"][0],
+                expected=id_out,
                 actual=line_2(
-                    outcomes=set(_get_outcomes(identification["id_in"][0].query.get_variables())),
-                    treatments=set(
-                        _get_treatments(identification["id_in"][0].query.get_variables())
-                    ),
-                    estimand=identification["id_in"][0].estimand,
-                    graph=identification["id_in"][0].graph,
-                ),
+                    identification["id_in"][0]                ),
             )
 
     def test_line_3(self):
@@ -141,17 +132,13 @@ class TestIdentify(unittest.TestCase):
         affecting the overall answer.
         """
         for identification in line_3_example.identifications:
-            outcomes, treatments = get_outcomes_and_treatments(
-                query=identification["id_in"][0].query
-            )
+            id_out = identification["id_out"][0]
+            id_out.graph = id_out.graph.str_nodes_to_variable_nodes()
+
             self.assert_identification_equal(
-                expected=identification["id_out"][0],
+                expected=id_out,
                 actual=line_3(
-                    outcomes=outcomes,
-                    treatments=treatments,
-                    estimand=identification["id_in"][0].estimand,
-                    graph=identification["id_in"][0].graph,
-                ),
+                    identification["id_in"][0]                ),
             )
 
     def test_line_4(self):
@@ -163,19 +150,15 @@ class TestIdentify(unittest.TestCase):
         provide base cases. :math:`\mathbf{ID}` has three base cases.
         """
         for identification in line_4_example.identifications:
-            outcomes, treatments = get_outcomes_and_treatments(
-                query=identification["id_in"][0].query
-            )
+
             actuals = line_4(
-                outcomes=outcomes,
-                treatments=treatments,
-                estimand=identification["id_in"][0].estimand,
-                graph=identification["id_in"][0].graph,
+                identification["id_in"][0]
             )
             expecteds = identification["id_out"]
             self.assertEqual(len(expecteds), len(actuals))
             match = []
             for expected in expecteds:
+                expected.graph = expected.graph.str_nodes_to_variable_nodes()
                 for actual in actuals:
                     if expected == actual:
                         self.assert_identification_equal(expected, actual)
@@ -194,15 +177,9 @@ class TestIdentify(unittest.TestCase):
         from these two c-components.
         """
         for identification in line_5_example.identifications:
-            outcomes, treatments = get_outcomes_and_treatments(
-                query=identification["id_in"][0].query
-            )
             with self.assertRaises(Fail):
                 line_5(
-                    outcomes=outcomes,
-                    treatments=treatments,
-                    estimand=identification["id_in"][0].estimand,
-                    graph=identification["id_in"][0].graph,
+                    identification["id_in"][0]
                 )
 
     def test_line_6(self):
@@ -213,16 +190,13 @@ class TestIdentify(unittest.TestCase):
         solve the subproblem.
         """
         for identification in line_6_example.identifications:
-            outcomes, treatments = get_outcomes_and_treatments(
-                query=identification["id_in"][0].query
-            )
+            id_out = identification["id_out"][0]
+            id_out.graph = id_out.graph.str_nodes_to_variable_nodes()
+
             self.assert_expr_equal(
-                expected=identification["id_out"][0].estimand,
+                expected=id_out.estimand,
                 actual=line_6(
-                    outcomes=outcomes,
-                    treatments=treatments,
-                    estimand=identification["id_in"][0].estimand,
-                    graph=identification["id_in"][0].graph,
+                    identification["id_in"][0]
                 ),
             )
 
@@ -238,16 +212,13 @@ class TestIdentify(unittest.TestCase):
         the subproblem of identifying :math:`P(\mathbf y|do(\mathbf w))`.
         """
         for identification in line_7_example.identifications:
-            outcomes, treatments = get_outcomes_and_treatments(
-                query=identification["id_in"][0].query
-            )
+            id_out = identification["id_out"][0]
+            id_out.graph = id_out.graph.str_nodes_to_variable_nodes()
+
             self.assert_identification_equal(
-                expected=identification["id_out"][0],
+                expected=id_out,
                 actual=line_7(
-                    outcomes=outcomes,
-                    treatments=treatments,
-                    estimand=identification["id_in"][0].estimand,
-                    graph=identification["id_in"][0].graph,
+                    identification["id_in"][0]
                 ),
             )
 

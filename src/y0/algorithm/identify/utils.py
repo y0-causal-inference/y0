@@ -12,7 +12,7 @@ import numpy as np
 
 from y0.dsl import Expression, P, Product, Sum, Variable, _upgrade_ordering
 from y0.graph import NxMixedGraph
-from y0.identify import _get_outcome_variables, _get_treatment_variables
+from y0.identify import _get_outcomes, _get_treatments, _get_treatment_variables
 from y0.mutate import canonicalize
 
 __all__ = [
@@ -61,11 +61,11 @@ class Identification:
 
     @property
     def outcomes(self) -> Set[Variable]:
-        return _get_outcome_variables(self.query.get_variables())
+        return {Variable(v) for v in _get_outcomes(self.query.get_variables())}
 
     @property
     def treatments(self) -> Set[Variable]:
-        return _get_treatment_variables(self.query.get_variables())
+        return {Variable(v) for v in _get_treatments(self.query.get_variables())}
 
     def __eq__(self, other: Any) -> bool:
         """Check if the query, estimand, and graph are equal."""
@@ -78,7 +78,7 @@ class Identification:
 
 
 def expr_equal(expected: Expression, actual: Expression) -> bool:
-    """Return if two expressions are equal after canonicalization."""
+    """Return True if two expressions are equal after canonicalization."""
     expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
     actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
 
@@ -94,8 +94,8 @@ def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[Variable], Se
     """Get outcomes and treatments sets from the query expression."""
     query_variables = query.get_variables()
     return (
-        _get_outcome_variables(query_variables),
-        _get_treatment_variables(query_variables),
+        {Variable(v) for v in _get_outcomes(query_variables)},
+        {Variable(v) for v in _get_treatments(query_variables)},
     )
 
 
