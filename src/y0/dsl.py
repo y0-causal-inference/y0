@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import functools
+import inspect
 import itertools as itt
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -475,8 +476,8 @@ class Probability(Expression):
 
 
 def P(  # noqa:N802
-    distribution: Union[Variable, Tuple[Variable, ...], Distribution],
-    *args: Variable,
+    distribution: Union[str, Variable, Sequence[str], Sequence[Variable], Distribution],
+    *args: Union[str, Variable],
 ) -> Probability:
     """Create a probability expression over the given variable(s) or distribution.
 
@@ -486,6 +487,7 @@ def P(  # noqa:N802
     :param args: If the first argument (``distribution``) was given as a single variable, the
         ``args`` variadic argument can be used to specify a list of additional variables.
     :returns: A probability object
+    :raises TypeError: If the distribution is the wrong type
     :raises ValueError: If varidic args are used incorrectly (i.e., in combination with a
         list of variables or :class:`Distribution`.
 
@@ -509,26 +511,52 @@ def P(  # noqa:N802
     >>> from y0.dsl import P, A
     >>> P(A)
 
+    Creation with a single string:
+
+    >>> from y0.dsl import P, A
+    >>> P('A')
+
     Creation with a list of :class:`Variable`:
 
     >>> from y0.dsl import P, A, B
     >>> P((A, B))
 
+    Creation with a list of strings:
+
+    >>> from y0.dsl import P, A, B
+    >>> P(('A', 'B'))
+
     Creation with a list of :class:`Variable`: using variadic arguments:
 
     >>> from y0.dsl import P, A, B
     >>> P(A, B)
+
+    Creation with a list of strings using variadic arguments:
+
+    >>> from y0.dsl import P, A, B
+    >>> P('A', 'B')
     """
-    if isinstance(distribution, Variable):
-        if not args:
-            distribution = (distribution,)
-        elif not all(isinstance(p, Variable) for p in args):
-            raise ValueError
-        else:
-            distribution = (distribution, *args)
-    if isinstance(distribution, tuple):
-        distribution = Distribution(children=distribution)
-    return Probability(distribution=distribution)
+    if isinstance(distribution, Distribution):
+        return Probability(distribution=distribution)
+
+    children: Tuple[Variable, ...]
+    if isinstance(distribution, str):
+        children = (Variable(distribution),)
+    elif isinstance(distribution, Variable):
+        children = (distribution, *_upgrade_ordering(args))
+    elif isinstance(distribution, (list, tuple, set)) or inspect.isgenerator(
+        distribution
+    ):
+        if args:
+            raise ValueError(
+                "can not use variadic arguments with combination of first arg"
+            )
+        children = _upgrade_ordering(args)
+    else:
+        raise TypeError(
+            f"invalid distribution type: {type(distribution)} {distribution}"
+        )
+    return Probability(distribution=Distribution(children=children))
 
 
 @dataclass(frozen=True)
@@ -852,7 +880,7 @@ V1, V2, V3, V4, V5, V6 = [Variable(f"V{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
 
 
-def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Sequence[Variable]:
+def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Tuple[Variable, ...]:
     return tuple(Variable.norm(variable) for variable in variables)
 
 
