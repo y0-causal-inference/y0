@@ -71,7 +71,6 @@ class TestIdentify(unittest.TestCase):
         self.assert_expr_equal(expected.estimand, actual.estimand)
         self.assertEqual(expected.graph, actual.graph)
 
-
     def test_ancestors_and_self(self):
         """Test whether the ancestors_and_self actually returns the ancestors and itself."""
         graph = NxMixedGraph()
@@ -198,7 +197,7 @@ class TestIdentify(unittest.TestCase):
                         match.append((expected, actual))
                     else:
                         with self.assertRaises(AssertionError):
-                            self.assert_identification_equal(expected, actual )
+                            self.assert_identification_equal(expected, actual)
             self.assertEqual(len(expecteds), len(match))
 
     def test_line_5(self):

@@ -65,11 +65,13 @@ def expr_equal(expected: Expression, actual: Expression) -> bool:
     return expected_canonical == actual_canonical
 
 
-def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[Variable], Set[Variable]]:
+def get_outcomes_and_treatments(
+    *, query: Expression
+) -> Tuple[Set[Variable], Set[Variable]]:
     """Get outcomes and treatments sets from the query expression."""
     return (
         set(_get_outcomes(query.get_variables())),
-        set(_get_treatments(query.get_variables()))
+        set(_get_treatments(query.get_variables())),
     )
 
 
@@ -77,19 +79,15 @@ def outcomes_and_treatments_to_query(
     *, outcomes: Set[Variable], treatments: Set[Variable]
 ) -> Expression:
     if len(treatments) == 0:
-        return P(*[Variable(y) if type(y) is str  else y  for y in outcomes])
+        return P(*[Variable(y) if type(y) is str else y for y in outcomes])
     else:
         return P(
-            *[y @ tuple(x
-                                  if type(x) is Variable
-                                  else Variable(x)
-                                  for x in treatments)
-              if type(y) is Variable
-              else Variable(y) @ tuple(x
-                             if type(x) is Variable
-                             else Variable(x)
-                             for x in treatments)
-              for y in outcomes
+            *[
+                y @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
+                if type(y) is Variable
+                else Variable(y)
+                @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
+                for y in outcomes
             ]
         )
 

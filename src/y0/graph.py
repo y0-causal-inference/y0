@@ -19,11 +19,13 @@ from typing import (
     TypeVar,
     Union,
 )
-from .dsl import Variable
+
 import networkx as nx
 from ananke.graphs import ADMG
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
+
+from .dsl import Variable
 
 __all__ = [
     "NxMixedGraph",
