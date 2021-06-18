@@ -69,12 +69,7 @@ def identify(identification: Identification) -> Expression:
         )
 
     # line 4
-    districts = get_c_components(graph)
-    districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
-
-
-    parents = list(nx.topological_sort(graph.directed))
-
+    districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments)
     if len(districts_without_treatment) > 1:
         expression = Product.safe(
             identify(
@@ -93,10 +88,12 @@ def identify(identification: Identification) -> Expression:
         )
 
     # line 5
+    districts = get_c_components(graph)
     if districts == [frozenset(vertices)]:
         raise Fail(districts, districts_without_treatment)
 
     # line 6
+    parents = list(nx.topological_sort(graph.directed))
     if districts_without_treatment[0] in districts:
         expression = Product.safe(P(v | parents[: parents.index(v)]) for v in districts_without_treatment[0])
         ranges = districts_without_treatment[0] - outcomes
