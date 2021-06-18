@@ -331,7 +331,7 @@ class NxMixedGraph(Generic[X]):
         directed: Mapping[X, Collection[X]],
         undirected: Mapping[X, Collection[X]],
     ) -> NxMixedGraph:
-        """Make a mixed graph from a pair of adjacencyacency lists."""
+        """Make a mixed graph from a pair of adjacency lists."""
         rv = cls()
         for u, vs in directed.items():
             rv.add_node(u)
