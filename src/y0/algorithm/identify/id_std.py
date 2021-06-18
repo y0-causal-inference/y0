@@ -70,23 +70,23 @@ def identify(identification: Identification) -> Expression:
         )
 
     # line 4
-    c_components = get_c_components(graph)
-    c_components_without_x = get_c_components(graph.remove_nodes_from(treatments))
+    districts = get_c_components(graph)
+    districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
     # FIXME name S something more meaningful
-    S = c_components_without_x[0]
+
     parents = list(nx.topological_sort(graph.directed))
 
-    if len(c_components_without_x) > 1:
+    if len(districts_without_treatment) > 1:
         expression = Product.safe(
             identify(
                 Identification.from_parts(
-                    outcomes=district,
-                    treatments=vertices - district,
+                    outcomes=district_without_treatment,
+                    treatments=vertices - district_without_treatment,
                     estimand=estimand,
                     graph=graph,
                 )
             )
-            for district in c_components_without_x
+            for district_without_treatment in districts_without_treatment
         )
         return Sum.safe(
             expression=expression,
@@ -94,13 +94,13 @@ def identify(identification: Identification) -> Expression:
         )
 
     # line 5
-    if c_components == [frozenset(vertices)]:
-        raise Fail(c_components, c_components_without_x)
+    if districts == [frozenset(vertices)]:
+        raise Fail(districts, districts_without_treatment)
 
     # line 6
-    if c_components_without_x[0] in c_components:
-        expression = Product.safe(P(v | parents[: parents.index(v)]) for v in S)
-        ranges = S - outcomes
+    if districts_without_treatment[0] in districts:
+        expression = Product.safe(P(v | parents[: parents.index(v)]) for v in districts_without_treatment[0])
+        ranges = districts_without_treatment[0] - outcomes
         if not ranges:
             return expression
         return Sum.safe(
@@ -109,14 +109,14 @@ def identify(identification: Identification) -> Expression:
         )
 
     # line 7
-    for S_prime in c_components:
-        if S < S_prime:
+    for district in districts:
+        if districts_without_treatment[0] < district:
             return identify(
                 Identification.from_parts(
                     outcomes=outcomes,
-                    treatments=treatments & S_prime,
-                    estimand=Product.safe(P(v | parents[: parents.index(v)]) for v in S_prime),
-                    graph=graph.subgraph(S_prime),
+                    treatments=treatments & district,
+                    estimand=Product.safe(P(v | parents[: parents.index(v)]) for v in district),
+                    graph=graph.subgraph(district),
                 )
             )
 
