@@ -41,7 +41,7 @@ def identify(identification: Identification) -> Expression:
     vertices = set(graph.nodes())
     outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
     not_outcomes_or_ancestors = vertices.difference(ancestors_and_outcome_nodes)
-    ancestral_graph = graph.subgraph(outcomes_and_ancestors)
+    outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
     # line 1
     if not treatments:
         return Sum.safe(expression=P(vertices), ranges=vertices.difference(outcomes))
@@ -52,7 +52,7 @@ def identify(identification: Identification) -> Expression:
                 outcomes=outcomes,
                 treatments=treatments & outcomes_and_ancestors,
                 estimand=Sum.safe(expression=estimand, ranges=not_outcomes_or_ancestors),
-                graph=ancestral_graph,
+                graph=outcome_ancestral_graph,
             )
         )
     # line 3
