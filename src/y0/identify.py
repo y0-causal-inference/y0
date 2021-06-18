@@ -21,12 +21,20 @@ __all__ = [
 ]
 
 
+def _get_treatment_variables(variables: Set[Variable]) -> Set[Variable]:
+    return {variable for variable in variables if isinstance(variable, Intervention)}
+
+
 def _get_treatments(variables: Set[Variable]) -> List[str]:
-    return list({variable.name for variable in variables if isinstance(variable, Intervention)})
+    return [variable.name for variable in _get_treatment_variables(variables)]
+
+
+def _get_outcome_variables(variables: Set[Variable]) -> Set[Variable]:
+    return {variable for variable in variables if not isinstance(variable, Intervention)}
 
 
 def _get_outcomes(variables: Set[Variable]) -> List[str]:
-    return list({variable.name for variable in variables if not isinstance(variable, Intervention)})
+    return [variable.name for variable in _get_outcome_variables(variables)]
 
 
 def _all_counterfactual(distribution: Distribution) -> bool:
