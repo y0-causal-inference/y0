@@ -34,18 +34,100 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression):
     #     return r[0]
 
 
-def ID(
-    *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
-):
+def ID( identification: Identification ) -> Expression:
+    outcomes, treatments = get_outcomes_and_treatments(
+                query=identification.query)
+    G = identification.graph.str_nodes_to_variable_nodes()
+    V = G.nodes()
+    ancestors_and_Y_in_G = ancestors_and_self(G, outcomes)
+    not_ancestors_of_Y = V.difference(ancestors_and_Y_in_G)
+    G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
     # line 1
     if len(treatments) == 0:
-        return line_1(outcomes=outcomes, treatments=treatments, estimand=estimand, G=G)
-
+        return Sum(
+            P(*V),
+            tuple(V.difference(outcomes))
+        )
     # line 2
-    if len(G.directed.nodes() - ancestors_and_self(G, outcomes)) > 0:
-        return line_2(outcomes=outcomes, treatments=treatments, estimand=estimand, G=G)
-
+    if len(V - ancestors_and_self(G, outcomes)) > 0:
+        return ID(
+            Identification(
+                query=outcomes_and_treatments_to_query(
+                    outcomes=outcomes,
+                    treatments=treatments & ancestors_and_Y_in_G
+                ),
+                estimand=Sum(estimand, tuple(not_ancestors_of_Y)),
+                graph=G_ancestral_to_Y,
+            )
+        )
     # line 3
+    g_bar_x = G.intervene(treatments)
+    no_effect_nodes = (vertices - treatments) - ancestors_and_self(g_bar_x, outcomes)
+    if len(no_effect_nodes) > 0:
+        query = outcomes_and_treatments_to_query(
+            outcomes=outcomes,
+            treatments=treatments | no_effect_nodes
+        )
+        return ID(Identification(query=query, estimand=estimand, graph=G))
+
+    # line 4
+    c_components = get_c_components(G)
+    c_components_without_x = get_c_components(G.remove_nodes_from(treatments))
+    S = c_components_without_x[0]
+    parents = list(nx.topological_sort(G.directed))
+
+    if len(c_components_without_x) > 1:
+        return Sum(
+            expression=Product(
+                tuple(
+                    ID(
+                        Identification(
+                            query=outcomes_and_treatments_to_query(
+                                outcomes=district,
+                                treatments=V - district
+                            ),
+                            estimand=estimand,
+                            graph=G,
+                        )
+                    )
+                    for district in c_components_without_x
+                )
+            ),
+            ranges=tuple(V.difference( outcomes | treatments ))
+        )
+
+    # line 5
+    if C_components_of_G == [frozenset(V)]:
+        raise Fail(C_components_of_G, C_components_of_G_without_X)
+
+    # line 6
+    if C_components_of_G_without_X[0] in C_components_of_G:
+        if len(S - outcomes) == 0:
+            estimand = Product(tuple(P(v | parents[: parents.index(v)]) for v in S))
+        else:
+            estimand = Sum(
+                expression=Product(
+                    tuple(P(v | parents[: parents.index(v)]) for v in S)
+                ),
+                ranges=tuple(S - outcomes),
+            )
+        return estimand
+
+    # line 7
+    for S_prime in C_components_of_G:
+        if S < S_prime:
+            return ID(
+                Identification(
+                    query=outcomes_and_treatments_to_query(
+                        outcomes=outcomes,
+                        treatments=treatments & district
+                    ),
+                    estimand=Product(
+                        tuple(P(v | parents[: parents.index(v)]) for v in S_prime)
+                    ),
+                    graph=G.subgraph(district),
+                )
+            )
 
 
 def line_1(
