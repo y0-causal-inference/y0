@@ -166,8 +166,10 @@ class TestDSL(unittest.TestCase):
         self.assert_text("P(A,B,C)", P(A & B & C))
         self.assert_text("P(A,B,C)", P("A", "B", "C"))
         self.assert_text("P(A,B,C)", P(["A", "B", "C"]))
-        self.assert_text("P(A,B,C)", P((name for name in 'ABC')))
-        self.assert_text("P(A,B,C)", P((Variable(name) for name in 'ABC')))
+        self.assert_text("P(A,B,C)", P((name for name in "ABC")))
+        self.assert_text("P(A,B,C)", P(name for name in "ABC"))
+        self.assert_text("P(A,B,C)", P((Variable(name) for name in "ABC")))
+        self.assert_text("P(A,B,C)", P(Variable(name) for name in "ABC"))
 
         # Test mixed with single conditional
         self.assert_text("P(A,B|C)", P(Distribution((A, B), (C,))))

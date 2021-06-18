@@ -10,7 +10,17 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from inspect import isgenerator
 from operator import attrgetter
-from typing import Callable, Iterator, Iterable, Optional, Sequence, Set, Tuple, TypeVar, Union
+from typing import (
+    Callable,
+    Iterable,
+    Iterator,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 __all__ = [
     "Variable",
@@ -545,6 +555,16 @@ def P(  # noqa:N802
 
     >>> from y0.dsl import P, A, B
     >>> P('A', 'B')
+
+    Creation with a fancy generator of variables:
+
+    >>> from y0.dsl import P, A, B
+    >>> P(Variable(name) for name in 'AB')
+
+    Creation with a fancy generator of strings:
+
+    >>> from y0.dsl import P, A, B
+    >>> P(name for name in 'AB')
     """
     if isinstance(distribution, Distribution):
         return Probability(distribution=distribution)
