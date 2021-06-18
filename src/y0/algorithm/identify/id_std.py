@@ -39,26 +39,25 @@ def identify(identification: Identification) -> Expression:
     estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
-    ancestors_and_y_in_g = ancestors_and_self(graph, outcomes)
-    not_ancestors_of_y = vertices.difference(ancestors_and_y_in_g)
-    g_ancestral_to_y = graph.subgraph(ancestors_and_y_in_g)
+    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
+    not_outcomes_or_ancestors = vertices.difference(ancestors_and_outcome_nodes)
+    ancestral_graph = graph.subgraph(outcomes_and_ancestors)
     # line 1
     if not treatments:
         return Sum.safe(expression=P(vertices), ranges=vertices.difference(outcomes))
-    # line 2 TODO rename line_2_check
-    line_2_check = vertices - ancestors_and_self(graph, outcomes)
-    if line_2_check:
+    # line 2
+    if not_outcomes_or_ancestors:
         return identify(
             Identification.from_parts(
                 outcomes=outcomes,
-                treatments=treatments & ancestors_and_y_in_g,
-                estimand=Sum.safe(expression=estimand, ranges=not_ancestors_of_y),
-                graph=g_ancestral_to_y,
+                treatments=treatments & outcomes_and_ancestors,
+                estimand=Sum.safe(expression=estimand, ranges=not_outcomes_or_ancestors),
+                graph=ancestral_graph,
             )
         )
     # line 3
-    g_bar_x = graph.intervene(treatments)
-    no_effect_nodes = (vertices - treatments) - ancestors_and_self(g_bar_x, outcomes)
+    intervened_graph = graph.intervene(treatments)
+    no_effect_nodes = (vertices - treatments) - ancestors_and_self(intervened_graph, outcomes)
     if no_effect_nodes:
         return identify(
             Identification.from_parts(
