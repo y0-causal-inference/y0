@@ -10,7 +10,7 @@ from y0.algorithm.identify.utils import (
     nxmixedgraph_to_causal_graph,
     outcomes_and_treatments_to_query,
 )
-from y0.dsl import Expression, P, Product, Sum, Variable
+from y0.dsl import Expression, P, Product, Sum, Variable, _upgrade_ordering
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
 from .utils import Fail, Identification, get_outcomes_and_treatments
@@ -46,7 +46,7 @@ def ID(identification: Identification) -> Expression:
     g_ancestral_to_y = graph.subgraph(ancestors_and_y_in_g)
     # line 1
     if len(treatments) == 0:
-        return Sum(P(*vertices), tuple(vertices.difference(outcomes)))
+        return Sum(P(vertices), _upgrade_ordering(vertices.difference(outcomes)))
     # line 2
     if len(vertices - ancestors_and_self(graph, outcomes)) > 0:
         return ID(
@@ -54,7 +54,7 @@ def ID(identification: Identification) -> Expression:
                 query=outcomes_and_treatments_to_query(
                     outcomes=outcomes, treatments=treatments & ancestors_and_y_in_g
                 ),
-                estimand=Sum(estimand, tuple(not_ancestors_of_y)),
+                estimand=Sum(estimand, _upgrade_ordering(not_ancestors_of_y)),
                 graph=g_ancestral_to_y,
             )
         )
@@ -89,7 +89,7 @@ def ID(identification: Identification) -> Expression:
                     for district in c_components_without_x
                 )
             ),
-            ranges=tuple(vertices.difference(outcomes | treatments)),
+            ranges=_upgrade_ordering(vertices.difference(outcomes | treatments)),
         )
 
     # line 5
@@ -105,7 +105,7 @@ def ID(identification: Identification) -> Expression:
                 expression=Product(
                     tuple(P(v | parents[: parents.index(v)]) for v in S)
                 ),
-                ranges=tuple(S - outcomes),
+                ranges=_upgrade_ordering(S - outcomes),
             )
         return estimand
 
@@ -146,8 +146,8 @@ def line_1(
     """
     vertices = set(graph.nodes())
     return Sum(
-        P(*[Variable(v) for v in vertices]),
-        tuple(Variable(v) for v in vertices.difference(outcomes)),
+        expression=P(vertices),
+        ranges=_upgrade_ordering(vertices.difference(outcomes)),
     )
 
 
@@ -182,7 +182,10 @@ def line_2(
         query=outcomes_and_treatments_to_query(
             outcomes=outcomes, treatments=treatments & ancestors_and_Y_in_G
         ),
-        estimand=Sum(estimand, tuple(Variable(v) for v in not_ancestors_of_Y)),
+        estimand=Sum(
+            expression=estimand,
+            ranges=_upgrade_ordering(not_ancestors_of_Y),
+        ),
         graph=G_ancestral_to_Y,
     )
 
@@ -259,8 +262,8 @@ def line_4(
             line_5(outcomes=outcomes, treatments=treatments, estimand=estimand, G=G)
         elif S in c_components:
             return Sum(
-                Product(*[P(v | parents[: parents.index(v)]) for v in S]),
-                list(vertices - (outcomes | treatments)),
+                expression=Product(*[P(v | parents[: parents.index(v)]) for v in S]),
+                ranges=_upgrade_ordering(vertices - (outcomes | treatments)),
             )
         else:
             for district in c_components:
@@ -332,7 +335,7 @@ def line_6(
                 expression=Product(
                     tuple(P(v | parents[: parents.index(v)]) for v in S)
                 ),
-                ranges=tuple(S - y),
+                ranges=_upgrade_ordering(S - y),
             )
         return estimand
 

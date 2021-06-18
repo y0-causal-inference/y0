@@ -40,7 +40,7 @@ class Identification:
 
     query: Expression
     estimand: Expression
-    graph: NxMixedGraph
+    graph: NxMixedGraph[str]
 
     def __eq__(self, other: Any) -> bool:
         """Check fi the query, estimand, and graph are equal."""
@@ -81,17 +81,16 @@ def outcomes_and_treatments_to_query(
     *, outcomes: Set[Variable], treatments: Set[Variable]
 ) -> Expression:
     if len(treatments) == 0:
-        return P(*[Variable(y) if type(y) is str else y for y in outcomes])
-    else:
-        return P(
-            *[
-                y @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
-                if type(y) is Variable
-                else Variable(y)
-                @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
-                for y in outcomes
-            ]
+        return P(outcomes)
+    return P(
+        (
+            y @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
+            if type(y) is Variable
+            else Variable(y)
+            @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
         )
+        for y in outcomes
+    )
 
 
 def ancestors_and_self(graph: NxMixedGraph[X], sources: Set[X]) -> Set[X]:
