@@ -8,8 +8,19 @@ import functools
 import itertools as itt
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from inspect import isgenerator
 from operator import attrgetter
-from typing import Callable, Iterable, Optional, Sequence, Set, Tuple, TypeVar, Union
+from typing import (
+    Callable,
+    Iterable,
+    Iterator,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 __all__ = [
     "Variable",
@@ -487,8 +498,18 @@ class Probability(Expression):
 
 
 def P(  # noqa:N802
-    distribution: Union[Variable, Tuple[Variable, ...], Distribution],
-    *args: Variable,
+    distribution: Union[
+        str,
+        Sequence[str],
+        Set[str],
+        Iterator[str],
+        Variable,
+        Sequence[Variable],
+        Set[Variable],
+        Iterator[Variable],
+        Distribution,
+    ],
+    *args: Union[str, Variable],
 ) -> Probability:
     """Create a probability expression over the given variable(s) or distribution.
 
@@ -498,6 +519,7 @@ def P(  # noqa:N802
     :param args: If the first argument (``distribution``) was given as a single variable, the
         ``args`` variadic argument can be used to specify a list of additional variables.
     :returns: A probability object
+    :raises TypeError: If the distribution is the wrong type
     :raises ValueError: If varidic args are used incorrectly (i.e., in combination with a
         list of variables or :class:`Distribution`.
 
@@ -521,26 +543,58 @@ def P(  # noqa:N802
     >>> from y0.dsl import P, A
     >>> P(A)
 
+    Creation with a single string:
+
+    >>> from y0.dsl import P, A
+    >>> P('A')
+
     Creation with a list of :class:`Variable`:
 
     >>> from y0.dsl import P, A, B
     >>> P((A, B))
 
+    Creation with a list of strings:
+
+    >>> from y0.dsl import P, A, B
+    >>> P(('A', 'B'))
+
     Creation with a list of :class:`Variable`: using variadic arguments:
 
     >>> from y0.dsl import P, A, B
     >>> P(A, B)
+
+    Creation with a list of strings using variadic arguments:
+
+    >>> from y0.dsl import P, A, B
+    >>> P('A', 'B')
+
+    Creation with a fancy generator of variables:
+
+    >>> from y0.dsl import P, A, B
+    >>> P(Variable(name) for name in 'AB')
+
+    Creation with a fancy generator of strings:
+
+    >>> from y0.dsl import P, A, B
+    >>> P(name for name in 'AB')
     """
-    if isinstance(distribution, Variable):
-        if not args:
-            distribution = (distribution,)
-        elif not all(isinstance(p, Variable) for p in args):
-            raise ValueError
-        else:
-            distribution = (distribution, *args)
-    if isinstance(distribution, tuple):
-        distribution = Distribution(children=distribution)
-    return Probability(distribution=distribution)
+    if isinstance(distribution, Distribution):
+        return Probability(distribution=distribution)
+
+    children: Tuple[Variable, ...]
+    if isinstance(distribution, (str, Variable)):
+        children = (Variable.norm(distribution), *_upgrade_ordering(args))
+    elif isinstance(distribution, (list, tuple, set)) or isgenerator(distribution):
+        if args:
+            raise ValueError(
+                "can not use variadic arguments with combination of first arg"
+            )
+        children = _sorted_variables(_upgrade_ordering(distribution))
+    else:
+        raise TypeError(
+            f"invalid distribution type: {type(distribution)} {distribution}"
+        )
+    return Probability(distribution=Distribution(children=children))
 
 
 @dataclass(frozen=True)
@@ -866,7 +920,9 @@ Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f"Y{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
 
 
-def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Sequence[Variable]:
+def _upgrade_ordering(
+    variables: Iterable[Union[str, Variable]]
+) -> Tuple[Variable, ...]:
     return tuple(Variable.norm(variable) for variable in variables)
 
 
@@ -890,4 +946,8 @@ def ensure_ordering(
     if ordering is not None:
         return _upgrade_ordering(ordering)
     # use alphabetical ordering
-    return sorted(expression.get_variables(), key=attrgetter("name"))
+    return _sorted_variables(expression.get_variables())
+
+
+def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
+    return tuple(sorted(variables, key=attrgetter("name")))
