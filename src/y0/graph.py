@@ -96,15 +96,6 @@ class NxMixedGraph(Generic[X]):
                 undirected[Variable(str(u))].append(Variable(str(v)))
         return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
 
-    def __eq__(self, other: Any) -> bool:
-        """Check for equality of nodes, directed edges, and undirected edges."""
-        return (
-            isinstance(other, NxMixedGraph)
-            and self.nodes() == other.nodes()
-            and (self.directed.edges() == other.directed.edges())
-            and (self.undirected.edges() == other.undirected.edges())
-        )
-
     def subgraph(self, vertices: Collection[X]) -> NxMixedGraph:
         """Return a subgraph given a set of vertices.
 
@@ -158,6 +149,11 @@ class NxMixedGraph(Generic[X]):
                 undirected[u].append(v)
 
         return self.from_adj(directed=directed, undirected=undirected)
+
+    def add_node(self, n: X) -> None:
+        """Add a node."""
+        self.directed.add_node(n)
+        self.undirected.add_node(n)
 
     def add_directed_edge(self, u: X, v: X, **attr) -> None:
         """Add a directed edge from u to v."""
@@ -329,11 +325,11 @@ class NxMixedGraph(Generic[X]):
         """Make a mixed graph from a pair of adjacencyacency lists."""
         rv = cls()
         for u, vs in directed.items():
-            rv.directed.add_node(u)
+            rv.add_node(u)
             for v in vs:
                 rv.add_directed_edge(u, v)
         for u, vs in undirected.items():
-            rv.undirected.add_node(u)
+            rv.add_node(u)
             for v in vs:
                 rv.add_undirected_edge(u, v)
         return rv
