@@ -61,6 +61,7 @@ class TestIdentify(unittest.TestCase):
 
     def assert_identification_equal(self, expected: Identification, actual: Identification):
         """Assert that the recursive call to ID has the correct input parameters."""
+        self.assertIsNotNone(actual)
         self.assert_expr_equal(expected.query, actual.query)
         self.assert_expr_equal(expected.estimand, actual.estimand)
         self.assertEqual(expected.graph, actual.graph)

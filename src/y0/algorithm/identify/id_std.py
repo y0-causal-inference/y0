@@ -10,7 +10,7 @@ from y0.algorithm.identify.utils import (
     nxmixedgraph_to_causal_graph,
     outcomes_and_treatments_to_query,
 )
-from y0.dsl import Expression, P, Product, Sum, Variable, _upgrade_ordering
+from y0.dsl import Expression, P, Product, Sum, Variable
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
 from .utils import Fail, Identification, get_outcomes_and_treatments
@@ -18,8 +18,8 @@ from .utils import Fail, Identification, get_outcomes_and_treatments
 X = TypeVar("X")
 
 
-def identify(graph: Union[ADMG, NxMixedGraph[str]], query: Expression):
-    """Run the identification algorithm."""
+def identify_old(graph: Union[ADMG, NxMixedGraph[str]], query: Expression):
+    """Run the old implementation of the identification algorithm."""
     if isinstance(graph, ADMG):
         graph = NxMixedGraph.from_admg(graph)
     treatments = _get_treatments(query.get_variables())
@@ -36,7 +36,8 @@ def identify(graph: Union[ADMG, NxMixedGraph[str]], query: Expression):
     #     return r[0]
 
 
-def ID(identification: Identification) -> Expression:
+def identify(identification: Identification) -> Expression:
+    """Run the identification algorithm."""
     outcomes, treatments = get_outcomes_and_treatments(query=identification.query)
     estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
@@ -46,50 +47,51 @@ def ID(identification: Identification) -> Expression:
     g_ancestral_to_y = graph.subgraph(ancestors_and_y_in_g)
     # line 1
     if len(treatments) == 0:
-        return Sum(P(vertices), _upgrade_ordering(vertices.difference(outcomes)))
-    # line 2
-    if len(vertices - ancestors_and_self(graph, outcomes)) > 0:
-        return ID(
+        return Sum.safe(expression=P(vertices), ranges=vertices.difference(outcomes))
+    # line 2 TODO rename line_2_check
+    line_2_check = vertices - ancestors_and_self(graph, outcomes)
+    if line_2_check:
+        return identify(
             Identification(
                 query=outcomes_and_treatments_to_query(
                     outcomes=outcomes, treatments=treatments & ancestors_and_y_in_g
                 ),
-                estimand=Sum(estimand, _upgrade_ordering(not_ancestors_of_y)),
+                estimand=Sum.safe(expression=estimand, ranges=not_ancestors_of_y),
                 graph=g_ancestral_to_y,
             )
         )
     # line 3
     g_bar_x = graph.intervene(treatments)
     no_effect_nodes = (vertices - treatments) - ancestors_and_self(g_bar_x, outcomes)
-    if len(no_effect_nodes) > 0:
+    if no_effect_nodes:
         query = outcomes_and_treatments_to_query(
             outcomes=outcomes, treatments=treatments | no_effect_nodes
         )
-        return ID(Identification(query=query, estimand=estimand, graph=graph))
+        return identify(Identification(query=query, estimand=estimand, graph=graph))
 
     # line 4
     c_components = get_c_components(graph)
     c_components_without_x = get_c_components(graph.remove_nodes_from(treatments))
+    # FIXME name S something more meaningful
     S = c_components_without_x[0]
     parents = list(nx.topological_sort(graph.directed))
 
     if len(c_components_without_x) > 1:
-        return Sum(
-            expression=Product(
-                tuple(
-                    ID(
-                        Identification(
-                            query=outcomes_and_treatments_to_query(
-                                outcomes=district, treatments=vertices - district
-                            ),
-                            estimand=estimand,
-                            graph=graph,
-                        )
-                    )
-                    for district in c_components_without_x
+        expression = Product.safe(
+            identify(
+                Identification(
+                    query=outcomes_and_treatments_to_query(
+                        outcomes=district, treatments=vertices - district
+                    ),
+                    estimand=estimand,
+                    graph=graph,
                 )
-            ),
-            ranges=_upgrade_ordering(vertices.difference(outcomes | treatments)),
+            )
+            for district in c_components_without_x
+        )
+        return Sum.safe(
+            expression=expression,
+            ranges=vertices.difference(outcomes | treatments),
         )
 
     # line 5
@@ -98,24 +100,24 @@ def ID(identification: Identification) -> Expression:
 
     # line 6
     if c_components_without_x[0] in c_components:
-        if len(S - outcomes) == 0:
-            estimand = Product(tuple(P(v | parents[: parents.index(v)]) for v in S))
-        else:
-            estimand = Sum(
-                expression=Product(tuple(P(v | parents[: parents.index(v)]) for v in S)),
-                ranges=_upgrade_ordering(S - outcomes),
-            )
-        return estimand
+        expression = Product.safe(P(v | parents[: parents.index(v)]) for v in S)
+        ranges = S - outcomes
+        if not ranges:
+            return expression
+        return Sum.safe(
+            expression=expression,
+            ranges=ranges,
+        )
 
     # line 7
     for S_prime in c_components:
         if S < S_prime:
-            return ID(
+            return identify(
                 Identification(
                     query=outcomes_and_treatments_to_query(
                         outcomes=outcomes, treatments=treatments & S_prime
                     ),
-                    estimand=Product(tuple(P(v | parents[: parents.index(v)]) for v in S_prime)),
+                    estimand=Product.safe(P(v | parents[: parents.index(v)]) for v in S_prime),
                     graph=graph.subgraph(S_prime),
                 )
             )
@@ -137,9 +139,9 @@ def line_1(
     :raises ValueError:  There should not be any interventional variables
     """
     vertices = set(graph.nodes())
-    return Sum(
+    return Sum.safe(
         expression=P(vertices),
-        ranges=_upgrade_ordering(vertices.difference(outcomes)),
+        ranges=vertices.difference(outcomes),
     )
 
 
@@ -174,9 +176,9 @@ def line_2(
         query=outcomes_and_treatments_to_query(
             outcomes=outcomes, treatments=treatments & ancestors_and_Y_in_G
         ),
-        estimand=Sum(
+        estimand=Sum.safe(
             expression=estimand,
-            ranges=_upgrade_ordering(not_ancestors_of_Y),
+            ranges=not_ancestors_of_Y,
         ),
         graph=G_ancestral_to_Y,
     )
@@ -253,10 +255,11 @@ def line_4(
         if c_components == [frozenset(vertices)]:
             line_5(outcomes=outcomes, treatments=treatments, estimand=estimand, G=G)
         elif S in c_components:
-            return Sum(
+            _sum = Sum.safe(
                 expression=Product(*[P(v | parents[: parents.index(v)]) for v in S]),
-                ranges=_upgrade_ordering(vertices - (outcomes | treatments)),
+                ranges=vertices - (outcomes | treatments),
             )
+            return _sum
         else:
             for district in c_components:
                 if S in district:
@@ -267,14 +270,16 @@ def line_4(
                         )
                         for v in district
                     ]
-                    factors = tuple(P(v | given) for v, given in zip(district, givens))
-                    return Identification(
+                    _id = Identification(
                         query=outcomes_and_treatments_to_query(
                             outcomes=outcomes, treatments=treatments & district
                         ),
-                        estimand=Product(factors),
+                        estimand=Product.safe(P(v | given) for v, given in zip(district, givens)),
                         graph=G.subgraph(district),
                     )
+                    return _id
+            else:
+                raise ValueError
     else:
         raise NotImplementedError
 
@@ -318,14 +323,13 @@ def line_6(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
     parents = [Variable(p) for p in nx.topological_sort(G.directed)]
     if C_components_of_G_without_X[0] in C_components_of_G:
         S = {Variable(s) for s in C_components_of_G_without_X[0]}
+        expression = Product.safe(P(v | parents[: parents.index(v)]) for v in S)
         if len(S - y) == 0:
-            estimand = Product(tuple(P(v | parents[: parents.index(v)]) for v in S))
-        else:
-            estimand = Sum(
-                expression=Product(tuple(P(v | parents[: parents.index(v)]) for v in S)),
-                ranges=_upgrade_ordering(S - y),
-            )
-        return estimand
+            return expression
+        return Sum.safe(
+            expression=expression,
+            ranges=S - y,
+        )
 
 
 def line_7(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph):

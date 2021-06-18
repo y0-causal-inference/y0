@@ -595,6 +595,10 @@ class Product(Expression):
 
     expressions: Tuple[Expression, ...]
 
+    @classmethod
+    def safe(cls, it) -> Product:
+        return cls(expressions=tuple(it))
+
     def to_text(self):
         """Output this product in the internal string format."""
         return " ".join(expression.to_text() for expression in self.expressions)
@@ -636,6 +640,10 @@ class Sum(Expression):
     expression: Expression
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
     ranges: Tuple[Variable, ...] = field(default_factory=tuple)
+
+    @classmethod
+    def safe(cls, *, expression: Expression, ranges: Iterable[Union[str, Variable]]) -> Sum:
+        return cls(expression=expression, ranges=_upgrade_ordering(ranges))
 
     def to_text(self) -> str:
         """Output this sum in the internal string format."""

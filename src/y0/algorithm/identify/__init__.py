@@ -3,7 +3,7 @@
 """Identification algorithms."""
 
 from .id_std import (
-    ID,
+    identify,
     get_c_components,
     identify,
     line_1,
