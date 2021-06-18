@@ -21,6 +21,7 @@ from typing import (
 
 import networkx as nx
 from ananke.graphs import ADMG
+from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
 __all__ = [
@@ -65,6 +66,20 @@ class NxMixedGraph(Generic[X]):
     #: A undirected graph
     undirected: nx.Graph = field(default_factory=nx.Graph)
 
+    def __eq__(self, other: Any) -> bool:
+        """Check for equality of nodes, directed edges, and undirected edges."""
+        return (
+            isinstance(other, NxMixedGraph)
+            and self.nodes() == other.nodes()
+            and (self.directed.edges() == other.directed.edges())
+            and (self.undirected.edges() == other.undirected.edges())
+        )
+
+    def add_node(self, n: X) -> None:
+        """Add a node."""
+        self.directed.add_node(n)
+        self.undirected.add_node(n)
+
     def add_directed_edge(self, u: X, v: X, **attr) -> None:
         """Add a directed edge from u to v."""
         self.directed.add_edge(u, v, **attr)
@@ -76,6 +91,10 @@ class NxMixedGraph(Generic[X]):
         self.undirected.add_edge(u, v, **attr)
         self.directed.add_node(u)
         self.directed.add_node(v)
+
+    def nodes(self) -> NodeView:
+        """Get the nodes in the graph."""
+        return self.directed.nodes()
 
     def to_admg(self) -> ADMG:
         """Get an ADMG instance."""
