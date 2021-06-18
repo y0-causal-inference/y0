@@ -13,7 +13,7 @@ from y0.algorithm.identify.utils import (
 from y0.dsl import Expression, P, Product, Sum, Variable
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
-from .utils import Fail, Identification
+from .utils import Fail, Identification, get_outcomes_and_treatments
 
 
 def identify(graph: Union[ADMG, NxMixedGraph], query: Expression):
@@ -37,8 +37,11 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression):
 def ID( identification: Identification ) -> Expression:
     outcomes, treatments = get_outcomes_and_treatments(
                 query=identification.query)
+    outcomes = {Variable(y) for y in outcomes}
+    treatments = {Variable(x) for x in treatments}
+    estimand = identification.estimand
     G = identification.graph.str_nodes_to_variable_nodes()
-    V = G.nodes()
+    V = set(G.nodes())
     ancestors_and_Y_in_G = ancestors_and_self(G, outcomes)
     not_ancestors_of_Y = V.difference(ancestors_and_Y_in_G)
     G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
@@ -62,7 +65,7 @@ def ID( identification: Identification ) -> Expression:
         )
     # line 3
     g_bar_x = G.intervene(treatments)
-    no_effect_nodes = (vertices - treatments) - ancestors_and_self(g_bar_x, outcomes)
+    no_effect_nodes = (V - treatments) - ancestors_and_self(g_bar_x, outcomes)
     if len(no_effect_nodes) > 0:
         query = outcomes_and_treatments_to_query(
             outcomes=outcomes,
@@ -97,11 +100,11 @@ def ID( identification: Identification ) -> Expression:
         )
 
     # line 5
-    if C_components_of_G == [frozenset(V)]:
-        raise Fail(C_components_of_G, C_components_of_G_without_X)
+    if c_components == [frozenset(V)]:
+        raise Fail(c_components, c_components_without_x)
 
     # line 6
-    if C_components_of_G_without_X[0] in C_components_of_G:
+    if c_components_without_x[0] in c_components:
         if len(S - outcomes) == 0:
             estimand = Product(tuple(P(v | parents[: parents.index(v)]) for v in S))
         else:
@@ -114,18 +117,18 @@ def ID( identification: Identification ) -> Expression:
         return estimand
 
     # line 7
-    for S_prime in C_components_of_G:
+    for S_prime in c_components:
         if S < S_prime:
             return ID(
                 Identification(
                     query=outcomes_and_treatments_to_query(
                         outcomes=outcomes,
-                        treatments=treatments & district
+                        treatments=treatments & S_prime
                     ),
                     estimand=Product(
                         tuple(P(v | parents[: parents.index(v)]) for v in S_prime)
                     ),
-                    graph=G.subgraph(district),
+                    graph=G.subgraph(S_prime),
                 )
             )
 
