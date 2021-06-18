@@ -128,7 +128,7 @@ class TestIdentify(unittest.TestCase):
                         _get_treatments(identification["id_in"][0].query.get_variables())
                     ),
                     estimand=identification["id_in"][0].estimand,
-                    G=identification["id_in"][0].graph,
+                    graph=identification["id_in"][0].graph,
                 ),
             )
 
@@ -150,7 +150,7 @@ class TestIdentify(unittest.TestCase):
                     outcomes=outcomes,
                     treatments=treatments,
                     estimand=identification["id_in"][0].estimand,
-                    G=identification["id_in"][0].graph,
+                    graph=identification["id_in"][0].graph,
                 ),
             )
 
@@ -170,7 +170,7 @@ class TestIdentify(unittest.TestCase):
                 outcomes=outcomes,
                 treatments=treatments,
                 estimand=identification["id_in"][0].estimand,
-                G=identification["id_in"][0].graph,
+                graph=identification["id_in"][0].graph,
             )
             expecteds = identification["id_out"]
             self.assertEqual(len(expecteds), len(actuals))
@@ -202,7 +202,7 @@ class TestIdentify(unittest.TestCase):
                     outcomes=outcomes,
                     treatments=treatments,
                     estimand=identification["id_in"][0].estimand,
-                    G=identification["id_in"][0].graph,
+                    graph=identification["id_in"][0].graph,
                 )
 
     def test_line_6(self):
@@ -222,7 +222,7 @@ class TestIdentify(unittest.TestCase):
                     outcomes=outcomes,
                     treatments=treatments,
                     estimand=identification["id_in"][0].estimand,
-                    G=identification["id_in"][0].graph,
+                    graph=identification["id_in"][0].graph,
                 ),
             )
 
@@ -247,7 +247,7 @@ class TestIdentify(unittest.TestCase):
                     outcomes=outcomes,
                     treatments=treatments,
                     estimand=identification["id_in"][0].estimand,
-                    G=identification["id_in"][0].graph,
+                    graph=identification["id_in"][0].graph,
                 ),
             )
 

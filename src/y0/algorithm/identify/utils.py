@@ -68,7 +68,7 @@ class Identification:
         return _get_treatment_variables(self.query.get_variables())
 
     def __eq__(self, other: Any) -> bool:
-        """Check fi the query, estimand, and graph are equal."""
+        """Check if the query, estimand, and graph are equal."""
         return (
             isinstance(other, Identification)
             and expr_equal(self.query, other.query)
@@ -92,9 +92,10 @@ def expr_equal(expected: Expression, actual: Expression) -> bool:
 
 def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[Variable], Set[Variable]]:
     """Get outcomes and treatments sets from the query expression."""
+    query_variables = query.get_variables()
     return (
-        _get_outcome_variables(query.get_variables()),
-        _get_treatment_variables(query.get_variables()),
+        _get_outcome_variables(query_variables),
+        _get_treatment_variables(query_variables),
     )
 
 
