@@ -5,15 +5,11 @@ from typing import FrozenSet, List, Set, TypeVar, Union
 import networkx as nx
 from ananke.graphs import ADMG
 
-from y0.algorithm.identify.utils import (
-    ancestors_and_self,
-    nxmixedgraph_to_causal_graph,
-    outcomes_and_treatments_to_query,
-)
+from y0.algorithm.identify.utils import ancestors_and_self, nxmixedgraph_to_causal_graph
 from y0.dsl import Expression, P, Product, Sum, Variable
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
-from .utils import Fail, Identification, get_outcomes_and_treatments
+from .utils import Fail, Identification
 
 X = TypeVar("X")
 
@@ -38,7 +34,8 @@ def identify_old(graph: Union[ADMG, NxMixedGraph[str]], query: Expression):
 
 def identify(identification: Identification) -> Expression:
     """Run the identification algorithm."""
-    outcomes, treatments = get_outcomes_and_treatments(query=identification.query)
+    outcomes = identification.outcomes
+    treatments = identification.treatments
     estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
@@ -46,16 +43,15 @@ def identify(identification: Identification) -> Expression:
     not_ancestors_of_y = vertices.difference(ancestors_and_y_in_g)
     g_ancestral_to_y = graph.subgraph(ancestors_and_y_in_g)
     # line 1
-    if len(treatments) == 0:
+    if not treatments:
         return Sum.safe(expression=P(vertices), ranges=vertices.difference(outcomes))
     # line 2 TODO rename line_2_check
     line_2_check = vertices - ancestors_and_self(graph, outcomes)
     if line_2_check:
         return identify(
-            Identification(
-                query=outcomes_and_treatments_to_query(
-                    outcomes=outcomes, treatments=treatments & ancestors_and_y_in_g
-                ),
+            Identification.from_parts(
+                outcomes=outcomes,
+                treatments=treatments & ancestors_and_y_in_g,
                 estimand=Sum.safe(expression=estimand, ranges=not_ancestors_of_y),
                 graph=g_ancestral_to_y,
             )
@@ -64,10 +60,14 @@ def identify(identification: Identification) -> Expression:
     g_bar_x = graph.intervene(treatments)
     no_effect_nodes = (vertices - treatments) - ancestors_and_self(g_bar_x, outcomes)
     if no_effect_nodes:
-        query = outcomes_and_treatments_to_query(
-            outcomes=outcomes, treatments=treatments | no_effect_nodes
+        return identify(
+            Identification.from_parts(
+                outcomes=outcomes,
+                treatments=treatments | no_effect_nodes,
+                estimand=estimand,
+                graph=graph,
+            )
         )
-        return identify(Identification(query=query, estimand=estimand, graph=graph))
 
     # line 4
     c_components = get_c_components(graph)
@@ -79,10 +79,9 @@ def identify(identification: Identification) -> Expression:
     if len(c_components_without_x) > 1:
         expression = Product.safe(
             identify(
-                Identification(
-                    query=outcomes_and_treatments_to_query(
-                        outcomes=district, treatments=vertices - district
-                    ),
+                Identification.from_parts(
+                    outcomes=district,
+                    treatments=vertices - district,
                     estimand=estimand,
                     graph=graph,
                 )
@@ -113,10 +112,9 @@ def identify(identification: Identification) -> Expression:
     for S_prime in c_components:
         if S < S_prime:
             return identify(
-                Identification(
-                    query=outcomes_and_treatments_to_query(
-                        outcomes=outcomes, treatments=treatments & S_prime
-                    ),
+                Identification.from_parts(
+                    outcomes=outcomes,
+                    treatments=treatments & S_prime,
                     estimand=Product.safe(P(v | parents[: parents.index(v)]) for v in S_prime),
                     graph=graph.subgraph(S_prime),
                 )
@@ -172,10 +170,9 @@ def line_2(
     G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
     if len(not_ancestors_of_Y) == 0:
         raise ValueError("No ancestors of Y")
-    return Identification(
-        query=outcomes_and_treatments_to_query(
-            outcomes=outcomes, treatments=treatments & ancestors_and_Y_in_G
-        ),
+    return Identification.from_parts(
+        outcomes=outcomes,
+        treatments=treatments & ancestors_and_Y_in_G,
         estimand=Sum.safe(
             expression=estimand,
             ranges=not_ancestors_of_Y,
@@ -207,10 +204,9 @@ def line_3(
     g_bar_x = G.intervene(treatments)
     no_effect_nodes = (vertices - treatments) - ancestors_and_self(g_bar_x, outcomes)
     if len(no_effect_nodes) > 0:
-        query = outcomes_and_treatments_to_query(
-            outcomes=outcomes, treatments=treatments | no_effect_nodes
+        return Identification.from_parts(
+            outcomes=outcomes, treatments=treatments | no_effect_nodes, estimand=estimand, graph=G
         )
-        return Identification(query=query, estimand=estimand, graph=G)
 
     # TODO what happens if it gets here
     raise NotImplementedError
@@ -236,10 +232,9 @@ def line_4(
 
     if len(c_components_without_x) > 1:
         return [
-            Identification(
-                query=outcomes_and_treatments_to_query(
-                    outcomes=district, treatments=vertices - district
-                ),
+            Identification.from_parts(
+                outcomes=district,
+                treatments=vertices - district,
                 estimand=estimand,
                 graph=G,
             )
@@ -270,10 +265,9 @@ def line_4(
                         )
                         for v in district
                     ]
-                    _id = Identification(
-                        query=outcomes_and_treatments_to_query(
-                            outcomes=outcomes, treatments=treatments & district
-                        ),
+                    _id = Identification.from_parts(
+                        outcomes=outcomes,
+                        treatments=treatments & district,
                         estimand=Product.safe(P(v | given) for v, given in zip(district, givens)),
                         graph=G.subgraph(district),
                     )
@@ -363,10 +357,9 @@ def line_7(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G:
     for district in C_components_of_G:
         S_prime = {Variable(s) for s in district}
         if S < S_prime:
-            return Identification(
-                query=outcomes_and_treatments_to_query(
-                    outcomes=outcomes, treatments=treatments & district
-                ),
+            return Identification.from_parts(
+                outcomes=outcomes,
+                treatments=treatments & district,
                 estimand=Product(tuple(P(v | parents[: parents.index(v)]) for v in S_prime)),
                 graph=G.subgraph(district),
             )

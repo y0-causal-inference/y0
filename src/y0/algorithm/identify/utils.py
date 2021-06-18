@@ -2,6 +2,8 @@
 
 """Utilities for identifiaction algorithms"""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Set, Tuple, TypeVar
 
@@ -42,13 +44,36 @@ class Identification:
     estimand: Expression
     graph: NxMixedGraph[str]
 
+    @classmethod
+    def from_parts(
+        cls,
+        outcomes: Set[Variable],
+        treatments: Set[Variable],
+        estimand: Expression,
+        graph: NxMixedGraph[str],
+    ) -> Identification:
+        """Instantiate an Identification from the parts of a query."""
+        return cls(
+            query=outcomes_and_treatments_to_query(outcomes=outcomes, treatments=treatments),
+            estimand=estimand,
+            graph=graph,
+        )
+
+    @property
+    def outcomes(self) -> Set[Variable]:
+        return _get_outcome_variables(self.query.get_variables())
+
+    @property
+    def treatments(self) -> Set[Variable]:
+        return _get_treatment_variables(self.query.get_variables())
+
     def __eq__(self, other: Any) -> bool:
         """Check fi the query, estimand, and graph are equal."""
         return (
             isinstance(other, Identification)
             and expr_equal(self.query, other.query)
             and expr_equal(self.estimand, other.estimand)
-            and (self.graph == other.graph)
+            and self.graph == other.graph
         )
 
 
