@@ -30,9 +30,7 @@ def _get_treatments(variables: Set[Variable]) -> List[str]:
 
 
 def _get_outcome_variables(variables: Set[Variable]) -> Set[Variable]:
-    return {
-        variable for variable in variables if not isinstance(variable, Intervention)
-    }
+    return {variable for variable in variables if not isinstance(variable, Intervention)}
 
 
 def _get_outcomes(variables: Set[Variable]) -> List[str]:
@@ -40,10 +38,7 @@ def _get_outcomes(variables: Set[Variable]) -> List[str]:
 
 
 def _all_counterfactual(distribution: Distribution) -> bool:
-    return all(
-        isinstance(variable, CounterfactualVariable)
-        for variable in distribution.children
-    )
+    return all(isinstance(variable, CounterfactualVariable) for variable in distribution.children)
 
 
 def _all_intervened_same(distribution: Distribution) -> bool:
@@ -57,16 +52,13 @@ def _all_intervened_same(distribution: Distribution) -> bool:
 
 def _get_to(query: Distribution) -> Tuple[List[str], List[str]]:
     if not _all_counterfactual(query):
-        raise ValueError(
-            "all variables in input distribution should be counterfactuals"
-        )
+        raise ValueError("all variables in input distribution should be counterfactuals")
 
     if not _all_intervened_same(query):
         raise ValueError("not all variables are invervened on the same")
 
     treatments = [
-        intervention.name
-        for intervention in query.children[0].interventions  # type:ignore
+        intervention.name for intervention in query.children[0].interventions  # type:ignore
     ]
     outcomes = [variable.name for variable in query.children]
     return treatments, outcomes

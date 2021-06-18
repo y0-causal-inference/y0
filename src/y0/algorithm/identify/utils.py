@@ -57,9 +57,7 @@ def expr_equal(expected: Expression, actual: Expression) -> bool:
     expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
     actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
 
-    if (expected_outcomes != actual_outcomes) or (
-        expected_treatments != actual_treatments
-    ):
+    if (expected_outcomes != actual_outcomes) or (expected_treatments != actual_treatments):
         return False
     ordering = tuple(expected.get_variables())  # need to impose ordering, any will do.
     expected_canonical = canonicalize(expected, ordering)
@@ -67,9 +65,7 @@ def expr_equal(expected: Expression, actual: Expression) -> bool:
     return expected_canonical == actual_canonical
 
 
-def get_outcomes_and_treatments(
-    *, query: Expression
-) -> Tuple[Set[Variable], Set[Variable]]:
+def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[Variable], Set[Variable]]:
     """Get outcomes and treatments sets from the query expression."""
     return (
         _get_outcome_variables(query.get_variables()),
@@ -86,8 +82,7 @@ def outcomes_and_treatments_to_query(
         (
             y @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
             if type(y) is Variable
-            else Variable(y)
-            @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
+            else Variable(y) @ tuple(x if type(x) is Variable else Variable(x) for x in treatments)
         )
         for y in outcomes
     )
@@ -184,9 +179,7 @@ class cg_graph:
                         for item2 in edge_list
                         if (item2[0] == sub_temp and item2[1] == obj_temp)
                     ]
-                    cycle_edge_list += [
-                        [sub_temp, obj_temp, item2] for item2 in rel_temp
-                    ]
+                    cycle_edge_list += [[sub_temp, obj_temp, item2] for item2 in rel_temp]
             print("Cycle edges:")
             for item in cycle_edge_list:
                 print(item)
@@ -256,11 +249,7 @@ class cg_graph:
 
                 if node_type == "":
                     node_type = "Normal"
-                    print(
-                        "BEL node type "
-                        + str_temp
-                        + " not known -- defaulting to Normal"
-                    )
+                    print("BEL node type " + str_temp + " not known -- defaulting to Normal")
 
             if self.graph_type == "Bayes":
                 node_dict[item] = bayes_node(n_pars, item, node_type)
@@ -269,11 +258,7 @@ class cg_graph:
             elif self.graph_type == "SCM":
                 node_dict[item] = scm_node(n_pars, item, node_type)
             else:
-                print(
-                    "node type "
-                    + self.graph_type
-                    + "not recognized -- defaulting to MLE"
-                )
+                print("node type " + self.graph_type + "not recognized -- defaulting to MLE")
                 node_dict[item] = mle_node(n_pars, item, node_type)
 
         self.node_dict = node_dict
@@ -289,10 +274,7 @@ class cg_graph:
             ind_remove = [
                 i
                 for i in range(0, len(self.edge_list))
-                if (
-                    self.edge_list[i][0] == edge_rem[0]
-                    and self.edge_list[i][1] == edge_rem[1]
-                )
+                if (self.edge_list[i][0] == edge_rem[0] and self.edge_list[i][1] == edge_rem[1])
             ]
             for ind in ind_remove:
                 self.edge_list.remove(self.edge_list[i])
@@ -412,11 +394,7 @@ class cg_graph:
             set_temp = nx.algorithms.dag.ancestors(graph_xbar, item)
             y_anc_x_bar += [item2 for item2 in set_temp if item2 not in y_anc_x_bar]
 
-        w_set = [
-            item
-            for item in graph_temp.nodes
-            if item not in x and item not in y_anc_x_bar
-        ]
+        w_set = [item for item in graph_temp.nodes if item not in x and item not in y_anc_x_bar]
 
         # line 1
         if not x:
@@ -467,9 +445,7 @@ class cg_graph:
             if len(s_sets) > 1:
                 # print('Begin Step 4')
                 # print(s_sets)
-                node_list = [
-                    item for item in graph_temp.nodes if item not in y and item not in x
-                ]
+                node_list = [item for item in graph_temp.nodes if item not in y and item not in x]
                 str_out = []
 
                 for item in s_sets:
@@ -490,9 +466,7 @@ class cg_graph:
             else:
                 graph_temp_c_prime = self.graph_c.subgraph(graph_temp.nodes)
 
-                s_sets_prime = [
-                    list(item) for item in nx.connected_components(graph_temp_c_prime)
-                ]
+                s_sets_prime = [list(item) for item in nx.connected_components(graph_temp_c_prime)]
 
                 # line 5
                 if sorted(s_sets_prime[0]) == sorted(
@@ -507,9 +481,7 @@ class cg_graph:
                     )
 
                 # line 6
-                elif np.any(
-                    [sorted(s_sets[0]) == sorted(item) for item in s_sets_prime]
-                ):
+                elif np.any([sorted(s_sets[0]) == sorted(item) for item in s_sets_prime]):
 
                     node_list = [item for item in s_sets[0] if item not in y]
                     str_out = []
@@ -519,9 +491,7 @@ class cg_graph:
                         parents = list(graph_temp.predecessors(item))
 
                         if parents:
-                            str_out += [
-                                P(Variable(item) | [Variable(p) for p in parents])
-                            ]
+                            str_out += [P(Variable(item) | [Variable(p) for p in parents])]
                         else:
                             str_out += [P(Variable(item))]
                     # print(s_sets[0])
@@ -530,16 +500,10 @@ class cg_graph:
 
                 # line 7
                 elif np.any(
-                    [
-                        np.all([item in item2 for item in s_sets[0]])
-                        for item2 in s_sets_prime
-                    ]
+                    [np.all([item in item2 for item in s_sets[0]]) for item2 in s_sets_prime]
                 ):
                     ind = np.where(
-                        [
-                            np.all([item in item2 for item in s_sets[0]])
-                            for item2 in s_sets_prime
-                        ]
+                        [np.all([item in item2 for item in s_sets[0]]) for item2 in s_sets_prime]
                     )[0][0]
 
                     graph_prime = graph_temp.subgraph(s_sets_prime[ind])
@@ -549,17 +513,11 @@ class cg_graph:
                     for item in s_sets_prime[ind]:
 
                         pred = list(nx.algorithms.dag.ancestors(graph_temp, item))
-                        par_set = [
-                            item2 for item2 in pred if item2 in s_sets_prime[ind]
-                        ]
-                        par_set += [
-                            item2 for item2 in pred if item2 not in s_sets_prime[ind]
-                        ]
+                        par_set = [item2 for item2 in pred if item2 in s_sets_prime[ind]]
+                        par_set += [item2 for item2 in pred if item2 not in s_sets_prime[ind]]
 
                         if par_set:
-                            str_out += [
-                                P(Variable(item) | [Variable(p) for p in par_set])
-                            ]
+                            str_out += [P(Variable(item) | [Variable(p) for p in par_set])]
                         else:
                             str_out += [P(Variable(item))]
 
@@ -622,11 +580,7 @@ class cg_graph:
             set_temp = nx.algorithms.dag.ancestors(graph_xbar, item)
             y_anc_x_bar += [item2 for item2 in set_temp if item2 not in y_anc_x_bar]
 
-        w_set = [
-            item
-            for item in graph_temp.nodes
-            if item not in x and item not in y_anc_x_bar
-        ]
+        w_set = [item for item in graph_temp.nodes if item not in x and item not in y_anc_x_bar]
 
         # line 1
         if not x:
@@ -671,9 +625,7 @@ class cg_graph:
             if len(s_sets) > 1:
                 # print('Begin Step 4')
                 # print(s_sets)
-                node_list = [
-                    item for item in graph_temp.nodes if item not in y and item not in x
-                ]
+                node_list = [item for item in graph_temp.nodes if item not in y and item not in x]
                 str_out = "[sum_{" + self.str_list(node_list) + "} "
 
                 for item in s_sets:
@@ -695,9 +647,7 @@ class cg_graph:
             else:
                 graph_temp_c_prime = self.graph_c.subgraph(graph_temp.nodes)
 
-                s_sets_prime = [
-                    list(item) for item in nx.connected_components(graph_temp_c_prime)
-                ]
+                s_sets_prime = [list(item) for item in nx.connected_components(graph_temp_c_prime)]
 
                 # line 5
                 if sorted(s_sets_prime[0]) == sorted(
@@ -708,20 +658,14 @@ class cg_graph:
                     node_list2 = [ind for ind in graph_temp.nodes if ind in s_sets[0]]
 
                     str_out = (
-                        "FAIL("
-                        + self.str_list(node_list)
-                        + ","
-                        + self.str_list(node_list2)
-                        + ")"
+                        "FAIL(" + self.str_list(node_list) + "," + self.str_list(node_list2) + ")"
                     )
 
                     # print('Step 5')
                     return str_out
 
                 # line 6
-                elif np.any(
-                    [sorted(s_sets[0]) == sorted(item) for item in s_sets_prime]
-                ):
+                elif np.any([sorted(s_sets[0]) == sorted(item) for item in s_sets_prime]):
 
                     node_list = [item for item in s_sets[0] if item not in y]
                     str_out = "[sum_{" + self.str_list(node_list) + "}"
@@ -740,16 +684,10 @@ class cg_graph:
 
                 # line 7
                 elif np.any(
-                    [
-                        np.all([item in item2 for item in s_sets[0]])
-                        for item2 in s_sets_prime
-                    ]
+                    [np.all([item in item2 for item in s_sets[0]]) for item2 in s_sets_prime]
                 ):
                     ind = np.where(
-                        [
-                            np.all([item in item2 for item in s_sets[0]])
-                            for item2 in s_sets_prime
-                        ]
+                        [np.all([item in item2 for item in s_sets[0]]) for item2 in s_sets_prime]
                     )[0][0]
 
                     graph_prime = graph_temp.subgraph(s_sets_prime[ind])
@@ -759,12 +697,8 @@ class cg_graph:
                     for item in s_sets_prime[ind]:
 
                         pred = list(nx.algorithms.dag.ancestors(graph_temp, item))
-                        par_set = [
-                            item2 for item2 in pred if item2 in s_sets_prime[ind]
-                        ]
-                        par_set += [
-                            item2 for item2 in pred if item2 not in s_sets_prime[ind]
-                        ]
+                        par_set = [item2 for item2 in pred if item2 in s_sets_prime[ind]]
+                        par_set += [item2 for item2 in pred if item2 not in s_sets_prime[ind]]
 
                         if par_set:
                             str_out += "P(" + item + "|" + self.str_list(par_set) + ")"
@@ -837,9 +771,7 @@ class cg_graph:
             digraph_xbar_zbar.remove_edges_from(graph_temp.out_edges(item))
             digraph_xbar_zbar = digraph_xbar_zbar.to_undirected()
 
-            digraph_xbar_zbar.add_edges_from(
-                self.graph_c.subgraph(graph_temp.nodes).edges
-            )
+            digraph_xbar_zbar.add_edges_from(self.graph_c.subgraph(graph_temp.nodes).edges)
 
             # calculate d-separation
             d_sep = self.d_sep(
@@ -885,16 +817,10 @@ class cg_graph:
                 vars_with_conf.append(item[1])
 
         # confounding nodes corresponding to duplicate pw-graph nodes
-        conf_nodes = [
-            "U^{" + item + "}"
-            for item in graph_temp.nodes
-            if item not in vars_with_conf
-        ]
+        conf_nodes = ["U^{" + item + "}" for item in graph_temp.nodes if item not in vars_with_conf]
 
         # confounding nodes corresponding to confounders in the original graph
-        conf_nodes += [
-            "U^{" + item[0] + "," + item[1] + "}" for item in conf_temp.edges
-        ]
+        conf_nodes += ["U^{" + item[0] + "," + item[1] + "}" for item in conf_temp.edges]
 
         graph_out = nx.DiGraph(graph_temp)
         graph_out.add_nodes_from(conf_nodes)
@@ -904,9 +830,7 @@ class cg_graph:
 
         # add confounding edges
         conf_edges_add = [
-            ("U^{" + item + "}", item)
-            for item in graph_temp.nodes
-            if item not in vars_with_conf
+            ("U^{" + item + "}", item) for item in graph_temp.nodes if item not in vars_with_conf
         ]
         conf_edges_add += [
             ("U^{" + item[0] + "," + item[1] + "}", item[0]) for item in conf_temp.edges
@@ -998,9 +922,7 @@ class cg_graph:
         graph_out, conf_out = self.make_pw_graph(do_in, graph_in)
 
         # iterate through nodes and merge variables
-        node_list = [
-            item for item in graph_temp.nodes if graph_temp.in_degree(item) == 0
-        ]
+        node_list = [item for item in graph_temp.nodes if graph_temp.in_degree(item) == 0]
         traversed_nodes = []
 
         while sorted(traversed_nodes) != sorted(graph_temp.nodes) and node_list:
@@ -1026,9 +948,7 @@ class cg_graph:
                 # see if all the parents are identical in conf_out
                 conf_pars = sorted(
                     [item2[0] for item2 in conf_out.edges if item2[1] == node_temp]
-                ) == sorted(
-                    [item2[0] for item2 in conf_out.edges if item2[1] == node_temp2]
-                )
+                ) == sorted([item2[0] for item2 in conf_out.edges if item2[1] == node_temp2])
 
                 # identify all of the parents that are not the same
                 par_diff = [
@@ -1060,8 +980,7 @@ class cg_graph:
                             return graph_out, conf_out, gamma_list
                         else:
                             gamma_list = [
-                                item2 if item2 != node_temp2 else node_temp
-                                for item2 in gamma_list
+                                item2 if item2 != node_temp2 else node_temp for item2 in gamma_list
                             ]
 
                 elif (
@@ -1092,8 +1011,7 @@ class cg_graph:
                         return graph_out, conf_out, gamma_list
                     else:
                         gamma_list = [
-                            item2 if item2 != node_temp2 else node_temp
-                            for item2 in gamma_list
+                            item2 if item2 != node_temp2 else node_temp for item2 in gamma_list
                         ]
 
             # only add nodes whose parents have all been traversed
@@ -1101,11 +1019,7 @@ class cg_graph:
                 item[1]
                 for item in graph_temp.edges
                 if np.all(
-                    [
-                        item2[0] in node_list
-                        for item2 in graph_temp.edges
-                        if item2[1] == item[1]
-                    ]
+                    [item2[0] in node_list for item2 in graph_temp.edges if item2[1] == item[1]]
                 )
             ]
 
@@ -1150,9 +1064,7 @@ class cg_graph:
 
         # remove confounding nodes that only connect to one node
         rem_nodes = [
-            item
-            for item in conf_out.nodes
-            if conf_out.degree(item) == 1 and item[0] == "U"
+            item for item in conf_out.nodes if conf_out.degree(item) == 1 and item[0] == "U"
         ]
         graph_out.remove_nodes_from(rem_nodes)
         conf_out.remove_nodes_from(rem_nodes)
@@ -1193,8 +1105,7 @@ class cg_graph:
                     [
                         item
                         for item in do_temp[i][1]
-                        if item
-                        in list(nx.algorithms.dag.ancestors(graph_out, node_list[i]))
+                        if item in list(nx.algorithms.dag.ancestors(graph_out, node_list[i]))
                     ],
                 ]
             )
@@ -1277,11 +1188,7 @@ class cg_graph:
 
         elif np.any([item[0] in item[1] for item in do_in]):
 
-            temp_inds = [
-                ind
-                for ind in range(0, len(do_in))
-                if do_in[ind][0] not in do_in[ind][1]
-            ]
+            temp_inds = [ind for ind in range(0, len(do_in)) if do_in[ind][0] not in do_in[ind][1]]
 
             # print('Step 3')
             # print(do_in)
@@ -1291,25 +1198,19 @@ class cg_graph:
             return self.id_star_alg(do_in[ind], obs_in, graph_in)
 
         else:
-            graph_out, conf_out, gamma_list = self.make_cf_graph(
-                do_in, obs_in, graph_in
-            )
+            graph_out, conf_out, gamma_list = self.make_cf_graph(do_in, obs_in, graph_in)
 
             do_temp, obs_temp = self.conv_from_gamma(gamma_list)
 
             do_vars_temp = []
             for item in do_temp:
-                do_vars_temp += [
-                    item2 for item2 in item[1] if item2 not in do_vars_temp
-                ]
+                do_vars_temp += [item2 for item2 in item[1] if item2 not in do_vars_temp]
 
             # print(gamma_list)
             # print('Step 4')
 
             # calculate graph C-components
-            s_sets = [
-                list(item) for item in nx.connected_components(conf_out.to_undirected())
-            ]
+            s_sets = [list(item) for item in nx.connected_components(conf_out.to_undirected())]
 
             # nodes in graph_out/conf_out fixed by interventions aren't included in any C-component
             # enforce this manually
@@ -1373,9 +1274,7 @@ class cg_graph:
                         if item2[:3] != "U^{":
                             # split variables that already have do-statements in them
                             if "_{" in item2:
-                                item_temp = (
-                                    item2.replace("_{", ",").replace("}", "").split(",")
-                                )
+                                item_temp = item2.replace("_{", ",").replace("}", "").split(",")
                                 do_list_temp = item_temp[1:]
                             else:
                                 item_temp = [item2]
@@ -1387,9 +1286,7 @@ class cg_graph:
                                         item3.find("_") > 0
                                         and item3[: item3.find("_")] not in do_list_temp
                                     ):
-                                        do_list_temp.append(
-                                            item3[: item3.find("_")] + "*"
-                                        )
+                                        do_list_temp.append(item3[: item3.find("_")] + "*")
                                     elif item3 not in do_list_temp:
                                         do_list_temp.append(item3 + "*")
 
@@ -1408,9 +1305,7 @@ class cg_graph:
                             # if item3 in nx.algorithms.dag.ancestors(graph_out,item2)]
                             do_in_temp += [[item_temp[0], do_list_temp]]
                             check_list += [
-                                item3
-                                for item3 in do_list_temp
-                                if item3 not in check_list
+                                item3 for item3 in do_list_temp if item3 not in check_list
                             ]
 
                     # print(do_in_temp)
@@ -1468,9 +1363,7 @@ class cg_graph:
 
                 gamma_subs = []
                 for item in do_temp2:
-                    gamma_subs += [
-                        item2 for item2 in item[1] if item2 not in gamma_subs
-                    ]
+                    gamma_subs += [item2 for item2 in item[1] if item2 not in gamma_subs]
                 do_vars = [item[0] for item in do_temp2]
 
                 # print(do_temp2)
@@ -1538,9 +1431,7 @@ class cg_graph:
                     graph_sep.remove_edges_from(
                         [item2 for item2 in graph_sep.edges if item2[0] == item]
                     )
-                    d_sep = self.d_sep(
-                        item, gamma_list[:n_gam], [], graph_sep, conf_out
-                    )
+                    d_sep = self.d_sep(item, gamma_list[:n_gam], [], graph_sep, conf_out)
 
                     if d_sep:
                         d_sep_list += [item]
@@ -1584,8 +1475,7 @@ class cg_graph:
                                 [
                                     item2.replace("*", "", 1) + "*"
                                     for item2 in d_sep_list
-                                    if item2
-                                    in nx.algorithms.dag.ancestors(graph_out, item)
+                                    if item2 in nx.algorithms.dag.ancestors(graph_out, item)
                                 ],
                             ]
                         )
@@ -1639,13 +1529,7 @@ class cg_graph:
                             P_prime = P_prime.replace(item + "*", item)
 
                     return (
-                        "["
-                        + P_prime
-                        + "]/[sum_{"
-                        + self.str_list(sum_list)
-                        + "}["
-                        + P_prime
-                        + "]]"
+                        "[" + P_prime + "]/[sum_{" + self.str_list(sum_list) + "}[" + P_prime + "]]"
                     )
 
         return
@@ -1762,10 +1646,7 @@ class scm_node(cg_node):
         m_vals = torch.tensor([np.sum(kmeans.labels_ == i) for i in range(0, n_cents)])
 
         p_vals = (
-            torch.tensor(
-                [np.sum(out_np[kmeans.labels_ == i]) for i in range(0, n_cents)]
-            )
-            / m_vals
+            torch.tensor([np.sum(out_np[kmeans.labels_ == i]) for i in range(0, n_cents)]) / m_vals
         )
 
         # make sure that p is never 0 or 1
@@ -1776,10 +1657,7 @@ class scm_node(cg_node):
 
         # calculate centroids * m_j
         centroids_m = torch.tensor(
-            [
-                kmeans.cluster_centers_[i, :] * m_vals[i].item()
-                for i in range(0, n_cents)
-            ]
+            [kmeans.cluster_centers_[i, :] * m_vals[i].item() for i in range(0, n_cents)]
         )
 
         return pm_vals, centroids_m
@@ -1820,9 +1698,7 @@ class scm_node(cg_node):
             self.alpha = (
                 torch.matmul(
                     torch.matmul(
-                        torch.inverse(
-                            torch.matmul(torch.t(big_x) / n_data, big_x / n_data)
-                        ),
+                        torch.inverse(torch.matmul(torch.t(big_x) / n_data, big_x / n_data)),
                         torch.t(big_x),
                     ),
                     big_y,
@@ -1830,9 +1706,7 @@ class scm_node(cg_node):
                 / n_data ** 2
             )
 
-            self.std = torch.sqrt(
-                torch.mean((big_y - torch.matmul(big_x, self.alpha)) ** 2)
-            )
+            self.std = torch.sqrt(torch.mean((big_y - torch.matmul(big_x, self.alpha)) ** 2))
 
         else:
             self.alpha = torch.mean(big_y)
@@ -1850,9 +1724,7 @@ class scm_node(cg_node):
         else:
             y_mean = self.alpha
 
-        y_arg = pyro.sample(
-            self.name + "_y", pyro.distributions.Normal(y_mean + eps, 0)
-        )
+        y_arg = pyro.sample(self.name + "_y", pyro.distributions.Normal(y_mean + eps, 0))
 
         if self.node_type == "continuous":
             return (self.y_max - self.y_min) * torch.sigmoid(y_arg) + self.y_min, eps

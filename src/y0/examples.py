@@ -199,9 +199,7 @@ line_1_example = Example(
 line_2_example = Example(
     name="intervention not ancestral to outcome",
     reference="out of the mind of JZ",
-    graph=NxMixedGraph.from_edges(
-        directed=[("Z", "Y"), ("Y", "X")], undirected=[("Z", "X")]
-    ),
+    graph=NxMixedGraph.from_edges(directed=[("Z", "Y"), ("Y", "X")], undirected=[("Z", "X")]),
     identifications=[
         dict(
             id_in=[
@@ -227,9 +225,7 @@ line_2_example = Example(
 line_3_example = Example(
     name="node has no effect on outcome",
     reference="out of the mind of JZ",
-    graph=NxMixedGraph.from_edges(
-        directed=[("Z", "X"), ("X", "Y")], undirected=[("Z", "X")]
-    ),
+    graph=NxMixedGraph.from_edges(directed=[("Z", "X"), ("X", "Y")], undirected=[("Z", "X")]),
     identifications=[
         dict(
             id_in=[
@@ -306,9 +302,7 @@ line_5_example = Example(
                 Identification(
                     query=P(Y @ X),
                     estimand=P(X, Y),
-                    graph=NxMixedGraph.from_edges(
-                        directed=[("X", "Y")], undirected=[("X", "Y")]
-                    ),
+                    graph=NxMixedGraph.from_edges(directed=[("X", "Y")], undirected=[("X", "Y")]),
                 )
             ],
         )
@@ -351,9 +345,7 @@ W1, Y1 = Variable("W1"), Variable("Y1")
 line_7_example = Example(
     name="line 7 example, figure 5a and b",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(
-        directed=[("X", "Y1"), ("W1", "Y1")], undirected=[("W1", "Y1")]
-    ),
+    graph=NxMixedGraph.from_edges(directed=[("X", "Y1"), ("W1", "Y1")], undirected=[("W1", "Y1")]),
     identifications=[
         dict(
             id_in=[
@@ -459,16 +451,10 @@ identifiability_2_example = Example(
         VermaConstraint(
             rhs_cfactor=Q[Z5](Z4, Z5),
             rhs_expr=Sum[u_3, Z4](P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3)),
-            lhs_cfactor=(
-                Q[Z2, Z5](Z1, Z4, Z2, Z5) / Sum[Z5](Q[Z2, Z5](Z1, Z4, Z2, Z5))
-            ),
+            lhs_cfactor=(Q[Z2, Z5](Z1, Z4, Z2, Z5) / Sum[Z5](Q[Z2, Z5](Z1, Z4, Z2, Z5))),
             lhs_expr=(
-                Sum[Z3](
-                    P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4))
-                )
-                / Sum[Z3, Z5](
-                    P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4))
-                )
+                Sum[Z3](P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
+                / Sum[Z3, Z5](P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
             ),
             variables=(Z1, Z2),
         ),

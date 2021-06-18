@@ -75,9 +75,7 @@ intervention_pe = letter("name") + star_pe
 intervention_pe.setParseAction(_make_intervention)
 interventions_pe = Optional(
     Suppress("_{")
-    + delimitedList(Group(intervention_pe).setParseAction(_unpack)).setResultsName(
-        "interventions"
-    )
+    + delimitedList(Group(intervention_pe).setParseAction(_unpack)).setResultsName("interventions")
     + Suppress("}"),
 )
 variable_pe = letter("name") + interventions_pe

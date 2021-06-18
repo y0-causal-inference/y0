@@ -42,9 +42,7 @@ class TestIdentify(unittest.TestCase):
 
     def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
         """Assert that two expressions are the same."""
-        expected_outcomes, expected_treatments = get_outcomes_and_treatments(
-            query=expected
-        )
+        expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
         actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
         self.assertEqual(expected_treatments, actual_treatments)
         self.assertEqual(expected_outcomes, actual_outcomes)
@@ -57,15 +55,11 @@ class TestIdentify(unittest.TestCase):
             msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
         )
 
-    def assert_identify(
-        self, expression: Expression, graph: NxMixedGraph, query: Expression
-    ):
+    def assert_identify(self, expression: Expression, graph: NxMixedGraph, query: Expression):
         """Assert that the graph returns the same."""
         self.assert_expr_equal(expression, identify(graph, query))
 
-    def assert_identification_equal(
-        self, expected: Identification, actual: Identification
-    ):
+    def assert_identification_equal(self, expected: Identification, actual: Identification):
         """Assert that the recursive call to ID has the correct input parameters."""
         self.assert_expr_equal(expected.query, actual.query)
         self.assert_expr_equal(expected.estimand, actual.estimand)
@@ -94,9 +88,7 @@ class TestIdentify(unittest.TestCase):
         c1 = [frozenset("X"), frozenset("Y"), frozenset("Z")]
         g2 = NxMixedGraph().from_edges(directed=[("X", "Y")], undirected=[("X", "Y")])
         c2 = [frozenset(["X", "Y"])]
-        g3 = NxMixedGraph().from_edges(
-            directed=[("X", "M"), ("M", "Y")], undirected=[("X", "Y")]
-        )
+        g3 = NxMixedGraph().from_edges(directed=[("X", "M"), ("M", "Y")], undirected=[("X", "Y")])
         c3 = [frozenset(["X", "Y"]), frozenset("M")]
         for g, c in [(g1, c1), (g2, c2), (g3, c3)]:
             self.assertEqual(c, get_c_components(g))
@@ -111,13 +103,9 @@ class TestIdentify(unittest.TestCase):
             self.assert_expr_equal(
                 expected=identification["id_out"][0].estimand,
                 actual=line_1(
-                    outcomes=set(
-                        _get_outcomes(identification["id_in"][0].query.get_variables())
-                    ),
+                    outcomes=set(_get_outcomes(identification["id_in"][0].query.get_variables())),
                     treatments=set(
-                        _get_treatments(
-                            identification["id_in"][0].query.get_variables()
-                        )
+                        _get_treatments(identification["id_in"][0].query.get_variables())
                     ),
                     estimand=identification["id_in"][0].estimand,
                     graph=identification["id_in"][0].graph,
@@ -134,13 +122,9 @@ class TestIdentify(unittest.TestCase):
             self.assert_identification_equal(
                 expected=identification["id_out"][0],
                 actual=line_2(
-                    outcomes=set(
-                        _get_outcomes(identification["id_in"][0].query.get_variables())
-                    ),
+                    outcomes=set(_get_outcomes(identification["id_in"][0].query.get_variables())),
                     treatments=set(
-                        _get_treatments(
-                            identification["id_in"][0].query.get_variables()
-                        )
+                        _get_treatments(identification["id_in"][0].query.get_variables())
                     ),
                     estimand=identification["id_in"][0].estimand,
                     G=identification["id_in"][0].graph,

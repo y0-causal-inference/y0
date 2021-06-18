@@ -79,9 +79,7 @@ def remove_widow_latents(
     return graph, remove
 
 
-def iter_widow_latents(
-    graph: nx.DiGraph, *, tag: Optional[str] = None
-) -> Iterable[str]:
+def iter_widow_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iterable[str]:
     """Iterate over latent variables with no children.
 
     :param graph: A latent variable DAG
@@ -177,9 +175,7 @@ def _iter_redundant_latents(graph, *, tag: Optional[str] = None) -> Iterable[str
     latents: Mapping[str, Set[str]] = {
         node: set(graph.successors(node)) for node in iter_latents(graph, tag=tag)
     }
-    for (left, left_children), (right, right_children) in itt.product(
-        latents.items(), repeat=2
-    ):
+    for (left, left_children), (right, right_children) in itt.product(latents.items(), repeat=2):
         if left_children == right_children and left > right:
             # if children are the same, keep the lower sort order node
             yield left

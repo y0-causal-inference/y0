@@ -71,16 +71,10 @@ class NxMixedGraph(Generic[X]):
 
     def str_nodes_to_variable_nodes(self) -> NxMixedGraph:
         directed: Mapping[X, List[X]] = dict(
-            [
-                (u, []) if type(u) is Variable else (Variable(str(u)), [])
-                for u in self.nodes()
-            ]
+            [(u, []) if type(u) is Variable else (Variable(str(u)), []) for u in self.nodes()]
         )
         undirected: Mapping[X, List[X]] = dict(
-            [
-                (u, []) if type(u) is Variable else (Variable(str(u)), [])
-                for u in self.nodes()
-            ]
+            [(u, []) if type(u) is Variable else (Variable(str(u)), []) for u in self.nodes()]
         )
         for u, v in self.directed.edges():
             if type(u) is Variable and type(v) is Variable:
@@ -153,12 +147,8 @@ class NxMixedGraph(Generic[X]):
         :param vertices: a set of nodes to remove from graph
         :returns:  NxMixedGraph subgraph
         """
-        directed: Mapping[X, List[X]] = dict(
-            [(u, []) for u in self.nodes() if u not in vertices]
-        )
-        undirected: Mapping[X, List[X]] = dict(
-            [(u, []) for u in self.nodes() if u not in vertices]
-        )
+        directed: Mapping[X, List[X]] = dict([(u, []) for u in self.nodes() if u not in vertices])
+        undirected: Mapping[X, List[X]] = dict([(u, []) for u in self.nodes() if u not in vertices])
 
         for u, v in self.directed.edges():
             if (u not in vertices) and (v not in vertices):
@@ -189,9 +179,7 @@ class NxMixedGraph(Generic[X]):
         """Get an ADMG instance."""
         di_edges = list(self.directed.edges())
         bi_edges = list(self.undirected.edges())
-        vertices = list(
-            self.directed
-        )  # could be either since they're maintained together
+        vertices = list(self.directed)  # could be either since they're maintained together
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
 
     @classmethod
@@ -229,9 +217,7 @@ class NxMixedGraph(Generic[X]):
         )
 
     @classmethod
-    def from_latent_variable_dag(
-        cls, graph: nx.DiGraph, tag: Optional[str] = None
-    ) -> NxMixedGraph:
+    def from_latent_variable_dag(cls, graph: nx.DiGraph, tag: Optional[str] = None) -> NxMixedGraph:
         """Load a labeled DAG."""
         if tag is None:
             tag = DEFAULT_TAG
@@ -306,9 +292,7 @@ class NxMixedGraph(Generic[X]):
 
         formula = ", ".join(f"{u} -+ {v}" for u, v in self.directed.edges())
         if self.undirected:
-            formula += "".join(
-                f", {u} -+ {v}, {v} -+ {u}" for u, v in self.undirected.edges()
-            )
+            formula += "".join(f", {u} -+ {v}, {v} -+ {u}" for u, v in self.undirected.edges())
 
         rv = f"g <- graph.formula({formula}, simplify = FALSE)"
         for i in range(self.undirected.number_of_edges()):
@@ -328,9 +312,7 @@ class NxMixedGraph(Generic[X]):
     ) -> NxMixedGraph:
         """Make a mixed graph from a pair of edge lists."""
         if directed is None and undirected is None:
-            raise ValueError(
-                "must provide at least one of directed/undirected edge lists"
-            )
+            raise ValueError("must provide at least one of directed/undirected edge lists")
         rv = cls()
         for u, v in directed or []:
             rv.add_directed_edge(u, v)
@@ -401,9 +383,7 @@ def admg_to_latent_variable_dag(
     )
 
 
-def admg_from_latent_variable_dag(
-    graph: nx.DiGraph, *, tag: Optional[str] = None
-) -> ADMG:
+def admg_from_latent_variable_dag(graph: nx.DiGraph, *, tag: Optional[str] = None) -> ADMG:
     """Convert a latent variable DAG to an ADMG.
 
     :param graph: A latent variable directed acyclic graph (LV-DAG)

@@ -102,9 +102,7 @@ def ID(identification: Identification) -> Expression:
             estimand = Product(tuple(P(v | parents[: parents.index(v)]) for v in S))
         else:
             estimand = Sum(
-                expression=Product(
-                    tuple(P(v | parents[: parents.index(v)]) for v in S)
-                ),
+                expression=Product(tuple(P(v | parents[: parents.index(v)]) for v in S)),
                 ranges=_upgrade_ordering(S - outcomes),
             )
         return estimand
@@ -117,20 +115,14 @@ def ID(identification: Identification) -> Expression:
                     query=outcomes_and_treatments_to_query(
                         outcomes=outcomes, treatments=treatments & S_prime
                     ),
-                    estimand=Product(
-                        tuple(P(v | parents[: parents.index(v)]) for v in S_prime)
-                    ),
+                    estimand=Product(tuple(P(v | parents[: parents.index(v)]) for v in S_prime)),
                     graph=graph.subgraph(S_prime),
                 )
             )
 
 
 def line_1(
-    *,
-    outcomes: Set[str],
-    treatments: Set[str],
-    estimand: Expression,
-    graph: NxMixedGraph[str]
+    *, outcomes: Set[str], treatments: Set[str], estimand: Expression, graph: NxMixedGraph[str]
 ) -> Expression:
     r"""Run line 1 of identification algorithm.
 
@@ -306,9 +298,7 @@ def line_5(
         raise Fail(C_components_of_G, C_components_of_G_without_X)
 
 
-def line_6(
-    *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
-):
+def line_6(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph):
     r"""Run line 6 of the identification algorithm.
 
     Asserts that if there are no bidirected arcs from :math:`X` to the other nodes in the current subproblem
@@ -332,17 +322,13 @@ def line_6(
             estimand = Product(tuple(P(v | parents[: parents.index(v)]) for v in S))
         else:
             estimand = Sum(
-                expression=Product(
-                    tuple(P(v | parents[: parents.index(v)]) for v in S)
-                ),
+                expression=Product(tuple(P(v | parents[: parents.index(v)]) for v in S)),
                 ranges=_upgrade_ordering(S - y),
             )
         return estimand
 
 
-def line_7(
-    *, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph
-):
+def line_7(*, outcomes: Set[str], treatments: Set[str], estimand: Expression, G: NxMixedGraph):
     r"""Run line 7 of the identification algorithm.
 
    The most complex case where :math:`\mathbf X` is partitioned into
@@ -377,9 +363,7 @@ def line_7(
                 query=outcomes_and_treatments_to_query(
                     outcomes=outcomes, treatments=treatments & district
                 ),
-                estimand=Product(
-                    tuple(P(v | parents[: parents.index(v)]) for v in S_prime)
-                ),
+                estimand=Product(tuple(P(v | parents[: parents.index(v)]) for v in S_prime)),
                 graph=G.subgraph(district),
             )
         #  list(
@@ -388,9 +372,7 @@ def line_7(
 
 
 def get_c_components(graph: NxMixedGraph[X]) -> List[FrozenSet[X]]:
-    return [
-        frozenset(district) for district in nx.connected_components(graph.undirected)
-    ]
+    return [frozenset(district) for district in nx.connected_components(graph.undirected)]
 
 
 # def str_list(node_list):

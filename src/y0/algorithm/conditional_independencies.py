@@ -50,9 +50,7 @@ def get_conditional_independencies(
     )
 
 
-def minimal(
-    judgements: Iterable[DSeparationJudgement], policy=None
-) -> Set[DSeparationJudgement]:
+def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSeparationJudgement]:
     """Given some d-separations, reduces to a 'minimal' collection.
 
     For indepdencies of the form A _||_ B | {C1, C2, ...} the minimal collection will::
@@ -120,9 +118,7 @@ def get_moral_links(graph: SG) -> List[Tuple[str, str]]:
     :return: An collection of edges to add.
     """
     parents = [graph.parents([v]) for v in graph.vertices]
-    moral_links = [
-        *chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])
-    ]
+    moral_links = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
     return moral_links
 
 
@@ -160,9 +156,7 @@ def are_d_separated(
     # check for path....
     separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
 
-    return DSeparationJudgement.create(
-        left=a, right=b, conditions=conditions, separated=separated
-    )
+    return DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=separated)
 
 
 def d_separations(
@@ -184,9 +178,7 @@ def d_separations(
         graph = graph.to_admg()
 
     vertices = set(graph.vertices)
-    for a, b in tqdm(
-        combinations(vertices, 2), disable=not verbose, desc="d-separation check"
-    ):
+    for a, b in tqdm(combinations(vertices, 2), disable=not verbose, desc="d-separation check"):
         for conditions in powerset(vertices - {a, b}, stop=max_conditions):
             judgement = are_d_separated(graph, a, b, conditions=conditions)
             if judgement.separated:

@@ -43,18 +43,10 @@ class TestGraph(unittest.TestCase):
         self.assertEqual(labeled_edges, set(labeled_dag.edges()))
 
         reconstituted = NxMixedGraph.from_latent_variable_dag(labeled_dag, tag=tag)
-        self.assertEqual(
-            set(graph.directed.nodes()), set(reconstituted.directed.nodes())
-        )
-        self.assertEqual(
-            set(graph.undirected.nodes()), set(reconstituted.undirected.nodes())
-        )
-        self.assertEqual(
-            set(graph.directed.edges()), set(reconstituted.directed.edges())
-        )
-        self.assertEqual(
-            set(graph.undirected.edges()), set(reconstituted.undirected.edges())
-        )
+        self.assertEqual(set(graph.directed.nodes()), set(reconstituted.directed.nodes()))
+        self.assertEqual(set(graph.undirected.nodes()), set(reconstituted.undirected.nodes()))
+        self.assertEqual(set(graph.directed.edges()), set(reconstituted.directed.edges()))
+        self.assertEqual(set(graph.undirected.edges()), set(reconstituted.undirected.edges()))
 
     def test_convertable(self):
         """Test graphs are convertable."""
@@ -75,17 +67,13 @@ class TestGraph(unittest.TestCase):
 
     def test_str_nodes_to_variable_nodes(self):
         """Test converting a str node NxMixedGraph to a Variable node NxMixedGraph"""
-        graph = NxMixedGraph.from_edges(
-            directed=[("X", "Y"), ("Y", "Z")], undirected=[("X", "Z")]
-        )
+        graph = NxMixedGraph.from_edges(directed=[("X", "Y"), ("Y", "Z")], undirected=[("X", "Z")])
 
         expected = NxMixedGraph.from_edges(
             directed=[(Variable("X"), Variable("Y")), (Variable("Y"), Variable("Z"))],
             undirected=[(Variable("X"), Variable("Z"))],
         )
-        self.assert_graph_equal(
-            expected=expected, actual=graph.str_nodes_to_variable_nodes()
-        )
+        self.assert_graph_equal(expected=expected, actual=graph.str_nodes_to_variable_nodes())
 
     def test_from_causalfusion(self):
         """Test importing a CausalFusion graph."""
@@ -115,9 +103,7 @@ class TestGraph(unittest.TestCase):
         intervened_graph = NxMixedGraph()
         intervened_graph.add_directed_edge("X", "Y")
         intervened_graph.add_undirected_edge("Z", "Y")
-        self.assert_graph_equal(
-            expected=intervened_graph, actual=graph.intervene({"X"})
-        )
+        self.assert_graph_equal(expected=intervened_graph, actual=graph.intervene({"X"}))
 
     def test_remove_nodes_from(self):
         """Test generating a new graph without the given nodes."""
@@ -130,9 +116,7 @@ class TestGraph(unittest.TestCase):
         self.assert_graph_equal(expected=graph, actual=graph.intervene(set()))
         subgraph = NxMixedGraph()
         subgraph.add_undirected_edge("Z", "Y")
-        self.assert_graph_equal(
-            expected=subgraph, actual=graph.remove_nodes_from({"X"})
-        )
+        self.assert_graph_equal(expected=subgraph, actual=graph.remove_nodes_from({"X"}))
 
     def test_from_admg(self):
         """Test that all ADMGs can be converted to NxMixedGraph."""
@@ -154,14 +138,10 @@ class TestGraph(unittest.TestCase):
         .. note:: This includes bidirected edges regardless of the order the vertices are specified
         """
         self.assertEqual(set(expected.directed.nodes()), set(actual.directed.nodes()))
-        self.assertEqual(
-            set(expected.undirected.nodes()), set(actual.undirected.nodes())
-        )
+        self.assertEqual(set(expected.undirected.nodes()), set(actual.undirected.nodes()))
         expected_di_edges = set(expected.directed.edges())
         actual_di_edges = set(actual.directed.edges())
-        expected_bi_edges = set(
-            [frozenset([u, v]) for u, v in expected.undirected.edges()]
-        )
+        expected_bi_edges = set([frozenset([u, v]) for u, v in expected.undirected.edges()])
         actual_bi_edges = set([frozenset([u, v]) for u, v in actual.undirected.edges()])
         self.assertEqual(expected_di_edges, actual_di_edges)
         self.assertEqual(expected_bi_edges, actual_bi_edges)
@@ -170,26 +150,18 @@ class TestGraph(unittest.TestCase):
         """Test the adjacency graph is not a multigraph."""
         directed = dict([("a", ["b", "c"]), ("b", ["a"]), ("c", [])])
         expected = cyclic_directed_example.graph
-        self.assert_graph_equal(
-            expected, NxMixedGraph.from_adj(directed=directed, undirected={})
-        )
+        self.assert_graph_equal(expected, NxMixedGraph.from_adj(directed=directed, undirected={}))
 
     def test_is_acyclic(self):
         """Test the directed edges are acyclic."""
         self.assertFalse(
-            nx.algorithms.dag.is_directed_acyclic_graph(
-                cyclic_directed_example.graph.directed
-            )
+            nx.algorithms.dag.is_directed_acyclic_graph(cyclic_directed_example.graph.directed)
         )
 
     def test_is_not_multigraph(self):
         """Test the undirected edges are not inverses of each other."""
         redundant_edges = [("a", "b"), ("b", "a")]
         directed_edges = [("a", "b")]
-        expected = NxMixedGraph.from_edges(
-            directed=[("a", "b")], undirected=[("a", "b")]
-        )
-        actual = NxMixedGraph.from_edges(
-            directed=directed_edges, undirected=redundant_edges
-        )
+        expected = NxMixedGraph.from_edges(directed=[("a", "b")], undirected=[("a", "b")])
+        actual = NxMixedGraph.from_edges(directed=directed_edges, undirected=redundant_edges)
         self.assert_graph_equal(expected, actual)

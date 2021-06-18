@@ -42,6 +42,4 @@ class TestCausaleffectGrammar(unittest.TestCase):
         ]:
             with self.subTest(s=s):
                 actual = parse_causaleffect(s)
-                self.assertEqual(
-                    expr, actual, msg=f"\nExpected: {expr}\nActual:   {actual}"
-                )
+                self.assertEqual(expr, actual, msg=f"\nExpected: {expr}\nActual:   {actual}")

@@ -19,9 +19,7 @@ __all__ = [
 ]
 
 
-def chain_expand(
-    p: Probability, *, reorder: bool = True, ordering: OrderingHint = None
-) -> Product:
+def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint = None) -> Product:
     r"""Expand a probability distribution to a product of conditional probabilities on single variables.
 
     :param p: The given probability expression
