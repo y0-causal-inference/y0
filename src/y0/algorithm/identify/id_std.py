@@ -57,12 +57,12 @@ def identify(identification: Identification) -> Expression:
         )
     # line 3
     intervened_graph = graph.intervene(treatments)
-    no_effect_nodes = (vertices - treatments) - ancestors_and_self(intervened_graph, outcomes)
-    if no_effect_nodes:
+    no_effect_on_outcome = (vertices - treatments) - ancestors_and_self(intervened_graph, outcomes)
+    if no_effect_on_outcome:
         return identify(
             Identification.from_parts(
                 outcomes=outcomes,
-                treatments=treatments | no_effect_nodes,
+                treatments=treatments | no_effect_on_outcome,
                 estimand=estimand,
                 graph=graph,
             )
