@@ -71,7 +71,7 @@ def identify(identification: Identification) -> Expression:
     # line 4
     districts = get_c_components(graph)
     districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
-    # FIXME name S something more meaningful
+
 
     parents = list(nx.topological_sort(graph.directed))
 
