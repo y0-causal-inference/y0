@@ -69,6 +69,15 @@ class NxMixedGraph(Generic[X]):
     #: A undirected graph
     undirected: nx.Graph = field(default_factory=nx.Graph)
 
+    def __eq__(self, other: Any) -> bool:
+        """Check for equality of nodes, directed edges, and undirected edges."""
+        return (
+            isinstance(other, NxMixedGraph)
+            and self.nodes() == other.nodes()
+            and (self.directed.edges() == other.directed.edges())
+            and (self.undirected.edges() == other.undirected.edges())
+        )
+
     def str_nodes_to_variable_nodes(self) -> NxMixedGraph:
         directed: Mapping[X, List[X]] = dict(
             [(u, []) if type(u) is Variable else (Variable(str(u)), []) for u in self.nodes()]
