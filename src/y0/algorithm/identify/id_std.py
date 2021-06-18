@@ -34,9 +34,8 @@ def identify(graph: Union[ADMG, NxMixedGraph], query: Expression):
     #     return r[0]
 
 
-def ID( identification: Identification ) -> Expression:
-    outcomes, treatments = get_outcomes_and_treatments(
-                query=identification.query)
+def ID(identification: Identification) -> Expression:
+    outcomes, treatments = get_outcomes_and_treatments(query=identification.query)
     outcomes = {Variable(y) for y in outcomes}
     treatments = {Variable(x) for x in treatments}
     estimand = identification.estimand
@@ -47,17 +46,13 @@ def ID( identification: Identification ) -> Expression:
     G_ancestral_to_Y = G.subgraph(ancestors_and_Y_in_G)
     # line 1
     if len(treatments) == 0:
-        return Sum(
-            P(*V),
-            tuple(V.difference(outcomes))
-        )
+        return Sum(P(*V), tuple(V.difference(outcomes)))
     # line 2
     if len(V - ancestors_and_self(G, outcomes)) > 0:
         return ID(
             Identification(
                 query=outcomes_and_treatments_to_query(
-                    outcomes=outcomes,
-                    treatments=treatments & ancestors_and_Y_in_G
+                    outcomes=outcomes, treatments=treatments & ancestors_and_Y_in_G
                 ),
                 estimand=Sum(estimand, tuple(not_ancestors_of_Y)),
                 graph=G_ancestral_to_Y,
@@ -68,8 +63,7 @@ def ID( identification: Identification ) -> Expression:
     no_effect_nodes = (V - treatments) - ancestors_and_self(g_bar_x, outcomes)
     if len(no_effect_nodes) > 0:
         query = outcomes_and_treatments_to_query(
-            outcomes=outcomes,
-            treatments=treatments | no_effect_nodes
+            outcomes=outcomes, treatments=treatments | no_effect_nodes
         )
         return ID(Identification(query=query, estimand=estimand, graph=G))
 
@@ -86,8 +80,7 @@ def ID( identification: Identification ) -> Expression:
                     ID(
                         Identification(
                             query=outcomes_and_treatments_to_query(
-                                outcomes=district,
-                                treatments=V - district
+                                outcomes=district, treatments=V - district
                             ),
                             estimand=estimand,
                             graph=G,
@@ -96,7 +89,7 @@ def ID( identification: Identification ) -> Expression:
                     for district in c_components_without_x
                 )
             ),
-            ranges=tuple(V.difference( outcomes | treatments ))
+            ranges=tuple(V.difference(outcomes | treatments)),
         )
 
     # line 5
@@ -122,8 +115,7 @@ def ID( identification: Identification ) -> Expression:
             return ID(
                 Identification(
                     query=outcomes_and_treatments_to_query(
-                        outcomes=outcomes,
-                        treatments=treatments & S_prime
+                        outcomes=outcomes, treatments=treatments & S_prime
                     ),
                     estimand=Product(
                         tuple(P(v | parents[: parents.index(v)]) for v in S_prime)
