@@ -62,9 +62,7 @@ def falsifications(
     :return: Falsifications report
     """
     if isinstance(to_test, SG):
-        to_test = get_conditional_independencies(
-            to_test, max_conditions=max_given, verbose=verbose
-        )
+        to_test = get_conditional_independencies(to_test, max_conditions=max_given, verbose=verbose)
 
     variances = {
         (left, right, given): cressie_read(left, right, given, df, boolean=False)
@@ -82,10 +80,7 @@ def falsifications(
         pd.DataFrame(rows, columns=["left", "right", "given", "chi^2", "p", "dof"])
         .sort_values("p")
         .assign(
-            **{
-                "Holm–Bonferroni level": significance_level
-                / pd.Series(range(len(rows) + 1, 0, -1))
-            }
+            **{"Holm–Bonferroni level": significance_level / pd.Series(range(len(rows) + 1, 0, -1))}
         )
         .pipe(_assign_flags)
         .sort_values(["flagged", "dof"], ascending=False)

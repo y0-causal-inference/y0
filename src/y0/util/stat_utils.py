@@ -100,9 +100,7 @@ def chi_square(X, Y, Z, data, boolean=True, **kwargs):
     >>> chi_square(X='A', Y='B', Z=['D', 'E'], data=data, boolean=True, significance_level=0.05)
     False
     """
-    return power_divergence(
-        X=X, Y=Y, Z=Z, data=data, boolean=boolean, lambda_="pearson", **kwargs
-    )
+    return power_divergence(X=X, Y=Y, Z=Z, data=data, boolean=boolean, lambda_="pearson", **kwargs)
 
 
 def g_sq(X, Y, Z, data, boolean=True, **kwargs):
@@ -450,9 +448,7 @@ def neyman(X, Y, Z, data, boolean=True, **kwargs):
     >>> neyman(X='A', Y='B', Z=['D', 'E'], data=data, boolean=True, significance_level=0.05)
     False
     """
-    return power_divergence(
-        X=X, Y=Y, Z=Z, data=data, boolean=boolean, lambda_="neyman", **kwargs
-    )
+    return power_divergence(X=X, Y=Y, Z=Z, data=data, boolean=boolean, lambda_="neyman", **kwargs)
 
 
 def cressie_read(X, Y, Z, data, boolean=True, **kwargs):
@@ -610,9 +606,7 @@ def power_divergence(X, Y, Z, data, boolean=True, lambda_="cressie-read", **kwar
         raise (f"Z must be an iterable. Got object type: {type(Z)}")
 
     if (X in Z) or (Y in Z):
-        raise ValueError(
-            f"The variables X or Y can't be in Z. Found {X if X in Z else Y} in Z."
-        )
+        raise ValueError(f"The variables X or Y can't be in Z. Found {X if X in Z else Y} in Z.")
 
     # Step 2: Do a simple contingency test if there are no conditional variables.
     if len(Z) == 0:
@@ -635,16 +629,10 @@ def power_divergence(X, Y, Z, data, boolean=True, lambda_="cressie-read", **kwar
             except ValueError:
                 # If one of the values is 0 in the 2x2 table.
                 if isinstance(z_state, str):
-                    warn(
-                        f"Skipping the test {X} \u27C2 {Y} | {Z[0]}={z_state}. Not enough samples"
-                    )
+                    warn(f"Skipping the test {X} \u27C2 {Y} | {Z[0]}={z_state}. Not enough samples")
                 else:
-                    z_str = ", ".join(
-                        [f"{var}={state}" for var, state in zip(Z, z_state)]
-                    )
-                    warn(
-                        f"Skipping the test {X} \u27C2 {Y} | {z_str}. Not enough samples"
-                    )
+                    z_str = ", ".join([f"{var}={state}" for var, state in zip(Z, z_state)])
+                    warn(f"Skipping the test {X} \u27C2 {Y} | {z_str}. Not enough samples")
         p_value = 1 - stats.chi2.cdf(chi, df=dof)
 
     # Step 4: Return the values

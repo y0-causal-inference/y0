@@ -56,9 +56,7 @@ class Canonicalizer:
             raise ValueError(f"ordering has duplicates: {ordering}")
 
         self.ordering = ordering
-        self.ordering_level = {
-            variable.name: level for level, variable in enumerate(self.ordering)
-        }
+        self.ordering_level = {variable.name: level for level, variable in enumerate(self.ordering)}
 
     def _canonicalize_probability(self, expression: Probability) -> Probability:
         return Probability(
@@ -80,9 +78,7 @@ class Canonicalizer:
         if isinstance(variable, CounterfactualVariable):
             return CounterfactualVariable(
                 name=variable.name,
-                interventions=tuple(
-                    sorted(variable.interventions, key=self._intervention_key)
-                ),
+                interventions=tuple(sorted(variable.interventions, key=self._intervention_key)),
             )
         else:
             return variable
@@ -143,9 +139,7 @@ class Canonicalizer:
         elif isinstance(expression, Sum):
             return 1, *self._nonatomic_key(expression.expression)
         elif isinstance(expression, Product):
-            inner_keys = (
-                self._nonatomic_key(sexpr) for sexpr in expression.expressions
-            )
+            inner_keys = (self._nonatomic_key(sexpr) for sexpr in expression.expressions)
             return 2, *inner_keys
         elif isinstance(expression, Fraction):
             return (

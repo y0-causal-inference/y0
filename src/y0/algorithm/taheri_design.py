@@ -269,9 +269,7 @@ def draw_results(
     logger.debug("rendering %s identifiable queries", rendered_results)
 
     nrows = 1 + len(rendered_results) // ncols
-    fig, axes = plt.subplots(
-        ncols=ncols, nrows=nrows, figsize=(ncols * x_ratio, nrows * y_ratio)
-    )
+    fig, axes = plt.subplots(ncols=ncols, nrows=nrows, figsize=(ncols * x_ratio, nrows * y_ratio))
     it = itt.zip_longest(axes.ravel(), tqdm(rendered_results, desc="generating chart"))
     for i, (ax, result) in enumerate(it, start=1):
         if result is None:
@@ -304,9 +302,7 @@ def print_results(results: List[Result], file=None) -> None:
         for i, result in enumerate(results, start=1)
     ]
     print(
-        tabulate(
-            rows, headers=["Row", "ID?", "Node Simp.", "Edge Simp.", "N", "Latents"]
-        ),
+        tabulate(rows, headers=["Row", "ID?", "Node Simp.", "Edge Simp.", "N", "Latents"]),
         file=file,
     )
 
@@ -319,9 +315,7 @@ def main():
     from y0.resources import VIRAL_PATHOGENESIS_PATH
     from y0.graph import NxMixedGraph
 
-    viral_pathogenesis_admg = NxMixedGraph.from_causalfusion_path(
-        VIRAL_PATHOGENESIS_PATH
-    )
+    viral_pathogenesis_admg = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
 
     results = taheri_design_admg(
         viral_pathogenesis_admg, cause="EGFR", effect="CytokineStorm", stop=5

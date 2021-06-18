@@ -81,9 +81,7 @@ class NxMixedGraph(Generic[X]):
         """Get an ADMG instance."""
         di_edges = list(self.directed.edges())
         bi_edges = list(self.undirected.edges())
-        vertices = list(
-            self.directed
-        )  # could be either since they're maintained together
+        vertices = list(self.directed)  # could be either since they're maintained together
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
 
     @classmethod
@@ -115,9 +113,7 @@ class NxMixedGraph(Generic[X]):
         )
 
     @classmethod
-    def from_latent_variable_dag(
-        cls, graph: nx.DiGraph, tag: Optional[str] = None
-    ) -> NxMixedGraph:
+    def from_latent_variable_dag(cls, graph: nx.DiGraph, tag: Optional[str] = None) -> NxMixedGraph:
         """Load a labeled DAG."""
         if tag is None:
             tag = DEFAULT_TAG
@@ -192,9 +188,7 @@ class NxMixedGraph(Generic[X]):
 
         formula = ", ".join(f"{u} -+ {v}" for u, v in self.directed.edges())
         if self.undirected:
-            formula += "".join(
-                f", {u} -+ {v}, {v} -+ {u}" for u, v in self.undirected.edges()
-            )
+            formula += "".join(f", {u} -+ {v}, {v} -+ {u}" for u, v in self.undirected.edges())
 
         rv = f"g <- graph.formula({formula}, simplify = FALSE)"
         for i in range(self.undirected.number_of_edges()):
@@ -281,9 +275,7 @@ def admg_to_latent_variable_dag(
     )
 
 
-def admg_from_latent_variable_dag(
-    graph: nx.DiGraph, *, tag: Optional[str] = None
-) -> ADMG:
+def admg_from_latent_variable_dag(graph: nx.DiGraph, *, tag: Optional[str] = None) -> ADMG:
     """Convert a latent variable DAG to an ADMG.
 
     :param graph: A latent variable directed acyclic graph (LV-DAG)

@@ -39,9 +39,7 @@ class TestDSeparation(unittest.TestCase):
         isn't just always returning true or false.
         """
         testable = (
-            example
-            for example in examples
-            if example.conditional_independencies is not None
+            example for example in examples if example.conditional_independencies is not None
         )
 
         for example in testable:
@@ -49,9 +47,7 @@ class TestDSeparation(unittest.TestCase):
                 graph = example.graph.to_admg()
                 for ci in example.conditional_independencies:
                     self.assertTrue(
-                        are_d_separated(
-                            graph, ci.left, ci.right, conditions=ci.conditions
-                        ),
+                        are_d_separated(graph, ci.left, ci.right, conditions=ci.conditions),
                         msg="Expected d-separation not found",
                     )
                     if ci.conditions:
@@ -143,12 +139,8 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         self.assert_valid_judgements(graph, asserted_judgements)
         self.assert_valid_judgements(graph, observed_judgements)
 
-        expected_pairs = {
-            (judgement.left, judgement.right) for judgement in asserted_judgements
-        }
-        observed_pairs = {
-            (judgement.left, judgement.right) for judgement in observed_judgements
-        }
+        expected_pairs = {(judgement.left, judgement.right) for judgement in asserted_judgements}
+        observed_pairs = {(judgement.left, judgement.right) for judgement in observed_judgements}
         self.assertEqual(
             expected_pairs,
             observed_pairs,
@@ -190,16 +182,12 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             )
 
         pairs = [(judgement.left, judgement.right) for judgement in judgements]
-        self.assertEqual(
-            len(pairs), len(set(pairs)), "Duplicate left/right pair observed"
-        )
+        self.assertEqual(len(pairs), len(set(pairs)), "Duplicate left/right pair observed")
 
     def test_examples(self):
         """Test getting the conditional independencies from the example graphs."""
         testable = (
-            example
-            for example in examples
-            if example.conditional_independencies is not None
+            example for example in examples if example.conditional_independencies is not None
         )
 
         for example in testable:

@@ -39,18 +39,10 @@ class TestGraph(unittest.TestCase):
         self.assertEqual(labeled_edges, set(labeled_dag.edges()))
 
         reconstituted = NxMixedGraph.from_latent_variable_dag(labeled_dag, tag=tag)
-        self.assertEqual(
-            set(graph.directed.nodes()), set(reconstituted.directed.nodes())
-        )
-        self.assertEqual(
-            set(graph.undirected.nodes()), set(reconstituted.undirected.nodes())
-        )
-        self.assertEqual(
-            set(graph.directed.edges()), set(reconstituted.directed.edges())
-        )
-        self.assertEqual(
-            set(graph.undirected.edges()), set(reconstituted.undirected.edges())
-        )
+        self.assertEqual(set(graph.directed.nodes()), set(reconstituted.directed.nodes()))
+        self.assertEqual(set(graph.undirected.nodes()), set(reconstituted.undirected.nodes()))
+        self.assertEqual(set(graph.directed.edges()), set(reconstituted.directed.edges()))
+        self.assertEqual(set(graph.undirected.edges()), set(reconstituted.undirected.edges()))
 
     def test_convertable(self):
         """Test graphs are convertable."""

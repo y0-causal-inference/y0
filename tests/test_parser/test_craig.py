@@ -14,19 +14,13 @@ from y0.parser.craig.utils import probability_pe, qfactor_pe, variable_pe
 class TestGrammar(unittest.TestCase):
     """Tests for parsing probability expressions."""
 
-    def assert_many(
-        self, expressions, parser_element: ParserElement, direct: bool = True
-    ):
+    def assert_many(self, expressions, parser_element: ParserElement, direct: bool = True):
         """Help testing many."""
         for expression in expressions:
-            with self.subTest(
-                expr=expression.to_text(), parser_element=parser_element.name
-            ):
+            with self.subTest(expr=expression.to_text(), parser_element=parser_element.name):
                 self.assert_parse_equal(expression, parser_element, direct=direct)
 
-    def assert_parse_equal(
-        self, expression, parser_element: ParserElement, direct: bool = True
-    ):
+    def assert_parse_equal(self, expression, parser_element: ParserElement, direct: bool = True):
         """Help test parsing works round trip.
 
         :param expression: The DSL object to check

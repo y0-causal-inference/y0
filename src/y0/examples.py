@@ -217,16 +217,10 @@ identifiability_2_example = Example(
         VermaConstraint(
             rhs_cfactor=Q[Z5](Z4, Z5),
             rhs_expr=Sum[u_3, Z4](P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3)),
-            lhs_cfactor=(
-                Q[Z2, Z5](Z1, Z4, Z2, Z5) / Sum[Z5](Q[Z2, Z5](Z1, Z4, Z2, Z5))
-            ),
+            lhs_cfactor=(Q[Z2, Z5](Z1, Z4, Z2, Z5) / Sum[Z5](Q[Z2, Z5](Z1, Z4, Z2, Z5))),
             lhs_expr=(
-                Sum[Z3](
-                    P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4))
-                )
-                / Sum[Z3, Z5](
-                    P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4))
-                )
+                Sum[Z3](P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
+                / Sum[Z3, Z5](P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
             ),
             variables=(Z1, Z2),
         ),

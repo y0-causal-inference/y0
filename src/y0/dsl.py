@@ -290,9 +290,7 @@ class CounterfactualVariable(Variable):
             interventions=(*self.interventions, *_interventions),
         )
 
-    def _raise_for_overlapping_interventions(
-        self, interventions: Iterable[Intervention]
-    ) -> None:
+    def _raise_for_overlapping_interventions(self, interventions: Iterable[Intervention]) -> None:
         """Raise an error if any of the given variables are already listed in interventions in this counterfactual.
 
         :param interventions: Interventions to check for overlap
@@ -304,9 +302,7 @@ class CounterfactualVariable(Variable):
             if old.name == new.name
         }
         if overlaps:
-            raise ValueError(
-                f"Overlapping interventions in new interventions: {overlaps}"
-            )
+            raise ValueError(f"Overlapping interventions in new interventions: {overlaps}")
 
     def invert(self) -> Intervention:
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
@@ -574,14 +570,10 @@ def P(  # noqa:N802
         children = (Variable.norm(distribution), *_upgrade_ordering(args))
     elif isinstance(distribution, (list, tuple, set)) or isgenerator(distribution):
         if args:
-            raise ValueError(
-                "can not use variadic arguments with combination of first arg"
-            )
+            raise ValueError("can not use variadic arguments with combination of first arg")
         children = _sorted_variables(_upgrade_ordering(distribution))
     else:
-        raise TypeError(
-            f"invalid distribution type: {type(distribution)} {distribution}"
-        )
+        raise TypeError(f"invalid distribution type: {type(distribution)} {distribution}")
     return Probability(distribution=Distribution(children=children))
 
 
@@ -681,9 +673,7 @@ class Sum(Expression):
 
 
 def _prepare_ranges(ranges: XSeq[Variable]) -> Tuple[Variable, ...]:
-    if isinstance(
-        ranges, Variable
-    ):  # a single element is not given as a tuple, such as in Sum[T]
+    if isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
         return (ranges,)
     return tuple(ranges)
 
@@ -738,12 +728,8 @@ class Fraction(Expression):
             return self
         if self.numerator == self.denominator:
             return One()
-        if isinstance(self.numerator, Product) and isinstance(
-            self.denominator, Product
-        ):
-            return self._simplify_parts(
-                self.numerator.expressions, self.denominator.expressions
-            )
+        if isinstance(self.numerator, Product) and isinstance(self.denominator, Product):
+            return self._simplify_parts(self.numerator.expressions, self.denominator.expressions)
         elif isinstance(self.numerator, Product):
             return self._simplify_parts(self.numerator.expressions, [self.denominator])
         elif isinstance(self.denominator, Product):
@@ -760,9 +746,7 @@ class Fraction(Expression):
         :param denominator: A sequence of expressions that are multiplied in the product in the denominator
         :returns: A simplified fraction.
         """
-        new_numerator, new_denominator = cls._simplify_parts_helper(
-            numerator, denominator
-        )
+        new_numerator, new_denominator = cls._simplify_parts_helper(numerator, denominator)
         if new_numerator and new_denominator:
             return Fraction(
                 _expression_or_product(new_numerator),
@@ -791,14 +775,8 @@ class Fraction(Expression):
                     denominator_cancelled.add(j)
                     break
         return (
-            tuple(
-                expr for i, expr in enumerate(numerator) if i not in numerator_cancelled
-            ),
-            tuple(
-                expr
-                for i, expr in enumerate(denominator)
-                if i not in denominator_cancelled
-            ),
+            tuple(expr for i, expr in enumerate(numerator) if i not in numerator_cancelled),
+            tuple(expr for i, expr in enumerate(denominator) if i not in denominator_cancelled),
         )
 
 
@@ -906,9 +884,7 @@ V1, V2, V3, V4, V5, V6 = [Variable(f"V{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
 
 
-def _upgrade_ordering(
-    variables: Iterable[Union[str, Variable]]
-) -> Tuple[Variable, ...]:
+def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Tuple[Variable, ...]:
     return tuple(Variable.norm(variable) for variable in variables)
 
 
