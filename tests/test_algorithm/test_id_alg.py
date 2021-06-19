@@ -103,9 +103,7 @@ class TestIdentify(unittest.TestCase):
         for identification in line_1_example.identifications:
             self.assert_expr_equal(
                 expected=identification["id_out"][0].estimand,
-                actual=line_1(
-                    identification["id_in"][0]
-                                   ),
+                actual=line_1(identification["id_in"][0]),
             )
 
     def test_line_2(self):
@@ -119,8 +117,7 @@ class TestIdentify(unittest.TestCase):
             id_out.graph = id_out.graph.str_nodes_to_variable_nodes()
             self.assert_identification_equal(
                 expected=id_out,
-                actual=line_2(
-                    identification["id_in"][0]                ),
+                actual=line_2(identification["id_in"][0]),
             )
 
     def test_line_3(self):
@@ -137,8 +134,7 @@ class TestIdentify(unittest.TestCase):
 
             self.assert_identification_equal(
                 expected=id_out,
-                actual=line_3(
-                    identification["id_in"][0]                ),
+                actual=line_3(identification["id_in"][0]),
             )
 
     def test_line_4(self):
@@ -151,9 +147,7 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_4_example.identifications:
 
-            actuals = line_4(
-                identification["id_in"][0]
-            )
+            actuals = line_4(identification["id_in"][0])
             expecteds = identification["id_out"]
             self.assertEqual(len(expecteds), len(actuals))
             match = []
@@ -178,9 +172,7 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_5_example.identifications:
             with self.assertRaises(Fail):
-                line_5(
-                    identification["id_in"][0]
-                )
+                line_5(identification["id_in"][0])
 
     def test_line_6(self):
         r"""Test line 6 of the identification algorithm.
@@ -195,9 +187,7 @@ class TestIdentify(unittest.TestCase):
 
             self.assert_expr_equal(
                 expected=id_out.estimand,
-                actual=line_6(
-                    identification["id_in"][0]
-                ),
+                actual=line_6(identification["id_in"][0]),
             )
 
     def test_line_7(self):
@@ -217,9 +207,7 @@ class TestIdentify(unittest.TestCase):
 
             self.assert_identification_equal(
                 expected=id_out,
-                actual=line_7(
-                    identification["id_in"][0]
-                ),
+                actual=line_7(identification["id_in"][0]),
             )
 
     # def test_figure_2a(self):

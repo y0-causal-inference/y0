@@ -15,6 +15,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Sequence,
     Tuple,
     TypeVar,
     Union,
@@ -104,6 +105,9 @@ class NxMixedGraph(Generic[X]):
             else:
                 undirected[Variable(str(u))].append(Variable(str(v)))
         return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
+
+    def get_topological_sort(self) -> Sequence[X]:
+        return list(nx.topological_sort(self.directed))
 
     def subgraph(self, vertices: Collection[X]) -> NxMixedGraph:
         """Return a subgraph given a set of vertices.

@@ -1,35 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from typing import FrozenSet, List, Set, TypeVar, Union
+from typing import FrozenSet, List, TypeVar
 
 import networkx as nx
-from ananke.graphs import ADMG
 
-from y0.algorithm.identify.utils import ancestors_and_self, nxmixedgraph_to_causal_graph
-from y0.dsl import Expression, P, Product, Sum, Variable
+from y0.algorithm.identify.utils import ancestors_and_self
+from y0.dsl import Expression, P, Product, Sum
 from y0.graph import NxMixedGraph
-from y0.identify import _get_outcomes, _get_treatments
 from .utils import Fail, Identification
 
 X = TypeVar("X")
-
-
-def identify_old(graph: Union[ADMG, NxMixedGraph[str]], query: Expression):
-    """Run the old implementation of the identification algorithm."""
-    if isinstance(graph, ADMG):
-        graph = NxMixedGraph.from_admg(graph)
-    treatments = _get_treatments(query.get_variables())
-    outcomes = _get_outcomes(query.get_variables())
-    cg = nxmixedgraph_to_causal_graph(graph)
-    expr = cg.id_alg(outcomes, treatments)
-    return expr
-    # expr = id_alg(graph, outcomes, treatments)
-    # try:
-    #     r = grammar.parseString(expr)
-    # except ParseException:
-    #     raise ValueError(f'graph produced unparsable expression: {expr}')
-    # else:
-    #     return r[0]
 
 
 def identify(identification: Identification) -> Expression:
@@ -93,9 +73,9 @@ def identify(identification: Identification) -> Expression:
         raise Fail(districts, districts_without_treatment)
 
     # line 6
-    parents = list(nx.topological_sort(graph.directed))
+    parents = graph.get_topological_sort()
     if districts_without_treatment[0] in districts:
-        expression = Product.safe(P(v | parents[: parents.index(v)]) for v in districts_without_treatment[0])
+        expression = Product.safe(p_parents(v, parents) for v in districts_without_treatment[0])
         ranges = districts_without_treatment[0] - outcomes
         if not ranges:
             return expression
@@ -111,15 +91,13 @@ def identify(identification: Identification) -> Expression:
                 Identification.from_parts(
                     outcomes=outcomes,
                     treatments=treatments & district,
-                    estimand=Product.safe(P(v | parents[: parents.index(v)]) for v in district),
+                    estimand=Product.safe(p_parents(v, parents) for v in district),
                     graph=graph.subgraph(district),
                 )
             )
 
 
-def line_1(
-    identification: Identification
-) -> Expression:
+def line_1(identification: Identification) -> Expression:
     r"""Run line 1 of identification algorithm.
 
     If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
@@ -148,9 +126,7 @@ def line_1(
     )
 
 
-def line_2(
-        identification: Identification
-) -> Identification:
+def line_2(identification: Identification) -> Identification:
     r"""Run line 2 of the identification algorithm.
 
     If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention
@@ -188,9 +164,7 @@ def line_2(
         )
 
 
-def line_3(
-        identification: Identification
-) -> Identification:
+def line_3(identification: Identification) -> Identification:
     r"""Run line 3 of the identification algorithm.
 
     Forces an action on any node where such an action would have no
@@ -226,14 +200,11 @@ def line_3(
             graph=graph,
         )
 
-
     # TODO what happens if it gets here
     raise NotImplementedError
 
 
-def line_4(
-        identification: Identification
-) -> List[Identification]:
+def line_4(identification: Identification) -> List[Identification]:
     r"""Run line 4 of the identification algorithm.
 
     The key line of the algorithm, it decomposes the problem into a set
@@ -252,8 +223,6 @@ def line_4(
     not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
     outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
 
-
-
     # line 4
     districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
     if len(districts_without_treatment) > 1:
@@ -264,18 +233,14 @@ def line_4(
                 estimand=estimand,
                 graph=graph,
             )
-
             for district_without_treatment in districts_without_treatment
         )
-
 
     else:
         raise NotImplementedError
 
 
-def line_5(
-        identification: Identification
-) -> None:
+def line_5(identification: Identification) -> None:
     r"""Run line 5 of the identification algorithm.
 
     Fails because it finds two C-components, the graph :math:`G`
@@ -300,9 +265,7 @@ def line_5(
         raise Fail(districts, districts_without_treatment)
 
 
-def line_6(
-        identification: Identification
-) -> Expression:
+def line_6(identification: Identification) -> Expression:
     r"""Run line 6 of the identification algorithm.
 
     Asserts that if there are no bidirected arcs from :math:`X` to the other nodes in the current subproblem
@@ -325,9 +288,9 @@ def line_6(
     districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
 
     # line 6
-    parents = list(nx.topological_sort(graph.directed))
+    parents = graph.get_topological_sort()
     if districts_without_treatment[0] in districts:
-        expression = Product.safe(P(v | parents[: parents.index(v)]) for v in districts_without_treatment[0])
+        expression = Product.safe(p_parents(v, parents) for v in districts_without_treatment[0])
         ranges = districts_without_treatment[0] - outcomes
         if not ranges:
             return expression
@@ -337,11 +300,7 @@ def line_6(
         )
 
 
-
-
-def line_7(
-        identification: Identification
-) -> Identification:
+def line_7(identification: Identification) -> Identification:
     r"""Run line 7 of the identification algorithm.
 
    The most complex case where :math:`\mathbf X` is partitioned into
@@ -363,7 +322,6 @@ def line_7(
        \prod_{\{i|V_i\in S'\}}P(V_i|V_\pi^{(i-1)}\cap S', V_\pi^{(i-1)} -
        S'), G_{S'}\right)
     """
-
     outcomes = identification.outcomes
     treatments = identification.treatments
     estimand = identification.estimand
@@ -374,8 +332,7 @@ def line_7(
     outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
     districts = get_c_components(graph)
     districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
-    parents = list(nx.topological_sort(graph.directed))
-
+    parents = graph.get_topological_sort()
 
     # line 7
     for district in districts:
@@ -383,14 +340,19 @@ def line_7(
             return Identification.from_parts(
                 outcomes=outcomes,
                 treatments=treatments & district,
-                estimand=Product.safe(P(v | parents[: parents.index(v)]) for v in district),
+                estimand=Product.safe(p_parents(v, parents) for v in district),
                 graph=graph.subgraph(district),
             )
-    return NotImplementedError
+
+    raise ValueError
 
 
 def get_c_components(graph: NxMixedGraph[X]) -> List[FrozenSet[X]]:
     return [frozenset(district) for district in nx.connected_components(graph.undirected)]
+
+
+def p_parents(v_, parents_):
+    return P(v_ | parents_[: parents_.index(v_)])
 
 
 # def str_list(node_list):
