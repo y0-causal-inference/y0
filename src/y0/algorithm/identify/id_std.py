@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
+"""An implementation of the identification algorithm."""
+
 from typing import FrozenSet, List, TypeVar
 
 import networkx as nx
 
 from y0.algorithm.identify.utils import ancestors_and_self
-from y0.dsl import Expression, P, Product, Sum
+from y0.dsl import Expression, P, Probability, Product, Sum
 from y0.graph import NxMixedGraph
 from .utils import Fail, Identification
 
@@ -103,23 +105,12 @@ def line_1(identification: Identification) -> Expression:
     If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
     the observational distribution
 
-    :param outcomes:
-    :param treatments:
-    :param estimand: Probabilistic expression
-    :param graph: NxMixedGraph
+    :param identification: The data structure with the treatment, outcomes, estimand, and graph
     :returns:  The marginal of the outcome variables
-    :raises ValueError:  There should not be any interventional variables
     """
-
     outcomes = identification.outcomes
-    treatments = identification.treatments
-    estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
-    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
-    not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
-    outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
-
     return Sum.safe(
         expression=P(vertices),
         ranges=vertices.difference(outcomes),
@@ -138,14 +129,10 @@ def line_2(identification: Identification) -> Identification:
         \text{ return } \mathbf{ ID}\left(\mathbf y, \mathbf x\cap An(\mathbf Y)_G, \sum_{\mathbf V -
          An(Y)_G}P, G_{An(\mathbf Y)}\right)
 
-    :param outcomes: set of outcomes
-    :param treatments: set of interventions
-    :param estimand: Probabilistic expression
-    :param graph: ADMG
-    :returns: The probability expression
-    :raises Fail: if the query is not identifiable.
+    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :returns: The new estimand
+    :raises ValueError: If the line 2 precondition is not met
     """
-
     outcomes = identification.outcomes
     treatments = identification.treatments
     estimand = identification.estimand
@@ -155,13 +142,14 @@ def line_2(identification: Identification) -> Identification:
     not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
     outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
 
-    if not_outcomes_or_ancestors:
-        return Identification.from_parts(
-            outcomes=outcomes,
-            treatments=treatments & outcomes_and_ancestors,
-            estimand=Sum.safe(expression=estimand, ranges=not_outcomes_or_ancestors),
-            graph=outcome_ancestral_graph,
-        )
+    if not not_outcomes_or_ancestors:
+        raise ValueError("line 2 precondition not met")
+    return Identification.from_parts(
+        outcomes=outcomes,
+        treatments=treatments & outcomes_and_ancestors,
+        estimand=Sum.safe(expression=estimand, ranges=not_outcomes_or_ancestors),
+        graph=outcome_ancestral_graph,
+    )
 
 
 def line_3(identification: Identification) -> Identification:
@@ -174,21 +162,15 @@ def line_3(identification: Identification) -> Identification:
     removing certain arcs from the graph, without affecting the
     overall answer.
 
-    :param outcomes:
-    :param treatments:
-    :param estimand: Current probabilistic expression
-    :param graph: ADMG
-    :returns:  The new estimand
-    :raises Fail: if the query is not identifiable.
+    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :returns: The new estimand
+    :raises ValueError: If the preconditions for line 3 aren't met.
     """
     outcomes = identification.outcomes
     treatments = identification.treatments
     estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
-    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
-    not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
-    outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
 
     intervened_graph = graph.intervene(treatments)
     no_effect_on_outcome = (vertices - treatments) - ancestors_and_self(intervened_graph, outcomes)
@@ -201,7 +183,7 @@ def line_3(identification: Identification) -> Identification:
         )
 
     # TODO what happens if it gets here
-    raise NotImplementedError
+    raise ValueError
 
 
 def line_4(identification: Identification) -> List[Identification]:
@@ -213,31 +195,29 @@ def line_4(identification: Identification) -> List[Identification]:
     C-component already, further problem decomposition is impossible,
     and we must provide base cases. :math:`\mathbf{ID}` has three base
     cases.
+
+    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :returns: A list of new estimands
+    :raises ValueError: If the precondition that there are more than 1 districts without treatments is not met
     """
-    outcomes = identification.outcomes
     treatments = identification.treatments
     estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
-    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
-    not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
-    outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
 
     # line 4
     districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
-    if len(districts_without_treatment) > 1:
-        return tuple(
-            Identification.from_parts(
-                outcomes=district_without_treatment,
-                treatments=vertices - district_without_treatment,
-                estimand=estimand,
-                graph=graph,
-            )
-            for district_without_treatment in districts_without_treatment
+    if len(districts_without_treatment) <= 1:
+        raise ValueError("Line 4 precondition not met")
+    return list(
+        Identification.from_parts(
+            outcomes=district_without_treatment,
+            treatments=vertices - district_without_treatment,
+            estimand=estimand,
+            graph=graph,
         )
-
-    else:
-        raise NotImplementedError
+        for district_without_treatment in districts_without_treatment
+    )
 
 
 def line_5(identification: Identification) -> None:
@@ -248,15 +228,18 @@ def line_5(identification: Identification) -> None:
     :math:`\mathbf X` nodes. But that is exactly one of the properties
     of C-forests that make up a hedge. In fact, it turns out that it
     is always possible to recover a hedge from these two c-components.
+
+    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :raises Fail: If line 5 realizes that identification is not possible
     """
-    outcomes = identification.outcomes
+    # outcomes = identification.outcomes
     treatments = identification.treatments
-    estimand = identification.estimand
+    # estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
-    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
-    not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
-    outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
+    # outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
+    # not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
+    # outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
     districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
 
     # line 5
@@ -275,45 +258,46 @@ def line_6(identification: Identification) -> Expression:
 
         \text{ if }S\in C(G) \\
         \text{ return }\sum_{S - \mathbf y}\prod_{\{i|V_i\in S\}}P\left(v_i|v_\pi^{(i-1)}\right)
+
+    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :returns: A list of new estimands
+    :raises ValueError: If line 6 precondition is not met
     """
     outcomes = identification.outcomes
     treatments = identification.treatments
-    estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
-    vertices = set(graph.nodes())
-    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
-    not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
-    outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
+
     districts = get_c_components(graph)
     districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
 
     # line 6
     parents = graph.get_topological_sort()
-    if districts_without_treatment[0] in districts:
-        expression = Product.safe(p_parents(v, parents) for v in districts_without_treatment[0])
-        ranges = districts_without_treatment[0] - outcomes
-        if not ranges:
-            return expression
-        return Sum.safe(
-            expression=expression,
-            ranges=ranges,
-        )
+    if districts_without_treatment[0] not in districts:
+        raise ValueError("Line 6 precondition not met")
+    expression = Product.safe(p_parents(v, parents) for v in districts_without_treatment[0])
+    ranges = districts_without_treatment[0] - outcomes
+    if not ranges:
+        return expression
+    return Sum.safe(
+        expression=expression,
+        ranges=ranges,
+    )
 
 
 def line_7(identification: Identification) -> Identification:
     r"""Run line 7 of the identification algorithm.
 
-   The most complex case where :math:`\mathbf X` is partitioned into
-   two sets, :math:`\mathbf W` which contain bidirected arcs into
-   other nodes in the subproblem, and :math:`\mathbf Z` which do
-   not. In this situation, identifying :math:`P(\mathbf y|do(\mathbf
-   x))` from :math:`P(v)` is equivalent to identifying
-   :math:`P(\mathbf y|do(\mathbf w))` from :math:`P(\mathbf
-   V|do(\mathbf z))`, since :math:`P(\mathbf y|do(\mathbf x)) =
-   P(\mathbf y|do(\mathbf w), do(\mathbf z))`. But the term
-   :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the
-   previous base case, so we can consider the subproblem of
-   identifying :math:`P(\mathbf y|do(\mathbf w))`
+    The most complex case where :math:`\mathbf X` is partitioned into
+    two sets, :math:`\mathbf W` which contain bidirected arcs into
+    other nodes in the subproblem, and :math:`\mathbf Z` which do
+    not. In this situation, identifying :math:`P(\mathbf y|do(\mathbf
+    x))` from :math:`P(v)` is equivalent to identifying
+    :math:`P(\mathbf y|do(\mathbf w))` from :math:`P(\mathbf
+    V|do(\mathbf z))`, since :math:`P(\mathbf y|do(\mathbf x)) =
+    P(\mathbf y|do(\mathbf w), do(\mathbf z))`. But the term
+    :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the
+    previous base case, so we can consider the subproblem of
+    identifying :math:`P(\mathbf y|do(\mathbf w))`
 
     .. math::
 
@@ -321,15 +305,15 @@ def line_7(identification: Identification) -> Identification:
        \text{ return }\mathbf{ID}\left(\mathbf y, \mathbf x\cap S',
        \prod_{\{i|V_i\in S'\}}P(V_i|V_\pi^{(i-1)}\cap S', V_\pi^{(i-1)} -
        S'), G_{S'}\right)
+
+    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :returns: A new estimand
+    :raises ValueError: If line 7 does not find a suitable district
     """
     outcomes = identification.outcomes
     treatments = identification.treatments
-    estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
-    vertices = set(graph.nodes())
-    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
-    not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
-    outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
+
     districts = get_c_components(graph)
     districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
     parents = graph.get_topological_sort()
@@ -344,15 +328,17 @@ def line_7(identification: Identification) -> Identification:
                 graph=graph.subgraph(district),
             )
 
-    raise ValueError
+    raise ValueError("Could not identify suitable district")
 
 
 def get_c_components(graph: NxMixedGraph[X]) -> List[FrozenSet[X]]:
+    """Get the C-components from a mixed graph."""
     return [frozenset(district) for district in nx.connected_components(graph.undirected)]
 
 
-def p_parents(v_, parents_):
-    return P(v_ | parents_[: parents_.index(v_)])
+def p_parents(variable, parents) -> Probability:
+    """Get a probability expression based on a topological ordering."""
+    return P(variable | parents[: parents.index(variable)])
 
 
 # def str_list(node_list):

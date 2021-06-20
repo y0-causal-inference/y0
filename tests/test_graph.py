@@ -66,7 +66,7 @@ class TestGraph(unittest.TestCase):
                 self.assert_labeled_convertable(graph, labeled_edges)
 
     def test_str_nodes_to_variable_nodes(self):
-        """Test converting a str node NxMixedGraph to a Variable node NxMixedGraph"""
+        """Test converting a str node NxMixedGraph to a Variable node NxMixedGraph."""
         graph = NxMixedGraph.from_edges(directed=[("X", "Y"), ("Y", "Z")], undirected=[("X", "Z")])
 
         expected = NxMixedGraph.from_edges(

@@ -2,8 +2,7 @@
 
 """Identification algorithms."""
 
-from .id_std import (
-    identify,
+from .id_std import (  # noqa:F401
     get_c_components,
     identify,
     line_1,
@@ -14,7 +13,7 @@ from .id_std import (
     line_6,
     line_7,
 )
-from .utils import (
+from .utils import (  # noqa:F401
     Fail,
     Identification,
     ancestors_and_self,

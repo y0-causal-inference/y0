@@ -79,7 +79,8 @@ class NxMixedGraph(Generic[X]):
             and (self.undirected.edges() == other.undirected.edges())
         )
 
-    def str_nodes_to_variable_nodes(self) -> NxMixedGraph:
+    def str_nodes_to_variable_nodes(self) -> NxMixedGraph[Variable]:
+        """Generate a variable graph from this graph of strings."""
         directed: Mapping[X, List[X]] = dict(
             [(u, []) if type(u) is Variable else (Variable(str(u)), []) for u in self.nodes()]
         )
@@ -107,6 +108,7 @@ class NxMixedGraph(Generic[X]):
         return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
 
     def get_topological_sort(self) -> Sequence[X]:
+        """Get a topological sort from the directed component of the mixed graph."""
         return list(nx.topological_sort(self.directed))
 
     def subgraph(self, vertices: Collection[X]) -> NxMixedGraph:

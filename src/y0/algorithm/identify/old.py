@@ -793,7 +793,7 @@ class cg_graph:
                 (item2[0] + "_{" + str_temp + "}", item2[1] + "_{" + str_temp + "}")
                 for item2 in graph_temp.edges
                 if item2[1] not in [item3.replace("*", "") for item3 in item[1]]
-                   and item2[0] not in [item3.replace("*", "") for item3 in item[1]]
+                and item2[0] not in [item3.replace("*", "") for item3 in item[1]]
             ]
 
             for item2 in item[1]:
@@ -812,7 +812,7 @@ class cg_graph:
                 ("U^{" + item2 + "}", item2 + "_{" + str_temp + "}")
                 for item2 in graph_temp.nodes
                 if item2 not in vars_with_conf
-                   and item2 not in [item3.replace("*", "") for item3 in item[1]]
+                and item2 not in [item3.replace("*", "") for item3 in item[1]]
             ]
 
             # create confounder edges for confounders from the original graph
@@ -1289,10 +1289,10 @@ class cg_graph:
                                 item2
                                 for item2 in item[1]
                                 if item2
-                                   in nx.algorithms.dag.ancestors(
-                                graph_out,
-                                item[0] + "_{" + self.str_list(item[1]) + "}",
-                            )
+                                in nx.algorithms.dag.ancestors(
+                                    graph_out,
+                                    item[0] + "_{" + self.str_list(item[1]) + "}",
+                                )
                             ],
                         ]
                     )
@@ -1397,9 +1397,9 @@ class cg_graph:
                                     for item2 in item[1] + d_sep_list
                                     if item2
                                     in nx.algorithms.dag.ancestors(
-                                    graph_out,
-                                    item[0] + "_{" + self.str_list(item[1]) + "}",
-                                )
+                                        graph_out,
+                                        item[0] + "_{" + self.str_list(item[1]) + "}",
+                                    )
                                 ],
                             ]
                         )
@@ -1487,9 +1487,9 @@ class str_graph(cg_graph):
             sub_ind = item.find("=")
 
             sub_temp = item[: sub_ind - 1]
-            obj_temp = item[sub_ind + 3:]
+            obj_temp = item[sub_ind + 3 :]
 
-            rel_temp = item[sub_ind: sub_ind + 2]
+            rel_temp = item[sub_ind : sub_ind + 2]
 
             if sub_temp not in entity_list:
                 entity_list.append(sub_temp)

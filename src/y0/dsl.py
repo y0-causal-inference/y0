@@ -596,7 +596,8 @@ class Product(Expression):
     expressions: Tuple[Expression, ...]
 
     @classmethod
-    def safe(cls, it) -> Product:
+    def safe(cls, it: Iterable[Expression]) -> Product:
+        """Construct a product from any iterable of expressions."""
         return cls(expressions=tuple(it))
 
     def to_text(self):
@@ -643,6 +644,7 @@ class Sum(Expression):
 
     @classmethod
     def safe(cls, *, expression: Expression, ranges: Iterable[Union[str, Variable]]) -> Sum:
+        """Construct a sum from an expresion and a permissive set of things in the ranges."""
         return cls(expression=expression, ranges=_upgrade_ordering(ranges))
 
     def to_text(self) -> str:

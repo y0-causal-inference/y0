@@ -30,7 +30,6 @@ from y0.examples import (
     line_7_example,
 )
 from y0.graph import NxMixedGraph
-from y0.identify import _get_outcomes, _get_treatments
 from y0.mutate import canonicalize
 
 P_XY = P(X, Y)

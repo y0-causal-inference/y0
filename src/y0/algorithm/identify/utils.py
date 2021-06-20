@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Utilities for identifiaction algorithms"""
+"""Utilities for identification algorithms."""
 
 from __future__ import annotations
 
@@ -55,10 +55,12 @@ class Identification:
 
     @property
     def outcomes(self) -> Set[Variable]:
+        """Get outcomes of the query."""
         return {Variable(v) for v in _get_outcomes(self.query.get_variables())}
 
     @property
     def treatments(self) -> Set[Variable]:
+        """Get treatments of the query."""
         return {Variable(v) for v in _get_treatments(self.query.get_variables())}
 
     def __eq__(self, other: Any) -> bool:
@@ -96,6 +98,7 @@ def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[Variable], Se
 def outcomes_and_treatments_to_query(
     *, outcomes: Set[Variable], treatments: Set[Variable]
 ) -> Expression:
+    """Create a query expression from a set of outcome and treatment variables."""
     if len(treatments) == 0:
         return P(outcomes)
     return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
@@ -107,4 +110,3 @@ def ancestors_and_self(graph: NxMixedGraph[X], sources: Set[X]) -> Set[X]:
     for source in sources:
         rv.update(nx.algorithms.dag.ancestors(graph.directed, source))
     return rv
-
