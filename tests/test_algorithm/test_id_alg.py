@@ -54,16 +54,14 @@ class TestIdentify(unittest.TestCase):
             msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
         )
 
-    def assert_identify(self, expression: Expression, graph: NxMixedGraph, query: Expression):
-        """Assert that the graph returns the same."""
-        self.assert_expr_equal(expression, identify(graph, query))
-
     def assert_identification_equal(self, expected: Identification, actual: Identification):
         """Assert that the recursive call to ID has the correct input parameters."""
         self.assertIsNotNone(actual)
         self.assert_expr_equal(expected.query, actual.query)
         self.assert_expr_equal(expected.estimand, actual.estimand)
-        self.assertEqual(expected.graph, actual.graph)
+        self.assertEqual(expected.graph.nodes(), actual.graph.nodes())
+        self.assertEqual(expected.graph.directed.edges(), actual.graph.directed.edges())
+        self.assertEqual(expected.graph.undirected.edges(), actual.graph.undirected.edges())
 
     def test_ancestors_and_self(self):
         """Test whether the ancestors_and_self actually returns the ancestors and itself."""
