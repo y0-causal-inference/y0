@@ -1,5 +1,5 @@
 # flake8: noqa
-# mypy: noqa
+# type: ignore
 
 from __future__ import annotations
 

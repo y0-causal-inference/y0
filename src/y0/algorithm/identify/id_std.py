@@ -15,7 +15,12 @@ X = TypeVar("X")
 
 
 def identify(identification: Identification) -> Expression:
-    """Run the identification algorithm."""
+    """Run the identification algorithm.
+
+    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :returns: the expression corresponding to the identification
+    :raises Fail: If no appropriate identification can be found
+    """
     outcomes = identification.outcomes
     treatments = identification.treatments
     estimand = identification.estimand
@@ -97,6 +102,8 @@ def identify(identification: Identification) -> Expression:
                     graph=graph.subgraph(district),
                 )
             )
+
+    raise Fail
 
 
 def line_1(identification: Identification) -> Expression:
