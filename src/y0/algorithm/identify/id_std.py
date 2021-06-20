@@ -21,8 +21,8 @@ def identify(identification: Identification) -> Expression:
     :returns: the expression corresponding to the identification
     :raises Fail: If no appropriate identification can be found
     """
-    outcomes = identification.outcomes
-    treatments = identification.treatments
+    outcomes = identification.outcome_variables
+    treatments = identification.treatment_variables
     estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
@@ -115,7 +115,7 @@ def line_1(identification: Identification) -> Expression:
     :param identification: The data structure with the treatment, outcomes, estimand, and graph
     :returns:  The marginal of the outcome variables
     """
-    outcomes = identification.outcomes
+    outcomes = identification.outcome_variables
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
     return Sum.safe(
@@ -140,8 +140,8 @@ def line_2(identification: Identification) -> Identification:
     :returns: The new estimand
     :raises ValueError: If the line 2 precondition is not met
     """
-    outcomes = identification.outcomes
-    treatments = identification.treatments
+    outcomes = identification.outcome_variables
+    treatments = identification.treatment_variables
     estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
@@ -173,8 +173,8 @@ def line_3(identification: Identification) -> Identification:
     :returns: The new estimand
     :raises ValueError: If the preconditions for line 3 aren't met.
     """
-    outcomes = identification.outcomes
-    treatments = identification.treatments
+    outcomes = identification.outcome_variables
+    treatments = identification.treatment_variables
     estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
@@ -207,7 +207,7 @@ def line_4(identification: Identification) -> List[Identification]:
     :returns: A list of new estimands
     :raises ValueError: If the precondition that there are more than 1 districts without treatments is not met
     """
-    treatments = identification.treatments
+    treatments = identification.treatment_variables
     estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
@@ -240,7 +240,7 @@ def line_5(identification: Identification) -> None:
     :raises Fail: If line 5 realizes that identification is not possible
     """
     # outcomes = identification.outcomes
-    treatments = identification.treatments
+    treatments = identification.treatment_variables
     # estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
@@ -270,8 +270,8 @@ def line_6(identification: Identification) -> Expression:
     :returns: A list of new estimands
     :raises ValueError: If line 6 precondition is not met
     """
-    outcomes = identification.outcomes
-    treatments = identification.treatments
+    outcomes = identification.outcome_variables
+    treatments = identification.treatment_variables
     graph = identification.graph.str_nodes_to_variable_nodes()
 
     districts = get_c_components(graph)
@@ -317,8 +317,8 @@ def line_7(identification: Identification) -> Identification:
     :returns: A new estimand
     :raises ValueError: If line 7 does not find a suitable district
     """
-    outcomes = identification.outcomes
-    treatments = identification.treatments
+    outcomes = identification.outcome_variables
+    treatments = identification.treatment_variables
     graph = identification.graph.str_nodes_to_variable_nodes()
 
     districts = get_c_components(graph)

@@ -54,12 +54,12 @@ class Identification:
         )
 
     @property
-    def outcomes(self) -> Set[Variable]:
+    def outcome_variables(self) -> Set[Variable]:
         """Get outcomes of the query."""
         return {Variable(v) for v in _get_outcomes(self.query.get_variables())}
 
     @property
-    def treatments(self) -> Set[Variable]:
+    def treatment_variables(self) -> Set[Variable]:
         """Get treatments of the query."""
         return {Variable(v) for v in _get_treatments(self.query.get_variables())}
 
