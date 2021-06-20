@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Set, Tuple, TypeVar
+from typing import Any, Collection, Hashable, Set, Tuple, TypeVar
 
 import networkx as nx
 
@@ -23,7 +23,7 @@ __all__ = [
     "outcomes_and_treatments_to_query",
 ]
 
-X = TypeVar("X")
+Y = TypeVar("Y", bound=Hashable)
 
 
 class Fail(Exception):
@@ -104,9 +104,9 @@ def outcomes_and_treatments_to_query(
     return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
 
 
-def ancestors_and_self(graph: NxMixedGraph[X], sources: Set[X]) -> Set[X]:
+def ancestors_and_self(graph: NxMixedGraph[Y], sources: Collection[Y]) -> Set[Y]:
     """Ancestors of a set include the set itself."""
-    rv = sources.copy()
+    rv = set(sources)
     for source in sources:
         rv.update(nx.algorithms.dag.ancestors(graph.directed, source))
     return rv
