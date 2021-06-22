@@ -391,9 +391,9 @@ class NxMixedGraph(Generic[X]):
         """Get the C-components in the undirected portion of the graph."""
         return [frozenset(c) for c in nx.connected_components(self.undirected)]
 
-    def has_single_district(self) -> bool:
+    def is_connected(self) -> bool:
         """Return if there is only a single C-component."""
-        return 1 == nx.number_connected_components(self.undirected)
+        return nx.is_connected(self.undirected)
 
 
 def admg_to_latent_variable_dag(

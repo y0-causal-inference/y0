@@ -41,8 +41,7 @@ def identify(identification: Identification) -> Expression:
 
     # line 4
     graph_without_treatments = graph.remove_nodes_from(treatments)
-    districts_without_treatment = graph_without_treatments.get_c_components()
-    if len(districts_without_treatment) > 1:
+    if not graph_without_treatments.is_connected():
         expression = Product.safe(map(identify, line_4(identification)))
         return Sum.safe(
             expression=expression,
@@ -50,16 +49,19 @@ def identify(identification: Identification) -> Expression:
         )
 
     # line 5
-    districts = graph.get_c_components()
-    if districts == [frozenset(vertices)]:
-        raise Fail(districts, districts_without_treatment)
+    if graph.is_connected():  # e.g., there's only 1 c-component, and it encompasses all vertices
+        raise Fail(graph.nodes(), graph_without_treatments.get_c_components())
 
     # line 6
+    districts = graph.get_c_components()
     parents = graph.get_topological_sort()
-    # There can be only 1!
+
+    # There can be only 1 district without treatments because of line 4
+    districts_without_treatment = graph_without_treatments.get_c_components()
     district_without_treatment = districts_without_treatment[0]
+
     if district_without_treatment in districts:
-        expression = Product.safe(p_parents(v, parents) for v in districts_without_treatment[0])
+        expression = Product.safe(p_parents(v, parents) for v in district_without_treatment)
         ranges = district_without_treatment - outcomes
         if not ranges:
             return expression
