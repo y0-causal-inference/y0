@@ -2,24 +2,22 @@
 
 """An implementation of the identification algorithm."""
 
-from typing import List, Sequence, TypeVar
+from typing import List, Sequence
 
-from y0.dsl import Expression, P, Probability, Product, Sum, Variable
-from .utils import Fail, Identification, str_nodes_to_variable_nodes
-
-X = TypeVar("X")
+from .utils import Fail, Identification
+from ...dsl import Expression, P, Probability, Product, Sum, Variable
 
 
 def identify(identification: Identification) -> Expression:
     """Run the identification algorithm.
 
-    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :param identification: The identification tuple
     :returns: the expression corresponding to the identification
     :raises Fail: If no appropriate identification can be found
     """
-    outcomes = identification.outcome_variables
-    treatments = identification.treatment_variables
-    graph = str_nodes_to_variable_nodes(identification.graph)
+    graph = identification.graph
+    treatments = identification.treatments
+    outcomes = identification.outcomes
     vertices = set(graph.nodes())
 
     # line 1
@@ -82,9 +80,8 @@ def line_1(identification: Identification) -> Expression:
     :param identification: The data structure with the treatment, outcomes, estimand, and graph
     :returns:  The marginal of the outcome variables
     """
-    outcomes = identification.outcome_variables
-    graph = str_nodes_to_variable_nodes(identification.graph)
-    vertices = set(graph.nodes())
+    outcomes = identification.outcomes
+    vertices = set(identification.graph.nodes())
     return Sum.safe(
         expression=P(vertices),
         ranges=vertices.difference(outcomes),
@@ -107,10 +104,10 @@ def line_2(identification: Identification) -> Identification:
     :returns: The new estimand
     :raises ValueError: If the line 2 precondition is not met
     """
-    outcomes = identification.outcome_variables
-    treatments = identification.treatment_variables
-    estimand = identification.estimand
-    graph = str_nodes_to_variable_nodes(identification.graph)
+    graph = identification.graph
+    treatments = identification.treatments
+    outcomes = identification.outcomes
+
     vertices = set(graph.nodes())
     outcomes_and_ancestors = graph.ancestors_inclusive(outcomes)
     not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
@@ -118,10 +115,10 @@ def line_2(identification: Identification) -> Identification:
 
     if not not_outcomes_or_ancestors:
         raise ValueError("line 2 precondition not met")
-    return Identification.from_parts(
+    return Identification(
         outcomes=outcomes,
         treatments=treatments & outcomes_and_ancestors,
-        estimand=Sum.safe(expression=estimand, ranges=not_outcomes_or_ancestors),
+        estimand=Sum.safe(expression=identification.estimand, ranges=not_outcomes_or_ancestors),
         graph=outcome_ancestral_graph,
     )
 
@@ -140,16 +137,16 @@ def line_3(identification: Identification) -> Identification:
     :returns: The new estimand
     :raises ValueError: If the preconditions for line 3 aren't met.
     """
-    outcomes = identification.outcome_variables
-    treatments = identification.treatment_variables
+    outcomes = identification.outcomes
+    treatments = identification.treatments
     estimand = identification.estimand
-    graph = str_nodes_to_variable_nodes(identification.graph)
+    graph = identification.graph
     vertices = set(graph.nodes())
 
     intervened_graph = graph.intervene(treatments)
     no_effect_on_outcome = (vertices - treatments) - intervened_graph.ancestors_inclusive(outcomes)
     if no_effect_on_outcome:
-        return Identification.from_parts(
+        return Identification(
             outcomes=outcomes,
             treatments=treatments | no_effect_on_outcome,
             estimand=estimand,
@@ -174,9 +171,9 @@ def line_4(identification: Identification) -> List[Identification]:
     :returns: A list of new estimands
     :raises ValueError: If the precondition that there are more than 1 districts without treatments is not met
     """
-    treatments = identification.treatment_variables
+    treatments = identification.treatments
     estimand = identification.estimand
-    graph = str_nodes_to_variable_nodes(identification.graph)
+    graph = identification.graph
     vertices = set(graph.nodes())
 
     # line 4
@@ -184,15 +181,15 @@ def line_4(identification: Identification) -> List[Identification]:
     districts_without_treatment = graph_without_treatments.get_c_components()
     if len(districts_without_treatment) <= 1:
         raise ValueError("Line 4 precondition not met")
-    return list(
-        Identification.from_parts(
-            outcomes=district_without_treatment,
+    return [
+        Identification(
+            outcomes=set(district_without_treatment),
             treatments=vertices - district_without_treatment,
             estimand=estimand,
             graph=graph,
         )
         for district_without_treatment in districts_without_treatment
-    )
+    ]
 
 
 def line_5(identification: Identification) -> None:
@@ -207,16 +204,11 @@ def line_5(identification: Identification) -> None:
     :param identification: The data structure with the treatment, outcomes, estimand, and graph
     :raises Fail: If line 5 realizes that identification is not possible
     """
-    # outcomes = identification.outcomes
-    treatments = identification.treatment_variables
-    # estimand = identification.estimand
-    graph = str_nodes_to_variable_nodes(identification.graph)
+    treatments = identification.treatments
+    graph = identification.graph
     vertices = set(graph.nodes())
-    # outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
-    # not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
-    # outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
-    graph_withoyt_treatments = graph.remove_nodes_from(treatments)
-    districts_without_treatment = graph_withoyt_treatments.get_c_components()
+    graph_without_treatments = graph.remove_nodes_from(treatments)
+    districts_without_treatment = graph_without_treatments.get_c_components()
 
     # line 5
     districts = graph.get_c_components()
@@ -239,9 +231,9 @@ def line_6(identification: Identification) -> Expression:
     :returns: A list of new estimands
     :raises ValueError: If line 6 precondition is not met
     """
-    outcomes = identification.outcome_variables
-    treatments = identification.treatment_variables
-    graph = str_nodes_to_variable_nodes(identification.graph)
+    outcomes = identification.outcomes
+    treatments = identification.treatments
+    graph = identification.graph
 
     districts = graph.get_c_components()
     graph_without_treatments = graph.remove_nodes_from(treatments)
@@ -287,9 +279,9 @@ def line_7(identification: Identification) -> Identification:
     :returns: A new estimand
     :raises ValueError: If line 7 does not find a suitable district
     """
-    outcomes = identification.outcome_variables
-    treatments = identification.treatment_variables
-    graph = str_nodes_to_variable_nodes(identification.graph)
+    outcomes = identification.outcomes
+    treatments = identification.treatments
+    graph = identification.graph
 
     districts = graph.get_c_components()
     graph_without_treatments = graph.remove_nodes_from(treatments)
@@ -299,7 +291,7 @@ def line_7(identification: Identification) -> Identification:
     # line 7
     for district in districts:
         if districts_without_treatments[0] < district:
-            return Identification.from_parts(
+            return Identification(
                 outcomes=outcomes,
                 treatments=treatments & district,
                 estimand=Product.safe(p_parents(v, parents) for v in district),

@@ -274,6 +274,10 @@ class CounterfactualVariable(Variable):
                     f" Got: ({intervention.__class__.__name__}) {intervention}",
                 )
 
+    def get_parent(self) -> Variable:
+        """Get the parent variable."""
+        return Variable(name=self.name)
+
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
         intervention_latex = _list_to_text(self.interventions)

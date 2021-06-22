@@ -18,7 +18,6 @@ from y0.algorithm.identify.id_std import (
     line_6,
     line_7,
 )
-from y0.algorithm.identify.utils import str_nodes_to_variable_nodes
 from y0.dsl import Expression, P, Product, Sum, Variable, X, Y, Y1, Z, get_outcomes_and_treatments
 from y0.examples import (
     line_1_example,
@@ -57,7 +56,8 @@ class TestIdentify(unittest.TestCase):
     def assert_identification_equal(self, expected: Identification, actual: Identification):
         """Assert that the recursive call to ID has the correct input parameters."""
         self.assertIsNotNone(actual)
-        self.assert_expr_equal(expected.query, actual.query)
+        self.assertEqual(expected.outcomes, actual.outcomes)
+        self.assertEqual(expected.treatments, actual.treatments)
         self.assert_expr_equal(expected.estimand, actual.estimand)
         self.assertEqual(expected.graph.nodes(), actual.graph.nodes())
         self.assertEqual(expected.graph.directed.edges(), actual.graph.directed.edges())
@@ -87,7 +87,6 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_2_example.identifications:
             id_out = identification["id_out"][0]
-            id_out.graph = str_nodes_to_variable_nodes(id_out.graph)
             self.assert_identification_equal(
                 expected=id_out,
                 actual=line_2(identification["id_in"][0]),
@@ -107,7 +106,6 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_3_example.identifications:
             id_out = identification["id_out"][0]
-            id_out.graph = str_nodes_to_variable_nodes(id_out.graph)
 
             self.assert_identification_equal(
                 expected=id_out,
@@ -133,7 +131,6 @@ class TestIdentify(unittest.TestCase):
             self.assertEqual(len(expecteds), len(actuals))
             match = []
             for expected in expecteds:
-                expected.graph = str_nodes_to_variable_nodes(expected.graph)
                 for actual in actuals:
                     if expected == actual:
                         self.assert_identification_equal(expected, actual)
@@ -181,7 +178,6 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_6_example.identifications:
             id_out = identification["id_out"][0]
-            id_out.graph = str_nodes_to_variable_nodes(id_out.graph)
 
             self.assert_expr_equal(
                 expected=id_out.estimand,
@@ -205,7 +201,6 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_7_example.identifications:
             id_out = identification["id_out"][0]
-            id_out.graph = str_nodes_to_variable_nodes(id_out.graph)
 
             self.assert_identification_equal(
                 expected=id_out,
