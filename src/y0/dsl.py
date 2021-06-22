@@ -927,3 +927,29 @@ def ensure_ordering(
 
 def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
     return tuple(sorted(variables, key=attrgetter("name")))
+
+
+def _get_treatment_variables(variables: Set[Variable]) -> Set[Variable]:
+    return {variable for variable in variables if isinstance(variable, Intervention)}
+
+
+def _get_outcome_variables(variables: Set[Variable]) -> Set[Variable]:
+    return {variable for variable in variables if not isinstance(variable, Intervention)}
+
+
+def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[Variable], Set[Variable]]:
+    """Get outcomes and treatments sets from the query expression."""
+    variables = query.get_variables()
+    return (
+        _get_outcome_variables(variables),
+        _get_treatment_variables(variables),
+    )
+
+
+def outcomes_and_treatments_to_query(
+    *, outcomes: Set[Variable], treatments: Optional[Set[Variable]] = None
+) -> Expression:
+    """Create a query expression from a set of outcome and treatment variables."""
+    if not treatments:
+        return P(outcomes)
+    return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
