@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Collection, Hashable, Set, Tuple, TypeVar
+from typing import Any, Collection, Hashable, Optional, Set, Tuple, TypeVar
 
 import networkx as nx
 
@@ -43,10 +43,19 @@ class Identification:
         cls,
         outcomes: Set[Variable],
         treatments: Set[Variable],
-        estimand: Expression,
         graph: NxMixedGraph[str],
+        estimand: Optional[Expression] = None,
     ) -> Identification:
-        """Instantiate an Identification from the parts of a query."""
+        """Instantiate an Identification from the parts of a query.
+
+        :param outcomes:
+        :param treatments:
+        :param graph:
+        :param estimand: If none is given, will use the joint distribution
+            over all variables in the graph.
+        """
+        if estimand is None:
+            estimand = P(graph.nodes())
         return cls(
             query=outcomes_and_treatments_to_query(outcomes=outcomes, treatments=treatments),
             estimand=estimand,
