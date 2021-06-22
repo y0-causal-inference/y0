@@ -166,7 +166,21 @@ class NxMixedGraph(Generic[X]):
         return self.from_adj(directed=directed, undirected=undirected)
 
     def remove_outgoing_edges_from(self, vertices: Collection[X]) -> NxMixedGraph:
-        raise NotImplementedError
+        """Return a subgraph that does not have any outgoing edges from any of the given vertices.
+
+        :param vertices: a set of nodes whose outgoing edges get removed from the graph
+        :returns: NxMixedGraph subgraph
+        """
+        directed: Mapping[X, List[X]] = dict([(u, []) for u in self.nodes() if u not in vertices])
+        undirected: Mapping[X, List[X]] = dict([(u, []) for u in self.nodes() if u not in vertices])
+
+        for u, v in self.directed.edges():
+            if u not in vertices:
+                directed[u].append(v)
+        for u, v in self.undirected.edges():
+            undirected[u].append(v)
+
+        return self.from_adj(directed=directed, undirected=undirected)
 
     def add_node(self, n: X) -> None:
         """Add a node."""
