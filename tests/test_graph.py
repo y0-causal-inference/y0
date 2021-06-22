@@ -6,6 +6,7 @@ import unittest
 from textwrap import dedent
 from typing import Set, Tuple
 
+import networkx as nx
 from ananke.graphs import ADMG
 
 from y0.examples import verma_1
@@ -86,6 +87,19 @@ class TestGraph(unittest.TestCase):
         directed = dict([("a", ["b", "c"]), ("b", ["a"]), ("c", [])])
         expected = NxMixedGraph.from_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
         self.assertEqual(expected, NxMixedGraph.from_adj(directed=directed))
+
+    def test_is_acyclic(self):
+        """Test the directed edges are acyclic."""
+        example = NxMixedGraph.from_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
+        self.assertFalse(nx.algorithms.dag.is_directed_acyclic_graph(example.directed))
+
+    def test_is_not_multigraph(self):
+        """Test the undirected edges are not inverses of each other."""
+        redundant_edges = [("a", "b"), ("b", "a")]
+        directed_edges = [("a", "b")]
+        expected = NxMixedGraph.from_edges(directed=[("a", "b")], undirected=[("a", "b")])
+        actual = NxMixedGraph.from_edges(directed=directed_edges, undirected=redundant_edges)
+        self.assertEqual(expected, actual)
 
     def test_subgraph(self):
         """Test generating a subgraph from a set of vertices."""
