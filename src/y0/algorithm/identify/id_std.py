@@ -145,16 +145,17 @@ def line_3(identification: Identification) -> Identification:
 
     intervened_graph = graph.intervene(treatments)
     no_effect_on_outcome = (vertices - treatments) - intervened_graph.ancestors_inclusive(outcomes)
-    if no_effect_on_outcome:
-        return Identification(
-            outcomes=outcomes,
-            treatments=treatments | no_effect_on_outcome,
-            estimand=estimand,
-            graph=graph,
+    if not no_effect_on_outcome:
+        raise ValueError(
+            'Line 3 precondition not met. There were no variables in "no_effect_on_outcome"'
         )
 
-    # TODO what happens if it gets here
-    raise ValueError
+    return Identification(
+        outcomes=outcomes,
+        treatments=treatments | no_effect_on_outcome,
+        estimand=estimand,
+        graph=graph,
+    )
 
 
 def line_4(identification: Identification) -> List[Identification]:
@@ -286,11 +287,17 @@ def line_7(identification: Identification) -> Identification:
     districts = graph.get_c_components()
     graph_without_treatments = graph.remove_nodes_from(treatments)
     districts_without_treatments = graph_without_treatments.get_c_components()
+    if 1 != len(districts_without_treatments):
+        raise ValueError(
+            "Line 7 precondition not met. Graph without treatments had more than one district"
+        )
+
     parents = list(graph.topological_sort())
+    district_without_treatments = districts_without_treatments[0]
 
     # line 7
     for district in districts:
-        if districts_without_treatments[0] < district:
+        if district_without_treatments < district:
             return Identification(
                 outcomes=outcomes,
                 treatments=treatments & district,
