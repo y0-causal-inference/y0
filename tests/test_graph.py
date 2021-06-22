@@ -6,6 +6,9 @@ import unittest
 from textwrap import dedent
 from typing import Set, Tuple
 
+import networkx as nx
+from ananke.graphs import ADMG
+
 from y0.examples import verma_1
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
@@ -65,3 +68,76 @@ class TestGraph(unittest.TestCase):
         """Test importing a CausalFusion graph."""
         graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
         self.assertIsInstance(graph, NxMixedGraph)
+
+    def test_from_admg(self):
+        """Test that all ADMGs can be converted to NxMixedGraph."""
+        expected = NxMixedGraph.from_adj(
+            directed={"W": [], "X": ["Y"], "Y": ["Z"], "Z": []},
+            undirected={"W": [], "X": ["Z"], "Y": [], "Z": []},
+        )
+        admg = ADMG(
+            vertices=["W", "X", "Y", "Z"],
+            di_edges=[["X", "Y"], ["Y", "Z"]],
+            bi_edges=[["X", "Z"]],
+        )
+        self.assertEqual(expected, NxMixedGraph.from_admg(admg))
+
+    def test_from_adj(self):
+        """Test the adjacency graph is not a multigraph."""
+        directed = dict([("a", ["b", "c"]), ("b", ["a"]), ("c", [])])
+        expected = NxMixedGraph.from_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
+        self.assertEqual(expected, NxMixedGraph.from_adj(directed=directed))
+
+    def test_is_acyclic(self):
+        """Test the directed edges are acyclic."""
+        example = NxMixedGraph.from_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
+        self.assertFalse(nx.algorithms.dag.is_directed_acyclic_graph(example.directed))
+
+    def test_is_not_multigraph(self):
+        """Test the undirected edges are not inverses of each other."""
+        redundant_edges = [("a", "b"), ("b", "a")]
+        directed_edges = [("a", "b")]
+        expected = NxMixedGraph.from_edges(directed=[("a", "b")], undirected=[("a", "b")])
+        actual = NxMixedGraph.from_edges(directed=directed_edges, undirected=redundant_edges)
+        self.assertEqual(expected, actual)
+
+    def test_subgraph(self):
+        """Test generating a subgraph from a set of vertices."""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("Y", "Z")
+        graph.add_undirected_edge("X", "Z")
+        self.assertEqual(graph, graph.subgraph({"X", "Y", "Z"}))
+
+        subgraph = NxMixedGraph()
+        subgraph.add_directed_edge("X", "Y")
+        self.assertEqual(subgraph, graph.subgraph({"X", "Y"}))
+
+    def test_intervention(self):
+        """Test generating a subgraph based on an intervention."""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("Z", "X")
+        graph.add_undirected_edge("X", "Z")
+        graph.add_undirected_edge("X", "Y")
+        graph.add_undirected_edge("Y", "Z")
+        self.assertEqual(graph, graph.intervene(set()))
+
+        intervened_graph = NxMixedGraph()
+        intervened_graph.add_directed_edge("X", "Y")
+        intervened_graph.add_undirected_edge("Z", "Y")
+        self.assertEqual(intervened_graph, graph.intervene({"X"}))
+
+    def test_remove_nodes_from(self):
+        """Test generating a new graph without the given nodes."""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("Z", "X")
+        graph.add_undirected_edge("X", "Z")
+        graph.add_undirected_edge("X", "Y")
+        graph.add_undirected_edge("Y", "Z")
+        self.assertEqual(graph, graph.remove_nodes_from(set()))
+
+        subgraph = NxMixedGraph()
+        subgraph.add_undirected_edge("Z", "Y")
+        self.assertEqual(subgraph, graph.remove_nodes_from({"X"}))
