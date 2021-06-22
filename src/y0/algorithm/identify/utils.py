@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Hashable, Optional, Set, TypeVar, Union
+from typing import Any, Optional, Set, Union
 
 from ananke.graphs import ADMG
 
@@ -22,8 +22,6 @@ __all__ = [
     "Identification",
     "Fail",
 ]
-
-Y = TypeVar("Y", bound=Hashable)
 
 
 class Fail(Exception):
