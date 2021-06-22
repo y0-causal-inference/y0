@@ -11,6 +11,7 @@ from typing import (
     Any,
     Collection,
     Generic,
+    Hashable,
     Iterable,
     Mapping,
     Optional,
@@ -34,7 +35,7 @@ __all__ = [
     "set_latent",
 ]
 
-X = TypeVar("X")
+X = TypeVar("X", bound=Hashable)
 CausalEffectGraph = Any
 
 #: The default key in a latent variable DAG represented as a :class:`networkx.DiGraph`
