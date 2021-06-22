@@ -929,15 +929,15 @@ def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
     return tuple(sorted(variables, key=attrgetter("name")))
 
 
-def _get_treatment_variables(variables: Set[Variable]) -> Set[Variable]:
+def _get_treatment_variables(variables: set[Variable]) -> set[Variable]:
     return {variable for variable in variables if isinstance(variable, Intervention)}
 
 
-def _get_outcome_variables(variables: Set[Variable]) -> Set[Variable]:
+def _get_outcome_variables(variables: set[Variable]) -> set[Variable]:
     return {variable for variable in variables if not isinstance(variable, Intervention)}
 
 
-def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[Variable], Set[Variable]]:
+def get_outcomes_and_treatments(*, query: Expression) -> tuple[set[Variable], set[Variable]]:
     """Get outcomes and treatments sets from the query expression."""
     variables = query.get_variables()
     return (
@@ -947,7 +947,7 @@ def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[Variable], Se
 
 
 def outcomes_and_treatments_to_query(
-    *, outcomes: Set[Variable], treatments: Optional[Set[Variable]] = None
+    *, outcomes: set[Variable], treatments: Optional[set[Variable]] = None
 ) -> Expression:
     """Create a query expression from a set of outcome and treatment variables."""
     if not treatments:
