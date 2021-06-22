@@ -101,11 +101,18 @@ class _Mathable(ABC):
     def to_latex(self) -> str:
         """Output this DSL object in the LaTeX string format."""
 
+    @abstractmethod
+    def to_y0(self) -> str:
+        """Output this DSL object as y0 python code."""
+
     def _repr_latex_(self) -> str:  # hack for auto-display of latex in jupyter notebook
         return f"${self.to_latex()}$"
 
     def __str__(self) -> str:
-        return self.to_text()
+        return self.to_y0()
+
+    def __repr__(self):
+        return self.to_y0()
 
     @abstractmethod
     def _iter_variables(self) -> Iterable[Variable]:
@@ -144,6 +151,9 @@ class Variable(_Mathable):
     def to_latex(self) -> str:
         """Output this variable in the LaTeX string format."""
         return self.to_text()
+
+    def to_y0(self) -> str:
+        return self.name
 
     def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
         """Intervene on this variable with the given variable(s).
@@ -351,6 +361,14 @@ class Distribution(_Mathable):
         else:
             return children
 
+    def to_y0(self) -> str:
+        children = _list_to_text(self.children)
+        if self.parents:
+            parents = _list_to_text(self.parents)
+            return f"{children}|({parents})"
+        else:
+            return children
+
     def to_latex(self) -> str:
         """Output this distribution in the LaTeX string format."""
         children = _list_to_latex(self.children)
@@ -449,12 +467,12 @@ class Probability(Expression):
         """Output this probability in the internal string format."""
         return f"P({self.distribution.to_text()})"
 
+    def to_y0(self) -> str:
+        return f'P({self.distribution.to_y0()})'
+
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
         return f"P({self.distribution.to_latex()})"
-
-    def __repr__(self):
-        return f"P({repr(self.distribution)})"
 
     def __mul__(self, other: Expression) -> Expression:
         if isinstance(other, Product):
@@ -599,6 +617,9 @@ class Product(Expression):
         """Output this product in the internal string format."""
         return " ".join(expression.to_text() for expression in self.expressions)
 
+    def to_y0(self) -> str:
+        return " * ".join(expr.to_y0() for expr in self.expressions)
+
     def to_latex(self):
         """Output this product in the LaTeX string format."""
         return " ".join(expression.to_latex() for expression in self.expressions)
@@ -646,6 +667,14 @@ class Sum(Expression):
         """Output this sum in the LaTeX string format."""
         ranges = _list_to_latex(self.ranges)
         return rf"\sum_{{{ranges}}} {self.expression.to_latex()}"
+
+    def to_y0(self):
+        """Output this sum in the y0 python format."""
+        ranges = _list_to_text(self.ranges)
+        if ranges:
+            return f'Sum[{ranges}]({self.expression.to_y0()})'
+        else:
+            return f'Sum({self.expression.to_y0()})'
 
     def __mul__(self, expression: Expression):
         if isinstance(expression, Product):
@@ -706,6 +735,9 @@ class Fraction(Expression):
     def to_latex(self) -> str:
         """Output this fraction in the LaTeX string format."""
         return rf"\frac{{{self.numerator.to_latex()}}}{{{self.denominator.to_latex()}}}"
+
+    def to_y0(self) -> str:
+        return f'({self.numerator.to_y0()} / {self.denominator.to_y0()})'
 
     def __mul__(self, expression: Expression) -> Fraction:
         if isinstance(expression, Fraction):
@@ -811,6 +843,9 @@ class One(Expression):
         """Output this identity instance in the LaTeX string format."""
         return "1"
 
+    def to_y0(self) -> str:
+        return "One()"
+
     def __rmul__(self, expression: Expression) -> Expression:
         return expression
 
@@ -869,6 +904,9 @@ class QFactor(Expression):
         codomain = _list_to_latex(self.codomain)
         domain = _list_to_text(self.domain)
         return rf"Q_{{{codomain}}}({{{domain}}})"
+
+    def to_y0(self) -> str:
+        return self.to_text()
 
     def __mul__(self, other: Expression):
         if isinstance(other, Product):
