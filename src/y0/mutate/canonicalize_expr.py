@@ -107,6 +107,9 @@ class Canonicalizer:
                 ranges=self._sorted(expression.ranges),
             )
         elif isinstance(expression, Product):
+            if 1 == len(expression.expressions):  # flatten unnecessary product
+                return self.canonicalize(expression.expressions[0])
+
             probabilities = []
             other = []
             for subexpr in expression.expressions:
