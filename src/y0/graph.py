@@ -106,7 +106,11 @@ class NxMixedGraph(Generic[X]):
     @classmethod
     def from_admg(cls, admg: ADMG) -> NxMixedGraph:
         """Create from an ADMG."""
-        return cls.from_edges(directed=admg.di_edges, undirected=admg.bi_edges)
+        return cls.from_edges(
+            nodes=admg.vertices,
+            directed=admg.di_edges,
+            undirected=admg.bi_edges,
+        )
 
     def to_latent_variable_dag(
         self,
