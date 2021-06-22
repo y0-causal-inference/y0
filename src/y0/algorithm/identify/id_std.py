@@ -2,9 +2,9 @@
 
 """An implementation of the identification algorithm."""
 
-from typing import List, TypeVar
+from typing import List, Sequence, TypeVar
 
-from y0.dsl import Expression, P, Probability, Product, Sum
+from y0.dsl import Expression, P, Probability, Product, Sum, Variable
 from .utils import Fail, Identification, str_nodes_to_variable_nodes
 
 X = TypeVar("X")
@@ -309,9 +309,15 @@ def line_7(identification: Identification) -> Identification:
     raise ValueError("Could not identify suitable district")
 
 
-def p_parents(variable, parents) -> Probability:
-    """Get a probability expression based on a topological ordering."""
-    return P(variable | parents[: parents.index(variable)])
+def p_parents(child: Variable, ordering: Sequence[Variable]) -> Probability:
+    """Get a probability expression based on a topological ordering.
+
+    :param child: The child variable
+    :param ordering: A topologically ordered sequence of all variables. All occurring before the
+        child will be used as parents.
+    :return: A probability expression
+    """
+    return P(child | ordering[: ordering.index(child)])
 
 
 # def str_list(node_list):
