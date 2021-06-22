@@ -28,8 +28,6 @@ from ananke.graphs import ADMG
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import Variable
-
 __all__ = [
     "NxMixedGraph",
     "CausalEffectGraph",
@@ -299,7 +297,7 @@ class NxMixedGraph(Generic[X]):
         return cls.from_causalfusion_json(json.load(file))
 
     @classmethod
-    def from_causalfusion_json(cls, data: Mapping[str, Any]) -> NxMixedGraph[X]:
+    def from_causalfusion_json(cls, data: Mapping[str, Any]) -> NxMixedGraph:
         """Load a graph from a CausalFusion JSON object."""
         rv = cls()
         for edge in data["edges"]:
