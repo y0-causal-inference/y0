@@ -283,6 +283,27 @@ class NxMixedGraph(Generic[X]):
                 raise ValueError(f'unhandled edge type: {edge["type"]}')
         return rv
 
+    def subgraph(self, vertices: Collection[X]) -> NxMixedGraph:
+        """Return a subgraph given a set of vertices.
+
+        :param vertices: a subset of nodes
+        :returns: A NxMixedGraph subgraph
+        """
+        vertices = set(vertices)
+        return self.from_edges(
+            nodes=vertices,
+            directed=_subgraph(self.directed, vertices),
+            undirected=_subgraph(self.undirected, vertices),
+        )
+
+
+def _subgraph(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+    return [
+        (u, v)
+        for u, v in graph.edges()
+        if u in vertices and v in vertices
+    ]
+
 
 def admg_to_latent_variable_dag(
     graph: ADMG,

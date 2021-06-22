@@ -86,3 +86,15 @@ class TestGraph(unittest.TestCase):
         directed = dict([("a", ["b", "c"]), ("b", ["a"]), ("c", [])])
         expected = NxMixedGraph.from_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
         self.assertEqual(expected, NxMixedGraph.from_adj(directed=directed))
+
+    def test_subgraph(self):
+        """Test generating a subgraph from a set of vertices."""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("Y", "Z")
+        graph.add_undirected_edge("X", "Z")
+        self.assertEqual(graph, graph.subgraph({"X", "Y", "Z"}))
+
+        subgraph = NxMixedGraph()
+        subgraph.add_directed_edge("X", "Y")
+        self.assertEqual(subgraph, graph.subgraph({"X", "Y"}))
