@@ -241,16 +241,19 @@ class NxMixedGraph(Generic[X]):
     @classmethod
     def from_adj(
         cls,
-        directed: Mapping[X, Collection[X]],
-        undirected: Mapping[X, Collection[X]],
+        nodes: Optional[Iterable[X]] = None,
+        directed: Optional[Mapping[X, Collection[X]]] = None,
+        undirected: Optional[Mapping[X, Collection[X]]] = None,
     ) -> NxMixedGraph:
         """Make a mixed graph from a pair of adjacency lists."""
         rv = cls()
-        for u, vs in directed.items():
+        for n in nodes or []:
+            rv.add_node(n)
+        for u, vs in (directed or {}).items():
             rv.add_node(u)
             for v in vs:
                 rv.add_directed_edge(u, v)
-        for u, vs in undirected.items():
+        for u, vs in (undirected or {}).items():
             rv.add_node(u)
             for v in vs:
                 rv.add_undirected_edge(u, v)
