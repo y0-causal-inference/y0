@@ -165,6 +165,9 @@ class NxMixedGraph(Generic[X]):
 
         return self.from_adj(directed=directed, undirected=undirected)
 
+    def remove_outgoing_edges_from(self, vertices: Collection[X]) -> NxMixedGraph:
+        raise NotImplementedError
+
     def add_node(self, n: X) -> None:
         """Add a node."""
         self.directed.add_node(n)
