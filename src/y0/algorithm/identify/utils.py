@@ -9,13 +9,7 @@ from typing import Any, Optional, Union
 import networkx as nx
 from ananke.graphs import ADMG
 
-from y0.dsl import (
-    CounterfactualVariable,
-    Expression,
-    P,
-    Variable,
-    get_outcomes_and_treatments,
-)
+from y0.dsl import (CounterfactualVariable, Expression, P, Variable, get_outcomes_and_treatments)
 from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import expr_equal
 
@@ -52,8 +46,16 @@ class Identification:
         :param graph: The graph
         :param estimand: If none is given, will use the joint distribution over all variables in the graph.
         """
-        self.outcomes = {Variable.norm(v) for v in outcomes}
-        self.treatments = {Variable.norm(v) for v in treatments}
+        if not all(isinstance(v, Variable) for v in outcomes):
+            raise TypeError
+        if any(isinstance(v, CounterfactualVariable) for v in outcomes):
+            raise TypeError
+        if not all(isinstance(v, Variable) for v in treatments):
+            raise TypeError
+        if any(isinstance(v, CounterfactualVariable) for v in treatments):
+            raise TypeError
+        self.outcomes = outcomes
+        self.treatments = treatments
         if isinstance(graph, ADMG):
             self.graph = str_nodes_to_variable_nodes(NxMixedGraph.from_admg(graph))
         else:
@@ -76,10 +78,8 @@ class Identification:
         :returns: An identification tuple
         """
         outcomes, treatments = get_outcomes_and_treatments(query=query)
-        outcomes = {
-            outcome.get_parent() if isinstance(outcome, CounterfactualVariable) else outcome
-            for outcome in outcomes
-        }
+        outcomes = {Variable(v.name) for v in outcomes}  # clean counterfactuals
+        treatments = {Variable(v.name) for v in treatments}
         return Identification(
             outcomes=outcomes, treatments=treatments, graph=graph, estimand=estimand
         )

@@ -289,7 +289,8 @@ def line_7(identification: Identification) -> Identification:
     districts_without_treatments = graph_without_treatments.get_c_components()
     if 1 != len(districts_without_treatments):
         raise ValueError(
-            "Line 7 precondition not met. Graph without treatments had more than one district"
+            f"Line 7 precondition not met. Graph without treatments had more than"
+            f" one district: {[set(d) for d in districts_without_treatments]}"
         )
 
     parents = list(graph.topological_sort())

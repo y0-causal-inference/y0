@@ -2,11 +2,11 @@
 
 """Tests for the identify algorithm."""
 
+import itertools as itt
 import unittest
 
 from y0.algorithm.identify import (
     Fail,
-    Identification,
     identify,
 )
 from y0.algorithm.identify.id_std import (
@@ -53,16 +53,6 @@ class TestIdentify(unittest.TestCase):
             msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
         )
 
-    def assert_identification_equal(self, expected: Identification, actual: Identification):
-        """Assert that the recursive call to ID has the correct input parameters."""
-        self.assertIsNotNone(actual)
-        self.assertEqual(expected.outcomes, actual.outcomes)
-        self.assertEqual(expected.treatments, actual.treatments)
-        self.assert_expr_equal(expected.estimand, actual.estimand)
-        self.assertEqual(expected.graph.nodes(), actual.graph.nodes())
-        self.assertEqual(expected.graph.directed.edges(), actual.graph.directed.edges())
-        self.assertEqual(expected.graph.undirected.edges(), actual.graph.undirected.edges())
-
     def test_line_1(self):
         r"""Test that line 1 of ID algorithm works correctly.
 
@@ -87,9 +77,9 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_2_example.identifications:
             id_out = identification["id_out"][0]
-            self.assert_identification_equal(
-                expected=id_out,
-                actual=line_2(identification["id_in"][0]),
+            self.assertEqual(
+                id_out,
+                line_2(identification["id_in"][0]),
             )
             self.assert_expr_equal(
                 Sum.safe(expression=P(Y, Z), ranges=[Z]),
@@ -105,11 +95,9 @@ class TestIdentify(unittest.TestCase):
         affecting the overall answer.
         """
         for identification in line_3_example.identifications:
-            id_out = identification["id_out"][0]
-
-            self.assert_identification_equal(
-                expected=id_out,
-                actual=line_3(identification["id_in"][0]),
+            self.assertEqual(
+                identification["id_out"][0],
+                line_3(identification["id_in"][0]),
             )
             self.assert_expr_equal(
                 P(Y | (X, Z)),
@@ -125,20 +113,14 @@ class TestIdentify(unittest.TestCase):
         provide base cases. :math:`\mathbf{ID}` has three base cases.
         """
         for identification in line_4_example.identifications:
-
             actuals = line_4(identification["id_in"][0])
             expecteds = identification["id_out"]
             self.assertEqual(len(expecteds), len(actuals))
             match = []
-            for expected in expecteds:
-                for actual in actuals:
-                    if expected == actual:
-                        self.assert_identification_equal(expected, actual)
-                        match.append((expected, actual))
-                    else:
-                        with self.assertRaises(AssertionError):
-                            self.assert_identification_equal(expected, actual)
-            self.assertEqual(len(expecteds), len(match))
+            for expected, actual in itt.product(expecteds, actuals):
+                if expected == actual:
+                    match.append((expected, actual))
+            self.assertEqual(len(expecteds), len(match), msg="Could not match identifications")
 
             # TODO @cthoyt
             self.assert_expr_equal(
@@ -202,9 +184,9 @@ class TestIdentify(unittest.TestCase):
         for identification in line_7_example.identifications:
             id_out = identification["id_out"][0]
 
-            self.assert_identification_equal(
-                expected=id_out,
-                actual=line_7(identification["id_in"][0]),
+            self.assertEqual(
+                id_out,
+                line_7(identification["id_in"][0]),
             )
             self.assert_expr_equal(
                 Sum(P(Y1)),
