@@ -6,6 +6,8 @@ import unittest
 from textwrap import dedent
 from typing import Set, Tuple
 
+from ananke.graphs import ADMG
+
 from y0.examples import verma_1
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
@@ -65,3 +67,22 @@ class TestGraph(unittest.TestCase):
         """Test importing a CausalFusion graph."""
         graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
         self.assertIsInstance(graph, NxMixedGraph)
+
+    def test_from_admg(self):
+        """Test that all ADMGs can be converted to NxMixedGraph."""
+        expected = NxMixedGraph.from_adj(
+            directed={"W": [], "X": ["Y"], "Y": ["Z"], "Z": []},
+            undirected={"W": [], "X": ["Z"], "Y": [], "Z": []},
+        )
+        admg = ADMG(
+            vertices=["W", "X", "Y", "Z"],
+            di_edges=[["X", "Y"], ["Y", "Z"]],
+            bi_edges=[["X", "Z"]],
+        )
+        self.assertEqual(expected, NxMixedGraph.from_admg(admg))
+
+    def test_from_adj(self):
+        """Test the adjacency graph is not a multigraph."""
+        directed = dict([("a", ["b", "c"]), ("b", ["a"]), ("c", [])])
+        expected = NxMixedGraph.from_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
+        self.assertEqual(expected, NxMixedGraph.from_adj(directed=directed))
