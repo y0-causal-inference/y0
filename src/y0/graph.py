@@ -292,8 +292,8 @@ class NxMixedGraph(Generic[X]):
         vertices = set(vertices)
         return self.from_edges(
             nodes=vertices,
-            directed=_subgraph(self.directed, vertices),
-            undirected=_subgraph(self.undirected, vertices),
+            directed=_include_adjacent(self.directed, vertices),
+            undirected=_include_adjacent(self.undirected, vertices),
         )
 
     def intervene(self, vertices: Collection[X]) -> NxMixedGraph:
@@ -305,8 +305,8 @@ class NxMixedGraph(Generic[X]):
         vertices = set(vertices)
         return self.from_edges(
             nodes=vertices,
-            directed=_target_filter(self.directed, vertices),
-            undirected=_edge_filter(self.undirected, vertices),
+            directed=_exclude_target(self.directed, vertices),
+            undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
     def remove_nodes_from(self, vertices: Collection[X]) -> NxMixedGraph:
@@ -318,20 +318,20 @@ class NxMixedGraph(Generic[X]):
         vertices = set(vertices)
         return self.from_edges(
             nodes=self.nodes() - vertices,
-            directed=_edge_filter(self.directed, vertices),
-            undirected=_edge_filter(self.undirected, vertices),
+            directed=_exclude_adjacent(self.directed, vertices),
+            undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
 
-def _subgraph(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+def _include_adjacent(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
     return [(u, v) for u, v in graph.edges() if u in vertices and v in vertices]
 
 
-def _target_filter(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+def _exclude_target(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
     return [(u, v) for u, v in graph.edges() if v not in vertices]
 
 
-def _edge_filter(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+def _exclude_adjacent(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
     return [(u, v) for u, v in graph.edges() if u not in vertices and v not in vertices]
 
 
