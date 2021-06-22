@@ -141,3 +141,14 @@ class TestGraph(unittest.TestCase):
         subgraph = NxMixedGraph()
         subgraph.add_undirected_edge("Z", "Y")
         self.assertEqual(subgraph, graph.remove_nodes_from({"X"}))
+
+    def test_ancestors_inclusive(self):
+        """Test getting ancestors, inclusive."""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("C", "A")
+        graph.add_directed_edge("C", "B")
+        graph.add_directed_edge("D", "C")
+        graph.add_directed_edge("A", "X")
+        graph.add_directed_edge("A", "Y")
+        graph.add_directed_edge("B", "Z")
+        self.assertEqual({"A", "B", "C", "D"}, graph.ancestors_inclusive({"A", "B"}))
