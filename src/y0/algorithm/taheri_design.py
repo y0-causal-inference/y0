@@ -177,9 +177,7 @@ def _get_result(
     # Check if the ADMG is identifiable under the (simple) causal query
     query = P(Variable(effect) @ ~Variable(cause))
     identifiable = is_identifiable(admg, query)
-    identifiability_expr = identify(
-        Identification(graph=NxMixedGraph.from_admg(admg), query=query, estimand=...)
-    )
+    identifiability_expr = identify(Identification(graph=admg, query=query))
 
     return Result(
         identifiable,

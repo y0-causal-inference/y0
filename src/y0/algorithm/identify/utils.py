@@ -4,8 +4,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Hashable, Optional, Set, TypeVar
+from typing import Any, Hashable, Optional, Set, TypeVar, Union
+
+from ananke.graphs import ADMG
 
 from y0.dsl import (
     Expression,
@@ -29,20 +30,38 @@ class Fail(Exception):
     """Raised on failure of the identification algorithm."""
 
 
-@dataclass
 class Identification:
     """A package of a query and resulting estimand from identification on a graph."""
 
     query: Expression
-    estimand: Expression
     graph: NxMixedGraph[str]
+    estimand: Expression
+
+    def __init__(
+        self,
+        query: Expression,
+        graph: Union[ADMG, NxMixedGraph[str]],
+        estimand: Optional[Expression] = None,
+    ):
+        """Instantiate an identification.
+
+        :param query: The query probability expression
+        :param graph: The graph
+        :param estimand: If none is given, will use the joint distribution over all variables in the graph.
+        """
+        self.query = query
+        if isinstance(graph, ADMG):
+            self.graph = NxMixedGraph.from_admg(graph)
+        else:
+            self.graph = graph
+        self.estimand = P(graph.nodes()) if estimand is None else estimand
 
     @classmethod
     def from_parts(
         cls,
         outcomes: Set[Variable],
         treatments: Set[Variable],
-        graph: NxMixedGraph[str],
+        graph: Union[ADMG, NxMixedGraph[str]],
         estimand: Optional[Expression] = None,
     ) -> Identification:
         """Instantiate an Identification from the parts of a query.
@@ -50,16 +69,13 @@ class Identification:
         :param outcomes: The outcomes in the query
         :param treatments: The treatments in the query (e.g., counterfactual variables)
         :param graph: The graph
-        :param estimand: If none is given, will use the joint distribution
-            over all variables in the graph.
+        :param estimand: If none is given, will use the joint distribution over all variables in the graph.
         :return: An identification object
         """
-        if estimand is None:
-            estimand = P(graph.nodes())
         return cls(
             query=outcomes_and_treatments_to_query(outcomes=outcomes, treatments=treatments),
-            estimand=estimand,
             graph=graph,
+            estimand=estimand,
         )
 
     @property
