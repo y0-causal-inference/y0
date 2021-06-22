@@ -222,6 +222,7 @@ class NxMixedGraph(Generic[X]):
     @classmethod
     def from_edges(
         cls,
+        nodes: Optional[Iterable[X]] = None,
         directed: Optional[Iterable[Tuple[X, X]]] = None,
         undirected: Optional[Iterable[Tuple[X, X]]] = None,
     ) -> NxMixedGraph:
@@ -229,6 +230,8 @@ class NxMixedGraph(Generic[X]):
         if directed is None and undirected is None:
             raise ValueError("must provide at least one of directed/undirected edge lists")
         rv = cls()
+        for n in nodes or []:
+            rv.add_node(n)
         for u, v in directed or []:
             rv.add_directed_edge(u, v)
         for u, v in undirected or []:
