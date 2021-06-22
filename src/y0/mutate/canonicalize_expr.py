@@ -15,6 +15,7 @@ from ..dsl import (
     Sum,
     Variable,
     ensure_ordering,
+    get_outcomes_and_treatments,
 )
 
 __all__ = [
@@ -149,3 +150,16 @@ class Canonicalizer:
             )
         else:
             raise TypeError
+
+
+def expr_equal(expected: Expression, actual: Expression) -> bool:
+    """Return True if two expressions are equal after canonicalization."""
+    expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
+    actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
+
+    if (expected_outcomes != actual_outcomes) or (expected_treatments != actual_treatments):
+        return False
+    ordering = tuple(expected.get_variables())  # need to impose ordering, any will do.
+    expected_canonical = canonicalize(expected, ordering)
+    actual_canonical = canonicalize(actual, ordering)
+    return expected_canonical == actual_canonical

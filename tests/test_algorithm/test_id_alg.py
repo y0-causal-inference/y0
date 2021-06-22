@@ -7,8 +7,9 @@ import unittest
 from y0.algorithm.identify import (
     Fail,
     Identification,
-    get_outcomes_and_treatments,
     identify,
+)
+from y0.algorithm.identify.id_std import (
     line_1,
     line_2,
     line_3,
@@ -17,7 +18,7 @@ from y0.algorithm.identify import (
     line_6,
     line_7,
 )
-from y0.dsl import Expression, P, Product, Sum, Variable, X, Y, Y1, Z
+from y0.dsl import Expression, P, Product, Sum, Variable, X, Y, Y1, Z, get_outcomes_and_treatments
 from y0.examples import (
     line_1_example,
     line_2_example,
@@ -27,7 +28,6 @@ from y0.examples import (
     line_6_example,
     line_7_example,
 )
-from y0.graph import NxMixedGraph
 from y0.mutate import canonicalize
 
 P_XY = P(X, Y)

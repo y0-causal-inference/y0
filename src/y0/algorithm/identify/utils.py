@@ -5,25 +5,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Collection, Hashable, Optional, Set, TypeVar
+from typing import Any, Hashable, Optional, Set, TypeVar
 
 from y0.dsl import (
     Expression,
     P,
     Variable,
-    get_outcomes_and_treatments,
     outcomes_and_treatments_to_query,
 )
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
-from y0.mutate import canonicalize
+from y0.mutate.canonicalize_expr import expr_equal
 
 __all__ = [
     "Identification",
-    "expr_equal",
     "Fail",
-    "get_outcomes_and_treatments",
-    "outcomes_and_treatments_to_query",
 ]
 
 Y = TypeVar("Y", bound=Hashable)
@@ -51,11 +47,12 @@ class Identification:
     ) -> Identification:
         """Instantiate an Identification from the parts of a query.
 
-        :param outcomes:
-        :param treatments:
-        :param graph:
+        :param outcomes: The outcomes in the query
+        :param treatments: The treatments in the query (e.g., counterfactual variables)
+        :param graph: The graph
         :param estimand: If none is given, will use the joint distribution
             over all variables in the graph.
+        :return: An identification object
         """
         if estimand is None:
             estimand = P(graph.nodes())
@@ -83,21 +80,3 @@ class Identification:
             and expr_equal(self.estimand, other.estimand)
             and self.graph == other.graph
         )
-
-
-def expr_equal(expected: Expression, actual: Expression) -> bool:
-    """Return True if two expressions are equal after canonicalization."""
-    expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
-    actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
-
-    if (expected_outcomes != actual_outcomes) or (expected_treatments != actual_treatments):
-        return False
-    ordering = tuple(expected.get_variables())  # need to impose ordering, any will do.
-    expected_canonical = canonicalize(expected, ordering)
-    actual_canonical = canonicalize(actual, ordering)
-    return expected_canonical == actual_canonical
-
-
-def ancestors_and_self(graph: NxMixedGraph[Y], sources: Collection[Y]) -> Set[Y]:
-    """Ancestors of a set include the set itself."""
-    return graph.ancestors_inclusive(sources)

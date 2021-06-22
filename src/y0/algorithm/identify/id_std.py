@@ -4,7 +4,6 @@
 
 from typing import List, TypeVar
 
-from y0.algorithm.identify.utils import ancestors_and_self
 from y0.dsl import Expression, P, Probability, Product, Sum
 from .utils import Fail, Identification
 
