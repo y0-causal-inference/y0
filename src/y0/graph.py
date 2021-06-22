@@ -131,7 +131,7 @@ class NxMixedGraph(Generic[X]):
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
 
     @classmethod
-    def from_admg(cls, admg: ADMG) -> NxMixedGraph[str]:
+    def from_admg(cls, admg: ADMG) -> NxMixedGraph[X]:
         """Create from an ADMG."""
         return cls.from_edges(
             nodes=admg.vertices,
@@ -165,7 +165,7 @@ class NxMixedGraph(Generic[X]):
     @classmethod
     def from_latent_variable_dag(
         cls, graph: nx.DiGraph, tag: Optional[str] = None
-    ) -> NxMixedGraph[str]:
+    ) -> NxMixedGraph[X]:
         """Load a labeled DAG."""
         if tag is None:
             tag = DEFAULT_TAG
@@ -229,7 +229,7 @@ class NxMixedGraph(Generic[X]):
         ax.axis("off")
 
     @classmethod
-    def from_causaleffect(cls, graph) -> NxMixedGraph:
+    def from_causaleffect(cls, graph) -> NxMixedGraph[str]:
         """Construct an instance from a causaleffect R graph."""
         raise NotImplementedError
 
