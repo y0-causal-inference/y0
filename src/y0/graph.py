@@ -303,29 +303,36 @@ class NxMixedGraph(Generic[X]):
         :returns: A NxMixedGraph subgraph
         """
         vertices = set(vertices)
-        directed = [
-            (u, v)
-            for u, v in self.directed.edges()
-            if v not in vertices
-        ]
-        undirected = [
-            (u, v)
-            for u, v in self.undirected.edges()
-            if u not in vertices and v not in vertices
-        ]
         return self.from_edges(
             nodes=vertices,
-            directed=directed,
-            undirected=undirected,
+            directed=_target_filter(self.directed, vertices),
+            undirected=_edge_filter(self.undirected, vertices),
+        )
+
+    def remove_nodes_from(self, vertices: Collection[X]) -> NxMixedGraph:
+        """Return a subgraph that does not contain any of the specified vertices.
+
+        :param vertices: a set of nodes to remove from graph
+        :returns:  NxMixedGraph subgraph
+        """
+        vertices = set(vertices)
+        return self.from_edges(
+            nodes=self.nodes() - vertices,
+            directed=_edge_filter(self.directed, vertices),
+            undirected=_edge_filter(self.undirected, vertices),
         )
 
 
 def _subgraph(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
-    return [
-        (u, v)
-        for u, v in graph.edges()
-        if u in vertices and v in vertices
-    ]
+    return [(u, v) for u, v in graph.edges() if u in vertices and v in vertices]
+
+
+def _target_filter(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+    return [(u, v) for u, v in graph.edges() if v not in vertices]
+
+
+def _edge_filter(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+    return [(u, v) for u, v in graph.edges() if u not in vertices and v not in vertices]
 
 
 def admg_to_latent_variable_dag(

@@ -113,3 +113,17 @@ class TestGraph(unittest.TestCase):
         intervened_graph.add_directed_edge("X", "Y")
         intervened_graph.add_undirected_edge("Z", "Y")
         self.assertEqual(intervened_graph, graph.intervene({"X"}))
+
+    def test_remove_nodes_from(self):
+        """Test generating a new graph without the given nodes."""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("Z", "X")
+        graph.add_undirected_edge("X", "Z")
+        graph.add_undirected_edge("X", "Y")
+        graph.add_undirected_edge("Y", "Z")
+        self.assertEqual(graph, graph.remove_nodes_from(set()))
+
+        subgraph = NxMixedGraph()
+        subgraph.add_undirected_edge("Z", "Y")
+        self.assertEqual(subgraph, graph.remove_nodes_from({"X"}))
