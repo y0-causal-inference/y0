@@ -296,6 +296,29 @@ class NxMixedGraph(Generic[X]):
             undirected=_subgraph(self.undirected, vertices),
         )
 
+    def intervene(self, vertices: Collection[X]) -> NxMixedGraph:
+        """Return a mutilated graph given a set of interventions.
+
+        :param vertices: a subset of nodes from which to remove incoming edges
+        :returns: A NxMixedGraph subgraph
+        """
+        vertices = set(vertices)
+        directed = [
+            (u, v)
+            for u, v in self.directed.edges()
+            if v not in vertices
+        ]
+        undirected = [
+            (u, v)
+            for u, v in self.undirected.edges()
+            if u not in vertices and v not in vertices
+        ]
+        return self.from_edges(
+            nodes=vertices,
+            directed=directed,
+            undirected=undirected,
+        )
+
 
 def _subgraph(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
     return [

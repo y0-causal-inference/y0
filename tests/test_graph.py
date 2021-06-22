@@ -98,3 +98,18 @@ class TestGraph(unittest.TestCase):
         subgraph = NxMixedGraph()
         subgraph.add_directed_edge("X", "Y")
         self.assertEqual(subgraph, graph.subgraph({"X", "Y"}))
+
+    def test_intervention(self):
+        """Test generating a subgraph based on an intervention."""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("Z", "X")
+        graph.add_undirected_edge("X", "Z")
+        graph.add_undirected_edge("X", "Y")
+        graph.add_undirected_edge("Y", "Z")
+        self.assertEqual(graph, graph.intervene(set()))
+
+        intervened_graph = NxMixedGraph()
+        intervened_graph.add_directed_edge("X", "Y")
+        intervened_graph.add_undirected_edge("Z", "Y")
+        self.assertEqual(intervened_graph, graph.intervene({"X"}))
