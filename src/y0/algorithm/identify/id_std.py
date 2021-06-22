@@ -28,14 +28,14 @@ def identify(identification: Identification) -> Expression:
         return Sum.safe(expression=P(vertices), ranges=vertices.difference(outcomes))
 
     # line 2
-    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
+    outcomes_and_ancestors = graph.ancestors_inclusive(outcomes)
     not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
     if not_outcomes_or_ancestors:
         return identify(line_2(identification))
 
     # line 3
     intervened_graph = graph.intervene(treatments)
-    no_effect_on_outcome = (vertices - treatments) - ancestors_and_self(intervened_graph, outcomes)
+    no_effect_on_outcome = (vertices - treatments) - intervened_graph.ancestors_inclusive(outcomes)
     if no_effect_on_outcome:
         return identify(line_3(identification))
 
@@ -113,7 +113,7 @@ def line_2(identification: Identification) -> Identification:
     estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
-    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
+    outcomes_and_ancestors = graph.ancestors_inclusive(outcomes)
     not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
     outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
 
@@ -148,7 +148,7 @@ def line_3(identification: Identification) -> Identification:
     vertices = set(graph.nodes())
 
     intervened_graph = graph.intervene(treatments)
-    no_effect_on_outcome = (vertices - treatments) - ancestors_and_self(intervened_graph, outcomes)
+    no_effect_on_outcome = (vertices - treatments) - intervened_graph.ancestors_inclusive(outcomes)
     if no_effect_on_outcome:
         return Identification.from_parts(
             outcomes=outcomes,

@@ -338,14 +338,6 @@ class NxMixedGraph(Generic[X]):
                 raise ValueError(f'unhandled edge type: {edge["type"]}')
         return rv
 
-    def get_c_components(self) -> list[FrozenSet[X]]:
-        """Get the C-components in the undirected portion of the graph."""
-        return [frozenset(c) for c in nx.connected_components(self.undirected)]
-
-    def is_connected(self) -> bool:
-        """Return if there is only a single C-component."""
-        return nx.is_connected(self.undirected)
-
     def subgraph(self, vertices: Collection[X]) -> NxMixedGraph:
         """Return a subgraph given a set of vertices.
 
@@ -396,6 +388,10 @@ class NxMixedGraph(Generic[X]):
     def connected_components(self) -> Iterable[set[X]]:
         """Iterate over the connected components in the undirected graph."""
         return nx.connected_components(self.undirected)
+
+    def get_c_components(self) -> list[FrozenSet[X]]:
+        """Get the C-components in the undirected portion of the graph."""
+        return [frozenset(c) for c in self.connected_components()]
 
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""

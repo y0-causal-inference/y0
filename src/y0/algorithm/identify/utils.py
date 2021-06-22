@@ -5,17 +5,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Collection, Hashable, Optional, Set, Tuple, TypeVar
+from typing import Any, Collection, Hashable, Optional, Set, TypeVar
 
-import networkx as nx
-
-from y0.dsl import Expression, P, Variable, _upgrade_ordering
+from y0.dsl import (
+    Expression,
+    P,
+    Variable,
+    get_outcomes_and_treatments,
+    outcomes_and_treatments_to_query,
+)
 from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
 from y0.mutate import canonicalize
 
 __all__ = [
-    "ancestors_and_self",
     "Identification",
     "expr_equal",
     "Fail",
@@ -95,27 +98,6 @@ def expr_equal(expected: Expression, actual: Expression) -> bool:
     return expected_canonical == actual_canonical
 
 
-def get_outcomes_and_treatments(*, query: Expression) -> Tuple[Set[Variable], Set[Variable]]:
-    """Get outcomes and treatments sets from the query expression."""
-    query_variables = query.get_variables()
-    return (
-        {Variable(v) for v in _get_outcomes(query_variables)},
-        {Variable(v) for v in _get_treatments(query_variables)},
-    )
-
-
-def outcomes_and_treatments_to_query(
-    *, outcomes: Set[Variable], treatments: Set[Variable]
-) -> Expression:
-    """Create a query expression from a set of outcome and treatment variables."""
-    if len(treatments) == 0:
-        return P(outcomes)
-    return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
-
-
 def ancestors_and_self(graph: NxMixedGraph[Y], sources: Collection[Y]) -> Set[Y]:
     """Ancestors of a set include the set itself."""
-    rv = set(sources)
-    for source in sources:
-        rv.update(nx.algorithms.dag.ancestors(graph.directed, source))
-    return rv
+    return graph.ancestors_inclusive(sources)

@@ -7,7 +7,6 @@ import unittest
 from y0.algorithm.identify import (
     Fail,
     Identification,
-    ancestors_and_self,
     get_outcomes_and_treatments,
     identify,
     line_1,
@@ -62,35 +61,6 @@ class TestIdentify(unittest.TestCase):
         self.assertEqual(expected.graph.nodes(), actual.graph.nodes())
         self.assertEqual(expected.graph.directed.edges(), actual.graph.directed.edges())
         self.assertEqual(expected.graph.undirected.edges(), actual.graph.undirected.edges())
-
-    def test_ancestors_and_self(self):
-        """Test whether the ancestors_and_self actually returns the ancestors and itself."""
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Z")
-        graph.add_directed_edge("Z", "Y")
-        graph.add_undirected_edge("X", "Y")
-        self.assertEqual({"X", "Y", "Z"}, ancestors_and_self(graph, {"Y"}))
-        self.assertEqual({"X", "Z"}, ancestors_and_self(graph, {"Z"}))
-        self.assertEqual({"X"}, ancestors_and_self(graph, {"X"}))
-
-    def test_subgraph(self):
-        """Test whether the subgraph restriction algorithm returns the correct subgraph."""
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Z")
-        graph.add_directed_edge("Z", "Y")
-        graph.add_undirected_edge("Z", "Y")
-
-    def test_get_c_components(self):
-        """Test that get_c_components works correctly."""
-        g1 = NxMixedGraph().from_edges(directed=[("X", "Y"), ("Z", "X"), ("Z", "Y")])
-        c1 = [frozenset("X"), frozenset("Y"), frozenset("Z")]
-        g2 = NxMixedGraph().from_edges(directed=[("X", "Y")], undirected=[("X", "Y")])
-        c2 = [frozenset(["X", "Y"])]
-        g3 = NxMixedGraph().from_edges(directed=[("X", "M"), ("M", "Y")], undirected=[("X", "Y")])
-        c3 = [frozenset(["X", "Y"]), frozenset("M")]
-        for g, c in [(g1, c1), (g2, c2), (g3, c3)]:
-            self.assertIsInstance(g, NxMixedGraph)
-            self.assertEqual(c, g.get_c_components())
 
     def test_line_1(self):
         r"""Test that line 1 of ID algorithm works correctly.
