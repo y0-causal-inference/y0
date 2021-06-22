@@ -322,6 +322,29 @@ class NxMixedGraph(Generic[X]):
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
+    def ancestors_inclusive(self, sources: Iterable[X]) -> set[X]:
+        """Ancestors of a set include the set itself."""
+        return _ancestors_inclusive(self.directed, sources)
+
+    def topological_sort(self) -> Iterable[X]:
+        """Get a topological sort from the directed component of the mixed graph."""
+        return nx.topological_sort(self.directed)
+
+    def connected_components(self) -> Iterable[set[X]]:
+        """Iterate over the connected components in the undirected graph."""
+        return nx.connected_components(self.undirected)
+
+    def is_connected(self) -> bool:
+        """Return if there is only a single connected component in the undirected graph."""
+        return nx.is_connected(self.undirected)
+
+
+def _ancestors_inclusive(graph: nx.DiGraph, sources: Iterable[X]) -> set[X]:
+    rv = set(sources)
+    for source in sources:
+        rv.update(nx.algorithms.dag.ancestors(graph, source))
+    return rv
+
 
 def _include_adjacent(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
     return [(u, v) for u, v in graph.edges() if u in vertices and v in vertices]
