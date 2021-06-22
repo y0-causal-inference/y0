@@ -14,10 +14,8 @@ from typing import (
     Generic,
     Hashable,
     Iterable,
-    List,
     Mapping,
     Optional,
-    Sequence,
     Tuple,
     TypeVar,
     Union,
@@ -78,23 +76,6 @@ class NxMixedGraph(Generic[X]):
             and (self.directed.edges() == other.directed.edges())
             and (self.undirected.edges() == other.undirected.edges())
         )
-
-    def remove_outgoing_edges_from(self, vertices: Collection[X]) -> NxMixedGraph:
-        """Return a subgraph that does not have any outgoing edges from any of the given vertices.
-
-        :param vertices: a set of nodes whose outgoing edges get removed from the graph
-        :returns: NxMixedGraph subgraph
-        """
-        directed: Mapping[X, List[X]] = dict([(u, []) for u in self.nodes() if u not in vertices])
-        undirected: Mapping[X, List[X]] = dict([(u, []) for u in self.nodes() if u not in vertices])
-
-        for u, v in self.directed.edges():
-            if u not in vertices:
-                directed[u].append(v)
-        for u, v in self.undirected.edges():
-            undirected[u].append(v)
-
-        return self.from_adj(directed=directed, undirected=undirected)
 
     def add_node(self, n: X) -> None:
         """Add a node."""
@@ -330,6 +311,19 @@ class NxMixedGraph(Generic[X]):
             nodes=vertices,
             directed=_exclude_target(self.directed, vertices),
             undirected=_exclude_adjacent(self.undirected, vertices),
+        )
+
+    def remove_outgoing_edges_from(self, vertices: Collection[X]) -> NxMixedGraph:
+        """Return a subgraph that does not have any outgoing edges from any of the given vertices.
+
+        :param vertices: a set of nodes whose outgoing edges get removed from the graph
+        :returns: NxMixedGraph subgraph
+        """
+        vertices = set(vertices)
+        return self.from_edges(
+            nodes=self.nodes(),
+            directed=_exclude_target(self.directed, vertices),
+            undirected=_exclude_target(self.undirected, vertices),
         )
 
     def remove_nodes_from(self, vertices: Collection[X]) -> NxMixedGraph[X]:
