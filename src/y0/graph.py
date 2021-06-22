@@ -105,7 +105,7 @@ class NxMixedGraph(Generic[X]):
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
 
     @classmethod
-    def from_admg(cls, admg: ADMG) -> NxMixedGraph:
+    def from_admg(cls, admg: ADMG) -> NxMixedGraph[X]:
         """Create from an ADMG."""
         return cls.from_edges(
             nodes=admg.vertices,
@@ -137,7 +137,9 @@ class NxMixedGraph(Generic[X]):
         )
 
     @classmethod
-    def from_latent_variable_dag(cls, graph: nx.DiGraph, tag: Optional[str] = None) -> NxMixedGraph:
+    def from_latent_variable_dag(
+        cls, graph: nx.DiGraph, tag: Optional[str] = None
+    ) -> NxMixedGraph[X]:
         """Load a labeled DAG."""
         if tag is None:
             tag = DEFAULT_TAG
@@ -201,7 +203,7 @@ class NxMixedGraph(Generic[X]):
         ax.axis("off")
 
     @classmethod
-    def from_causaleffect(cls, graph) -> NxMixedGraph:
+    def from_causaleffect(cls, graph) -> NxMixedGraph[str]:
         """Construct an instance from a causaleffect R graph."""
         raise NotImplementedError
 
@@ -230,7 +232,7 @@ class NxMixedGraph(Generic[X]):
         nodes: Optional[Iterable[X]] = None,
         directed: Optional[Iterable[Tuple[X, X]]] = None,
         undirected: Optional[Iterable[Tuple[X, X]]] = None,
-    ) -> NxMixedGraph:
+    ) -> NxMixedGraph[X]:
         """Make a mixed graph from a pair of edge lists."""
         if directed is None and undirected is None:
             raise ValueError("must provide at least one of directed/undirected edge lists")
@@ -249,7 +251,7 @@ class NxMixedGraph(Generic[X]):
         nodes: Optional[Iterable[X]] = None,
         directed: Optional[Mapping[X, Collection[X]]] = None,
         undirected: Optional[Mapping[X, Collection[X]]] = None,
-    ) -> NxMixedGraph:
+    ) -> NxMixedGraph[X]:
         """Make a mixed graph from a pair of adjacency lists."""
         rv = cls()
         for n in nodes or []:
@@ -284,7 +286,7 @@ class NxMixedGraph(Generic[X]):
                 raise ValueError(f'unhandled edge type: {edge["type"]}')
         return rv
 
-    def subgraph(self, vertices: Collection[X]) -> NxMixedGraph:
+    def subgraph(self, vertices: Collection[X]) -> NxMixedGraph[X]:
         """Return a subgraph given a set of vertices.
 
         :param vertices: a subset of nodes
@@ -297,7 +299,7 @@ class NxMixedGraph(Generic[X]):
             undirected=_include_adjacent(self.undirected, vertices),
         )
 
-    def intervene(self, vertices: Collection[X]) -> NxMixedGraph:
+    def intervene(self, vertices: Collection[X]) -> NxMixedGraph[X]:
         """Return a mutilated graph given a set of interventions.
 
         :param vertices: a subset of nodes from which to remove incoming edges
@@ -310,7 +312,7 @@ class NxMixedGraph(Generic[X]):
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
-    def remove_nodes_from(self, vertices: Collection[X]) -> NxMixedGraph:
+    def remove_nodes_from(self, vertices: Collection[X]) -> NxMixedGraph[X]:
         """Return a subgraph that does not contain any of the specified vertices.
 
         :param vertices: a set of nodes to remove from graph
