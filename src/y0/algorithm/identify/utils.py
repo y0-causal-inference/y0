@@ -21,6 +21,7 @@ from y0.mutate.canonicalize_expr import expr_equal
 __all__ = [
     "Identification",
     "Fail",
+    "str_nodes_to_variable_nodes",
 ]
 
 
