@@ -79,10 +79,6 @@ class NxMixedGraph(Generic[X]):
             and (self.undirected.edges() == other.undirected.edges())
         )
 
-    def get_topological_sort(self) -> Sequence[X]:
-        """Get a topological sort from the directed component of the mixed graph."""
-        return list(nx.topological_sort(self.directed))
-
     def remove_outgoing_edges_from(self, vertices: Collection[X]) -> NxMixedGraph:
         """Return a subgraph that does not have any outgoing edges from any of the given vertices.
 

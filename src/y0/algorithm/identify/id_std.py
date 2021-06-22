@@ -53,7 +53,7 @@ def identify(identification: Identification) -> Expression:
 
     # line 6
     districts = graph.get_c_components()
-    parents = graph.get_topological_sort()
+    parents = list(graph.topological_sort())
 
     # There can be only 1 district without treatments because of line 4
     districts_without_treatment = graph_without_treatments.get_c_components()
@@ -248,7 +248,7 @@ def line_6(identification: Identification) -> Expression:
     districts_without_treatments = graph_without_treatments.get_c_components()
 
     # line 6
-    parents = graph.get_topological_sort()
+    parents = list(graph.topological_sort())
     if districts_without_treatments[0] not in districts:
         raise ValueError("Line 6 precondition not met")
     expression = Product.safe(p_parents(v, parents) for v in districts_without_treatments[0])
@@ -294,7 +294,7 @@ def line_7(identification: Identification) -> Identification:
     districts = graph.get_c_components()
     graph_without_treatments = graph.remove_nodes_from(treatments)
     districts_without_treatments = graph_without_treatments.get_c_components()
-    parents = graph.get_topological_sort()
+    parents = list(graph.topological_sort())
 
     # line 7
     for district in districts:
