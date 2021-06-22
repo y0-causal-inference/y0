@@ -102,7 +102,7 @@ class Canonicalizer:
         elif isinstance(expression, Sum):
             return Sum(
                 expression=self.canonicalize(expression.expression),
-                ranges=expression.ranges,
+                ranges=self._sorted(expression.ranges),
             )
         elif isinstance(expression, Product):
             probabilities = []
