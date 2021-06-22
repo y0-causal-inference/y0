@@ -34,41 +34,18 @@ def identify(identification: Identification) -> Expression:
         return Sum.safe(expression=P(vertices), ranges=vertices.difference(outcomes))
     # line 2
     if not_outcomes_or_ancestors:
-        return identify(
-            Identification.from_parts(
-                outcomes=outcomes,
-                treatments=treatments & outcomes_and_ancestors,
-                estimand=Sum.safe(expression=estimand, ranges=not_outcomes_or_ancestors),
-                graph=outcome_ancestral_graph,
-            )
-        )
+        return identify(line_2(identification))
+
     # line 3
     intervened_graph = graph.intervene(treatments)
     no_effect_on_outcome = (vertices - treatments) - ancestors_and_self(intervened_graph, outcomes)
     if no_effect_on_outcome:
-        return identify(
-            Identification.from_parts(
-                outcomes=outcomes,
-                treatments=treatments | no_effect_on_outcome,
-                estimand=estimand,
-                graph=graph,
-            )
-        )
+        return identify(line_3(identification))
 
     # line 4
     districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
     if len(districts_without_treatment) > 1:
-        expression = Product.safe(
-            identify(
-                Identification.from_parts(
-                    outcomes=district_without_treatment,
-                    treatments=vertices - district_without_treatment,
-                    estimand=estimand,
-                    graph=graph,
-                )
-            )
-            for district_without_treatment in districts_without_treatment
-        )
+        expression = Product.safe(map(identify, line_4(identification)))
         return Sum.safe(
             expression=expression,
             ranges=vertices.difference(outcomes | treatments),
@@ -81,9 +58,11 @@ def identify(identification: Identification) -> Expression:
 
     # line 6
     parents = graph.get_topological_sort()
-    if districts_without_treatment[0] in districts:
+    # There can be only 1!
+    district_without_treatment = districts_without_treatment[0]
+    if district_without_treatment in districts:
         expression = Product.safe(p_parents(v, parents) for v in districts_without_treatment[0])
-        ranges = districts_without_treatment[0] - outcomes
+        ranges = district_without_treatment - outcomes
         if not ranges:
             return expression
         return Sum.safe(
@@ -92,18 +71,7 @@ def identify(identification: Identification) -> Expression:
         )
 
     # line 7
-    for district in districts:
-        if districts_without_treatment[0] < district:
-            return identify(
-                Identification.from_parts(
-                    outcomes=outcomes,
-                    treatments=treatments & district,
-                    estimand=Product.safe(p_parents(v, parents) for v in district),
-                    graph=graph.subgraph(district),
-                )
-            )
-
-    raise Fail
+    return identify(line_7(identification))
 
 
 def line_1(identification: Identification) -> Expression:
