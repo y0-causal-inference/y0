@@ -5,7 +5,7 @@
 from typing import List, TypeVar
 
 from y0.dsl import Expression, P, Probability, Product, Sum
-from .utils import Fail, Identification
+from .utils import Fail, Identification, str_nodes_to_variable_nodes
 
 X = TypeVar("X")
 
@@ -19,7 +19,7 @@ def identify(identification: Identification) -> Expression:
     """
     outcomes = identification.outcome_variables
     treatments = identification.treatment_variables
-    graph = identification.graph.str_nodes_to_variable_nodes()
+    graph = str_nodes_to_variable_nodes(identification.graph)
     vertices = set(graph.nodes())
 
     # line 1
@@ -83,7 +83,7 @@ def line_1(identification: Identification) -> Expression:
     :returns:  The marginal of the outcome variables
     """
     outcomes = identification.outcome_variables
-    graph = identification.graph.str_nodes_to_variable_nodes()
+    graph = str_nodes_to_variable_nodes(identification.graph)
     vertices = set(graph.nodes())
     return Sum.safe(
         expression=P(vertices),
@@ -110,7 +110,7 @@ def line_2(identification: Identification) -> Identification:
     outcomes = identification.outcome_variables
     treatments = identification.treatment_variables
     estimand = identification.estimand
-    graph = identification.graph.str_nodes_to_variable_nodes()
+    graph = str_nodes_to_variable_nodes(identification.graph)
     vertices = set(graph.nodes())
     outcomes_and_ancestors = graph.ancestors_inclusive(outcomes)
     not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
@@ -143,7 +143,7 @@ def line_3(identification: Identification) -> Identification:
     outcomes = identification.outcome_variables
     treatments = identification.treatment_variables
     estimand = identification.estimand
-    graph = identification.graph.str_nodes_to_variable_nodes()
+    graph = str_nodes_to_variable_nodes(identification.graph)
     vertices = set(graph.nodes())
 
     intervened_graph = graph.intervene(treatments)
@@ -176,7 +176,7 @@ def line_4(identification: Identification) -> List[Identification]:
     """
     treatments = identification.treatment_variables
     estimand = identification.estimand
-    graph = identification.graph.str_nodes_to_variable_nodes()
+    graph = str_nodes_to_variable_nodes(identification.graph)
     vertices = set(graph.nodes())
 
     # line 4
@@ -210,7 +210,7 @@ def line_5(identification: Identification) -> None:
     # outcomes = identification.outcomes
     treatments = identification.treatment_variables
     # estimand = identification.estimand
-    graph = identification.graph.str_nodes_to_variable_nodes()
+    graph = str_nodes_to_variable_nodes(identification.graph)
     vertices = set(graph.nodes())
     # outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
     # not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
@@ -241,7 +241,7 @@ def line_6(identification: Identification) -> Expression:
     """
     outcomes = identification.outcome_variables
     treatments = identification.treatment_variables
-    graph = identification.graph.str_nodes_to_variable_nodes()
+    graph = str_nodes_to_variable_nodes(identification.graph)
 
     districts = graph.get_c_components()
     graph_without_treatments = graph.remove_nodes_from(treatments)
@@ -289,7 +289,7 @@ def line_7(identification: Identification) -> Identification:
     """
     outcomes = identification.outcome_variables
     treatments = identification.treatment_variables
-    graph = identification.graph.str_nodes_to_variable_nodes()
+    graph = str_nodes_to_variable_nodes(identification.graph)
 
     districts = graph.get_c_components()
     graph_without_treatments = graph.remove_nodes_from(treatments)

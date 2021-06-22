@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Set, Union
+from typing import Any, Mapping, Optional, Set, Union
 
 from ananke.graphs import ADMG
 
@@ -14,7 +14,7 @@ from y0.dsl import (
     Variable,
     outcomes_and_treatments_to_query,
 )
-from y0.graph import NxMixedGraph
+from y0.graph import NxMixedGraph, X
 from y0.identify import _get_outcomes, _get_treatments
 from y0.mutate.canonicalize_expr import expr_equal
 
@@ -94,3 +94,32 @@ class Identification:
             and expr_equal(self.estimand, other.estimand)
             and self.graph == other.graph
         )
+
+
+def str_nodes_to_variable_nodes(graph: NxMixedGraph[str]) -> NxMixedGraph[Variable]:
+    """Generate a variable graph from this graph of strings."""
+    directed: Mapping[X, list[X]] = dict(
+        [(u, []) if type(u) is Variable else (Variable(str(u)), []) for u in graph.nodes()]
+    )
+    undirected: Mapping[X, list[X]] = dict(
+        [(u, []) if type(u) is Variable else (Variable(str(u)), []) for u in graph.nodes()]
+    )
+    for u, v in graph.directed.edges():
+        if type(u) is Variable and type(v) is Variable:
+            directed[u].append(v)
+        elif type(u) is Variable:
+            directed[u].append(Variable(str(v)))
+        elif type(v) is Variable:
+            directed[Variable(u)].append(v)
+        else:
+            directed[Variable(str(u))].append(Variable(str(v)))
+    for u, v in graph.undirected.edges():
+        if type(u) is Variable and type(v) is Variable:
+            undirected[u].append(v)
+        elif type(u) is Variable:
+            undirected[u].append(Variable(str(v)))
+        elif type(v) is Variable:
+            undirected[Variable(str(u))].append(v)
+        else:
+            undirected[Variable(str(u))].append(Variable(str(v)))
+    return NxMixedGraph.from_adj(directed=directed, undirected=undirected)
