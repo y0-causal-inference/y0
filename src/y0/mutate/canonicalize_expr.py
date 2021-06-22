@@ -112,7 +112,7 @@ class Canonicalizer:
 
             probabilities = []
             other = []
-            for subexpr in expression.expressions:
+            for subexpr in _flatten_product(expression):
                 subexpr = self.canonicalize(subexpr)
                 if isinstance(subexpr, Probability):
                     probabilities.append(subexpr)
@@ -154,3 +154,13 @@ class Canonicalizer:
             )
         else:
             raise TypeError
+
+
+def _flatten_product(product: Product) -> list[Expression]:
+    expressions = []
+    for e in product.expressions:
+        if isinstance(e, Product):
+            expressions.extend(_flatten_product(e))
+        else:
+            expressions.append(e)
+    return expressions
