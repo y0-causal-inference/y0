@@ -2,13 +2,10 @@
 
 """An implementation of the identification algorithm."""
 
-from typing import FrozenSet, List, TypeVar
-
-import networkx as nx
+from typing import List, TypeVar
 
 from y0.algorithm.identify.utils import ancestors_and_self
 from y0.dsl import Expression, P, Probability, Product, Sum
-from y0.graph import NxMixedGraph
 from .utils import Fail, Identification
 
 X = TypeVar("X")
@@ -23,16 +20,16 @@ def identify(identification: Identification) -> Expression:
     """
     outcomes = identification.outcome_variables
     treatments = identification.treatment_variables
-    estimand = identification.estimand
     graph = identification.graph.str_nodes_to_variable_nodes()
     vertices = set(graph.nodes())
-    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
-    not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
-    outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
+
     # line 1
     if not treatments:
         return Sum.safe(expression=P(vertices), ranges=vertices.difference(outcomes))
+
     # line 2
+    outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
+    not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
     if not_outcomes_or_ancestors:
         return identify(line_2(identification))
 
@@ -43,7 +40,8 @@ def identify(identification: Identification) -> Expression:
         return identify(line_3(identification))
 
     # line 4
-    districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
+    graph_without_treatments = graph.remove_nodes_from(treatments)
+    districts_without_treatment = graph_without_treatments.get_c_components()
     if len(districts_without_treatment) > 1:
         expression = Product.safe(map(identify, line_4(identification)))
         return Sum.safe(
@@ -52,7 +50,7 @@ def identify(identification: Identification) -> Expression:
         )
 
     # line 5
-    districts = get_c_components(graph)
+    districts = graph.get_c_components()
     if districts == [frozenset(vertices)]:
         raise Fail(districts, districts_without_treatment)
 
@@ -181,7 +179,8 @@ def line_4(identification: Identification) -> List[Identification]:
     vertices = set(graph.nodes())
 
     # line 4
-    districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
+    graph_without_treatments = graph.remove_nodes_from(treatments)
+    districts_without_treatment = graph_without_treatments.get_c_components()
     if len(districts_without_treatment) <= 1:
         raise ValueError("Line 4 precondition not met")
     return list(
@@ -215,10 +214,11 @@ def line_5(identification: Identification) -> None:
     # outcomes_and_ancestors = ancestors_and_self(graph, outcomes)
     # not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
     # outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
-    districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
+    graph_withoyt_treatments = graph.remove_nodes_from(treatments)
+    districts_without_treatment = graph_withoyt_treatments.get_c_components()
 
     # line 5
-    districts = get_c_components(graph)
+    districts = graph.get_c_components()
     if districts == [frozenset(vertices)]:
         raise Fail(districts, districts_without_treatment)
 
@@ -242,15 +242,16 @@ def line_6(identification: Identification) -> Expression:
     treatments = identification.treatment_variables
     graph = identification.graph.str_nodes_to_variable_nodes()
 
-    districts = get_c_components(graph)
-    districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
+    districts = graph.get_c_components()
+    graph_without_treatments = graph.remove_nodes_from(treatments)
+    districts_without_treatments = graph_without_treatments.get_c_components()
 
     # line 6
     parents = graph.get_topological_sort()
-    if districts_without_treatment[0] not in districts:
+    if districts_without_treatments[0] not in districts:
         raise ValueError("Line 6 precondition not met")
-    expression = Product.safe(p_parents(v, parents) for v in districts_without_treatment[0])
-    ranges = districts_without_treatment[0] - outcomes
+    expression = Product.safe(p_parents(v, parents) for v in districts_without_treatments[0])
+    ranges = districts_without_treatments[0] - outcomes
     if not ranges:
         return expression
     return Sum.safe(
@@ -289,13 +290,14 @@ def line_7(identification: Identification) -> Identification:
     treatments = identification.treatment_variables
     graph = identification.graph.str_nodes_to_variable_nodes()
 
-    districts = get_c_components(graph)
-    districts_without_treatment = get_c_components(graph.remove_nodes_from(treatments))
+    districts = graph.get_c_components()
+    graph_without_treatments = graph.remove_nodes_from(treatments)
+    districts_without_treatments = graph_without_treatments.get_c_components()
     parents = graph.get_topological_sort()
 
     # line 7
     for district in districts:
-        if districts_without_treatment[0] < district:
+        if districts_without_treatments[0] < district:
             return Identification.from_parts(
                 outcomes=outcomes,
                 treatments=treatments & district,
@@ -304,11 +306,6 @@ def line_7(identification: Identification) -> Identification:
             )
 
     raise ValueError("Could not identify suitable district")
-
-
-def get_c_components(graph: NxMixedGraph[X]) -> List[FrozenSet[X]]:
-    """Get the C-components from a mixed graph."""
-    return [frozenset(district) for district in nx.connected_components(graph.undirected)]
 
 
 def p_parents(variable, parents) -> Probability:

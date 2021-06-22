@@ -3,7 +3,6 @@
 """Identification algorithms."""
 
 from .id_std import (  # noqa:F401
-    get_c_components,
     identify,
     line_1,
     line_2,

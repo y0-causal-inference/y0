@@ -8,7 +8,6 @@ from y0.algorithm.identify import (
     Fail,
     Identification,
     ancestors_and_self,
-    get_c_components,
     get_outcomes_and_treatments,
     identify,
     line_1,
@@ -90,7 +89,8 @@ class TestIdentify(unittest.TestCase):
         g3 = NxMixedGraph().from_edges(directed=[("X", "M"), ("M", "Y")], undirected=[("X", "Y")])
         c3 = [frozenset(["X", "Y"]), frozenset("M")]
         for g, c in [(g1, c1), (g2, c2), (g3, c3)]:
-            self.assertEqual(c, get_c_components(g))
+            self.assertIsInstance(g, NxMixedGraph)
+            self.assertEqual(c, g.get_c_components())
 
     def test_line_1(self):
         r"""Test that line 1 of ID algorithm works correctly.
