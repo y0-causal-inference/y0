@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence
+from typing import Optional, Sequence
 
 import networkx as nx
 import pandas as pd
@@ -28,7 +28,7 @@ class Example:
     verma_constraints: Optional[Sequence[VermaConstraint]] = None
     conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
     data: Optional[pd.DataFrame] = None
-    identifications: Optional[List[Dict[str, List[Identification]]]] = None
+    identifications: Optional[list[dict[str, list[Identification]]]] = None
 
 
 u_2 = Variable("u_2")
