@@ -4,8 +4,10 @@
 
 from __future__ import annotations
 
-from typing import Iterable, NamedTuple, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Generic, Iterable, NamedTuple, Optional, Tuple
 
+from .constants import NodeType
 from .dsl import Expression, Variable
 
 __all__ = [
@@ -45,27 +47,28 @@ class VermaConstraint(NamedTuple):
         )
 
 
-class DSeparationJudgement(NamedTuple):
+@dataclass(frozen=True)
+class DSeparationJudgement(Generic[NodeType]):
     """
     Record if a left/right pair are d-separated given the conditions.
 
     By default, acts like a boolean, but also caries evidence graph.
     """
 
-    separated: Optional[bool]
-    left: str
-    right: str
-    conditions: Tuple[str, ...]
+    separated: bool
+    left: NodeType
+    right: NodeType
+    conditions: Tuple[NodeType, ...]
 
     @classmethod
     def create(
         cls,
-        left: str,
-        right: str,
-        conditions: Optional[Iterable[str]] = None,
+        left: NodeType,
+        right: NodeType,
+        conditions: Optional[Iterable[NodeType]] = None,
         *,
-        separated: Optional[bool] = True,
-    ) -> DSeparationJudgement:
+        separated: bool = True,
+    ) -> DSeparationJudgement[NodeType]:
         """Create a d-separation judgement in canonical form."""
         left, right = sorted([left, right])
         if conditions is None:
@@ -73,14 +76,14 @@ class DSeparationJudgement(NamedTuple):
         conditions = tuple(sorted(set(conditions)))
         return cls(separated, left, right, conditions)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.separated
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{repr(self.separated)} -- '{self.left}' d-sep '{self.right}' conditioned on {self.conditions}"
 
-    def __eq__(self, other):
-        return self.separated == other
+    def __eq__(self, other: Any) -> bool:
+        return isinstance(other, DSeparationJudgement) and self.separated == other
 
     @property
     def is_canonical(self) -> bool:
