@@ -143,7 +143,7 @@ class Query:
             variables = {variables}
         else:
             variables = set(variables)
-        if any(v not in self.conditions for v in variables):
+        if any(v not in self.treatments for v in variables):
             raise ValueError
         return Query(
             outcomes=self.outcomes,
