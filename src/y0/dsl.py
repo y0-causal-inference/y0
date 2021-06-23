@@ -444,6 +444,17 @@ class Expression(_Mathable, ABC):
     def __truediv__(self, other):
         pass
 
+    def marginalize(self, ranges: XSeq[Variable]) -> Fraction:
+        """Return this expression, marginalized by the given variables.
+
+        :param ranges: A variable or list of variables over which to marginalize this expression
+        :returns: A fraction in which the denominator is represents the sum over the given ranges
+
+        >>> from y0.dsl import P, A, B
+        >>> assert P(A, B).marginalize(A) == P(A, B) / Sum[A](P(A, B))
+        """
+        return Fraction(self, Sum(expression=self, ranges=_prepare_ranges(ranges)))
+
 
 @dataclass(frozen=True)
 class Probability(Expression):
@@ -483,17 +494,6 @@ class Probability(Expression):
         >>> P(A | B).uncondition() == P(A, B)
         """
         return Probability(self.distribution.uncondition())
-
-    def marginalize(self, ranges: XSeq[Variable]) -> Fraction:
-        """Return this probability distribution, marginalized by the given variables.
-
-        :param ranges: A variable or list of variables over which to marganilize this probability's distribution
-        :returns: A fraction in which the denominator is represents the sum over the given ranges
-
-        >>> from y0.dsl import P, A, B
-        >>> P(A, B).marginalize(A) == P(A, B) / Sum[A](P(A, B))
-        """
-        return self / Sum(expression=self, ranges=_prepare_ranges(ranges))
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in the distribution in this probability."""
