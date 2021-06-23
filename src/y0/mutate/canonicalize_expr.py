@@ -2,7 +2,7 @@
 
 """Implementation of the canonicalization algorithm."""
 
-from typing import Mapping, Optional, Sequence, Tuple, Union
+from typing import Iterable, Mapping, Optional, Sequence, Tuple, Union
 
 from ..dsl import (
     CounterfactualVariable,
@@ -35,8 +35,8 @@ def canonicalize(
     return canonicalizer.canonicalize(expression)
 
 
-def _sort_probability_key(probability: Probability) -> str:
-    return probability.distribution.children[0].name
+def _sort_probability_key(probability: Probability) -> Tuple[str, ...]:
+    return tuple(child.name for child in probability.distribution.children)
 
 
 class Canonicalizer:
@@ -156,11 +156,9 @@ class Canonicalizer:
             raise TypeError
 
 
-def _flatten_product(product: Product) -> list[Expression]:
-    expressions = []
-    for e in product.expressions:
-        if isinstance(e, Product):
-            expressions.extend(_flatten_product(e))
+def _flatten_product(product: Product) -> Iterable[Expression]:
+    for expression in product.expressions:
+        if isinstance(expression, Product):
+            yield from _flatten_product(expression)
         else:
-            expressions.append(e)
-    return expressions
+            yield expression
