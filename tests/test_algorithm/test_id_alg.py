@@ -48,8 +48,8 @@ class TestIdentify(unittest.TestCase):
         expected_canonical = canonicalize(expected, ordering)
         actual_canonical = canonicalize(actual, ordering)
         self.assertEqual(
-            str(expected_canonical),
-            str(actual_canonical),
+            expected_canonical,
+            actual_canonical,
             msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
         )
 
