@@ -10,6 +10,10 @@ from ..conditional_independencies import are_d_separated
 from ...dsl import Expression, P, Sum, Variable
 from ...graph import NxMixedGraph
 
+__all__ = [
+    "idc",
+]
+
 
 def idc(
     outcomes: set[Variable],
