@@ -9,7 +9,7 @@ from typing import Any, Optional, Union
 import networkx as nx
 from ananke.graphs import ADMG
 
-from y0.dsl import (CounterfactualVariable, Expression, P, Variable, get_outcomes_and_treatments)
+from y0.dsl import CounterfactualVariable, Expression, P, Variable, get_outcomes_and_treatments
 from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import expr_equal
 
