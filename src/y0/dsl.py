@@ -227,6 +227,7 @@ class Variable(_Mathable):
     def __lt__(self, other):
         return str(self) < str(other)
 
+
 @dataclass(frozen=True)
 class Intervention(Variable):
     """An intervention variable.

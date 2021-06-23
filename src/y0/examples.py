@@ -391,7 +391,7 @@ figure_6a = Example(
             id_out=[
                 Identification.from_query(
                     query=P(Y @ (X, Z)),
-                    estimand=P(Y|(X,Z))/Sum.safe(expression=P(Y|(X,Z)), ranges=(Y,)),
+                    estimand=P(Y | (X, Z)) / Sum.safe(expression=P(Y | (X, Z)), ranges=(Y,)),
                     graph=NxMixedGraph.from_edges(
                         directed=[("X", "Z"), ("Z", "Y")], undirected=list()
                     ),
