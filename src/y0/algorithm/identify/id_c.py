@@ -5,7 +5,7 @@
 from .id_std import identify
 from .utils import Identification
 from ..conditional_independencies import are_d_separated
-from ...dsl import Expression, Sum, Variable
+from ...dsl import Expression, Variable
 
 __all__ = [
     "idc",
@@ -24,8 +24,7 @@ def idc(identification: Identification) -> Expression:
             return idc(identification.treat_condition(condition))
 
     # Run ID algorithm
-    new_expression = identify(identification.uncondition())
-    return new_expression / Sum.safe(expression=new_expression, ranges=identification.outcomes)
+    return identify(identification.uncondition()).marginalize(identification.outcomes)
 
 
 def rule_2_of_do_calculus_applies(identification: Identification, condition: Variable) -> bool:
