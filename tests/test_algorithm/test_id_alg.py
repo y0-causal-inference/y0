@@ -58,13 +58,7 @@ class TestIdentify(unittest.TestCase):
             id_out = identification["id_out"][0]
             self.assert_expr_equal(
                 expected=id_out.estimand,
-                actual=idc(
-                    outcomes=id_in.outcomes,
-                    treatments=id_in.treatments,
-                    conditions=id_in.conditions,
-                    graph=id_in.graph,
-                    estimand=id_in.estimand,
-                ),
+                actual=idc(id_in),
             )
 
     def test_line_1(self):
