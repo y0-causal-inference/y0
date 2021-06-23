@@ -224,6 +224,8 @@ class Variable(_Mathable):
         """Get a set containing this variable."""
         yield self
 
+    def __lt__(self, other):
+        return str(self) < str(other)
 
 @dataclass(frozen=True)
 class Intervention(Variable):

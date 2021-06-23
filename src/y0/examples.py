@@ -378,8 +378,10 @@ figure_6a = Example(
     identifications=[
         dict(
             id_in=[
-                Identification.from_query(
-                    query=P(Y @ X | Z @ X),
+                Identification(
+                    outcomes={Y},
+                    treatments={X},
+                    conditions={Z},
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(
                         directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Z")]
@@ -389,7 +391,7 @@ figure_6a = Example(
             id_out=[
                 Identification.from_query(
                     query=P(Y @ (X, Z)),
-                    estimand=P(X, Y, Z),
+                    estimand=P(Y|(X,Z))/Sum.safe(expression=P(Y|(X,Z)), ranges=(Y,)),
                     graph=NxMixedGraph.from_edges(
                         directed=[("X", "Z"), ("Z", "Y")], undirected=list()
                     ),

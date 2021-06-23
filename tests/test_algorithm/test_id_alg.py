@@ -8,6 +8,7 @@ import unittest
 from y0.algorithm.identify import (
     Fail,
     identify,
+    idc
 )
 from y0.algorithm.identify.id_std import (
     line_1,
@@ -27,6 +28,7 @@ from y0.examples import (
     line_5_example,
     line_6_example,
     line_7_example,
+    figure_6a
 )
 from y0.mutate import canonicalize
 
@@ -53,6 +55,21 @@ class TestIdentify(unittest.TestCase):
             msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
         )
 
+
+    def test_idc(self):
+        r"""Test that the IDC algorithm works correctly. """
+        for identification in figure_6a.identifications:
+            id_in = identification['id_in'][0]
+            id_out = identification['id_out'][0]
+            self.assert_expr_equal(
+                expected=id_out.estimand,
+                actual=idc(outcomes=id_in.outcomes,
+                           treatments=id_in.treatments,
+                           conditions=id_in.conditions,
+                           graph=id_in.graph,
+                           estimand=id_in.estimand
+                )
+            )
     def test_line_1(self):
         r"""Test that line 1 of ID algorithm works correctly.
 

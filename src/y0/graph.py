@@ -322,7 +322,7 @@ class NxMixedGraph(Generic[X]):
         vertices = set(vertices)
         return self.from_edges(
             nodes=self.nodes(),
-            directed=_exclude_target(self.directed, vertices),
+            directed=_exclude_source(self.directed, vertices),
             undirected=self.undirected.edges(),
         )
 
@@ -373,6 +373,9 @@ def _include_adjacent(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tu
 
 def _exclude_target(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
     return [(u, v) for u, v in graph.edges() if v not in vertices]
+
+def _exclude_source(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+    return [(u, v) for u, v in graph.edges() if u not in vertices]
 
 
 def _exclude_adjacent(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:

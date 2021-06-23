@@ -2,7 +2,7 @@
 
 """Implementation of the IDC algorithm."""
 
-from typing import Optional
+from typing import Optional, Set
 
 from .id_std import identify
 from .utils import Identification
@@ -16,9 +16,9 @@ __all__ = [
 
 
 def idc(
-    outcomes: set[Variable],
-    treatments: set[Variable],
-    conditions: set[Variable],
+    outcomes: Set[Variable],
+    treatments: Set[Variable],
+    conditions: Set[Variable],
     graph: NxMixedGraph[Variable],
     estimand: Optional[Expression] = None,
 ) -> Expression:
@@ -34,7 +34,7 @@ def idc(
     if not estimand:
         estimand = P(graph.nodes())
     for condition in conditions:
-        if idc_condition(
+        if rule_2_of_do_calculus_applies(
             outcomes=outcomes,
             treatments=treatments,
             conditions=conditions,
@@ -44,7 +44,7 @@ def idc(
             return idc(
                 outcomes=outcomes,
                 treatments=treatments | {condition},
-                conditions=...,  # FIXME
+                conditions=conditions - {condition},
                 graph=graph,
                 estimand=estimand,
             )
@@ -58,16 +58,32 @@ def idc(
     return new_expression / Sum.safe(expression=new_expression, ranges=outcomes)
 
 
-def idc_condition(
-    outcomes: set[Variable],
-    treatments: set[Variable],
-    conditions: set[Variable],
+def rule_2_of_do_calculus_applies(
+    outcomes: Set[Variable],
+    treatments: Set[Variable],
+    conditions: Set[Variable],
     condition: Variable,
     graph: NxMixedGraph[Variable],
 ) -> bool:
-    """Check the IDC condition for recursion."""
-    admg = graph.intervene(treatments).remove_outgoing_edges_from(condition).to_admg()
-    judgement = are_d_separated(
-        admg, outcomes, condition, conditions=list(treatments | (conditions - {condition}))
-    )
-    return judgement.separated
+    r"""Check if Rule 2 of the Do-Calculus applies to the conditioned variable.
+
+    If Rule 2 of the do calculus applies to the conditioned variable, then it can be converted to a do variable.
+
+.. math::
+
+\newcommand\ci{\perp\!\!\!\perp}
+\newcommand{\ubar}[1]{\underset{\bar{}}{#1}}
+\newcommand{\obar}[1]{\overset{\bar{}}{#1}}
+\text{if } (\exists Z \in \mathbf{Z})(\mathbf{Y} \ci Z | \mathbf{X}, \mathbf{Z} - \{Z\})_{G_{\bar{\mathbf{X}}\ubar{Z}}} \\
+\text{then } P(\mathbf{Y}|do(\mathbf{X}),\mathbf{Z}) = P(\mathbf Y|do(\mathbf X), do(Z), \mathbf{Z} - \{Z\})
+
+
+"""
+    admg = graph.intervene(treatments).remove_outgoing_edges_from(frozenset([condition])).to_admg()
+    judgements = [
+        are_d_separated(
+            admg, outcome, condition, conditions=list(treatments | (conditions - {condition}))
+        )
+        for outcome in outcomes
+    ]
+    return all([judgement.separated for judgement in judgements])
