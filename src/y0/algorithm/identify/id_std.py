@@ -150,12 +150,7 @@ def line_3(identification: Identification) -> Identification:
             'Line 3 precondition not met. There were no variables in "no_effect_on_outcome"'
         )
 
-    return Identification(
-        outcomes=outcomes,
-        treatments=treatments | no_effect_on_outcome,
-        estimand=estimand,
-        graph=graph,
-    )
+    return identification.with_treatments(no_effect_on_outcome)
 
 
 def line_4(identification: Identification) -> List[Identification]:

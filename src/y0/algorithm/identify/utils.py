@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Union
+from typing import Any, Iterable, Optional, Union
 
 import networkx as nx
 from ananke.graphs import ADMG
@@ -123,6 +123,15 @@ class Identification:
             conditions=self.conditions - {condition},
             graph=self.graph,
             estimand=self.estimand,
+        )
+
+    def with_treatments(self, extra_treatments: Iterable[Variable]) -> Identification:
+        """Create a new identification with additional treatments"""
+        return Identification(
+            outcomes=self.outcomes,
+            treatments=self.treatments.union(extra_treatments),
+            estimand=self.estimand,
+            graph=self.graph,
         )
 
     def uncondition(self) -> Identification:
