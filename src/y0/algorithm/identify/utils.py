@@ -9,7 +9,7 @@ from typing import Any, Optional, Union
 import networkx as nx
 from ananke.graphs import ADMG
 
-from y0.dsl import CounterfactualVariable, Expression, P, Variable, get_outcomes_and_treatments
+from y0.dsl import CounterfactualVariable, Expression, P, Probability, Variable, get_outcomes_and_treatments
 from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import expr_equal
 
@@ -39,30 +39,40 @@ class Identification:
         treatments: set[Variable],
         graph: Union[ADMG, NxMixedGraph[Variable]],
         estimand: Optional[Expression] = None,
-        conditions: Optional[set[Variable]] = set(),
+        conditions: Optional[set[Variable]] = None,
     ) -> None:
         """Instantiate an identification.
 
         :param outcomes: The outcomes in the query
         :param treatments: The treatments in the query (e.g., counterfactual variables)
+        :param conditions: The conditions in the query (e.g., coming after the bar)
         :param graph: The graph
         :param estimand: If none is given, will use the joint distribution over all variables in the graph.
+        :raises TypeError: If any of the outcomes, treatements, or conditions are not vanilla variables
         """
         if not all(isinstance(v, Variable) for v in outcomes):
             raise TypeError
-        if any(isinstance(v, CounterfactualVariable) for v in outcomes):
+        elif any(isinstance(v, CounterfactualVariable) for v in outcomes):
             raise TypeError
+        else:
+            self.outcomes = outcomes
+
         if not all(isinstance(v, Variable) for v in treatments):
             raise TypeError
-        if any(isinstance(v, CounterfactualVariable) for v in treatments):
+        elif any(isinstance(v, CounterfactualVariable) for v in treatments):
             raise TypeError
-        if not all(isinstance(v, Variable) for v in conditions):
+        else:
+            self.treatments = treatments
+
+        if conditions is None:
+            self.conditions = set()
+        elif not all(isinstance(v, Variable) for v in conditions):
             raise TypeError
-        if any(isinstance(v, CounterfactualVariable) for v in conditions):
+        elif any(isinstance(v, CounterfactualVariable) for v in conditions):
             raise TypeError
-        self.outcomes = outcomes
-        self.treatments = treatments
-        self.conditions = conditions
+        else:
+            self.conditions = conditions
+
         if isinstance(graph, ADMG):
             self.graph = str_nodes_to_variable_nodes(NxMixedGraph.from_admg(graph))
         else:
@@ -73,7 +83,7 @@ class Identification:
     def from_query(
         cls,
         *,
-        query: Expression,
+        query: Probability,
         graph: Union[ADMG, NxMixedGraph[str], NxMixedGraph[Variable]],
         estimand: Optional[Expression] = None,
     ) -> Identification:
