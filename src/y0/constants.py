@@ -18,7 +18,7 @@ class NodeProtocol(Protocol):
     def __hash__(self) -> int:
         ...
 
-    def __lt__(self, other: NodeProtocol) -> bool:
+    def __lt__(self, other) -> bool:
         ...
 
 
