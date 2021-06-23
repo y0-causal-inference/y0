@@ -323,7 +323,7 @@ class NxMixedGraph(Generic[X]):
         return self.from_edges(
             nodes=self.nodes(),
             directed=_exclude_target(self.directed, vertices),
-            undirected=_exclude_target(self.undirected, vertices),
+            undirected=self.undirected.edges(),
         )
 
     def remove_nodes_from(self, vertices: Collection[X]) -> NxMixedGraph[X]:
