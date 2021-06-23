@@ -126,7 +126,7 @@ class Identification:
         )
 
     def with_treatments(self, extra_treatments: Iterable[Variable]) -> Identification:
-        """Create a new identification with additional treatments"""
+        """Create a new identification with additional treatments."""
         return Identification(
             outcomes=self.outcomes,
             treatments=self.treatments.union(extra_treatments),

@@ -139,7 +139,6 @@ def line_3(identification: Identification) -> Identification:
     """
     outcomes = identification.outcomes
     treatments = identification.treatments
-    estimand = identification.estimand
     graph = identification.graph
     vertices = set(graph.nodes())
 
