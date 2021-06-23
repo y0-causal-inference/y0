@@ -2,7 +2,7 @@
 
 """Implementation of the canonicalization algorithm."""
 
-from typing import Mapping, Optional, Sequence, Tuple, Union
+from typing import Iterable, Mapping, Optional, Sequence, Tuple, Union
 
 from ..dsl import (
     CounterfactualVariable,
@@ -35,8 +35,8 @@ def canonicalize(
     return canonicalizer.canonicalize(expression)
 
 
-def _sort_probability_key(probability: Probability) -> str:
-    return probability.distribution.children[0].name
+def _sort_probability_key(probability: Probability) -> Tuple[str, ...]:
+    return tuple(child.name for child in probability.distribution.children)
 
 
 class Canonicalizer:
@@ -100,14 +100,19 @@ class Canonicalizer:
         if isinstance(expression, Probability):  # atomic
             return self._canonicalize_probability(expression)
         elif isinstance(expression, Sum):
+            if not expression.ranges:  # flatten unnecessary sum
+                return self.canonicalize(expression.expression)
             return Sum(
                 expression=self.canonicalize(expression.expression),
-                ranges=expression.ranges,
+                ranges=self._sorted(expression.ranges),
             )
         elif isinstance(expression, Product):
+            if 1 == len(expression.expressions):  # flatten unnecessary product
+                return self.canonicalize(expression.expressions[0])
+
             probabilities = []
             other = []
-            for subexpr in expression.expressions:
+            for subexpr in _flatten_product(expression):
                 subexpr = self.canonicalize(subexpr)
                 if isinstance(subexpr, Probability):
                     probabilities.append(subexpr)
@@ -149,3 +154,11 @@ class Canonicalizer:
             )
         else:
             raise TypeError
+
+
+def _flatten_product(product: Product) -> Iterable[Expression]:
+    for expression in product.expressions:
+        if isinstance(expression, Product):
+            yield from _flatten_product(expression)
+        else:
+            yield expression

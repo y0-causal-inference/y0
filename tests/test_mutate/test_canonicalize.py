@@ -6,7 +6,7 @@ import itertools as itt
 import unittest
 from typing import Sequence
 
-from y0.dsl import A, B, C, D, Expression, P, Sum, Variable, X, Y, Z
+from y0.dsl import A, B, C, D, Expression, P, Product, R, Sum, Variable, W, X, Y, Z
 from y0.mutate import canonicalize
 
 
@@ -54,9 +54,15 @@ class TestCanonicalize(unittest.TestCase):
 
     def test_derived_atomic(self):
         """Test canonicalizing."""
+        # Sum with no range
+        self.assert_canonicalize(P(A), Sum(P(A)), [A])
+
         # Sum
-        expected = expression = Sum(P(A))
-        self.assert_canonicalize(expected, expression, [A])
+        expected = expression = Sum(P(A), (R,))
+        self.assert_canonicalize(expected, expression, [A, R])
+
+        # Single Product
+        self.assert_canonicalize(P(A), Product((P(A),)), [A])
 
         # Simple product (only atomic)
         expected = P(A) * P(B) * P(C)
@@ -64,11 +70,20 @@ class TestCanonicalize(unittest.TestCase):
             expression = a * b * c
             self.assert_canonicalize(expected, expression, [A, B, C])
 
-        # Sum with simple product (only atomic)
-        expected = Sum(P(A) * P(B) * P(C))
-        for a, b, c in itt.permutations((P(A), P(B), P(C))):
-            expression = Sum(a * b * c)
+        # Nested product
+        expected = P(A) * P(B) * P(C)
+        for b, c in itt.permutations((P(B), P(C))):
+            expression = Product((P(A), Product((b, c))))
             self.assert_canonicalize(expected, expression, [A, B, C])
+
+            expression = Product((Product((P(A), b)), c))
+            self.assert_canonicalize(expected, expression, [A, B, C])
+
+        # Sum with simple product (only atomic)
+        expected = Sum(P(A) * P(B) * P(C), (R,))
+        for a, b, c in itt.permutations((P(A), P(B), P(C))):
+            expression = Sum(a * b * c, (R,))
+            self.assert_canonicalize(expected, expression, [A, B, C, R])
 
         # Fraction
         expected = expression = P(A) / P(B)
@@ -85,34 +100,36 @@ class TestCanonicalize(unittest.TestCase):
 
     def test_mixed(self):
         """Test mixed expressions."""
-        expected = expression = P(A) * Sum(P(B))
-        self.assert_canonicalize(expected, expression, [A, B])
+        expected = expression = P(A) * Sum(P(B), (R,))
+        self.assert_canonicalize(expected, expression, [A, B, R])
 
-        expected = P(A) * Sum(P(B)) * Sum(P(C))
-        for a, b, c in itt.permutations((P(A), Sum(P(B)), Sum(P(C)))):
+        expected = P(A) * Sum(P(B), (R,)) * Sum(P(C), (Y,))
+        for a, b, c in itt.permutations((P(A), Sum(P(B), (R,)), Sum(P(C), (Y,)))):
             expression = a * b * c
-            self.assert_canonicalize(expected, expression, [A, B, C])
+            self.assert_canonicalize(expected, expression, [A, B, C, R, Y])
 
-        expected = P(D) * Sum(P(A) * P(B) * P(C))
+        expected = P(D) * Sum(P(A) * P(B) * P(C), (R,))
         for a, b, c in itt.permutations((P(A), P(B), P(C))):
-            sum_expr = Sum(a * b * c)
+            sum_expr = Sum(a * b * c, (R,))
             for left, right in itt.permutations((P(D), sum_expr)):
-                self.assert_canonicalize(expected, left * right, [A, B, C, D])
+                self.assert_canonicalize(expected, left * right, [A, B, C, D, R])
 
-        expected = P(X) * Sum(P(A) * P(B)) * Sum(P(C) * P(D))
+        expected = P(X) * Sum(P(A) * P(B), (Y,)) * Sum(P(C) * P(D), (Z,))
         for (a, b), (c, d) in itt.product(
             itt.permutations((P(A), P(B))),
             itt.permutations((P(C), P(D))),
         ):
-            sexpr = Sum(a * b) * Sum(c * d)
-            self.assert_canonicalize(expected, sexpr * P(X), [A, B, C, D, X])
-            self.assert_canonicalize(expected, P(X) * sexpr, [A, B, C, D, X])
+            sexpr = Sum(a * b, (Y,)) * Sum(c * d, (Z,))
+            self.assert_canonicalize(expected, sexpr * P(X), [A, B, C, D, X, Y, Z])
+            self.assert_canonicalize(expected, P(X) * sexpr, [A, B, C, D, X, Y, Z])
 
-        expected = expression = Sum(P(A) / P(B))
-        self.assert_canonicalize(expected, expression, [A, B])
+        expected = expression = Sum(P(A) / P(B), (R,))
+        self.assert_canonicalize(expected, expression, [A, B, R])
 
-        expected = expression = Sum(P(A) / Sum(P(B))) * Sum(P(A) / Sum(P(B) / P(C)))
-        self.assert_canonicalize(expected, expression, [A, B, C])
+        expected = expression = Sum(P(A) / Sum(P(B), (W,)), (X,)) * Sum(
+            P(A) / Sum(P(B) / P(C), (Y,)), (Z,)
+        )
+        self.assert_canonicalize(expected, expression, [A, B, C, W, X, Y, Z])
 
     def test_non_markov(self):
         """Test non-markov distributions (e.g., with multiple children)."""
@@ -125,15 +142,15 @@ class TestCanonicalize(unittest.TestCase):
             for p1, p2 in itt.permutations([C, D]):
                 expected = P(A & B | C | D)
                 expression = P(c1 & c2 | (p1, p2))
-                ordering = [A, B, C, D]
+                ordering = [A, B, C, D, R]
                 self.assert_canonicalize(expected, expression, ordering)
-                self.assert_canonicalize(Sum(expected), Sum(expression), ordering)
+                self.assert_canonicalize(Sum(expected, (R,)), Sum(expression, (R,)), ordering)
 
         for c1, c2, c3 in itt.permutations([A, B, C]):
             self.assert_canonicalize(P(A, B, C), P(c1, c2, c3), [A, B, C])
             for p1, p2, p3 in itt.permutations([X, Y, Z]):
                 expected = P(A & B & C | (X, Y, Z))
                 expression = P(c1 & c2 & c3 | (p1 & p2 & p3))
-                ordering = [A, B, C, X, Y, Z]
+                ordering = [A, B, C, R, X, Y, Z]
                 self.assert_canonicalize(expected, expression, ordering)
-                self.assert_canonicalize(Sum(expected), Sum(expression), ordering)
+                self.assert_canonicalize(Sum(expected, (R,)), Sum(expression, (R,)), ordering)
