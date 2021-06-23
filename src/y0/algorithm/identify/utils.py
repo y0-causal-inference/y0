@@ -29,6 +29,7 @@ class Identification:
 
     outcomes: set[Variable]
     treatments: set[Variable]
+    conditions: set[Variable]
     graph: NxMixedGraph[Variable]
     estimand: Expression
 
@@ -38,6 +39,7 @@ class Identification:
         treatments: set[Variable],
         graph: Union[ADMG, NxMixedGraph[Variable]],
         estimand: Optional[Expression] = None,
+        conditions: Optional[set[Variable]] = set(),
     ) -> None:
         """Instantiate an identification.
 
@@ -54,8 +56,13 @@ class Identification:
             raise TypeError
         if any(isinstance(v, CounterfactualVariable) for v in treatments):
             raise TypeError
+        if not all(isinstance(v, Variable) for v in conditions):
+            raise TypeError
+        if any(isinstance(v, CounterfactualVariable) for v in conditions):
+            raise TypeError
         self.outcomes = outcomes
         self.treatments = treatments
+        self.conditions = conditions
         if isinstance(graph, ADMG):
             self.graph = str_nodes_to_variable_nodes(NxMixedGraph.from_admg(graph))
         else:
@@ -80,14 +87,19 @@ class Identification:
         outcomes, treatments = get_outcomes_and_treatments(query=query)
         outcomes = {Variable(v.name) for v in outcomes}  # clean counterfactuals
         treatments = {Variable(v.name) for v in treatments}
+        conditions = {Variable(v.name) for v in query.distribution.parents}
         return Identification(
-            outcomes=outcomes, treatments=treatments, graph=graph, estimand=estimand
+            outcomes=outcomes,
+            treatments=treatments,
+            conditions=conditions,
+            graph=graph,
+            estimand=estimand,
         )
 
     def __repr__(self) -> str:
         return (
             f'Identification(outcomes="{self.outcomes}, treatments="{self.treatments}",'
-            f' graph="{self.graph!r}", estimand="{self.estimand}")'
+            f'conditions="{self.conditions}",  graph="{self.graph!r}", estimand="{self.estimand}")'
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -96,6 +108,7 @@ class Identification:
             isinstance(other, Identification)
             and self.outcomes == other.outcomes
             and self.treatments == other.treatments
+            and self.conditions == other.conditions
             and expr_equal(self.estimand, other.estimand)
             and self.graph == other.graph
         )

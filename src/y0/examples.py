@@ -369,6 +369,36 @@ line_7_example = Example(
         )
     ],
 )
+
+
+figure_6a = Example(
+    name="Causal graph with identifiable conditional effect P(y|do(x),z)",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
+    graph=NxMixedGraph.from_edges(directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Z")]),
+    identifications=[
+        dict(
+            id_in=[
+                Identification.from_query(
+                    query=P(Y @ X | Z @ X),
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Z")]
+                    ),
+                ),
+            ],
+            id_out=[
+                Identification.from_query(
+                    query=P(Y @ (X, Z)),
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Z"), ("Z", "Y")], undirected=list()
+                    ),
+                ),
+            ],
+        )
+    ],
+)
+
 cyclic_directed_example = Example(
     name="Cyclic directed graph",
     reference="out of the mind of JZ and ZW",
