@@ -119,14 +119,36 @@ class Query:
             conditions=conditions,
         )
 
-    def treat_condition(self, condition: Variable) -> Query:
-        """Move the condition variable to the treatments."""
-        if condition not in self.conditions:
+    def exchange_observation_with_action(
+        self, variables: Union[Variable, Iterable[Variable]]
+    ) -> Query:
+        """Move the condition variable(s) to the treatments."""
+        if isinstance(variables, Variable):
+            variables = {variables}
+        else:
+            variables = set(variables)
+        if any(v not in self.conditions for v in variables):
             raise ValueError
         return Query(
             outcomes=self.outcomes,
-            treatments=self.treatments | {condition},
-            conditions=self.conditions - {condition},
+            treatments=self.treatments | variables,
+            conditions=self.conditions - variables,
+        )
+
+    def exchange_action_with_observation(
+        self, variables: Union[Variable, Iterable[Variable]]
+    ) -> Query:
+        """Move the treatment variable(s) to the conditions."""
+        if isinstance(variables, Variable):
+            variables = {variables}
+        else:
+            variables = set(variables)
+        if any(v not in self.conditions for v in variables):
+            raise ValueError
+        return Query(
+            outcomes=self.outcomes,
+            treatments=self.treatments - variables,
+            conditions=self.conditions | variables,
         )
 
     def with_treatments(self, extra_treatments: Iterable[Variable]) -> Query:
@@ -243,12 +265,22 @@ class Identification:
         """Return this identification object's query's conditions."""
         return self.query.conditions
 
-    def treat_condition(self, condition: Variable) -> Identification:
-        """Move the condition variable to the treatments."""
-        if condition not in self.conditions:
-            raise ValueError
+    def exchange_observation_with_action(
+        self, variables: Union[Variable, Iterable[Variable]]
+    ) -> Identification:
+        """Move the condition variable(s) to the treatments."""
         return Identification(
-            query=self.query.treat_condition(condition),
+            query=self.query.exchange_observation_with_action(variables),
+            graph=self.graph,
+            estimand=self.estimand,
+        )
+
+    def exchange_action_with_observation(
+        self, variables: Union[Variable, Iterable[Variable]]
+    ) -> Identification:
+        """Move the treatment variable(s) to the conditions."""
+        return Identification(
+            query=self.query.exchange_action_with_observation(variables),
             graph=self.graph,
             estimand=self.estimand,
         )
