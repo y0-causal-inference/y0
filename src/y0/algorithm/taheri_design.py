@@ -177,7 +177,7 @@ def _get_result(
     # Check if the ADMG is identifiable under the (simple) causal query
     query = P(Variable(effect) @ ~Variable(cause))
     identifiable = is_identifiable(admg, query)
-    identifiability_expr = identify(Identification.from_query(graph=admg, query=query))
+    identifiability_expr = identify(Identification.from_expression(graph=admg, query=query))
 
     return Result(
         identifiable,

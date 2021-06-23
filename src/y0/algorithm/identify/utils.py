@@ -21,6 +21,7 @@ from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import expr_equal
 
 __all__ = [
+    "Query",
     "Identification",
     "Fail",
     "str_nodes_to_variable_nodes",
@@ -31,21 +32,17 @@ class Fail(Exception):
     """Raised on failure of the identification algorithm."""
 
 
-class Identification:
-    """A package of a query and resulting estimand from identification on a graph."""
+class Query:
+    """An identification query."""
 
     outcomes: set[Variable]
     treatments: set[Variable]
     conditions: set[Variable]
-    graph: NxMixedGraph[Variable]
-    estimand: Expression
 
     def __init__(
         self,
         outcomes: set[Variable],
         treatments: set[Variable],
-        graph: Union[ADMG, NxMixedGraph[Variable]],
-        estimand: Optional[Expression] = None,
         conditions: Optional[set[Variable]] = None,
     ) -> None:
         """Instantiate an identification.
@@ -53,8 +50,6 @@ class Identification:
         :param outcomes: The outcomes in the query
         :param treatments: The treatments in the query (e.g., counterfactual variables)
         :param conditions: The conditions in the query (e.g., coming after the bar)
-        :param graph: The graph
-        :param estimand: If none is given, will use the joint distribution over all variables in the graph.
         :raises TypeError: If any of the outcomes, treatements, or conditions are not vanilla variables
         """
         if not all(isinstance(v, Variable) for v in outcomes):
@@ -80,6 +75,73 @@ class Identification:
         else:
             self.conditions = conditions
 
+    @classmethod
+    def from_expression(
+        cls,
+        query: Probability,
+    ) -> Query:
+        """Instantiate an identification.
+
+        :param query: The query probability expression
+        :returns: An identification tuple
+        """
+        outcomes, treatments = get_outcomes_and_treatments(query=query)
+        outcomes = {Variable(v.name) for v in outcomes}  # clean counterfactuals
+        treatments = {Variable(v.name) for v in treatments}
+        conditions = {Variable(v.name) for v in query.distribution.parents}
+        return Query(
+            outcomes=outcomes,
+            treatments=treatments,
+            conditions=conditions,
+        )
+
+    def treat_condition(self, condition: Variable) -> Query:
+        """Move the condition variable to the treatments."""
+        if condition not in self.conditions:
+            raise ValueError
+        return Query(
+            outcomes=self.outcomes,
+            treatments=self.treatments | {condition},
+            conditions=self.conditions - {condition},
+        )
+
+    def with_treatments(self, extra_treatments: Iterable[Variable]) -> Query:
+        """Create a new identification with additional treatments."""
+        return Query(
+            outcomes=self.outcomes,
+            treatments=self.treatments.union(extra_treatments),
+            conditions=self.conditions,
+        )
+
+    def uncondition(self) -> Query:
+        """Move the conditions to outcomes."""
+        return Query(
+            outcomes=self.outcomes | self.conditions,
+            treatments=self.treatments,
+            conditions=None,
+        )
+
+
+class Identification:
+    """A package of a query and resulting estimand from identification on a graph."""
+
+    query: Query
+    graph: NxMixedGraph[Variable]
+    estimand: Expression
+
+    def __init__(
+        self,
+        query: Query,
+        graph: Union[ADMG, NxMixedGraph[Variable]],
+        estimand: Optional[Expression] = None,
+    ) -> None:
+        """Instantiate an identification.
+
+        :param query: The generalizd identification query (outcomes/treatments/conditions)
+        :param graph: The graph
+        :param estimand: If none is given, will use the joint distribution over all variables in the graph.
+        """
+        self.query = query
         if isinstance(graph, ADMG):
             self.graph = str_nodes_to_variable_nodes(NxMixedGraph.from_admg(graph))
         else:
@@ -87,7 +149,31 @@ class Identification:
         self.estimand = P(graph.nodes()) if estimand is None else estimand
 
     @classmethod
-    def from_query(
+    def from_parts(
+        cls,
+        outcomes: set[Variable],
+        treatments: set[Variable],
+        graph: Union[ADMG, NxMixedGraph[Variable]],
+        estimand: Optional[Expression] = None,
+        conditions: Optional[set[Variable]] = None,
+    ) -> Identification:
+        """Instantiate an identification.
+
+        :param outcomes: The outcomes in the query
+        :param treatments: The treatments in the query (e.g., counterfactual variables)
+        :param conditions: The conditions in the query (e.g., coming after the bar)
+        :param graph: The graph
+        :param estimand: If none is given, will use the joint distribution over all variables in the graph.
+        :returns: An identification object
+        """
+        return cls(
+            query=Query(outcomes=outcomes, treatments=treatments, conditions=conditions),
+            graph=graph,
+            estimand=estimand,
+        )
+
+    @classmethod
+    def from_expression(
         cls,
         *,
         query: Probability,
@@ -99,28 +185,35 @@ class Identification:
         :param query: The query probability expression
         :param graph: The graph
         :param estimand: If none is given, will use the joint distribution over all variables in the graph.
-        :returns: An identification tuple
+        :returns: An identification object
         """
-        outcomes, treatments = get_outcomes_and_treatments(query=query)
-        outcomes = {Variable(v.name) for v in outcomes}  # clean counterfactuals
-        treatments = {Variable(v.name) for v in treatments}
-        conditions = {Variable(v.name) for v in query.distribution.parents}
-        return Identification(
-            outcomes=outcomes,
-            treatments=treatments,
-            conditions=conditions,
+        return cls(
+            query=Query.from_expression(query),
             graph=graph,
             estimand=estimand,
         )
+
+    @property
+    def outcomes(self) -> set[Variable]:
+        """Return this identification object's query's outcomes."""
+        return self.query.outcomes
+
+    @property
+    def treatments(self) -> set[Variable]:
+        """Return this identification object's query's treatments."""
+        return self.query.treatments
+
+    @property
+    def conditions(self) -> set[Variable]:
+        """Return this identification object's query's conditions."""
+        return self.query.conditions
 
     def treat_condition(self, condition: Variable) -> Identification:
         """Move the condition variable to the treatments."""
         if condition not in self.conditions:
             raise ValueError
         return Identification(
-            outcomes=self.outcomes,
-            treatments=self.treatments | {condition},
-            conditions=self.conditions - {condition},
+            query=self.query.treat_condition(condition),
             graph=self.graph,
             estimand=self.estimand,
         )
@@ -128,8 +221,7 @@ class Identification:
     def with_treatments(self, extra_treatments: Iterable[Variable]) -> Identification:
         """Create a new identification with additional treatments."""
         return Identification(
-            outcomes=self.outcomes,
-            treatments=self.treatments.union(extra_treatments),
+            query=self.query.with_treatments(extra_treatments),
             estimand=self.estimand,
             graph=self.graph,
         )
@@ -137,9 +229,7 @@ class Identification:
     def uncondition(self) -> Identification:
         """Move the conditions to outcomes."""
         return Identification(
-            outcomes=self.outcomes | self.conditions,
-            treatments=self.treatments,
-            conditions=None,
+            query=self.query.uncondition(),
             estimand=self.estimand,
             graph=self.graph,
         )

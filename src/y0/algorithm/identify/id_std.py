@@ -115,7 +115,7 @@ def line_2(identification: Identification) -> Identification:
 
     if not not_outcomes_or_ancestors:
         raise ValueError("line 2 precondition not met")
-    return Identification(
+    return Identification.from_parts(
         outcomes=outcomes,
         treatments=treatments & outcomes_and_ancestors,
         estimand=Sum.safe(expression=identification.estimand, ranges=not_outcomes_or_ancestors),
@@ -177,7 +177,7 @@ def line_4(identification: Identification) -> List[Identification]:
     if len(districts_without_treatment) <= 1:
         raise ValueError("Line 4 precondition not met")
     return [
-        Identification(
+        Identification.from_parts(
             outcomes=set(district_without_treatment),
             treatments=vertices - district_without_treatment,
             estimand=estimand,
@@ -293,7 +293,7 @@ def line_7(identification: Identification) -> Identification:
     # line 7
     for district in districts:
         if district_without_treatments < district:
-            return Identification(
+            return Identification.from_parts(
                 outcomes=outcomes,
                 treatments=treatments & district,
                 estimand=Product.safe(p_parents(v, parents) for v in district),

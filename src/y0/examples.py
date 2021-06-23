@@ -162,14 +162,14 @@ line_1_example = Example(
     identifications=[
         dict(
             id_in=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y),
                     estimand=P(Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
                 )
             ],
             id_out=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y),
                     estimand=Sum(P(Y, Z), (Z,)),
                     graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
@@ -178,14 +178,14 @@ line_1_example = Example(
         ),
         dict(
             id_in=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y, Z),
                     estimand=P(Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
                 )
             ],
             id_out=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y, Z),
                     estimand=Sum(P(Y, Z)),
                     graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
@@ -203,7 +203,7 @@ line_2_example = Example(
     identifications=[
         dict(
             id_in=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(
@@ -212,7 +212,7 @@ line_2_example = Example(
                 )
             ],
             id_out=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y),
                     estimand=Sum(P(Y, X, Z), (X,)),
                     graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
@@ -229,7 +229,7 @@ line_3_example = Example(
     identifications=[
         dict(
             id_in=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(
@@ -238,7 +238,7 @@ line_3_example = Example(
                 )
             ],
             id_out=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y @ {X, Z}),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(
@@ -261,7 +261,7 @@ line_4_example = Example(
     identifications=[
         dict(
             id_in=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(M, X, Y, Z),
                     graph=NxMixedGraph.from_edges(
@@ -271,7 +271,7 @@ line_4_example = Example(
                 )
             ],
             id_out=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(M @ {X, Z}, Y @ {X, Z}),
                     estimand=P(M, X, Y, Z),
                     graph=NxMixedGraph.from_edges(
@@ -279,7 +279,7 @@ line_4_example = Example(
                         undirected=[("Z", "X"), ("M", "Y")],
                     ),
                 ),
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Z @ {M, X, Y}),
                     estimand=P(M, X, Y, Z),
                     graph=NxMixedGraph.from_edges(
@@ -299,7 +299,7 @@ line_5_example = Example(
     identifications=[
         dict(
             id_in=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y),
                     graph=NxMixedGraph.from_edges(directed=[("X", "Y")], undirected=[("X", "Y")]),
@@ -320,7 +320,7 @@ line_6_example = Example(
     identifications=[
         dict(
             id_in=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y @ [X, Z]),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(
@@ -330,7 +330,7 @@ line_6_example = Example(
                 )
             ],
             id_out=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y @ {X, Z}),
                     estimand=P(Y | [X, Z]),
                     graph=NxMixedGraph.from_edges(
@@ -351,7 +351,7 @@ line_7_example = Example(
     identifications=[
         dict(
             id_in=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y1 @ [X, W1]),
                     estimand=P(X, Y1, W1),
                     graph=NxMixedGraph.from_edges(
@@ -360,7 +360,7 @@ line_7_example = Example(
                 )
             ],
             id_out=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y1 @ W1),
                     estimand=P(Y1 | [X, W1]) * P(W1),
                     graph=NxMixedGraph.from_edges(undirected=[("W1", "Y1")]),
@@ -378,7 +378,7 @@ figure_6a = Example(
     identifications=[
         dict(
             id_in=[
-                Identification(
+                Identification.from_parts(
                     outcomes={Y},
                     treatments={X},
                     conditions={Z},
@@ -389,7 +389,7 @@ figure_6a = Example(
                 ),
             ],
             id_out=[
-                Identification.from_query(
+                Identification.from_expression(
                     query=P(Y @ (X, Z)),
                     estimand=P(Y | (X, Z)) / Sum.safe(expression=P(Y | (X, Z)), ranges=(Y,)),
                     graph=NxMixedGraph.from_edges(
