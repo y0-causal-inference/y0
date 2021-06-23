@@ -115,7 +115,8 @@ class Identification:
 
     def treat_condition(self, condition: Variable) -> Identification:
         """Move the condition variable to the treatments."""
-        assert condition in self.conditions
+        if condition not in self.conditions:
+            raise ValueError
         return Identification(
             outcomes=self.outcomes,
             treatments=self.treatments | {condition},

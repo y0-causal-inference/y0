@@ -5,7 +5,7 @@
 import itertools as itt
 import unittest
 
-from y0.algorithm.identify import Fail, identify, idc
+from y0.algorithm.identify import Fail, idc, identify
 from y0.algorithm.identify.id_std import (
     line_1,
     line_2,
@@ -17,6 +17,7 @@ from y0.algorithm.identify.id_std import (
 )
 from y0.dsl import Expression, P, Product, Sum, Variable, X, Y, Y1, Z, get_outcomes_and_treatments
 from y0.examples import (
+    figure_6a,
     line_1_example,
     line_2_example,
     line_3_example,
@@ -24,7 +25,6 @@ from y0.examples import (
     line_5_example,
     line_6_example,
     line_7_example,
-    figure_6a,
 )
 from y0.mutate import canonicalize
 
