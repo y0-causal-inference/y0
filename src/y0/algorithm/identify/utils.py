@@ -12,10 +12,10 @@ from ananke.graphs import ADMG
 from y0.dsl import (
     CounterfactualVariable,
     Expression,
+    Intervention,
     P,
     Probability,
     Variable,
-    get_outcomes_and_treatments,
 )
 from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import expr_equal
@@ -75,6 +75,15 @@ class Query:
         else:
             self.conditions = conditions
 
+    def __eq__(self, other: Any) -> bool:
+        """Check if the outcomes, treatments, and conditions are equal."""
+        return (
+            isinstance(other, Query)
+            and self.outcomes == other.outcomes
+            and self.treatments == other.treatments
+            and self.conditions == other.conditions
+        )
+
     @classmethod
     def from_expression(
         cls,
@@ -84,11 +93,26 @@ class Query:
 
         :param query: The query probability expression
         :returns: An identification tuple
+        :raises ValueError: If there are ragged counterfactual variables in the query
         """
-        outcomes, treatments = get_outcomes_and_treatments(query=query)
-        outcomes = {Variable(v.name) for v in outcomes}  # clean counterfactuals
-        treatments = {Variable(v.name) for v in treatments}
+        outcomes = {Variable(v.name) for v in query.distribution.children}  # clean counterfactuals
         conditions = {Variable(v.name) for v in query.distribution.parents}
+
+        first_child = query.distribution.children[0]
+        if not isinstance(first_child, CounterfactualVariable):
+            if _unexp_interventions(query.distribution.children) or _unexp_interventions(
+                query.distribution.parents
+            ):
+                raise ValueError("Inconsistent usage of interventions")
+            treatments = set()
+        else:
+            interventions = set(first_child.interventions)
+            if _ragged_interventions(
+                query.distribution.children, interventions
+            ) or _ragged_interventions(query.distribution.parents, interventions):
+                raise ValueError("Inconsistent usage of interventions")
+            treatments = {Variable(i.name) for i in first_child.interventions}
+
         return Query(
             outcomes=outcomes,
             treatments=treatments,
@@ -120,6 +144,17 @@ class Query:
             treatments=self.treatments,
             conditions=None,
         )
+
+
+def _unexp_interventions(variables: Iterable[Variable]) -> bool:
+    return any(isinstance(c, CounterfactualVariable) for c in variables)
+
+
+def _ragged_interventions(variables: Iterable[Variable], interventions: set[Intervention]) -> bool:
+    return not all(
+        isinstance(child, CounterfactualVariable) and set(child.interventions) == interventions
+        for child in variables
+    )
 
 
 class Identification:
@@ -244,9 +279,7 @@ class Identification:
         """Check if the query, estimand, and graph are equal."""
         return (
             isinstance(other, Identification)
-            and self.outcomes == other.outcomes
-            and self.treatments == other.treatments
-            and self.conditions == other.conditions
+            and self.query == other.query
             and expr_equal(self.estimand, other.estimand)
             and self.graph == other.graph
         )
