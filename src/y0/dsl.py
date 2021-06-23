@@ -444,7 +444,7 @@ class Expression(_Mathable, ABC):
     def __truediv__(self, other):
         pass
 
-    def marginalize(self, ranges: XSeq[Variable]) -> Fraction:
+    def marginalize(self, ranges: Union[Variable, Iterable[Variable]]) -> Fraction:
         """Return this expression, marginalized by the given variables.
 
         :param ranges: A variable or list of variables over which to marginalize this expression
@@ -681,7 +681,7 @@ class Sum(Expression):
 
     @classmethod
     def __class_getitem__(
-        cls, ranges: Union[Variable, Tuple[Variable, ...]]
+        cls, ranges: Union[Variable, Iterable[Variable]]
     ) -> Callable[[Expression], Sum]:
         """Create a partial sum object over the given ranges.
 
@@ -701,7 +701,7 @@ class Sum(Expression):
         return functools.partial(Sum, ranges=_prepare_ranges(ranges))
 
 
-def _prepare_ranges(ranges: XSeq[Variable]) -> Tuple[Variable, ...]:
+def _prepare_ranges(ranges: Union[Variable, Iterable[Variable]]) -> Tuple[Variable, ...]:
     if isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
         return (ranges,)
     return tuple(ranges)
@@ -853,7 +853,7 @@ class QFactor(Expression):
     codomain: Tuple[Variable, ...]
 
     @classmethod
-    def __class_getitem__(cls, codomain: Union[Variable, Tuple[Variable, ...]]):
+    def __class_getitem__(cls, codomain: Union[Variable, Iterable[Variable]]):
         """Create a partial Q Factor object over the given codomain.
 
         :param codomain: The variables over which the partial Q Factor will be done
