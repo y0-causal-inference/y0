@@ -125,6 +125,16 @@ class Identification:
             estimand=self.estimand,
         )
 
+    def uncondition(self) -> Identification:
+        """Move the conditions to outcomes."""
+        return Identification(
+            outcomes=self.outcomes | self.conditions,
+            treatments=self.treatments,
+            conditions=None,
+            estimand=self.estimand,
+            graph=self.graph,
+        )
+
     def __repr__(self) -> str:
         return (
             f'Identification(outcomes="{self.outcomes}, treatments="{self.treatments}",'

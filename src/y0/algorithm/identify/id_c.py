@@ -19,23 +19,13 @@ def idc(identification: Identification) -> Expression:
     :param identification: The identification tuple
     :returns: An expression created by the :func:`identify` algorithm after simplifying the original query
     """
-    graph = identification.graph
-    treatments = identification.treatments
-    outcomes = identification.outcomes
-    conditions = identification.conditions
-    estimand = identification.estimand
-
-    for condition in conditions:
+    for condition in identification.conditions:
         if rule_2_of_do_calculus_applies(identification=identification, condition=condition):
             return idc(identification.treat_condition(condition))
 
     # Run ID algorithm
-    new_expression = identify(
-        Identification(
-            outcomes=outcomes | conditions, treatments=treatments, estimand=estimand, graph=graph
-        )
-    )
-    return new_expression / Sum.safe(expression=new_expression, ranges=outcomes)
+    new_expression = identify(identification.uncondition())
+    return new_expression / Sum.safe(expression=new_expression, ranges=identification.outcomes)
 
 
 def rule_2_of_do_calculus_applies(identification: Identification, condition: Variable) -> bool:
