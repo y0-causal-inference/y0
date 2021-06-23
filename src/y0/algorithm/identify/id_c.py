@@ -47,14 +47,13 @@ def rule_2_of_do_calculus_applies(identification: Identification, condition: Var
     """
     graph = identification.graph
     treatments = identification.treatments
-    outcomes = identification.outcomes
-    conditions = identification.conditions
+    conditions = treatments | (identification.conditions - {condition})
 
-    admg = graph.intervene(treatments).remove_outgoing_edges_from([condition]).to_admg()
+    # TODO give a better name
+    graph_mod = graph.intervene(treatments).remove_outgoing_edges_from([condition])
+
     judgements = [
-        are_d_separated(
-            admg, outcome, condition, conditions=treatments | (conditions - {condition})
-        )
-        for outcome in outcomes
+        are_d_separated(graph_mod, outcome, condition, conditions=conditions)
+        for outcome in identification.outcomes
     ]
     return all(judgement.separated for judgement in judgements)

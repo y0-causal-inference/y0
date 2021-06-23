@@ -126,7 +126,11 @@ def get_moral_links(graph: SG) -> List[Tuple[NodeType, NodeType]]:
 
 
 def are_d_separated(
-    graph: SG, a: NodeType, b: NodeType, *, conditions: Optional[Iterable[NodeType]] = None
+    graph: Union[NxMixedGraph[NodeType], SG],
+    a: NodeType,
+    b: NodeType,
+    *,
+    conditions: Optional[Iterable[NodeType]] = None,
 ) -> DSeparationJudgement[NodeType]:
     """Test if nodes named by a & b are d-separated in G.
 
@@ -139,6 +143,9 @@ def are_d_separated(
     :param conditions: A collection of graph nodes
     :return: T/F and the final graph (as evidence)
     """
+    if isinstance(graph, NxMixedGraph):
+        graph = graph.to_admg()
+
     conditions = set(conditions) if conditions else set()
     named = {a, b}.union(conditions)
 
