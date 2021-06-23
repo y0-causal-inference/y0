@@ -75,8 +75,8 @@ __all__ = [
     "ensure_ordering",
 ]
 
-X = TypeVar("X")
-XSeq = Union[X, Sequence[X]]
+T_co = TypeVar("T_co")
+XSeq = Union[T_co, Sequence[T_co]]
 
 
 def _upgrade_variables(variables: XSeq[Variable]) -> Tuple[Variable, ...]:

@@ -12,12 +12,10 @@ from typing import (
     Collection,
     FrozenSet,
     Generic,
-    Hashable,
     Iterable,
     Mapping,
     Optional,
     Tuple,
-    TypeVar,
     Union,
 )
 
@@ -25,6 +23,8 @@ import networkx as nx
 from ananke.graphs import ADMG
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
+
+from .constants import NodeType
 
 __all__ = [
     "NxMixedGraph",
@@ -36,7 +36,6 @@ __all__ = [
     "set_latent",
 ]
 
-X = TypeVar("X", bound=Hashable)
 CausalEffectGraph = Any
 
 #: The default key in a latent variable DAG represented as a :class:`networkx.DiGraph`
@@ -48,7 +47,7 @@ DEFULT_PREFIX = "u_"
 
 
 @dataclass
-class NxMixedGraph(Generic[X]):
+class NxMixedGraph(Generic[NodeType]):
     """A mixed graph based on a :class:`networkx.Graph` and a :class:`networkx.DiGraph`.
 
     Example usage:
@@ -77,18 +76,18 @@ class NxMixedGraph(Generic[X]):
             and (self.undirected.edges() == other.undirected.edges())
         )
 
-    def add_node(self, n: X) -> None:
+    def add_node(self, n: NodeType) -> None:
         """Add a node."""
         self.directed.add_node(n)
         self.undirected.add_node(n)
 
-    def add_directed_edge(self, u: X, v: X, **attr) -> None:
+    def add_directed_edge(self, u: NodeType, v: NodeType, **attr) -> None:
         """Add a directed edge from u to v."""
         self.directed.add_edge(u, v, **attr)
         self.undirected.add_node(u)
         self.undirected.add_node(v)
 
-    def add_undirected_edge(self, u: X, v: X, **attr) -> None:
+    def add_undirected_edge(self, u: NodeType, v: NodeType, **attr) -> None:
         """Add an undirected edge between u and v."""
         self.undirected.add_edge(u, v, **attr)
         self.directed.add_node(u)
@@ -106,7 +105,7 @@ class NxMixedGraph(Generic[X]):
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
 
     @classmethod
-    def from_admg(cls, admg: ADMG) -> NxMixedGraph[X]:
+    def from_admg(cls, admg: ADMG) -> NxMixedGraph[NodeType]:
         """Create from an ADMG."""
         return cls.from_edges(
             nodes=admg.vertices,
@@ -140,7 +139,7 @@ class NxMixedGraph(Generic[X]):
     @classmethod
     def from_latent_variable_dag(
         cls, graph: nx.DiGraph, tag: Optional[str] = None
-    ) -> NxMixedGraph[X]:
+    ) -> NxMixedGraph[NodeType]:
         """Load a labeled DAG."""
         if tag is None:
             tag = DEFAULT_TAG
@@ -204,7 +203,7 @@ class NxMixedGraph(Generic[X]):
         ax.axis("off")
 
     @classmethod
-    def from_causaleffect(cls, graph) -> NxMixedGraph[str]:
+    def from_causaleffect(cls, graph) -> NxMixedGraph:
         """Construct an instance from a causaleffect R graph."""
         raise NotImplementedError
 
@@ -230,10 +229,10 @@ class NxMixedGraph(Generic[X]):
     @classmethod
     def from_edges(
         cls,
-        nodes: Optional[Iterable[X]] = None,
-        directed: Optional[Iterable[Tuple[X, X]]] = None,
-        undirected: Optional[Iterable[Tuple[X, X]]] = None,
-    ) -> NxMixedGraph[X]:
+        nodes: Optional[Iterable[NodeType]] = None,
+        directed: Optional[Iterable[Tuple[NodeType, NodeType]]] = None,
+        undirected: Optional[Iterable[Tuple[NodeType, NodeType]]] = None,
+    ) -> NxMixedGraph[NodeType]:
         """Make a mixed graph from a pair of edge lists."""
         if directed is None and undirected is None:
             raise ValueError("must provide at least one of directed/undirected edge lists")
@@ -249,10 +248,10 @@ class NxMixedGraph(Generic[X]):
     @classmethod
     def from_adj(
         cls,
-        nodes: Optional[Iterable[X]] = None,
-        directed: Optional[Mapping[X, Collection[X]]] = None,
-        undirected: Optional[Mapping[X, Collection[X]]] = None,
-    ) -> NxMixedGraph[X]:
+        nodes: Optional[Iterable[NodeType]] = None,
+        directed: Optional[Mapping[NodeType, Collection[NodeType]]] = None,
+        undirected: Optional[Mapping[NodeType, Collection[NodeType]]] = None,
+    ) -> NxMixedGraph[NodeType]:
         """Make a mixed graph from a pair of adjacency lists."""
         rv = cls()
         for n in nodes or []:
@@ -287,7 +286,7 @@ class NxMixedGraph(Generic[X]):
                 raise ValueError(f'unhandled edge type: {edge["type"]}')
         return rv
 
-    def subgraph(self, vertices: Collection[X]) -> NxMixedGraph[X]:
+    def subgraph(self, vertices: Collection[NodeType]) -> NxMixedGraph[NodeType]:
         """Return a subgraph given a set of vertices.
 
         :param vertices: a subset of nodes
@@ -300,7 +299,7 @@ class NxMixedGraph(Generic[X]):
             undirected=_include_adjacent(self.undirected, vertices),
         )
 
-    def intervene(self, vertices: Collection[X]) -> NxMixedGraph[X]:
+    def intervene(self, vertices: Collection[NodeType]) -> NxMixedGraph[NodeType]:
         """Return a mutilated graph given a set of interventions.
 
         :param vertices: a subset of nodes from which to remove incoming edges
@@ -313,7 +312,7 @@ class NxMixedGraph(Generic[X]):
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
-    def remove_outgoing_edges_from(self, vertices: Collection[X]) -> NxMixedGraph:
+    def remove_outgoing_edges_from(self, vertices: Collection[NodeType]) -> NxMixedGraph:
         """Return a subgraph that does not have any outgoing edges from any of the given vertices.
 
         :param vertices: a set of nodes whose outgoing edges get removed from the graph
@@ -326,7 +325,7 @@ class NxMixedGraph(Generic[X]):
             undirected=self.undirected.edges(),
         )
 
-    def remove_nodes_from(self, vertices: Collection[X]) -> NxMixedGraph[X]:
+    def remove_nodes_from(self, vertices: Collection[NodeType]) -> NxMixedGraph[NodeType]:
         """Return a subgraph that does not contain any of the specified vertices.
 
         :param vertices: a set of nodes to remove from graph
@@ -339,19 +338,19 @@ class NxMixedGraph(Generic[X]):
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
-    def ancestors_inclusive(self, sources: Iterable[X]) -> set[X]:
+    def ancestors_inclusive(self, sources: Iterable[NodeType]) -> set[NodeType]:
         """Ancestors of a set include the set itself."""
         return _ancestors_inclusive(self.directed, sources)
 
-    def topological_sort(self) -> Iterable[X]:
+    def topological_sort(self) -> Iterable[NodeType]:
         """Get a topological sort from the directed component of the mixed graph."""
         return nx.topological_sort(self.directed)
 
-    def connected_components(self) -> Iterable[set[X]]:
+    def connected_components(self) -> Iterable[set[NodeType]]:
         """Iterate over the connected components in the undirected graph."""
         return nx.connected_components(self.undirected)
 
-    def get_c_components(self) -> list[FrozenSet[X]]:
+    def get_c_components(self) -> list[FrozenSet[NodeType]]:
         """Get the C-components in the undirected portion of the graph."""
         return [frozenset(c) for c in self.connected_components()]
 
@@ -360,26 +359,34 @@ class NxMixedGraph(Generic[X]):
         return nx.is_connected(self.undirected)
 
 
-def _ancestors_inclusive(graph: nx.DiGraph, sources: Iterable[X]) -> set[X]:
+def _ancestors_inclusive(graph: nx.DiGraph, sources: Iterable[NodeType]) -> set[NodeType]:
     rv = set(sources)
     for source in sources:
         rv.update(nx.algorithms.dag.ancestors(graph, source))
     return rv
 
 
-def _include_adjacent(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+def _include_adjacent(
+    graph: nx.Graph, vertices: Collection[NodeType]
+) -> Collection[Tuple[NodeType, NodeType]]:
     return [(u, v) for u, v in graph.edges() if u in vertices and v in vertices]
 
 
-def _exclude_target(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+def _exclude_target(
+    graph: nx.Graph, vertices: Collection[NodeType]
+) -> Collection[Tuple[NodeType, NodeType]]:
     return [(u, v) for u, v in graph.edges() if v not in vertices]
 
 
-def _exclude_source(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+def _exclude_source(
+    graph: nx.Graph, vertices: Collection[NodeType]
+) -> Collection[Tuple[NodeType, NodeType]]:
     return [(u, v) for u, v in graph.edges() if u not in vertices]
 
 
-def _exclude_adjacent(graph: nx.Graph, vertices: Collection[X]) -> Collection[Tuple[X, X]]:
+def _exclude_adjacent(
+    graph: nx.Graph, vertices: Collection[NodeType]
+) -> Collection[Tuple[NodeType, NodeType]]:
     return [(u, v) for u, v in graph.edges() if u not in vertices and v not in vertices]
 
 

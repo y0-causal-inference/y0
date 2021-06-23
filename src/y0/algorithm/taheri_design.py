@@ -276,7 +276,7 @@ def draw_results(
         if result is None:
             ax.axis("off")
         else:
-            mixed_graph: NxMixedGraph[str] = NxMixedGraph.from_admg(result.admg)
+            mixed_graph = NxMixedGraph.from_admg(result.admg)  # type:ignore
             title = f"{i}) Latent: " + ", ".join(result.latents)
             if result.identifiability_expr is not None:
                 title += f"\n${result.identifiability_expr.to_latex()}$"
