@@ -65,10 +65,10 @@ def falsifications(
         to_test = get_conditional_independencies(to_test, max_conditions=max_given, verbose=verbose)
 
     variances = {
-        (left, right, given): cressie_read(left, right, given, df, boolean=False)
-        for _, left, right, given in tqdm(
-            to_test, disable=not verbose, desc="Checking conditionals"
+        (judgement.left, judgement.right, judgement.conditions): cressie_read(
+            judgement.left, judgement.right, judgement.conditions, df, boolean=False
         )
+        for judgement in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
     }
 
     rows = [
