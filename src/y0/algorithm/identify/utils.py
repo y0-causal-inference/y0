@@ -113,6 +113,17 @@ class Identification:
             estimand=estimand,
         )
 
+    def treat_condition(self, condition: Variable) -> Identification:
+        """Move the condition variable to the treatments."""
+        assert condition in self.conditions
+        return Identification(
+            outcomes=self.outcomes,
+            treatments=self.treatments | {condition},
+            conditions=self.conditions - {condition},
+            graph=self.graph,
+            estimand=self.estimand,
+        )
+
     def __repr__(self) -> str:
         return (
             f'Identification(outcomes="{self.outcomes}, treatments="{self.treatments}",'
