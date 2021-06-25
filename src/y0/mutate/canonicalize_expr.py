@@ -2,6 +2,7 @@
 
 """Implementation of the canonicalization algorithm."""
 
+from operator import attrgetter
 from typing import Iterable, Mapping, Optional, Sequence, Tuple, Union
 
 from ..dsl import (
@@ -15,11 +16,11 @@ from ..dsl import (
     Sum,
     Variable,
     ensure_ordering,
-    get_outcomes_and_treatments,
 )
 
 __all__ = [
     "canonicalize",
+    "canonical_expr_equal",
 ]
 
 
@@ -165,14 +166,7 @@ def _flatten_product(product: Product) -> Iterable[Expression]:
             yield expression
 
 
-def canonical_expr_equal(expected: Expression, actual: Expression) -> bool:
+def canonical_expr_equal(left: Expression, right: Expression) -> bool:
     """Return True if two expressions are equal after canonicalization."""
-    expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
-    actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
-
-    if (expected_outcomes != actual_outcomes) or (expected_treatments != actual_treatments):
-        return False
-    ordering = tuple(expected.get_variables())  # need to impose ordering, any will do.
-    expected_canonical = canonicalize(expected, ordering)
-    actual_canonical = canonicalize(actual, ordering)
-    return expected_canonical == actual_canonical
+    ordering = sorted(left.get_variables() | right.get_variables(), key=attrgetter("name"))
+    return canonicalize(left, ordering) == canonicalize(right, ordering)
