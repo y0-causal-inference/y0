@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing import (
     Any,
     Collection,
+    FrozenSet,
     Generic,
     Iterable,
     Mapping,
@@ -335,6 +336,10 @@ class NxMixedGraph(Generic[NodeType]):
     def connected_components(self) -> Iterable[set[NodeType]]:
         """Iterate over the connected components in the undirected graph."""
         return nx.connected_components(self.undirected)
+
+    def get_c_components(self) -> list[frozenset[NodeType]]:
+        """Get the C-components in the undirected portion of the graph."""
+        return [frozenset(c) for c in self.connected_components()]
 
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""
