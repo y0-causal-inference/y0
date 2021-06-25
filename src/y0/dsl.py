@@ -116,7 +116,7 @@ class _Mathable(ABC):
         return set(self._iter_variables())
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Variable(_Mathable):
     """A variable, typically with a single letter."""
 
@@ -225,7 +225,7 @@ class Variable(_Mathable):
         yield self
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Intervention(Variable):
     """An intervention variable.
 
@@ -250,7 +250,7 @@ class Intervention(Variable):
         return Intervention(name=self.name, star=not self.star)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class CounterfactualVariable(Variable):
     """A counterfactual variable.
 

@@ -10,7 +10,6 @@ from ..dsl import (
     Distribution,
     Expression,
     Fraction,
-    Intervention,
     Probability,
     Product,
     Sum,
@@ -80,14 +79,10 @@ class Canonicalizer:
         if isinstance(variable, CounterfactualVariable):
             return CounterfactualVariable(
                 name=variable.name,
-                interventions=tuple(sorted(variable.interventions, key=self._intervention_key)),
+                interventions=tuple(sorted(variable.interventions)),
             )
         else:
             return variable
-
-    @staticmethod
-    def _intervention_key(intervention: Intervention):
-        return intervention.name, intervention.star
 
     def _sorted_key(self, variable: Variable) -> int:
         return self.ordering_level[variable.name]
