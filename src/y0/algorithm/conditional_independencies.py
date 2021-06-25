@@ -126,7 +126,7 @@ def get_moral_links(graph: SG) -> List[Tuple[NodeType, NodeType]]:
 
 
 def are_d_separated(
-    graph: Union[NxMixedGraph[NodeType], SG],
+    graph: Union[SG, NxMixedGraph[NodeType]],
     a: NodeType,
     b: NodeType,
     *,

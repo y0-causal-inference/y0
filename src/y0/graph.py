@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from typing import (
     Any,
     Collection,
-    FrozenSet,
     Generic,
     Iterable,
     Mapping,
@@ -312,19 +311,6 @@ class NxMixedGraph(Generic[NodeType]):
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
-    def remove_outgoing_edges_from(self, vertices: Collection[NodeType]) -> NxMixedGraph:
-        """Return a subgraph that does not have any outgoing edges from any of the given vertices.
-
-        :param vertices: a set of nodes whose outgoing edges get removed from the graph
-        :returns: NxMixedGraph subgraph
-        """
-        vertices = set(vertices)
-        return self.from_edges(
-            nodes=self.nodes(),
-            directed=_exclude_source(self.directed, vertices),
-            undirected=self.undirected.edges(),
-        )
-
     def remove_nodes_from(self, vertices: Collection[NodeType]) -> NxMixedGraph[NodeType]:
         """Return a subgraph that does not contain any of the specified vertices.
 
@@ -336,6 +322,19 @@ class NxMixedGraph(Generic[NodeType]):
             nodes=self.nodes() - vertices,
             directed=_exclude_adjacent(self.directed, vertices),
             undirected=_exclude_adjacent(self.undirected, vertices),
+        )
+
+    def remove_outgoing_edges_from(self, vertices: Collection[NodeType]) -> NxMixedGraph:
+        """Return a subgraph that does not have any outgoing edges from any of the given vertices.
+
+        :param vertices: a set of nodes whose outgoing edges get removed from the graph
+        :returns: NxMixedGraph subgraph
+        """
+        vertices = set(vertices)
+        return self.from_edges(
+            nodes=self.nodes(),
+            directed=_exclude_source(self.directed, vertices),
+            undirected=self.undirected.edges(),
         )
 
     def ancestors_inclusive(self, sources: Iterable[NodeType]) -> set[NodeType]:
@@ -350,7 +349,7 @@ class NxMixedGraph(Generic[NodeType]):
         """Iterate over the connected components in the undirected graph."""
         return nx.connected_components(self.undirected)
 
-    def get_c_components(self) -> list[FrozenSet[NodeType]]:
+    def get_c_components(self) -> list[frozenset[NodeType]]:
         """Get the C-components in the undirected portion of the graph."""
         return [frozenset(c) for c in self.connected_components()]
 
@@ -372,16 +371,16 @@ def _include_adjacent(
     return [(u, v) for u, v in graph.edges() if u in vertices and v in vertices]
 
 
-def _exclude_target(
-    graph: nx.Graph, vertices: Collection[NodeType]
-) -> Collection[Tuple[NodeType, NodeType]]:
-    return [(u, v) for u, v in graph.edges() if v not in vertices]
-
-
 def _exclude_source(
     graph: nx.Graph, vertices: Collection[NodeType]
 ) -> Collection[Tuple[NodeType, NodeType]]:
     return [(u, v) for u, v in graph.edges() if u not in vertices]
+
+
+def _exclude_target(
+    graph: nx.Graph, vertices: Collection[NodeType]
+) -> Collection[Tuple[NodeType, NodeType]]:
+    return [(u, v) for u, v in graph.edges() if v not in vertices]
 
 
 def _exclude_adjacent(
