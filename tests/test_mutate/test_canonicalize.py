@@ -7,7 +7,7 @@ import unittest
 from typing import Sequence
 
 from y0.dsl import A, B, C, D, Expression, P, Product, R, Sum, Variable, W, X, Y, Z
-from y0.mutate import canonicalize, expr_equal
+from y0.mutate import canonicalize, canonical_expr_equal
 
 
 class TestCanonicalize(unittest.TestCase):
@@ -161,11 +161,11 @@ class TestCanonicalizeEqual(unittest.TestCase):
 
     def test_expr_equal(self):
         """Check that canonicalized expressions are equal."""
-        self.assertTrue(expr_equal(P(X), P(X)))
-        self.assertFalse(expr_equal(P(X), P(Y)))
-        self.assertFalse(expr_equal(P(X @ W), P(X)))
-        self.assertFalse(expr_equal(P(X @ W), P(Y)))
+        self.assertTrue(canonical_expr_equal(P(X), P(X)))
+        self.assertFalse(canonical_expr_equal(P(X), P(Y)))
+        self.assertFalse(canonical_expr_equal(P(X @ W), P(X)))
+        self.assertFalse(canonical_expr_equal(P(X @ W), P(Y)))
 
         # Order changes
         self.assertNotEqual(P(X, Y), P(Y, X))
-        self.assertTrue(expr_equal(P(X, Y), P(Y, X)))
+        self.assertTrue(canonical_expr_equal(P(X, Y), P(Y, X)))

@@ -20,7 +20,7 @@ from ..dsl import (
 
 __all__ = [
     "canonicalize",
-    "expr_equal",
+    "canonical_expr_equal",
 ]
 
 
@@ -166,7 +166,7 @@ def _flatten_product(product: Product) -> Iterable[Expression]:
             yield expression
 
 
-def expr_equal(left: Expression, right: Expression) -> bool:
+def canonical_expr_equal(left: Expression, right: Expression) -> bool:
     """Return True if two expressions are equal after canonicalization."""
     ordering = sorted(left.get_variables() | right.get_variables(), key=attrgetter("name"))
     return canonicalize(left, ordering) == canonicalize(right, ordering)
