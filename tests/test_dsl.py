@@ -16,6 +16,7 @@ from y0.dsl import (
     Intervention,
     One,
     P,
+    Product,
     Q,
     R,
     S,
@@ -298,3 +299,26 @@ class TestDSL(unittest.TestCase):
         ]:
             with self.subTest(expression=str(expression)):
                 self.assertEqual(variables, expression.get_variables())
+
+
+class TestSafeConstructors(unittest.TestCase):
+    """Test that the .safe() constructors work properly."""
+
+    def test_sum(self):
+        """Test the :meth:`Sum.safe` constructor."""
+        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), (X,)))
+        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), [X]))
+        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), {X}))
+        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), X))
+
+        self.assertEqual(Sum(P(X, Y, Z), (X, Y)), Sum.safe(P(X, Y, Z), (v for v in [X, Y])))
+
+    def test_product(self):
+        """Test the :meth:`Product.safe` constructor."""
+        p = P(X, Y)
+        self.assertEqual(Product((p,)), Product.safe(p))
+        self.assertEqual(Product((p,)), Product.safe((p,)))
+        self.assertEqual(Product((p,)), Product.safe([p]))
+        self.assertEqual(Product((p,)), Product.safe({p}))
+
+        self.assertEqual(Product((P(X), P(Y))), Product.safe(P(v) for v in [X, Y]))
