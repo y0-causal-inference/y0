@@ -599,6 +599,9 @@ class Product(Expression):
     def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Product:
         """Construct a product from any iterable of expressions.
 
+        :param expressions: An expression or iterable of expressions which should be multiplied
+        :returns: A :class:`Product` object
+
         Standard usage, same as the normal ``__init__``:
         >>> from y0.dsl import Product, X, Y, A, P
         >>> Product.safe((P(X, Y), ))
@@ -662,9 +665,13 @@ class Sum(Expression):
 
     @classmethod
     def safe(
-        cls, expression: Expression, ranges: Union[Variable, Iterable[Union[str, Variable]]]
+        cls, expression: Expression, ranges: Union[str, Variable, Iterable[Union[str, Variable]]]
     ) -> Sum:
         """Construct a sum from an expression and a permissive set of things in the ranges.
+
+        :param expression: The expression over which the sum is done
+        :param ranges: The variable or list of variables over which the sum is done
+        :returns: A :class:`Sum` object
 
         Standard usage, same as the normal ``__init__``:
         >>> from y0.dsl import Sum, X, Y, A, P
@@ -678,7 +685,11 @@ class Sum(Expression):
         """
         return cls(
             expression=expression,
-            ranges=((ranges,) if isinstance(ranges, Variable) else _upgrade_ordering(ranges)),
+            ranges=(
+                (Variable.norm(ranges),)
+                if isinstance(ranges, (str, Variable))
+                else _upgrade_ordering(ranges)
+            ),
         )
 
     def to_text(self) -> str:
