@@ -153,6 +153,14 @@ class TestGraph(unittest.TestCase):
         graph.add_directed_edge("B", "Z")
         self.assertEqual({"A", "B", "C", "D"}, graph.ancestors_inclusive({"A", "B"}))
 
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Z")
+        graph.add_directed_edge("Z", "Y")
+        graph.add_undirected_edge("X", "Y")
+        self.assertEqual({"X", "Y", "Z"}, graph.ancestors_inclusive({"Y"}))
+        self.assertEqual({"X", "Z"}, graph.ancestors_inclusive({"Z"}))
+        self.assertEqual({"X"}, graph.ancestors_inclusive({"X"}))
+
     def test_get_c_components(self):
         """Test that get_c_components works correctly."""
         g1 = NxMixedGraph().from_edges(directed=[("X", "Y"), ("Z", "X"), ("Z", "Y")])
