@@ -336,6 +336,10 @@ class NxMixedGraph(Generic[NodeType]):
         """Iterate over the connected components in the undirected graph."""
         return nx.connected_components(self.undirected)
 
+    def get_c_components(self) -> list[frozenset[NodeType]]:
+        """Get the C-components in the undirected portion of the graph."""
+        return [frozenset(c) for c in self.connected_components()]
+
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""
         return nx.is_connected(self.undirected)
