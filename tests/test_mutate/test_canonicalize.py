@@ -7,7 +7,7 @@ import unittest
 from typing import Sequence
 
 from y0.dsl import A, B, C, D, Expression, P, Product, R, Sum, Variable, W, X, Y, Z
-from y0.mutate import canonicalize
+from y0.mutate import canonicalize, expr_equal
 
 
 class TestCanonicalize(unittest.TestCase):
@@ -154,3 +154,18 @@ class TestCanonicalize(unittest.TestCase):
                 ordering = [A, B, C, R, X, Y, Z]
                 self.assert_canonicalize(expected, expression, ordering)
                 self.assert_canonicalize(Sum(expected, (R,)), Sum(expression, (R,)), ordering)
+
+
+class TestCanonicalizeEqual(unittest.TestCase):
+    """Test the ability of the canonicalize function to check expressions being equal."""
+
+    def test_expr_equal(self):
+        """Check that canonicalized expressions are equal."""
+        self.assertTrue(expr_equal(P(X), P(X)))
+        self.assertFalse(expr_equal(P(X), P(Y)))
+        self.assertFalse(expr_equal(P(X @ W), P(X)))
+        self.assertFalse(expr_equal(P(X @ W), P(Y)))
+
+        # Order changes
+        self.assertNotEqual(P(X, Y), P(Y, X))
+        self.assertTrue(expr_equal(P(X, Y), P(Y, X)))
