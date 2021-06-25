@@ -17,6 +17,21 @@ from y0.resources import VIRAL_PATHOGENESIS_PATH
 class TestGraph(unittest.TestCase):
     """Test graph construction and conversion."""
 
+    def setUp(self) -> None:
+        """Set up the test case."""
+        self.addTypeEqualityFunc(NxMixedGraph, self.assert_graph_equal)
+
+    def assert_graph_equal(self, a: NxMixedGraph, b: NxMixedGraph, msg=None) -> None:
+        """Check the graphs are equal (more nice than the builtin :meth:`NxMixedGraph.__eq__` for testing)."""
+        self.assertEqual(set(a.directed.nodes()), set(b.directed.nodes()), msg=msg)
+        self.assertEqual(set(a.undirected.nodes()), set(b.undirected.nodes()), msg=msg)
+        self.assertEqual(set(a.directed.edges()), set(b.directed.edges()), msg=msg)
+        self.assertEqual(
+            set(map(frozenset, a.undirected.edges())),
+            set(map(frozenset, b.undirected.edges())),
+            msg=msg,
+        )
+
     def test_causaleffect_str_verma_1(self):
         """Test generating R code for the figure 1A graph for causaleffect."""
         expected = dedent(
@@ -42,10 +57,7 @@ class TestGraph(unittest.TestCase):
         self.assertEqual(labeled_edges, set(labeled_dag.edges()))
 
         reconstituted = NxMixedGraph.from_latent_variable_dag(labeled_dag, tag=tag)
-        self.assertEqual(set(graph.directed.nodes()), set(reconstituted.directed.nodes()))
-        self.assertEqual(set(graph.undirected.nodes()), set(reconstituted.undirected.nodes()))
-        self.assertEqual(set(graph.directed.edges()), set(reconstituted.directed.edges()))
-        self.assertEqual(set(graph.undirected.edges()), set(reconstituted.undirected.edges()))
+        self.assertEqual(graph, reconstituted)
 
     def test_convertable(self):
         """Test graphs are convertable."""
@@ -141,6 +153,26 @@ class TestGraph(unittest.TestCase):
         subgraph = NxMixedGraph()
         subgraph.add_undirected_edge("Z", "Y")
         self.assertEqual(subgraph, graph.remove_nodes_from({"X"}))
+
+    def test_remove_outgoing_edges_from(self):
+        """Test generating a new graph without the outgoing edgs from the given nodes."""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        self.assertEqual(graph, graph.remove_outgoing_edges_from(set()))
+
+        graph = NxMixedGraph()
+        graph.add_undirected_edge("X", "Y")
+        self.assertEqual(graph, graph.remove_outgoing_edges_from(set()))
+
+        graph = NxMixedGraph()
+        graph.add_directed_edge("W", "X")
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("Y", "Z")
+        expected = NxMixedGraph()
+        expected.add_node("X")
+        expected.add_directed_edge("W", "X")
+        expected.add_directed_edge("Y", "Z")
+        self.assertEqual(expected, graph.remove_outgoing_edges_from({"X"}))
 
     def test_ancestors_inclusive(self):
         """Test getting ancestors, inclusive."""

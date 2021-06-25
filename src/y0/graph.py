@@ -324,6 +324,19 @@ class NxMixedGraph(Generic[NodeType]):
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
+    def remove_outgoing_edges_from(self, vertices: Collection[NodeType]) -> NxMixedGraph:
+        """Return a subgraph that does not have any outgoing edges from any of the given vertices.
+
+        :param vertices: a set of nodes whose outgoing edges get removed from the graph
+        :returns: NxMixedGraph subgraph
+        """
+        vertices = set(vertices)
+        return self.from_edges(
+            nodes=self.nodes(),
+            directed=_exclude_source(self.directed, vertices),
+            undirected=self.undirected.edges(),
+        )
+
     def ancestors_inclusive(self, sources: Iterable[NodeType]) -> set[NodeType]:
         """Ancestors of a set include the set itself."""
         return _ancestors_inclusive(self.directed, sources)
@@ -356,6 +369,12 @@ def _include_adjacent(
     graph: nx.Graph, vertices: Collection[NodeType]
 ) -> Collection[Tuple[NodeType, NodeType]]:
     return [(u, v) for u, v in graph.edges() if u in vertices and v in vertices]
+
+
+def _exclude_source(
+    graph: nx.Graph, vertices: Collection[NodeType]
+) -> Collection[Tuple[NodeType, NodeType]]:
+    return [(u, v) for u, v in graph.edges() if u not in vertices]
 
 
 def _exclude_target(
