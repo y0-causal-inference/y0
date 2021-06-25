@@ -18,7 +18,7 @@ from y0.dsl import (
     Variable,
 )
 from y0.graph import NxMixedGraph
-from y0.mutate.canonicalize_expr import expr_equal
+from y0.mutate.canonicalize_expr import canonical_expr_equal
 
 __all__ = [
     "Query",
@@ -312,7 +312,7 @@ class Identification:
         return (
             isinstance(other, Identification)
             and self.query == other.query
-            and expr_equal(self.estimand, other.estimand)
+            and canonical_expr_equal(self.estimand, other.estimand)
             and self.graph == other.graph
         )
 

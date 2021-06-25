@@ -165,7 +165,7 @@ def _flatten_product(product: Product) -> Iterable[Expression]:
             yield expression
 
 
-def expr_equal(expected: Expression, actual: Expression) -> bool:
+def canonical_expr_equal(expected: Expression, actual: Expression) -> bool:
     """Return True if two expressions are equal after canonicalization."""
     expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
     actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
