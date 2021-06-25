@@ -2,7 +2,7 @@
 
 """Functions that mutate probability expressions."""
 
-from .canonicalize_expr import canonicalize, canonical_expr_equal
+from .canonicalize_expr import canonical_expr_equal, canonicalize
 from .chain import bayes_expand, chain_expand, fraction_expand
 
 __all__ = [

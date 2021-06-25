@@ -7,7 +7,7 @@ import unittest
 from typing import Sequence
 
 from y0.dsl import A, B, C, D, Expression, P, Product, R, Sum, Variable, W, X, Y, Z
-from y0.mutate import canonicalize, canonical_expr_equal
+from y0.mutate import canonical_expr_equal, canonicalize
 
 
 class TestCanonicalize(unittest.TestCase):
