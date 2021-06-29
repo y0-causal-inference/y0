@@ -304,6 +304,18 @@ class TestDSL(unittest.TestCase):
 class TestSafeConstructors(unittest.TestCase):
     """Test that the .safe() constructors work properly."""
 
+    def test_do2_intervention(self):
+        """Test the do-calculus level two interventions."""
+        self.assertEqual(P[X](Y), P(Y @ X))
+        self.assertEqual(P[X](Y, Z), P(Y @ X & Z @ X))
+        self.assertEqual(P[X](Y | Z), P(Y @ X | Z @ X))
+
+        # stack interventions mixed with $L_3$ notation
+        self.assertEqual(P[X](Y @ Z), P(Y @ Z @ X))
+
+        # mixed with $L_3$, where each variable can have different kinds of interventions
+        self.assertEqual(P[X](Y @ Z | W), P(Y @ Z @ X | W @ X))
+
     def test_sum(self):
         """Test the :meth:`Sum.safe` constructor."""
         self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), (X,)))

@@ -76,7 +76,9 @@ __all__ = [
 ]
 
 T_co = TypeVar("T_co")
+S_co = TypeVar("S_co")
 XSeq = Union[T_co, Sequence[T_co]]
+XYIter = Union[T_co, S_co, Iterable[Union[T_co, S_co]]]
 
 
 def _upgrade_variables(variables: XSeq[Variable]) -> Tuple[Variable, ...]:
@@ -368,6 +370,18 @@ class Distribution(_Mathable):
         """Return if this distribution a markov kernel -> one child variable and one or more conditionals."""
         return len(self.children) == 1
 
+    def intervene(self, variables: XSeq[Variable]) -> Distribution:
+        """Return a new distribution that has the given intervention(s) on all variables."""
+        # check that the variables aren't in any of them yet
+        variables = _upgrade_variables(variables)
+        return Distribution(
+            children=tuple(child.intervene(variables) for child in self.children),
+            parents=tuple(parent.intervene(variables) for parent in self.parents),
+        )
+
+    def __matmul__(self, variables: XSeq[Variable]) -> Distribution:
+        return self.intervene(variables)
+
     def uncondition(self) -> Distribution:
         """Return a new distribution that is not conditioned on the parents."""
         return Distribution(
@@ -478,6 +492,13 @@ class Probability(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
 
+    def intervene(self, variables: XSeq[Variable]) -> Probability:
+        """Return a new probability where the underlying distribution has been intervened by the given variables."""
+        return Probability(self.distribution.intervene(variables))
+
+    def __matmul__(self, variables: XSeq[Variable]) -> Probability:
+        return self.intervene(variables)
+
     def uncondition(self) -> Probability:
         """Return a new probability where the underlying distribution is no longer conditioned by the parents.
 
@@ -493,100 +514,174 @@ class Probability(Expression):
         yield from self.distribution._iter_variables()
 
 
-def P(  # noqa:N802
-    distribution: Union[
-        str,
-        Sequence[str],
-        Set[str],
-        Iterator[str],
-        Variable,
-        Sequence[Variable],
-        Set[Variable],
-        Iterator[Variable],
-        Distribution,
-    ],
-    *args: Union[str, Variable],
-) -> Probability:
-    """Create a probability expression over the given variable(s) or distribution.
+DistributionHint = Union[
+    str,
+    Sequence[str],
+    Set[str],
+    Iterator[str],
+    Variable,
+    Sequence[Variable],
+    Set[Variable],
+    Iterator[Variable],
+    Distribution,
+]
 
-    :param distribution: If given a :class:`Distribution`, creates a probability expression
-        directly over the distribution. If given variable or list of variables, conveniently
-        creates a :class:`Distribtion` with the variable(s) as children.
-    :param args: If the first argument (``distribution``) was given as a single variable, the
-        ``args`` variadic argument can be used to specify a list of additional variables.
-    :returns: A probability object
-    :raises TypeError: If the distribution is the wrong type
-    :raises ValueError: If varidic args are used incorrectly (i.e., in combination with a
-        list of variables or :class:`Distribution`.
 
-    Creation with a conditional distribution:
+class ProbabilityBuilderType:
+    """A base class for building probability distributions."""
 
-    >>> from y0.dsl import P, A, B
-    >>> P(A | B)
+    def __getitem__(self, interventions: XYIter[str, Variable]):
+        """Generate a probability builder closure.
 
-    Creation with a joint distribution:
+        :param interventions: A variable or variables to intervene on using the do-calculus level 2
+            rules, meaning they are all applied to all parent and children variables in the resulting
+            expression
+        :returns: A function with the same semantics as :meth:`__call__` such that you can build
+            a probability expression.
 
-    >>> from y0.dsl import P, A, B
-    >>> P(A & B)
+        >>> from y0.dsl import P, W, X, Y, Z
+        >>> assert P[X](Y) == P(Y @ X)
+        >>> assert P[X](Y, Z) == P(Y @ X & Z @ X)
+        >>> assert P[X](Y | Z) == P(Y @ X | Z @ X)
+        >>> assert P[X](Y @ Z) == P(Y @ X @ Z)
+        >>> assert P[X](Y @ Z) == P(Y @ X @ Z)
+        """
+        return functools.partial(self._probability_intervened, interventions=interventions)
 
-    Creation with a mixed joint/conditional distribution:
+    def __call__(
+        self,
+        distribution: DistributionHint,
+        *args: Union[str, Variable],
+    ) -> Probability:
+        """Create a probability expression over the given variable(s) or distribution.
 
-    >>> from y0.dsl import P, A, B, C
-    >>> P(A & B | C)
+        :param distribution: If given a :class:`Distribution`, creates a probability expression
+            directly over the distribution. If given variable or list of variables, conveniently
+            creates a :class:`Distribtion` with the variable(s) as children.
+        :param args: If the first argument (``distribution``) was given as a single variable, the
+            ``args`` variadic argument can be used to specify a list of additional variables.
+        :returns: A probability object
+        """
+        return self._probability(distribution, *args)
 
-    Creation with a single :class:`Variable`:
+    @classmethod
+    def _probability(
+        cls,
+        distribution: DistributionHint,
+        *args: Union[str, Variable],
+    ):
+        return Probability(cls._distribution(distribution, *args))
 
-    >>> from y0.dsl import P, A
-    >>> P(A)
+    @classmethod
+    def _probability_intervened(
+        cls,
+        distribution: DistributionHint,
+        *args: Union[str, Variable],
+        interventions,
+    ) -> Probability:
+        return cls._probability(distribution, *args).intervene(interventions)
 
-    Creation with a single string:
+    @staticmethod
+    def _distribution(
+        distribution: DistributionHint,
+        *args: Union[str, Variable],
+    ) -> Distribution:
+        """Create a distribution the given variable(s) or distribution.
 
-    >>> from y0.dsl import P, A
-    >>> P('A')
+        :param distribution: If given a :class:`Distribution`, creates a probability expression
+            directly over the distribution. If given variable or list of variables, conveniently
+            creates a :class:`Distribtion` with the variable(s) as children.
+        :param args: If the first argument (``distribution``) was given as a single variable, the
+            ``args`` variadic argument can be used to specify a list of additional variables.
+        :returns: A probability object
+        :raises TypeError: If the distribution is the wrong type
+        :raises ValueError: If variadic args are used incorrectly (i.e., in combination with a
+            list of variables or :class:`Distribution`.
+        """
+        if isinstance(distribution, Distribution):
+            return distribution
 
-    Creation with a list of :class:`Variable`:
+        children: Tuple[Variable, ...]
+        if isinstance(distribution, (str, Variable)):
+            children = (Variable.norm(distribution), *_upgrade_ordering(args))
+        elif isinstance(distribution, (list, tuple, set)) or isgenerator(distribution):
+            if args:
+                raise ValueError("can not use variadic arguments with combination of first arg")
+            children = _sorted_variables(_upgrade_ordering(distribution))
+        else:
+            raise TypeError(f"invalid distribution type: {type(distribution)} {distribution}")
+        return Distribution(children=children)
 
-    >>> from y0.dsl import P, A, B
-    >>> P((A, B))
 
-    Creation with a list of strings:
+P = ProbabilityBuilderType()
+"""``P`` is a magical object of mystery and wonder that can be used to create :class:`Probability` instances.
 
-    >>> from y0.dsl import P, A, B
-    >>> P(('A', 'B'))
+It itself is a singleton instance of :class:`ProbabilityBuilderType` and can be used wither via the
+:meth:`ProbabilityBuilderType.__call__`, as if it were a function like ``P(Y)`` or it can be used as
+a combination with the :meth:`ProbabilityBuilderType.__getitem__` and a call, like ``P[X](Y)`` to
+denote interventions using the do-Calculus $L_2$ notation. Here are some examples:
 
-    Creation with a list of :class:`Variable`: using variadic arguments:
+**Univariate Distributions**
 
-    >>> from y0.dsl import P, A, B
-    >>> P(A, B)
+Creation with a single :class:`Variable`:
 
-    Creation with a list of strings using variadic arguments:
+>>> from y0.dsl import P, A
+>>> P(A)
 
-    >>> from y0.dsl import P, A, B
-    >>> P('A', 'B')
+Creation with a single string:
 
-    Creation with a fancy generator of variables:
+>>> from y0.dsl import P, A
+>>> P('A')
 
-    >>> from y0.dsl import P, A, B
-    >>> P(Variable(name) for name in 'AB')
+**Multivariate Distributions**
 
-    Creation with a fancy generator of strings:
+Creation with a joint distribution:
 
-    >>> from y0.dsl import P, A, B
-    >>> P(name for name in 'AB')
-    """
-    if isinstance(distribution, Distribution):
-        return Probability(distribution=distribution)
+>>> from y0.dsl import P, A, B
+>>> P(A & B)
 
-    children: Tuple[Variable, ...]
-    if isinstance(distribution, (str, Variable)):
-        children = (Variable.norm(distribution), *_upgrade_ordering(args))
-    elif isinstance(distribution, (list, tuple, set)) or isgenerator(distribution):
-        if args:
-            raise ValueError("can not use variadic arguments with combination of first arg")
-        children = _sorted_variables(_upgrade_ordering(distribution))
-    else:
-        raise TypeError(f"invalid distribution type: {type(distribution)} {distribution}")
-    return Probability(distribution=Distribution(children=children))
+Creation with a list of :class:`Variable`:
+
+>>> from y0.dsl import P, A, B
+>>> P((A, B))
+
+Creation with a list of strings:
+
+>>> from y0.dsl import P, A, B
+>>> P(('A', 'B'))
+
+Creation with a list of :class:`Variable`: using variadic arguments:
+
+>>> from y0.dsl import P, A, B
+>>> P(A, B)
+
+Creation with a list of strings using variadic arguments:
+
+>>> from y0.dsl import P, A, B
+>>> P('A', 'B')
+
+Creation with a fancy generator of variables:
+
+>>> from y0.dsl import P, A, B
+>>> P(Variable(name) for name in 'AB')
+
+Creation with a fancy generator of strings:
+
+>>> from y0.dsl import P, A, B
+>>> P(name for name in 'AB')
+
+**Conditional Distributions**
+
+Creation with a conditional distribution:
+
+>>> from y0.dsl import P, A, B
+>>> P(A | B)
+
+Creation with a mixed joint/conditional distribution:
+
+>>> from y0.dsl import P, A, B, C
+>>> P(A & B | C)
+"""
 
 
 @dataclass(frozen=True)
