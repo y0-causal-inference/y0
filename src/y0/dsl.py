@@ -544,7 +544,7 @@ class ProbabilityBuilderType:
         >>> assert P[X](Y, Z) == P(Y @ X & Z @ X)
         >>> assert P[X](Y | Z) == P(Y @ X | Z @ X)
         >>> assert P[X](Y @ Z) == P(Y @ X @ Z)
-        >>> assert P[X](Y @ Z) == P(Y @ X @ Z)
+        >>> assert P[X](Y @ Z | W) == P(Y @ X @ Z | W @ X)
         """
         return functools.partial(self._probability_intervened, interventions=interventions)
 
@@ -569,7 +569,7 @@ class ProbabilityBuilderType:
         cls,
         distribution: DistributionHint,
         *args: Union[str, Variable],
-    ):
+    ) -> Probability:
         return Probability(cls._distribution(distribution, *args))
 
     @classmethod
@@ -681,6 +681,53 @@ Creation with a mixed joint/conditional distribution:
 
 >>> from y0.dsl import P, A, B, C
 >>> P(A & B | C)
+
+**Specifing an Intervention with $L_2$ *do-Calculus* Notation**
+
+Intervene on a single variable:
+
+>>> from y0.dsl import P, X, Y
+>>> P[X](Y) == P(Y @ X)
+
+Intervene on multiple children:
+
+>>> from y0.dsl import P, X, Y, Z
+>>> P[X](Y, Z) == P(Y @ X & Z @ X)
+
+Intervene on multiple parents:
+
+>>> from y0.dsl import P, W, X, Y, Z
+>>> P[X](Y | (W, Z)) == P(Y @ X | (W @ X, Z @ X)):
+
+Intervene on both children and parents:
+
+>>> from y0.dsl import P, X, Y, Z
+>>> P[X](Y | Z) == P(Y @ X | Z @ X)
+
+Intervene on X on top of previous interventions:
+
+>>> from y0.dsl import P, X, Y, Z
+>>> P[X](Y @ Z) == P(Y @ X @ Z)
+
+Allow mixing with L3, where each variable can have different interventions:
+
+>>> from y0.dsl import P, W, X, Y, Z
+>>> P[X](Y @ Z | W) == P(Y @ X @ Z | W @ X)
+
+
+**Specifing Multiple Interventions with $L_2$ *do-Calculus* Notation**
+
+Multiple interventions on a single variable:
+
+>>> from y0.dsl import P, X1, X2, Y
+>>> P[X1, X2](Y) == P(Y @ X)
+
+Multiple interventions  on multiple children:
+
+>>> from y0.dsl import P, X1, X2, Y, Z
+>>> P[X1, X2](Y, Z) == P(Y @ X1 @ X2 & Z @ X1 @ X2)
+
+... and so on
 """
 
 
