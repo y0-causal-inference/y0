@@ -121,7 +121,7 @@ class Element(ABC):
         return set(self._iter_variables())
 
 
-@dataclass(frozen=True, order=True)
+@dataclass(frozen=True, order=True, repr=False)
 class Variable(Element):
     """A variable, typically with a single letter."""
 
@@ -237,7 +237,7 @@ class Variable(Element):
 VariableHint = Union[str, Variable, Iterable[Union[str, Variable]]]
 
 
-@dataclass(frozen=True, order=True)
+@dataclass(frozen=True, order=True, repr=False)
 class Intervention(Variable):
     """An intervention variable.
 
@@ -266,7 +266,7 @@ class Intervention(Variable):
         return Intervention(name=self.name, star=not self.star)
 
 
-@dataclass(frozen=True, order=True)
+@dataclass(frozen=True, order=True, repr=False)
 class CounterfactualVariable(Variable):
     """A counterfactual variable.
 
@@ -534,7 +534,7 @@ class Expression(Element, ABC):
         return Fraction(self, Sum(expression=self, ranges=_upgrade_variables(ranges)))
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Probability(Expression):
     """The probability over a distribution."""
 
@@ -735,7 +735,7 @@ Multiple interventions  on multiple children:
 """
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Product(Expression):
     """Represent the product of several probability expressions."""
 
@@ -812,7 +812,7 @@ def _list_to_y0(elements: Iterable[Element]) -> str:
     return ",".join(element.to_y0() for element in elements)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Sum(Expression):
     """Represent the sum over an expression over an optional set of variables."""
 
@@ -909,7 +909,7 @@ class Sum(Expression):
         return functools.partial(Sum, ranges=_upgrade_ordering(ranges))
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Fraction(Expression):
     """Represents a fraction of two expressions."""
 
@@ -1063,7 +1063,7 @@ class QBuilder(Protocol[T_co]):
         ...
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class QFactor(Expression):
     """A function from the variables in the domain to a probability function over variables in the codomain."""
 

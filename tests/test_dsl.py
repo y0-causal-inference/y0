@@ -46,7 +46,7 @@ class TestDSL(unittest.TestCase):
         self.assertIsInstance(expression._repr_latex_(), str)
         self.assertEqual(s, expression.to_text(), msg=f"Expression: {repr(expression)}")
         if not isinstance(expression, (Distribution, Intervention)):
-            reconstituted = parse_y0(expression.to_y0())
+            reconstituted = parse_y0(repr(expression))
             self.assertEqual(
                 expression,
                 reconstituted,
