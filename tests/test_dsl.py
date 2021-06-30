@@ -12,6 +12,7 @@ from y0.dsl import (
     CounterfactualVariable,
     D,
     Distribution,
+    Element,
     Fraction,
     Intervention,
     One,
@@ -28,7 +29,6 @@ from y0.dsl import (
     Y,
     Z,
 )
-from y0.parser import parse_y0
 
 V = Variable("V")
 
@@ -36,14 +36,14 @@ V = Variable("V")
 class TestDSL(unittest.TestCase):
     """Tests for the stringifying instances of the probability DSL."""
 
-    def assert_text(self, s: str, expression):
+    def assert_text(self, s: str, expression: Element):
         """Assert the expression when it is converted to a string."""
         self.assertIsInstance(s, str)
         self.assertIsInstance(hash(expression), int)  # can the expression be hashed?
         self.assertIsInstance(expression.to_text(), str)
         self.assertIsInstance(expression.to_latex(), str)
         self.assertIsInstance(expression._repr_latex_(), str)
-        self.assertEqual(expression, parse_y0(expression.to_y0()))
+        # self.assertEqual(expression, parse_y0(expression.to_y0()))
         self.assertEqual(s, expression.to_text(), msg=f"Expression: {repr(expression)}")
 
     def test_variable(self):
@@ -55,6 +55,8 @@ class TestDSL(unittest.TestCase):
         """Test that a variable can not be named "P"."""
         with self.assertRaises(ValueError):
             _ = Variable("P")
+        with self.assertRaises(ValueError):
+            _ = Variable("Q")
 
     def test_intervention(self):
         """Test the invervention DSL object."""
@@ -235,10 +237,10 @@ class TestDSL(unittest.TestCase):
 
     def test_q(self):
         """Test the Q DSL object."""
-        self.assert_text("Q[A](X)", Q[A](X))
-        self.assert_text("Q[A,B](X)", Q[A, B](X))
-        self.assert_text("Q[A](X,Y)", Q[A](X, Y))
-        self.assert_text("Q[A,B](X,Y)", Q[A, B](X, Y))
+        self.assert_text("Q[A](X)", Q[A](X))  # type: ignore
+        self.assert_text("Q[A,B](X)", Q[A, B](X))  # type: ignore
+        self.assert_text("Q[A](X,Y)", Q[A](X, Y))  # type: ignore
+        self.assert_text("Q[A,B](X,Y)", Q[A, B](X, Y))  # type: ignore
 
     def test_jeremy(self):
         """Test assorted complicated objects from Jeremy."""
@@ -297,7 +299,7 @@ class TestDSL(unittest.TestCase):
             (One() / P(A @ B), {A @ B, -B}),
             (P(B) / P(A @ ~B), {A @ ~B, B, ~B}),
             (P(Y | X) * P(X) / P(Y), {X, Y}),
-            (Q[A, B](C, D), {A, B, C, D}),
+            (Q[A, B](C, D), {A, B, C, D}),  # type: ignore
         ]:
             with self.subTest(expression=str(expression)):
                 self.assertEqual(variables, expression.get_variables())

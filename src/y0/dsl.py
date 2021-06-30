@@ -8,21 +8,11 @@ import functools
 import itertools as itt
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from inspect import isgenerator
 from operator import attrgetter
-from typing import (
-    Callable,
-    Iterable,
-    Iterator,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Callable, Iterable, Optional, Protocol, Sequence, Set, Tuple, TypeVar, Union
 
 __all__ = [
+    "Element",
     "Variable",
     "Intervention",
     "CounterfactualVariable",
@@ -75,7 +65,7 @@ __all__ = [
     "ensure_ordering",
 ]
 
-T_co = TypeVar("T_co")
+T_co = TypeVar("T_co", covariant=True)
 S_co = TypeVar("S_co")
 XSeq = Union[T_co, Iterable[T_co]]
 XYIter = Union[T_co, S_co, Iterable[Union[T_co, S_co]]]
@@ -94,7 +84,9 @@ def _to_interventions(variables: Sequence[Variable]) -> Tuple[Intervention, ...]
     )
 
 
-class _Mathable(ABC):
+class Element(ABC):
+    """An element in the y0 internal domain-speific language that can be converted to text, LaTeX, and code."""
+
     @abstractmethod
     def to_text(self) -> str:
         """Output this DSL object in the internal string format."""
@@ -126,7 +118,7 @@ class _Mathable(ABC):
 
 
 @dataclass(frozen=True, order=True)
-class Variable(_Mathable):
+class Variable(Element):
     """A variable, typically with a single letter."""
 
     #: The name of the variable
@@ -144,7 +136,7 @@ class Variable(_Mathable):
         elif isinstance(name, Variable):
             return name
         else:
-            raise TypeError
+            raise TypeError(f"({type(name)}) {name} is not valid")
 
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
@@ -304,10 +296,10 @@ class CounterfactualVariable(Variable):
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
         if len(self.interventions) == 1:
-            return f'{self.name} @ {self.interventions[0].to_y0()}'
+            return f"{self.name} @ {self.interventions[0].to_y0()}"
         else:
-            ins = ', '.join(i.to_y0() for i in self.interventions)
-            return f'{self.name} @ ({ins})'
+            ins = ", ".join(i.to_y0() for i in self.interventions)
+            return f"{self.name} @ ({ins})"
 
     def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
@@ -353,7 +345,7 @@ class CounterfactualVariable(Variable):
 
 
 @dataclass(frozen=True)
-class Distribution(_Mathable):
+class Distribution(Element):
     """A general distribution over several child variables, conditioned by several parents."""
 
     children: Tuple[Variable, ...]
@@ -381,50 +373,30 @@ class Distribution(_Mathable):
         :param args: If the first argument (``distribution``) was given as a single variable, the
             ``args`` variadic argument can be used to specify a list of additional variables.
         :returns: A probability object
-        :raises TypeError: If the distribution is the wrong type
-        :raises ValueError: If variadic args are used incorrectly (i.e., in combination with a
-            list of variables or :class:`Distribution`.
         """
         if isinstance(distribution, Distribution):
             return distribution
+        return Distribution(children=_prepare_children(distribution, *args))
 
-        children: Tuple[Variable, ...]
-        if isinstance(distribution, (str, Variable)):
-            children = (Variable.norm(distribution), *_upgrade_ordering(args))
-        elif isinstance(distribution, (list, tuple, set)) or isgenerator(distribution):
-            if args:
-                raise ValueError("can not use variadic arguments with combination of first arg")
-            children = _sorted_variables(_upgrade_ordering(distribution))
+    def _to_x(self, f: Callable[[Iterable[Variable]], str]) -> str:
+        children = f(self.children)
+        if self.parents:
+            parents = f(self.parents)
+            return f"{children}|{parents}"
         else:
-            raise TypeError(f"invalid distribution type: {type(distribution)} {distribution}")
-        return Distribution(children=children)
+            return children
 
     def to_text(self) -> str:
         """Output this distribution in the internal string format."""
-        children = _list_to_text(self.children)
-        if self.parents:
-            parents = _list_to_text(self.parents)
-            return f"{children}|{parents}"
-        else:
-            return children
+        return self._to_x(_list_to_text)
 
     def to_y0(self) -> str:
         """Output this distribution instance as y0 internal DSL code."""
-        children = _list_to_text(self.children)
-        if self.parents:
-            parents = _list_to_text(self.parents)
-            return f"{children}|({parents})"
-        else:
-            return children
+        return self._to_x(_list_to_y0)
 
     def to_latex(self) -> str:
         """Output this distribution in the LaTeX string format."""
-        children = _list_to_latex(self.children)
-        if self.parents:
-            parents = _list_to_latex(self.parents)
-            return f"{children}|{parents}"
-        else:
-            return children
+        return self._to_x(_list_to_latex)
 
     def is_conditioned(self) -> bool:
         """Return if this distribution is conditioned."""
@@ -504,7 +476,7 @@ class Distribution(_Mathable):
             yield from variable._iter_variables()
 
 
-class Expression(_Mathable, ABC):
+class Expression(Element, ABC):
     """The abstract class representing all expressions."""
 
     @abstractmethod
@@ -602,14 +574,8 @@ class Probability(Expression):
 
 
 DistributionHint = Union[
-    str,
-    Sequence[str],
-    Set[str],
-    Iterator[str],
-    Variable,
-    Sequence[Variable],
-    Set[Variable],
-    Iterator[Variable],
+    XSeq[str],
+    XSeq[Variable],
     Distribution,
 ]
 
@@ -803,12 +769,16 @@ class Product(Expression):
             yield from expression._iter_variables()
 
 
-def _list_to_text(elements: Iterable[_Mathable]) -> str:
+def _list_to_text(elements: Iterable[Element]) -> str:
     return ",".join(element.to_text() for element in elements)
 
 
-def _list_to_latex(elements: Iterable[_Mathable]) -> str:
+def _list_to_latex(elements: Iterable[Element]) -> str:
     return ",".join(element.to_latex() for element in elements)
+
+
+def _list_to_y0(elements: Iterable[Element]) -> str:
+    return ",".join(element.to_y0() for element in elements)
 
 
 @dataclass(frozen=True)
@@ -1063,6 +1033,13 @@ class One(Expression):
         return iter([])
 
 
+class QBuilder(Protocol[T_co]):
+    """A protocol for annotating the special class getitem functionality of the :class:`QFactor` class."""
+
+    def __call__(self, arg: Union[XSeq[str], XSeq[Variable]], *args: Union[str, Variable]) -> T_co:
+        ...
+
+
 @dataclass(frozen=True)
 class QFactor(Expression):
     """A function from the variables in the domain to a probability function over variables in the codomain."""
@@ -1071,7 +1048,20 @@ class QFactor(Expression):
     codomain: Tuple[Variable, ...]
 
     @classmethod
-    def __class_getitem__(cls, codomain: Union[Variable, Iterable[Variable]]):
+    def safe(
+        cls,
+        domain: Union[XSeq[str], XSeq[Variable]],
+        *args: Union[str, Variable],
+        codomain: XSeq[Variable],
+    ) -> QFactor:
+        """Create a Q factor with various input types."""
+        return cls(
+            domain=_prepare_children(domain, *args),
+            codomain=_prepare_ranges(codomain),
+        )
+
+    @classmethod
+    def __class_getitem__(cls, codomain: Union[Variable, Iterable[Variable]]) -> QBuilder[QFactor]:
         """Create a partial Q Factor object over the given codomain.
 
         :param codomain: The variables over which the partial Q Factor will be done
@@ -1087,17 +1077,11 @@ class QFactor(Expression):
         >>> from y0.dsl import Sum, Q, A, B, C, D
         >>> Q[C, D](A, B)
         """
-
-        def _helper(*domain: Variable):
-            return QFactor(domain=domain, codomain=_prepare_ranges(codomain))
-
-        return _helper
+        return functools.partial(cls.safe, codomain=codomain)
 
     def to_text(self) -> str:
         """Output this Q factor in the internal string format."""
-        codomain = _list_to_latex(self.codomain)
-        domain = _list_to_text(self.domain)
-        return f"Q[{codomain}]({domain})"
+        return self.to_y0()
 
     def to_latex(self) -> str:
         """Output this Q factor in the LaTeX string format."""
@@ -1107,7 +1091,9 @@ class QFactor(Expression):
 
     def to_y0(self) -> str:
         """Output this Q factor instance as y0 internal DSL code."""
-        raise NotImplementedError
+        codomain = _list_to_latex(self.codomain)
+        domain = _list_to_text(self.domain)
+        return f"Q[{codomain}]({domain})"
 
     def __mul__(self, other: Expression):
         if isinstance(other, Product):
@@ -1141,7 +1127,19 @@ def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Tuple[Variab
     return tuple(Variable.norm(variable) for variable in variables)
 
 
-OrderingHint = Optional[Sequence[Union[str, Variable]]]
+def _prepare_children(
+    arg: Union[str, Iterable[str], Variable, Iterable[Variable]],
+    *args: Union[str, Variable],
+) -> Tuple[Variable, ...]:
+    """Prepare a list of variables from a potentially unruly set of args and variadic args."""
+    if isinstance(arg, (str, Variable)):
+        return Variable.norm(arg), *_upgrade_ordering(args)
+    if args:
+        raise ValueError("can not use variadic arguments with combination of first arg")
+    return _sorted_variables(_upgrade_ordering(arg))
+
+
+OrderingHint = Optional[Iterable[Union[str, Variable]]]
 
 
 def ensure_ordering(
