@@ -286,7 +286,7 @@ class TestDSL(unittest.TestCase):
             " [ sum_{} [ sum_{D,W,X,Y,Z} P(D,V,W,X,Y,Z) ] ] ]",
             Sum[W, D, Z, V](
                 Sum(P(W | X))
-                * Sum(Sum[X, W, Z, Y, V](P(D, V, W, X, Y, Z, )))
+                * Sum(Sum[X, W, Z, Y, V](P(D, V, W, X, Y, Z)))
                 * Sum(P(Z | D, V))
                 * Sum(Sum[X](P(Y | D, V, W, X, Z) * P(X)))
                 * Sum(Sum[X, W, D, Z, Y](P(X, W, D, Z, Y, V))),

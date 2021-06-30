@@ -398,7 +398,7 @@ class Distribution(Element):
                 i = dist_pos[0]
                 pre = cast(Iterable[Union[str, Variable]], extended_args[:i])
                 dist = cast(Distribution, extended_args[i])
-                post = cast(Iterable[Union[str, Variable]], extended_args[i + 1:])
+                post = cast(Iterable[Union[str, Variable]], extended_args[i + 1 :])
                 return Distribution(
                     children=(*_upgrade_ordering(pre), *dist.children),
                     parents=(*dist.parents, *_upgrade_ordering(post)),
