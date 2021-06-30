@@ -719,16 +719,20 @@ class Product(Expression):
         :returns: A :class:`Product` object
 
         Standard usage, same as the normal ``__init__``:
+
         >>> from y0.dsl import Product, X, Y, A, P
         >>> Product.safe((P(X, Y), ))
 
         Use a list or other iterable:
+
         >>> Product.safe([P(X), P(Y | X)])
 
         Use an inline generator:
+
         >>> Product.safe(P(v) for v in [X, Y])
 
         Use a single expression:
+
         >>> Product.safe(P(X, Y))
         """
         return cls(
@@ -790,13 +794,16 @@ class Sum(Expression):
         :returns: A :class:`Sum` object
 
         Standard usage, same as the normal ``__init__``:
+
         >>> from y0.dsl import Sum, X, Y, A, P
         >>> Sum.safe(P(X, Y), (X,))
 
         Use a list or other iterable:
+
         >>> Sum.safe(P(X, Y), [X])
 
         Use a single variable:
+
         >>> Sum.safe(P(X, Y), X)
         """
         return cls(
