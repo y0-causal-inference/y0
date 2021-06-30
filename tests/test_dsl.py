@@ -258,37 +258,37 @@ class TestDSL(unittest.TestCase):
     def test_jeremy(self):
         """Test assorted complicated objects from Jeremy."""
         self.assert_text(
-            "[ sum_{W} P(Y_{Z*,W},X) P(D) P(Z_{D}) P(W_{X*}) ]",
-            Sum(P((Y @ ~Z @ W) & X) * P(D) * P(Z @ D) * P(W @ ~X), (W,)),
+            "[ sum_{W} P(X,Y_{Z*,W}) P(D) P(Z_{D}) P(W_{X*}) ]",
+            Sum(P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X), (W,)),
         )
 
         self.assert_text(
-            "[ sum_{W} P(Y_{Z*,W},X) P(W_{X*}) ]",
-            Sum(P(Y @ ~Z @ W & X) * P(W @ ~X), (W,)),
+            "[ sum_{W} P(X,Y_{Z*,W}) P(W_{X*}) ]",
+            Sum(P(X, Y @ ~Z @ W) * P(W @ ~X), (W,)),
         )
 
         self.assert_text(
-            "frac_{[ sum_{W} P(Y_{Z,W},X) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(Y_{Z,W},X) P(W_{X*}) ] ]}",
+            "frac_{[ sum_{W} P(X,Y_{Z,W}) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(X,Y_{Z,W}) P(W_{X*}) ] ]}",
             Fraction(
-                Sum(P(Y @ Z @ W & X) * P(W @ ~X), (W,)),
-                Sum(Sum(P(Y @ Z @ W & X) * P(W @ ~X), (W,)), (Y,)),
+                Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)),
+                Sum(Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)), (Y,)),
             ),
         )
 
         self.assert_text(
-            "[ sum_{D} P(Y_{Z*,W},X) P(D) P(Z_{D}) P(W_{X*}) ]",
-            Sum(P(Y @ ~Z @ W & X) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
+            "[ sum_{D} P(X,Y_{Z*,W}) P(D) P(Z_{D}) P(W_{X*}) ]",
+            Sum(P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
         )
 
         self.assert_text(
-            "[ sum_{W,D,Z,V} [ sum_{} P(W|X) ] [ sum_{} [ sum_{X,W,Z,Y,V} P(X,W,D,Z,Y,V) ] ]"
-            " [ sum_{} P(Z|D,V) ] [ sum_{} [ sum_{X} P(Y|X,D,V,Z,W) P(X) ] ]"
-            " [ sum_{} [ sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V) ] ] ]",
+            "[ sum_{D,V,W,Z} [ sum_{} P(W|X) ] [ sum_{} [ sum_{V,W,X,Y,Z} P(D,V,W,X,Y,Z) ] ]"
+            " [ sum_{} P(Z|D,V) ] [ sum_{} [ sum_{X} P(Y|D,V,W,X,Z) P(X) ] ]"
+            " [ sum_{} [ sum_{D,W,X,Y,Z} P(D,V,W,X,Y,Z) ] ] ]",
             Sum[W, D, Z, V](
                 Sum(P(W | X))
-                * Sum(Sum[X, W, Z, Y, V](P(X, W, D, Z, Y, V)))
-                * Sum(P(Z | [D, V]))
-                * Sum(Sum[X](P(Y | [X, D, V, Z, W]) * P(X)))
+                * Sum(Sum[X, W, Z, Y, V](P(D, V, W, X, Y, Z, )))
+                * Sum(P(Z | D, V))
+                * Sum(Sum[X](P(Y | D, V, W, X, Z) * P(X)))
                 * Sum(Sum[X, W, D, Z, Y](P(X, W, D, Z, Y, V))),
             ),
         )
