@@ -741,9 +741,6 @@ class Product(Expression):
 
     expressions: Tuple[Expression, ...]
 
-    def __getitem__(self, item):
-        return self.expressions[item]
-
     @classmethod
     def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Product:
         """Construct a product from any iterable of expressions.
