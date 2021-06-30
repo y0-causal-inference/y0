@@ -378,25 +378,27 @@ class Distribution(Element):
             return distribution
         return Distribution(children=_prepare_children(distribution, *args))
 
-    def _to_x(self, f: Callable[[Iterable[Variable]], str]) -> str:
+    def _to_x(self, f: Callable[[Iterable[Variable]], str], parens: bool) -> str:
         children = f(self.children)
-        if self.parents:
-            parents = f(self.parents)
-            return f"{children}|{parents}"
-        else:
+        if not self.parents:
             return children
+        parents = f(self.parents)
+        if parens and 1 < len(self.parents):
+            return f"{children}|({parents})"
+        else:
+            return f"{children}|{parents}"
 
     def to_text(self) -> str:
         """Output this distribution in the internal string format."""
-        return self._to_x(_list_to_text)
+        return self._to_x(_list_to_text, parens=False)
 
     def to_y0(self) -> str:
         """Output this distribution instance as y0 internal DSL code."""
-        return self._to_x(_list_to_y0)
+        return self._to_x(_list_to_y0, parens=True)
 
     def to_latex(self) -> str:
         """Output this distribution in the LaTeX string format."""
-        return self._to_x(_list_to_latex)
+        return self._to_x(_list_to_latex, parens=False)
 
     def is_conditioned(self) -> bool:
         """Return if this distribution is conditioned."""
@@ -1081,18 +1083,20 @@ class QFactor(Expression):
 
     def to_text(self) -> str:
         """Output this Q factor in the internal string format."""
-        return self.to_y0()
+        codomain = _list_to_text(self.codomain)
+        domain = _list_to_text(self.domain)
+        return f"Q[{codomain}]({domain})"
 
     def to_latex(self) -> str:
         """Output this Q factor in the LaTeX string format."""
         codomain = _list_to_latex(self.codomain)
-        domain = _list_to_text(self.domain)
+        domain = _list_to_latex(self.domain)
         return rf"Q_{{{codomain}}}({{{domain}}})"
 
     def to_y0(self) -> str:
         """Output this Q factor instance as y0 internal DSL code."""
-        codomain = _list_to_latex(self.codomain)
-        domain = _list_to_text(self.domain)
+        codomain = _list_to_y0(self.codomain)
+        domain = _list_to_y0(self.domain)
         return f"Q[{codomain}]({domain})"
 
     def __mul__(self, other: Expression):
