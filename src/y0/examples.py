@@ -11,7 +11,8 @@ from typing import Optional, Sequence
 import networkx as nx
 import pandas as pd
 
-from .dsl import P, Q, Sum, Variable, X, Y, Z1, Z2, Z3, Z4, Z5
+from .algorithm.identify import Identification
+from .dsl import P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5
 from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
@@ -27,6 +28,7 @@ class Example:
     verma_constraints: Optional[Sequence[VermaConstraint]] = None
     conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
     data: Optional[pd.DataFrame] = None
+    identifications: Optional[list[dict[str, list[Identification]]]] = None
 
 
 u_2 = Variable("u_2")
@@ -138,6 +140,272 @@ m_graph_example = Example(
     graph=m_graph,
 )
 
+# NxMixedGraph containing vertices without edges
+vertices_without_edges = Example(
+    name="Vertices-without-Edges",
+    reference="out of the mind of JZ (patent pending). See NFT for details",
+    graph=NxMixedGraph.from_adj(
+        directed={"W": [], "X": ["Y"], "Y": ["Z"], "Z": []},
+        undirected={"W": [], "X": ["Z"], "Y": [], "Z": []},
+    ),
+)
+
+# Line 1 example
+line_1_example = Example(
+    name="Line 1 of ID algorithm",
+    reference="out of the mind of JZ",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            ("Z", "Y"),
+        ]
+    ),
+    identifications=[
+        dict(
+            id_in=[
+                Identification.from_expression(
+                    query=P(Y),
+                    estimand=P(Y, Z),
+                    graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
+                )
+            ],
+            id_out=[
+                Identification.from_expression(
+                    query=P(Y),
+                    estimand=Sum(P(Y, Z), (Z,)),
+                    graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
+                )
+            ],
+        ),
+        dict(
+            id_in=[
+                Identification.from_expression(
+                    query=P(Y, Z),
+                    estimand=P(Y, Z),
+                    graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
+                )
+            ],
+            id_out=[
+                Identification.from_expression(
+                    query=P(Y, Z),
+                    estimand=Sum(P(Y, Z)),
+                    graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
+                )
+            ],
+        ),
+    ],
+)
+
+# Line 2 example
+line_2_example = Example(
+    name="intervention not ancestral to outcome",
+    reference="out of the mind of JZ",
+    graph=NxMixedGraph.from_edges(directed=[("Z", "Y"), ("Y", "X")], undirected=[("Z", "X")]),
+    identifications=[
+        dict(
+            id_in=[
+                Identification.from_expression(
+                    query=P(Y @ X),
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("Z", "Y"), ("Y", "X")], undirected=[("Z", "X")]
+                    ),
+                )
+            ],
+            id_out=[
+                Identification.from_expression(
+                    query=P(Y),
+                    estimand=Sum(P(Y, X, Z), (X,)),
+                    graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
+                )
+            ],
+        )
+    ],
+)
+
+line_3_example = Example(
+    name="node has no effect on outcome",
+    reference="out of the mind of JZ",
+    graph=NxMixedGraph.from_edges(directed=[("Z", "X"), ("X", "Y")], undirected=[("Z", "X")]),
+    identifications=[
+        dict(
+            id_in=[
+                Identification.from_expression(
+                    query=P(Y @ X),
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("Z", "X"), ("X", "Y")], undirected=[("Z", "X")]
+                    ),
+                )
+            ],
+            id_out=[
+                Identification.from_expression(
+                    query=P(Y @ {X, Z}),
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("Z", "X"), ("X", "Y")], undirected=[("Z", "X")]
+                    ),
+                )
+            ],
+        ),
+    ],
+)
+
+M = Variable("M")
+line_4_example = Example(
+    name="graph without X decomposes into multiple C components",
+    reference="out of the mind of JZ",
+    graph=NxMixedGraph.from_edges(
+        directed=[("X", "M"), ("Z", "X"), ("Z", "Y"), ("M", "Y")],
+        undirected=[("Z", "X"), ("M", "Y")],
+    ),
+    identifications=[
+        dict(
+            id_in=[
+                Identification.from_expression(
+                    query=P(Y @ X),
+                    estimand=P(M, X, Y, Z),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "M"), ("Z", "X"), ("Z", "Y"), ("M", "Y")],
+                        undirected=[("Z", "X"), ("M", "Y")],
+                    ),
+                )
+            ],
+            id_out=[
+                Identification.from_expression(
+                    query=P(M @ {X, Z}, Y @ {X, Z}),
+                    estimand=P(M, X, Y, Z),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "M"), ("Z", "X"), ("Z", "Y"), ("M", "Y")],
+                        undirected=[("Z", "X"), ("M", "Y")],
+                    ),
+                ),
+                Identification.from_expression(
+                    query=P(Z @ {M, X, Y}),
+                    estimand=P(M, X, Y, Z),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "M"), ("Z", "X"), ("Z", "Y"), ("M", "Y")],
+                        undirected=[("Z", "X"), ("M", "Y")],
+                    ),
+                ),
+            ],
+        ),
+    ],
+)
+
+line_5_example = Example(
+    name="graph containing a hedge",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
+    graph=NxMixedGraph.from_edges(directed=[("X", "Y")], undirected=[("X", "Y")]),
+    identifications=[
+        dict(
+            id_in=[
+                Identification.from_expression(
+                    query=P(Y @ X),
+                    estimand=P(X, Y),
+                    graph=NxMixedGraph.from_edges(directed=[("X", "Y")], undirected=[("X", "Y")]),
+                )
+            ],
+        )
+    ],
+)
+
+line_6_example = Example(
+    name="If there are no bidirected arcs from X to the other nodes in the"
+    " current subproblem under consideration, then we can replace acting"
+    " on X by conditioning, and thus solve the subproblem.",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
+    graph=NxMixedGraph.from_edges(
+        directed=[("X", "Y"), ("X", "Z"), ("Z", "Y")], undirected=[("X", "Z")]
+    ),
+    identifications=[
+        dict(
+            id_in=[
+                Identification.from_expression(
+                    query=P(Y @ [X, Z]),
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Y"), ("X", "Z"), ("Z", "Y")],
+                        undirected=[("X", "Z")],
+                    ),
+                )
+            ],
+            id_out=[
+                Identification.from_expression(
+                    query=P(Y @ {X, Z}),
+                    estimand=P(Y | [X, Z]),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Y"), ("X", "Z"), ("Z", "Y")],
+                        undirected=[("X", "Z")],
+                    ),
+                )
+            ],
+        )
+    ],
+)
+
+W1, Y1 = Variable("W1"), Variable("Y1")
+line_7_example = Example(
+    name="line 7 example, figure 5a and b",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
+    graph=NxMixedGraph.from_edges(directed=[("X", "Y1"), ("W1", "Y1")], undirected=[("W1", "Y1")]),
+    identifications=[
+        dict(
+            id_in=[
+                Identification.from_expression(
+                    query=P(Y1 @ [X, W1]),
+                    estimand=P(X, Y1, W1),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Y1"), ("W1", "X")], undirected=[("W1", "Y1")]
+                    ),
+                )
+            ],
+            id_out=[
+                Identification.from_expression(
+                    query=P(Y1 @ W1),
+                    estimand=P(Y1 | [X, W1]) * P(W1),
+                    graph=NxMixedGraph.from_edges(undirected=[("W1", "Y1")]),
+                )
+            ],
+        )
+    ],
+)
+
+
+figure_6a = Example(
+    name="Causal graph with identifiable conditional effect P(y|do(x),z)",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
+    graph=NxMixedGraph.from_edges(directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Z")]),
+    identifications=[
+        dict(
+            id_in=[
+                Identification.from_parts(
+                    outcomes={Y},
+                    treatments={X},
+                    conditions={Z},
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Z")]
+                    ),
+                ),
+            ],
+            id_out=[
+                Identification.from_expression(
+                    query=P(Y @ (X, Z)),
+                    estimand=P(Y | (X, Z)) / Sum.safe(expression=P(Y | (X, Z)), ranges=(Y,)),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[("X", "Z"), ("Z", "Y")], undirected=list()
+                    ),
+                ),
+            ],
+        )
+    ],
+)
+
+cyclic_directed_example = Example(
+    name="Cyclic directed graph",
+    reference="out of the mind of JZ and ZW",
+    graph=NxMixedGraph.from_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")]),
+)
 #: Treatment: X
 #: Outcome: Y
 identifiability_1 = NxMixedGraph.from_edges(
@@ -571,6 +839,57 @@ asia_example = Example(
         ],
     ),
     data=pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1}),
+)
+
+complete_hierarchy_figure_2c_example = Example(
+    name="Shpitser et al (2008) figure 2d",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
+    "Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            ("X", "Y"),
+            ("Z", "X"),
+            ("Z", "Y"),
+        ],
+        undirected=[("X", "Z")],
+    ),
+)
+
+complete_hierarchy_figure_2d_example = Example(
+    name="Shpitser et al (2008) figure 2d",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
+    "Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            ("X", "Y"),
+            ("Z", "X"),
+            ("Z", "Y"),
+        ],
+        undirected=[("X", "Z")],
+    ),
+)
+
+complete_hierarchy_figure_2e_example = Example(
+    name="Shpitser et al (2008) figure 2e",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
+    "Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            ("X", "Z"),
+            ("Z", "Y"),
+        ],
+        undirected=[("X", "Y")],
+    ),
+)
+
+complete_hierarchy_figure_3a_example = Example(
+    name="Shpitser et al 2008 figure 3a",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy."
+    " Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[("X", "Y1"), ("W1", "X"), ("W2", "Y2")],
+        undirected=[("W1", "W2"), ("W1", "Y1"), ("W1", "Y2"), ("X", "W2")],
+    ),
 )
 
 examples = [v for name, v in locals().items() if name.endswith("_example")]

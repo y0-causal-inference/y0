@@ -2,14 +2,14 @@
 
 """Implementation of the canonicalization algorithm."""
 
-from typing import Mapping, Optional, Sequence, Tuple, Union
+from operator import attrgetter
+from typing import Iterable, Mapping, Optional, Sequence, Tuple, Union
 
 from ..dsl import (
     CounterfactualVariable,
     Distribution,
     Expression,
     Fraction,
-    Intervention,
     Probability,
     Product,
     Sum,
@@ -19,6 +19,7 @@ from ..dsl import (
 
 __all__ = [
     "canonicalize",
+    "canonical_expr_equal",
 ]
 
 
@@ -35,8 +36,8 @@ def canonicalize(
     return canonicalizer.canonicalize(expression)
 
 
-def _sort_probability_key(probability: Probability) -> str:
-    return probability.distribution.children[0].name
+def _sort_probability_key(probability: Probability) -> Tuple[str, ...]:
+    return tuple(child.name for child in probability.distribution.children)
 
 
 class Canonicalizer:
@@ -78,14 +79,10 @@ class Canonicalizer:
         if isinstance(variable, CounterfactualVariable):
             return CounterfactualVariable(
                 name=variable.name,
-                interventions=tuple(sorted(variable.interventions, key=self._intervention_key)),
+                interventions=tuple(sorted(variable.interventions)),
             )
         else:
             return variable
-
-    @staticmethod
-    def _intervention_key(intervention: Intervention):
-        return intervention.name, intervention.star
 
     def _sorted_key(self, variable: Variable) -> int:
         return self.ordering_level[variable.name]
@@ -100,14 +97,19 @@ class Canonicalizer:
         if isinstance(expression, Probability):  # atomic
             return self._canonicalize_probability(expression)
         elif isinstance(expression, Sum):
+            if not expression.ranges:  # flatten unnecessary sum
+                return self.canonicalize(expression.expression)
             return Sum(
                 expression=self.canonicalize(expression.expression),
-                ranges=expression.ranges,
+                ranges=self._sorted(expression.ranges),
             )
         elif isinstance(expression, Product):
+            if 1 == len(expression.expressions):  # flatten unnecessary product
+                return self.canonicalize(expression.expressions[0])
+
             probabilities = []
             other = []
-            for subexpr in expression.expressions:
+            for subexpr in _flatten_product(expression):
                 subexpr = self.canonicalize(subexpr)
                 if isinstance(subexpr, Probability):
                     probabilities.append(subexpr)
@@ -149,3 +151,17 @@ class Canonicalizer:
             )
         else:
             raise TypeError
+
+
+def _flatten_product(product: Product) -> Iterable[Expression]:
+    for expression in product.expressions:
+        if isinstance(expression, Product):
+            yield from _flatten_product(expression)
+        else:
+            yield expression
+
+
+def canonical_expr_equal(left: Expression, right: Expression) -> bool:
+    """Return True if two expressions are equal after canonicalization."""
+    ordering = sorted(left.get_variables() | right.get_variables(), key=attrgetter("name"))
+    return canonicalize(left, ordering) == canonicalize(right, ordering)

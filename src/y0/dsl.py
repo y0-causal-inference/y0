@@ -75,8 +75,10 @@ __all__ = [
     "ensure_ordering",
 ]
 
-X = TypeVar("X")
-XSeq = Union[X, Sequence[X]]
+T_co = TypeVar("T_co")
+S_co = TypeVar("S_co")
+XSeq = Union[T_co, Iterable[T_co]]
+XYIter = Union[T_co, S_co, Iterable[Union[T_co, S_co]]]
 
 
 def _upgrade_variables(variables: XSeq[Variable]) -> Tuple[Variable, ...]:
@@ -123,7 +125,7 @@ class _Mathable(ABC):
         return set(self._iter_variables())
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Variable(_Mathable):
     """A variable, typically with a single letter."""
 
@@ -235,7 +237,7 @@ class Variable(_Mathable):
         yield self
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Intervention(Variable):
     """An intervention variable.
 
@@ -260,7 +262,7 @@ class Intervention(Variable):
         return Intervention(name=self.name, star=not self.star)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class CounterfactualVariable(Variable):
     """A counterfactual variable.
 
@@ -352,6 +354,38 @@ class Distribution(_Mathable):
         if not self.children:
             raise ValueError("distribution must have at least one child")
 
+    @classmethod
+    def safe(
+        cls,
+        distribution: DistributionHint,
+        *args: Union[str, Variable],
+    ) -> Distribution:
+        """Create a distribution the given variable(s) or distribution.
+
+        :param distribution: If given a :class:`Distribution`, creates a probability expression
+            directly over the distribution. If given variable or list of variables, conveniently
+            creates a :class:`Distribtion` with the variable(s) as children.
+        :param args: If the first argument (``distribution``) was given as a single variable, the
+            ``args`` variadic argument can be used to specify a list of additional variables.
+        :returns: A probability object
+        :raises TypeError: If the distribution is the wrong type
+        :raises ValueError: If variadic args are used incorrectly (i.e., in combination with a
+            list of variables or :class:`Distribution`.
+        """
+        if isinstance(distribution, Distribution):
+            return distribution
+
+        children: Tuple[Variable, ...]
+        if isinstance(distribution, (str, Variable)):
+            children = (Variable.norm(distribution), *_upgrade_ordering(args))
+        elif isinstance(distribution, (list, tuple, set)) or isgenerator(distribution):
+            if args:
+                raise ValueError("can not use variadic arguments with combination of first arg")
+            children = _sorted_variables(_upgrade_ordering(distribution))
+        else:
+            raise TypeError(f"invalid distribution type: {type(distribution)} {distribution}")
+        return Distribution(children=children)
+
     def to_text(self) -> str:
         """Output this distribution in the internal string format."""
         children = _list_to_text(self.children)
@@ -385,6 +419,18 @@ class Distribution(_Mathable):
     def is_markov_kernel(self) -> bool:
         """Return if this distribution a markov kernel -> one child variable and one or more conditionals."""
         return len(self.children) == 1
+
+    def intervene(self, variables: XSeq[Variable]) -> Distribution:
+        """Return a new distribution that has the given intervention(s) on all variables."""
+        # check that the variables aren't in any of them yet
+        variables = _upgrade_variables(variables)
+        return Distribution(
+            children=tuple(child.intervene(variables) for child in self.children),
+            parents=tuple(parent.intervene(variables) for parent in self.parents),
+        )
+
+    def __matmul__(self, variables: XSeq[Variable]) -> Distribution:
+        return self.intervene(variables)
 
     def uncondition(self) -> Distribution:
         """Return a new distribution that is not conditioned on the parents."""
@@ -455,6 +501,17 @@ class Expression(_Mathable, ABC):
     def __truediv__(self, other):
         pass
 
+    def marginalize(self, ranges: Union[Variable, Iterable[Variable]]) -> Fraction:
+        """Return this expression, marginalized by the given variables.
+
+        :param ranges: A variable or list of variables over which to marginalize this expression
+        :returns: A fraction in which the denominator is represents the sum over the given ranges
+
+        >>> from y0.dsl import P, A, B
+        >>> assert P(A, B).marginalize(A) == P(A, B) / Sum[A](P(A, B))
+        """
+        return Fraction(self, Sum(expression=self, ranges=_prepare_ranges(ranges)))
+
 
 @dataclass(frozen=True)
 class Probability(Expression):
@@ -462,6 +519,28 @@ class Probability(Expression):
 
     #: The distribution over which the probability is expressed
     distribution: Distribution
+
+    @classmethod
+    def safe(
+        cls,
+        distribution: DistributionHint,
+        *args: Union[str, Variable],
+        interventions: Optional[XSeq[Variable]] = None,
+    ) -> Probability:
+        """Create a distribution the given variable(s) or distribution.
+
+        :param distribution: If given a :class:`Distribution`, creates a probability expression
+            directly over the distribution. If given variable or list of variables, conveniently
+            creates a :class:`Distribution` with the variable(s) as children.
+        :param args: If the first argument (``distribution``) was given as a single variable, the
+            ``args`` variadic argument can be used to specify a list of additional variables.
+        :param interventions: An optional variable or variables to use as interventions.
+        :returns: A probability object
+        """
+        distribution = Distribution.safe(distribution, *args)
+        if interventions is not None:
+            distribution = distribution.intervene(interventions)
+        return Probability(distribution)
 
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
@@ -485,6 +564,13 @@ class Probability(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
 
+    def intervene(self, variables: XSeq[Variable]) -> Probability:
+        """Return a new probability where the underlying distribution has been intervened by the given variables."""
+        return Probability(self.distribution.intervene(variables))
+
+    def __matmul__(self, variables: XSeq[Variable]) -> Probability:
+        return self.intervene(variables)
+
     def uncondition(self) -> Probability:
         """Return a new probability where the underlying distribution is no longer conditioned by the parents.
 
@@ -495,116 +581,146 @@ class Probability(Expression):
         """
         return Probability(self.distribution.uncondition())
 
-    def marginalize(self, ranges: XSeq[Variable]) -> Fraction:
-        """Return this probability distribution, marginalized by the given variables.
-
-        :param ranges: A variable or list of variables over which to marganilize this probability's distribution
-        :returns: A fraction in which the denominator is represents the sum over the given ranges
-
-        >>> from y0.dsl import P, A, B
-        >>> P(A, B).marginalize(A) == P(A, B) / Sum[A](P(A, B))
-        """
-        return self / Sum(expression=self, ranges=_prepare_ranges(ranges))
-
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in the distribution in this probability."""
         yield from self.distribution._iter_variables()
 
 
-def P(  # noqa:N802
-    distribution: Union[
-        str,
-        Sequence[str],
-        Set[str],
-        Iterator[str],
-        Variable,
-        Sequence[Variable],
-        Set[Variable],
-        Iterator[Variable],
-        Distribution,
-    ],
-    *args: Union[str, Variable],
-) -> Probability:
-    """Create a probability expression over the given variable(s) or distribution.
+DistributionHint = Union[
+    str,
+    Sequence[str],
+    Set[str],
+    Iterator[str],
+    Variable,
+    Sequence[Variable],
+    Set[Variable],
+    Iterator[Variable],
+    Distribution,
+]
 
-    :param distribution: If given a :class:`Distribution`, creates a probability expression
-        directly over the distribution. If given variable or list of variables, conveniently
-        creates a :class:`Distribtion` with the variable(s) as children.
-    :param args: If the first argument (``distribution``) was given as a single variable, the
-        ``args`` variadic argument can be used to specify a list of additional variables.
-    :returns: A probability object
-    :raises TypeError: If the distribution is the wrong type
-    :raises ValueError: If varidic args are used incorrectly (i.e., in combination with a
-        list of variables or :class:`Distribution`.
 
-    Creation with a conditional distribution:
+class ProbabilityBuilderType:
+    """A base class for building probability distributions."""
 
-    >>> from y0.dsl import P, A, B
-    >>> P(A | B)
+    def __call__(
+        self,
+        distribution: DistributionHint,
+        *args: Union[str, Variable],
+        interventions: Optional[XSeq[Variable]] = None,
+    ) -> Probability:
+        return Probability.safe(distribution, *args, interventions=interventions)
 
-    Creation with a joint distribution:
+    def __getitem__(self, interventions: XYIter[str, Variable]):
+        """Generate a probability builder closure.
 
-    >>> from y0.dsl import P, A, B
-    >>> P(A & B)
+        :param interventions: A variable or variables to intervene on using the do-calculus level 2
+            rules, meaning they are all applied to all parent and children variables in the resulting
+            expression
+        :returns: A function with the same semantics as :meth:`__call__` such that you can build
+            a probability expression.
 
-    Creation with a mixed joint/conditional distribution:
+        >>> from y0.dsl import P, W, X, Y, Z
+        >>> assert P[X](Y) == P(Y @ X)
+        >>> assert P[X](Y, Z) == P(Y @ X & Z @ X)
+        >>> assert P[X](Y | Z) == P(Y @ X | Z @ X)
+        >>> assert P[X](Y @ Z) == P(Y @ X @ Z)
+        >>> assert P[X](Y @ Z | W) == P(Y @ X @ Z | W @ X)
+        """
+        return functools.partial(self, interventions=interventions)
 
-    >>> from y0.dsl import P, A, B, C
-    >>> P(A & B | C)
 
-    Creation with a single :class:`Variable`:
+P = ProbabilityBuilderType()
+"""``P`` is a magical object of mystery and wonder that can be used to create :class:`Probability` instances.
 
-    >>> from y0.dsl import P, A
-    >>> P(A)
+It itself is a singleton instance of :class:`ProbabilityBuilderType` and can be used wither via the
+:meth:`ProbabilityBuilderType.__call__`, as if it were a function like ``P(Y)`` or it can be used as
+a combination with the :meth:`ProbabilityBuilderType.__getitem__` and a call, like ``P[X](Y)`` to
+denote interventions using the do-Calculus $L_2$ notation. Here are some examples:
 
-    Creation with a single string:
+A univariate distribution can be created either with a string or a :class:`Variable`:
 
-    >>> from y0.dsl import P, A
-    >>> P('A')
+>>> from y0.dsl import P, A
+>>> P('A') == P(A)
 
-    Creation with a list of :class:`Variable`:
+**Multivariate Distributions**
 
-    >>> from y0.dsl import P, A, B
-    >>> P((A, B))
+A joint distribution can be created with several strings or :class:`Variable` instances
+with variadic arguments:
 
-    Creation with a list of strings:
+>>> from y0.dsl import P, A, B
+>>> P(A, B) == P('A', 'B')
 
-    >>> from y0.dsl import P, A, B
-    >>> P(('A', 'B'))
+A joint distribution can also be created with a single argument that is either an iterable
+of either strings or :class:`Variable` instances
 
-    Creation with a list of :class:`Variable`: using variadic arguments:
+>>> from y0.dsl import P, A, B
+>>> P((A, B)) == P([A, B]) == P(('A', 'B')) == P(['A', 'B'])
 
-    >>> from y0.dsl import P, A, B
-    >>> P(A, B)
+This even extends to fancy generators, for which you can omit the parentheses:
 
-    Creation with a list of strings using variadic arguments:
+Creation with a fancy generator of variables:
 
-    >>> from y0.dsl import P, A, B
-    >>> P('A', 'B')
+>>> from y0.dsl import P, A, B
+>>> P(Variable(name) for name in 'AB') == P(name for name in 'AB') == P(A, B)
 
-    Creation with a fancy generator of variables:
+**Conditional Distributions**
 
-    >>> from y0.dsl import P, A, B
-    >>> P(Variable(name) for name in 'AB')
+Creation with a conditional distribution:
 
-    Creation with a fancy generator of strings:
+>>> from y0.dsl import P, A, B
+>>> P(A | B)
 
-    >>> from y0.dsl import P, A, B
-    >>> P(name for name in 'AB')
-    """
-    if isinstance(distribution, Distribution):
-        return Probability(distribution=distribution)
+Creation with a mixed joint/conditional distribution:
 
-    children: Tuple[Variable, ...]
-    if isinstance(distribution, (str, Variable)):
-        children = (Variable.norm(distribution), *_upgrade_ordering(args))
-    elif isinstance(distribution, (list, tuple, set)) or isgenerator(distribution):
-        if args:
-            raise ValueError("can not use variadic arguments with combination of first arg")
-        children = _sorted_variables(_upgrade_ordering(distribution))
-    else:
-        raise TypeError(f"invalid distribution type: {type(distribution)} {distribution}")
-    return Probability(distribution=Distribution(children=children))
+>>> from y0.dsl import P, A, B, C
+>>> P(A & B | C)
+
+**Specifying an Intervention with L2 do-Calculus Notation**
+
+Intervene on a single variable:
+
+>>> from y0.dsl import P, X, Y
+>>> P[X](Y) == P(Y @ X)
+
+Intervene on multiple children:
+
+>>> from y0.dsl import P, X, Y, Z
+>>> P[X](Y, Z) == P(Y @ X & Z @ X)
+
+Intervene on multiple parents:
+
+>>> from y0.dsl import P, W, X, Y, Z
+>>> P[X](Y | (W, Z)) == P(Y @ X | (W @ X, Z @ X)):
+
+Intervene on both children and parents:
+
+>>> from y0.dsl import P, X, Y, Z
+>>> P[X](Y | Z) == P(Y @ X | Z @ X)
+
+Intervene on X on top of previous interventions:
+
+>>> from y0.dsl import P, X, Y, Z
+>>> P[X](Y @ Z) == P(Y @ X @ Z)
+
+Allow mixing with L3, where each variable can have different interventions:
+
+>>> from y0.dsl import P, W, X, Y, Z
+>>> P[X](Y @ Z | W) == P(Y @ X @ Z | W @ X)
+
+**Specifying Multiple Interventions with L2 do-Calculus Notation**
+
+Multiple interventions on a single variable:
+
+>>> from y0.dsl import P, X1, X2, Y
+>>> P[X1, X2](Y) == P(Y @ X)
+
+Multiple interventions  on multiple children:
+
+>>> from y0.dsl import P, X1, X2, Y, Z
+>>> P[X1, X2](Y, Z) == P(Y @ X1 @ X2 & Z @ X1 @ X2)
+
+... and so on
+"""
 
 
 @dataclass(frozen=True)
@@ -612,6 +728,36 @@ class Product(Expression):
     """Represent the product of several probability expressions."""
 
     expressions: Tuple[Expression, ...]
+
+    @classmethod
+    def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Product:
+        """Construct a product from any iterable of expressions.
+
+        :param expressions: An expression or iterable of expressions which should be multiplied
+        :returns: A :class:`Product` object
+
+        Standard usage, same as the normal ``__init__``:
+
+        >>> from y0.dsl import Product, X, Y, A, P
+        >>> Product.safe((P(X, Y), ))
+
+        Use a list or other iterable:
+
+        >>> Product.safe([P(X), P(Y | X)])
+
+        Use an inline generator:
+
+        >>> Product.safe(P(v) for v in [X, Y])
+
+        Use a single expression:
+
+        >>> Product.safe(P(X, Y))
+        """
+        return cls(
+            expressions=(expressions,)
+            if isinstance(expressions, Expression)
+            else tuple(expressions)
+        )
 
     def to_text(self):
         """Output this product in the internal string format."""
@@ -658,6 +804,38 @@ class Sum(Expression):
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
     ranges: Tuple[Variable, ...] = field(default_factory=tuple)
 
+    @classmethod
+    def safe(
+        cls, expression: Expression, ranges: Union[str, Variable, Iterable[Union[str, Variable]]]
+    ) -> Sum:
+        """Construct a sum from an expression and a permissive set of things in the ranges.
+
+        :param expression: The expression over which the sum is done
+        :param ranges: The variable or list of variables over which the sum is done
+        :returns: A :class:`Sum` object
+
+        Standard usage, same as the normal ``__init__``:
+
+        >>> from y0.dsl import Sum, X, Y, A, P
+        >>> Sum.safe(P(X, Y), (X,))
+
+        Use a list or other iterable:
+
+        >>> Sum.safe(P(X, Y), [X])
+
+        Use a single variable:
+
+        >>> Sum.safe(P(X, Y), X)
+        """
+        return cls(
+            expression=expression,
+            ranges=(
+                (Variable.norm(ranges),)
+                if isinstance(ranges, (str, Variable))
+                else _upgrade_ordering(ranges)
+            ),
+        )
+
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
         ranges = _list_to_text(self.ranges)
@@ -693,7 +871,7 @@ class Sum(Expression):
 
     @classmethod
     def __class_getitem__(
-        cls, ranges: Union[Variable, Tuple[Variable, ...]]
+        cls, ranges: Union[Variable, Iterable[Variable]]
     ) -> Callable[[Expression], Sum]:
         """Create a partial sum object over the given ranges.
 
@@ -713,7 +891,7 @@ class Sum(Expression):
         return functools.partial(Sum, ranges=_prepare_ranges(ranges))
 
 
-def _prepare_ranges(ranges: XSeq[Variable]) -> Tuple[Variable, ...]:
+def _prepare_ranges(ranges: Union[Variable, Iterable[Variable]]) -> Tuple[Variable, ...]:
     if isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
         return (ranges,)
     return tuple(ranges)
@@ -871,7 +1049,7 @@ class QFactor(Expression):
     codomain: Tuple[Variable, ...]
 
     @classmethod
-    def __class_getitem__(cls, codomain: Union[Variable, Tuple[Variable, ...]]):
+    def __class_getitem__(cls, codomain: Union[Variable, Iterable[Variable]]):
         """Create a partial Q Factor object over the given codomain.
 
         :param codomain: The variables over which the partial Q Factor will be done

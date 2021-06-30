@@ -18,6 +18,7 @@ from more_click import verbose_option
 from tabulate import tabulate
 from tqdm import tqdm
 
+from y0.algorithm.identify import Identification, identify
 from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.dsl import Expression, P, Variable
 from y0.graph import (
@@ -176,7 +177,7 @@ def _get_result(
     # Check if the ADMG is identifiable under the (simple) causal query
     query = P(Variable(effect) @ ~Variable(cause))
     identifiable = is_identifiable(admg, query)
-    identifiability_expr = None
+    identifiability_expr = identify(Identification.from_expression(graph=admg, query=query))
 
     return Result(
         identifiable,
@@ -275,7 +276,7 @@ def draw_results(
         if result is None:
             ax.axis("off")
         else:
-            mixed_graph: NxMixedGraph[str] = NxMixedGraph.from_admg(result.admg)
+            mixed_graph = NxMixedGraph.from_admg(result.admg)  # type:ignore
             title = f"{i}) Latent: " + ", ".join(result.latents)
             if result.identifiability_expr is not None:
                 title += f"\n${result.identifiability_expr.to_latex()}$"

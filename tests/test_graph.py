@@ -17,6 +17,21 @@ from y0.resources import VIRAL_PATHOGENESIS_PATH
 class TestGraph(unittest.TestCase):
     """Test graph construction and conversion."""
 
+    def setUp(self) -> None:
+        """Set up the test case."""
+        self.addTypeEqualityFunc(NxMixedGraph, self.assert_graph_equal)
+
+    def assert_graph_equal(self, a: NxMixedGraph, b: NxMixedGraph, msg=None) -> None:
+        """Check the graphs are equal (more nice than the builtin :meth:`NxMixedGraph.__eq__` for testing)."""
+        self.assertEqual(set(a.directed.nodes()), set(b.directed.nodes()), msg=msg)
+        self.assertEqual(set(a.undirected.nodes()), set(b.undirected.nodes()), msg=msg)
+        self.assertEqual(set(a.directed.edges()), set(b.directed.edges()), msg=msg)
+        self.assertEqual(
+            set(map(frozenset, a.undirected.edges())),
+            set(map(frozenset, b.undirected.edges())),
+            msg=msg,
+        )
+
     def test_causaleffect_str_verma_1(self):
         """Test generating R code for the figure 1A graph for causaleffect."""
         expected = dedent(
@@ -42,10 +57,7 @@ class TestGraph(unittest.TestCase):
         self.assertEqual(labeled_edges, set(labeled_dag.edges()))
 
         reconstituted = NxMixedGraph.from_latent_variable_dag(labeled_dag, tag=tag)
-        self.assertEqual(set(graph.directed.nodes()), set(reconstituted.directed.nodes()))
-        self.assertEqual(set(graph.undirected.nodes()), set(reconstituted.undirected.nodes()))
-        self.assertEqual(set(graph.directed.edges()), set(reconstituted.directed.edges()))
-        self.assertEqual(set(graph.undirected.edges()), set(reconstituted.undirected.edges()))
+        self.assertEqual(graph, reconstituted)
 
     def test_convertable(self):
         """Test graphs are convertable."""
@@ -142,6 +154,26 @@ class TestGraph(unittest.TestCase):
         subgraph.add_undirected_edge("Z", "Y")
         self.assertEqual(subgraph, graph.remove_nodes_from({"X"}))
 
+    def test_remove_outgoing_edges_from(self):
+        """Test generating a new graph without the outgoing edgs from the given nodes."""
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        self.assertEqual(graph, graph.remove_outgoing_edges_from(set()))
+
+        graph = NxMixedGraph()
+        graph.add_undirected_edge("X", "Y")
+        self.assertEqual(graph, graph.remove_outgoing_edges_from(set()))
+
+        graph = NxMixedGraph()
+        graph.add_directed_edge("W", "X")
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("Y", "Z")
+        expected = NxMixedGraph()
+        expected.add_node("X")
+        expected.add_directed_edge("W", "X")
+        expected.add_directed_edge("Y", "Z")
+        self.assertEqual(expected, graph.remove_outgoing_edges_from({"X"}))
+
     def test_ancestors_inclusive(self):
         """Test getting ancestors, inclusive."""
         graph = NxMixedGraph()
@@ -152,3 +184,23 @@ class TestGraph(unittest.TestCase):
         graph.add_directed_edge("A", "Y")
         graph.add_directed_edge("B", "Z")
         self.assertEqual({"A", "B", "C", "D"}, graph.ancestors_inclusive({"A", "B"}))
+
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Z")
+        graph.add_directed_edge("Z", "Y")
+        graph.add_undirected_edge("X", "Y")
+        self.assertEqual({"X", "Y", "Z"}, graph.ancestors_inclusive({"Y"}))
+        self.assertEqual({"X", "Z"}, graph.ancestors_inclusive({"Z"}))
+        self.assertEqual({"X"}, graph.ancestors_inclusive({"X"}))
+
+    def test_get_c_components(self):
+        """Test that get_c_components works correctly."""
+        g1 = NxMixedGraph().from_edges(directed=[("X", "Y"), ("Z", "X"), ("Z", "Y")])
+        c1 = [frozenset(["X"]), frozenset(["Y"]), frozenset(["Z"])]
+        g2 = NxMixedGraph().from_edges(directed=[("X", "Y")], undirected=[("X", "Y")])
+        c2 = [frozenset(["X", "Y"])]
+        g3 = NxMixedGraph().from_edges(directed=[("X", "M"), ("M", "Y")], undirected=[("X", "Y")])
+        c3 = [frozenset(["X", "Y"]), frozenset(["M"])]
+        for graph, components in [(g1, c1), (g2, c2), (g3, c3)]:
+            self.assertIsInstance(graph, NxMixedGraph)
+            self.assertEqual(components, graph.get_c_components())
