@@ -157,9 +157,13 @@ class TestDSL(unittest.TestCase):
         self.assert_text("P(A)", P("A"))
         self.assert_text("P(A)", P(Distribution((A,))))
 
-        # Test markov kernels (AKA has only one child variable)
+        # Test markov kernel with single parent (AKA has only one child variable)
+        self.assert_text("P(A|B)", P(A | B))
         self.assert_text("P(A|B)", P(Distribution((A,), (B,))))
         self.assert_text("P(A|B)", P(A | [B]))
+
+        # Test markov kernel with multiple parents
+        self.assert_text("P(A|B,C)", P(A | B, C))
         self.assert_text("P(A|B,C)", P(Distribution((A,), (B,)) | C))
         self.assert_text("P(A|B,C)", P(A | [B, C]))
         self.assert_text("P(A|B,C)", P(A | B | C))
@@ -182,12 +186,14 @@ class TestDSL(unittest.TestCase):
         self.assert_text("P(A,B,C)", P(Variable(name) for name in "ABC"))
 
         # Test mixed with single conditional
+        self.assert_text("P(A,B|C)", P(A, B | C))
         self.assert_text("P(A,B|C)", P(Distribution((A, B), (C,))))
         self.assert_text("P(A,B|C)", P(Distribution((A, B), (C,))))
         self.assert_text("P(A,B|C)", P(Distribution((A, B)) | C))
         self.assert_text("P(A,B|C)", P(A & B | C))
 
         # Test mixed with multiple conditionals
+        self.assert_text("P(A,B|C,D)", P(A, B | C, D))
         self.assert_text("P(A,B|C,D)", P(Distribution((A, B), (C, D))))
         self.assert_text("P(A,B|C,D)", P(Distribution((A, B)) | C | D))
         self.assert_text("P(A,B|C,D)", P(Distribution((A, B), (C,)) | D))

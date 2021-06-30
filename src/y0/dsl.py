@@ -382,37 +382,37 @@ class Distribution(Element):
         :returns: A Distribution object
         :raises ValueError: If invalid combination of arguments are given.
         """
-        if isinstance(distribution, Distribution):
-            if args:
-                raise ValueError("can not use args/parents when giving a distribution")
-            return distribution
-        elif isinstance(distribution, (str, Variable)):
-            first_child = Variable.norm(distribution)
-            dist_pos = [i for i, e in enumerate(args) if isinstance(e, Distribution)]
+        if isinstance(distribution, (str, Variable, Distribution)):
+            extended_args = [distribution, *args]
+            dist_pos = [i for i, e in enumerate(extended_args) if isinstance(e, Distribution)]
+
+            # There are no distributions (e.g., no conditionals were given with the | already)
             if 0 == len(dist_pos):
-                children = (first_child, *_upgrade_ordering(cast(VariableHint, args)))
-                parents: Tuple[Variable, ...] = tuple()
+                return Distribution(
+                    children=_upgrade_ordering(cast(VariableHint, extended_args)),
+                )
+
+            # A single conditional was given. Everything before it should be considered
+            # as child variables, and everything after as parent variables.
             elif 1 == len(dist_pos):
                 i = dist_pos[0]
-                pre = cast(Iterable[Union[str, Variable]], args[:i])
-                dist = cast(Distribution, args[i])
-                post = cast(Iterable[Union[str, Variable]], args[i:])
-                children = (*_upgrade_ordering(pre), *dist.children)
-                parents = (*dist.parents, *_upgrade_ordering(post))
+                pre = cast(Iterable[Union[str, Variable]], extended_args[:i])
+                dist = cast(Distribution, extended_args[i])
+                post = cast(Iterable[Union[str, Variable]], extended_args[i + 1:])
+                return Distribution(
+                    children=(*_upgrade_ordering(pre), *dist.children),
+                    parents=(*dist.parents, *_upgrade_ordering(post)),
+                )
+
+            # Multiple conditionals were detected. This isn't allowed.
             else:
                 raise ValueError("can not give multiple distribution objects")
+        elif args:
+            raise ValueError("can not use args/parents when giving an iterable as first argument")
         else:
-            if args:
-                raise ValueError(
-                    "can not use args/parents when giving an iterable as first argument"
-                )
-            children = _upgrade_ordering(distribution)
-            parents = tuple()
-
-        return Distribution(
-            children=children,
-            parents=parents,
-        )
+            return Distribution(
+                children=_upgrade_ordering(distribution),
+            )
 
     def _to_x(self, f: Callable[[Iterable[Variable]], str], parens: bool) -> str:
         children = f(self.children)
@@ -910,7 +910,7 @@ class Sum(Expression):
         >>> from y0.dsl import Sum, P, A, B, C
         >>> Sum[B, C](P(A | B) * P(B))
         """
-        return functools.partial(Sum, ranges=_upgrade_variables(ranges))
+        return functools.partial(Sum, ranges=_upgrade_ordering(ranges))
 
 
 @dataclass(frozen=True)
@@ -1083,9 +1083,21 @@ class QFactor(Expression):
     ) -> QFactor:
         """Create a Q factor with various input types."""
         return cls(
-            domain=_prepare_domain(domain, *args),
+            domain=cls._prepare_domain(domain, *args),
             codomain=_upgrade_variables(codomain),
         )
+
+    @staticmethod
+    def _prepare_domain(
+        arg: VariableHint,
+        *args: Union[str, Variable],
+    ) -> Tuple[Variable, ...]:
+        """Prepare a list of variables from a potentially unruly set of args and variadic args."""
+        if isinstance(arg, (str, Variable)):
+            return Variable.norm(arg), *_upgrade_ordering(args)
+        if args:
+            raise ValueError("can not use variadic arguments with combination of first arg")
+        return _sorted_variables(_upgrade_ordering(arg))
 
     @classmethod
     def __class_getitem__(cls, codomain: Union[Variable, Iterable[Variable]]) -> QBuilder[QFactor]:
@@ -1167,18 +1179,6 @@ def _upgrade_variables(variables: VariableHint) -> Tuple[Variable, ...]:
 
 def _upgrade_ordering(variables: VariableHint) -> Tuple[Variable, ...]:
     return _sorted_variables(_upgrade_variables(variables))
-
-
-def _prepare_domain(
-    arg: VariableHint,
-    *args: Union[str, Variable],
-) -> Tuple[Variable, ...]:
-    """Prepare a list of variables from a potentially unruly set of args and variadic args."""
-    if isinstance(arg, (str, Variable)):
-        return Variable.norm(arg), *_upgrade_ordering(args)
-    if args:
-        raise ValueError("can not use variadic arguments with combination of first arg")
-    return _sorted_variables(_upgrade_ordering(arg))
 
 
 OrderingHint = Optional[Iterable[Union[str, Variable]]]
