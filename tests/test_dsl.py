@@ -45,12 +45,12 @@ class TestDSL(unittest.TestCase):
         self.assertIsInstance(expression.to_latex(), str)
         self.assertIsInstance(expression._repr_latex_(), str)
         self.assertEqual(s, expression.to_text(), msg=f"Expression: {repr(expression)}")
-        if not isinstance(expression, Distribution):
+        if not isinstance(expression, (Distribution, Intervention)):
             reconstituted = parse_y0(expression.to_y0())
             self.assertEqual(
                 expression,
                 reconstituted,
-                msg=f'\nExpected: {expression.to_y0()}\nActual:   {reconstituted.to_y0()}',
+                msg=f"\nExpected: {expression.to_y0()}\nActual:   {reconstituted.to_y0()}",
             )
 
     def test_variable(self):
