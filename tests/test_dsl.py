@@ -29,6 +29,7 @@ from y0.dsl import (
     Y,
     Z,
 )
+from y0.parser import parse_y0
 
 V = Variable("V")
 
@@ -43,8 +44,14 @@ class TestDSL(unittest.TestCase):
         self.assertIsInstance(expression.to_text(), str)
         self.assertIsInstance(expression.to_latex(), str)
         self.assertIsInstance(expression._repr_latex_(), str)
-        # self.assertEqual(expression, parse_y0(expression.to_y0()))
         self.assertEqual(s, expression.to_text(), msg=f"Expression: {repr(expression)}")
+        if not isinstance(expression, Distribution):
+            reconstituted = parse_y0(expression.to_y0())
+            self.assertEqual(
+                expression,
+                reconstituted,
+                msg=f'\nExpected: {expression.to_y0()}\nActual:   {reconstituted.to_y0()}',
+            )
 
     def test_variable(self):
         """Test the variable DSL object."""
