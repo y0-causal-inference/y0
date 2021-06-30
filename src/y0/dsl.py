@@ -842,7 +842,7 @@ class Sum(Expression):
             s = self.expression.to_y0()
         if not self.ranges:
             return f"Sum({s})"
-        ranges = _list_to_text(self.ranges)
+        ranges = _list_to_y0(self.ranges)
         return f"Sum[{ranges}]({s})"
 
     def __mul__(self, expression: Expression):
