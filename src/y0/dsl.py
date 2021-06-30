@@ -400,8 +400,8 @@ class Distribution(Element):
                 dist = cast(Distribution, extended_args[i])
                 post = cast(Iterable[Union[str, Variable]], extended_args[i + 1 :])
                 return Distribution(
-                    children=(*_upgrade_ordering(pre), *dist.children),
-                    parents=(*dist.parents, *_upgrade_ordering(post)),
+                    children=_sorted_variables((*_upgrade_ordering(pre), *dist.children)),
+                    parents=_sorted_variables((*dist.parents, *_upgrade_ordering(post))),
                 )
 
             # Multiple conditionals were detected. This isn't allowed.
@@ -414,27 +414,23 @@ class Distribution(Element):
                 children=_upgrade_ordering(distribution),
             )
 
-    def _to_x(self, f: Callable[[Iterable[Variable]], str], parens: bool) -> str:
-        children = f(self.children)
+    def _to_x(self, func: Callable[[Iterable[Variable]], str]) -> str:
+        children = func(self.children)
         if not self.parents:
             return children
-        parents = f(self.parents)
-        if parens and 1 < len(self.parents):
-            return f"{children}|({parents})"
-        else:
-            return f"{children}|{parents}"
+        return f"{children}|{func(self.parents)}"
 
     def to_text(self) -> str:
         """Output this distribution in the internal string format."""
-        return self._to_x(_list_to_text, parens=False)
+        return self._to_x(_list_to_text)
 
     def to_y0(self) -> str:
         """Output this distribution instance as y0 internal DSL code."""
-        return self._to_x(_list_to_y0, parens=True)
+        return self._to_x(_list_to_y0)
 
     def to_latex(self) -> str:
         """Output this distribution in the LaTeX string format."""
-        return self._to_x(_list_to_latex, parens=False)
+        return self._to_x(_list_to_latex)
 
     def is_conditioned(self) -> bool:
         """Return if this distribution is conditioned."""
