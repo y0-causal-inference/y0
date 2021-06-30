@@ -9,7 +9,18 @@ import itertools as itt
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from operator import attrgetter
-from typing import Callable, Iterable, Optional, Protocol, Sequence, Set, Tuple, TypeVar, Union
+from typing import (
+    Callable,
+    Iterable,
+    Optional,
+    Protocol,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+)
 
 __all__ = [
     "Element",
@@ -66,13 +77,6 @@ __all__ = [
 ]
 
 T_co = TypeVar("T_co", covariant=True)
-S_co = TypeVar("S_co")
-XSeq = Union[T_co, Iterable[T_co]]
-XYIter = Union[T_co, S_co, Iterable[Union[T_co, S_co]]]
-
-
-def _upgrade_variables(variables: XSeq[Variable]) -> Tuple[Variable, ...]:
-    return (variables,) if isinstance(variables, Variable) else tuple(variables)
 
 
 def _to_interventions(variables: Sequence[Variable]) -> Tuple[Intervention, ...]:
@@ -150,7 +154,7 @@ class Variable(Element):
         """Output this variable instance as y0 internal DSL code."""
         return self.name
 
-    def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
+    def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this variable with the given variable(s).
 
         :param variables: The variable(s) used to extend this variable as it is changed to a
@@ -164,10 +168,10 @@ class Variable(Element):
             interventions=_to_interventions(_upgrade_variables(variables)),
         )
 
-    def __matmul__(self, variables: XSeq[Variable]) -> CounterfactualVariable:
+    def __matmul__(self, variables: VariableHint) -> CounterfactualVariable:
         return self.intervene(variables)
 
-    def given(self, parents: Union[XSeq[Variable], Distribution]) -> Distribution:
+    def given(self, parents: Union[VariableHint, Distribution]) -> Distribution:
         """Create a distribution in which this variable is conditioned on the given variable(s).
 
         The new distribution is a Markov Kernel.
@@ -193,10 +197,10 @@ class Variable(Element):
                 parents=parents.children,  # don't think about this too hard
             )
 
-    def __or__(self, parents: XSeq[Variable]) -> Distribution:
+    def __or__(self, parents: Union[VariableHint, Distribution]) -> Distribution:
         return self.given(parents)
 
-    def joint(self, children: XSeq[Variable]) -> Distribution:
+    def joint(self, children: VariableHint) -> Distribution:
         """Create a joint distribution between this variable and the given variable(s).
 
         :param children: The variable(s) for use with this variable in a joint distribution
@@ -208,7 +212,7 @@ class Variable(Element):
             children=(self, *_upgrade_variables(children)),
         )
 
-    def __and__(self, children: XSeq[Variable]) -> Distribution:
+    def __and__(self, children: VariableHint) -> Distribution:
         return self.joint(children)
 
     def invert(self) -> Intervention:
@@ -228,6 +232,9 @@ class Variable(Element):
     def _iter_variables(self) -> Iterable[Variable]:
         """Get a set containing this variable."""
         yield self
+
+
+VariableHint = Union[str, Variable, Iterable[Union[str, Variable]]]
 
 
 @dataclass(frozen=True, order=True)
@@ -301,7 +308,7 @@ class CounterfactualVariable(Variable):
             ins = ", ".join(i.to_y0() for i in self.interventions)
             return f"{self.name} @ ({ins})"
 
-    def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
+    def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
 
         :param variables: The variable(s) used to extend this counterfactual variable's
@@ -362,21 +369,50 @@ class Distribution(Element):
     @classmethod
     def safe(
         cls,
-        distribution: DistributionHint,
-        *args: Union[str, Variable],
+        distribution: Union[VariableHint, Distribution],
+        *args: Union[str, Variable, Distribution],
     ) -> Distribution:
         """Create a distribution the given variable(s) or distribution.
 
         :param distribution: If given a :class:`Distribution`, creates a probability expression
             directly over the distribution. If given variable or list of variables, conveniently
-            creates a :class:`Distribtion` with the variable(s) as children.
+            creates a :class:`Distribution` with the variable(s) as children.
         :param args: If the first argument (``distribution``) was given as a single variable, the
             ``args`` variadic argument can be used to specify a list of additional variables.
-        :returns: A probability object
+        :returns: A Distribution object
+        :raises ValueError: If invalid combination of arguments are given.
         """
         if isinstance(distribution, Distribution):
+            if args:
+                raise ValueError("can not use args/parents when giving a distribution")
             return distribution
-        return Distribution(children=_prepare_children(distribution, *args))
+        elif isinstance(distribution, (str, Variable)):
+            first_child = Variable.norm(distribution)
+            dist_pos = [i for i, e in enumerate(args) if isinstance(e, Distribution)]
+            if 0 == len(dist_pos):
+                children = (first_child, *_upgrade_ordering(cast(VariableHint, args)))
+                parents: Tuple[Variable, ...] = tuple()
+            elif 1 == len(dist_pos):
+                i = dist_pos[0]
+                pre = cast(Iterable[Union[str, Variable]], args[:i])
+                dist = cast(Distribution, args[i])
+                post = cast(Iterable[Union[str, Variable]], args[i:])
+                children = (*_upgrade_ordering(pre), *dist.children)
+                parents = (*dist.parents, *_upgrade_ordering(post))
+            else:
+                raise ValueError("can not give multiple distribution objects")
+        else:
+            if args:
+                raise ValueError(
+                    "can not use args/parents when giving an iterable as first argument"
+                )
+            children = _upgrade_ordering(distribution)
+            parents = tuple()
+
+        return Distribution(
+            children=children,
+            parents=parents,
+        )
 
     def _to_x(self, f: Callable[[Iterable[Variable]], str], parens: bool) -> str:
         children = f(self.children)
@@ -408,7 +444,7 @@ class Distribution(Element):
         """Return if this distribution a markov kernel -> one child variable and one or more conditionals."""
         return len(self.children) == 1
 
-    def intervene(self, variables: XSeq[Variable]) -> Distribution:
+    def intervene(self, variables: VariableHint) -> Distribution:
         """Return a new distribution that has the given intervention(s) on all variables."""
         # check that the variables aren't in any of them yet
         variables = _upgrade_variables(variables)
@@ -417,7 +453,7 @@ class Distribution(Element):
             parents=tuple(parent.intervene(variables) for parent in self.parents),
         )
 
-    def __matmul__(self, variables: XSeq[Variable]) -> Distribution:
+    def __matmul__(self, variables: VariableHint) -> Distribution:
         return self.intervene(variables)
 
     def uncondition(self) -> Distribution:
@@ -426,7 +462,7 @@ class Distribution(Element):
             children=(*self.children, *self.parents),
         )
 
-    def joint(self, children: XSeq[Variable]) -> Distribution:
+    def joint(self, children: VariableHint) -> Distribution:
         """Create a new distribution including the given child variables.
 
         :param children: The variable(s) with which this distribution's children are extended
@@ -439,10 +475,10 @@ class Distribution(Element):
             parents=self.parents,
         )
 
-    def __and__(self, children: XSeq[Variable]) -> Distribution:
+    def __and__(self, children: VariableHint) -> Distribution:
         return self.joint(children)
 
-    def given(self, parents: Union[XSeq[Variable], Distribution]) -> Distribution:
+    def given(self, parents: Union[VariableHint, Distribution]) -> Distribution:
         """Create a new mixed distribution additionally conditioned on the given parent variables.
 
         :param parents: The variable(s) with which this distribution's parents are extended
@@ -451,6 +487,7 @@ class Distribution(Element):
 
         .. note:: This function can be accessed with the or | operator.
         """
+        # TODO handle duplicate variables in the parents.
         if not isinstance(parents, Distribution):
             return Distribution(
                 children=self.children,
@@ -469,7 +506,7 @@ class Distribution(Element):
                 ),  # don't think about this too hard
             )
 
-    def __or__(self, parents: XSeq[Variable]) -> Distribution:
+    def __or__(self, parents: Union[VariableHint, Distribution]) -> Distribution:
         return self.given(parents)
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -489,7 +526,7 @@ class Expression(Element, ABC):
     def __truediv__(self, other):
         pass
 
-    def marginalize(self, ranges: Union[Variable, Iterable[Variable]]) -> Fraction:
+    def marginalize(self, ranges: VariableHint) -> Fraction:
         """Return this expression, marginalized by the given variables.
 
         :param ranges: A variable or list of variables over which to marginalize this expression
@@ -498,7 +535,7 @@ class Expression(Element, ABC):
         >>> from y0.dsl import P, A, B
         >>> assert P(A, B).marginalize(A) == P(A, B) / Sum[A](P(A, B))
         """
-        return Fraction(self, Sum(expression=self, ranges=_prepare_ranges(ranges)))
+        return Fraction(self, Sum(expression=self, ranges=_upgrade_variables(ranges)))
 
 
 @dataclass(frozen=True)
@@ -513,7 +550,7 @@ class Probability(Expression):
         cls,
         distribution: DistributionHint,
         *args: Union[str, Variable],
-        interventions: Optional[XSeq[Variable]] = None,
+        interventions: Optional[VariableHint] = None,
     ) -> Probability:
         """Create a distribution the given variable(s) or distribution.
 
@@ -553,11 +590,11 @@ class Probability(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
 
-    def intervene(self, variables: XSeq[Variable]) -> Probability:
+    def intervene(self, variables: VariableHint) -> Probability:
         """Return a new probability where the underlying distribution has been intervened by the given variables."""
         return Probability(self.distribution.intervene(variables))
 
-    def __matmul__(self, variables: XSeq[Variable]) -> Probability:
+    def __matmul__(self, variables: VariableHint) -> Probability:
         return self.intervene(variables)
 
     def uncondition(self) -> Probability:
@@ -575,11 +612,7 @@ class Probability(Expression):
         yield from self.distribution._iter_variables()
 
 
-DistributionHint = Union[
-    XSeq[str],
-    XSeq[Variable],
-    Distribution,
-]
+DistributionHint = Union[VariableHint, Distribution]
 
 
 class ProbabilityBuilderType:
@@ -589,11 +622,11 @@ class ProbabilityBuilderType:
         self,
         distribution: DistributionHint,
         *args: Union[str, Variable],
-        interventions: Optional[XSeq[Variable]] = None,
+        interventions: Optional[VariableHint] = None,
     ) -> Probability:
         return Probability.safe(distribution, *args, interventions=interventions)
 
-    def __getitem__(self, interventions: XYIter[str, Variable]):
+    def __getitem__(self, interventions: VariableHint):
         """Generate a probability builder closure.
 
         :param interventions: A variable or variables to intervene on using the do-calculus level 2
@@ -861,9 +894,7 @@ class Sum(Expression):
             yield from variable._iter_variables()
 
     @classmethod
-    def __class_getitem__(
-        cls, ranges: Union[Variable, Iterable[Variable]]
-    ) -> Callable[[Expression], Sum]:
+    def __class_getitem__(cls, ranges: VariableHint) -> Callable[[Expression], Sum]:
         """Create a partial sum object over the given ranges.
 
         :param ranges: The variables over which the partial sum will be done
@@ -879,13 +910,7 @@ class Sum(Expression):
         >>> from y0.dsl import Sum, P, A, B, C
         >>> Sum[B, C](P(A | B) * P(B))
         """
-        return functools.partial(Sum, ranges=_prepare_ranges(ranges))
-
-
-def _prepare_ranges(ranges: Union[Variable, Iterable[Variable]]) -> Tuple[Variable, ...]:
-    if isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
-        return (ranges,)
-    return tuple(ranges)
+        return functools.partial(Sum, ranges=_upgrade_variables(ranges))
 
 
 @dataclass(frozen=True)
@@ -1038,7 +1063,7 @@ class One(Expression):
 class QBuilder(Protocol[T_co]):
     """A protocol for annotating the special class getitem functionality of the :class:`QFactor` class."""
 
-    def __call__(self, arg: Union[XSeq[str], XSeq[Variable]], *args: Union[str, Variable]) -> T_co:
+    def __call__(self, arg: VariableHint, *args: Union[str, Variable]) -> T_co:
         ...
 
 
@@ -1052,14 +1077,14 @@ class QFactor(Expression):
     @classmethod
     def safe(
         cls,
-        domain: Union[XSeq[str], XSeq[Variable]],
+        domain: VariableHint,
         *args: Union[str, Variable],
-        codomain: XSeq[Variable],
+        codomain: VariableHint,
     ) -> QFactor:
         """Create a Q factor with various input types."""
         return cls(
-            domain=_prepare_children(domain, *args),
-            codomain=_prepare_ranges(codomain),
+            domain=_prepare_domain(domain, *args),
+            codomain=_upgrade_variables(codomain),
         )
 
     @classmethod
@@ -1127,12 +1152,25 @@ Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f"Y{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
 
 
-def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Tuple[Variable, ...]:
-    return tuple(Variable.norm(variable) for variable in variables)
+def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
+    return tuple(sorted(variables, key=attrgetter("name")))
 
 
-def _prepare_children(
-    arg: Union[str, Iterable[str], Variable, Iterable[Variable]],
+def _upgrade_variables(variables: VariableHint) -> Tuple[Variable, ...]:
+    if isinstance(variables, str):
+        return (Variable(variables),)
+    elif isinstance(variables, Variable):
+        return (variables,)
+    else:
+        return tuple(Variable.norm(variable) for variable in variables)
+
+
+def _upgrade_ordering(variables: VariableHint) -> Tuple[Variable, ...]:
+    return _sorted_variables(_upgrade_variables(variables))
+
+
+def _prepare_domain(
+    arg: VariableHint,
     *args: Union[str, Variable],
 ) -> Tuple[Variable, ...]:
     """Prepare a list of variables from a potentially unruly set of args and variadic args."""
@@ -1164,10 +1202,6 @@ def ensure_ordering(
         return _upgrade_ordering(ordering)
     # use alphabetical ordering
     return _sorted_variables(expression.get_variables())
-
-
-def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
-    return tuple(sorted(variables, key=attrgetter("name")))
 
 
 def _get_treatment_variables(variables: set[Variable]) -> set[Variable]:
