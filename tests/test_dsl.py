@@ -12,6 +12,7 @@ from y0.dsl import (
     CounterfactualVariable,
     D,
     Distribution,
+    Element,
     Fraction,
     Intervention,
     One,
@@ -28,6 +29,7 @@ from y0.dsl import (
     Y,
     Z,
 )
+from y0.parser import parse_y0
 
 V = Variable("V")
 
@@ -35,7 +37,7 @@ V = Variable("V")
 class TestDSL(unittest.TestCase):
     """Tests for the stringifying instances of the probability DSL."""
 
-    def assert_text(self, s: str, expression):
+    def assert_text(self, s: str, expression: Element):
         """Assert the expression when it is converted to a string."""
         self.assertIsInstance(s, str)
         self.assertIsInstance(hash(expression), int)  # can the expression be hashed?
@@ -43,6 +45,13 @@ class TestDSL(unittest.TestCase):
         self.assertIsInstance(expression.to_latex(), str)
         self.assertIsInstance(expression._repr_latex_(), str)
         self.assertEqual(s, expression.to_text(), msg=f"Expression: {repr(expression)}")
+        if not isinstance(expression, (Distribution, Intervention)):
+            reconstituted = parse_y0(expression.to_y0())
+            self.assertEqual(
+                expression,
+                reconstituted,
+                msg=f"\nExpected: {expression.to_y0()}\nActual:   {reconstituted.to_y0()}",
+            )
 
     def test_variable(self):
         """Test the variable DSL object."""
@@ -53,6 +62,8 @@ class TestDSL(unittest.TestCase):
         """Test that a variable can not be named "P"."""
         with self.assertRaises(ValueError):
             _ = Variable("P")
+        with self.assertRaises(ValueError):
+            _ = Variable("Q")
 
     def test_intervention(self):
         """Test the invervention DSL object."""
@@ -146,9 +157,13 @@ class TestDSL(unittest.TestCase):
         self.assert_text("P(A)", P("A"))
         self.assert_text("P(A)", P(Distribution((A,))))
 
-        # Test markov kernels (AKA has only one child variable)
+        # Test markov kernel with single parent (AKA has only one child variable)
+        self.assert_text("P(A|B)", P(A | B))
         self.assert_text("P(A|B)", P(Distribution((A,), (B,))))
         self.assert_text("P(A|B)", P(A | [B]))
+
+        # Test markov kernel with multiple parents
+        self.assert_text("P(A|B,C)", P(A | B, C))
         self.assert_text("P(A|B,C)", P(Distribution((A,), (B,)) | C))
         self.assert_text("P(A|B,C)", P(A | [B, C]))
         self.assert_text("P(A|B,C)", P(A | B | C))
@@ -171,12 +186,14 @@ class TestDSL(unittest.TestCase):
         self.assert_text("P(A,B,C)", P(Variable(name) for name in "ABC"))
 
         # Test mixed with single conditional
+        self.assert_text("P(A,B|C)", P(A, B | C))
         self.assert_text("P(A,B|C)", P(Distribution((A, B), (C,))))
         self.assert_text("P(A,B|C)", P(Distribution((A, B), (C,))))
         self.assert_text("P(A,B|C)", P(Distribution((A, B)) | C))
         self.assert_text("P(A,B|C)", P(A & B | C))
 
         # Test mixed with multiple conditionals
+        self.assert_text("P(A,B|C,D)", P(A, B | C, D))
         self.assert_text("P(A,B|C,D)", P(Distribution((A, B), (C, D))))
         self.assert_text("P(A,B|C,D)", P(Distribution((A, B)) | C | D))
         self.assert_text("P(A,B|C,D)", P(Distribution((A, B), (C,)) | D))
@@ -233,45 +250,45 @@ class TestDSL(unittest.TestCase):
 
     def test_q(self):
         """Test the Q DSL object."""
-        self.assert_text("Q[A](X)", Q[A](X))
-        self.assert_text("Q[A,B](X)", Q[A, B](X))
-        self.assert_text("Q[A](X,Y)", Q[A](X, Y))
-        self.assert_text("Q[A,B](X,Y)", Q[A, B](X, Y))
+        self.assert_text("Q[A](X)", Q[A](X))  # type: ignore
+        self.assert_text("Q[A,B](X)", Q[A, B](X))  # type: ignore
+        self.assert_text("Q[A](X,Y)", Q[A](X, Y))  # type: ignore
+        self.assert_text("Q[A,B](X,Y)", Q[A, B](X, Y))  # type: ignore
 
     def test_jeremy(self):
         """Test assorted complicated objects from Jeremy."""
         self.assert_text(
-            "[ sum_{W} P(Y_{Z*,W},X) P(D) P(Z_{D}) P(W_{X*}) ]",
-            Sum(P((Y @ ~Z @ W) & X) * P(D) * P(Z @ D) * P(W @ ~X), (W,)),
+            "[ sum_{W} P(X,Y_{Z*,W}) P(D) P(Z_{D}) P(W_{X*}) ]",
+            Sum(P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X), (W,)),
         )
 
         self.assert_text(
-            "[ sum_{W} P(Y_{Z*,W},X) P(W_{X*}) ]",
-            Sum(P(Y @ ~Z @ W & X) * P(W @ ~X), (W,)),
+            "[ sum_{W} P(X,Y_{Z*,W}) P(W_{X*}) ]",
+            Sum(P(X, Y @ ~Z @ W) * P(W @ ~X), (W,)),
         )
 
         self.assert_text(
-            "frac_{[ sum_{W} P(Y_{Z,W},X) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(Y_{Z,W},X) P(W_{X*}) ] ]}",
+            "frac_{[ sum_{W} P(X,Y_{Z,W}) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(X,Y_{Z,W}) P(W_{X*}) ] ]}",
             Fraction(
-                Sum(P(Y @ Z @ W & X) * P(W @ ~X), (W,)),
-                Sum(Sum(P(Y @ Z @ W & X) * P(W @ ~X), (W,)), (Y,)),
+                Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)),
+                Sum(Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)), (Y,)),
             ),
         )
 
         self.assert_text(
-            "[ sum_{D} P(Y_{Z*,W},X) P(D) P(Z_{D}) P(W_{X*}) ]",
-            Sum(P(Y @ ~Z @ W & X) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
+            "[ sum_{D} P(X,Y_{Z*,W}) P(D) P(Z_{D}) P(W_{X*}) ]",
+            Sum(P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
         )
 
         self.assert_text(
-            "[ sum_{W,D,Z,V} [ sum_{} P(W|X) ] [ sum_{} [ sum_{X,W,Z,Y,V} P(X,W,D,Z,Y,V) ] ]"
-            " [ sum_{} P(Z|D,V) ] [ sum_{} [ sum_{X} P(Y|X,D,V,Z,W) P(X) ] ]"
-            " [ sum_{} [ sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V) ] ] ]",
+            "[ sum_{D,V,W,Z} [ sum_{} P(W|X) ] [ sum_{} [ sum_{V,W,X,Y,Z} P(D,V,W,X,Y,Z) ] ]"
+            " [ sum_{} P(Z|D,V) ] [ sum_{} [ sum_{X} P(Y|D,V,W,X,Z) P(X) ] ]"
+            " [ sum_{} [ sum_{D,W,X,Y,Z} P(D,V,W,X,Y,Z) ] ] ]",
             Sum[W, D, Z, V](
                 Sum(P(W | X))
-                * Sum(Sum[X, W, Z, Y, V](P(X, W, D, Z, Y, V)))
-                * Sum(P(Z | [D, V]))
-                * Sum(Sum[X](P(Y | [X, D, V, Z, W]) * P(X)))
+                * Sum(Sum[X, W, Z, Y, V](P(D, V, W, X, Y, Z)))
+                * Sum(P(Z | D, V))
+                * Sum(Sum[X](P(Y | D, V, W, X, Z) * P(X)))
                 * Sum(Sum[X, W, D, Z, Y](P(X, W, D, Z, Y, V))),
             ),
         )
@@ -295,7 +312,7 @@ class TestDSL(unittest.TestCase):
             (One() / P(A @ B), {A @ B, -B}),
             (P(B) / P(A @ ~B), {A @ ~B, B, ~B}),
             (P(Y | X) * P(X) / P(Y), {X, Y}),
-            (Q[A, B](C, D), {A, B, C, D}),
+            (Q[A, B](C, D), {A, B, C, D}),  # type: ignore
         ]:
             with self.subTest(expression=str(expression)):
                 self.assertEqual(variables, expression.get_variables())

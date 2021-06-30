@@ -167,5 +167,4 @@ class TestCanonicalizeEqual(unittest.TestCase):
         self.assertFalse(canonical_expr_equal(P(X @ W), P(Y)))
 
         # Order changes
-        self.assertNotEqual(P(X, Y), P(Y, X))
-        self.assertTrue(canonical_expr_equal(P(X, Y), P(Y, X)))
+        self.assertTrue(canonical_expr_equal(P(X & Y), P(Y & X)))
