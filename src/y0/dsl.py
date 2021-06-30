@@ -113,7 +113,7 @@ class _Mathable(ABC):
     def __str__(self) -> str:
         return self.to_y0()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.to_y0()
 
     @abstractmethod
@@ -155,6 +155,7 @@ class Variable(_Mathable):
         return self.to_text()
 
     def to_y0(self) -> str:
+        """Output this variable instance as y0 internal DSL code."""
         return self.name
 
     def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
@@ -257,6 +258,10 @@ class Intervention(Variable):
         """Output this intervention variable in the LaTeX string format."""
         return f"{self.name}^*" if self.star else self.name
 
+    def to_y0(self) -> str:
+        """Output this intervention instance as y0 internal DSL code."""
+        return f"~{self.name}" if self.star else self.name
+
     def invert(self) -> Intervention:
         """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
         return Intervention(name=self.name, star=not self.star)
@@ -295,6 +300,14 @@ class CounterfactualVariable(Variable):
         """Output this counterfactual variable in the LaTeX string format."""
         intervention_latex = _list_to_latex(self.interventions)
         return f"{self.name}_{{{intervention_latex}}}"
+
+    def to_y0(self) -> str:
+        """Output this counterfactual variable instance as y0 internal DSL code."""
+        if len(self.interventions) == 1:
+            return f'{self.name} @ {self.interventions[0].to_y0()}'
+        else:
+            ins = ', '.join(i.to_y0() for i in self.interventions)
+            return f'{self.name} @ ({ins})'
 
     def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
@@ -396,6 +409,7 @@ class Distribution(_Mathable):
             return children
 
     def to_y0(self) -> str:
+        """Output this distribution instance as y0 internal DSL code."""
         children = _list_to_text(self.children)
         if self.parents:
             parents = _list_to_text(self.parents)
@@ -547,7 +561,8 @@ class Probability(Expression):
         return f"P({self.distribution.to_text()})"
 
     def to_y0(self) -> str:
-        return f'P({self.distribution.to_y0()})'
+        """Output this probability instance as y0 internal DSL code."""
+        return f"P({self.distribution.to_y0()})"
 
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
@@ -764,6 +779,7 @@ class Product(Expression):
         return " ".join(expression.to_text() for expression in self.expressions)
 
     def to_y0(self) -> str:
+        """Output this product instance as y0 internal DSL code."""
         return " * ".join(expr.to_y0() for expr in self.expressions)
 
     def to_latex(self):
@@ -847,12 +863,15 @@ class Sum(Expression):
         return rf"\sum_{{{ranges}}} {self.expression.to_latex()}"
 
     def to_y0(self):
-        """Output this sum in the y0 python format."""
-        ranges = _list_to_text(self.ranges)
-        if ranges:
-            return f'Sum[{ranges}]({self.expression.to_y0()})'
+        """Output this sum instance as y0 internal DSL code."""
+        if isinstance(self.expression, Fraction):
+            s = self.expression.to_y0(parens=False)
         else:
-            return f'Sum({self.expression.to_y0()})'
+            s = self.expression.to_y0()
+        if not self.ranges:
+            return f"Sum({s})"
+        ranges = _list_to_text(self.ranges)
+        return f"Sum[{ranges}]({s})"
 
     def __mul__(self, expression: Expression):
         if isinstance(expression, Product):
@@ -914,8 +933,10 @@ class Fraction(Expression):
         """Output this fraction in the LaTeX string format."""
         return rf"\frac{{{self.numerator.to_latex()}}}{{{self.denominator.to_latex()}}}"
 
-    def to_y0(self) -> str:
-        return f'({self.numerator.to_y0()} / {self.denominator.to_y0()})'
+    def to_y0(self, parens: bool = True) -> str:
+        """Output this fraction as y0 internal DSL code."""
+        s = f"({self.numerator.to_y0()} / {self.denominator.to_y0()})"
+        return f"({s})" if parens else s
 
     def __mul__(self, expression: Expression) -> Fraction:
         if isinstance(expression, Fraction):
@@ -1022,6 +1043,7 @@ class One(Expression):
         return "1"
 
     def to_y0(self) -> str:
+        """Output this identity instance as y0 internal DSL code."""
         return "One()"
 
     def __rmul__(self, expression: Expression) -> Expression:
@@ -1072,19 +1094,20 @@ class QFactor(Expression):
         return _helper
 
     def to_text(self) -> str:
-        """Output this fraction in the internal string format."""
+        """Output this Q factor in the internal string format."""
         codomain = _list_to_latex(self.codomain)
         domain = _list_to_text(self.domain)
         return f"Q[{codomain}]({domain})"
 
     def to_latex(self) -> str:
-        """Output this fraction in the LaTeX string format."""
+        """Output this Q factor in the LaTeX string format."""
         codomain = _list_to_latex(self.codomain)
         domain = _list_to_text(self.domain)
         return rf"Q_{{{codomain}}}({{{domain}}})"
 
     def to_y0(self) -> str:
-        return self.to_text()
+        """Output this Q factor instance as y0 internal DSL code."""
+        raise NotImplementedError
 
     def __mul__(self, other: Expression):
         if isinstance(other, Product):
