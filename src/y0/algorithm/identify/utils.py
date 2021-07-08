@@ -23,12 +23,12 @@ from y0.mutate.canonicalize_expr import canonical_expr_equal
 __all__ = [
     "Query",
     "Identification",
-    "Fail",
+    "Unidentifiable",
     "str_nodes_to_variable_nodes",
 ]
 
 
-class Fail(Exception):
+class Unidentifiable(Exception):
     """Raised on failure of the identification algorithm."""
 
 

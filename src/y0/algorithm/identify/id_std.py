@@ -4,7 +4,7 @@
 
 from typing import List, Sequence
 
-from .utils import Fail, Identification
+from .utils import Unidentifiable, Identification
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
 
 
@@ -47,7 +47,7 @@ def identify(identification: Identification) -> Expression:
 
     # line 5
     if graph.is_connected():  # e.g., there's only 1 c-component, and it encompasses all vertices
-        raise Fail(graph.nodes(), graph_without_treatments.get_c_components())
+        raise Unidentifiable(graph.nodes(), graph_without_treatments.get_c_components())
 
     # line 6
     districts = graph.get_c_components()
@@ -208,7 +208,7 @@ def line_5(identification: Identification) -> None:
     # line 5
     districts = graph.get_c_components()
     if districts == [frozenset(vertices)]:
-        raise Fail(districts, districts_without_treatment)
+        raise Unidentifiable(districts, districts_without_treatment)
 
 
 def line_6(identification: Identification) -> Expression:

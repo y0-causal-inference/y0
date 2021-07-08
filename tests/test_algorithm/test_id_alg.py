@@ -5,7 +5,7 @@
 import itertools as itt
 import unittest
 
-from y0.algorithm.identify import Fail, idc, identify
+from y0.algorithm.identify import Unidentifiable, idc, identify
 from y0.algorithm.identify.id_std import (
     line_1,
     line_2,
@@ -154,9 +154,9 @@ class TestIdentify(unittest.TestCase):
         from these two c-components.
         """
         for identification in line_5_example.identifications:
-            with self.assertRaises(Fail):
+            with self.assertRaises(Unidentifiable):
                 line_5(identification["id_in"][0])
-            with self.assertRaises(Fail):
+            with self.assertRaises(Unidentifiable):
                 identify(identification["id_in"][0])
 
     def test_line_6(self):
