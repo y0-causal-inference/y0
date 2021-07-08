@@ -203,7 +203,7 @@ class Identification:
             self.graph = str_nodes_to_variable_nodes(NxMixedGraph.from_admg(graph))
         else:
             self.graph = str_nodes_to_variable_nodes(graph)
-        self.estimand = P(graph.nodes()) if estimand is None else estimand
+        self.estimand = P(self.graph.nodes()) if estimand is None else estimand
 
     @classmethod
     def from_parts(
