@@ -113,6 +113,16 @@ class Identification:
             estimand=estimand,
         )
 
+    @property
+    def query(self):
+        return self.to_query()
+
+    def to_query(self):
+        if len(self.treatments) > 0:
+            return P(outcome @ self.treatments for outcome in self.outcomes)
+        else:
+            return P(self.outcomes)
+
     def __repr__(self) -> str:
         return (
             f'Identification(outcomes="{self.outcomes}, treatments="{self.treatments}",'

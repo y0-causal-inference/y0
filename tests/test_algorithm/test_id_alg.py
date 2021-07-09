@@ -96,7 +96,7 @@ class TestIdentify(unittest.TestCase):
                 line_2(identification["id_in"][0]),
             )
             self.assert_expr_equal(
-                Sum.safe(expression=P(Y, Z), ranges=[Z]),
+                Sum.safe(expression=Sum.safe(expression=P(Y, X, Z), ranges=[X]), ranges=[Z]),
                 identify(identification["id_in"][0]),
             )
 
@@ -144,7 +144,7 @@ class TestIdentify(unittest.TestCase):
                         [
                             P(M | (Z, X)),
                             P(Y | (M, Z, X)),
-                            Sum(P(Z)),
+                            Sum.safe(expression=P(Z, X, M, Y), ranges=[X, M, Y]),
                         ]
                     ),
                 ),
@@ -197,14 +197,11 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_7_example.identifications:
             id_out = identification["id_out"][0]
-
-            self.assertEqual(
-                id_out,
-                line_7(identification["id_in"][0]),
-            )
+            id_in = identification["id_in"][0]
+            W1, X = Variable("W1"), Variable("X")
+            self.assertEqual(id_out, line_7(id_in))
             self.assert_expr_equal(
-                Sum(P(Y1)),
-                identify(identification["id_in"][0]),
+                Sum.safe(expression=P(Y1 | (W1, X)) * P(W1), ranges=[W1]), identify(id_in)
             )
 
     # def test_figure_2a(self):
