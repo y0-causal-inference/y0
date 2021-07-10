@@ -4,7 +4,7 @@
 
 from typing import List, Sequence
 
-from .utils import Unidentifiable, Identification
+from .utils import Identification, Unidentifiable
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
 
 
@@ -13,7 +13,7 @@ def identify(identification: Identification) -> Expression:
 
     :param identification: The identification tuple
     :returns: the expression corresponding to the identification
-    :raises Fail: If no appropriate identification can be found
+    :raises Unidentifiable: If no appropriate identification can be found
     """
     graph = identification.graph
     treatments = identification.treatments
@@ -197,7 +197,7 @@ def line_5(identification: Identification) -> None:
     is always possible to recover a hedge from these two c-components.
 
     :param identification: The data structure with the treatment, outcomes, estimand, and graph
-    :raises Fail: If line 5 realizes that identification is not possible
+    :raises Unidentifiable: If line 5 realizes that identification is not possible
     """
     treatments = identification.treatments
     graph = identification.graph
