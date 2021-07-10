@@ -64,6 +64,9 @@ jobs:
       - name: Test with pytest
         run:
           tox -e py
+      - name: Doctests
+        run:
+          tox -e doctests
 #      - name: Upload coverage to Codecov
 #        uses: codecov/codecov-action@v1
 #        with:
