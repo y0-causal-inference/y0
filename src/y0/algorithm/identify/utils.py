@@ -167,7 +167,16 @@ class Query:
             treatments=self.treatments,
             conditions=None,
         )
-
+    @property
+    def expression(self) -> Expression:
+        """Return the query as a Probabilistic expression"""
+        outcomes, treatments, conditions = self.outcomes, self.treatments, self.conditions
+        if conditions and len(treatments) > 0:
+            return P[treatments](outcomes | conditions )
+        elif len(treatments) > 0:
+            return P[treatments](outcomes)
+        else:
+            return P(outcomes)
 
 def _unexp_interventions(variables: Iterable[Variable]) -> bool:
     return any(isinstance(c, CounterfactualVariable) for c in variables)
