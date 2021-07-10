@@ -37,7 +37,7 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
         P(X,Y)=P(X|Y)*P(Y)
 
     >>> from y0.dsl import P, X, Y
-    >>> assert chain_expand(P(X | Y)) == P(X | Y) * P(Y)
+    >>> assert chain_expand(P(X, Y)) == P(X | Y) * P(Y)
 
     The recurrence relation for many variables is defined as:
 
@@ -45,11 +45,11 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
         P(X_n,\dots,X_1) = P(X_n|X_{n-1},\dots,X_1) \times P(X_{n-1},\dots,X_1)
 
     >>> from y0.dsl import P, A, X, Y, Z
-    >>> chain_expand(P(X, Y, Z)) == P(X | (Y, Z)) * P(Y | Z) * P(Z)
+    >>> assert chain_expand(P(X, Y, Z)) == P(X | Y, Z) * P(Y | Z) * P(Z)
 
     Extra conditions come along for the ride.
 
-    >>> chain_expand(P(X & Y | A)) == P(X | (Y, Z, A)) * P(Y | (Z, A)) * P(Z | A)
+    >>> assert chain_expand(P(X, Y, Z | A)) == P(X | Y, Z, A) * P(Y | Z, A) * P(Z | A)
     """
     if reorder:
         _ordering = ensure_ordering(p, ordering=ordering)
