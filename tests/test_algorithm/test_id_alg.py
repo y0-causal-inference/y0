@@ -5,7 +5,7 @@
 import itertools as itt
 import unittest
 
-from y0.algorithm.identify import Fail, identify, idc
+from y0.algorithm.identify import Unidentifiable, idc, identify
 from y0.algorithm.identify.id_std import (
     line_1,
     line_2,
@@ -58,13 +58,7 @@ class TestIdentify(unittest.TestCase):
             id_out = identification["id_out"][0]
             self.assert_expr_equal(
                 expected=id_out.estimand,
-                actual=idc(
-                    outcomes=id_in.outcomes,
-                    treatments=id_in.treatments,
-                    conditions=id_in.conditions,
-                    graph=id_in.graph,
-                    estimand=id_in.estimand,
-                ),
+                actual=idc(id_in),
             )
 
     def test_line_1(self):
@@ -160,9 +154,9 @@ class TestIdentify(unittest.TestCase):
         from these two c-components.
         """
         for identification in line_5_example.identifications:
-            with self.assertRaises(Fail):
+            with self.assertRaises(Unidentifiable):
                 line_5(identification["id_in"][0])
-            with self.assertRaises(Fail):
+            with self.assertRaises(Unidentifiable):
                 identify(identification["id_in"][0])
 
     def test_line_6(self):

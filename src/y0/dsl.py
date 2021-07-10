@@ -8,21 +8,22 @@ import functools
 import itertools as itt
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from inspect import isgenerator
 from operator import attrgetter
 from typing import (
     Callable,
     Iterable,
-    Iterator,
     Optional,
+    Protocol,
     Sequence,
     Set,
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 
 __all__ = [
+    "Element",
     "Variable",
     "Intervention",
     "CounterfactualVariable",
@@ -75,12 +76,7 @@ __all__ = [
     "ensure_ordering",
 ]
 
-X = TypeVar("X")
-XSeq = Union[X, Sequence[X]]
-
-
-def _upgrade_variables(variables: XSeq[Variable]) -> Tuple[Variable, ...]:
-    return (variables,) if isinstance(variables, Variable) else tuple(variables)
+T_co = TypeVar("T_co", covariant=True)
 
 
 def _to_interventions(variables: Sequence[Variable]) -> Tuple[Intervention, ...]:
@@ -92,7 +88,9 @@ def _to_interventions(variables: Sequence[Variable]) -> Tuple[Intervention, ...]
     )
 
 
-class _Mathable(ABC):
+class Element(ABC):
+    """An element in the y0 internal domain-speific language that can be converted to text, LaTeX, and code."""
+
     @abstractmethod
     def to_text(self) -> str:
         """Output this DSL object in the internal string format."""
@@ -101,11 +99,18 @@ class _Mathable(ABC):
     def to_latex(self) -> str:
         """Output this DSL object in the LaTeX string format."""
 
+    @abstractmethod
+    def to_y0(self) -> str:
+        """Output this DSL object as y0 python code."""
+
     def _repr_latex_(self) -> str:  # hack for auto-display of latex in jupyter notebook
         return f"${self.to_latex()}$"
 
     def __str__(self) -> str:
-        return self.to_text()
+        return self.to_y0()
+
+    def __repr__(self) -> str:
+        return self.to_y0()
 
     @abstractmethod
     def _iter_variables(self) -> Iterable[Variable]:
@@ -116,8 +121,8 @@ class _Mathable(ABC):
         return set(self._iter_variables())
 
 
-@dataclass(frozen=True)
-class Variable(_Mathable):
+@dataclass(frozen=True, order=True, repr=False)
+class Variable(Element):
     """A variable, typically with a single letter."""
 
     #: The name of the variable
@@ -135,7 +140,7 @@ class Variable(_Mathable):
         elif isinstance(name, Variable):
             return name
         else:
-            raise TypeError
+            raise TypeError(f"({type(name)}) {name} is not valid")
 
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
@@ -145,7 +150,11 @@ class Variable(_Mathable):
         """Output this variable in the LaTeX string format."""
         return self.to_text()
 
-    def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
+    def to_y0(self) -> str:
+        """Output this variable instance as y0 internal DSL code."""
+        return self.name
+
+    def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this variable with the given variable(s).
 
         :param variables: The variable(s) used to extend this variable as it is changed to a
@@ -159,10 +168,10 @@ class Variable(_Mathable):
             interventions=_to_interventions(_upgrade_variables(variables)),
         )
 
-    def __matmul__(self, variables: XSeq[Variable]) -> CounterfactualVariable:
+    def __matmul__(self, variables: VariableHint) -> CounterfactualVariable:
         return self.intervene(variables)
 
-    def given(self, parents: Union[XSeq[Variable], Distribution]) -> Distribution:
+    def given(self, parents: Union[VariableHint, Distribution]) -> Distribution:
         """Create a distribution in which this variable is conditioned on the given variable(s).
 
         The new distribution is a Markov Kernel.
@@ -188,10 +197,10 @@ class Variable(_Mathable):
                 parents=parents.children,  # don't think about this too hard
             )
 
-    def __or__(self, parents: XSeq[Variable]) -> Distribution:
+    def __or__(self, parents: Union[VariableHint, Distribution]) -> Distribution:
         return self.given(parents)
 
-    def joint(self, children: XSeq[Variable]) -> Distribution:
+    def joint(self, children: VariableHint) -> Distribution:
         """Create a joint distribution between this variable and the given variable(s).
 
         :param children: The variable(s) for use with this variable in a joint distribution
@@ -203,7 +212,7 @@ class Variable(_Mathable):
             children=(self, *_upgrade_variables(children)),
         )
 
-    def __and__(self, children: XSeq[Variable]) -> Distribution:
+    def __and__(self, children: VariableHint) -> Distribution:
         return self.joint(children)
 
     def invert(self) -> Intervention:
@@ -224,11 +233,14 @@ class Variable(_Mathable):
         """Get a set containing this variable."""
         yield self
 
-    def __lt__(self, other):
-        return str(self) < str(other)
+    # def __lt__(self, other):
+    #     return str(self) < str(other)
 
 
-@dataclass(frozen=True)
+VariableHint = Union[str, Variable, Iterable[Union[str, Variable]]]
+
+
+@dataclass(frozen=True, order=True, repr=False)
 class Intervention(Variable):
     """An intervention variable.
 
@@ -248,12 +260,16 @@ class Intervention(Variable):
         """Output this intervention variable in the LaTeX string format."""
         return f"{self.name}^*" if self.star else self.name
 
+    def to_y0(self) -> str:
+        """Output this intervention instance as y0 internal DSL code."""
+        return f"~{self.name}" if self.star else self.name
+
     def invert(self) -> Intervention:
         """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
         return Intervention(name=self.name, star=not self.star)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True, repr=False)
 class CounterfactualVariable(Variable):
     """A counterfactual variable.
 
@@ -291,7 +307,15 @@ class CounterfactualVariable(Variable):
         intervention_latex = _list_to_latex(self.interventions)
         return f"{self.name}_{{{intervention_latex}}}"
 
-    def intervene(self, variables: XSeq[Variable]) -> CounterfactualVariable:
+    def to_y0(self) -> str:
+        """Output this counterfactual variable instance as y0 internal DSL code."""
+        if len(self.interventions) == 1:
+            return f"{self.name} @ {self.interventions[0].to_y0()}"
+        else:
+            ins = ", ".join(i.to_y0() for i in self.interventions)
+            return f"{self.name} @ ({ins})"
+
+    def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
 
         :param variables: The variable(s) used to extend this counterfactual variable's
@@ -335,7 +359,7 @@ class CounterfactualVariable(Variable):
 
 
 @dataclass(frozen=True)
-class Distribution(_Mathable):
+class Distribution(Element):
     """A general distribution over several child variables, conditioned by several parents."""
 
     children: Tuple[Variable, ...]
@@ -349,23 +373,71 @@ class Distribution(_Mathable):
         if not self.children:
             raise ValueError("distribution must have at least one child")
 
+    @classmethod
+    def safe(
+        cls,
+        distribution: Union[VariableHint, Distribution],
+        *args: Union[str, Variable, Distribution],
+    ) -> Distribution:
+        """Create a distribution the given variable(s) or distribution.
+
+        :param distribution: If given a :class:`Distribution`, creates a probability expression
+            directly over the distribution. If given variable or list of variables, conveniently
+            creates a :class:`Distribution` with the variable(s) as children.
+        :param args: If the first argument (``distribution``) was given as a single variable, the
+            ``args`` variadic argument can be used to specify a list of additional variables.
+        :returns: A Distribution object
+        :raises ValueError: If invalid combination of arguments are given.
+        """
+        if isinstance(distribution, (str, Variable, Distribution)):
+            extended_args = [distribution, *args]
+            dist_pos = [i for i, e in enumerate(extended_args) if isinstance(e, Distribution)]
+
+            # There are no distributions (e.g., no conditionals were given with the | already)
+            if 0 == len(dist_pos):
+                return Distribution(
+                    children=_upgrade_ordering(cast(VariableHint, extended_args)),
+                )
+
+            # A single conditional was given. Everything before it should be considered
+            # as child variables, and everything after as parent variables.
+            elif 1 == len(dist_pos):
+                i = dist_pos[0]
+                pre = cast(Iterable[Union[str, Variable]], extended_args[:i])
+                dist = cast(Distribution, extended_args[i])
+                post = cast(Iterable[Union[str, Variable]], extended_args[i + 1 :])
+                return Distribution(
+                    children=_sorted_variables((*_upgrade_ordering(pre), *dist.children)),
+                    parents=_sorted_variables((*dist.parents, *_upgrade_ordering(post))),
+                )
+
+            # Multiple conditionals were detected. This isn't allowed.
+            else:
+                raise ValueError("can not give multiple distribution objects")
+        elif args:
+            raise ValueError("can not use args/parents when giving an iterable as first argument")
+        else:
+            return Distribution(
+                children=_upgrade_ordering(distribution),
+            )
+
+    def _to_x(self, func: Callable[[Iterable[Variable]], str]) -> str:
+        children = func(self.children)
+        if not self.parents:
+            return children
+        return f"{children}|{func(self.parents)}"
+
     def to_text(self) -> str:
         """Output this distribution in the internal string format."""
-        children = _list_to_text(self.children)
-        if self.parents:
-            parents = _list_to_text(self.parents)
-            return f"{children}|{parents}"
-        else:
-            return children
+        return self._to_x(_list_to_text)
+
+    def to_y0(self) -> str:
+        """Output this distribution instance as y0 internal DSL code."""
+        return self._to_x(_list_to_y0)
 
     def to_latex(self) -> str:
         """Output this distribution in the LaTeX string format."""
-        children = _list_to_latex(self.children)
-        if self.parents:
-            parents = _list_to_latex(self.parents)
-            return f"{children}|{parents}"
-        else:
-            return children
+        return self._to_x(_list_to_latex)
 
     def is_conditioned(self) -> bool:
         """Return if this distribution is conditioned."""
@@ -375,13 +447,25 @@ class Distribution(_Mathable):
         """Return if this distribution a markov kernel -> one child variable and one or more conditionals."""
         return len(self.children) == 1
 
+    def intervene(self, variables: VariableHint) -> Distribution:
+        """Return a new distribution that has the given intervention(s) on all variables."""
+        # check that the variables aren't in any of them yet
+        variables = _upgrade_variables(variables)
+        return Distribution(
+            children=tuple(child.intervene(variables) for child in self.children),
+            parents=tuple(parent.intervene(variables) for parent in self.parents),
+        )
+
+    def __matmul__(self, variables: VariableHint) -> Distribution:
+        return self.intervene(variables)
+
     def uncondition(self) -> Distribution:
         """Return a new distribution that is not conditioned on the parents."""
         return Distribution(
             children=(*self.children, *self.parents),
         )
 
-    def joint(self, children: XSeq[Variable]) -> Distribution:
+    def joint(self, children: VariableHint) -> Distribution:
         """Create a new distribution including the given child variables.
 
         :param children: The variable(s) with which this distribution's children are extended
@@ -394,10 +478,10 @@ class Distribution(_Mathable):
             parents=self.parents,
         )
 
-    def __and__(self, children: XSeq[Variable]) -> Distribution:
+    def __and__(self, children: VariableHint) -> Distribution:
         return self.joint(children)
 
-    def given(self, parents: Union[XSeq[Variable], Distribution]) -> Distribution:
+    def given(self, parents: Union[VariableHint, Distribution]) -> Distribution:
         """Create a new mixed distribution additionally conditioned on the given parent variables.
 
         :param parents: The variable(s) with which this distribution's parents are extended
@@ -406,6 +490,7 @@ class Distribution(_Mathable):
 
         .. note:: This function can be accessed with the or | operator.
         """
+        # TODO handle duplicate variables in the parents.
         if not isinstance(parents, Distribution):
             return Distribution(
                 children=self.children,
@@ -424,7 +509,7 @@ class Distribution(_Mathable):
                 ),  # don't think about this too hard
             )
 
-    def __or__(self, parents: XSeq[Variable]) -> Distribution:
+    def __or__(self, parents: Union[VariableHint, Distribution]) -> Distribution:
         return self.given(parents)
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -433,7 +518,7 @@ class Distribution(_Mathable):
             yield from variable._iter_variables()
 
 
-class Expression(_Mathable, ABC):
+class Expression(Element, ABC):
     """The abstract class representing all expressions."""
 
     @abstractmethod
@@ -444,24 +529,58 @@ class Expression(_Mathable, ABC):
     def __truediv__(self, other):
         pass
 
+    def marginalize(self, ranges: VariableHint) -> Fraction:
+        """Return this expression, marginalized by the given variables.
 
-@dataclass(frozen=True)
+        :param ranges: A variable or list of variables over which to marginalize this expression
+        :returns: A fraction in which the denominator is represents the sum over the given ranges
+
+        >>> from y0.dsl import P, A, B
+        >>> assert P(A, B).marginalize(A) == P(A, B) / Sum[A](P(A, B))
+        """
+        return Fraction(self, Sum(expression=self, ranges=_upgrade_variables(ranges)))
+
+
+@dataclass(frozen=True, repr=False)
 class Probability(Expression):
     """The probability over a distribution."""
 
     #: The distribution over which the probability is expressed
     distribution: Distribution
 
+    @classmethod
+    def safe(
+        cls,
+        distribution: DistributionHint,
+        *args: Union[str, Variable],
+        interventions: Optional[VariableHint] = None,
+    ) -> Probability:
+        """Create a distribution the given variable(s) or distribution.
+
+        :param distribution: If given a :class:`Distribution`, creates a probability expression
+            directly over the distribution. If given variable or list of variables, conveniently
+            creates a :class:`Distribution` with the variable(s) as children.
+        :param args: If the first argument (``distribution``) was given as a single variable, the
+            ``args`` variadic argument can be used to specify a list of additional variables.
+        :param interventions: An optional variable or variables to use as interventions.
+        :returns: A probability object
+        """
+        distribution = Distribution.safe(distribution, *args)
+        if interventions is not None:
+            distribution = distribution.intervene(interventions)
+        return Probability(distribution)
+
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
         return f"P({self.distribution.to_text()})"
 
+    def to_y0(self) -> str:
+        """Output this probability instance as y0 internal DSL code."""
+        return f"P({self.distribution.to_y0()})"
+
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
         return f"P({self.distribution.to_latex()})"
-
-    def __repr__(self):
-        return f"P({repr(self.distribution)})"
 
     def __mul__(self, other: Expression) -> Expression:
         if isinstance(other, Product):
@@ -474,6 +593,13 @@ class Probability(Expression):
     def __truediv__(self, expression: Expression) -> Fraction:
         return Fraction(self, expression)
 
+    def intervene(self, variables: VariableHint) -> Probability:
+        """Return a new probability where the underlying distribution has been intervened by the given variables."""
+        return Probability(self.distribution.intervene(variables))
+
+    def __matmul__(self, variables: VariableHint) -> Probability:
+        return self.intervene(variables)
+
     def uncondition(self) -> Probability:
         """Return a new probability where the underlying distribution is no longer conditioned by the parents.
 
@@ -484,132 +610,181 @@ class Probability(Expression):
         """
         return Probability(self.distribution.uncondition())
 
-    def marginalize(self, ranges: XSeq[Variable]) -> Fraction:
-        """Return this probability distribution, marginalized by the given variables.
-
-        :param ranges: A variable or list of variables over which to marganilize this probability's distribution
-        :returns: A fraction in which the denominator is represents the sum over the given ranges
-
-        >>> from y0.dsl import P, A, B
-        >>> P(A, B).marginalize(A) == P(A, B) / Sum[A](P(A, B))
-        """
-        return self / Sum(expression=self, ranges=_prepare_ranges(ranges))
-
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in the distribution in this probability."""
         yield from self.distribution._iter_variables()
 
 
-def P(  # noqa:N802
-    distribution: Union[
-        str,
-        Sequence[str],
-        Set[str],
-        Iterator[str],
-        Variable,
-        Sequence[Variable],
-        Set[Variable],
-        Iterator[Variable],
-        Distribution,
-    ],
-    *args: Union[str, Variable],
-) -> Probability:
-    """Create a probability expression over the given variable(s) or distribution.
-
-    :param distribution: If given a :class:`Distribution`, creates a probability expression
-        directly over the distribution. If given variable or list of variables, conveniently
-        creates a :class:`Distribtion` with the variable(s) as children.
-    :param args: If the first argument (``distribution``) was given as a single variable, the
-        ``args`` variadic argument can be used to specify a list of additional variables.
-    :returns: A probability object
-    :raises TypeError: If the distribution is the wrong type
-    :raises ValueError: If varidic args are used incorrectly (i.e., in combination with a
-        list of variables or :class:`Distribution`.
-
-    Creation with a conditional distribution:
-
-    >>> from y0.dsl import P, A, B
-    >>> P(A | B)
-
-    Creation with a joint distribution:
-
-    >>> from y0.dsl import P, A, B
-    >>> P(A & B)
-
-    Creation with a mixed joint/conditional distribution:
-
-    >>> from y0.dsl import P, A, B, C
-    >>> P(A & B | C)
-
-    Creation with a single :class:`Variable`:
-
-    >>> from y0.dsl import P, A
-    >>> P(A)
-
-    Creation with a single string:
-
-    >>> from y0.dsl import P, A
-    >>> P('A')
-
-    Creation with a list of :class:`Variable`:
-
-    >>> from y0.dsl import P, A, B
-    >>> P((A, B))
-
-    Creation with a list of strings:
-
-    >>> from y0.dsl import P, A, B
-    >>> P(('A', 'B'))
-
-    Creation with a list of :class:`Variable`: using variadic arguments:
-
-    >>> from y0.dsl import P, A, B
-    >>> P(A, B)
-
-    Creation with a list of strings using variadic arguments:
-
-    >>> from y0.dsl import P, A, B
-    >>> P('A', 'B')
-
-    Creation with a fancy generator of variables:
-
-    >>> from y0.dsl import P, A, B
-    >>> P(Variable(name) for name in 'AB')
-
-    Creation with a fancy generator of strings:
-
-    >>> from y0.dsl import P, A, B
-    >>> P(name for name in 'AB')
-    """
-    if isinstance(distribution, Distribution):
-        return Probability(distribution=distribution)
-
-    children: Tuple[Variable, ...]
-    if isinstance(distribution, (str, Variable)):
-        children = (Variable.norm(distribution), *_upgrade_ordering(args))
-    elif isinstance(distribution, (list, tuple, set)) or isgenerator(distribution):
-        if args:
-            raise ValueError("can not use variadic arguments with combination of first arg")
-        children = _sorted_variables(_upgrade_ordering(distribution))
-    else:
-        raise TypeError(f"invalid distribution type: {type(distribution)} {distribution}")
-    return Probability(distribution=Distribution(children=children))
+DistributionHint = Union[VariableHint, Distribution]
 
 
-@dataclass(frozen=True)
+class ProbabilityBuilderType:
+    """A base class for building probability distributions."""
+
+    def __call__(
+        self,
+        distribution: DistributionHint,
+        *args: Union[str, Variable],
+        interventions: Optional[VariableHint] = None,
+    ) -> Probability:
+        return Probability.safe(distribution, *args, interventions=interventions)
+
+    def __getitem__(self, interventions: VariableHint):
+        """Generate a probability builder closure.
+
+        :param interventions: A variable or variables to intervene on using the do-calculus level 2
+            rules, meaning they are all applied to all parent and children variables in the resulting
+            expression
+        :returns: A function with the same semantics as :meth:`__call__` such that you can build
+            a probability expression.
+
+        >>> from y0.dsl import P, W, X, Y, Z
+        >>> assert P[X](Y) == P(Y @ X)
+        >>> assert P[X](Y, Z) == P(Y @ X & Z @ X)
+        >>> assert P[X](Y | Z) == P(Y @ X | Z @ X)
+        >>> assert P[X](Y @ Z) == P(Y @ X @ Z)
+        >>> assert P[X](Y @ Z | W) == P(Y @ X @ Z | W @ X)
+        """
+        return functools.partial(self, interventions=interventions)
+
+
+P = ProbabilityBuilderType()
+"""``P`` is a magical object of mystery and wonder that can be used to create :class:`Probability` instances.
+
+It itself is a singleton instance of :class:`ProbabilityBuilderType` and can be used wither via the
+:meth:`ProbabilityBuilderType.__call__`, as if it were a function like ``P(Y)`` or it can be used as
+a combination with the :meth:`ProbabilityBuilderType.__getitem__` and a call, like ``P[X](Y)`` to
+denote interventions using the do-Calculus $L_2$ notation. Here are some examples:
+
+A univariate distribution can be created either with a string or a :class:`Variable`:
+
+>>> from y0.dsl import P, A
+>>> P('A') == P(A)
+
+**Multivariate Distributions**
+
+A joint distribution can be created with several strings or :class:`Variable` instances
+with variadic arguments:
+
+>>> from y0.dsl import P, A, B
+>>> P(A, B) == P('A', 'B')
+
+A joint distribution can also be created with a single argument that is either an iterable
+of either strings or :class:`Variable` instances
+
+>>> from y0.dsl import P, A, B
+>>> P((A, B)) == P([A, B]) == P(('A', 'B')) == P(['A', 'B'])
+
+This even extends to fancy generators, for which you can omit the parentheses:
+
+Creation with a fancy generator of variables:
+
+>>> from y0.dsl import P, A, B
+>>> P(Variable(name) for name in 'AB') == P(name for name in 'AB') == P(A, B)
+
+**Conditional Distributions**
+
+Creation with a conditional distribution:
+
+>>> from y0.dsl import P, A, B
+>>> P(A | B)
+
+Creation with a mixed joint/conditional distribution:
+
+>>> from y0.dsl import P, A, B, C
+>>> P(A & B | C)
+
+**Specifying an Intervention with L2 do-Calculus Notation**
+
+Intervene on a single variable:
+
+>>> from y0.dsl import P, X, Y
+>>> P[X](Y) == P(Y @ X)
+
+Intervene on multiple children:
+
+>>> from y0.dsl import P, X, Y, Z
+>>> P[X](Y, Z) == P(Y @ X & Z @ X)
+
+Intervene on multiple parents:
+
+>>> from y0.dsl import P, W, X, Y, Z
+>>> P[X](Y | (W, Z)) == P(Y @ X | (W @ X, Z @ X)):
+
+Intervene on both children and parents:
+
+>>> from y0.dsl import P, X, Y, Z
+>>> P[X](Y | Z) == P(Y @ X | Z @ X)
+
+Intervene on X on top of previous interventions:
+
+>>> from y0.dsl import P, X, Y, Z
+>>> P[X](Y @ Z) == P(Y @ X @ Z)
+
+Allow mixing with L3, where each variable can have different interventions:
+
+>>> from y0.dsl import P, W, X, Y, Z
+>>> P[X](Y @ Z | W) == P(Y @ X @ Z | W @ X)
+
+**Specifying Multiple Interventions with L2 do-Calculus Notation**
+
+Multiple interventions on a single variable:
+
+>>> from y0.dsl import P, X1, X2, Y
+>>> P[X1, X2](Y) == P(Y @ X)
+
+Multiple interventions  on multiple children:
+
+>>> from y0.dsl import P, X1, X2, Y, Z
+>>> P[X1, X2](Y, Z) == P(Y @ X1 @ X2 & Z @ X1 @ X2)
+
+... and so on
+"""
+
+
+@dataclass(frozen=True, repr=False)
 class Product(Expression):
     """Represent the product of several probability expressions."""
 
     expressions: Tuple[Expression, ...]
 
     @classmethod
-    def safe(cls, it: Iterable[Expression]) -> Product:
-        """Construct a product from any iterable of expressions."""
-        return cls(expressions=tuple(it))
+    def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Product:
+        """Construct a product from any iterable of expressions.
+
+        :param expressions: An expression or iterable of expressions which should be multiplied
+        :returns: A :class:`Product` object
+
+        Standard usage, same as the normal ``__init__``:
+
+        >>> from y0.dsl import Product, X, Y, A, P
+        >>> Product.safe((P(X, Y), ))
+
+        Use a list or other iterable:
+
+        >>> Product.safe([P(X), P(Y | X)])
+
+        Use an inline generator:
+
+        >>> Product.safe(P(v) for v in [X, Y])
+
+        Use a single expression:
+
+        >>> Product.safe(P(X, Y))
+        """
+        return cls(
+            expressions=(expressions,)
+            if isinstance(expressions, Expression)
+            else tuple(expressions)
+        )
 
     def to_text(self):
         """Output this product in the internal string format."""
         return " ".join(expression.to_text() for expression in self.expressions)
+
+    def to_y0(self) -> str:
+        """Output this product instance as y0 internal DSL code."""
+        return " * ".join(expr.to_y0() for expr in self.expressions)
 
     def to_latex(self):
         """Output this product in the LaTeX string format."""
@@ -632,15 +807,19 @@ class Product(Expression):
             yield from expression._iter_variables()
 
 
-def _list_to_text(elements: Iterable[_Mathable]) -> str:
+def _list_to_text(elements: Iterable[Element]) -> str:
     return ",".join(element.to_text() for element in elements)
 
 
-def _list_to_latex(elements: Iterable[_Mathable]) -> str:
+def _list_to_latex(elements: Iterable[Element]) -> str:
     return ",".join(element.to_latex() for element in elements)
 
 
-@dataclass(frozen=True)
+def _list_to_y0(elements: Iterable[Element]) -> str:
+    return ",".join(element.to_y0() for element in elements)
+
+
+@dataclass(frozen=True, repr=False)
 class Sum(Expression):
     """Represent the sum over an expression over an optional set of variables."""
 
@@ -650,9 +829,36 @@ class Sum(Expression):
     ranges: Tuple[Variable, ...] = field(default_factory=tuple)
 
     @classmethod
-    def safe(cls, *, expression: Expression, ranges: Iterable[Union[str, Variable]]) -> Sum:
-        """Construct a sum from an expresion and a permissive set of things in the ranges."""
-        return cls(expression=expression, ranges=_upgrade_ordering(ranges))
+    def safe(
+        cls, expression: Expression, ranges: Union[str, Variable, Iterable[Union[str, Variable]]]
+    ) -> Sum:
+        """Construct a sum from an expression and a permissive set of things in the ranges.
+
+        :param expression: The expression over which the sum is done
+        :param ranges: The variable or list of variables over which the sum is done
+        :returns: A :class:`Sum` object
+
+        Standard usage, same as the normal ``__init__``:
+
+        >>> from y0.dsl import Sum, X, Y, A, P
+        >>> Sum.safe(P(X, Y), (X,))
+
+        Use a list or other iterable:
+
+        >>> Sum.safe(P(X, Y), [X])
+
+        Use a single variable:
+
+        >>> Sum.safe(P(X, Y), X)
+        """
+        return cls(
+            expression=expression,
+            ranges=(
+                (Variable.norm(ranges),)
+                if isinstance(ranges, (str, Variable))
+                else _upgrade_ordering(ranges)
+            ),
+        )
 
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
@@ -663,6 +869,17 @@ class Sum(Expression):
         """Output this sum in the LaTeX string format."""
         ranges = _list_to_latex(self.ranges)
         return rf"\sum_{{{ranges}}} {self.expression.to_latex()}"
+
+    def to_y0(self):
+        """Output this sum instance as y0 internal DSL code."""
+        if isinstance(self.expression, Fraction):
+            s = self.expression.to_y0(parens=False)
+        else:
+            s = self.expression.to_y0()
+        if not self.ranges:
+            return f"Sum({s})"
+        ranges = _list_to_y0(self.ranges)
+        return f"Sum[{ranges}]({s})"
 
     def __mul__(self, expression: Expression):
         if isinstance(expression, Product):
@@ -680,9 +897,7 @@ class Sum(Expression):
             yield from variable._iter_variables()
 
     @classmethod
-    def __class_getitem__(
-        cls, ranges: Union[Variable, Tuple[Variable, ...]]
-    ) -> Callable[[Expression], Sum]:
+    def __class_getitem__(cls, ranges: VariableHint) -> Callable[[Expression], Sum]:
         """Create a partial sum object over the given ranges.
 
         :param ranges: The variables over which the partial sum will be done
@@ -698,16 +913,10 @@ class Sum(Expression):
         >>> from y0.dsl import Sum, P, A, B, C
         >>> Sum[B, C](P(A | B) * P(B))
         """
-        return functools.partial(Sum, ranges=_prepare_ranges(ranges))
+        return functools.partial(Sum, ranges=_upgrade_ordering(ranges))
 
 
-def _prepare_ranges(ranges: XSeq[Variable]) -> Tuple[Variable, ...]:
-    if isinstance(ranges, Variable):  # a single element is not given as a tuple, such as in Sum[T]
-        return (ranges,)
-    return tuple(ranges)
-
-
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Fraction(Expression):
     """Represents a fraction of two expressions."""
 
@@ -723,6 +932,11 @@ class Fraction(Expression):
     def to_latex(self) -> str:
         """Output this fraction in the LaTeX string format."""
         return rf"\frac{{{self.numerator.to_latex()}}}{{{self.denominator.to_latex()}}}"
+
+    def to_y0(self, parens: bool = True) -> str:
+        """Output this fraction as y0 internal DSL code."""
+        s = f"({self.numerator.to_y0()} / {self.denominator.to_y0()})"
+        return f"({s})" if parens else s
 
     def __mul__(self, expression: Expression) -> Fraction:
         if isinstance(expression, Fraction):
@@ -828,6 +1042,10 @@ class One(Expression):
         """Output this identity instance in the LaTeX string format."""
         return "1"
 
+    def to_y0(self) -> str:
+        """Output this identity instance as y0 internal DSL code."""
+        return "One()"
+
     def __rmul__(self, expression: Expression) -> Expression:
         return expression
 
@@ -845,7 +1063,14 @@ class One(Expression):
         return iter([])
 
 
-@dataclass(frozen=True)
+class QBuilder(Protocol[T_co]):
+    """A protocol for annotating the special class getitem functionality of the :class:`QFactor` class."""
+
+    def __call__(self, arg: VariableHint, *args: Union[str, Variable]) -> T_co:
+        ...
+
+
+@dataclass(frozen=True, repr=False)
 class QFactor(Expression):
     """A function from the variables in the domain to a probability function over variables in the codomain."""
 
@@ -853,7 +1078,32 @@ class QFactor(Expression):
     codomain: Tuple[Variable, ...]
 
     @classmethod
-    def __class_getitem__(cls, codomain: Union[Variable, Tuple[Variable, ...]]):
+    def safe(
+        cls,
+        domain: VariableHint,
+        *args: Union[str, Variable],
+        codomain: VariableHint,
+    ) -> QFactor:
+        """Create a Q factor with various input types."""
+        return cls(
+            domain=cls._prepare_domain(domain, *args),
+            codomain=_upgrade_variables(codomain),
+        )
+
+    @staticmethod
+    def _prepare_domain(
+        arg: VariableHint,
+        *args: Union[str, Variable],
+    ) -> Tuple[Variable, ...]:
+        """Prepare a list of variables from a potentially unruly set of args and variadic args."""
+        if isinstance(arg, (str, Variable)):
+            return Variable.norm(arg), *_upgrade_ordering(args)
+        if args:
+            raise ValueError("can not use variadic arguments with combination of first arg")
+        return _sorted_variables(_upgrade_ordering(arg))
+
+    @classmethod
+    def __class_getitem__(cls, codomain: Union[Variable, Iterable[Variable]]) -> QBuilder[QFactor]:
         """Create a partial Q Factor object over the given codomain.
 
         :param codomain: The variables over which the partial Q Factor will be done
@@ -869,23 +1119,25 @@ class QFactor(Expression):
         >>> from y0.dsl import Sum, Q, A, B, C, D
         >>> Q[C, D](A, B)
         """
-
-        def _helper(*domain: Variable):
-            return QFactor(domain=domain, codomain=_prepare_ranges(codomain))
-
-        return _helper
+        return functools.partial(cls.safe, codomain=codomain)
 
     def to_text(self) -> str:
-        """Output this fraction in the internal string format."""
-        codomain = _list_to_latex(self.codomain)
+        """Output this Q factor in the internal string format."""
+        codomain = _list_to_text(self.codomain)
         domain = _list_to_text(self.domain)
         return f"Q[{codomain}]({domain})"
 
     def to_latex(self) -> str:
-        """Output this fraction in the LaTeX string format."""
+        """Output this Q factor in the LaTeX string format."""
         codomain = _list_to_latex(self.codomain)
-        domain = _list_to_text(self.domain)
+        domain = _list_to_latex(self.domain)
         return rf"Q_{{{codomain}}}({{{domain}}})"
+
+    def to_y0(self) -> str:
+        """Output this Q factor instance as y0 internal DSL code."""
+        codomain = _list_to_y0(self.codomain)
+        domain = _list_to_y0(self.domain)
+        return f"Q[{codomain}]({domain})"
 
     def __mul__(self, other: Expression):
         if isinstance(other, Product):
@@ -915,11 +1167,24 @@ Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f"Y{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
 
 
-def _upgrade_ordering(variables: Iterable[Union[str, Variable]]) -> Tuple[Variable, ...]:
-    return tuple(Variable.norm(variable) for variable in variables)
+def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
+    return tuple(sorted(variables, key=attrgetter("name")))
 
 
-OrderingHint = Optional[Sequence[Union[str, Variable]]]
+def _upgrade_variables(variables: VariableHint) -> Tuple[Variable, ...]:
+    if isinstance(variables, str):
+        return (Variable(variables),)
+    elif isinstance(variables, Variable):
+        return (variables,)
+    else:
+        return tuple(Variable.norm(variable) for variable in variables)
+
+
+def _upgrade_ordering(variables: VariableHint) -> Tuple[Variable, ...]:
+    return _sorted_variables(_upgrade_variables(variables))
+
+
+OrderingHint = Optional[Iterable[Union[str, Variable]]]
 
 
 def ensure_ordering(
@@ -940,10 +1205,6 @@ def ensure_ordering(
         return _upgrade_ordering(ordering)
     # use alphabetical ordering
     return _sorted_variables(expression.get_variables())
-
-
-def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
-    return tuple(sorted(variables, key=attrgetter("name")))
 
 
 def _get_treatment_variables(variables: set[Variable]) -> set[Variable]:

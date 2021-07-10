@@ -18,7 +18,9 @@ from more_click import verbose_option
 from tabulate import tabulate
 from tqdm import tqdm
 
-from y0.algorithm.identify import Identification, identify
+
+from y0.algorithm.identify import Identification, Unidentifiable, identify
+
 from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.dsl import Expression, P, Variable
 from y0.graph import (
@@ -27,6 +29,7 @@ from y0.graph import (
     admg_from_latent_variable_dag,
     admg_to_latent_variable_dag,
 )
+from y0.mutate import canonicalize
 from y0.identify import is_identifiable
 from y0.util.combinatorics import powerset
 
@@ -44,7 +47,8 @@ class Result(NamedTuple):
     """Results from the LV-DAG check."""
 
     identifiable: bool
-    identifiability_expr: Optional[Expression]
+    #: The estimand returned from the related identification algorithm. Is none if not identifiable.
+    estimand: Optional[Expression]
     pre_nodes: int
     pre_edges: int
     post_nodes: int
@@ -177,11 +181,14 @@ def _get_result(
     # Check if the ADMG is identifiable under the (simple) causal query
     query = P(Variable(effect) @ ~Variable(cause))
     identifiable = is_identifiable(admg, query)
-    identifiability_expr = identify(Identification.from_query(graph=admg, query=query))
+    try:
+        estimand = canonicalize(identify(Identification.from_expression(graph=admg, query=query)))
+    except Unidentifiable:
+        estimand = None
 
     return Result(
         identifiable,
-        identifiability_expr=identifiability_expr,
+        estimand=estimand,
         pre_nodes=pre_nodes,
         pre_edges=pre_edges,
         post_nodes=post_nodes,
@@ -276,10 +283,10 @@ def draw_results(
         if result is None:
             ax.axis("off")
         else:
-            mixed_graph: NxMixedGraph[str] = NxMixedGraph.from_admg(result.admg)
+            mixed_graph = NxMixedGraph.from_admg(result.admg)  # type:ignore
             title = f"{i}) Latent: " + ", ".join(result.latents)
-            if result.identifiability_expr is not None:
-                title += f"\n${result.identifiability_expr.to_latex()}$"
+            if result.estimand is not None:
+                title += f"\n${result.estimand.to_latex()}$"
             mixed_graph.draw(ax=ax, title="\n".join(textwrap.wrap(title, width=45)))
 
     fig.tight_layout()
@@ -313,6 +320,22 @@ def print_results(results: List[Result], file=None) -> None:
 def main():
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
     import pystow
+    from y0.examples import igf_graph
+
+    results = taheri_design_dag(igf_graph, cause="PI3K", effect="Erk", stop=3)
+    # print_results(results)
+    draw_results(
+        results,
+        [
+            pystow.join("y0", name="ifg_identifiable_configs.png"),
+            pystow.join("y0", name="ifg_identifiable_configs.svg"),
+        ],
+        ncols=3,
+    )
+    import sys
+
+    sys.exit(0)
+
     from y0.resources import VIRAL_PATHOGENESIS_PATH
     from y0.graph import NxMixedGraph
 
@@ -324,8 +347,8 @@ def main():
     draw_results(
         results,
         [
-            pystow.join("y0", "viral_pathogenesis_egfr.png"),
-            pystow.join("y0", "viral_pathogenesis_egfr.svg"),
+            pystow.join("y0", name="viral_pathogenesis_egfr.png"),
+            pystow.join("y0", name="viral_pathogenesis_egfr.svg"),
         ],
     )
 
@@ -335,20 +358,8 @@ def main():
     draw_results(
         results,
         [
-            pystow.join("y0", "viral_pathogenesis_sIL6ra.png"),
-            pystow.join("y0", "viral_pathogenesis_sIL6ra.svg"),
-        ],
-    )
-
-    from y0.examples import igf_graph
-
-    results = taheri_design_dag(igf_graph, cause="PI3K", effect="Erk")
-    print_results(results)
-    draw_results(
-        results,
-        [
-            pystow.join("y0", "ifg_identifiable_configs.png"),
-            pystow.join("y0", "ifg_identifiable_configs.svg"),
+            pystow.join("y0", name="viral_pathogenesis_sIL6ra.png"),
+            pystow.join("y0", name="viral_pathogenesis_sIL6ra.svg"),
         ],
     )
 

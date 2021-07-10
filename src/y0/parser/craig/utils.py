@@ -19,6 +19,7 @@ from ...dsl import (
     Probability,
     QFactor,
     Variable,
+    _sorted_variables,
 )
 
 __all__ = [
@@ -60,12 +61,19 @@ def _make_probability(_s, _l, tokens: ParseResults) -> Probability:
     children, parents = tokens["children"].asList(), tokens["parents"].asList()
     if not children:
         raise ValueError
-    return Probability(Distribution(children=tuple(children), parents=tuple(parents)))
+    return Probability(
+        Distribution(
+            children=_sorted_variables(children),
+            parents=_sorted_variables(parents),
+        )
+    )
 
 
 def _make_q(_s, _l, tokens: ParseResults) -> QFactor:
-    codomain, domain = tokens["codomain"].asList(), tokens["domain"].asList()
-    return QFactor(codomain=tuple(codomain), domain=tuple(domain))
+    return QFactor(
+        codomain=_sorted_variables(tokens["codomain"].asList()),
+        domain=_sorted_variables(tokens["domain"].asList()),
+    )
 
 
 # The suffix "pe" refers to :class:`pyparsing.ParserElement`, which is the
