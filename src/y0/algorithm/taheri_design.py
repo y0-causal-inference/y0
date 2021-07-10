@@ -29,8 +29,8 @@ from y0.graph import (
     admg_from_latent_variable_dag,
     admg_to_latent_variable_dag,
 )
-from y0.mutate import canonicalize
 from y0.identify import is_identifiable
+from y0.mutate import canonicalize
 from y0.util.combinatorics import powerset
 
 __all__ = [
@@ -182,7 +182,9 @@ def _get_result(
     query = P(Variable(effect) @ ~Variable(cause))
     identifiable = is_identifiable(admg, query)
     try:
-        estimand = canonicalize(identify(Identification.from_expression(graph=admg, query=query)))
+        estimand: Optional[Expression] = canonicalize(
+            identify(Identification.from_expression(graph=admg, query=query))
+        )
     except Unidentifiable:
         estimand = None
 

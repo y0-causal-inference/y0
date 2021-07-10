@@ -93,7 +93,7 @@ class TestDSL(unittest.TestCase):
 
         # Instantiation with two variables
         self.assert_text(
-            "Y_{X,W*}",
+            "Y_{X, W*}",
             CounterfactualVariable("Y", (Intervention("X"), ~Intervention("W"))),
         )
 
@@ -102,10 +102,10 @@ class TestDSL(unittest.TestCase):
         self.assert_text("Y_{W*}", Y @ ~Intervention("W"))
 
         # Instantiation with matmul @ operator and list operand
-        self.assert_text("Y_{X,W*}", Y @ [X, ~W])
+        self.assert_text("Y_{X, W*}", Y @ [X, ~W])
 
         # Instantiation with matmul @ operator (chained)
-        self.assert_text("Y_{X,W*}", Y @ X @ ~W)
+        self.assert_text("Y_{X, W*}", Y @ X @ ~W)
 
     def test_counterfactual_errors(self):
         """Test that if two variables with the same name are given, an error is raised, regardless of star state."""
@@ -116,36 +116,36 @@ class TestDSL(unittest.TestCase):
     def test_conditional_distribution(self):
         """Test the :class:`Distribution` DSL object."""
         # Normal instantiation
-        self.assert_text("A|B", Distribution((A,), (B,)))
+        self.assert_text("A | B", Distribution((A,), (B,)))
 
         # Instantiation with list-based operand to or | operator
-        self.assert_text("A|B", Variable("A") | (B,))
-        self.assert_text("A|B", A | (B,))
+        self.assert_text("A | B", Variable("A") | (B,))
+        self.assert_text("A | B", A | (B,))
 
         # # Instantiation with two variables
-        self.assert_text("A|B,C", A | [B, C])
+        self.assert_text("A | B, C", A | [B, C])
 
         # Instantiation with or | operator and single operand
-        self.assert_text("A|B", Variable("A") | B)
-        self.assert_text("A|B", A | B)
+        self.assert_text("A | B", Variable("A") | B)
+        self.assert_text("A | B", A | B)
 
         # Instantiation with or | operator (chained)
-        self.assert_text("A|B,C", A | B | C)
+        self.assert_text("A | B, C", A | B | C)
 
         # Counterfactual uses work basically the same.
         #  Note: @ binds more tightly than |, but it's probably better to use parentheses
-        self.assert_text("Y_{W}|B", (Y @ W) | B)
-        self.assert_text("Y_{W}|B", Y @ W | B)
-        self.assert_text("Y_{W}|B,C", Y @ W | B | C)
-        self.assert_text("Y_{W,X*}|B,C", Y @ W @ ~X | B | C)
-        self.assert_text("Y_{W,X*}|B_{N*},C", Y @ W @ ~X | B @ Intervention("N", True) | C)
+        self.assert_text("Y_{W} | B", (Y @ W) | B)
+        self.assert_text("Y_{W} | B", Y @ W | B)
+        self.assert_text("Y_{W} | B, C", Y @ W | B | C)
+        self.assert_text("Y_{W, X*} | B, C", Y @ W @ ~X | B | C)
+        self.assert_text("Y_{W, X*} | B_{N*}, C", Y @ W @ ~X | B @ Intervention("N", True) | C)
 
     def test_joint_distribution(self):
         """Test the JointProbability DSL object."""
-        self.assert_text("A,B", Distribution((A, B)))
-        self.assert_text("A,B", A & B)
-        self.assert_text("A,B,C", Distribution((A, B, C)))
-        self.assert_text("A,B,C", A & B & C)
+        self.assert_text("A, B", Distribution((A, B)))
+        self.assert_text("A, B", A & B)
+        self.assert_text("A, B, C", Distribution((A, B, C)))
+        self.assert_text("A, B, C", A & B & C)
 
     def test_probability(self):
         """Test generation of probabilities."""
@@ -158,49 +158,49 @@ class TestDSL(unittest.TestCase):
         self.assert_text("P(A)", P(Distribution((A,))))
 
         # Test markov kernel with single parent (AKA has only one child variable)
-        self.assert_text("P(A|B)", P(A | B))
-        self.assert_text("P(A|B)", P(Distribution((A,), (B,))))
-        self.assert_text("P(A|B)", P(A | [B]))
+        self.assert_text("P(A | B)", P(A | B))
+        self.assert_text("P(A | B)", P(Distribution((A,), (B,))))
+        self.assert_text("P(A | B)", P(A | [B]))
 
         # Test markov kernel with multiple parents
-        self.assert_text("P(A|B,C)", P(A | B, C))
-        self.assert_text("P(A|B,C)", P(Distribution((A,), (B,)) | C))
-        self.assert_text("P(A|B,C)", P(A | [B, C]))
-        self.assert_text("P(A|B,C)", P(A | B | C))
-        self.assert_text("P(A|B,C)", P(A | B & C))
+        self.assert_text("P(A | B, C)", P(A | B, C))
+        self.assert_text("P(A | B, C)", P(Distribution((A,), (B,)) | C))
+        self.assert_text("P(A | B, C)", P(A | [B, C]))
+        self.assert_text("P(A | B, C)", P(A | B | C))
+        self.assert_text("P(A | B, C)", P(A | B & C))
 
         # Test simple joint distributions
-        self.assert_text("P(A,B)", P((A, B)))
-        self.assert_text("P(A,B)", P([A, B]))
-        self.assert_text("P(A,B)", P({A, B}))
-        self.assert_text("P(A,B)", P(A, B))
-        self.assert_text("P(A,B)", P(A & B))
-        self.assert_text("P(A,B)", P("A", "B"))
-        self.assert_text("P(A,B)", P(["A", "B"]))
-        self.assert_text("P(A,B,C)", P(A & B & C))
-        self.assert_text("P(A,B,C)", P("A", "B", "C"))
-        self.assert_text("P(A,B,C)", P(["A", "B", "C"]))
-        self.assert_text("P(A,B,C)", P((name for name in "ABC")))
-        self.assert_text("P(A,B,C)", P(name for name in "ABC"))
-        self.assert_text("P(A,B,C)", P((Variable(name) for name in "ABC")))
-        self.assert_text("P(A,B,C)", P(Variable(name) for name in "ABC"))
+        self.assert_text("P(A, B)", P((A, B)))
+        self.assert_text("P(A, B)", P([A, B]))
+        self.assert_text("P(A, B)", P({A, B}))
+        self.assert_text("P(A, B)", P(A, B))
+        self.assert_text("P(A, B)", P(A & B))
+        self.assert_text("P(A, B)", P("A", "B"))
+        self.assert_text("P(A, B)", P(["A", "B"]))
+        self.assert_text("P(A, B, C)", P(A & B & C))
+        self.assert_text("P(A, B, C)", P("A", "B", "C"))
+        self.assert_text("P(A, B, C)", P(["A", "B", "C"]))
+        self.assert_text("P(A, B, C)", P((name for name in "ABC")))
+        self.assert_text("P(A, B, C)", P(name for name in "ABC"))
+        self.assert_text("P(A, B, C)", P((Variable(name) for name in "ABC")))
+        self.assert_text("P(A, B, C)", P(Variable(name) for name in "ABC"))
 
         # Test mixed with single conditional
-        self.assert_text("P(A,B|C)", P(A, B | C))
-        self.assert_text("P(A,B|C)", P(Distribution((A, B), (C,))))
-        self.assert_text("P(A,B|C)", P(Distribution((A, B), (C,))))
-        self.assert_text("P(A,B|C)", P(Distribution((A, B)) | C))
-        self.assert_text("P(A,B|C)", P(A & B | C))
+        self.assert_text("P(A, B | C)", P(A, B | C))
+        self.assert_text("P(A, B | C)", P(Distribution((A, B), (C,))))
+        self.assert_text("P(A, B | C)", P(Distribution((A, B), (C,))))
+        self.assert_text("P(A, B | C)", P(Distribution((A, B)) | C))
+        self.assert_text("P(A, B | C)", P(A & B | C))
 
         # Test mixed with multiple conditionals
-        self.assert_text("P(A,B|C,D)", P(A, B | C, D))
-        self.assert_text("P(A,B|C,D)", P(Distribution((A, B), (C, D))))
-        self.assert_text("P(A,B|C,D)", P(Distribution((A, B)) | C | D))
-        self.assert_text("P(A,B|C,D)", P(Distribution((A, B), (C,)) | D))
-        self.assert_text("P(A,B|C,D)", P(A & B | C | D))
-        self.assert_text("P(A,B|C,D)", P(A & B | (C, D)))
-        self.assert_text("P(A,B|C,D)", P(A & B | Distribution((C, D))))
-        self.assert_text("P(A,B|C,D)", P(A & B | C & D))
+        self.assert_text("P(A, B | C, D)", P(A, B | C, D))
+        self.assert_text("P(A, B | C, D)", P(Distribution((A, B), (C, D))))
+        self.assert_text("P(A, B | C, D)", P(Distribution((A, B)) | C | D))
+        self.assert_text("P(A, B | C, D)", P(Distribution((A, B), (C,)) | D))
+        self.assert_text("P(A, B | C, D)", P(A & B | C | D))
+        self.assert_text("P(A, B | C, D)", P(A & B | (C, D)))
+        self.assert_text("P(A, B | C, D)", P(A & B | Distribution((C, D))))
+        self.assert_text("P(A, B | C, D)", P(A & B | C & D))
 
     def test_conditioning_errors(self):
         """Test erroring on conditionals."""
@@ -218,57 +218,57 @@ class TestDSL(unittest.TestCase):
         """Test the Sum DSL object."""
         # Sum with no variables
         self.assert_text(
-            "[ sum_{} P(A|B) P(C|D) ]",
+            "[ sum_{} P(A | B) P(C | D) ]",
             Sum(P(A | B) * P(C | D)),
         )
         # Sum with one variable
         self.assert_text(
-            "[ sum_{S} P(A|B) P(C|D) ]",
+            "[ sum_{S} P(A | B) P(C | D) ]",
             Sum(P(A | B) * P(C | D), (S,)),
         )
         # Sum with two variables
         self.assert_text(
-            "[ sum_{S,T} P(A|B) P(C|D) ]",
+            "[ sum_{S, T} P(A | B) P(C | D) ]",
             Sum(P(A | B) * P(C | D), (S, T)),
         )
 
         # CRAZY sum syntax! pycharm doesn't like this usage of __class_getitem__ though so idk if we'll keep this
         self.assert_text(
-            "[ sum_{S} P(A|B) P(C|D) ]",
+            "[ sum_{S} P(A | B) P(C | D) ]",
             Sum[S](P(A | B) * P(C | D)),
         )
         self.assert_text(
-            "[ sum_{S,T} P(A|B) P(C|D) ]",
+            "[ sum_{S, T} P(A | B) P(C | D) ]",
             Sum[S, T](P(A | B) * P(C | D)),
         )
 
         # Sum with sum inside
         self.assert_text(
-            "[ sum_{S,T} P(A|B) [ sum_{R} P(C|D) ] ]",
+            "[ sum_{S, T} P(A | B) [ sum_{R} P(C | D) ] ]",
             Sum(P(A | B) * Sum(P(C | D), (R,)), (S, T)),
         )
 
     def test_q(self):
         """Test the Q DSL object."""
         self.assert_text("Q[A](X)", Q[A](X))  # type: ignore
-        self.assert_text("Q[A,B](X)", Q[A, B](X))  # type: ignore
-        self.assert_text("Q[A](X,Y)", Q[A](X, Y))  # type: ignore
-        self.assert_text("Q[A,B](X,Y)", Q[A, B](X, Y))  # type: ignore
+        self.assert_text("Q[A, B](X)", Q[A, B](X))  # type: ignore
+        self.assert_text("Q[A](X, Y)", Q[A](X, Y))  # type: ignore
+        self.assert_text("Q[A, B](X, Y)", Q[A, B](X, Y))  # type: ignore
 
     def test_jeremy(self):
         """Test assorted complicated objects from Jeremy."""
         self.assert_text(
-            "[ sum_{W} P(X,Y_{Z*,W}) P(D) P(Z_{D}) P(W_{X*}) ]",
+            "[ sum_{W} P(X, Y_{Z*, W}) P(D) P(Z_{D}) P(W_{X*}) ]",
             Sum(P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X), (W,)),
         )
 
         self.assert_text(
-            "[ sum_{W} P(X,Y_{Z*,W}) P(W_{X*}) ]",
+            "[ sum_{W} P(X, Y_{Z*, W}) P(W_{X*}) ]",
             Sum(P(X, Y @ ~Z @ W) * P(W @ ~X), (W,)),
         )
 
         self.assert_text(
-            "frac_{[ sum_{W} P(X,Y_{Z,W}) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(X,Y_{Z,W}) P(W_{X*}) ] ]}",
+            "frac_{[ sum_{W} P(X, Y_{Z, W}) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(X, Y_{Z, W}) P(W_{X*}) ] ]}",
             Fraction(
                 Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)),
                 Sum(Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)), (Y,)),
@@ -276,14 +276,14 @@ class TestDSL(unittest.TestCase):
         )
 
         self.assert_text(
-            "[ sum_{D} P(X,Y_{Z*,W}) P(D) P(Z_{D}) P(W_{X*}) ]",
+            "[ sum_{D} P(X, Y_{Z*, W}) P(D) P(Z_{D}) P(W_{X*}) ]",
             Sum(P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
         )
 
         self.assert_text(
-            "[ sum_{D,V,W,Z} [ sum_{} P(W|X) ] [ sum_{} [ sum_{V,W,X,Y,Z} P(D,V,W,X,Y,Z) ] ]"
-            " [ sum_{} P(Z|D,V) ] [ sum_{} [ sum_{X} P(Y|D,V,W,X,Z) P(X) ] ]"
-            " [ sum_{} [ sum_{D,W,X,Y,Z} P(D,V,W,X,Y,Z) ] ] ]",
+            "[ sum_{D, V, W, Z} [ sum_{} P(W | X) ] [ sum_{} [ sum_{V, W, X, Y, Z} P(D, V, W, X, Y, Z) ] ]"
+            " [ sum_{} P(Z | D, V) ] [ sum_{} [ sum_{X} P(Y | D, V, W, X, Z) P(X) ] ]"
+            " [ sum_{} [ sum_{D, W, X, Y, Z} P(D, V, W, X, Y, Z) ] ] ]",
             Sum[W, D, Z, V](
                 Sum(P(W | X))
                 * Sum(Sum[X, W, Z, Y, V](P(D, V, W, X, Y, Z)))
@@ -292,12 +292,6 @@ class TestDSL(unittest.TestCase):
                 * Sum(Sum[X, W, D, Z, Y](P(X, W, D, Z, Y, V))),
             ),
         )
-
-        """
-        [[sum_{D,Z,V} [sum_{} [sum_{X,W,Z,Y,V} P(X,W,D,Z,Y,V)]][sum_{}P(Z|D,V)][sum_{} [sum_{X} P(Y|X,D,V,Z,W)P(X|)]]
-        [sum_{} [sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V)]]]]/[ sum_{Y}[sum_{D,Z,V} [sum_{} [sum_{X,W,Z,Y,V} P(X,W,D,Z,Y,V)]]
-        [sum_{}P(Z|D,V)][sum_{} [sum_{X} P(Y|X,D,V,Z,W)P(X|)]][sum_{} [sum_{X,W,D,Z,Y} P(X,W,D,Z,Y,V)]]]]
-        """
 
     def test_api(self):
         """Test the high-level API for getting variables."""
