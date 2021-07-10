@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from typing import (
     Any,
     Collection,
-    FrozenSet,
     Generic,
     Iterable,
     Mapping,
@@ -310,19 +309,6 @@ class NxMixedGraph(Generic[NodeType]):
             nodes=vertices,
             directed=_exclude_target(self.directed, vertices),
             undirected=_exclude_adjacent(self.undirected, vertices),
-        )
-
-    def remove_outgoing_edges_from(self, vertices: Collection[NodeType]) -> NxMixedGraph[NodeType]:
-        """Return a subgraph that does not have any outgoing edges from any of the given vertices.
-
-        :param vertices: a set of nodes whose outgoing edges get removed from the graph
-        :returns: NxMixedGraph subgraph
-        """
-        vertices = set(vertices)
-        return self.from_edges(
-            nodes=self.nodes(),
-            directed=_exclude_source(self.directed, vertices),
-            undirected=self.undirected.edges(),
         )
 
     def remove_nodes_from(self, vertices: Collection[NodeType]) -> NxMixedGraph[NodeType]:

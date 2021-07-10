@@ -15,7 +15,6 @@ from ..dsl import (
     Sum,
     Variable,
     ensure_ordering,
-    get_outcomes_and_treatments,
 )
 
 __all__ = [

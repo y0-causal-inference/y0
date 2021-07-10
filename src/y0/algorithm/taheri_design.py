@@ -18,9 +18,7 @@ from more_click import verbose_option
 from tabulate import tabulate
 from tqdm import tqdm
 
-
 from y0.algorithm.identify import Identification, Unidentifiable, identify
-
 from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.dsl import Expression, P, Variable
 from y0.graph import (

@@ -253,9 +253,6 @@ class Variable(Element):
         """Get a set containing this variable."""
         yield self
 
-    # def __lt__(self, other):
-    #     return str(self) < str(other)
-
 
 VariableHint = Union[str, Variable, Iterable[Union[str, Variable]]]
 
@@ -312,10 +309,6 @@ class CounterfactualVariable(Variable):
                     f"only Intervention instances are allowed."
                     f" Got: ({intervention.__class__.__name__}) {intervention}",
                 )
-
-    def get_parent(self) -> Variable:
-        """Get the parent variable."""
-        return Variable(name=self.name)
 
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""

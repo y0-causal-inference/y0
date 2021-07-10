@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Optional, Union
 
-
 import networkx as nx
 from ananke.graphs import ADMG
 
@@ -167,16 +166,19 @@ class Query:
             treatments=self.treatments,
             conditions=None,
         )
+
     @property
     def expression(self) -> Expression:
-        """Return the query as a Probabilistic expression"""
-        outcomes, treatments, conditions = self.outcomes, self.treatments, self.conditions
-        if conditions and len(treatments) > 0:
-            return P[treatments](outcomes | conditions )
-        elif len(treatments) > 0:
-            return P[treatments](outcomes)
+        """Return the query as a Probabilistic expression."""
+        if self.conditions and self.treatments:
+            return P[self.treatments](self.outcomes | self.conditions)
+        elif self.treatments:
+            return P[self.treatments](self.outcomes)
+        elif self.conditions:
+            return P(self.outcomes | self.conditions)
         else:
-            return P(outcomes)
+            return P(self.outcomes)
+
 
 def _unexp_interventions(variables: Iterable[Variable]) -> bool:
     return any(isinstance(c, CounterfactualVariable) for c in variables)
