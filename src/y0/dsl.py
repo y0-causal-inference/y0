@@ -147,8 +147,28 @@ class Variable(Element):
         return self.name
 
     def to_latex(self) -> str:
-        """Output this variable in the LaTeX string format."""
-        return self.to_text()
+        """Output this variable in the LaTeX string format.
+
+        :returns: The LaTeX representaton of this variable.
+
+        >>> Variable('X').to_latex()
+        'X'
+        >>> Variable('X1').to_latex()
+        'X_1'
+        >>> Variable('X12').to_latex()
+        'X_{12}'
+        """
+        # if it ends with a number, use that as a subscript
+        ending_numeric = 0
+        for c in reversed(self.name):
+            if c.isnumeric():
+                ending_numeric += 1
+        if ending_numeric == 0:
+            return self.name
+        elif ending_numeric == 1:
+            return f"{self.name[:-1]}_{self.name[-1]}"
+        else:
+            return f"{self.name[:-ending_numeric]}_{{{self.name[-ending_numeric:]}}}"
 
     def to_y0(self) -> str:
         """Output this variable instance as y0 internal DSL code."""
