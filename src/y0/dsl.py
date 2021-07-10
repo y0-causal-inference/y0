@@ -438,7 +438,7 @@ class Distribution(Element):
         children = func(self.children)
         if not self.parents:
             return children
-        return f"{children}|{func(self.parents)}"
+        return f"{children} | {func(self.parents)}"
 
     def to_text(self) -> str:
         """Output this distribution in the internal string format."""
@@ -655,8 +655,8 @@ class ProbabilityBuilderType:
         >>> assert P[X](Y) == P(Y @ X)
         >>> assert P[X](Y, Z) == P(Y @ X & Z @ X)
         >>> assert P[X](Y | Z) == P(Y @ X | Z @ X)
-        >>> assert P[X](Y @ Z) == P(Y @ X @ Z)
-        >>> assert P[X](Y @ Z | W) == P(Y @ X @ Z | W @ X)
+        >>> assert P[X](Y @ Z) == P(Y @ Z @ X)
+        >>> assert P[X](Y @ Z | W) == P(Y @ Z @ X | W @ X)
         """
         return functools.partial(self, interventions=interventions)
 
@@ -821,15 +821,15 @@ class Product(Expression):
 
 
 def _list_to_text(elements: Iterable[Element]) -> str:
-    return ",".join(element.to_text() for element in elements)
+    return ", ".join(element.to_text() for element in elements)
 
 
 def _list_to_latex(elements: Iterable[Element]) -> str:
-    return ",".join(element.to_latex() for element in elements)
+    return ", ".join(element.to_latex() for element in elements)
 
 
 def _list_to_y0(elements: Iterable[Element]) -> str:
-    return ",".join(element.to_y0() for element in elements)
+    return ", ".join(element.to_y0() for element in elements)
 
 
 @dataclass(frozen=True, repr=False)
