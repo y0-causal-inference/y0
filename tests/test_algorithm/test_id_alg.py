@@ -27,6 +27,7 @@ from y0.examples import (
     line_7_example,
 )
 from y0.mutate import canonicalize
+from y0.graph import NxMixedGraph
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
@@ -198,133 +199,126 @@ class TestIdentify(unittest.TestCase):
                 Sum.safe(expression=P(Y1 | (W1, X)) * P(W1), ranges=[W1]), identify(id_in)
             )
 
-    # def test_figure_2a(self):
-    #     """Test Figure 2A.
-    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
-    #     Journal of Machine Learning Research.
-    #     """
-    #     graph = NxMixedGraph()
-    #     graph.add_directed_edge("X", "Y")
-    #     print(identify(graph, Y @ X).to_text())
-    #     expr = "[ sum_{} P(Y|X) ]"
-    #     frac_expr = P_XY / Sum[Y](P_XY)
-    #     cond_expr = P(Y|X)
-    #     self.assert_identify(cond_expr, graph, Y @ X)
+    def test_figure_2a(self):
+        """Test Figure 2A.
+        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
+        Journal of Machine Learning Research.
+        """
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        print(identify(graph, Y @ X).to_text())
+        expr = "[ sum_{} P(Y|X) ]"
+        frac_expr = P_XY / Sum[Y](P_XY)
+        cond_expr = P(Y | X)
+        self.assert_identify(cond_expr, graph, Y @ X)
 
-    # def test_figure_2b(self):
-    #     """Test Figure 2B.
-    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
-    #     Journal of Machine Learning Research.
-    #     """
-    #     graph = NxMixedGraph()
-    #     graph.add_directed_edge("X", "Y")
-    #     graph.add_directed_edge("X", "Z")
-    #     graph.add_directed_edge("Z", "Y")
-    #     graph.add_undirected_edge("Y", "Z")
-    #     print(identify(graph, Y @ X).to_text())
-    #     expr = "[ sum_{Z} P(Z|X) P(Y|X,Z) ]"
-    #     cond_expr = Sum[Z](P(Z | X) * P(Y | X, Z))
-    #     frac_expr = Sum[Z](
-    #         Sum[Y](P_XY) / (Sum[Z](Sum[Y](P_XY))) * (P_XY / Sum[Y](P_XY))
-    #     )
-    #     self.assert_identify(cond_expr, graph, Y @ X)
+    def test_figure_2b(self):
+        """Test Figure 2B.
+        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
+        Journal of Machine Learning Research.
+        """
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("X", "Z")
+        graph.add_directed_edge("Z", "Y")
+        graph.add_undirected_edge("Y", "Z")
+        print(identify(graph, Y @ X).to_text())
+        expr = "[ sum_{Z} P(Z|X) P(Y|X,Z) ]"
+        cond_expr = Sum[Z](P(Z | X) * P(Y | X, Z))
+        frac_expr = Sum[Z](Sum[Y](P_XY) / (Sum[Z](Sum[Y](P_XY))) * (P_XY / Sum[Y](P_XY)))
+        self.assert_identify(cond_expr, graph, Y @ X)
 
-    # def test_figure_2c(self):
-    #     """Test Figure 2C.
-    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
-    #     Journal of Machine Learning Research.
-    #     """
-    #     graph = NxMixedGraph()
-    #     graph.add_directed_edge("X", "Y")
-    #     graph.add_directed_edge("Z", "X")
-    #     graph.add_directed_edge("Z", "Y")
-    #     graph.add_undirected_edge("Y", "Z")
-    #     print(identify(graph, Y @ X).to_text())
-    #     expr = "[ sum_{Z} P(Z) P(Y|X,Z) ]"
-    #     cond_expr = Sum[Z](P(Z) * P(Y | X, Z))
-    #     frac_expr = Sum[Z](
-    #         Sum[X, Y](P_XYZ) / (Sum[Z](Sum[X, Y](P_XYZ))) * (P_XYZ / Sum[Y](P_XYZ))
-    #     )
-    #     self.assert_identify(cond_expr, graph, Y @ X)
-    #     # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
+    def test_figure_2c(self):
+        """Test Figure 2C.
+        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
+        Journal of Machine Learning Research.
+        """
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("Z", "X")
+        graph.add_directed_edge("Z", "Y")
+        graph.add_undirected_edge("Y", "Z")
+        print(identify(graph, Y @ X).to_text())
+        expr = "[ sum_{Z} P(Z) P(Y|X,Z) ]"
+        cond_expr = Sum[Z](P(Z) * P(Y | X, Z))
+        frac_expr = Sum[Z](Sum[X, Y](P_XYZ) / (Sum[Z](Sum[X, Y](P_XYZ))) * (P_XYZ / Sum[Y](P_XYZ)))
+        self.assert_identify(cond_expr, graph, Y @ X)
+        # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
-    # def test_figure_2d(self):
-    #     """Test Figure 2D.
-    #     frac_expr = Sum[Z](Sum[X, Y](P_XYZ) * P_XYZ / Sum[Y](P_XYZ))
-    #     """
-    #     graph = NxMixedGraph()
-    #     graph.add_directed_edge("X", "Y")
-    #     graph.add_directed_edge("Z", "X")
-    #     graph.add_directed_edge("Z", "Y")
-    #     graph.add_undirected_edge("X", "Z")
-    #     print(identify(graph, Y @ X).to_text())
+    def test_figure_2d(self):
+        """Test Figure 2D.
+        frac_expr = Sum[Z](Sum[X, Y](P_XYZ) * P_XYZ / Sum[Y](P_XYZ))
+        """
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Y")
+        graph.add_directed_edge("Z", "X")
+        graph.add_directed_edge("Z", "Y")
+        graph.add_undirected_edge("X", "Z")
+        print(identify(graph, Y @ X).to_text())
 
-    #     expr = "[ sum_{Z} [ sum_{} P(Y|X,Z) ] [ sum_{} [ sum_{X,Y} P(X,Y,Z) ] ] ]"
-    #     self.assert_identify(parse_craig(expr), graph, Y @ X)
-    #     # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
+        expr = "[ sum_{Z} [ sum_{} P(Y|X,Z) ] [ sum_{} [ sum_{X,Y} P(X,Y,Z) ] ] ]"
+        self.assert_identify(parse_craig(expr), graph, Y @ X)
+        # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
-    # def test_figure_2e(self):
-    #     """Test Figure 2E.
-    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
-    #     Journal of Machine Learning Research.
-    #     """
-    #     graph = NxMixedGraph()
-    #     graph.add_directed_edge("X", "Z")
-    #     graph.add_directed_edge("Z", "Y")
-    #     graph.add_undirected_edge("X", "Y")
-    #     expr = "[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]"
-    #     cond_expr = Sum[Z](P(Z | X)) * Sum[X](P(X) * P(Y | X, Z))
-    #     frac_expr = Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ))) * Sum[X](
-    #         P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
-    #     )
-    #     self.assert_identify(parse_craig(expr), graph, Y @ X)
-    #     # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
+    def test_figure_2e(self):
+        """Test Figure 2E.
+        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
+        Journal of Machine Learning Research.
+        """
+        graph = NxMixedGraph()
+        graph.add_directed_edge("X", "Z")
+        graph.add_directed_edge("Z", "Y")
+        graph.add_undirected_edge("X", "Y")
+        expr = "[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]"
+        cond_expr = Sum[Z](P(Z | X)) * Sum[X](P(X) * P(Y | X, Z))
+        frac_expr = Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ))) * Sum[X](
+            P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
+        )
+        self.assert_identify(parse_craig(expr), graph, Y @ X)
+        # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
-    # def test_figure_3a(self):
-    #     """Test Figure 3a. A graph hedge-less for P(y1,y2|do(x))
-    #     Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
-    #     Journal of Machine Learning Research.
-    #     """
-    #     graph = NxMixedGraph()
-    #     #W1,W2,Y1,Y2 = Variable('W1'), Variable('W2'), Variable('Y1'), Variable('Y2')
-    #     graph.add_directed_edge("X", "Y1")
-    #     graph.add_directed_edge("W1", "X")
-    #     graph.add_directed_edge("W2", "Y2")
-    #     graph.add_undirected_edge("W1", "W2")
-    #     graph.add_undirected_edge("W1", "Y1")
-    #     graph.add_undirected_edge("W1", "Y2")
-    #     graph.add_undirected_edge("X", "W2")
-    #     cond_expr = Sum[W2](P(Y1,W2))*Sum[W1](P(Y1|(X,W1))*P(W1))
-    #     self.assert_identify(cond_expr, graph, P(Y1 @ X, Y2 @ X))
-    # def test_taheri(self):
-    #     """Test that all graphs produced by Sara's design algorithm can be run with :func:`identify`."""
-    #     graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
+    def test_figure_3a(self):
+        """Test Figure 3a. A graph hedge-less for P(y1,y2|do(x))
+        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
+        Journal of Machine Learning Research.
+        """
+        graph = NxMixedGraph()
+        # W1,W2,Y1,Y2 = Variable('W1'), Variable('W2'), Variable('Y1'), Variable('Y2')
+        graph.add_directed_edge("X", "Y1")
+        graph.add_directed_edge("W1", "X")
+        graph.add_directed_edge("W2", "Y2")
+        graph.add_undirected_edge("W1", "W2")
+        graph.add_undirected_edge("W1", "Y1")
+        graph.add_undirected_edge("W1", "Y2")
+        graph.add_undirected_edge("X", "W2")
+        cond_expr = Sum[W2](P(Y1, W2)) * Sum[W1](P(Y1 | (X, W1)) * P(W1))
+        self.assert_identify(cond_expr, graph, P(Y1 @ X, Y2 @ X))
 
-    #     cause = 'EGFR'
-    #     effect = 'CytokineStorm'
-    #     stop = 5
-    #     tag = DEFAULT_TAG
-    #     dag = admg_to_latent_variable_dag(graph.to_admg(), tag=tag)
-    #     fixed_latent = {
-    #         node
-    #         for node, data in dag.nodes(data=True)
-    #         if data[tag]
-    #     }
-    #     for latents, observed, lvdag in iterate_lvdags(
-    #         dag,
-    #         fixed_observed={cause, effect},
-    #         fixed_latents=fixed_latent,
-    #         stop=stop,
-    #     ):
-    #         with self.subTest(latents=latents):
-    #             result = _get_result(
-    #                 lvdag=lvdag,
-    #                 latents=latents,
-    #                 observed=observed,
-    #                 cause=cause,
-    #                 effect=effect,
-    #             )
-    #             self.assertIsNotNone(result)  # throwaway test
+    def test_taheri(self):
+        """Test that all graphs produced by Sara's design algorithm can be run with :func:`identify`."""
+        graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
+
+        cause = "EGFR"
+        effect = "CytokineStorm"
+        stop = 5
+        tag = DEFAULT_TAG
+        dag = admg_to_latent_variable_dag(graph.to_admg(), tag=tag)
+        fixed_latent = {node for node, data in dag.nodes(data=True) if data[tag]}
+        for latents, observed, lvdag in iterate_lvdags(
+            dag,
+            fixed_observed={cause, effect},
+            fixed_latents=fixed_latent,
+            stop=stop,
+        ):
+            with self.subTest(latents=latents):
+                result = _get_result(
+                    lvdag=lvdag,
+                    latents=latents,
+                    observed=observed,
+                    cause=cause,
+                    effect=effect,
+                )
+                self.assertIsNotNone(result)  # throwaway test
 
 
 if __name__ == "__main__":
