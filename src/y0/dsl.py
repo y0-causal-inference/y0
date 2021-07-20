@@ -275,7 +275,8 @@ class Intervention(Variable):
 
     def to_latex(self) -> str:
         """Output this intervention variable in the LaTeX string format."""
-        return f"{self.name}^*" if self.star else self.name
+        latex = super().to_latex()
+        return f"{latex}^*" if self.star else latex
 
     def to_y0(self) -> str:
         """Output this intervention instance as y0 internal DSL code."""
@@ -316,9 +317,17 @@ class CounterfactualVariable(Variable):
         return f"{self.name}_{{{intervention_latex}}}"
 
     def to_latex(self) -> str:
-        """Output this counterfactual variable in the LaTeX string format."""
+        """Output this counterfactual variable in the LaTeX string format.
+
+        >>> (Variable('X') @ Variable('Y')).to_latex()
+        '{X}_{Y}'
+        >>> (Variable('X1') @ Variable('Y')).to_latex()
+        '{X_1}_{Y}'
+        >>> (Variable('X12') @ Variable('Y')).to_latex()
+        '{X_{12}}_{Y}'
+        """
         intervention_latex = _list_to_latex(self.interventions)
-        return f"{self.name}_{{{intervention_latex}}}"
+        return f"{{{super().to_latex()}}}_{{{intervention_latex}}}"
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
