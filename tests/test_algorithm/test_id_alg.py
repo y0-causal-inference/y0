@@ -5,7 +5,7 @@
 import itertools as itt
 import unittest
 
-from y0.algorithm.identify import Unidentifiable, idc, identify
+from y0.algorithm.identify import Unidentifiable, idc, identify, Identification, Query
 from y0.algorithm.identify.id_std import (
     line_1,
     line_2,
@@ -36,6 +36,17 @@ M = Variable("M")
 
 class TestIdentify(unittest.TestCase):
     """Test cases from https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb."""
+
+    def assert_identify(
+        self, expected: Expression, graph: NxMixedGraph[Variable], query: Expression
+    ) -> None:
+        id_in = Identification(Query.from_expression(query), graph)
+        self.assert_expr_equal(expected, identify(id_in))
+
+    def assert_unidentifiable(self, expected, graph, query):
+        id_in = Identification(Query.from_expression(query), graph)
+        with self.assertRaises(Unidentifiable):
+            identify(id_in)
 
     def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
         """Assert that two expressions are the same."""
@@ -206,11 +217,11 @@ class TestIdentify(unittest.TestCase):
         """
         graph = NxMixedGraph()
         graph.add_directed_edge("X", "Y")
-        print(identify(graph, Y @ X).to_text())
+        # print(identify(graph, Y @ X).to_text())
         expr = "[ sum_{} P(Y|X) ]"
         frac_expr = P_XY / Sum[Y](P_XY)
         cond_expr = P(Y | X)
-        self.assert_identify(cond_expr, graph, Y @ X)
+        self.assert_identify(cond_expr, graph, P(Y @ X))
 
     def test_figure_2b(self):
         """Test Figure 2B.
@@ -222,11 +233,10 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge("X", "Z")
         graph.add_directed_edge("Z", "Y")
         graph.add_undirected_edge("Y", "Z")
-        print(identify(graph, Y @ X).to_text())
         expr = "[ sum_{Z} P(Z|X) P(Y|X,Z) ]"
         cond_expr = Sum[Z](P(Z | X) * P(Y | X, Z))
         frac_expr = Sum[Z](Sum[Y](P_XY) / (Sum[Z](Sum[Y](P_XY))) * (P_XY / Sum[Y](P_XY)))
-        self.assert_identify(cond_expr, graph, Y @ X)
+        self.assert_identify(cond_expr, graph, P(Y @ X))
 
     def test_figure_2c(self):
         """Test Figure 2C.
@@ -238,11 +248,11 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge("Z", "X")
         graph.add_directed_edge("Z", "Y")
         graph.add_undirected_edge("Y", "Z")
-        print(identify(graph, Y @ X).to_text())
+        # print(identify(graph, Y @ X).to_text())
         expr = "[ sum_{Z} P(Z) P(Y|X,Z) ]"
         cond_expr = Sum[Z](P(Z) * P(Y | X, Z))
         frac_expr = Sum[Z](Sum[X, Y](P_XYZ) / (Sum[Z](Sum[X, Y](P_XYZ))) * (P_XYZ / Sum[Y](P_XYZ)))
-        self.assert_identify(cond_expr, graph, Y @ X)
+        self.assert_identify(cond_expr, graph, P(Y @ X))
         # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
     def test_figure_2d(self):
@@ -254,10 +264,10 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge("Z", "X")
         graph.add_directed_edge("Z", "Y")
         graph.add_undirected_edge("X", "Z")
-        print(identify(graph, Y @ X).to_text())
+        # print(identify(graph, Y @ X).to_text())
 
-        expr = "[ sum_{Z} [ sum_{} P(Y|X,Z) ] [ sum_{} [ sum_{X,Y} P(X,Y,Z) ] ] ]"
-        self.assert_identify(parse_craig(expr), graph, Y @ X)
+        expr = Sum[Z](P(Y | X, Z) * Sum[X, Y](P(X, Y, Z)))
+        self.assert_identify(expr, graph, P(Y @ X))
         # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
     def test_figure_2e(self):
@@ -270,11 +280,11 @@ class TestIdentify(unittest.TestCase):
         graph.add_directed_edge("Z", "Y")
         graph.add_undirected_edge("X", "Y")
         expr = "[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]"
-        cond_expr = Sum[Z](P(Z | X)) * Sum[X](P(X) * P(Y | X, Z))
+        cond_expr = Sum[Z](Sum[X](P(Y | X, Z) * P(X)) * P(Z | X))
         frac_expr = Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ))) * Sum[X](
             P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
         )
-        self.assert_identify(parse_craig(expr), graph, Y @ X)
+        self.assert_identify(cond_expr, graph, P(Y @ X))
         # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
     def test_figure_3a(self):
@@ -283,7 +293,7 @@ class TestIdentify(unittest.TestCase):
         Journal of Machine Learning Research.
         """
         graph = NxMixedGraph()
-        # W1,W2,Y1,Y2 = Variable('W1'), Variable('W2'), Variable('Y1'), Variable('Y2')
+        W1, W2, Y1, Y2 = Variable("W1"), Variable("W2"), Variable("Y1"), Variable("Y2")
         graph.add_directed_edge("X", "Y1")
         graph.add_directed_edge("W1", "X")
         graph.add_directed_edge("W2", "Y2")
@@ -291,34 +301,36 @@ class TestIdentify(unittest.TestCase):
         graph.add_undirected_edge("W1", "Y1")
         graph.add_undirected_edge("W1", "Y2")
         graph.add_undirected_edge("X", "W2")
-        cond_expr = Sum[W2](P(Y1, W2)) * Sum[W1](P(Y1 | (X, W1)) * P(W1))
+        cond_expr = Sum[W2](
+            Sum[W1, X, Y1, Y2](P(W1, W2, X, Y1, Y2)) * Sum[W1](P(W1) * P(Y1 | W1, X)) * P(Y2 | W2)
+        )
         self.assert_identify(cond_expr, graph, P(Y1 @ X, Y2 @ X))
 
-    def test_taheri(self):
-        """Test that all graphs produced by Sara's design algorithm can be run with :func:`identify`."""
-        graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
+    # def test_taheri(self):
+    #     """Test that all graphs produced by Sara's design algorithm can be run with :func:`identify`."""
+    #     graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
 
-        cause = "EGFR"
-        effect = "CytokineStorm"
-        stop = 5
-        tag = DEFAULT_TAG
-        dag = admg_to_latent_variable_dag(graph.to_admg(), tag=tag)
-        fixed_latent = {node for node, data in dag.nodes(data=True) if data[tag]}
-        for latents, observed, lvdag in iterate_lvdags(
-            dag,
-            fixed_observed={cause, effect},
-            fixed_latents=fixed_latent,
-            stop=stop,
-        ):
-            with self.subTest(latents=latents):
-                result = _get_result(
-                    lvdag=lvdag,
-                    latents=latents,
-                    observed=observed,
-                    cause=cause,
-                    effect=effect,
-                )
-                self.assertIsNotNone(result)  # throwaway test
+    #     cause = "EGFR"
+    #     effect = "CytokineStorm"
+    #     stop = 5
+    #     tag = DEFAULT_TAG
+    #     dag = admg_to_latent_variable_dag(graph.to_admg(), tag=tag)
+    #     fixed_latent = {node for node, data in dag.nodes(data=True) if data[tag]}
+    #     for latents, observed, lvdag in iterate_lvdags(
+    #         dag,
+    #         fixed_observed={cause, effect},
+    #         fixed_latents=fixed_latent,
+    #         stop=stop,
+    #     ):
+    #         with self.subTest(latents=latents):
+    #             result = _get_result(
+    #                 lvdag=lvdag,
+    #                 latents=latents,
+    #                 observed=observed,
+    #                 cause=cause,
+    #                 effect=effect,
+    #             )
+    #             self.assertIsNotNone(result)  # throwaway test
 
 
 if __name__ == "__main__":
