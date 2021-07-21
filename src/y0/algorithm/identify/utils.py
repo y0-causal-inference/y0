@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 
-class Unidentifiable(Exception):
+class Unidentifiable(Exception):  # noqa:N818
     """Raised on failure of the identification algorithm."""
 
 

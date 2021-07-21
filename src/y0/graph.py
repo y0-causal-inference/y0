@@ -166,27 +166,34 @@ class NxMixedGraph(Generic[NodeType]):
 
         return rpy2.robjects.r(self.to_causaleffect_str())
 
-    def draw(self, ax=None, title=None):
+    def joint(self) -> nx.MultiGraph:
+        """Return a joint graph."""
+        rv = nx.MultiGraph()
+        rv.add_nodes_from(self.directed)
+        rv.add_edges_from(self.directed.edges)
+        rv.add_edges_from(self.undirected.edges)
+        return rv
+
+    def draw(
+        self, ax=None, title: Optional[str] = None, prog: str = "dot", latex: bool = True
+    ) -> None:
         """Render the graph using matplotlib.
 
         :param ax: Axis to draw on (if none specified, makes a new one)
         :param title: The optional title to show with the graph
+        :param prog: The pydot program to use, like dot, neato, etc.
+        :param latex: Parse string variables as y0 if possible to make pretty latex output
         """
-        joint = nx.MultiGraph()
-        joint.add_edges_from(self.directed.edges)
-        joint.add_edges_from(self.undirected.edges)
-        layout = nx.nx_pydot.graphviz_layout(joint, prog="dot")
+        import matplotlib.pyplot as plt
 
-        u_proxy = nx.DiGraph()
-        u_proxy.add_edges_from(self.undirected.edges)
+        layout = nx.nx_pydot.graphviz_layout(self.joint(), prog=prog)
+        u_proxy = nx.DiGraph(self.undirected.edges)
+        labels = None if not latex else {node: _get_latex(node) for node in self.directed}
 
         if ax is None:
-            import matplotlib.pyplot as plt
-
             ax = plt.gca()
-
-        nx.draw_networkx_nodes(self.directed, pos=layout, ax=ax)
-        nx.draw_networkx_labels(self.directed, pos=layout, ax=ax)
+        nx.draw_networkx_nodes(self.directed, pos=layout, node_color="white", node_size=350, ax=ax)
+        nx.draw_networkx_labels(self.directed, pos=layout, ax=ax, labels=labels)
         nx.draw_networkx_edges(self.directed, pos=layout, edge_color="b", ax=ax)
         nx.draw_networkx_edges(
             u_proxy,
@@ -315,7 +322,7 @@ class NxMixedGraph(Generic[NodeType]):
         """Return a subgraph that does not contain any of the specified vertices.
 
         :param vertices: a set of nodes to remove from graph
-        :returns:  NxMixedGraph subgraph
+        :returns: A NxMixedGraph subgraph
         """
         vertices = set(vertices)
         return self.from_edges(
@@ -473,3 +480,21 @@ def set_latent(
     latent_nodes = set(latent_nodes)
     for node, data in graph.nodes(data=True):
         data[tag] = node in latent_nodes
+
+
+def _get_latex(node) -> str:
+    if isinstance(node, str):
+        from y0.parser import parse_y0
+
+        try:
+            expr = parse_y0(node)
+        except Exception:
+            return node
+        else:
+            return expr._repr_latex_()
+
+    from y0.dsl import Variable
+
+    if isinstance(node, Variable):
+        return node._repr_latex_()
+    raise TypeError
