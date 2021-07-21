@@ -319,6 +319,8 @@ class CounterfactualVariable(Variable):
     def to_latex(self) -> str:
         """Output this counterfactual variable in the LaTeX string format.
 
+        :returns: A latex representation of this counterfactual variable
+
         >>> (Variable('X') @ Variable('Y')).to_latex()
         '{X}_{Y}'
         >>> (Variable('X1') @ Variable('Y')).to_latex()

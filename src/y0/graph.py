@@ -322,7 +322,7 @@ class NxMixedGraph(Generic[NodeType]):
         """Return a subgraph that does not contain any of the specified vertices.
 
         :param vertices: a set of nodes to remove from graph
-        :returns:  NxMixedGraph subgraph
+        :returns: A NxMixedGraph subgraph
         """
         vertices = set(vertices)
         return self.from_edges(
@@ -487,9 +487,12 @@ def _get_latex(node) -> str:
         from y0.parser import parse_y0
 
         try:
-            return parse_y0(node)._repr_latex_()
-        except:
+            expr = parse_y0(node)
+        except Exception:
             return node
+        else:
+            return expr._repr_latex_()
+
     from y0.dsl import Variable
 
     if isinstance(node, Variable):
