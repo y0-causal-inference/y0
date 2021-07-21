@@ -5,6 +5,7 @@
 import itertools as itt
 import unittest
 
+# from y0.graph import admg_to_latent_variable_dag
 from y0.algorithm.identify import Unidentifiable, idc, identify, Identification, Query
 from y0.algorithm.identify.id_std import (
     line_1,
@@ -15,6 +16,8 @@ from y0.algorithm.identify.id_std import (
     line_6,
     line_7,
 )
+
+# from y0.algorithm.taheri_design import iterate_lvdags
 from y0.dsl import Expression, P, Product, Sum, Variable, X, Y, Y1, Z, get_outcomes_and_treatments
 from y0.examples import (
     figure_6a,
@@ -308,6 +311,8 @@ class TestIdentify(unittest.TestCase):
 
     # def test_taheri(self):
     #     """Test that all graphs produced by Sara's design algorithm can be run with :func:`identify`."""
+    #     VIRAL_PATHOGENESIS_PATH = '../../src/y0/resources/viral_pathogenesis.json'
+    #     DEFAULT_TAG = 'type'
     #     graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
 
     #     cause = "EGFR"
