@@ -25,6 +25,7 @@ class Example:
     name: str
     reference: str
     graph: NxMixedGraph
+    description: Optional[str] = None
     verma_constraints: Optional[Sequence[VermaConstraint]] = None
     conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
     data: Optional[pd.DataFrame] = None
@@ -310,7 +311,8 @@ line_5_example = Example(
 )
 
 line_6_example = Example(
-    name="If there are no bidirected arcs from X to the other nodes in the"
+    name="ID Line 6 Example",
+    description="If there are no bidirected arcs from X to the other nodes in the"
     " current subproblem under consideration, then we can replace acting"
     " on X by conditioning, and thus solve the subproblem.",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
@@ -345,7 +347,7 @@ line_6_example = Example(
 
 W1, Y1 = Variable("W1"), Variable("Y1")
 line_7_example = Example(
-    name="line 7 example, figure 5a and b",
+    name="ID Line 7 example, figure 5a and b",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
     graph=NxMixedGraph.from_edges(directed=[("X", "Y1"), ("W1", "Y1")], undirected=[("W1", "Y1")]),
     identifications=[
@@ -369,7 +371,6 @@ line_7_example = Example(
         )
     ],
 )
-
 
 figure_6a = Example(
     name="Causal graph with identifiable conditional effect P(y|do(x),z)",
