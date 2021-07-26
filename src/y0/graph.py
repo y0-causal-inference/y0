@@ -14,7 +14,6 @@ from typing import (
     Iterable,
     Mapping,
     Optional,
-    TYPE_CHECKING,
     Tuple,
     Union,
 )
@@ -25,9 +24,6 @@ from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
 from .constants import NodeType
-
-if TYPE_CHECKING:
-    import daft
 
 __all__ = [
     "NxMixedGraph",
@@ -212,6 +208,24 @@ class NxMixedGraph(Generic[NodeType]):
             ax.set_title(title)
         ax.axis("off")
 
+    def draw_pgm(self, prog: str = 'dot', pgm_kwargs=None, ax=None):
+        """Draw with :class:`daft.PGM`."""
+        import daft
+        import matplotlib.pyplot as plt
+        if ax is None:
+            ax = plt.gca()
+        pgm = daft.PGM(**(pgm_kwargs or {}))
+        pgm._ax = ax
+        layout = nx.nx_pydot.graphviz_layout(self.joint(), prog=prog)
+        for node in self.nodes():
+            x, y = layout[node]
+            pgm.add_node(node, x=x, y=y)
+        for u, v in self.directed.edges:
+            pgm.add_edge(u, v, directed=True)
+        for u, v in self.undirected.edges:
+            pgm.add_edge(u, v, directed=False)
+        return pgm.render()
+
     @classmethod
     def from_causaleffect(cls, graph) -> NxMixedGraph:
         """Construct an instance from a causaleffect R graph."""
@@ -295,11 +309,6 @@ class NxMixedGraph(Generic[NodeType]):
             else:
                 raise ValueError(f'unhandled edge type: {edge["type"]}')
         return rv
-
-    def to_pgm(self, **kwargs) -> "daft.PGM":
-        """Generate a :class:`daft.PGM`."""
-        pgm = daft.PGM(**kwargs)
-        return pgm
 
     def subgraph(self, vertices: Collection[NodeType]) -> NxMixedGraph[NodeType]:
         """Return a subgraph given a set of vertices.
