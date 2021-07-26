@@ -14,6 +14,7 @@ from typing import (
     Iterable,
     Mapping,
     Optional,
+    TYPE_CHECKING,
     Tuple,
     Union,
 )
@@ -24,6 +25,9 @@ from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
 from .constants import NodeType
+
+if TYPE_CHECKING:
+    import daft
 
 __all__ = [
     "NxMixedGraph",
@@ -291,6 +295,11 @@ class NxMixedGraph(Generic[NodeType]):
             else:
                 raise ValueError(f'unhandled edge type: {edge["type"]}')
         return rv
+
+    def to_pgm(self, **kwargs) -> "daft.PGM":
+        """Generate a :class:`daft.PGM`."""
+        pgm = daft.PGM(**kwargs)
+        return pgm
 
     def subgraph(self, vertices: Collection[NodeType]) -> NxMixedGraph[NodeType]:
         """Return a subgraph given a set of vertices.
