@@ -23,6 +23,7 @@ from ananke.graphs import ADMG
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
+from .dsl import Expression, Variable
 from .constants import NodeType
 
 __all__ = [
@@ -233,12 +234,28 @@ class NxMixedGraph(Generic[NodeType]):
         return rv
 
     @classmethod
+    def from_expr_edges(
+        cls,
+        nodes: Optional[Iterable[NodeType]] = None,
+        directed: Optional[Iterable[Tuple[NodeType, NodeType]]] = None,
+        undirected: Optional[Iterable[Tuple[NodeType, NodeType]]] = None,
+    ) -> NxMixedGraph[Expression]:
+        """Make a mixed graph from a pair of edge lists."""
+        from y0.parser import parse_y0
+
+        return cls[Expression].from_edges(
+            nodes={parse_y0(node) for node in nodes},
+            directed=[(parse_y0(u), parse_y0(v)) for u, v in directed],
+            undirected=[(parse_y0(u), parse_y0(v)) for u, v in undirected],
+        )
+
+    @classmethod
     def from_edges(
         cls,
         nodes: Optional[Iterable[NodeType]] = None,
         directed: Optional[Iterable[Tuple[NodeType, NodeType]]] = None,
         undirected: Optional[Iterable[Tuple[NodeType, NodeType]]] = None,
-    ) -> NxMixedGraph[NodeType]:
+    ) -> NxMixedGraph[Expression]:
         """Make a mixed graph from a pair of edge lists."""
         if directed is None and undirected is None:
             raise ValueError("must provide at least one of directed/undirected edge lists")
