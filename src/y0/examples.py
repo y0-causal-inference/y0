@@ -12,6 +12,7 @@ import networkx as nx
 import pandas as pd
 
 from .algorithm.identify import Identification
+from .graph import str_nodes_to_expr_nodes
 from .dsl import P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5
 from .graph import NxMixedGraph
 from .resources import ASIA_PATH
@@ -405,151 +406,165 @@ figure_6a = Example(
 figure_9a = Example(
     name="Original causal diagram",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(
-        directed=[("X", "W"), ("W", "Y"), ("D", "Z"), ("Z", "Y")], undirected=[("X", "Y")]
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[("X", "W"), ("W", "Y"), ("D", "Z"), ("Z", "Y")], undirected=[("X", "Y")]
+        )
     ),
 )
 
 figure_9b = Example(
     name="Parallel worlds graph for :math:`P(y_x|x', x_d, d)`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(
-        directed=[
-            ("X @ ~X", "W @ ~X"),
-            ("W @ ~X", "Y @ ~X"),
-            ("D @ ~X", "Z @ ~X"),
-            ("Z @ ~X", "Y @ ~X"),
-            ("X", "W"),
-            ("W", "Y"),
-            ("D", "Z"),
-            ("Z", "Y"),
-            ("X @ D", "W @ D"),
-            ("W @ D", "Y @ D"),
-            ("D @ D", "Z @ D"),
-            ("Z @ D", "Y @ D"),
-        ],
-        undirected=[
-            ("X", "Y"),
-            ("X @ D", "X"),
-            ("Y @ ~X", "Y"),
-            ("Y", "Y @ D"),
-            ("Y @ D", "Y @ ~X "),
-            ("X", "Y @ ~X"),
-            ("X @ D", "Y"),
-            ("X", "Y @ D"),
-            ("X @ D", "Y @ ~X"),
-            ("X @ D", "Y @ D"),
-            ("D @ ~X", "D"),
-            ("W @ ~X", "W"),
-            ("W", "W @ D"),
-            ("W @ D", "W @ ~X"),
-            ("Z @ ~X", "Z"),
-            ("Z", "Z @ D"),
-            ("Z @ ~X", "Z @ D"),
-        ],
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[
+                ("X @ ~X", "W @ ~X"),
+                ("W @ ~X", "Y @ ~X"),
+                ("D @ ~X", "Z @ ~X"),
+                ("Z @ ~X", "Y @ ~X"),
+                ("X", "W"),
+                ("W", "Y"),
+                ("D", "Z"),
+                ("Z", "Y"),
+                ("X @ D", "W @ D"),
+                ("W @ D", "Y @ D"),
+                ("D @ D", "Z @ D"),
+                ("Z @ D", "Y @ D"),
+            ],
+            undirected=[
+                ("X", "Y"),
+                ("X @ D", "X"),
+                ("Y @ ~X", "Y"),
+                ("Y", "Y @ D"),
+                ("Y @ D", "Y @ ~X "),
+                ("X", "Y @ ~X"),
+                ("X @ D", "Y"),
+                ("X", "Y @ D"),
+                ("X @ D", "Y @ ~X"),
+                ("X @ D", "Y @ D"),
+                ("D @ ~X", "D"),
+                ("W @ ~X", "W"),
+                ("W", "W @ D"),
+                ("W @ D", "W @ ~X"),
+                ("Z @ ~X", "Z"),
+                ("Z", "Z @ D"),
+                ("Z @ ~X", "Z @ D"),
+            ],
+        )
     ),
 )
 
 figure_9c = Example(
     name="Counterfactual graph for :math:`P(y_x | x', z_d, d)`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(
-        directed=[("X*", "W @ X*"), ("W @ X*", "Y @ X*"), ("D", "Z"), ("Z", "Y @ X*")],
-        undirected=[("X", "Y @ X*")],
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[("~X", "W @ ~X"), ("W @ ~X", "Y @ ~X"), ("D", "Z"), ("Z", "Y @ ~X")],
+            undirected=[("X", "Y @ ~X")],
+        )
     ),
 )
 
 
 figure_9d = Example(
-    name="Counterfactual graph for :math:`P(Y @ (X*, Z) | X)`",
+    name="Counterfactual graph for :math:`P(Y @ (~X, Z) | X)`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(
-        directed=[("X*", "W @ (X*, Z)"), ("W @ (X*, Z)", "Y @ (X*, Z)"), ("Z", "Y @ (X*, Z)")],
-        undirected=[("X", "Y @ (X*, Z)")],
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[("~X", "W @ (~X, Z)"), ("W @ (~X, Z)", "Y @ (~X, Z)"), ("Z", "Y @ (~X, Z)")],
+            undirected=[("X", "Y @ (~X, Z)")],
+        )
     ),
 )
 
 figure_11a = Example(
     name="Intermediate graph obtained by **make-cg** in constructing the counterfactual graph for for :math:`P(y_x|x', z_d, d)` from Figure 9b",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(
-        directed=[
-            ("~X", "W @ ~X"),
-            ("W @ ~X", "Y @ ~X"),
-            ("D", "Z @ ~X"),
-            ("Z @ ~X", "Y @ ~X"),
-            ("X", "W"),
-            ("W", "Y"),
-            ("D", "Z"),
-            ("Z", "Y"),
-            ("X", "W @ D"),
-            ("W @ D", "Y @ D"),
-            ("D", "Z @ D"),
-            ("Z @ D", "Y @ D"),
-        ],
-        undirected=[
-            ("X", "Y"),
-            ("Y @ ~X", "Y"),
-            ("Y", "Y @ D"),
-            ("Y @ D", "X"),
-            ("X", "Y @ X"),
-            ("Y @ D", "Y @ X"),
-            ("W @X", "W"),
-            ("W", "W @ D"),
-            ("W @ D", "W @ X"),
-            ("Z @ X", "Z"),
-            ("Z", "Z @ D"),
-            ("Z @ X", "Z @ D"),
-        ],
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[
+                ("~X", "W @ ~X"),
+                ("W @ ~X", "Y @ ~X"),
+                ("D", "Z @ ~X"),
+                ("Z @ ~X", "Y @ ~X"),
+                ("X", "W"),
+                ("W", "Y"),
+                ("D", "Z"),
+                ("Z", "Y"),
+                ("X", "W @ D"),
+                ("W @ D", "Y @ D"),
+                ("D", "Z @ D"),
+                ("Z @ D", "Y @ D"),
+            ],
+            undirected=[
+                ("X", "Y"),
+                ("Y @ ~X", "Y"),
+                ("Y", "Y @ D"),
+                ("Y @ D", "X"),
+                ("X", "Y @ X"),
+                ("Y @ D", "Y @ X"),
+                ("W @X", "W"),
+                ("W", "W @ D"),
+                ("W @ D", "W @ X"),
+                ("Z @ X", "Z"),
+                ("Z", "Z @ D"),
+                ("Z @ X", "Z @ D"),
+            ],
+        )
     ),
 )
 
 figure_11b = Example(
     name="Intermediate graph obtained by **make-cg** in constructing the counterfactual graph for for :math:`P(y_x|x', z_d, d)` from Figure 9b",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(
-        directed=[
-            ("~X", "W @ ~X"),
-            ("W @ ~X", "Y @ ~X"),
-            ("D", "Z"),
-            ("Z", "Y @ ~X"),
-            ("Z", "Y @ D"),
-            ("Z", "Y"),
-            ("X", "W"),
-            ("W", "Y"),
-        ],
-        undirected=[
-            ("X", "Y"),
-            ("Y @ ~X", "Y"),
-            ("Y", "Y @ D"),
-            ("Y @ D", "X"),
-            ("Y @ D", "Y @ ~X"),
-            ("X", "Y @ ~X"),
-            ("X", "Y @ D"),
-            ("W @ X", "W"),
-        ],
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[
+                ("~X", "W @ ~X"),
+                ("W @ ~X", "Y @ ~X"),
+                ("D", "Z"),
+                ("Z", "Y @ ~X"),
+                ("Z", "Y @ D"),
+                ("Z", "Y"),
+                ("X", "W"),
+                ("W", "Y"),
+            ],
+            undirected=[
+                ("X", "Y"),
+                ("Y @ ~X", "Y"),
+                ("Y", "Y @ D"),
+                ("Y @ D", "X"),
+                ("Y @ D", "Y @ ~X"),
+                ("X", "Y @ ~X"),
+                ("X", "Y @ D"),
+                ("W @ X", "W"),
+            ],
+        )
     ),
 )
 
 figure_11c = Example(
     name="Intermediate graph obtained by **make-cg** in constructing the counterfactual graph for for :math:`P(y_x|x', z_d, d)` from Figure 9b",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(
-        directed=[
-            ("~X", "W @ ~X"),
-            ("W @ ~X", "Y @ ~X"),
-            ("D", "Z"),
-            ("Z", "Y @ ~X"),
-            ("Z", "Y"),
-            ("X", "W"),
-            ("W", "Y"),
-        ],
-        undirected=[
-            ("X", "Y"),
-            ("Y @ ~X", "Y"),
-            ("X", "Y @ ~X"),
-            ("W @ X", "W"),
-        ],
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[
+                ("~X", "W @ ~X"),
+                ("W @ ~X", "Y @ ~X"),
+                ("D", "Z"),
+                ("Z", "Y @ ~X"),
+                ("Z", "Y"),
+                ("X", "W"),
+                ("W", "Y"),
+            ],
+            undirected=[
+                ("X", "Y"),
+                ("Y @ ~X", "Y"),
+                ("X", "Y @ ~X"),
+                ("W @ X", "W"),
+            ],
+        )
     ),
 )
 
@@ -997,13 +1012,15 @@ complete_hierarchy_figure_2c_example = Example(
     name="Shpitser et al (2008) figure 2d",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
     "Journal of Machine Learning Research.",
-    graph=NxMixedGraph.from_edges(
-        directed=[
-            ("X", "Y"),
-            ("Z", "X"),
-            ("Z", "Y"),
-        ],
-        undirected=[("X", "Z")],
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[
+                ("X", "Y"),
+                ("Z", "X"),
+                ("Z", "Y"),
+            ],
+            undirected=[("X", "Z")],
+        )
     ),
 )
 
@@ -1011,13 +1028,15 @@ complete_hierarchy_figure_2d_example = Example(
     name="Shpitser et al (2008) figure 2d",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
     "Journal of Machine Learning Research.",
-    graph=NxMixedGraph.from_edges(
-        directed=[
-            ("X", "Y"),
-            ("Z", "X"),
-            ("Z", "Y"),
-        ],
-        undirected=[("X", "Z")],
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[
+                ("X", "Y"),
+                ("Z", "X"),
+                ("Z", "Y"),
+            ],
+            undirected=[("X", "Z")],
+        )
     ),
 )
 
@@ -1025,12 +1044,14 @@ complete_hierarchy_figure_2e_example = Example(
     name="Shpitser et al (2008) figure 2e",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
     "Journal of Machine Learning Research.",
-    graph=NxMixedGraph.from_edges(
-        directed=[
-            ("X", "Z"),
-            ("Z", "Y"),
-        ],
-        undirected=[("X", "Y")],
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[
+                ("X", "Z"),
+                ("Z", "Y"),
+            ],
+            undirected=[("X", "Y")],
+        )
     ),
 )
 
@@ -1038,9 +1059,11 @@ complete_hierarchy_figure_3a_example = Example(
     name="Shpitser et al 2008 figure 3a",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy."
     " Journal of Machine Learning Research.",
-    graph=NxMixedGraph.from_edges(
-        directed=[("X", "Y1"), ("W1", "X"), ("W2", "Y2")],
-        undirected=[("W1", "W2"), ("W1", "Y1"), ("W1", "Y2"), ("X", "W2")],
+    graph=str_nodes_to_expr_nodes(
+        NxMixedGraph.from_edges(
+            directed=[("X", "Y1"), ("W1", "X"), ("W2", "Y2")],
+            undirected=[("W1", "W2"), ("W1", "Y1"), ("W1", "Y2"), ("X", "W2")],
+        )
     ),
 )
 

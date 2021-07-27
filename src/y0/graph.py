@@ -430,6 +430,7 @@ def admg_from_latent_variable_dag(graph: nx.DiGraph, *, tag: Optional[str] = Non
     """
     return NxMixedGraph.from_latent_variable_dag(graph, tag=tag).to_admg()
 
+
 def str_nodes_to_expr_nodes(graph: NxMixedGraph[str]) -> NxMixedGraph[Variable]:
     """Generate a variable graph from this graph of strings."""
     from y0.parser import parse_y0
@@ -439,6 +440,7 @@ def str_nodes_to_expr_nodes(graph: NxMixedGraph[str]) -> NxMixedGraph[Variable]:
         directed=[(parse_y0(u), parse_y0(v)) for u, v in graph.directed.edges()],
         undirected=[(parse_y0(u), parse_y0(v)) for u, v in graph.undirected.edges()],
     )
+
 
 def _latent_dag(
     di_edges: Iterable[Tuple[str, str]],
