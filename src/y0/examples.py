@@ -521,7 +521,7 @@ figure_11b = Example(
     graph=str_nodes_to_expr_nodes(
         NxMixedGraph.from_edges(
             directed=[
-                ("~X", "W @ ~X"),
+                ("X @ ~X", "W @ ~X"),
                 ("W @ ~X", "Y @ ~X"),
                 ("D", "Z"),
                 ("Z", "Y @ ~X"),
@@ -529,6 +529,7 @@ figure_11b = Example(
                 ("Z", "Y"),
                 ("X", "W"),
                 ("W", "Y"),
+                ("W", "Y @ D"),
             ],
             undirected=[
                 ("X", "Y"),
@@ -538,7 +539,7 @@ figure_11b = Example(
                 ("Y @ D", "Y @ ~X"),
                 ("X", "Y @ ~X"),
                 ("X", "Y @ D"),
-                ("W @ X", "W"),
+                ("W @ ~X", "W"),
             ],
         )
     ),
@@ -550,7 +551,7 @@ figure_11c = Example(
     graph=str_nodes_to_expr_nodes(
         NxMixedGraph.from_edges(
             directed=[
-                ("~X", "W @ ~X"),
+                ("X @ ~X", "W @ ~X"),
                 ("W @ ~X", "Y @ ~X"),
                 ("D", "Z"),
                 ("Z", "Y @ ~X"),
@@ -562,7 +563,7 @@ figure_11c = Example(
                 ("X", "Y"),
                 ("Y @ ~X", "Y"),
                 ("X", "Y @ ~X"),
-                ("W @ X", "W"),
+                ("W @ ~X", "W"),
             ],
         )
     ),
