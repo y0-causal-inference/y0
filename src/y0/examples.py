@@ -460,7 +460,7 @@ figure_9c = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
     graph=str_nodes_to_expr_nodes(
         NxMixedGraph.from_edges(
-            directed=[("~X", "W @ ~X"), ("W @ ~X", "Y @ ~X"), ("D", "Z"), ("Z", "Y @ ~X")],
+            directed=[("X @ ~X", "W @ ~X"), ("W @ ~X", "Y @ ~X"), ("D", "Z"), ("Z", "Y @ ~X")],
             undirected=[("X", "Y @ ~X")],
         )
     ),
