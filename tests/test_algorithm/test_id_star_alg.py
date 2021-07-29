@@ -4,7 +4,8 @@
 
 import unittest
 from y0.graph import NxMixedGraph
-from y0.dsl import Variable, X, D, W, P, Y, Z
+from y0.dsl import Variable, X, D, W, P, Y, Z, Expression, get_outcomes_and_treatments
+from y0.mutate import canonicalize
 from y0.algorithm.identify.id_star import (
     make_parallel_worlds_graph,
     combine_parallel_worlds,
@@ -33,6 +34,21 @@ class TestIdentifyStar(unittest.TestCase):
             set(map(frozenset, a.undirected.edges())),
             set(map(frozenset, b.undirected.edges())),
             msg=msg,
+        )
+
+    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
+        """Assert that two expressions are the same."""
+        expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
+        actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
+        self.assertEqual(expected_treatments, actual_treatments)
+        self.assertEqual(expected_outcomes, actual_outcomes)
+        ordering = tuple(expected.get_variables())
+        expected_canonical = canonicalize(expected, ordering)
+        actual_canonical = canonicalize(actual, ordering)
+        self.assertEqual(
+            expected_canonical,
+            actual_canonical,
+            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
         )
 
     def test_make_parallel_worlds(self):

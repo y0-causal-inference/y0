@@ -105,15 +105,13 @@ def make_counterfactual_graph(
     """Make counterfactual graph"""
     worlds = get_worlds(query)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
-    new_query_variables = {
-        variable for variable in query.get_variables() if not isinstance(variable, Intervention)
-    }
+    new_query_variables = {v for v in query.get_variables() if not isinstance(v, Intervention)}
     cf_graph = NxMixedGraph.from_edges(
         nodes=pw_graph.nodes(),
         directed=pw_graph.directed.edges(),
         undirected=pw_graph.undirected.edges(),
     )
-    for node in graph.nodes():
+    for node in graph.topological_sort():
         for intervention in worlds:
             if (
                 (node in cf_graph.nodes())
@@ -136,7 +134,9 @@ def make_counterfactual_graph(
                         new_query_variables = new_query_variables - {node @ intervention2} | {
                             node @ intervention1
                         }
-    return cf_graph, P(new_query_variables)
+    return cf_graph.subgraph(cf_graph.ancestors_inclusive(new_query_variables)), P(
+        new_query_variables
+    )
 
 
 def make_parallel_worlds_graph(
