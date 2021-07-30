@@ -5,7 +5,7 @@
 from .id_std import identify
 from .utils import Identification
 from ..conditional_independencies import are_d_separated
-from ...dsl import Expression, Variable, P
+from ...dsl import Expression, Variable, P, Sum, Product
 
 __all__ = [
     "make_parallel_worlds_graph",
@@ -26,6 +26,84 @@ from itertools import combinations
 from typing import Collection, Tuple
 from networkx.algorithms.dag import topological_sort
 from networkx import DiGraph
+
+
+def id_star(graph: NxMixedGraph[Variable], query: Probability) -> Expression:
+
+    # Line 0
+    if len(query.distribution.parents) != 0:
+        raise ValueError(f"Query {query} must be unconditional")
+    gamma = set(query.distribution.children)
+    # Line 1
+    if len(gamma) == 0:
+        return P(1)
+    for counterfactual in gamma:
+        if isinstance(counterfactual, CounterfactualVariable):
+            for intervention in counterfactual.interventions:
+                if intervention.name == counterfactual.name:
+                    # Line 2: This violates the Axiom of Effectiveness
+                    if intervention.star:
+                        return 0
+                    else:
+                        # Line 3: This is a tautological event and can be removed without affecting the probability
+                        return id_star(graph, P(gamma - {counterfactual}))
+    # Line 4:
+    try:
+        new_graph, new_query = make_counterfactual_graph(graph, query)
+        vertices = set(new_graph.nodes())
+        new_gamma = set(new_query.distribution.children)
+    # Line 5:
+    except Inconsistent(f"query {query} is inconsistent"):
+        return P(0)
+    # Line 6:
+    if not new_graph.is_connected():
+        return Sum[vertices - new_gamma](
+            Product(
+                [
+                    id_star(new_graph, P[vertices - district](district))
+                    for district in new_graph.get_c_components()
+                ]
+            )
+        )
+    # Line 7:
+    else:
+        # Line 8 is syntactically impossible with the dsl
+        interventions = set()
+        for counterfactual in vertices:
+            if isinstance(counterfactual, CounterfactualVariable):
+                interventions |= counterfactual.interventions
+        return P[interventions](Variable(v.name) for v in vertices)
+
+
+def idc_star(graph: NxMixedGraph[Variable], query: Probability) -> Expression:
+    gamma = set(query.distribution.children)
+    delta = set(query.distribution.parents)
+    if len(delta) == 0:
+        raise ValueError(f"Query {query} must be conditional")
+    # Line 1:
+    if id_star(graph, P(delta)) == 0:
+        return Undefined(f"Query {query} is undefined")
+    # Line 2:
+    try:
+        new_graph, new_query = make_counterfactual_graph(graph, P(gamma.union(delta)))
+        new_gamma = {g for g in gamma if g in new_query.distribution.children}
+        new_delta = {d for d in delta if d in new_query.distribution.children}
+        vertices = set(new_graph.nodes())
+    # Line 3:
+    except Inconsistent(f"query {gamma.union(delta)} is inconsistent"):
+        return 0
+    # Line 4:
+    for counterfactual in new_delta:
+        if are_d_separated(
+            new_graph.remove_outgoing_edges_from(counterfactual), counterfactual, new_gamma
+        ):
+            counterfactual_value = Variable(counterfactual.name)
+            parents = new_delta - {counterfactual}
+            children = {g.intervene(counterfactual_value) for g in new_gamma}
+            return idc_star(graph, P(children | parents))
+    # Line 5:
+    estimand = id_star(graph, new_query)
+    return estimand / Sum[vertices - delta](estimand)
 
 
 def has_same_parents(graph: NxMixedGraph[Variable], node1: Variable, node2: Variable) -> bool:
@@ -105,7 +183,7 @@ def make_counterfactual_graph(
     """Make counterfactual graph"""
     worlds = get_worlds(query)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
-    new_query_variables = {v for v in query.get_variables() if not isinstance(v, Intervention)}
+    new_query_variables = set(query.distribution.children)
     cf_graph = NxMixedGraph.from_edges(
         nodes=pw_graph.nodes(),
         directed=pw_graph.directed.edges(),
@@ -153,10 +231,10 @@ def make_parallel_world_graph(
     """Make one parallel world based on interventions specified"""
     pw_graph = graph.intervene(treatments)
     return NxMixedGraph.from_edges(
-        nodes=[node @ treatments for node in graph.nodes()],
-        directed=[(u @ treatments, v @ treatments) for u, v in pw_graph.directed.edges()],
+        nodes=[node.intervene(treatments) for node in pw_graph.nodes()],
+        directed=[(u.intervene(treatments), v.intervene(treatments)) for u, v in pw_graph.directed.edges()],
         undirected=[
-            (u @ treatments, v @ treatments)
+            (u.intervene(treatments), v.intervene(treatments))
             for u, v in pw_graph.undirected.edges()
             if (u not in treatments)
             and (v not in treatments)

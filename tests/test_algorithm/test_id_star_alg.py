@@ -4,7 +4,7 @@
 
 import unittest
 from y0.graph import NxMixedGraph
-from y0.dsl import Variable, X, D, W, P, Y, Z, Expression, get_outcomes_and_treatments
+from y0.dsl import Variable, X, D, W, P, Y, Z, Expression, get_outcomes_and_treatments, Sum
 from y0.mutate import canonicalize
 from y0.algorithm.identify.id_star import (
     make_parallel_worlds_graph,
@@ -16,10 +16,12 @@ from y0.algorithm.identify.id_star import (
     lemma_24,
     lemma_25,
     make_counterfactual_graph,
+    id_star,
+    idc_star
 )
 from collections import Counter
 
-from y0.examples import figure_9a, figure_9b, figure_9c, figure_11a, figure_11b, figure_11c
+from y0.examples import figure_9a, figure_9b, figure_9c, figure_9d, figure_11a, figure_11b, figure_11c
 
 
 class TestIdentifyStar(unittest.TestCase):
@@ -111,3 +113,19 @@ class TestIdentifyStar(unittest.TestCase):
         )
         self.assert_graph_equal(figure_9c.graph, actual_graph)
         self.assert_expr_equal(expected=P(Y @ ~X, X, Z, D), actual=actual_query)
+
+    def test_id_star(self):
+        """Test that the ID* algorithm returns the correct estimand"""
+        query = P(Y @ (~X, Z), X)
+        actual = id_star( figure_9a.graph, query)
+        expected = Sum[W](P(Y @ (Z,W), X @ (Z, W))*P( W @ X))
+        self.assert_expr_equal(expected, actual)
+
+    def test_idc_star(self):
+        """Test that the IDC* algorithm returns the correct estimand"""
+        query = P(Y @ ~X | X, Z @ D, D )
+        vertices = set(figure_9a.graph.nodes())
+        estimand = Sum[W](P(Y @ (Z,W), X @ (Z, W))*P( W @ X))
+        expected = estimand/Sum[vertices - {X, Z @ D, D}](estimand)
+        actual = idc_star( figure_9a.graph, query)
+        self.assert_expr_equal( expected, actual )
