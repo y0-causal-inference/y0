@@ -30,11 +30,11 @@ def _get_outcomes(variables: Set[Variable]) -> List[str]:
     return [variable.name for variable in _get_outcome_variables(variables)]
 
 
-def _all_counterfactual(distribution: Distribution) -> bool:
+def _all_counterfactual(distribution: Union[Probability, Distribution]) -> bool:
     return all(isinstance(variable, CounterfactualVariable) for variable in distribution.children)
 
 
-def _all_intervened_same(distribution: Distribution) -> bool:
+def _all_intervened_same(distribution: Union[Probability, Distribution]) -> bool:
     return 1 == len(
         {
             variable.interventions  # type:ignore
@@ -43,7 +43,7 @@ def _all_intervened_same(distribution: Distribution) -> bool:
     )
 
 
-def _get_to(query: Distribution) -> Tuple[List[str], List[str]]:
+def _get_to(query: Union[Probability, Distribution]) -> Tuple[List[str], List[str]]:
     if not _all_counterfactual(query):
         raise ValueError("all variables in input distribution should be counterfactuals")
 
@@ -102,9 +102,6 @@ def is_identifiable(
     """
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_admg()
-
-    if isinstance(query, Probability):
-        query = query.distribution
 
     if query.is_conditioned():
         raise ValueError("input distribution should not have any conditions")

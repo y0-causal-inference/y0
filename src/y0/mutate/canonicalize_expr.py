@@ -37,7 +37,7 @@ def canonicalize(
 
 
 def _sort_probability_key(probability: Probability) -> Tuple[str, ...]:
-    return tuple(child.name for child in probability.distribution.children)
+    return tuple(child.name for child in probability.children)
 
 
 class Canonicalizer:
@@ -62,8 +62,8 @@ class Canonicalizer:
     def _canonicalize_probability(self, expression: Probability) -> Probability:
         return Probability(
             Distribution(
-                children=self._sorted(expression.distribution.children),
-                parents=self._sorted(expression.distribution.parents),
+                children=self._sorted(expression.children),
+                parents=self._sorted(expression.parents),
             )
         )
 
@@ -137,7 +137,7 @@ class Canonicalizer:
         :raises TypeError: if an invalid expression type is given
         """
         if isinstance(expression, Probability):
-            return 0, expression.distribution.children[0].name
+            return 0, expression.children[0].name
         elif isinstance(expression, Sum):
             return 1, *self._nonatomic_key(expression.expression)
         elif isinstance(expression, Product):

@@ -97,21 +97,19 @@ class Query:
         :returns: An identification tuple
         :raises ValueError: If there are ragged counterfactual variables in the query
         """
-        outcomes = {Variable(v.name) for v in query.distribution.children}  # clean counterfactuals
-        conditions = {Variable(v.name) for v in query.distribution.parents}
+        outcomes = {Variable(v.name) for v in query.children}  # clean counterfactuals
+        conditions = {Variable(v.name) for v in query.parents}
 
-        first_child = query.distribution.children[0]
+        first_child = query.children[0]
         if not isinstance(first_child, CounterfactualVariable):
-            if _unexp_interventions(query.distribution.children) or _unexp_interventions(
-                query.distribution.parents
-            ):
+            if _unexp_interventions(query.children) or _unexp_interventions(query.parents):
                 raise ValueError("Inconsistent usage of interventions")
             treatments = set()
         else:
             interventions = set(first_child.interventions)
-            if _ragged_interventions(
-                query.distribution.children, interventions
-            ) or _ragged_interventions(query.distribution.parents, interventions):
+            if _ragged_interventions(query.children, interventions) or _ragged_interventions(
+                query.parents, interventions
+            ):
                 raise ValueError("Inconsistent usage of interventions")
             treatments = {Variable(i.name) for i in first_child.interventions}
 
