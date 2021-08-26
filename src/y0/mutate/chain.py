@@ -53,17 +53,17 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
     """
     if reorder:
         _ordering = ensure_ordering(p, ordering=ordering)
-        if any(v not in _ordering for v in p.distribution.children):
+        if any(v not in _ordering for v in p.children):
             raise ValueError
-        ordered_children = tuple(v for v in _ordering if v in p.distribution.children)
+        ordered_children = tuple(v for v in _ordering if v in p.children)
     else:
-        ordered_children = p.distribution.children
+        ordered_children = p.children
 
     return Product(
         tuple(
             P(
                 Distribution(children=(ordered_children[i],)).given(
-                    ordered_children[i + 1 :] + p.distribution.parents
+                    ordered_children[i + 1 :] + p.parents
                 )
             )
             for i in range(len(ordered_children))
@@ -87,7 +87,7 @@ def fraction_expand(p: Probability) -> Fraction:
     .. math::
         P(Y_1,\dots,Y_n | X_1, \dots, X_m) = \frac{P(Y_1,\dots,Y_n,X_1,\dots,X_m)}{P(X_1,\dots,X_m)}
     """
-    return p.uncondition() / P(p.distribution.parents)
+    return p.uncondition() / P(p.parents)
 
 
 def bayes_expand(p: Probability) -> Fraction:
@@ -102,4 +102,4 @@ def bayes_expand(p: Probability) -> Fraction:
 
     .. note:: This expansion will create a different but equal expression to :func:`fraction_expand`.
     """
-    return p.uncondition().marginalize(p.distribution.children)
+    return p.uncondition().marginalize(p.children)

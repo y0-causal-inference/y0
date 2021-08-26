@@ -16,17 +16,17 @@ class TestUtils(unittest.TestCase):
     def test_to(self):
         """Test getting treatments and outcomes."""
         with self.assertRaises(ValueError):
-            _get_to(P(X).distribution)
+            _get_to(P(X))
         with self.assertRaises(ValueError):
-            _get_to(P(X, Y).distribution)
+            _get_to(P(X, Y))
         with self.assertRaises(ValueError):
-            _get_to(P(X @ Y, X @ Z).distribution)
+            _get_to(P(X @ Y, X @ Z))
 
-        for expected_t, expected_o, expression in [
+        for expected_t, expected_o, probability in [
             (["X"], ["Y"], P(Y @ X)),
             (["X"], ["Y", "Z"], P(Y @ X, Z @ X)),
         ]:
-            t, o = _get_to(expression.distribution)
+            t, o = _get_to(probability)
             self.assertEqual(expected_t, t)
             self.assertEqual(expected_o, o)
 
