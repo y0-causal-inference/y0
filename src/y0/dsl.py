@@ -606,6 +606,24 @@ class Probability(Expression):
         """Output this probability in the LaTeX string format."""
         return f"P({self.distribution.to_latex()})"
 
+    @property
+    def parents(self) -> Tuple[Variable, ...]:
+        """Get the distribution's parents."""
+        return self.distribution.parents
+
+    @property
+    def children(self) -> Tuple[Variable, ...]:
+        """Get the distribution's children."""
+        return self.distribution.children
+
+    def is_conditioned(self) -> bool:
+        """Return if this distribution is conditioned."""
+        return self.distribution.is_conditioned()
+
+    def is_markov_kernel(self) -> bool:
+        """Return if this distribution a markov kernel -> one child variable and one or more conditionals."""
+        return self.distribution.is_markov_kernel()
+
     def __mul__(self, other: Expression) -> Expression:
         if isinstance(other, Product):
             return Product((self, *other.expressions))
