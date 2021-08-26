@@ -5,7 +5,7 @@
 from .id_std import identify
 from .utils import Identification
 from ..conditional_independencies import are_d_separated
-from ...dsl import Expression, Variable, P, Sum, Product
+from ...dsl import Expression, Variable, P, Sum, Product, _get_outcome_variables, _get_treatment_variables
 
 __all__ = [
     "make_parallel_worlds_graph",
@@ -13,6 +13,7 @@ __all__ = [
     "make_parallel_world_graph",
     "lemma_24",
     "lemma_25",
+    "id_star_line_9"
 ]
 
 
@@ -68,6 +69,7 @@ def id_star(graph: NxMixedGraph[Variable], query: Probability) -> Expression:
     # Line 7:
     else:
         # Line 8 is syntactically impossible with the dsl
+        # Line 9
         interventions = set()
         for counterfactual in vertices:
             if isinstance(counterfactual, CounterfactualVariable):
@@ -75,7 +77,36 @@ def id_star(graph: NxMixedGraph[Variable], query: Probability) -> Expression:
         return P[interventions](Variable(v.name) for v in vertices)
 
 
+def get_val( counterfactual: CounterfactualVariable, graph: NxMixedGraph[Variable]) -> Intervention:
+    var = Variable(counterfactual.name)
+    for intervention in counterfactual.interventions:
+        if Variable(intervention.name) in graph.ancestors_inclusive(var):
+            if intervention.star:
+                return ~var
+    return -var
+
+
+def idc_star_line_4(graph: NxMixedGraph[Variable], query: Probability) -> bool:
+    """
+        Line 4 of IDC* is the central line of the algorithm and is
+        analogous to line 1 of IDC. In IDC, we moved a value
+        assignment :math:`Z = z` from being observed to being fixed if
+        there were no back-door paths from :math:`Z` to the outcome
+        variables :math:`Y` given the context of the effect of
+        :math:`do(\mathbf{x})`. Here in IDC*, we move a counterfactual
+        value assignment :math:`Y_\mathbf{x} = y` from being observed (that is being a
+        part of :math:`\delta`), to being fixed (that is appearing in every
+        subscript of :math:`\gamma'` ) if there are no back-door paths from :math:`Y_\mathbf{x}` to
+        the counterfactual of interest :math:`\gamma'` .
+    """
+    gamma = set(query.distribution.children)
+
+
 def idc_star(graph: NxMixedGraph[Variable], query: Probability) -> Expression:
+    """INPUT: G a causal diagram,
+    :math:`\gamma` a conjunction of counterfactual outcomes,
+    :math:`\delta` a conjunction of counterfactual observations
+    OUTPUT: an expression for :math:`P(\gamma | \delta)` in terms of P, FAIL, or UNDEFINED """
     gamma = set(query.distribution.children)
     delta = set(query.distribution.parents)
     if len(delta) == 0:
@@ -105,6 +136,22 @@ def idc_star(graph: NxMixedGraph[Variable], query: Probability) -> Expression:
     estimand = id_star(graph, new_query)
     return estimand / Sum[vertices - delta](estimand)
 
+def get_varnames( query: Probability ) -> Set[Variable]:
+    """Returns new Variables generated from the names of the outcome variables in the query"""
+    return {Variable(outcome.name) for outcome in query.distribution.children}
+
+def get_interventions( query: Probability ) -> Set[Variable]:
+    """Generates new Variables from the subscripts of counterfactual variables in the query"""
+    interventions = set()
+    for counterfactual in query.distribution.children:
+        if isinstance(counterfactual, CounterfactualVariable):
+            interventions |= set(counterfactual.interventions)
+    return sorted(interventions)
+def id_star_line_9( query: Probability ) -> Expression:
+    """Gathers all interventions and applies them to the varnames of outcome variables"""
+    varnames = get_varnames( query )
+    interventions = get_interventions( query )
+    return P[interventions](varnames)
 
 def has_same_parents(graph: NxMixedGraph[Variable], node1: Variable, node2: Variable) -> bool:
     """Check if all parents of the two nodes are the same
