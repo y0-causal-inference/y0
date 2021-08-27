@@ -19,6 +19,7 @@ from y0.algorithm.identify.id_star import (
     make_counterfactual_graph,
     id_star,
     idc_star,
+    idc_star_line_2,
     id_star_line_9
 )
 from collections import Counter
@@ -29,14 +30,14 @@ from y0.examples import figure_9a, figure_9b, figure_9c, figure_9d, figure_11a, 
 class TestIdentifyStar(unittest.TestCase):
     """Tests parallel worlds and counterfactual graphs"""
 
-    def assert_graph_equal(self, a: NxMixedGraph, b: NxMixedGraph, msg=None) -> None:
+    def assert_graph_equal(self, expected: NxMixedGraph, actual: NxMixedGraph, msg=None) -> None:
         """Check the graphs are equal (more nice than the builtin :meth:`NxMixedGraph.__eq__` for testing)."""
-        self.assertEqual(set(a.directed.nodes()), set(b.directed.nodes()), msg=msg)
-        self.assertEqual(set(a.undirected.nodes()), set(b.undirected.nodes()), msg=msg)
-        self.assertEqual(set(a.directed.edges()), set(b.directed.edges()), msg=msg)
+        self.assertEqual(set(expected.directed.nodes()), set(actual.directed.nodes()), msg=msg)
+        self.assertEqual(set(expected.undirected.nodes()), set(actual.undirected.nodes()), msg=msg)
+        self.assertEqual(set(expected.directed.edges()), set(actual.directed.edges()), msg=msg)
         self.assertEqual(
-            set(map(frozenset, a.undirected.edges())),
-            set(map(frozenset, b.undirected.edges())),
+            set(map(frozenset, expected.undirected.edges())),
+            set(map(frozenset, actual.undirected.edges())),
             msg=msg,
         )
 
@@ -122,12 +123,14 @@ class TestIdentifyStar(unittest.TestCase):
         #self.assert_expr_equal( P( Y @ (~X, Z)), actual_query2)
 
     def test_idc_star_line_2(self):
-        """Check to see if Axiom of Effectiveness is violated"""
-        query = P( Y @ ~X | X, Z @ D, D)
-        delta = query.distribution.parents
-        graph = figure_9a.graph
-        #self.assert_expr_equal( P(X, Z@ D, D), P(delta) )
-        #self.assert_expr_equal(expected=0, actual=id_star(graph, P(delta)))
+        r"""Construct the counterfactual graph Figure 9(c) where the corresponding modified query is :math:`P(y_x|x',z,d)`"""
+        input_query = P( Y @ ~X | X, Z, D)
+        input_graph = figure_9a.graph
+        actual_graph, actual_query = idc_star_line_2(input_graph, input_query)
+        expected_graph = figure_9c.graph
+        expected_query = P(D, X, Y @ ~X, Z)
+        self.assert_expr_equal(expected=expected_query, actual=actual_query)
+        self.assert_graph_equal(expected=expected_graph, actual=actual_graph)
 
     def test_idc_star_line_4(self):
        r"""Check that line 4 or IDC* works correctly moves :math:`Z, D` (with
@@ -159,6 +162,10 @@ class TestIdentifyStar(unittest.TestCase):
 
     def test_id_star_line_6(self):
         """Check that the input to id_star from each district is properly constructed"""
+        graph = figure_9d.graph
+
+        query = P( Y @ (X, Z), X)
+
 
     def test_id_star_line_7(self):
         """Check that the graph is entirely one c-component"""
