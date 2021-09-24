@@ -23,7 +23,7 @@ from ananke.graphs import ADMG
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import Expression, Variable
+from .dsl import Expression, Variable, Intervention
 from .constants import NodeType
 
 __all__ = [
@@ -328,13 +328,72 @@ class NxMixedGraph(Generic[NodeType]):
         :param vertices: a subset of nodes from which to remove incoming edges
         :returns: A NxMixedGraph subgraph
         """
-        vertices = set(vertices)
-
+        interventions = set(vertices)
+        replacement = {}
+        nodes = set(self.nodes())
+        for intervention in interventions:
+            if (intervention in nodes):
+                pass
+            elif (type(intervention) is Intervention):
+                not_node = Variable(str(~intervention))
+                node = Variable(str(intervention))
+                if node in nodes:
+                    replacement[node] = intervention
+                elif not_node in nodes:
+                    replacement[not_node] = intervention
+                else:
+                    raise KeyError(f"{type(intervention)} {intervention} not in nodes")
+            else:
+                raise KeyError(f"{type(intervention)} {intervention} not in nodes")
+        new_graph = self.replace_nodes_from(replacement)
         return self.from_edges(
-            nodes=self.nodes(),
-            directed=_exclude_target(self.directed, vertices),
-            undirected=_exclude_adjacent(self.undirected, vertices),
+                nodes=new_graph.nodes(),
+                directed=_exclude_target(new_graph.directed, interventions),
+                undirected=_exclude_adjacent(new_graph.undirected, interventions),
         )
+
+    def replace_nodes_from(self, replacement: Mapping[NodeType, NodeType]) -> NxMixedGraph[NodeType]:
+        """Return a new NxMixedGraph given a set of replacement nodes
+
+        :param replacement: a dictionary mapping old nodes to new nodes
+        :returns: a new NxMixedGraph given a set of replacement nodes
+        """
+
+        return NxMixedGraph.from_edges(
+            nodes=self.replace_nodes( self.nodes(), replacement ),
+            directed=self.replace_edges( self.directed.edges(), replacement),
+            undirected= self.replace_edges(self.undirected.edges(), replacement)
+        )
+
+    def replace_edges(self, edges: Collection[Tuple[NodeType, NodeType]], replacement: Mapping[NodeType, NodeType]) -> Collection[Tuple[NodeType, NodeType]]:
+        """Return a new set of edges given a set of replacement nodes
+
+        :param edges: a set of edges (could be directed or undirected)
+        :param replacement: a dictionary mapping old nodes to new nodes
+        :returns: a new set of edges with nodes replaced
+        """
+        new_edges = []
+        for u, v in edges:
+            if u in replacement and v in replacement:
+                new_edges.append((replacement[u], replacement[v]))
+            elif u in replacement:
+                new_edges.append((replacement[u], v))
+            elif v in replacement:
+                new_edges.append((u, replacement[v]))
+            else:
+                new_edges.append((u, v))
+        return new_edges
+
+
+
+    def replace_nodes(self, nodes: Collection[NodeType], replacement: Mapping[NodeType, NodeType]) -> Collection[NodeType]:
+        """Return a new set of nodes given a set of replacement nodes
+
+        :param nodes: a set of nodes
+        :param replacement: a dictionary mapping old nodes to new nodes
+        :returns: a new set of nodes given a set of replacement nodes
+        """
+        return {node if node not in replacement else replacement[node] for node in nodes}
 
     def remove_nodes_from(self, vertices: Collection[NodeType]) -> NxMixedGraph[NodeType]:
         """Return a subgraph that does not contain any of the specified vertices.
