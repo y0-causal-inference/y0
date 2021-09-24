@@ -329,8 +329,9 @@ class NxMixedGraph(Generic[NodeType]):
         :returns: A NxMixedGraph subgraph
         """
         vertices = set(vertices)
+
         return self.from_edges(
-            nodes=vertices,
+            nodes=self.nodes(),
             directed=_exclude_target(self.directed, vertices),
             undirected=_exclude_adjacent(self.undirected, vertices),
         )

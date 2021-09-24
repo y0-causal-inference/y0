@@ -153,14 +153,14 @@ class TestGraph(unittest.TestCase):
                 (X, Y)
             ]
         )
-        self.assertEqual(backdoor_intervention1, backdoor.intervene(X))
-        backdoor_intervention1 =   NxMixedGraph.from_edges(
+        self.assertEqual(backdoor_intervention1, backdoor.intervene({X}))
+        backdoor_intervention2 =   NxMixedGraph.from_edges(
             directed=[
                 (Z, Y),
                 (~X, Y)
             ]
         )
-        self.assertEqual(backdoor_intervention2, backdoor.intervene(~X))
+        self.assertEqual(backdoor_intervention2, backdoor.intervene({~X}))
 
     def test_remove_nodes_from(self):
         """Test generating a new graph without the given nodes."""
