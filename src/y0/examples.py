@@ -470,8 +470,8 @@ figure_9d = Example(
     name="Counterfactual graph resulting from application of make_counterfactual_graph() with joint distribution from which :math:`P(y_{x,z}|x')` is derived, namely  :math:`P(y_{x,z}, x')`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
     graph=NxMixedGraph.from_edges(
-        nodes=(X, X @ (Z, ~X), Z, W @ (Z, ~X), Y @ (Z, ~X)),
-        directed=[(X @ (Z, ~X), W @ (Z, ~X)), (Z, Y @ (Z, ~X)), (W @ (Z, ~X), Y @ (Z, ~X))],
+        nodes=(X, X @ (Z, ~X), Z @ (Z, ~X), W @ (Z, ~X), Y @ (Z, ~X)),
+        directed=[(X @ (Z, ~X), W @ (Z, ~X)), (Z @ (Z, ~X), Y @ (Z, ~X)), (W @ (Z, ~X), Y @ (Z, ~X))],
         undirected=[(X, Y @ (Z, ~X))],
     )
 )
@@ -480,7 +480,7 @@ figure_9e = Example(
     name="Counterfactual graph for :math:`P(Y @ (~X, Z) | X)`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
     graph=NxMixedGraph.from_edges(
-        nodes=(D, X, X @ (~X, Z), Z, W @ (~X, Z), Y @ (~X, Z)),
+        nodes=(D, X, X @ (~X, Z), Z @ (~X, Z), W @ (~X, Z), Y @ (~X, Z)),
         directed=[(D, Z), (X @ (~X, Z), W @ (~X, Z)), (Z, Y @ (~X, Z)), (W @ (~X, Z), Y @ (~X, Z))],
         undirected=[(X, Y @ (~X, Z))],
     )
