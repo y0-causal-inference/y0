@@ -19,7 +19,7 @@ from typing import Collection
 __all__ = [
     "make_parallel_worlds_graph",
     "combine_parallel_worlds",
-    "make_parallel_world_graph",
+    "make_world_graph",
     "lemma_24",
     "lemma_25",
     "idc_star_line_2",
@@ -215,11 +215,11 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
 
 
 def get_worlds(query: Probability) -> Collection[Collection[Variable]]:
-    return [
-        _get_treatment_variables(var.get_variables())
+    return sorted([
+        sorted(_get_treatment_variables(var.get_variables()), key=lambda x: str(x))
         for var in query.get_variables()
         if isinstance(var, CounterfactualVariable)
-    ]
+    ])
 
 
 def lemma_24(pw_graph: NxMixedGraph[Variable], node1, node2) -> bool:
@@ -243,9 +243,15 @@ def lemma_25(
 ) -> NxMixedGraph[Variable]:
     r"""Merge node1 and node2 and return the reduced graph and query
 
-    Let :math:`M_\mathbf{x}` be a submodel derived from :math:`M` with set :math:`\mathbf{Z}` obse to attain values :math:`\mathbf{z}`, such that Lemma 24 holds for :math:`\alpha`; :math:`\beta`. Let :math:`M'` be a causal model obtained from :math:`M` by merging :math:`\alpha`; :math:`\beta` into a new node :math:`\omega`, which inherits all parents and the functional mechanism of :math:`\alpha`. All children of :math:`\alpha`; :math:`\beta` in :math:`M'` become children of :math:`\omega`. Then :math:`M_\mathbf{x},  M'_\mathbf{x} agree on any distribution consistent with :math:`z` being observed.
+    Let :math:`M_\mathbf{x}` be a submodel derived from :math:`M` with set :math:`\mathbf{Z}` observed to attain values :math:`\mathbf{z}`, such that Lemma 24 holds for :math:`\alpha`; :math:`\beta`. Let :math:`M'` be a causal model obtained from :math:`M` by merging :math:`\alpha`; :math:`\beta` into a new node :math:`\omega`, which inherits all parents and the functional mechanism of :math:`\alpha`. All children of :math:`\alpha`; :math:`\beta` in :math:`M'` become children of :math:`\omega`. Then :math:`M_\mathbf{x},  M'_\mathbf{x} agree on any distribution consistent with :math:`z` being observed.
 
     """
+    if isinstance(node1, CounterfactualVariable) and not isinstance(node2, CounterfactualVariable):
+        node1, node2 = node2, node1
+    elif (not isinstance(node1, CounterfactualVariable)) and isinstance(node2, CounterfactualVariable):
+        pass
+    else:
+        node1, node2 = sorted([node1, node2])
     directed = [(u, v) for u, v in graph.directed.edges() if node2 not in (u, v)]
     directed += [(node1, v) for u, v in graph.directed.edges() if node2 == u]
     # directed += [(u, node1) for u, v in graph.directed.edges() if node2 == v]
@@ -284,7 +290,7 @@ def make_counterfactual_graph(
             ):
                 cf_graph = lemma_25(cf_graph, node, node @ intervention)
                 if node @ intervention in new_query_variables:
-                    new_query_variables = new_query_variables - {node @ intervention} | {node}
+                    new_query_variables = (new_query_variables - {node @ intervention}) | {node}
 
         if len(worlds) > 1:
             for intervention1, intervention2 in combinations(worlds, 2):
@@ -307,23 +313,23 @@ def make_parallel_worlds_graph(
     graph: NxMixedGraph[Variable], worlds: Collection[Collection[Variable]]
 ) -> NxMixedGraph[Variable]:
     """Make Parallel worlds graph"""
-    combined_worlds = [make_parallel_world_graph(graph, world) for world in worlds]
-    return combine_parallel_worlds(graph, combined_worlds, worlds)
+    combined_worlds = [make_world_graph(graph, world) for world in worlds]
+    return combine_worlds(graph, combined_worlds, worlds)
 
 
-def make_parallel_world_graph(
+def make_world_graph(
     graph: NxMixedGraph[Variable], treatments: Collection[Variable]
 ) -> NxMixedGraph[Variable]:
     """Make one parallel world based on interventions specified"""
-    pw_graph = graph.intervene(treatments)
+    world_graph = graph.intervene(treatments)
     return NxMixedGraph.from_edges(
-        nodes=[node.intervene(treatments) for node in pw_graph.nodes()],
+        nodes=[node.intervene(treatments) for node in world_graph.nodes()],
         directed=[
-            (u.intervene(treatments), v.intervene(treatments)) for u, v in pw_graph.directed.edges()
+            (u.intervene(treatments), v.intervene(treatments)) for u, v in world_graph.directed.edges()
         ],
         undirected=[
             (u.intervene(treatments), v.intervene(treatments))
-            for u, v in pw_graph.undirected.edges()
+            for u, v in world_graph.undirected.edges()
             if (u not in treatments)
             and (v not in treatments)
             and (~u not in treatments)
@@ -343,7 +349,7 @@ def to_adj(graph: NxMixedGraph):
     return nodes, directed, undirected
 
 
-def combine_parallel_worlds(
+def combine_worlds(
     graph: NxMixedGraph[Variable],
     combined_worlds: Collection[NxMixedGraph[Variable]],
     worlds: Collection[Collection[Variable]],

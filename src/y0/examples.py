@@ -13,7 +13,7 @@ import pandas as pd
 
 from .algorithm.identify import Identification
 from .graph import str_nodes_to_expr_nodes
-from .dsl import P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5
+from .dsl import P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5, D, W
 from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
@@ -466,21 +466,26 @@ figure_9c = Example(
     ),
 )
 
-
 figure_9d = Example(
+    name="Counterfactual graph resulting from application of make_counterfactual_graph() with joint distribution from which :math:`P(y_{x,z}|x')` is derived, namely  :math:`P(y_{x,z}, x')`",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
+    graph=NxMixedGraph.from_edges(
+        nodes=(X, X @ (Z, ~X), Z, W @ (Z, ~X), Y @ (Z, ~X)),
+        directed=[(X @ (Z, ~X), W @ (Z, ~X)), (Z, Y @ (Z, ~X)), (W @ (Z, ~X), Y @ (Z, ~X))],
+        undirected=[(X, Y @ (Z, ~X))],
+    )
+)
+
+figure_9e = Example(
     name="Counterfactual graph for :math:`P(Y @ (~X, Z) | X)`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=str_nodes_to_expr_nodes(
-        NxMixedGraph.from_edges(
-            directed=[
-                ("X @ ~X", "W @ (~X, Z)"),
-                ("W @ (~X, Z)", "Y @ (~X, Z)"),
-                ("Z @ Z", "Y @ (~X, Z)"),
-            ],
-            undirected=[("X", "Y @ (~X, Z)")],
-        )
-    ),
+    graph=NxMixedGraph.from_edges(
+        nodes=(D, X, X @ (~X, Z), Z, W @ (~X, Z), Y @ (~X, Z)),
+        directed=[(D, Z), (X @ (~X, Z), W @ (~X, Z)), (Z, Y @ (~X, Z)), (W @ (~X, Z), Y @ (~X, Z))],
+        undirected=[(X, Y @ (~X, Z))],
+    )
 )
+
 
 figure_11a = Example(
     name="Intermediate graph obtained by **make-cg** in constructing the counterfactual graph for for :math:`P(y_x|x', z_d, d)` from Figure 9b",

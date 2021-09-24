@@ -9,8 +9,8 @@ from y0.mutate import canonicalize
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.algorithm.identify.id_star import (
     make_parallel_worlds_graph,
-    combine_parallel_worlds,
-    make_parallel_world_graph,
+    combine_worlds,
+    make_world_graph,
     has_same_function,
     has_same_parents,
     get_worlds,
@@ -55,7 +55,7 @@ class TestIdentifyStar(unittest.TestCase):
         actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
         self.assertEqual(expected_treatments, actual_treatments)
         self.assertEqual(expected_outcomes, actual_outcomes)
-        ordering = tuple(expected.get_variables())
+        ordering = sorted(expected.get_variables(), key=lambda x: str(x))
         expected_canonical = canonicalize(expected, ordering)
         actual_canonical = canonicalize(actual, ordering)
         self.assertEqual(
@@ -99,10 +99,12 @@ class TestIdentifyStar(unittest.TestCase):
         """Test that two nodes in a parallel world graph are the same"""
         self.assertTrue(lemma_24(figure_9b.graph, D @ ~X, D))
         self.assertTrue(lemma_24(figure_9b.graph, X @ D, X))
+        self.assertFalse(lemma_24(figure_9b.graph, Z @ D, Z))
         self.assertFalse(lemma_24(figure_9b.graph, D, D @ D))
         self.assertFalse(lemma_24(figure_9b.graph, X, D))
         self.assertFalse(lemma_24(figure_9b.graph, X @ ~X, W @ ~X))
         self.assertFalse(lemma_24(figure_9b.graph, X @ ~X, X))
+
 
     def test_lemma_25(self):
         """Test that the parallel worlds graph after merging two nodes is correct"""
@@ -118,17 +120,21 @@ class TestIdentifyStar(unittest.TestCase):
         self.assert_graph_equal(figure_11c.graph, cf_graph_7)
 
     def test_make_counterfactual_graph(self):
-        """Test that the counterfactual graph returned is correct"""
+        r"""The invocation of **make-cg** with the graph in Figure 9(a) and the joint distribution :math:`P(y_x, x', z, d)` will result in the counterfactual graph shown in Fig. 9(c).
+The invocation of **make-cg** with the graph in Figure 9(a) and the joint distribution :math:`P(y_{x,z},x')` will result in the counterfactual graph shown in Fig. 9(d).
+"""
         actual_graph, actual_query = make_counterfactual_graph(
             figure_9a.graph, P(Y @ ~X, X, Z @ D, D)
         )
         self.assert_graph_equal(figure_9c.graph, actual_graph)
         self.assert_expr_equal(expected=P(Y @ ~X, X, Z, D), actual=actual_query)
-        # actual_graph2, actual_query2 = make_counterfactual_graph(
-        #    figure_9a.graph, P( Y @ (~X, Z) | X )
-        # )
-        # self.assert_graph_equal(figure_9d.graph, actual_graph2)
-        # self.assert_expr_equal( P( Y @ (~X, Z)), actual_query2)
+        actual_graph2, actual_query2 = make_counterfactual_graph(
+            figure_9a.graph, P( Y @ (Z, ~X), X )
+        )
+        expected_graph2, expected_query2 = figure_9d.graph, P(Y @ (Z, ~X), X)
+        self.assert_expr_equal( expected_query2, actual_query2)
+        self.assert_graph_equal( expected_graph2, actual_graph2)
+
 
     def test_idc_star_line_2(self):
         r"""Construct the counterfactual graph Figure 9(c) where the corresponding modified query is :math:`P(y_x|x',z,d)`"""
