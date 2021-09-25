@@ -200,7 +200,7 @@ def _get_result(
     )
 
 
-def iterate_lvoodags(
+def iterate_lvdags(
     graph: nx.DiGraph,
     fixed_observed: Optional[Collection[str]] = None,
     fixed_latents: Optional[Collection[str]] = None,

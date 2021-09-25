@@ -215,11 +215,13 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
 
 
 def get_worlds(query: Probability) -> Collection[Collection[Variable]]:
-    return sorted([
-        sorted(_get_treatment_variables(var.get_variables()), key=lambda x: str(x))
-        for var in query.get_variables()
-        if isinstance(var, CounterfactualVariable)
-    ])
+    return sorted(
+        [
+            sorted(_get_treatment_variables(var.get_variables()), key=lambda x: str(x))
+            for var in query.get_variables()
+            if isinstance(var, CounterfactualVariable)
+        ]
+    )
 
 
 def lemma_24(pw_graph: NxMixedGraph[Variable], node1, node2) -> bool:
@@ -248,7 +250,9 @@ def lemma_25(
     """
     if isinstance(node1, CounterfactualVariable) and not isinstance(node2, CounterfactualVariable):
         node1, node2 = node2, node1
-    elif (not isinstance(node1, CounterfactualVariable)) and isinstance(node2, CounterfactualVariable):
+    elif (not isinstance(node1, CounterfactualVariable)) and isinstance(
+        node2, CounterfactualVariable
+    ):
         pass
     else:
         node1, node2 = sorted([node1, node2])
@@ -325,7 +329,8 @@ def make_world_graph(
     return NxMixedGraph.from_edges(
         nodes=[node.intervene(treatments) for node in world_graph.nodes()],
         directed=[
-            (u.intervene(treatments), v.intervene(treatments)) for u, v in world_graph.directed.edges()
+            (u.intervene(treatments), v.intervene(treatments))
+            for u, v in world_graph.directed.edges()
         ],
         undirected=[
             (u.intervene(treatments), v.intervene(treatments))

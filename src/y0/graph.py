@@ -332,9 +332,9 @@ class NxMixedGraph(Generic[NodeType]):
         replacement = {}
         nodes = set(self.nodes())
         for intervention in interventions:
-            if (intervention in nodes):
+            if intervention in nodes:
                 pass
-            elif (type(intervention) is Intervention):
+            elif type(intervention) is Intervention:
                 not_node = Variable(str(~intervention))
                 node = Variable(str(intervention))
                 if node in nodes:
@@ -347,12 +347,14 @@ class NxMixedGraph(Generic[NodeType]):
                 raise KeyError(f"{type(intervention)} {intervention} not in nodes")
         new_graph = self.replace_nodes_from(replacement)
         return self.from_edges(
-                nodes=new_graph.nodes(),
-                directed=_exclude_target(new_graph.directed, interventions),
-                undirected=_exclude_adjacent(new_graph.undirected, interventions),
+            nodes=new_graph.nodes(),
+            directed=_exclude_target(new_graph.directed, interventions),
+            undirected=_exclude_adjacent(new_graph.undirected, interventions),
         )
 
-    def replace_nodes_from(self, replacement: Mapping[NodeType, NodeType]) -> NxMixedGraph[NodeType]:
+    def replace_nodes_from(
+        self, replacement: Mapping[NodeType, NodeType]
+    ) -> NxMixedGraph[NodeType]:
         """Return a new NxMixedGraph given a set of replacement nodes
 
         :param replacement: a dictionary mapping old nodes to new nodes
@@ -360,12 +362,14 @@ class NxMixedGraph(Generic[NodeType]):
         """
 
         return NxMixedGraph.from_edges(
-            nodes=self.replace_nodes( self.nodes(), replacement ),
-            directed=self.replace_edges( self.directed.edges(), replacement),
-            undirected= self.replace_edges(self.undirected.edges(), replacement)
+            nodes=self.replace_nodes(self.nodes(), replacement),
+            directed=self.replace_edges(self.directed.edges(), replacement),
+            undirected=self.replace_edges(self.undirected.edges(), replacement),
         )
 
-    def replace_edges(self, edges: Collection[Tuple[NodeType, NodeType]], replacement: Mapping[NodeType, NodeType]) -> Collection[Tuple[NodeType, NodeType]]:
+    def replace_edges(
+        self, edges: Collection[Tuple[NodeType, NodeType]], replacement: Mapping[NodeType, NodeType]
+    ) -> Collection[Tuple[NodeType, NodeType]]:
         """Return a new set of edges given a set of replacement nodes
 
         :param edges: a set of edges (could be directed or undirected)
@@ -384,9 +388,9 @@ class NxMixedGraph(Generic[NodeType]):
                 new_edges.append((u, v))
         return new_edges
 
-
-
-    def replace_nodes(self, nodes: Collection[NodeType], replacement: Mapping[NodeType, NodeType]) -> Collection[NodeType]:
+    def replace_nodes(
+        self, nodes: Collection[NodeType], replacement: Mapping[NodeType, NodeType]
+    ) -> Collection[NodeType]:
         """Return a new set of nodes given a set of replacement nodes
 
         :param nodes: a set of nodes

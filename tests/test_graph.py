@@ -140,26 +140,11 @@ class TestGraph(unittest.TestCase):
         intervened_graph.add_undirected_edge("Z", "Y")
         self.assertEqual(intervened_graph, graph.intervene({"X"}))
         from y0.dsl import X, Y, Z
-        backdoor = NxMixedGraph.from_edges(
-            directed=[
-                (Z, Y),
-                (Z, X),
-                (X, Y)
-            ]
-        )
-        backdoor_intervention1 =   NxMixedGraph.from_edges(
-            directed=[
-                (Z, Y),
-                (X, Y)
-            ]
-        )
+
+        backdoor = NxMixedGraph.from_edges(directed=[(Z, Y), (Z, X), (X, Y)])
+        backdoor_intervention1 = NxMixedGraph.from_edges(directed=[(Z, Y), (X, Y)])
         self.assertEqual(backdoor_intervention1, backdoor.intervene({X}))
-        backdoor_intervention2 =   NxMixedGraph.from_edges(
-            directed=[
-                (Z, Y),
-                (~X, Y)
-            ]
-        )
+        backdoor_intervention2 = NxMixedGraph.from_edges(directed=[(Z, Y), (~X, Y)])
         self.assertEqual(backdoor_intervention2, backdoor.intervene({~X}))
 
     def test_remove_nodes_from(self):

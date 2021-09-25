@@ -471,9 +471,13 @@ figure_9d = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
     graph=NxMixedGraph.from_edges(
         nodes=(X, X @ (Z, ~X), Z @ (Z, ~X), W @ (Z, ~X), Y @ (Z, ~X)),
-        directed=[(X @ (Z, ~X), W @ (Z, ~X)), (Z @ (Z, ~X), Y @ (Z, ~X)), (W @ (Z, ~X), Y @ (Z, ~X))],
+        directed=[
+            (X @ (Z, ~X), W @ (Z, ~X)),
+            (Z @ (Z, ~X), Y @ (Z, ~X)),
+            (W @ (Z, ~X), Y @ (Z, ~X)),
+        ],
         undirected=[(X, Y @ (Z, ~X))],
-    )
+    ),
 )
 
 figure_9e = Example(
@@ -483,7 +487,7 @@ figure_9e = Example(
         nodes=(D, X, X @ (~X, Z), Z @ (~X, Z), W @ (~X, Z), Y @ (~X, Z)),
         directed=[(D, Z), (X @ (~X, Z), W @ (~X, Z)), (Z, Y @ (~X, Z)), (W @ (~X, Z), Y @ (~X, Z))],
         undirected=[(X, Y @ (~X, Z))],
-    )
+    ),
 )
 
 
