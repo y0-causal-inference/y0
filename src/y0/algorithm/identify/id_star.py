@@ -10,6 +10,7 @@ from ...dsl import (
     Variable,
     P,
     Sum,
+    One,
     Product,
     _get_outcome_variables,
     _get_treatment_variables,
@@ -92,8 +93,14 @@ def get_val(counterfactual: CounterfactualVariable, graph: NxMixedGraph[Variable
     return -var
 
 
-def id_star_line_1(graph: NxMixedGraph[Variable], query: Probability) -> Expression:
+def id_star_line_1(graph: NxMixedGraph[Variable], gamma: Collection[Variable]) -> Expression:
     r"""The first line states that if :math:`\gamma` is an empty conjunction, then its probability is 1, by convention."""
+    if len(gamma) == 0:
+        return One()
+
+
+def id_star_line_2(graph: NxMixedGraph[Variable], query: Probability) -> Expression:
+    r"""The second line states that if :math:`\gamma` contains a counterfactual which violates the Axiom of Effectiveness (Pearl, 2000), then :math:`\gamma` is inconsistent, and we return probability 0."""
 
 
 def id_star_line_3(graph: NxMixedGraph[Variable], query: Probability) -> Expression:
@@ -111,6 +118,18 @@ def id_star_line_5(graph: NxMixedGraph[Variable], query: Probability) -> Express
 def id_star_line_6(graph: NxMixedGraph[Variable], query: Probability) -> Collection[Expression]:
     r"""Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a set of subproblems, one for each C-component in the counterfactual graph. In the ID algorithm, the term corresponding to a given C-component :math:`S_i` of the causal diagram was the effect of all variables not in :math:`S_i` on variables in :math:`S_i` , in other words :math:`P_{\mathbf{v}\backslash s_i (s_i )`, and the outermost summation on line 4 was over values of variables not in :math:`\mathbf{Y},\mathbf{X}`. Here, the term corresponding to a given C-component :math:`S^i` of the counterfactual graph :math:`G'` is the conjunction of counterfactual variables where each variable contains in its subscript all variables not in the C-component :math:`S^i` , in other words :math:`\mathbf{v}(G' )\backslash s^i` , and the outermost summation is over observable variables not in :math:`\gamma'` , that is over :math:`\mathbf{v}(G' ) \backslash \gamma'` , where we interpret :math:`\gamma'` as a set of counterfactuals, rather than a conjunction."""
     return [P[vertices - dictrict](district) for district in graph.get_c_components()]
+
+
+def id_star_line_7(graph: NxMixedGraph[Variable], query: Probability) -> Collection[Expression]:
+    r"""Line 7 is the base case, where our counterfactual graph has a single C-component"""
+
+
+def id_star_line_8(graph: NxMixedGraph[Variable], query: Probability) -> Collection[Expression]:
+    r"""Line 8 says that if :math:`\gamma'` contains a "conflict," that is an inconsistent value assignment where at least one value is in the subscript, then we fail."""
+
+
+def id_star_line_9(graph: NxMixedGraph[Variable], query: Probability) -> Collection[Expression]:
+    r"""Line 9 says if there are no conflicts, then its safe to take the union of all subscripts in :math:`\gamma'` , and return the effect of the subscripts in :math:`\gamma'` on the variables in :math:`\gamma'`."""
 
 
 def idc_star_line_2(graph: NxMixedGraph[Variable], query: Probability) -> Expression:

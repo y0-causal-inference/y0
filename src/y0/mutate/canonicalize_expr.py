@@ -13,6 +13,7 @@ from ..dsl import (
     Probability,
     Product,
     Sum,
+    One,
     Variable,
     ensure_ordering,
 )
@@ -125,6 +126,8 @@ class Canonicalizer:
                 numerator=self.canonicalize(expression.numerator),
                 denominator=self.canonicalize(expression.denominator),
             )
+        elif isinstance(expression, One):
+            return expression
         else:
             raise TypeError
 

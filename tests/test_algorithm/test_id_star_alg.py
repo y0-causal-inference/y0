@@ -3,6 +3,10 @@
 """Tests for the ID* algorithm."""
 
 import unittest
+from y0.graph import NxMixedGraph
+from y0.dsl import Variable, X, D, W, P, Y, Z, Expression, One, get_outcomes_and_treatments, Sum
+from y0.mutate import canonicalize
+from y0.algorithm.conditional_independencies import are_d_separated
 
 from y0.algorithm.identify.id_star import (
     get_worlds,
@@ -14,6 +18,19 @@ from y0.algorithm.identify.id_star import (
     lemma_25,
     make_counterfactual_graph,
     make_parallel_worlds_graph,
+    id_star,
+    id_star_line_1,
+    id_star_line_2,
+    id_star_line_3,
+    id_star_line_4,
+    id_star_line_5,
+    id_star_line_6,
+    id_star_line_7,
+    id_star_line_8,
+    id_star_line_9,
+    idc_star,
+    idc_star_line_2,
+    id_star_line_9,
 )
 from y0.dsl import D, Expression, P, Sum, Variable, W, X, Y, Z, get_outcomes_and_treatments
 from y0.examples import (
@@ -163,6 +180,10 @@ class TestIdentifyStar(unittest.TestCase):
             parents = new_delta - {counterfactual}
             children = {g.intervene(counterfactual_value) for g in new_gamma}
             # self.assert_expr_equal( P( Y @ {X, counterfactual}  | new_gamma - {counterfactual}), P(children | parents))
+
+    def test_id_star_line_1(self):
+        """Check if gamma is empty"""
+        self.assert_expr_equal(One(), id_star_line_1(graph=figure_9a.graph, gamma=[]))
 
     def test_id_star_line_3(self):
         """Check to see if the counterfactual event is tautological."""
