@@ -9,7 +9,7 @@ from typing import Set, Tuple
 import networkx as nx
 from ananke.graphs import ADMG
 
-from y0.dsl import X, Y, Z
+from y0.dsl import X, Y, Z, W
 from y0.examples import verma_1
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
@@ -147,6 +147,10 @@ class TestGraph(unittest.TestCase):
         .. seealso:: https://github.com/y0-causal-inference/y0/issues/83
         """
         backdoor = NxMixedGraph.from_edges(directed=[(Z, Y), (Z, X), (X, Y)])
+        with self.assertRaises(TypeError):
+            backdoor.intervene({5})
+        with self.assertRaises(KeyError):
+            backdoor.intervene({-W})
         backdoor_intervention1 = NxMixedGraph.from_edges(directed=[(Z, Y), (X, Y)])
         self.assertEqual(backdoor_intervention1, backdoor.intervene({X}))
         backdoor_intervention2 = NxMixedGraph.from_edges(directed=[(Z, Y), (~X, Y)])

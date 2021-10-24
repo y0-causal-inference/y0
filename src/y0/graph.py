@@ -319,7 +319,7 @@ class NxMixedGraph(Generic[NodeType]):
             if intervention in nodes:
                 continue
             elif not isinstance(intervention, Intervention):
-                raise KeyError(f"{type(intervention)} {intervention} not in nodes")
+                raise TypeError(f"{intervention} is not an intervention")
             not_node = Variable(str(~intervention))
             node = Variable(str(intervention))
             if node in nodes:
