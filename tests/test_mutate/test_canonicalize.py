@@ -6,7 +6,7 @@ import itertools as itt
 import unittest
 from typing import Sequence
 
-from y0.dsl import A, B, C, D, Expression, P, Product, R, Sum, Variable, W, X, Y, Z
+from y0.dsl import A, B, C, D, Expression, One, P, Product, R, Sum, Variable, W, X, Y, Z
 from y0.mutate import canonical_expr_equal, canonicalize
 
 
@@ -31,6 +31,7 @@ class TestCanonicalize(unittest.TestCase):
     def test_atomic(self):
         """Test canonicalization of atomic expressions."""
         for expected, expression, ordering in [
+            (One(), One(), []),
             (P(A), P(A), [A]),
             (P(A | B), P(A | B), [A, B]),
             (P(A | (B, C)), P(A | (B, C)), [A, B, C]),

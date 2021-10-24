@@ -10,6 +10,7 @@ from ..dsl import (
     Distribution,
     Expression,
     Fraction,
+    One,
     Probability,
     Product,
     Sum,
