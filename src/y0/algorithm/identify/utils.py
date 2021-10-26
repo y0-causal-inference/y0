@@ -32,8 +32,6 @@ class Unidentifiable(Exception):  # noqa:N818
     """Raised on failure of the identification algorithm."""
 
 
-# predicates for Level1 (Associational) Level 2 (interventional) and Level 3 (counterfactual)
-# Also predicates for conditional vs unconditional
 class Query:
     """An identification query."""
 
