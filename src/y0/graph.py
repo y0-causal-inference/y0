@@ -66,6 +66,14 @@ class NxMixedGraph(Generic[NodeType]):
             and (self.undirected.edges() == other.undirected.edges())
         )
 
+    def __iter__(self) -> Iterable[NodeType]:
+        """Iterate over nodes in the graph."""
+        return iter(self.directed)
+
+    def __contains__(self, item: NodeType) -> bool:
+        """Check if the given item is a node in the graph."""
+        return item in self.directed
+
     def add_node(self, n: NodeType) -> None:
         """Add a node."""
         self.directed.add_node(n)
