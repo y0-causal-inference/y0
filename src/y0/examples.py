@@ -12,9 +12,8 @@ import networkx as nx
 import pandas as pd
 
 from .algorithm.identify import Identification
-from .graph import str_nodes_to_expr_nodes
-from .dsl import P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5, D, W
-from .graph import NxMixedGraph
+from .dsl import Z1, Z2, Z3, Z4, Z5, D, P, Q, Sum, Variable, W, X, Y, Z
+from .graph import NxMixedGraph, str_nodes_to_expr_nodes
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
 
@@ -489,7 +488,6 @@ figure_9e = Example(
         undirected=[(X, Y @ (~X, Z))],
     ),
 )
-
 
 figure_11a = Example(
     name="Intermediate graph obtained by **make-cg** in constructing the counterfactual graph for for :math:`P(y_x|x', z_d, d)` from Figure 9b",

@@ -6,7 +6,7 @@ import itertools as itt
 import unittest
 
 # from y0.graph import admg_to_latent_variable_dag
-from y0.algorithm.identify import Unidentifiable, idc, identify, Identification, Query
+from y0.algorithm.identify import Identification, Query, Unidentifiable, idc, identify
 from y0.algorithm.identify.id_std import (
     line_1,
     line_2,
@@ -18,7 +18,18 @@ from y0.algorithm.identify.id_std import (
 )
 
 # from y0.algorithm.taheri_design import iterate_lvdags
-from y0.dsl import Expression, P, Product, Sum, Variable, X, Y, Y1, Z, get_outcomes_and_treatments
+from y0.dsl import (
+    Y1,
+    Expression,
+    P,
+    Product,
+    Sum,
+    Variable,
+    X,
+    Y,
+    Z,
+    get_outcomes_and_treatments,
+)
 from y0.examples import (
     figure_6a,
     line_1_example,
@@ -29,8 +40,8 @@ from y0.examples import (
     line_6_example,
     line_7_example,
 )
-from y0.mutate import canonicalize
 from y0.graph import NxMixedGraph
+from y0.mutate import canonicalize
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)

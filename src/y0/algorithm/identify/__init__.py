@@ -4,7 +4,7 @@
 
 from .id_c import idc  # noqa:F401
 from .id_std import identify  # noqa:F401
-from .utils import Unidentifiable, Identification, Query  # noqa:F401
+from .utils import Identification, Query, Unidentifiable  # noqa:F401
 
 __all__ = [
     "identify",

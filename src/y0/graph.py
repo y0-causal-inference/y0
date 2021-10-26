@@ -7,16 +7,7 @@ from __future__ import annotations
 import itertools as itt
 import json
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Collection,
-    Generic,
-    Iterable,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, Union
 
 import networkx as nx
 from ananke.graphs import ADMG
@@ -75,6 +66,14 @@ class NxMixedGraph(Generic[NodeType]):
             and (self.directed.edges() == other.directed.edges())
             and (self.undirected.edges() == other.undirected.edges())
         )
+
+    def __iter__(self) -> Iterable[NodeType]:
+        """Iterate over nodes in the graph."""
+        return iter(self.directed)
+
+    def __contains__(self, item: NodeType) -> bool:
+        """Check if the given item is a node in the graph."""
+        return item in self.directed
 
     def add_node(self, n: NodeType) -> None:
         """Add a node."""
