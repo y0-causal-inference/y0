@@ -327,28 +327,11 @@ class NxMixedGraph(Generic[NodeType]):
         :param vertices: a subset of nodes from which to remove incoming edges
         :returns: A NxMixedGraph subgraph
         """
-        interventions = set(vertices)
-        replacement = {}
-        nodes = set(self.nodes())
-        for intervention in interventions:
-            if intervention in nodes:
-                pass
-            elif type(intervention) is Intervention:
-                not_node = Variable(str(~intervention))
-                node = Variable(str(intervention))
-                if node in nodes:
-                    replacement[node] = intervention
-                elif not_node in nodes:
-                    replacement[not_node] = intervention
-                else:
-                    raise KeyError(f"{type(intervention)} {intervention} not in nodes")
-            else:
-                raise KeyError(f"{type(intervention)} {intervention} not in nodes")
-        new_graph = self.replace_nodes_from(replacement)
+        vertices = set(vertices)
         return self.from_edges(
-            nodes=new_graph.nodes(),
-            directed=_exclude_target(new_graph.directed, interventions),
-            undirected=_exclude_adjacent(new_graph.undirected, interventions),
+            nodes=vertices,
+            directed=_exclude_target(self.directed, vertices),
+            undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
     def replace_nodes_from(
