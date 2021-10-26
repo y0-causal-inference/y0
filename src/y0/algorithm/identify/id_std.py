@@ -83,7 +83,7 @@ def line_1(identification: Identification) -> Expression:
     outcomes = identification.outcomes
     vertices = set(identification.graph.nodes())
     return Sum.safe(
-        expression=P(vertices),
+        expression=identification.estimand,
         ranges=vertices.difference(outcomes),
     )
 
