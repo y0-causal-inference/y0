@@ -12,7 +12,7 @@ import networkx as nx
 import pandas as pd
 
 from .algorithm.identify import Identification
-from .dsl import P, Q, Sum, Variable, X, Y, Z, Z1, Z2, Z3, Z4, Z5
+from .dsl import Z1, Z2, Z3, Z4, Z5, P, Q, Sum, Variable, X, Y, Z
 from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint

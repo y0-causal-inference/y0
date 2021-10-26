@@ -15,7 +15,18 @@ from y0.algorithm.identify.id_std import (
     line_6,
     line_7,
 )
-from y0.dsl import Expression, P, Product, Sum, Variable, X, Y, Y1, Z, get_outcomes_and_treatments
+from y0.dsl import (
+    Y1,
+    Expression,
+    P,
+    Product,
+    Sum,
+    Variable,
+    X,
+    Y,
+    Z,
+    get_outcomes_and_treatments,
+)
 from y0.examples import (
     figure_6a,
     line_1_example,

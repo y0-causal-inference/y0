@@ -320,6 +320,7 @@ def print_results(results: List[Result], file=None) -> None:
 def main():
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
     import pystow
+
     from y0.examples import igf_graph
 
     results = taheri_design_dag(igf_graph, cause="PI3K", effect="Erk", stop=3)
@@ -336,8 +337,8 @@ def main():
 
     sys.exit(0)
 
-    from y0.resources import VIRAL_PATHOGENESIS_PATH
     from y0.graph import NxMixedGraph
+    from y0.resources import VIRAL_PATHOGENESIS_PATH
 
     viral_pathogenesis_admg = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
 

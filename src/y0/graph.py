@@ -7,16 +7,7 @@ from __future__ import annotations
 import itertools as itt
 import json
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Collection,
-    Generic,
-    Iterable,
-    Mapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, Collection, Generic, Iterable, Mapping, Optional, Tuple, Union
 
 import networkx as nx
 from ananke.graphs import ADMG
