@@ -14,8 +14,8 @@ from ananke.graphs import ADMG
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import Expression, Variable, Intervention
 from .constants import NodeType
+from .dsl import Expression, Intervention, Variable
 
 __all__ = [
     "NxMixedGraph",

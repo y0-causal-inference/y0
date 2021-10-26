@@ -14,7 +14,6 @@ from ..dsl import (
     Probability,
     Product,
     Sum,
-    One,
     Variable,
     ensure_ordering,
 )

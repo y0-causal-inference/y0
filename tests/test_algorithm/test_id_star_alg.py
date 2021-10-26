@@ -3,21 +3,12 @@
 """Tests for the ID* algorithm."""
 
 import unittest
-from y0.graph import NxMixedGraph
-from y0.dsl import Variable, X, D, W, P, Y, Z, Expression, One, get_outcomes_and_treatments, Sum
-from y0.mutate import canonicalize
-from y0.algorithm.conditional_independencies import are_d_separated
 
+from y0.algorithm.conditional_independencies import are_d_separated
 from y0.algorithm.identify.id_star import (
     get_worlds,
     has_same_function,
     has_same_parents,
-    id_star_line_9,
-    idc_star_line_2,
-    lemma_24,
-    lemma_25,
-    make_counterfactual_graph,
-    make_parallel_worlds_graph,
     id_star,
     id_star_line_1,
     id_star_line_2,
@@ -30,17 +21,32 @@ from y0.algorithm.identify.id_star import (
     id_star_line_9,
     idc_star,
     idc_star_line_2,
-    id_star_line_9,
+    lemma_24,
+    lemma_25,
+    make_counterfactual_graph,
+    make_parallel_worlds_graph,
 )
-from y0.dsl import D, Expression, P, Sum, Variable, W, X, Y, Z, get_outcomes_and_treatments
+from y0.dsl import (
+    D,
+    Expression,
+    One,
+    P,
+    Sum,
+    Variable,
+    W,
+    X,
+    Y,
+    Z,
+    get_outcomes_and_treatments,
+)
 from y0.examples import (
-    figure_11a,
-    figure_11b,
-    figure_11c,
     figure_9a,
     figure_9b,
     figure_9c,
     figure_9d,
+    figure_11a,
+    figure_11b,
+    figure_11c,
 )
 from y0.graph import NxMixedGraph
 from y0.mutate import canonicalize
