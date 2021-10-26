@@ -82,13 +82,10 @@ def line_1(identification: Identification) -> Expression:
     """
     outcomes = identification.outcomes
     vertices = set(identification.graph.nodes())
-    if len(vertices.difference(outcomes)) == 0:
-        return identification.estimand
-    else:
-        return Sum.safe(
-            expression=identification.estimand,
-            ranges=vertices.difference(outcomes),
-        )
+    return Sum.safe(
+        expression=identification.estimand,
+        ranges=vertices.difference(outcomes),
+    )
 
 
 def line_2(identification: Identification) -> Identification:
