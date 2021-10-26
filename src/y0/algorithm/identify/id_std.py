@@ -22,7 +22,7 @@ def identify(identification: Identification) -> Expression:
 
     # line 1
     if not treatments:
-        return Sum.safe(expression=P(vertices), ranges=vertices.difference(outcomes))
+        return line_1(identification)
 
     # line 2
     outcomes_and_ancestors = graph.ancestors_inclusive(outcomes)
