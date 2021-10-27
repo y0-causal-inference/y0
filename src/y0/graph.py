@@ -83,6 +83,14 @@ class NxMixedGraph(Generic[NodeType]):
         """Check if this is a counterfactual graph."""
         return any(isinstance(n, CounterfactualVariable) for n in self.nodes())
 
+    def raise_on_counterfactual(self) -> None:
+        """Raise an error if this is a counterfactual graph.
+
+        :raises ValueError: if this graph is a counterfactual graph
+        """
+        if self.is_counterfactual():
+            raise ValueError("This operation is not available for counterfactual graphs")
+
     def add_node(self, n: NodeType) -> None:
         """Add a node."""
         self.directed.add_node(n)

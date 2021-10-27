@@ -209,6 +209,9 @@ class TestGraph(unittest.TestCase):
         """Test checking counterfactual graph."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)])
         self.assertFalse(graph.is_counterfactual())
+        graph.raise_on_counterfactual()
 
         graph = NxMixedGraph.from_edges(directed=[(X @ Y, Y)])
         self.assertTrue(graph.is_counterfactual())
+        with self.assertRaises(ValueError):
+            graph.raise_on_counterfactual()
