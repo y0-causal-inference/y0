@@ -184,11 +184,11 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
     # Line 4:
     for counterfactual in new_delta:
         if are_d_separated(
-            new_graph.remove_outgoing_edges_from(counterfactual), counterfactual, new_gamma
+            new_graph.remove_out_edges(counterfactual), counterfactual, new_gamma
         ):
             counterfactual_value = Variable(counterfactual.name)
             parents = new_delta - {counterfactual}
-            children = {g.intervene(counterfactual_value) for g in new_gamma}
+            children = {g.remove_in_edges(counterfactual_value) for g in new_gamma}
             return idc_star(graph, P(children | parents))
     # Line 5:
     estimand = id_star(graph, new_query)
@@ -349,15 +349,15 @@ def make_world_graph(
     graph: NxMixedGraph, treatments: Collection[Variable]
 ) -> NxMixedGraph:
     """Make one parallel world based on interventions specified"""
-    world_graph = graph.intervene(treatments)
+    world_graph = graph.remove_in_edges(treatments)
     return NxMixedGraph.from_edges(
         nodes=[node.intervene(treatments) for node in world_graph.nodes()],
         directed=[
-            (u.intervene(treatments), v.intervene(treatments))
+            (u.remove_in_edges(treatments), v.remove_in_edges(treatments))
             for u, v in world_graph.directed.edges()
         ],
         undirected=[
-            (u.intervene(treatments), v.intervene(treatments))
+            (u.remove_in_edges(treatments), v.remove_in_edges(treatments))
             for u, v in world_graph.undirected.edges()
             if (u not in treatments)
             and (v not in treatments)

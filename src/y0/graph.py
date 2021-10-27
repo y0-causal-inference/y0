@@ -354,7 +354,7 @@ class NxMixedGraph:
             undirected=_include_adjacent(self.undirected, vertices),
         )
 
-    def intervene(self, vertices: Collection[Variable]) -> NxMixedGraph:
+    def remove_in_edges(self, vertices: Collection[Variable]) -> NxMixedGraph:
         """Return a mutilated graph given a set of interventions.
 
         :param vertices: a subset of nodes from which to remove incoming edges
@@ -380,7 +380,7 @@ class NxMixedGraph:
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
-    def remove_outgoing_edges_from(self, vertices: Collection[Variable]) -> NxMixedGraph:
+    def remove_out_edges(self, vertices: Collection[Variable]) -> NxMixedGraph:
         """Return a subgraph that does not have any outgoing edges from any of the given vertices.
 
         :param vertices: a set of nodes whose outgoing edges get removed from the graph

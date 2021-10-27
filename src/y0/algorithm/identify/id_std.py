@@ -31,7 +31,7 @@ def identify(identification: Identification) -> Expression:
         return identify(line_2(identification))
 
     # line 3
-    intervened_graph = graph.intervene(treatments)
+    intervened_graph = graph.remove_in_edges(treatments)
     no_effect_on_outcome = (vertices - treatments) - intervened_graph.ancestors_inclusive(outcomes)
     if no_effect_on_outcome:
         return identify(line_3(identification))
@@ -142,7 +142,7 @@ def line_3(identification: Identification) -> Identification:
     graph = identification.graph
     vertices = set(graph.nodes())
 
-    intervened_graph = graph.intervene(treatments)
+    intervened_graph = graph.remove_in_edges(treatments)
     no_effect_on_outcome = (vertices - treatments) - intervened_graph.ancestors_inclusive(outcomes)
     if not no_effect_on_outcome:
         raise ValueError(

@@ -184,7 +184,7 @@ class TestIdentifyStar(unittest.TestCase):
             # self.assertTrue(are_d_separated(graph.remove_outgoing_edges_from( {counterfactual} ), counterfactual, new_gamma))
             counterfactual_value = Variable(counterfactual.name)
             parents = new_delta - {counterfactual}
-            children = {g.intervene(counterfactual_value) for g in new_gamma}
+            children = {g.remove_in_edges(counterfactual_value) for g in new_gamma}
             # self.assert_expr_equal( P( Y @ {X, counterfactual}  | new_gamma - {counterfactual}), P(children | parents))
 
     def test_id_star_line_1(self):

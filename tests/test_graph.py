@@ -143,13 +143,13 @@ class TestGraph(unittest.TestCase):
             directed=[("X", "Y"), ("Z", "X")],
             undirected=[("X", "Z"), ("X", "Y"), ("Y", "Z")],
         )
-        self.assertEqual(graph, graph.intervene(set()))
+        self.assertEqual(graph, graph.remove_in_edges(set()))
 
         intervened_graph = NxMixedGraph.from_str_edges(
             directed=[("X", "Y")],
             undirected=[("Z", "Y")],
         )
-        self.assertEqual(intervened_graph, graph.intervene({X}))
+        self.assertEqual(intervened_graph, graph.remove_in_edges({X}))
 
     def test_remove_nodes_from(self):
         """Test generating a new graph without the given nodes."""
@@ -165,14 +165,14 @@ class TestGraph(unittest.TestCase):
     def test_remove_outgoing_edges_from(self):
         """Test generating a new graph without the outgoing edgs from the given nodes."""
         graph = NxMixedGraph.from_str_edges(directed=[("X", "Y")])
-        self.assertEqual(graph, graph.remove_outgoing_edges_from(set()))
+        self.assertEqual(graph, graph.remove_out_edges(set()))
 
         graph = NxMixedGraph.from_str_edges(undirected=[("X", "Y")])
-        self.assertEqual(graph, graph.remove_outgoing_edges_from(set()))
+        self.assertEqual(graph, graph.remove_out_edges(set()))
 
         graph = NxMixedGraph.from_str_edges(directed=[("W", "X"), ("X", "Y"), ("Y", "Z")])
         expected = NxMixedGraph.from_str_edges(directed=[("W", "X"), ("Y", "Z")])
-        self.assertEqual(expected, graph.remove_outgoing_edges_from({X}))
+        self.assertEqual(expected, graph.remove_out_edges({X}))
 
     def test_ancestors_inclusive(self):
         """Test getting ancestors, inclusive."""
