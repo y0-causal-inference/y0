@@ -57,11 +57,6 @@ class TestIdentify(unittest.TestCase):
         id_in = Identification(Query.from_expression(query), graph)
         self.assert_expr_equal(expected, identify(id_in))
 
-    def assert_unidentifiable(self, graph: NxMixedGraph, query: Probability):
-        id_in = Identification(Query.from_expression(query), graph)
-        with self.assertRaises(Unidentifiable):
-            identify(id_in)
-
     def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
         """Assert that two expressions are the same."""
         expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
@@ -226,25 +221,17 @@ class TestIdentify(unittest.TestCase):
     def test_figure_2a(self):
         """Test Figure 2A. from Shpitser *et al.*, (2008)."""
         graph = y0.examples.figure_2a_example.graph
-        expr = "[ sum_{} P(Y|X) ]"
-        frac_expr = P_XY / Sum[Y](P_XY)
+        # expr = "[ sum_{} P(Y|X) ]"
+        # frac_expr = P_XY / Sum[Y](P_XY)
         cond_expr = P(Y | X)
         self.assert_identify(cond_expr, graph, P(Y @ X))
 
     def test_figure_2b(self):
         """Test Figure 2B. from Shpitser *et al.*, (2008)."""
         graph = y0.examples.figure_2b_example.graph
-        expr = "[ sum_{Z} P(Z|X) P(Y|X,Z) ]"
+        # expr = "[ sum_{Z} P(Z|X) P(Y|X,Z) ]"
+        # frac_expr = Sum[Z](Sum[Y](P_XY) / (Sum[Z](Sum[Y](P_XY))) * (P_XY / Sum[Y](P_XY)))
         cond_expr = Sum[Z](P(Z | X) * P(Y | X, Z))
-        frac_expr = Sum[Z](Sum[Y](P_XY) / (Sum[Z](Sum[Y](P_XY))) * (P_XY / Sum[Y](P_XY)))
-        self.assert_identify(cond_expr, graph, P(Y @ X))
-
-    def test_figure_2c(self):
-        """Test Figure 2C from Shpitser *et al.*, (2008)."""
-        graph = y0.examples.complete_hierarchy_figure_2c_example.graph
-        expr = "[ sum_{Z} P(Z) P(Y|X,Z) ]"
-        cond_expr = Sum[Z](P(Z) * P(Y | X, Z))
-        frac_expr = Sum[Z](Sum[X, Y](P_XYZ) / (Sum[Z](Sum[X, Y](P_XYZ))) * (P_XYZ / Sum[Y](P_XYZ)))
         self.assert_identify(cond_expr, graph, P(Y @ X))
 
     def test_figure_2d(self):
@@ -259,11 +246,11 @@ class TestIdentify(unittest.TestCase):
     def test_figure_2e(self):
         """Test Figure 2E from Shpitser *et al.*, (2008)."""
         graph = y0.examples.complete_hierarchy_figure_2e_example.graph
-        expr = "[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]"
+        # expr = "[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]"
+        # frac_expr = Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ))) * Sum[X](
+        #     P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
+        # )
         cond_expr = Sum[Z](Sum[X](P(Y | X, Z) * P(X)) * P(Z | X))
-        frac_expr = Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ))) * Sum[X](
-            P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
-        )
         self.assert_identify(cond_expr, graph, P(Y @ X))
 
     def test_figure_3a(self):
@@ -273,31 +260,3 @@ class TestIdentify(unittest.TestCase):
             Sum[W1, X, Y1, Y2](P(W1, W2, X, Y1, Y2)) * Sum[W1](P(W1) * P(Y1 | W1, X)) * P(Y2 | W2)
         )
         self.assert_identify(cond_expr, graph, P(Y1 @ X, Y2 @ X))
-
-    # def test_taheri(self):
-    #     """Test that all graphs produced by Sara's design algorithm can be run with :func:`identify`."""
-    #     VIRAL_PATHOGENESIS_PATH = '../../src/y0/resources/viral_pathogenesis.json'
-    #     DEFAULT_TAG = 'type'
-    #     graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
-
-    #     cause = "EGFR"
-    #     effect = "CytokineStorm"
-    #     stop = 5
-    #     tag = DEFAULT_TAG
-    #     dag = admg_to_latent_variable_dag(graph.to_admg(), tag=tag)
-    #     fixed_latent = {node for node, data in dag.nodes(data=True) if data[tag]}
-    #     for latents, observed, lvdag in iterate_lvdags(
-    #         dag,
-    #         fixed_observed={cause, effect},
-    #         fixed_latents=fixed_latent,
-    #         stop=stop,
-    #     ):
-    #         with self.subTest(latents=latents):
-    #             result = _get_result(
-    #                 lvdag=lvdag,
-    #                 latents=latents,
-    #                 observed=observed,
-    #                 cause=cause,
-    #                 effect=effect,
-    #             )
-    #             self.assertIsNotNone(result)  # throwaway test
