@@ -70,6 +70,10 @@ class NxMixedGraph:
         """Iterate over nodes in the graph."""
         return iter(self.directed)
 
+    def __len__(self) -> int:
+        """Count the nodes in the graph."""
+        return len(self.directed)
+
     def __contains__(self, item: Variable) -> bool:
         """Check if the given item is a node in the graph."""
         return item in self.directed
