@@ -234,6 +234,14 @@ class TestIdentify(unittest.TestCase):
         cond_expr = Sum[Z](P(Z | X) * P(Y | X, Z))
         self.assert_identify(cond_expr, graph, P(Y @ X))
 
+    def test_figure_2c(self):
+        """Test Figure 2C from Shpitser *et al.*, (2008)."""
+        graph = y0.examples.complete_hierarchy_figure_2c_example.graph
+        # expr = "[ sum_{Z} P(Z) P(Y|X,Z) ]"
+        # frac_expr = Sum[Z](Sum[X, Y](P_XYZ) / (Sum[Z](Sum[X, Y](P_XYZ))) * (P_XYZ / Sum[Y](P_XYZ)))
+        cond_expr = Sum[Z](P(Z) * P(Y | X, Z))
+        self.assert_identify(cond_expr, graph, P(Y @ X))
+
     def test_figure_2d(self):
         """Test Figure 2D from Shpitser *et al.*, (2008).
 
@@ -260,3 +268,31 @@ class TestIdentify(unittest.TestCase):
             Sum[W1, X, Y1, Y2](P(W1, W2, X, Y1, Y2)) * Sum[W1](P(W1) * P(Y1 | W1, X)) * P(Y2 | W2)
         )
         self.assert_identify(cond_expr, graph, P(Y1 @ X, Y2 @ X))
+
+    # def test_taheri(self):
+    #     """Test that all graphs produced by Sara's design algorithm can be run with :func:`identify`."""
+    #     VIRAL_PATHOGENESIS_PATH = '../../src/y0/resources/viral_pathogenesis.json'
+    #     DEFAULT_TAG = 'type'
+    #     graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
+
+    #     cause = "EGFR"
+    #     effect = "CytokineStorm"
+    #     stop = 5
+    #     tag = DEFAULT_TAG
+    #     dag = admg_to_latent_variable_dag(graph.to_admg(), tag=tag)
+    #     fixed_latent = {node for node, data in dag.nodes(data=True) if data[tag]}
+    #     for latents, observed, lvdag in iterate_lvdags(
+    #         dag,
+    #         fixed_observed={cause, effect},
+    #         fixed_latents=fixed_latent,
+    #         stop=stop,
+    #     ):
+    #         with self.subTest(latents=latents):
+    #             result = _get_result(
+    #                 lvdag=lvdag,
+    #                 latents=latents,
+    #                 observed=observed,
+    #                 cause=cause,
+    #                 effect=effect,
+    #             )
+    #             self.assertIsNotNone(result)  # throwaway test
