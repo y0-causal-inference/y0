@@ -85,6 +85,24 @@ class Query:
         )
 
     @classmethod
+    def from_str(
+        cls,
+        outcomes: Union[str, Iterable[str]],
+        treatments: Union[str, Iterable[str]],
+        conditions: Optional[Iterable[str]] = None,
+    ) -> Query:
+        """Construct a query from text variable names."""
+        return cls(
+            outcomes={Variable(outcomes)}
+            if isinstance(outcomes, str)
+            else {Variable(n) for n in outcomes},
+            treatments={Variable(treatments)}
+            if isinstance(treatments, str)
+            else {Variable(n) for n in treatments},
+            conditions=None if conditions is None else {Variable(n) for n in conditions},
+        )
+
+    @classmethod
     def from_expression(
         cls,
         query: Probability,
