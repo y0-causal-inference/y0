@@ -9,10 +9,10 @@ from collections import abc
 from typing import Iterable, Optional, Union
 
 import pandas as pd
-from ananke.graphs import SG
 from tqdm import tqdm
 
 from .conditional_independencies import get_conditional_independencies
+from ..graph import NxMixedGraph
 from ..struct import DSeparationJudgement
 from ..util.stat_utils import cressie_read
 
@@ -46,7 +46,7 @@ class Falsifications(abc.Sequence):
 
 
 def falsifications(
-    to_test: Union[SG, Iterable[DSeparationJudgement]],
+    to_test: Union[NxMixedGraph, Iterable[DSeparationJudgement]],
     df: pd.DataFrame,
     significance_level: float = 0.05,
     max_given: Optional[int] = None,
@@ -61,12 +61,16 @@ def falsifications(
     :param verbose: If true, use tqdm for status updates.
     :return: Falsifications report
     """
-    if isinstance(to_test, SG):
+    if isinstance(to_test, NxMixedGraph):
         to_test = get_conditional_independencies(to_test, max_conditions=max_given, verbose=verbose)
 
     variances = {
         (judgement.left, judgement.right, judgement.conditions): cressie_read(
-            judgement.left, judgement.right, judgement.conditions, df, boolean=False
+            judgement.left.name,
+            judgement.right.name,
+            {c.name for c in judgement.conditions},
+            df,
+            boolean=False,
         )
         for judgement in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
     }

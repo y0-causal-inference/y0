@@ -5,14 +5,14 @@
 import copy
 from functools import partial
 from itertools import chain, combinations, groupby
-from typing import Iterable, List, Optional, Set, Tuple, Union
+from typing import Callable, Iterable, List, Optional, Sequence, Set, Tuple
 
 import networkx as nx
 from ananke.graphs import ADMG, SG
 from tqdm import tqdm
 
-from ..constants import NodeType
-from ..graph import NxMixedGraph
+from ..dsl import Variable
+from ..graph import NoAnankeError, NxMixedGraph
 from ..struct import DSeparationJudgement
 from ..util.combinatorics import powerset
 
@@ -24,14 +24,14 @@ __all__ = [
 
 
 def get_conditional_independencies(
-    graph: Union[NxMixedGraph[NodeType], SG],
+    graph: NxMixedGraph,
     *,
     policy=None,
     **kwargs,
-) -> Set[DSeparationJudgement[NodeType]]:
+) -> Set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
 
-    Conditional independencies is the minmal set of d-separation judgements to cover
+    Conditional independencies is the minimal set of d-separation judgements to cover
     the unique left/right combinations in all valid d-separation.
 
     :param graph: An acyclic directed mixed graph
@@ -41,19 +41,15 @@ def get_conditional_independencies(
 
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
     """
-    if isinstance(graph, NxMixedGraph):
-        graph = graph.to_admg()
     if policy is None:
-        policy = topological_policy(graph)
+        policy = get_topological_policy(graph)
     return minimal(
         d_separations(graph, **kwargs),
         policy=policy,
     )
 
 
-def minimal(
-    judgements: Iterable[DSeparationJudgement[NodeType]], policy=None
-) -> Set[DSeparationJudgement[NodeType]]:
+def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSeparationJudgement]:
     """Given some d-separations, reduces to a 'minimal' collection.
 
     For indepdencies of the form A _||_ B | {C1, C2, ...} the minimal collection will::
@@ -74,34 +70,41 @@ def minimal(
     return {min(vs, key=policy) for k, vs in groupby(judgements, _judgement_grouper)}
 
 
-def topological_policy(graph: ADMG):
+def get_topological_policy(
+    graph: NxMixedGraph,
+) -> Callable[[DSeparationJudgement], Tuple[int, int]]:
     """Sort d-separations by condition length and topological order.
 
     This policy will prefers small collections, and collections with variables earlier
     in topological order for collections of the same size.
 
-    :param graph: ADMG
+    :param graph: a mixed graph
     :return: A function suitable for use as a sort key on d-separations
+    :raises NoAnankeError: If an ananke graph was used instead of a y0 graph
     """
-    order = graph.topological_sort()
+    if isinstance(graph, ADMG):
+        raise NoAnankeError
+    order = list(graph.topological_sort())
     return partial(_topological_policy, order=order)
 
 
-def _topological_policy(judgement: DSeparationJudgement, order):
+def _topological_policy(
+    judgement: DSeparationJudgement, order: Sequence[Variable]
+) -> Tuple[int, int]:
     return (
         len(judgement.conditions),
         sum((order.index(v) for v in judgement.conditions)),
     )
 
 
-def _judgement_grouper(judgement: DSeparationJudgement[NodeType]) -> Tuple[NodeType, NodeType]:
+def _judgement_grouper(judgement: DSeparationJudgement) -> Tuple[Variable, Variable]:
     """Simplify d-separation to just left & right element (for grouping left/right pairs)."""
     return judgement.left, judgement.right
 
 
 def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
     """Sort by length of conditions & the lexicography a d-separation."""
-    return len(judgement.conditions), ",".join(judgement.conditions)
+    return len(judgement.conditions), ",".join(c.name for c in judgement.conditions)
 
 
 def disorient(graph: SG) -> nx.Graph:
@@ -112,7 +115,7 @@ def disorient(graph: SG) -> nx.Graph:
     return rv
 
 
-def get_moral_links(graph: SG) -> List[Tuple[NodeType, NodeType]]:
+def get_moral_links(graph: SG) -> List[Tuple[Variable, Variable]]:
     """Generate links to ensure all co-parents in a graph are linked.
 
     May generate links that already exist as we assume we are not working on a multi-graph.
@@ -126,12 +129,12 @@ def get_moral_links(graph: SG) -> List[Tuple[NodeType, NodeType]]:
 
 
 def are_d_separated(
-    graph: Union[SG, NxMixedGraph[NodeType]],
-    a: NodeType,
-    b: NodeType,
+    graph: NxMixedGraph,
+    a: Variable,
+    b: Variable,
     *,
-    conditions: Optional[Iterable[NodeType]] = None,
-) -> DSeparationJudgement[NodeType]:
+    conditions: Optional[Iterable[Variable]] = None,
+) -> DSeparationJudgement:
     """Test if nodes named by a & b are d-separated in G.
 
     a & b can be provided in either order and the order of conditions does not matter.
@@ -142,40 +145,53 @@ def are_d_separated(
     :param b: A node in the graph
     :param conditions: A collection of graph nodes
     :return: T/F and the final graph (as evidence)
+    :raises NoAnankeError: If an ananke graph is given
+    :raises TypeError: if the left/right arguments or any conditions are
+        not Variable instances
     """
-    if isinstance(graph, NxMixedGraph):
-        graph = graph.to_admg()
+    if isinstance(graph, ADMG):
+        raise NoAnankeError
+    if conditions is None:
+        conditions = set()
+    if not isinstance(a, Variable):
+        raise TypeError(f"left argument is not given as a Variable: {type(a)}: {a}")
+    if not isinstance(b, Variable):
+        raise TypeError(f"right argument is not given as a Variable: {type(b)}: {b}")
+    if not all(isinstance(c, Variable) for c in conditions):
+        raise TypeError(f"some conditions are not variables: {conditions}")
 
-    conditions = set(conditions) if conditions else set()
-    named = {a, b}.union(conditions)
+    condition_names = {c.name for c in conditions}
+    named = {a.name, b.name}.union(condition_names)
+
+    admg = graph.to_admg()
 
     # Filter to ancestors
-    keep = graph.ancestors(named)
-    graph = copy.deepcopy(graph.subgraph(keep))
+    keep = admg.ancestors(named)
+    admg = copy.deepcopy(admg.subgraph(keep))
 
     # Moralize (link parents of mentioned nodes)
-    for u, v in get_moral_links(graph):  # type: ignore
-        graph.add_udedge(u, v)
+    for u, v in get_moral_links(admg):  # type: ignore
+        admg.add_udedge(u, v)
 
     # disorient & remove conditions
-    evidence_graph = disorient(graph)
+    evidence_graph = disorient(admg)
 
-    keep = set(evidence_graph.nodes) - set(conditions)
+    keep = set(evidence_graph.nodes) - set(condition_names)
     evidence_graph = evidence_graph.subgraph(keep)
 
     # check for path....
-    separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
+    separated = not nx.has_path(evidence_graph, a.name, b.name)  # If no path, then d-separated!
 
     return DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=separated)
 
 
 def d_separations(
-    graph: Union[NxMixedGraph[NodeType], SG],
+    graph: NxMixedGraph,
     *,
     max_conditions: Optional[int] = None,
     verbose: Optional[bool] = False,
     return_all: Optional[bool] = False,
-) -> Iterable[DSeparationJudgement[NodeType]]:
+) -> Iterable[DSeparationJudgement]:
     """Generate d-separations in the provided graph.
 
     :param graph: Graph to search for d-separations.
@@ -183,11 +199,11 @@ def d_separations(
     :param return_all: If false (default) only returns the first d-separation per left/right pair.
     :param verbose: If true, prints extra output with tqdm
     :yields: True d-separation judgements
+    :raises NoAnankeError: If an ananke graph is given
     """
-    if isinstance(graph, NxMixedGraph):
-        graph = graph.to_admg()
-
-    vertices = set(graph.vertices)
+    if isinstance(graph, ADMG):
+        raise NoAnankeError
+    vertices = set(graph.nodes())
     for a, b in tqdm(combinations(vertices, 2), disable=not verbose, desc="d-separation check"):
         for conditions in powerset(vertices - {a, b}, stop=max_conditions):
             judgement = are_d_separated(graph, a, b, conditions=conditions)
