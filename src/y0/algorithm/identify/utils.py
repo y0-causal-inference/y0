@@ -193,13 +193,13 @@ class Identification:
     """A package of a query and resulting estimand from identification on a graph."""
 
     query: Query
-    graph: NxMixedGraph[Variable]
+    graph: NxMixedGraph
     estimand: Expression
 
     def __init__(
         self,
         query: Query,
-        graph: Union[ADMG, NxMixedGraph[Variable]],
+        graph: Union[ADMG, NxMixedGraph],
         estimand: Optional[Expression] = None,
     ) -> None:
         """Instantiate an identification.
@@ -220,7 +220,7 @@ class Identification:
         cls,
         outcomes: set[Variable],
         treatments: set[Variable],
-        graph: Union[ADMG, NxMixedGraph[Variable]],
+        graph: Union[ADMG, NxMixedGraph],
         estimand: Optional[Expression] = None,
         conditions: Optional[set[Variable]] = None,
     ) -> Identification:
@@ -244,7 +244,7 @@ class Identification:
         cls,
         *,
         query: Probability,
-        graph: Union[ADMG, NxMixedGraph[str], NxMixedGraph[Variable]],
+        graph: Union[ADMG, NxMixedGraph],
         estimand: Optional[Expression] = None,
     ) -> Identification:
         """Instantiate an identification.
@@ -327,7 +327,7 @@ class Identification:
         )
 
 
-def str_nodes_to_variable_nodes(graph: NxMixedGraph) -> NxMixedGraph[Variable]:
+def str_nodes_to_variable_nodes(graph: NxMixedGraph) -> NxMixedGraph:
     """Generate a variable graph from this graph of strings."""
     return NxMixedGraph.from_edges(
         nodes={Variable.norm(node) for node in graph.nodes()},

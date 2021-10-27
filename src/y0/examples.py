@@ -12,7 +12,35 @@ import networkx as nx
 import pandas as pd
 
 from .algorithm.identify import Identification
-from .dsl import Z1, Z2, Z3, Z4, Z5, P, Q, Sum, Variable, X, Y, Z
+from .dsl import (
+    AA,
+    W0,
+    W1,
+    W2,
+    Y1,
+    Y2,
+    Z1,
+    Z2,
+    Z3,
+    Z4,
+    Z5,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    M,
+    P,
+    Q,
+    Sum,
+    Variable,
+    W,
+    X,
+    Y,
+    Z,
+)
 from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
@@ -40,9 +68,9 @@ u_3 = Variable("u_3")
 #: Adjusted: N/A
 backdoor = NxMixedGraph.from_edges(
     directed=[
-        ("Z", "X"),
-        ("Z", "Y"),
-        ("X", "Y"),
+        (Z, X),
+        (Z, Y),
+        (X, Y),
     ]
 )
 
@@ -58,11 +86,11 @@ backdoor_example = Example(
 #: Adjusted: N/A
 frontdoor = NxMixedGraph.from_edges(
     directed=[
-        ("X", "Z"),
-        ("Z", "Y"),
+        (X, Z),
+        (Z, Y),
     ],
     undirected=[
-        ("X", "Y"),
+        (X, Y),
     ],
 )
 frontdoor_example = Example(
@@ -76,11 +104,11 @@ frontdoor_example = Example(
 #: Outcome: Y
 instrumental_variable = NxMixedGraph.from_edges(
     directed=[
-        ("Z", "X"),
-        ("X", "Y"),
+        (Z, X),
+        (X, Y),
     ],
     undirected=[
-        ("X", "Y"),
+        (X, Y),
     ],
 )
 instrumental_variable_example = Example(
@@ -94,13 +122,13 @@ instrumental_variable_example = Example(
 #: Outcome: Y
 napkin = NxMixedGraph.from_edges(
     directed=[
-        ("Z2", "Z1"),
-        ("Z1", "X"),
-        ("X", "Y"),
+        (Z2, Z1),
+        (Z1, X),
+        (X, Y),
     ],
     undirected=[
-        ("Z2", "X"),
-        ("Z2", "Y"),
+        (Z2, X),
+        (Z2, Y),
     ],
 )
 napkin_example = Example(
@@ -127,11 +155,11 @@ napkin_example = Example(
 #: Reference:
 m_graph = NxMixedGraph.from_edges(
     directed=[
-        ("X", "Y"),
+        (X, Y),
     ],
     undirected=[
-        ("X", "Z"),
-        ("Y", "Z"),
+        (X, Z),
+        (Y, Z),
     ],
 )
 m_graph_example = Example(
@@ -146,8 +174,8 @@ vertices_without_edges = Example(
     name="Vertices-without-Edges",
     reference="out of the mind of JZ (patent pending). See NFT for details",
     graph=NxMixedGraph.from_adj(
-        directed={"W": [], "X": ["Y"], "Y": ["Z"], "Z": []},
-        undirected={"W": [], "X": ["Z"], "Y": [], "Z": []},
+        directed={W: [], X: [Y], Y: [Z], Z: []},
+        undirected={W: [], X: [Z], Y: [], Z: []},
     ),
 )
 
@@ -157,7 +185,7 @@ line_1_example = Example(
     reference="out of the mind of JZ",
     graph=NxMixedGraph.from_edges(
         directed=[
-            ("Z", "Y"),
+            (Z, Y),
         ]
     ),
     identifications=[
@@ -166,14 +194,14 @@ line_1_example = Example(
                 Identification.from_expression(
                     query=P(Y),
                     estimand=P(Y, Z),
-                    graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
+                    graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
             id_out=[
                 Identification.from_expression(
                     query=P(Y),
                     estimand=Sum(P(Y, Z), (Z,)),
-                    graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
+                    graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
         ),
@@ -182,14 +210,14 @@ line_1_example = Example(
                 Identification.from_expression(
                     query=P(Y, Z),
                     estimand=P(Y, Z),
-                    graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
+                    graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
             id_out=[
                 Identification.from_expression(
                     query=P(Y, Z),
                     estimand=Sum(P(Y, Z)),
-                    graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
+                    graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
         ),
@@ -200,23 +228,21 @@ line_1_example = Example(
 line_2_example = Example(
     name="intervention not ancestral to outcome",
     reference="out of the mind of JZ",
-    graph=NxMixedGraph.from_edges(directed=[("Z", "Y"), ("Y", "X")], undirected=[("Z", "X")]),
+    graph=NxMixedGraph.from_edges(directed=[(Z, Y), (Y, X)], undirected=[(Z, X)]),
     identifications=[
         dict(
             id_in=[
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y, Z),
-                    graph=NxMixedGraph.from_edges(
-                        directed=[("Z", "Y"), ("Y", "X")], undirected=[("Z", "X")]
-                    ),
+                    graph=NxMixedGraph.from_edges(directed=[(Z, Y), (Y, X)], undirected=[(Z, X)]),
                 )
             ],
             id_out=[
                 Identification.from_expression(
                     query=P(Y),
                     estimand=Sum(P(Y, X, Z), (X,)),
-                    graph=NxMixedGraph.from_edges(directed=[("Z", "Y")]),
+                    graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
         )
@@ -226,38 +252,33 @@ line_2_example = Example(
 line_3_example = Example(
     name="node has no effect on outcome",
     reference="out of the mind of JZ",
-    graph=NxMixedGraph.from_edges(directed=[("Z", "X"), ("X", "Y")], undirected=[("Z", "X")]),
+    graph=NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)], undirected=[(Z, X)]),
     identifications=[
         dict(
             id_in=[
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y, Z),
-                    graph=NxMixedGraph.from_edges(
-                        directed=[("Z", "X"), ("X", "Y")], undirected=[("Z", "X")]
-                    ),
+                    graph=NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)], undirected=[(Z, X)]),
                 )
             ],
             id_out=[
                 Identification.from_expression(
                     query=P(Y @ {X, Z}),
                     estimand=P(X, Y, Z),
-                    graph=NxMixedGraph.from_edges(
-                        directed=[("Z", "X"), ("X", "Y")], undirected=[("Z", "X")]
-                    ),
+                    graph=NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)], undirected=[(Z, X)]),
                 )
             ],
         ),
     ],
 )
 
-M = Variable("M")
 line_4_example = Example(
     name="graph without X decomposes into multiple C components",
     reference="out of the mind of JZ",
     graph=NxMixedGraph.from_edges(
-        directed=[("X", "M"), ("Z", "X"), ("Z", "Y"), ("M", "Y")],
-        undirected=[("Z", "X"), ("M", "Y")],
+        directed=[(X, M), (Z, X), (Z, Y), (M, Y)],
+        undirected=[(Z, X), (M, Y)],
     ),
     identifications=[
         dict(
@@ -266,8 +287,8 @@ line_4_example = Example(
                     query=P(Y @ X),
                     estimand=P(M, X, Y, Z),
                     graph=NxMixedGraph.from_edges(
-                        directed=[("X", "M"), ("Z", "X"), ("Z", "Y"), ("M", "Y")],
-                        undirected=[("Z", "X"), ("M", "Y")],
+                        directed=[(X, M), (Z, X), (Z, Y), (M, Y)],
+                        undirected=[(Z, X), (M, Y)],
                     ),
                 )
             ],
@@ -276,16 +297,16 @@ line_4_example = Example(
                     query=P(M @ {X, Z}, Y @ {X, Z}),
                     estimand=P(M, X, Y, Z),
                     graph=NxMixedGraph.from_edges(
-                        directed=[("X", "M"), ("Z", "X"), ("Z", "Y"), ("M", "Y")],
-                        undirected=[("Z", "X"), ("M", "Y")],
+                        directed=[(X, M), (Z, X), (Z, Y), (M, Y)],
+                        undirected=[(Z, X), (M, Y)],
                     ),
                 ),
                 Identification.from_expression(
                     query=P(Z @ {M, X, Y}),
                     estimand=P(M, X, Y, Z),
                     graph=NxMixedGraph.from_edges(
-                        directed=[("X", "M"), ("Z", "X"), ("Z", "Y"), ("M", "Y")],
-                        undirected=[("Z", "X"), ("M", "Y")],
+                        directed=[(X, M), (Z, X), (Z, Y), (M, Y)],
+                        undirected=[(Z, X), (M, Y)],
                     ),
                 ),
             ],
@@ -295,15 +316,15 @@ line_4_example = Example(
 
 line_5_example = Example(
     name="graph containing a hedge",
-    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(directed=[("X", "Y")], undirected=[("X", "Y")]),
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
     identifications=[
         dict(
             id_in=[
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y),
-                    graph=NxMixedGraph.from_edges(directed=[("X", "Y")], undirected=[("X", "Y")]),
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
                 )
             ],
         )
@@ -315,10 +336,8 @@ line_6_example = Example(
     description="If there are no bidirected arcs from X to the other nodes in the"
     " current subproblem under consideration, then we can replace acting"
     " on X by conditioning, and thus solve the subproblem.",
-    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(
-        directed=[("X", "Y"), ("X", "Z"), ("Z", "Y")], undirected=[("X", "Z")]
-    ),
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(directed=[(X, Y), (X, Z), (Z, Y)], undirected=[(X, Z)]),
     identifications=[
         dict(
             id_in=[
@@ -326,8 +345,8 @@ line_6_example = Example(
                     query=P(Y @ [X, Z]),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(
-                        directed=[("X", "Y"), ("X", "Z"), ("Z", "Y")],
-                        undirected=[("X", "Z")],
+                        directed=[(X, Y), (X, Z), (Z, Y)],
+                        undirected=[(X, Z)],
                     ),
                 )
             ],
@@ -336,8 +355,8 @@ line_6_example = Example(
                     query=P(Y @ {X, Z}),
                     estimand=P(Y | [X, Z]),
                     graph=NxMixedGraph.from_edges(
-                        directed=[("X", "Y"), ("X", "Z"), ("Z", "Y")],
-                        undirected=[("X", "Z")],
+                        directed=[(X, Y), (X, Z), (Z, Y)],
+                        undirected=[(X, Z)],
                     ),
                 )
             ],
@@ -345,11 +364,10 @@ line_6_example = Example(
     ],
 )
 
-W1, Y1 = Variable("W1"), Variable("Y1")
 line_7_example = Example(
     name="ID Line 7 example, figure 5a and b",
-    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(directed=[("X", "Y1"), ("W1", "Y1")], undirected=[("W1", "Y1")]),
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(directed=[(X, Y1), (W1, Y1)], undirected=[(W1, Y1)]),
     identifications=[
         dict(
             id_in=[
@@ -357,7 +375,7 @@ line_7_example = Example(
                     query=P(Y1 @ [X, W1]),
                     estimand=P(X, Y1, W1),
                     graph=NxMixedGraph.from_edges(
-                        directed=[("X", "Y1"), ("W1", "X")], undirected=[("W1", "Y1")]
+                        directed=[(X, Y1), (W1, X)], undirected=[(W1, Y1)]
                     ),
                 )
             ],
@@ -365,7 +383,7 @@ line_7_example = Example(
                 Identification.from_expression(
                     query=P(Y1 @ W1),
                     estimand=P(Y1 | [X, W1]) * P(W1),
-                    graph=NxMixedGraph.from_edges(undirected=[("W1", "Y1")]),
+                    graph=NxMixedGraph.from_edges(undirected=[(W1, Y1)]),
                 )
             ],
         )
@@ -374,8 +392,8 @@ line_7_example = Example(
 
 figure_6a = Example(
     name="Causal graph with identifiable conditional effect P(y|do(x),z)",
-    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. ",
-    graph=NxMixedGraph.from_edges(directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Z")]),
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=[(X, Z)]),
     identifications=[
         dict(
             id_in=[
@@ -384,42 +402,206 @@ figure_6a = Example(
                     treatments={X},
                     conditions={Z},
                     estimand=P(X, Y, Z),
-                    graph=NxMixedGraph.from_edges(
-                        directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Z")]
-                    ),
+                    graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=[(X, Z)]),
                 ),
             ],
             id_out=[
                 Identification.from_expression(
                     query=P(Y @ (X, Z)),
                     estimand=P(Y | (X, Z)) / Sum.safe(expression=P(Y | (X, Z)), ranges=(Y,)),
-                    graph=NxMixedGraph.from_edges(
-                        directed=[("X", "Z"), ("Z", "Y")], undirected=list()
-                    ),
+                    graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=list()),
                 ),
             ],
         )
     ],
 )
 
+figure_9a = Example(
+    name="Original causal diagram",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(directed=[(X, W), (W, Y), (D, Z), (Z, Y)], undirected=[(X, Y)]),
+)
+
+figure_9b = Example(
+    name="Parallel worlds graph for :math:`P(y_x|x', x_d, d)`",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            (X @ ~X, W @ ~X),
+            (W @ ~X, Y @ ~X),
+            (D @ ~X, Z @ ~X),
+            (Z @ ~X, Y @ ~X),
+            (X, W),
+            (W, Y),
+            (D, Z),
+            (Z, Y),
+            (X @ D, W @ D),
+            (W @ D, Y @ D),
+            (D @ D, Z @ D),
+            (Z @ D, Y @ D),
+        ],
+        undirected=[
+            (X, Y),
+            (X @ D, X),
+            (Y @ ~X, Y),
+            (Y, Y @ D),
+            (Y @ D, Y @ ~X),
+            (X, Y @ ~X),
+            (X @ D, Y),
+            (X, Y @ D),
+            (X @ D, Y @ ~X),
+            (X @ D, Y @ D),
+            (D @ ~X, D),
+            (W @ ~X, W),
+            (W, W @ D),
+            (W @ D, W @ ~X),
+            (Z @ ~X, Z),
+            (Z, Z @ D),
+            (Z @ ~X, Z @ D),
+        ],
+    ),
+)
+
+figure_9c = Example(
+    name="Counterfactual graph for :math:`P(y_x | x', z_d, d)`",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(
+        directed=[(X @ ~X, W @ ~X), (W @ ~X, Y @ ~X), (D, Z), (Z, Y @ ~X)],
+        undirected=[(X, Y @ ~X)],
+    ),
+)
+
+figure_9d = Example(
+    name="Counterfactual graph resulting from application of make_counterfactual_graph() with"
+    " joint distribution from which :math:`P(y_{x,z}|x')` is derived, namely  :math:`P(y_{x,z}, x')`",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(
+        nodes=(X, X @ (Z, ~X), Z @ (Z, ~X), W @ (Z, ~X), Y @ (Z, ~X)),
+        directed=[
+            (X @ (Z, ~X), W @ (Z, ~X)),
+            (Z @ (Z, ~X), Y @ (Z, ~X)),
+            (W @ (Z, ~X), Y @ (Z, ~X)),
+        ],
+        undirected=[(X, Y @ (Z, ~X))],
+    ),
+)
+
+figure_9e = Example(
+    name="Counterfactual graph for :math:`P(Y @ (~X, Z) | X)`",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(
+        nodes=(D, X, X @ (~X, Z), Z @ (~X, Z), W @ (~X, Z), Y @ (~X, Z)),
+        directed=[(D, Z), (X @ (~X, Z), W @ (~X, Z)), (Z, Y @ (~X, Z)), (W @ (~X, Z), Y @ (~X, Z))],
+        undirected=[(X, Y @ (~X, Z))],
+    ),
+)
+
+figure_11a = Example(
+    name="Intermediate graph obtained by **make-cg** in constructing the"
+    " counterfactual graph for for :math:`P(y_x|x', z_d, d)` from Figure 9b",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            (X @ ~X, W @ ~X),
+            (W @ ~X, Y @ ~X),
+            (D, Z @ ~X),
+            (Z @ ~X, Y @ ~X),
+            (X, W),
+            (W, Y),
+            (D, Z),
+            (Z, Y),
+            (X, W @ D),
+            (W @ D, Y @ D),
+            (D @ D, Z @ D),
+            (Z @ D, Y @ D),
+        ],
+        undirected=[
+            (X, Y),
+            (Y @ ~X, Y),
+            (Y, Y @ D),
+            (Y @ D, X),
+            (X, Y @ ~X),
+            (Y @ D, Y @ ~X),
+            (W @ ~X, W),
+            (W, W @ D),
+            (W @ D, W @ ~X),
+            (Z @ ~X, Z),
+            (Z, Z @ D),
+            (Z @ ~X, Z @ D),
+        ],
+    ),
+)
+
+figure_11b = Example(
+    name="Intermediate graph obtained by **make-cg** in constructing the"
+    " counterfactual graph for for :math:`P(y_x|x', z_d, d)` from Figure 9b",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            (X @ ~X, W @ ~X),
+            (W @ ~X, Y @ ~X),
+            (D, Z),
+            (Z, Y @ ~X),
+            (Z, Y @ D),
+            (Z, Y),
+            (X, W),
+            (W, Y),
+            (W, Y @ D),
+        ],
+        undirected=[
+            (X, Y),
+            (Y @ ~X, Y),
+            (Y, Y @ D),
+            (Y @ D, X),
+            (Y @ D, Y @ ~X),
+            (X, Y @ ~X),
+            (X, Y @ D),
+            (W @ ~X, W),
+        ],
+    ),
+)
+
+figure_11c = Example(
+    name="Intermediate graph obtained by **make-cg** in constructing the counterfactual"
+    " graph for for :math:`P(y_x|x', z_d, d)` from Figure 9b",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            (X @ ~X, W @ ~X),
+            (W @ ~X, Y @ ~X),
+            (D, Z),
+            (Z, Y @ ~X),
+            (Z, Y),
+            (X, W),
+            (W, Y),
+        ],
+        undirected=[
+            (X, Y),
+            (Y @ ~X, Y),
+            (X, Y @ ~X),
+            (W @ ~X, W),
+        ],
+    ),
+)
+
 cyclic_directed_example = Example(
     name="Cyclic directed graph",
     reference="out of the mind of JZ and ZW",
-    graph=NxMixedGraph.from_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")]),
+    graph=NxMixedGraph.from_edges(directed=[(A, B), (A, C), (B, A)]),
 )
 #: Treatment: X
 #: Outcome: Y
 identifiability_1 = NxMixedGraph.from_edges(
     directed=[
-        ("Z1", "Z2"),
-        ("Z1", "Z3"),
-        ("Z2", "X"),
-        ("Z3", "X"),
-        ("Z4", "X"),
-        ("Z4", "Z5"),
-        ("Z3", "Y"),
-        ("X", "Y"),
-        ("Z3", "Y"),
+        (Z1, Z2),
+        (Z1, Z3),
+        (Z2, X),
+        (Z3, X),
+        (Z4, X),
+        (Z4, Z5),
+        (Z3, Y),
+        (X, Y),
+        (Z3, Y),
     ],
 )
 identifiability_1_example = Example(
@@ -428,19 +610,19 @@ identifiability_1_example = Example(
     ' 2nd ed." Cambridge University Press, p. 80.',
     graph=identifiability_1,
     conditional_independencies=(
-        DSeparationJudgement.create("X", "Z1", ["Z2", "Z3"]),
-        DSeparationJudgement.create("X", "Z5", ["Z4"]),
-        DSeparationJudgement.create("Y", "Z1", ["X", "Z3", "Z4"]),
-        DSeparationJudgement.create("Y", "Z2", ["X", "Z1", "Z3"]),
-        DSeparationJudgement.create("Y", "Z4", ["X", "Z3", "Z5"]),
-        DSeparationJudgement.create("Z1", "Z4"),
-        DSeparationJudgement.create("Z1", "Z5"),
-        DSeparationJudgement.create("Z2", "Z3", ["Z1"]),
-        DSeparationJudgement.create("Z2", "Z4"),
-        DSeparationJudgement.create("Z2", "Z5"),
-        DSeparationJudgement.create("Z3", "Z5"),
-        DSeparationJudgement.create("Y", "Z5", ["X", "Z3"]),
-        DSeparationJudgement.create("Z3", "Z4"),
+        DSeparationJudgement.create(X, Z1, [Z2, Z3]),
+        DSeparationJudgement.create(X, Z5, [Z4]),
+        DSeparationJudgement.create(Y, Z1, [X, Z3, Z4]),
+        DSeparationJudgement.create(Y, Z2, [X, Z1, Z3]),
+        DSeparationJudgement.create(Y, Z4, [X, Z3, Z5]),
+        DSeparationJudgement.create(Z1, Z4),
+        DSeparationJudgement.create(Z1, Z5),
+        DSeparationJudgement.create(Z2, Z3, [Z1]),
+        DSeparationJudgement.create(Z2, Z4),
+        DSeparationJudgement.create(Z2, Z5),
+        DSeparationJudgement.create(Z3, Z5),
+        DSeparationJudgement.create(Y, Z5, [X, Z3]),
+        DSeparationJudgement.create(Z3, Z4),
     ),
 )
 
@@ -448,26 +630,26 @@ identifiability_1_example = Example(
 #: Outcome: Y
 identifiability_2 = NxMixedGraph.from_edges(
     directed=[
-        ("Z1", "Z2"),
-        ("Z1", "Z3"),
-        ("Z2", "X"),
-        ("Z3", "X"),
-        ("X", "W0"),
-        ("W0", "Y"),
-        ("Z4", "Z3"),
-        ("Z4", "Z5"),
-        ("Z5", "Y"),
-        ("X", "W1"),
-        ("W1", "W2"),
-        ("W2", "Y"),
-        ("Z4", "Z3"),
-        ("Z3", "Y"),
+        (Z1, Z2),
+        (Z1, Z3),
+        (Z2, X),
+        (Z3, X),
+        (X, W0),
+        (W0, Y),
+        (Z4, Z3),
+        (Z4, Z5),
+        (Z5, Y),
+        (X, W1),
+        (W1, W2),
+        (W2, Y),
+        (Z4, Z3),
+        (Z3, Y),
     ],
     undirected=[
-        ("Z1", "X"),
-        ("Z2", "Z3"),
-        ("Z3", "Z5"),
-        ("Z4", "Y"),
+        (Z1, X),
+        (Z2, Z3),
+        (Z3, Z5),
+        (Z4, Y),
     ],
 )
 
@@ -495,34 +677,34 @@ identifiability_2_example = Example(
         ),
     ],
     conditional_independencies=[
-        DSeparationJudgement.create("W0", "W1", ["X"]),
-        DSeparationJudgement.create("W0", "W2", ["X"]),
-        DSeparationJudgement.create("W0", "Z1", ["X"]),
-        DSeparationJudgement.create("W0", "Z2", ["X"]),
-        DSeparationJudgement.create("W0", "Z3", ["X"]),
-        DSeparationJudgement.create("W0", "Z4", ["X"]),
-        DSeparationJudgement.create("W0", "Z5", ["X"]),
-        DSeparationJudgement.create("W1", "Y", ["W0", "W2", "Z3", "Z4", "Z5"]),
-        DSeparationJudgement.create("W1", "Z1", ["X"]),
-        DSeparationJudgement.create("W1", "Z2", ["X"]),
-        DSeparationJudgement.create("W1", "Z3", ["X"]),
-        DSeparationJudgement.create("W1", "Z4", ["X"]),
-        DSeparationJudgement.create("W1", "Z5", ["X"]),
-        DSeparationJudgement.create("W2", "X", ["W1"]),
-        DSeparationJudgement.create("W2", "Z1", ["W1"]),
-        DSeparationJudgement.create("W2", "Z2", ["W1"]),
-        DSeparationJudgement.create("W2", "Z3", ["W1"]),
-        DSeparationJudgement.create("W2", "Z4", ["W1"]),
-        DSeparationJudgement.create("W2", "Z5", ["W1"]),
-        DSeparationJudgement.create("X", "Y", ["W0", "W2", "Z3", "Z4", "Z5"]),
-        DSeparationJudgement.create("X", "Z4", ["Z1", "Z2", "Z3"]),
-        DSeparationJudgement.create("X", "Z5", ["Z1", "Z2", "Z3"]),
-        DSeparationJudgement.create("Y", "Z1", ["W0", "W2", "Z3", "Z4", "Z5"]),
-        DSeparationJudgement.create("Y", "Z2", ["W0", "W2", "Z3", "Z4", "Z5"]),
-        DSeparationJudgement.create("Z1", "Z4"),
-        DSeparationJudgement.create("Z1", "Z5"),
-        DSeparationJudgement.create("Z2", "Z4"),
-        DSeparationJudgement.create("Z2", "Z5"),
+        DSeparationJudgement.create(W0, W1, [X]),
+        DSeparationJudgement.create(W0, W2, [X]),
+        DSeparationJudgement.create(W0, Z1, [X]),
+        DSeparationJudgement.create(W0, Z2, [X]),
+        DSeparationJudgement.create(W0, Z3, [X]),
+        DSeparationJudgement.create(W0, Z4, [X]),
+        DSeparationJudgement.create(W0, Z5, [X]),
+        DSeparationJudgement.create(W1, Y, [W0, W2, Z3, Z4, Z5]),
+        DSeparationJudgement.create(W1, Z1, [X]),
+        DSeparationJudgement.create(W1, Z2, [X]),
+        DSeparationJudgement.create(W1, Z3, [X]),
+        DSeparationJudgement.create(W1, Z4, [X]),
+        DSeparationJudgement.create(W1, Z5, [X]),
+        DSeparationJudgement.create(W2, X, [W1]),
+        DSeparationJudgement.create(W2, Z1, [W1]),
+        DSeparationJudgement.create(W2, Z2, [W1]),
+        DSeparationJudgement.create(W2, Z3, [W1]),
+        DSeparationJudgement.create(W2, Z4, [W1]),
+        DSeparationJudgement.create(W2, Z5, [W1]),
+        DSeparationJudgement.create(X, Y, [W0, W2, Z3, Z4, Z5]),
+        DSeparationJudgement.create(X, Z4, [Z1, Z2, Z3]),
+        DSeparationJudgement.create(X, Z5, [Z1, Z2, Z3]),
+        DSeparationJudgement.create(Y, Z1, [W0, W2, Z3, Z4, Z5]),
+        DSeparationJudgement.create(Y, Z2, [W0, W2, Z3, Z4, Z5]),
+        DSeparationJudgement.create(Z1, Z4),
+        DSeparationJudgement.create(Z1, Z5),
+        DSeparationJudgement.create(Z2, Z4),
+        DSeparationJudgement.create(Z2, Z5),
     ],
 )
 
@@ -532,18 +714,18 @@ identifiability_2_example = Example(
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 92.
 identifiability_3 = NxMixedGraph.from_edges(
     directed=[
-        ("Z2", "X"),
-        ("Z2", "Z1"),
-        ("Z2", "Z3"),
-        ("X", "Z1"),
-        ("Z3", "Y"),
-        ("Z1", "Y"),
+        (Z2, X),
+        (Z2, Z1),
+        (Z2, Z3),
+        (X, Z1),
+        (Z3, Y),
+        (Z1, Y),
     ],
     undirected=[
-        ("Z2", "X"),
-        ("Z2", "Y"),
-        ("X", "Z3"),
-        ("X", "Y"),
+        (Z2, X),
+        (Z2, Y),
+        (X, Z3),
+        (X, Y),
     ],
 )
 
@@ -553,15 +735,15 @@ identifiability_3 = NxMixedGraph.from_edges(
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 92.
 identifiability_4 = NxMixedGraph.from_edges(
     directed=[
-        ("X", "Z1"),
-        ("X", "Y"),
-        ("Z1", "Z2"),
-        ("Z1", "Y"),
-        ("Z2", "Y"),
+        (X, Z1),
+        (X, Y),
+        (Z1, Z2),
+        (Z1, Y),
+        (Z2, Y),
     ],
     undirected=[
-        ("X", "Z2"),
-        ("Z1", "Y"),
+        (X, Z2),
+        (Z1, Y),
     ],
 )
 
@@ -571,15 +753,15 @@ identifiability_4 = NxMixedGraph.from_edges(
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 119.
 identifiability_5 = NxMixedGraph.from_edges(
     directed=[
-        ("X1", "Z"),
-        ("X1", "Y"),
+        ("X1", Z),
+        ("X1", Y),
         ("X1", "X2"),
-        ("Z", "X2"),
-        ("X2", "Y"),
+        (Z, "X2"),
+        ("X2", Y),
     ],
     undirected=[
-        ("X1", "Z"),
-        ("Z", "Y"),
+        ("X1", Z),
+        (Z, Y),
     ],
 )
 
@@ -589,15 +771,15 @@ identifiability_5 = NxMixedGraph.from_edges(
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 125.
 identifiability_6 = NxMixedGraph.from_edges(
     directed=[
-        ("Z1", "X1"),
+        (Z1, "X1"),
         ("X1", "X2"),
-        ("X2", "Y"),
-        ("Z2", "Y"),
+        ("X2", Y),
+        (Z2, Y),
     ],
     undirected=[
-        ("Z1", "Z2"),
-        ("Z1", "X2"),
-        ("Z2", "X2"),
+        (Z1, Z2),
+        (Z1, "X2"),
+        (Z2, "X2"),
     ],
 )
 
@@ -607,17 +789,17 @@ identifiability_6 = NxMixedGraph.from_edges(
 #: Reference: J. Tian. 2002. "Studies in Causal Reasoning and Learning." p. 90.
 identifiability_7 = NxMixedGraph.from_edges(
     directed=[
-        ("W1", "W2"),
+        (W1, W2),
         ("W3", "W4"),
-        ("W2", "X"),
-        ("W4", "X"),
-        ("X", "Y"),
+        (W2, X),
+        ("W4", X),
+        (X, Y),
     ],
     undirected=[
-        ("W1", "X"),
-        ("W1", "Y"),
-        ("W1", "W3"),
-        ("W3", "W2"),
+        (W1, X),
+        (W1, Y),
+        (W1, "W3"),
+        ("W3", W2),
         ("W3", "W5"),
         ("W5", "W4"),
     ],
@@ -634,7 +816,7 @@ identifiability_7 = NxMixedGraph.from_edges(
 #: Outcome: V4
 #: Reference: T. Verma and J. Pearl. 1990. "Equivalence and Synthesis of Causal Models." In P. Bonissone et al., eds.,
 #: Proceedings of the 6th Conference on Uncertainty in Artificial Intelligence. Cambridge, MA: AUAI Press, p. 257.
-verma_1 = NxMixedGraph.from_edges(
+verma_1 = NxMixedGraph.from_str_edges(
     directed=[
         ("V1", "V2"),
         ("V2", "V3"),
@@ -649,7 +831,7 @@ verma_1 = NxMixedGraph.from_edges(
 #: Treatment: V1
 #: Outcome: V5
 #: Reference: J. Tian. 2002. "Studies in Causal Reasoning and Learning." p. 70.
-verma_2 = NxMixedGraph.from_edges(
+verma_2 = NxMixedGraph.from_str_edges(
     directed=[
         ("V1", "V2"),
         ("V2", "V3"),
@@ -667,7 +849,7 @@ verma_2 = NxMixedGraph.from_edges(
 #: Treatment: V1
 #: Outcome: V5
 #: Reference: J. Tian. 2002. "Studies in Causal Reasoning and Learning." p. 59.
-verma_3 = NxMixedGraph.from_edges(
+verma_3 = NxMixedGraph.from_str_edges(
     directed=[
         ("V1", "V2"),
         ("V2", "V3"),
@@ -685,7 +867,7 @@ verma_3 = NxMixedGraph.from_edges(
 #: Treatment: V1
 #: Outcome: V5
 #: Reference: E. Bareinboim modification of Verma 2.
-verma_4 = NxMixedGraph.from_edges(
+verma_4 = NxMixedGraph.from_str_edges(
     directed=[
         ("V1", "V2"),
         ("V2", "V3"),
@@ -704,7 +886,7 @@ verma_4 = NxMixedGraph.from_edges(
 #: Treatment: V1
 #: Outcome: V5
 #: Reference: E. Bareinboim modification of Verma 2.
-verma_5 = NxMixedGraph.from_edges(
+verma_5 = NxMixedGraph.from_str_edges(
     directed=[
         ("V1", "V2"),
         ("V2", "V3"),
@@ -730,12 +912,12 @@ verma_5 = NxMixedGraph.from_edges(
 #: Corvallis, OR: AUAI Press, p. 114.
 z_identifiability_1 = NxMixedGraph.from_edges(
     directed=[
-        ("Z", "X"),
-        ("X", "Y"),
+        (Z, X),
+        (X, Y),
     ],
     undirected=[
-        ("Z", "X"),
-        ("Z", "Y"),
+        (Z, X),
+        (Z, Y),
     ],
 )
 
@@ -748,12 +930,12 @@ z_identifiability_1 = NxMixedGraph.from_edges(
 #: Corvallis, OR: AUAI Press, p. 114.
 z_identifiability_2 = NxMixedGraph.from_edges(
     directed=[
-        ("Z", "X"),
-        ("X", "Y"),
+        (Z, X),
+        (X, Y),
     ],
     undirected=[
-        ("X", "Y"),
-        ("Z", "Y"),
+        (X, Y),
+        (Z, Y),
     ],
 )
 
@@ -766,12 +948,12 @@ z_identifiability_2 = NxMixedGraph.from_edges(
 #: Corvallis, OR: AUAI Press, p. 114.
 z_identifiability_3 = NxMixedGraph.from_edges(
     directed=[
-        ("Z", "Y"),
-        ("X", "Y"),
+        (Z, Y),
+        (X, Y),
     ],
     undirected=[
-        ("X", "Z"),
-        ("Z", "Y"),
+        (X, Z),
+        (Z, Y),
     ],
 )
 
@@ -781,14 +963,14 @@ z_identifiability_3 = NxMixedGraph.from_edges(
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 153.
 identifiability_linear_1 = NxMixedGraph.from_edges(
     directed=[
-        ("X", "Z"),
-        ("X", "W"),
-        ("W", "Y"),
-        ("Z", "Y"),
+        (X, Z),
+        (X, W),
+        (W, Y),
+        (Z, Y),
     ],
     undirected=[
-        ("X", "Z"),
-        ("W", "Y"),
+        (X, Z),
+        (W, Y),
     ],
 )
 
@@ -797,30 +979,30 @@ d_separation_example = Example(
     reference="http://web.mit.edu/jmn/www/6.034/d-separation.pdf",
     graph=NxMixedGraph.from_edges(
         directed=[
-            ("AA", "C"),
-            ("B", "C"),
-            ("C", "D"),
-            ("C", "E"),
-            ("D", "F"),
-            ("F", "G"),
+            (AA, C),
+            (B, C),
+            (C, D),
+            (C, E),
+            (D, F),
+            (F, G),
         ],
     ),
     conditional_independencies=[
-        DSeparationJudgement.create("AA", "B"),
-        DSeparationJudgement.create("AA", "D", ["C"]),
-        DSeparationJudgement.create("AA", "E", ["C"]),
-        DSeparationJudgement.create("AA", "F", ["C"]),
-        DSeparationJudgement.create("AA", "G", ["C"]),
-        DSeparationJudgement.create("B", "D", ["C"]),
-        DSeparationJudgement.create("B", "E", ["C"]),
-        DSeparationJudgement.create("B", "F", ["C"]),
-        DSeparationJudgement.create("B", "G", ["C"]),
-        DSeparationJudgement.create("C", "F", ["D"]),
-        DSeparationJudgement.create("C", "G", ["D"]),
-        DSeparationJudgement.create("D", "E", ["C"]),
-        DSeparationJudgement.create("D", "G", ["F"]),
-        DSeparationJudgement.create("E", "F", ["C"]),
-        DSeparationJudgement.create("E", "G", ["C"]),
+        DSeparationJudgement.create(AA, B),
+        DSeparationJudgement.create(AA, D, [C]),
+        DSeparationJudgement.create(AA, E, [C]),
+        DSeparationJudgement.create(AA, F, [C]),
+        DSeparationJudgement.create(AA, G, [C]),
+        DSeparationJudgement.create(B, D, [C]),
+        DSeparationJudgement.create(B, E, [C]),
+        DSeparationJudgement.create(B, F, [C]),
+        DSeparationJudgement.create(B, G, [C]),
+        DSeparationJudgement.create(C, F, [D]),
+        DSeparationJudgement.create(C, G, [D]),
+        DSeparationJudgement.create(D, E, [C]),
+        DSeparationJudgement.create(D, G, [F]),
+        DSeparationJudgement.create(E, F, [C]),
+        DSeparationJudgement.create(E, G, [C]),
     ],
 )
 
@@ -829,17 +1011,39 @@ asia_example = Example(
     reference="https://www.bnlearn.com/documentation/man/asia.html",
     graph=NxMixedGraph.from_edges(
         directed=[
-            ("Asia", "Tub"),
-            ("Smoke", "Lung"),
-            ("Smoke", "Bronc"),
-            ("Tub", "Either"),
-            ("Lung", "Either"),
-            ("Either", "Xray"),
-            ("Either", "Dysp"),
-            ("Bronc", "Dysp"),
+            (Variable(u), Variable(v))
+            for u, v in [
+                ("Asia", "Tub"),
+                ("Smoke", "Lung"),
+                ("Smoke", "Bronc"),
+                ("Tub", "Either"),
+                ("Lung", "Either"),
+                ("Either", "Xray"),
+                ("Either", "Dysp"),
+                ("Bronc", "Dysp"),
+            ]
         ],
     ),
     data=pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1}),
+)
+
+figure_2a_example = Example(
+    name="Shpitser et al. (2008), Figure 2A",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
+    "Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[(X, Y)],
+    ),
+)
+
+figure_2b_example = Example(
+    name="Shpitser et al. (2008), Figure 2B",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
+    "Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[(X, Y), (X, Z), (Z, Y)],
+        undirected=[(Y, Z)],
+    ),
 )
 
 complete_hierarchy_figure_2c_example = Example(
@@ -848,11 +1052,11 @@ complete_hierarchy_figure_2c_example = Example(
     "Journal of Machine Learning Research.",
     graph=NxMixedGraph.from_edges(
         directed=[
-            ("X", "Y"),
-            ("Z", "X"),
-            ("Z", "Y"),
+            (X, Y),
+            (Z, X),
+            (Z, Y),
         ],
-        undirected=[("X", "Z")],
+        undirected=[(X, Z)],
     ),
 )
 
@@ -862,11 +1066,11 @@ complete_hierarchy_figure_2d_example = Example(
     "Journal of Machine Learning Research.",
     graph=NxMixedGraph.from_edges(
         directed=[
-            ("X", "Y"),
-            ("Z", "X"),
-            ("Z", "Y"),
+            (X, Y),
+            (Z, X),
+            (Z, Y),
         ],
-        undirected=[("X", "Z")],
+        undirected=[(X, Z)],
     ),
 )
 
@@ -876,10 +1080,10 @@ complete_hierarchy_figure_2e_example = Example(
     "Journal of Machine Learning Research.",
     graph=NxMixedGraph.from_edges(
         directed=[
-            ("X", "Z"),
-            ("Z", "Y"),
+            (X, Z),
+            (Z, Y),
         ],
-        undirected=[("X", "Y")],
+        undirected=[(X, Y)],
     ),
 )
 
@@ -888,8 +1092,8 @@ complete_hierarchy_figure_3a_example = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy."
     " Journal of Machine Learning Research.",
     graph=NxMixedGraph.from_edges(
-        directed=[("X", "Y1"), ("W1", "X"), ("W2", "Y2")],
-        undirected=[("W1", "W2"), ("W1", "Y1"), ("W1", "Y2"), ("X", "W2")],
+        directed=[(X, Y1), (W1, X), (W2, Y2)],
+        undirected=[(W1, W2), (W1, Y1), (W1, Y2), (X, W2)],
     ),
 )
 

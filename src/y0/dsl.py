@@ -12,6 +12,7 @@ from operator import attrgetter
 from typing import (
     Callable,
     Iterable,
+    List,
     Optional,
     Protocol,
     Sequence,
@@ -38,9 +39,11 @@ __all__ = [
     "Q",
     "QFactor",
     "A",
+    "AA",
     "B",
     "C",
     "D",
+    "M",
     "R",
     "S",
     "T",
@@ -54,6 +57,7 @@ __all__ = [
     "V4",
     "V5",
     "V6",
+    "W0",
     "W1",
     "W2",
     "W3",
@@ -74,6 +78,8 @@ __all__ = [
     "Z6",
     # Helpers
     "ensure_ordering",
+    "vmap_adj",
+    "vmap_pairs",
 ]
 
 T_co = TypeVar("T_co", covariant=True)
@@ -1202,9 +1208,10 @@ class QFactor(Expression):
 
 Q = QFactor
 
-A, B, C, D, R, S, T, W, X, Y, Z = map(Variable, "ABCDRSTWXYZ")  # type: ignore
+AA = Variable("AA")
+A, B, C, D, E, F, G, M, R, S, T, W, X, Y, Z = map(Variable, "ABCDEFGMRSTWXYZ")  # type: ignore
 V1, V2, V3, V4, V5, V6 = [Variable(f"V{i}") for i in range(1, 7)]
-W1, W2, W3, W4, W5, W6 = [Variable(f"W{i}") for i in range(1, 7)]
+W0, W1, W2, W3, W4, W5, W6 = [Variable(f"W{i}") for i in range(7)]
 Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f"Y{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
 
@@ -1273,3 +1280,16 @@ def outcomes_and_treatments_to_query(
     if not treatments:
         return P(outcomes)
     return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
+
+
+def vmap_pairs(edges: Iterable[Tuple[str, str]]) -> List[Tuple[Variable, Variable]]:
+    """Map pair of strings to pairs of variables."""
+    return [(Variable(source), Variable(target)) for source, target in edges]
+
+
+def vmap_adj(adjacency_dict):
+    """Map an adjacency dictionary of strings to variables."""
+    return {
+        Variable(source): [Variable(target) for target in targets]
+        for source, targets in adjacency_dict.items()
+    }
