@@ -9,7 +9,7 @@ from typing import Set, Tuple
 import networkx as nx
 from ananke.graphs import ADMG
 
-from y0.examples import verma_1
+from y0.examples import X, Y, verma_1
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
 
@@ -204,3 +204,11 @@ class TestGraph(unittest.TestCase):
         for graph, components in [(g1, c1), (g2, c2), (g3, c3)]:
             self.assertIsInstance(graph, NxMixedGraph)
             self.assertEqual(components, graph.get_c_components())
+
+    def test_counterfactual_predicate(self):
+        """Test checking counterfactual graph."""
+        graph = NxMixedGraph.from_edges(directed=[(X, Y)])
+        self.assertFalse(graph.is_counterfactual())
+
+        graph = NxMixedGraph.from_edges(directed=[(X @ Y, Y)])
+        self.assertTrue(graph.is_counterfactual())

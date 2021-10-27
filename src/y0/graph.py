@@ -15,6 +15,7 @@ from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
 from .constants import NodeType
+from .dsl import CounterfactualVariable
 
 __all__ = [
     "NxMixedGraph",
@@ -70,9 +71,17 @@ class NxMixedGraph(Generic[NodeType]):
         """Iterate over nodes in the graph."""
         return iter(self.directed)
 
+    def __len__(self) -> int:
+        """Count the nodes in the graph."""
+        return len(self.directed)
+
     def __contains__(self, item: NodeType) -> bool:
         """Check if the given item is a node in the graph."""
         return item in self.directed
+
+    def is_counterfactual(self) -> bool:
+        """Check if this is a counterfactual graph."""
+        return any(isinstance(n, CounterfactualVariable) for n in self.nodes())
 
     def add_node(self, n: NodeType) -> None:
         """Add a node."""
