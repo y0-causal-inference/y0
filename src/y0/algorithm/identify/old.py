@@ -14,7 +14,7 @@ from y0.graph import NxMixedGraph
 from y0.identify import _get_outcomes, _get_treatments
 
 
-def identify_old(graph: Union[ADMG, NxMixedGraph[str]], query: Expression):
+def identify_old(graph: Union[ADMG, NxMixedGraph], query: Expression):
     """Run the old implementation of the identification algorithm."""
     if isinstance(graph, ADMG):
         graph = NxMixedGraph.from_admg(graph)
