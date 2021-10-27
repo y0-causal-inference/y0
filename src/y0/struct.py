@@ -5,9 +5,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Generic, Iterable, NamedTuple, Optional, Tuple
+from typing import Any, Iterable, NamedTuple, Optional, Tuple
 
-from .constants import NodeType
 from .dsl import Expression, Variable
 
 __all__ = [
@@ -48,7 +47,7 @@ class VermaConstraint(NamedTuple):
 
 
 @dataclass(frozen=True)
-class DSeparationJudgement(Generic[NodeType]):
+class DSeparationJudgement:
     """
     Record if a left/right pair are d-separated given the conditions.
 
@@ -56,19 +55,19 @@ class DSeparationJudgement(Generic[NodeType]):
     """
 
     separated: bool
-    left: NodeType
-    right: NodeType
-    conditions: Tuple[NodeType, ...]
+    left: Variable
+    right: Variable
+    conditions: Tuple[Variable, ...]
 
     @classmethod
     def create(
         cls,
-        left: NodeType,
-        right: NodeType,
-        conditions: Optional[Iterable[NodeType]] = None,
+        left: Variable,
+        right: Variable,
+        conditions: Optional[Iterable[Variable]] = None,
         *,
         separated: bool = True,
-    ) -> DSeparationJudgement[NodeType]:
+    ) -> DSeparationJudgement:
         """Create a d-separation judgement in canonical form."""
         left, right = sorted([left, right])
         if conditions is None:
