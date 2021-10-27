@@ -49,8 +49,7 @@ def rule_2_of_do_calculus_applies(identification: Identification, condition: Var
     treatments = identification.treatments
     conditions = treatments | (identification.conditions - {condition})
 
-    # TODO give a better name
-    graph_mod = graph.remove_in_edges(treatments).remove_out_edges([condition])
+    graph_mod = graph.remove_in_edges(treatments).remove_out_edges(condition)
 
     judgements = [
         are_d_separated(graph_mod, outcome, condition, conditions=conditions)
