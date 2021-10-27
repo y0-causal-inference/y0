@@ -97,9 +97,10 @@ class NxMixedGraph(Generic[NodeType]):
 
     def to_admg(self) -> ADMG:
         """Get an ADMG instance."""
-        di_edges = list(self.directed.edges())
-        bi_edges = list(self.undirected.edges())
-        vertices = list(self.directed)  # could be either since they're maintained together
+        # TODO what if there are counterfactual variables?
+        di_edges = [(u.name, v.name) for u, v in self.directed.edges()]
+        bi_edges = [(u.name, v.name) for u, v in self.undirected.edges()]
+        vertices = [n.name for n in self.nodes()]
         return ADMG(vertices=vertices, di_edges=di_edges, bi_edges=bi_edges)
 
     @classmethod
