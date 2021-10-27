@@ -5,6 +5,7 @@
 import itertools as itt
 import unittest
 
+import y0.examples
 from y0.algorithm.identify import Identification, Query, Unidentifiable, idc, identify
 from y0.algorithm.identify.id_std import (
     line_1,
@@ -15,23 +16,7 @@ from y0.algorithm.identify.id_std import (
     line_6,
     line_7,
 )
-from y0.dsl import (
-    W1,
-    W2,
-    Y1,
-    Y2,
-    Expression,
-    M,
-    P,
-    Probability,
-    Product,
-    Sum,
-    Variable,
-    X,
-    Y,
-    Z,
-    get_outcomes_and_treatments,
-)
+from y0.dsl import (Expression, M, P, Probability, Product, Sum, W1, W2, X, Y, Y1, Y2, Z, get_outcomes_and_treatments)
 from y0.examples import (
     figure_6a,
     line_1_example,
@@ -252,67 +237,38 @@ class TestIdentify(unittest.TestCase):
         self.assert_identify(cond_expr, graph, P(Y @ X))
 
     def test_figure_2c(self):
-        """Test Figure 2C.
-        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
-        Journal of Machine Learning Research.
-        """
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Y")
-        graph.add_directed_edge("Z", "X")
-        graph.add_directed_edge("Z", "Y")
-        graph.add_undirected_edge("Y", "Z")
-        # print(identify(graph, Y @ X).to_text())
+        """Test Figure 2C from Shpitser *et al.*, (2008)."""
+        graph = y0.examples.complete_hierarchy_figure_2c_example.graph
         expr = "[ sum_{Z} P(Z) P(Y|X,Z) ]"
         cond_expr = Sum[Z](P(Z) * P(Y | X, Z))
         frac_expr = Sum[Z](Sum[X, Y](P_XYZ) / (Sum[Z](Sum[X, Y](P_XYZ))) * (P_XYZ / Sum[Y](P_XYZ)))
         self.assert_identify(cond_expr, graph, P(Y @ X))
-        # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
     def test_figure_2d(self):
-        """Test Figure 2D.
-        frac_expr = Sum[Z](Sum[X, Y](P_XYZ) * P_XYZ / Sum[Y](P_XYZ))
-        """
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Y")
-        graph.add_directed_edge("Z", "X")
-        graph.add_directed_edge("Z", "Y")
-        graph.add_undirected_edge("X", "Z")
-        # print(identify(graph, Y @ X).to_text())
+        """Test Figure 2D from Shpitser *et al.*, (2008).
 
+        .. note:: frac_expr = Sum[Z](Sum[X, Y](P_XYZ) * P_XYZ / Sum[Y](P_XYZ))
+        """
+        graph = y0.examples.complete_hierarchy_figure_2d_example.graph
         expr = Sum[Z](P(Y | X, Z) * Sum[X, Y](P(X, Y, Z)))
         self.assert_identify(expr, graph, P(Y @ X))
-        # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
     def test_figure_2e(self):
-        """Test Figure 2E.
-        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
-        Journal of Machine Learning Research.
-        """
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Z")
-        graph.add_directed_edge("Z", "Y")
-        graph.add_undirected_edge("X", "Y")
+        """Test Figure 2E from Shpitser *et al.*, (2008)."""
+        graph = y0.examples.complete_hierarchy_figure_2e_example.graph
         expr = "[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]"
         cond_expr = Sum[Z](Sum[X](P(Y | X, Z) * P(X)) * P(Z | X))
         frac_expr = Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ))) * Sum[X](
             P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
         )
         self.assert_identify(cond_expr, graph, P(Y @ X))
-        # self.assert_identify(grammar.parseString(expr)[0], graph, Y@X)
 
     def test_figure_3a(self):
         """Test Figure 3a. A graph hedge-less for P(y1,y2|do(x))
         Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
         Journal of Machine Learning Research.
         """
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Y1")
-        graph.add_directed_edge("W1", "X")
-        graph.add_directed_edge("W2", "Y2")
-        graph.add_undirected_edge("W1", "W2")
-        graph.add_undirected_edge("W1", "Y1")
-        graph.add_undirected_edge("W1", "Y2")
-        graph.add_undirected_edge("X", "W2")
+        graph = y0.examples.complete_hierarchy_figure_3a_example.graph
         cond_expr = Sum[W2](
             Sum[W1, X, Y1, Y2](P(W1, W2, X, Y1, Y2)) * Sum[W1](P(W1) * P(Y1 | W1, X)) * P(Y2 | W2)
         )
@@ -345,7 +301,3 @@ class TestIdentify(unittest.TestCase):
     #                 effect=effect,
     #             )
     #             self.assertIsNotNone(result)  # throwaway test
-
-
-if __name__ == "__main__":
-    unittest.main()
