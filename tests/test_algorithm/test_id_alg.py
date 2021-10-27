@@ -16,9 +16,14 @@ from y0.algorithm.identify.id_std import (
     line_7,
 )
 from y0.dsl import (
+    W1,
+    W2,
     Y1,
+    Y2,
     Expression,
+    M,
     P,
+    Probability,
     Product,
     Sum,
     Variable,
@@ -42,19 +47,17 @@ from y0.mutate import canonicalize
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
-M = Variable("M")
 
 
 class TestIdentify(unittest.TestCase):
     """Test cases from https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb."""
 
-    def assert_identify(
-        self, expected: Expression, graph: NxMixedGraph[Variable], query: Expression
-    ) -> None:
+    def assert_identify(self, expected: Expression, graph: NxMixedGraph, query: Probability):
+        """Assert the ID algorithm returns the expected result."""
         id_in = Identification(Query.from_expression(query), graph)
         self.assert_expr_equal(expected, identify(id_in))
 
-    def assert_unidentifiable(self, expected, graph, query):
+    def assert_unidentifiable(self, graph: NxMixedGraph, query: Probability):
         id_in = Identification(Query.from_expression(query), graph)
         with self.assertRaises(Unidentifiable):
             identify(id_in)
@@ -215,7 +218,6 @@ class TestIdentify(unittest.TestCase):
         for identification in line_7_example.identifications:
             id_out = identification["id_out"][0]
             id_in = identification["id_in"][0]
-            W1, X = Variable("W1"), Variable("X")
             self.assertEqual(id_out, line_7(id_in))
             self.assert_expr_equal(
                 Sum.safe(expression=P(Y1 | (W1, X)) * P(W1), ranges=[W1]), identify(id_in)
@@ -304,7 +306,6 @@ class TestIdentify(unittest.TestCase):
         Journal of Machine Learning Research.
         """
         graph = NxMixedGraph()
-        W1, W2, Y1, Y2 = Variable("W1"), Variable("W2"), Variable("Y1"), Variable("Y2")
         graph.add_directed_edge("X", "Y1")
         graph.add_directed_edge("W1", "X")
         graph.add_directed_edge("W2", "Y2")
