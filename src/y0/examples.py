@@ -841,7 +841,7 @@ d_separation_example = Example(
 asia_example = Example(
     name="Asia dataset",
     reference="https://www.bnlearn.com/documentation/man/asia.html",
-    graph=NxMixedGraph[Variable].from_edges(
+    graph=NxMixedGraph.from_edges(
         directed=[
             (Variable(u), Variable(v))
             for u, v in [

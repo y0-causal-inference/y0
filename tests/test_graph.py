@@ -9,7 +9,7 @@ from typing import Set, Tuple
 import networkx as nx
 from ananke.graphs import ADMG
 
-from y0.dsl import Variable
+from y0.dsl import A, B, C, D, M, Variable, X, Y, Z
 from y0.examples import Example, examples, verma_1
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
@@ -96,7 +96,7 @@ class TestGraph(unittest.TestCase):
 
     def test_from_admg(self):
         """Test that all ADMGs can be converted to NxMixedGraph."""
-        expected = NxMixedGraph.from_adj(
+        expected = NxMixedGraph.from_str_adj(
             directed={"W": [], "X": ["Y"], "Y": ["Z"], "Z": []},
             undirected={"W": [], "X": ["Z"], "Y": [], "Z": []},
         )
@@ -110,109 +110,91 @@ class TestGraph(unittest.TestCase):
     def test_from_adj(self):
         """Test the adjacency graph is not a multigraph."""
         directed = dict([("a", ["b", "c"]), ("b", ["a"]), ("c", [])])
-        expected = NxMixedGraph.from_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
-        self.assertEqual(expected, NxMixedGraph.from_adj(directed=directed))
+        expected = NxMixedGraph.from_str_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
+        self.assertEqual(expected, NxMixedGraph.from_str_adj(directed=directed))
 
     def test_is_acyclic(self):
         """Test the directed edges are acyclic."""
-        example = NxMixedGraph.from_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
+        example = NxMixedGraph.from_str_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
         self.assertFalse(nx.algorithms.dag.is_directed_acyclic_graph(example.directed))
 
     def test_is_not_multigraph(self):
         """Test the undirected edges are not inverses of each other."""
         redundant_edges = [("a", "b"), ("b", "a")]
         directed_edges = [("a", "b")]
-        expected = NxMixedGraph.from_edges(directed=[("a", "b")], undirected=[("a", "b")])
-        actual = NxMixedGraph.from_edges(directed=directed_edges, undirected=redundant_edges)
+        expected = NxMixedGraph.from_str_edges(directed=[("a", "b")], undirected=[("a", "b")])
+        actual = NxMixedGraph.from_str_edges(directed=directed_edges, undirected=redundant_edges)
         self.assertEqual(expected, actual)
 
     def test_subgraph(self):
         """Test generating a subgraph from a set of vertices."""
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Y")
-        graph.add_directed_edge("Y", "Z")
-        graph.add_undirected_edge("X", "Z")
-        self.assertEqual(graph, graph.subgraph({"X", "Y", "Z"}))
+        graph = NxMixedGraph.from_str_edges(
+            directed=[("X", "Y"), ("Y", "Z")],
+            undirected=[("X", "Z")],
+        )
+        self.assertEqual(graph, graph.subgraph({X, Y, Z}))
 
-        subgraph = NxMixedGraph()
-        subgraph.add_directed_edge("X", "Y")
-        self.assertEqual(subgraph, graph.subgraph({"X", "Y"}))
+        subgraph = NxMixedGraph.from_str_edges(directed=[("X", "Y")])
+        self.assertEqual(subgraph, graph.subgraph({X, Y}))
 
     def test_intervention(self):
         """Test generating a subgraph based on an intervention."""
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Y")
-        graph.add_directed_edge("Z", "X")
-        graph.add_undirected_edge("X", "Z")
-        graph.add_undirected_edge("X", "Y")
-        graph.add_undirected_edge("Y", "Z")
+        graph = NxMixedGraph.from_str_edges(
+            directed=[("X", "Y"), ("Z", "X")],
+            undirected=[("X", "Z"), ("X", "Y"), ("Y", "Z")],
+        )
         self.assertEqual(graph, graph.intervene(set()))
 
-        intervened_graph = NxMixedGraph()
-        intervened_graph.add_directed_edge("X", "Y")
-        intervened_graph.add_undirected_edge("Z", "Y")
-        self.assertEqual(intervened_graph, graph.intervene({"X"}))
+        intervened_graph = NxMixedGraph.from_str_edges(
+            directed=[("X", "Y")],
+            undirected=[("Z", "Y")],
+        )
+        self.assertEqual(intervened_graph, graph.intervene({X}))
 
     def test_remove_nodes_from(self):
         """Test generating a new graph without the given nodes."""
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Y")
-        graph.add_directed_edge("Z", "X")
-        graph.add_undirected_edge("X", "Z")
-        graph.add_undirected_edge("X", "Y")
-        graph.add_undirected_edge("Y", "Z")
+        graph = NxMixedGraph.from_str_edges(
+            directed=[("X", "Y"), ("Z", "X")],
+            undirected=[("X", "Z"), ("X", "Y"), ("Y", "Z")],
+        )
         self.assertEqual(graph, graph.remove_nodes_from(set()))
 
-        subgraph = NxMixedGraph()
-        subgraph.add_undirected_edge("Z", "Y")
-        self.assertEqual(subgraph, graph.remove_nodes_from({"X"}))
+        subgraph = NxMixedGraph.from_str_edges(undirected=[("Z", "Y")])
+        self.assertEqual(subgraph, graph.remove_nodes_from({X}))
 
     def test_remove_outgoing_edges_from(self):
         """Test generating a new graph without the outgoing edgs from the given nodes."""
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Y")
+        graph = NxMixedGraph.from_str_edges(directed=[("X", "Y")])
         self.assertEqual(graph, graph.remove_outgoing_edges_from(set()))
 
-        graph = NxMixedGraph()
-        graph.add_undirected_edge("X", "Y")
+        graph = NxMixedGraph.from_str_edges(undirected=[("X", "Y")])
         self.assertEqual(graph, graph.remove_outgoing_edges_from(set()))
 
-        graph = NxMixedGraph()
-        graph.add_directed_edge("W", "X")
-        graph.add_directed_edge("X", "Y")
-        graph.add_directed_edge("Y", "Z")
-        expected = NxMixedGraph()
-        expected.add_node("X")
-        expected.add_directed_edge("W", "X")
-        expected.add_directed_edge("Y", "Z")
-        self.assertEqual(expected, graph.remove_outgoing_edges_from({"X"}))
+        graph = NxMixedGraph.from_str_edges(directed=[("W", "X"), ("X", "Y"), ("Y", "Z")])
+        expected = NxMixedGraph.from_str_edges(directed=[("W", "X"), ("Y", "Z")])
+        self.assertEqual(expected, graph.remove_outgoing_edges_from({X}))
 
     def test_ancestors_inclusive(self):
         """Test getting ancestors, inclusive."""
-        graph = NxMixedGraph()
-        graph.add_directed_edge("C", "A")
-        graph.add_directed_edge("C", "B")
-        graph.add_directed_edge("D", "C")
-        graph.add_directed_edge("A", "X")
-        graph.add_directed_edge("A", "Y")
-        graph.add_directed_edge("B", "Z")
-        self.assertEqual({"A", "B", "C", "D"}, graph.ancestors_inclusive({"A", "B"}))
+        graph = NxMixedGraph.from_str_edges(
+            directed=[("C", "A"), ("C", "B"), ("D", "C"), ("A", "X"), ("A", "Y"), ("B", "Z")]
+        )
+        self.assertEqual({A, B, C, D}, graph.ancestors_inclusive({A, B}))
 
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Z")
-        graph.add_directed_edge("Z", "Y")
-        graph.add_undirected_edge("X", "Y")
-        self.assertEqual({"X", "Y", "Z"}, graph.ancestors_inclusive({"Y"}))
-        self.assertEqual({"X", "Z"}, graph.ancestors_inclusive({"Z"}))
-        self.assertEqual({"X"}, graph.ancestors_inclusive({"X"}))
+        graph = NxMixedGraph.from_str_edges(
+            directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Y")]
+        )
+        self.assertEqual({X, Y, Z}, graph.ancestors_inclusive({Y}))
+        self.assertEqual({X, Z}, graph.ancestors_inclusive({Z}))
+        self.assertEqual({X}, graph.ancestors_inclusive({X}))
 
     def test_get_c_components(self):
         """Test that get_c_components works correctly."""
-        g1 = NxMixedGraph().from_edges(directed=[("X", "Y"), ("Z", "X"), ("Z", "Y")])
-        c1 = [frozenset(["X"]), frozenset(["Y"]), frozenset(["Z"])]
-        g2 = NxMixedGraph().from_edges(directed=[("X", "Y")], undirected=[("X", "Y")])
-        c2 = [frozenset(["X", "Y"])]
-        g3 = NxMixedGraph().from_edges(directed=[("X", "M"), ("M", "Y")], undirected=[("X", "Y")])
+        g1 = NxMixedGraph().from_str_edges(directed=[("X", "Y"), ("Z", "X"), ("Z", "Y")])
+        c1 = [frozenset([X]), frozenset(["Y"]), frozenset(["Z"])]
+        g2 = NxMixedGraph().from_str_edges(directed=[("X", "Y")], undirected=[("X", "Y")])
+        c2 = [frozenset([X, Y])]
+        g3 = NxMixedGraph().from_str_edges(directed=[(X, M), (M, Y)], undirected=[(X, Y)])
         c3 = [frozenset(["X", "Y"]), frozenset(["M"])]
         for graph, components in [(g1, c1), (g2, c2), (g3, c3)]:
             self.assertIsInstance(graph, NxMixedGraph)
