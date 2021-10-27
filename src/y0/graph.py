@@ -14,7 +14,7 @@ from ananke.graphs import ADMG
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import CounterfactualVariable, Variable, vmap_adj, vmap_pairs
+from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
 
 __all__ = [
     "NxMixedGraph",
@@ -553,7 +553,10 @@ def _get_latex(node) -> str:
 
 
 def _ensure_set(vertices: Union[Variable, Iterable[Variable]]) -> set[Variable]:
-    return {vertices} if isinstance(vertices, Variable) else set(vertices)
+    rv = {vertices} if isinstance(vertices, Variable) else set(vertices)
+    if any(isinstance(v, Intervention) for v in rv):
+        raise TypeError("can not use interventions here")
+    return rv
 
 
 class NoAnankeError(TypeError):

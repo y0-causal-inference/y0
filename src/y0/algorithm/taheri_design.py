@@ -321,9 +321,9 @@ def main():
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
     import pystow
 
-    from y0.examples import igf_graph
+    from y0.examples import igf_example
 
-    results = taheri_design_dag(igf_graph, cause="PI3K", effect="Erk", stop=3)
+    results = taheri_design_dag(igf_example.graph.directed, cause="PI3K", effect="Erk", stop=3)
     # print_results(results)
     draw_results(
         results,

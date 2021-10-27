@@ -8,10 +8,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
-import networkx as nx
 import pandas as pd
 
-from .algorithm.identify import Identification
+from .algorithm.identify import Identification, Query
 from .dsl import (
     AA,
     W0,
@@ -58,6 +57,9 @@ class Example:
     conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
     data: Optional[pd.DataFrame] = None
     identifications: Optional[list[dict[str, list[Identification]]]] = None
+    #: Example queries are just to give an idea to a new user
+    #: what might be interesting to use in the ID algorithm
+    example_queries: Optional[list[Query]] = None
 
 
 u_2 = Variable("u_2")
@@ -1097,21 +1099,80 @@ complete_hierarchy_figure_3a_example = Example(
     ),
 )
 
-examples = [v for name, v in locals().items() if name.endswith("_example")]
-
-#: The IGF directed graph example from Sara
-igf_graph = nx.DiGraph(
-    [
-        ("EGF", "SOS"),
-        ("EGF", "PI3K"),
-        ("IGF", "SOS"),
-        ("IGF", "PI3K"),
-        ("SOS", "Ras"),
-        ("Ras", "PI3K"),
-        ("Ras", "Raf"),
-        ("PI3K", "Akt"),
-        ("Akt", "Raf"),
-        ("Raf", "Mek"),
-        ("Mek", "Erk"),
-    ]
+igf_example = Example(
+    name="IGF Graph",
+    reference="...",  # TODO
+    graph=NxMixedGraph.from_str_edges(
+        nodes=["SOS", "Ras", "Raf", "AKT", "Mek", "Erk", "PI3K"],
+        directed=[
+            ("SOS", "Ras"),
+            ("Ras", "PI3K"),
+            ("Ras", "Raf"),
+            ("PI3K", "AKT"),
+            ("AKT", "Raf"),
+            ("Raf", "Mek"),
+            ("Mek", "Erk"),
+        ],
+        undirected=[("SOS", "PI3K")],
+    ),
+    example_queries=[Query.from_str(treatments="SOS", outcomes="Erk")],
 )
+
+sars_example = Example(
+    name="SARS-CoV-2 Graph",
+    reference="...",  # TODO
+    graph=NxMixedGraph.from_str_edges(
+        nodes=[
+            "SARS_COV2",
+            "ACE2",
+            "Ang",
+            "AGTR1",
+            "ADAM17",
+            "Toci",
+            "Sil6r",
+            "EGF",
+            "TNF",
+            "EGFR",
+            "PRR",
+            "NFKB",
+            "IL6STAT3",
+            "IL6AMP",
+            "cytok",
+            "Gefi",
+        ],
+        directed=[
+            ("SARS_COV2", "ACE2"),
+            ("ACE2", "Ang"),
+            ("Ang", "AGTR1"),
+            ("AGTR1", "ADAM17"),
+            ("ADAM17", "EGF"),
+            ("ADAM17", "TNF"),
+            ("ADAM17", "Sil6r"),
+            ("SARS_COV2", "PRR"),
+            ("PRR", "NFKB"),
+            ("EGFR", "NFKB"),
+            ("TNF", "NFKB"),
+            ("Sil6r", "IL6STAT3"),
+            ("Toci", "Sil6r"),
+            ("NFKB", "IL6AMP"),
+            ("IL6AMP", "cytok"),
+            ("IL6STAT3", "IL6AMP"),
+            ("EGF", "EGFR"),
+            ("Gefi", "EGFR"),
+        ],
+        undirected=[
+            ("SARS_COV2", "Ang"),
+            ("ADAM17", "Sil6r"),
+            ("PRR", "NFKB"),
+            ("EGF", "EGFR"),
+            ("EGFR", "TNF"),
+            ("EGFR", "IL6STAT3"),
+        ],
+    ),
+    example_queries=[
+        Query.from_str(treatments="Sil6r", outcomes="cytok"),
+        Query.from_str(treatments="EGFR", outcomes="cytok"),
+    ],
+)
+
+examples = [v for name, v in locals().items() if name.endswith("_example")]

@@ -150,6 +150,10 @@ class TestGraph(unittest.TestCase):
             undirected=[("Z", "Y")],
         )
         self.assertEqual(intervened_graph, graph.remove_in_edges({X}))
+        self.assertEqual(intervened_graph, graph.remove_in_edges(X))
+
+        with self.assertRaises(TypeError):
+            self.assertEqual(intervened_graph, graph.remove_in_edges({-X}))
 
     def test_remove_nodes_from(self):
         """Test generating a new graph without the given nodes."""
