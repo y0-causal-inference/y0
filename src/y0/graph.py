@@ -82,6 +82,14 @@ class NxMixedGraph:
         """Check if this is a counterfactual graph."""
         return any(isinstance(n, CounterfactualVariable) for n in self.nodes())
 
+    def raise_on_counterfactual(self) -> None:
+        """Raise an error if this is a counterfactual graph.
+
+        :raises ValueError: if this graph is a counterfactual graph
+        """
+        if self.is_counterfactual():
+            raise ValueError("This operation is not available for counterfactual graphs")
+
     def add_node(self, n: Variable) -> None:
         """Add a node."""
         n = Variable.norm(n)
@@ -115,8 +123,7 @@ class NxMixedGraph:
         :raises ValueError: If the graph contains counterfactual variables, it can not be
             converted to an ADMG
         """
-        if self.is_counterfactual():
-            raise ValueError("Can not directly convert counterfactual graph to ADMG")
+        self.raise_on_counterfactual()
         return ADMG(
             vertices=[n.name for n in self.nodes()],
             di_edges=[(u.name, v.name) for u, v in self.directed.edges()],
