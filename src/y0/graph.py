@@ -354,39 +354,39 @@ class NxMixedGraph:
             undirected=_include_adjacent(self.undirected, vertices),
         )
 
-    def intervene(self, vertices: Collection[Variable]) -> NxMixedGraph:
+    def remove_in_edges(self, vertices: Union[Variable, Iterable[Variable]]) -> NxMixedGraph:
         """Return a mutilated graph given a set of interventions.
 
         :param vertices: a subset of nodes from which to remove incoming edges
         :returns: A NxMixedGraph subgraph
         """
-        vertices = set(vertices)
+        vertices = _ensure_set(vertices)
         return self.from_edges(
             nodes=vertices,
             directed=_exclude_target(self.directed, vertices),
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
-    def remove_nodes_from(self, vertices: Collection[Variable]) -> NxMixedGraph:
+    def remove_nodes_from(self, vertices: Union[Variable, Iterable[Variable]]) -> NxMixedGraph:
         """Return a subgraph that does not contain any of the specified vertices.
 
         :param vertices: a set of nodes to remove from graph
         :returns: A NxMixedGraph subgraph
         """
-        vertices = set(vertices)
+        vertices = _ensure_set(vertices)
         return self.from_edges(
             nodes=self.nodes() - vertices,
             directed=_exclude_adjacent(self.directed, vertices),
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
-    def remove_outgoing_edges_from(self, vertices: Collection[Variable]) -> NxMixedGraph:
+    def remove_out_edges(self, vertices: Union[Variable, Iterable[Variable]]) -> NxMixedGraph:
         """Return a subgraph that does not have any outgoing edges from any of the given vertices.
 
         :param vertices: a set of nodes whose outgoing edges get removed from the graph
         :returns: NxMixedGraph subgraph
         """
-        vertices = set(vertices)
+        vertices = _ensure_set(vertices)
         return self.from_edges(
             nodes=self.nodes(),
             directed=_exclude_source(self.directed, vertices),
@@ -550,6 +550,10 @@ def _get_latex(node) -> str:
     if isinstance(node, Variable):
         return node._repr_latex_()
     raise TypeError
+
+
+def _ensure_set(vertices: Union[Variable, Iterable[Variable]]) -> set[Variable]:
+    return {vertices} if isinstance(vertices, Variable) else set(vertices)
 
 
 class NoAnankeError(TypeError):
