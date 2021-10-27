@@ -119,14 +119,16 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         )
 
     def assert_judgement_types(self, judgements: Iterable[DSeparationJudgement]):
-        self.assertTrue(all(
-            (
-                isinstance(judgement.left, Variable)
-                and isinstance(judgement.right, Variable)
-                and all(isinstance(c, Variable) for c in judgement.conditions)
+        self.assertTrue(
+            all(
+                (
+                    isinstance(judgement.left, Variable)
+                    and isinstance(judgement.right, Variable)
+                    and all(isinstance(c, Variable) for c in judgement.conditions)
+                )
+                for judgement in judgements
             )
-            for judgement in judgements
-        ))
+        )
 
     def assert_has_judgements(
         self, graph: Union[NxMixedGraph, SG], judgements: Iterable[DSeparationJudgement]
@@ -136,10 +138,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         :param graph: the graph to test
         :param judgements: the set of expected conditional independencies
         """
-        self.assertTrue(all(
-            isinstance(node, Variable)
-            for node in graph
-        ))
+        self.assertTrue(all(isinstance(node, Variable) for node in graph))
         self.assert_judgement_types(judgements)
 
         asserted_judgements = set(judgements)
@@ -189,10 +188,9 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         self.assertIsInstance(graph, NxMixedGraph)
 
         for judgement in judgements:
-            self.assertTrue(all(
-                isinstance(condition, Variable)
-                for condition in judgement.conditions
-            ))
+            self.assertTrue(
+                all(isinstance(condition, Variable) for condition in judgement.conditions)
+            )
             self.assertTrue(
                 are_d_separated(
                     graph,

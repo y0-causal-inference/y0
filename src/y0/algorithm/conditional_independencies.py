@@ -5,14 +5,14 @@
 import copy
 from functools import partial
 from itertools import chain, combinations, groupby
-from typing import Iterable, List, Optional, Sequence, Set, Tuple, Union
+from typing import Callable, Iterable, List, Optional, Sequence, Set, Tuple
 
 import networkx as nx
 from ananke.graphs import ADMG, SG
 from tqdm import tqdm
 
 from ..dsl import Variable
-from ..graph import NxMixedGraph
+from ..graph import NoAnankeError, NxMixedGraph
 from ..struct import DSeparationJudgement
 from ..util.combinatorics import powerset
 
@@ -41,8 +41,6 @@ def get_conditional_independencies(
 
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
     """
-    if isinstance(graph, ADMG):
-        raise TypeError
     if policy is None:
         policy = get_topological_policy(graph)
     return minimal(
@@ -72,22 +70,27 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
     return {min(vs, key=policy) for k, vs in groupby(judgements, _judgement_grouper)}
 
 
-def get_topological_policy(graph: NxMixedGraph):
+def get_topological_policy(
+    graph: NxMixedGraph,
+) -> Callable[[DSeparationJudgement], Tuple[int, int]]:
     """Sort d-separations by condition length and topological order.
 
     This policy will prefers small collections, and collections with variables earlier
     in topological order for collections of the same size.
 
-    :param graph: ADMG
+    :param graph: a mixed graph
     :return: A function suitable for use as a sort key on d-separations
+    :raises NoAnankeError: If an ananke graph was used instead of a y0 graph
     """
     if isinstance(graph, ADMG):
-        raise TypeError
+        raise NoAnankeError
     order = list(graph.topological_sort())
     return partial(_topological_policy, order=order)
 
 
-def _topological_policy(judgement: DSeparationJudgement, order: Sequence[Variable]) -> Tuple[int, int]:
+def _topological_policy(
+    judgement: DSeparationJudgement, order: Sequence[Variable]
+) -> Tuple[int, int]:
     return (
         len(judgement.conditions),
         sum((order.index(v) for v in judgement.conditions)),

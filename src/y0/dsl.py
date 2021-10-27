@@ -12,6 +12,7 @@ from operator import attrgetter
 from typing import (
     Callable,
     Iterable,
+    List,
     Optional,
     Protocol,
     Sequence,
@@ -77,6 +78,8 @@ __all__ = [
     "Z6",
     # Helpers
     "ensure_ordering",
+    "vmap_adj",
+    "vmap_pairs",
 ]
 
 T_co = TypeVar("T_co", covariant=True)
@@ -1277,3 +1280,16 @@ def outcomes_and_treatments_to_query(
     if not treatments:
         return P(outcomes)
     return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
+
+
+def vmap_pairs(edges: Iterable[Tuple[str, str]]) -> List[Tuple[Variable, Variable]]:
+    """Map pair of strings to pairs of variables."""
+    return [(Variable(source), Variable(target)) for source, target in edges]
+
+
+def vmap_adj(adjacency_dict):
+    """Map an adjacency dictionary of strings to variables."""
+    return {
+        Variable(source): [Variable(target) for target in targets]
+        for source, targets in adjacency_dict.items()
+    }

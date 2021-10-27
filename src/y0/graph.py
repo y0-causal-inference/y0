@@ -7,14 +7,14 @@ from __future__ import annotations
 import itertools as itt
 import json
 from dataclasses import dataclass, field
-from typing import Any, Collection, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Collection, Iterable, Mapping, Optional, Tuple, Union
 
 import networkx as nx
 from ananke.graphs import ADMG
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import CounterfactualVariable, Variable
+from .dsl import CounterfactualVariable, Variable, vmap_adj, vmap_pairs
 
 __all__ = [
     "NxMixedGraph",
@@ -109,9 +109,14 @@ class NxMixedGraph:
         return self.directed.nodes()
 
     def to_admg(self) -> ADMG:
-        """Get an ADMG instance."""
+        """Get an ADMG instance.
+
+        :returns: An ananke acyclic directed mixed graph
+        :raises ValueError: If the graph contains counterfactual variables, it can not be
+            converted to an ADMG
+        """
         if self.is_counterfactual():
-            raise NotImplementedError("Can not directly convert counterfactual graph to ADMG")
+            raise ValueError("Can not directly convert counterfactual graph to ADMG")
         return ADMG(
             vertices=[n.name for n in self.nodes()],
             di_edges=[(u.name, v.name) for u, v in self.directed.edges()],
@@ -308,6 +313,7 @@ class NxMixedGraph:
         directed: Optional[Mapping[str, Collection[str]]] = None,
         undirected: Optional[Mapping[str, Collection[str]]] = None,
     ) -> NxMixedGraph:
+        """Make a mixed graph from a pair of adjacency lists of strings."""
         return cls.from_adj(
             nodes=None if nodes is None else [Variable(n) for n in nodes],
             directed=None if directed is None else vmap_adj(directed),
@@ -545,12 +551,5 @@ def _get_latex(node) -> str:
     raise TypeError
 
 
-def vmap_pairs(edges: Iterable[Tuple[str, str]]) -> List[Tuple[Variable, Variable]]:
-    return [(Variable(source), Variable(target)) for source, target in edges]
-
-
-def vmap_adj(adjacency_dict):
-    return {
-        Variable(source): [Variable(target) for target in targets]
-        for source, targets in adjacency_dict.items()
-    }
+class NoAnankeError(TypeError):
+    """Thrown when an :mod:`ananke` graph was used but a y0 NxMixedGraph should have been used."""
