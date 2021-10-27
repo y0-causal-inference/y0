@@ -648,7 +648,7 @@ identifiability_7 = NxMixedGraph.from_edges(
 #: Outcome: V4
 #: Reference: T. Verma and J. Pearl. 1990. "Equivalence and Synthesis of Causal Models." In P. Bonissone et al., eds.,
 #: Proceedings of the 6th Conference on Uncertainty in Artificial Intelligence. Cambridge, MA: AUAI Press, p. 257.
-verma_1 = NxMixedGraph.from_edges(
+verma_1 = NxMixedGraph.from_str_edges(
     directed=[
         ("V1", "V2"),
         ("V2", "V3"),
@@ -663,7 +663,7 @@ verma_1 = NxMixedGraph.from_edges(
 #: Treatment: V1
 #: Outcome: V5
 #: Reference: J. Tian. 2002. "Studies in Causal Reasoning and Learning." p. 70.
-verma_2 = NxMixedGraph.from_edges(
+verma_2 = NxMixedGraph.from_str_edges(
     directed=[
         ("V1", "V2"),
         ("V2", "V3"),
@@ -681,7 +681,7 @@ verma_2 = NxMixedGraph.from_edges(
 #: Treatment: V1
 #: Outcome: V5
 #: Reference: J. Tian. 2002. "Studies in Causal Reasoning and Learning." p. 59.
-verma_3 = NxMixedGraph.from_edges(
+verma_3 = NxMixedGraph.from_str_edges(
     directed=[
         ("V1", "V2"),
         ("V2", "V3"),
@@ -699,7 +699,7 @@ verma_3 = NxMixedGraph.from_edges(
 #: Treatment: V1
 #: Outcome: V5
 #: Reference: E. Bareinboim modification of Verma 2.
-verma_4 = NxMixedGraph.from_edges(
+verma_4 = NxMixedGraph.from_str_edges(
     directed=[
         ("V1", "V2"),
         ("V2", "V3"),
@@ -718,7 +718,7 @@ verma_4 = NxMixedGraph.from_edges(
 #: Treatment: V1
 #: Outcome: V5
 #: Reference: E. Bareinboim modification of Verma 2.
-verma_5 = NxMixedGraph.from_edges(
+verma_5 = NxMixedGraph.from_str_edges(
     directed=[
         ("V1", "V2"),
         ("V2", "V3"),
@@ -796,13 +796,13 @@ z_identifiability_3 = NxMixedGraph.from_edges(
 identifiability_linear_1 = NxMixedGraph.from_edges(
     directed=[
         (X, Z),
-        (X, "W"),
-        ("W", Y),
+        (X, W),
+        (W, Y),
         (Z, Y),
     ],
     undirected=[
         (X, Z),
-        ("W", Y),
+        (W, Y),
     ],
 )
 
