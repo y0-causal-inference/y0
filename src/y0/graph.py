@@ -14,7 +14,6 @@ from ananke.graphs import ADMG
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import Expression, Intervention, Variable
 from .dsl import CounterfactualVariable, Variable, vmap_adj, vmap_pairs
 
 __all__ = [
@@ -255,22 +254,6 @@ class NxMixedGraph:
         return rv
 
     @classmethod
-    def from_expr_edges(
-        cls,
-        nodes: Optional[Iterable[str]] = None,
-        directed: Optional[Iterable[Tuple[str, str]]] = None,
-        undirected: Optional[Iterable[Tuple[str, str]]] = None,
-    ) -> NxMixedGraph[Expression]:
-        """Make a mixed graph from a pair of edge lists."""
-        from y0.parser import parse_y0
-
-        return cls[Expression].from_edges(
-            nodes={parse_y0(node) for node in nodes},
-            directed=[(parse_y0(u), parse_y0(v)) for u, v in directed],
-            undirected=[(parse_y0(u), parse_y0(v)) for u, v in undirected],
-        )
-
-    @classmethod
     def from_edges(
         cls,
         nodes: Optional[Iterable[Variable]] = None,
@@ -495,17 +478,6 @@ def admg_from_latent_variable_dag(graph: nx.DiGraph, *, tag: Optional[str] = Non
     :return: An ADMG
     """
     return NxMixedGraph.from_latent_variable_dag(graph, tag=tag).to_admg()
-
-
-def str_nodes_to_expr_nodes(graph: NxMixedGraph[str]) -> NxMixedGraph[Variable]:
-    """Generate a variable graph from this graph of strings."""
-    from y0.parser import parse_y0
-
-    return NxMixedGraph.from_edges(
-        nodes={parse_y0(node) for node in graph.nodes()},
-        directed=[(parse_y0(u), parse_y0(v)) for u, v in graph.directed.edges()],
-        undirected=[(parse_y0(u), parse_y0(v)) for u, v in graph.undirected.edges()],
-    )
 
 
 def _latent_dag(
