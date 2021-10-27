@@ -5,7 +5,7 @@
 import copy
 from functools import partial
 from itertools import chain, combinations, groupby
-from typing import Iterable, List, Optional, Set, Tuple, Union
+from typing import Iterable, List, Optional, Sequence, Set, Tuple, Union
 
 import networkx as nx
 from ananke.graphs import ADMG, SG
@@ -24,14 +24,14 @@ __all__ = [
 
 
 def get_conditional_independencies(
-    graph: Union[NxMixedGraph, SG],
+    graph: NxMixedGraph,
     *,
     policy=None,
     **kwargs,
 ) -> Set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
 
-    Conditional independencies is the minmal set of d-separation judgements to cover
+    Conditional independencies is the minimal set of d-separation judgements to cover
     the unique left/right combinations in all valid d-separation.
 
     :param graph: An acyclic directed mixed graph
@@ -41,10 +41,10 @@ def get_conditional_independencies(
 
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
     """
-    if isinstance(graph, NxMixedGraph):
-        graph = graph.to_admg()
+    if isinstance(graph, ADMG):
+        raise TypeError
     if policy is None:
-        policy = topological_policy(graph)
+        policy = get_topological_policy(graph)
     return minimal(
         d_separations(graph, **kwargs),
         policy=policy,
@@ -72,7 +72,7 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
     return {min(vs, key=policy) for k, vs in groupby(judgements, _judgement_grouper)}
 
 
-def topological_policy(graph: ADMG):
+def get_topological_policy(graph: NxMixedGraph):
     """Sort d-separations by condition length and topological order.
 
     This policy will prefers small collections, and collections with variables earlier
@@ -81,11 +81,13 @@ def topological_policy(graph: ADMG):
     :param graph: ADMG
     :return: A function suitable for use as a sort key on d-separations
     """
-    order = graph.topological_sort()
+    if isinstance(graph, ADMG):
+        raise TypeError
+    order = list(graph.topological_sort())
     return partial(_topological_policy, order=order)
 
 
-def _topological_policy(judgement: DSeparationJudgement, order):
+def _topological_policy(judgement: DSeparationJudgement, order: Sequence[Variable]) -> Tuple[int, int]:
     return (
         len(judgement.conditions),
         sum((order.index(v) for v in judgement.conditions)),
@@ -99,7 +101,7 @@ def _judgement_grouper(judgement: DSeparationJudgement) -> Tuple[Variable, Varia
 
 def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
     """Sort by length of conditions & the lexicography a d-separation."""
-    return len(judgement.conditions), ",".join(judgement.conditions)
+    return len(judgement.conditions), ",".join(c.name for c in judgement.conditions)
 
 
 def disorient(graph: SG) -> nx.Graph:
@@ -124,7 +126,7 @@ def get_moral_links(graph: SG) -> List[Tuple[Variable, Variable]]:
 
 
 def are_d_separated(
-    graph: Union[SG, NxMixedGraph],
+    graph: NxMixedGraph,
     a: Variable,
     b: Variable,
     *,
@@ -141,34 +143,44 @@ def are_d_separated(
     :param conditions: A collection of graph nodes
     :return: T/F and the final graph (as evidence)
     """
-    if isinstance(graph, NxMixedGraph):
-        graph = graph.to_admg()
+    if isinstance(graph, ADMG):
+        raise TypeError("graph should be given as a Y0 NxMixedGraph")
+    if conditions is None:
+        conditions = set()
+    if not isinstance(a, Variable):
+        raise TypeError(f"left argument is not given as a Variable: {type(a)}: {a}")
+    if not isinstance(b, Variable):
+        raise TypeError(f"right argument is not given as a Variable: {type(b)}: {b}")
+    if not all(isinstance(c, Variable) for c in conditions):
+        raise TypeError(f"some conditions are not variables: {conditions}")
 
-    conditions = set(conditions) if conditions else set()
-    named = {a, b}.union(conditions)
+    condition_names = {c.name for c in conditions}
+    named = {a.name, b.name}.union(condition_names)
+
+    admg = graph.to_admg()
 
     # Filter to ancestors
-    keep = graph.ancestors(named)
-    graph = copy.deepcopy(graph.subgraph(keep))
+    keep = admg.ancestors(named)
+    admg = copy.deepcopy(admg.subgraph(keep))
 
     # Moralize (link parents of mentioned nodes)
-    for u, v in get_moral_links(graph):  # type: ignore
-        graph.add_udedge(u, v)
+    for u, v in get_moral_links(admg):  # type: ignore
+        admg.add_udedge(u, v)
 
     # disorient & remove conditions
-    evidence_graph = disorient(graph)
+    evidence_graph = disorient(admg)
 
-    keep = set(evidence_graph.nodes) - set(conditions)
+    keep = set(evidence_graph.nodes) - set(condition_names)
     evidence_graph = evidence_graph.subgraph(keep)
 
     # check for path....
-    separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
+    separated = not nx.has_path(evidence_graph, a.name, b.name)  # If no path, then d-separated!
 
     return DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=separated)
 
 
 def d_separations(
-    graph: Union[NxMixedGraph, SG],
+    graph: NxMixedGraph,
     *,
     max_conditions: Optional[int] = None,
     verbose: Optional[bool] = False,
@@ -182,10 +194,9 @@ def d_separations(
     :param verbose: If true, prints extra output with tqdm
     :yields: True d-separation judgements
     """
-    if isinstance(graph, NxMixedGraph):
-        graph = graph.to_admg()
-
-    vertices = set(graph.vertices)
+    if isinstance(graph, ADMG):
+        raise TypeError("graph should be given as y0 NxMixedGraph")
+    vertices = set(graph.nodes())
     for a, b in tqdm(combinations(vertices, 2), disable=not verbose, desc="d-separation check"):
         for conditions in powerset(vertices - {a, b}, stop=max_conditions):
             judgement = are_d_separated(graph, a, b, conditions=conditions)

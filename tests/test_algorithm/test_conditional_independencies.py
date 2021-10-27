@@ -12,7 +12,7 @@ from y0.algorithm.conditional_independencies import (
     get_conditional_independencies,
     get_moral_links,
 )
-from y0.dsl import AA, B, C, D, E, F, G
+from y0.dsl import AA, B, C, D, E, F, G, Variable
 from y0.examples import Example, d_separation_example, examples
 from y0.graph import NxMixedGraph
 from y0.struct import DSeparationJudgement
@@ -23,7 +23,7 @@ class TestDSeparation(unittest.TestCase):
 
     def test_mit_example(self):
         """Test checking D-separation on the MIT example."""
-        graph = d_separation_example.graph.to_admg()
+        graph = d_separation_example.graph
 
         self.assertFalse(are_d_separated(graph, AA, B, conditions=[D, F]))
         self.assertTrue(are_d_separated(graph, AA, B))
@@ -45,15 +45,14 @@ class TestDSeparation(unittest.TestCase):
 
         for example in testable:
             with self.subTest(name=example.name):
-                graph = example.graph.to_admg()
                 for ci in example.conditional_independencies:
                     self.assertTrue(
-                        are_d_separated(graph, ci.left, ci.right, conditions=ci.conditions),
+                        are_d_separated(example.graph, ci.left, ci.right, conditions=ci.conditions),
                         msg="Expected d-separation not found",
                     )
                     if ci.conditions:
                         self.assertFalse(
-                            are_d_separated(graph, ci.left, ci.right),
+                            are_d_separated(example.graph, ci.left, ci.right),
                             msg="Unexpected d-separation",
                         )
 
@@ -119,6 +118,16 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             judgements=example.conditional_independencies,
         )
 
+    def assert_judgement_types(self, judgements: Iterable[DSeparationJudgement]):
+        self.assertTrue(all(
+            (
+                isinstance(judgement.left, Variable)
+                and isinstance(judgement.right, Variable)
+                and all(isinstance(c, Variable) for c in judgement.conditions)
+            )
+            for judgement in judgements
+        ))
+
     def assert_has_judgements(
         self, graph: Union[NxMixedGraph, SG], judgements: Iterable[DSeparationJudgement]
     ) -> None:
@@ -127,11 +136,19 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         :param graph: the graph to test
         :param judgements: the set of expected conditional independencies
         """
-        asserted_judgements = set(judgements)
-        observed_judgements = get_conditional_independencies(graph)
+        self.assertTrue(all(
+            isinstance(node, Variable)
+            for node in graph
+        ))
+        self.assert_judgement_types(judgements)
 
+        asserted_judgements = set(judgements)
         self.assertIsNotNone(asserted_judgements, "Expected independencies is empty.")
+
+        observed_judgements = get_conditional_independencies(graph)
         self.assertIsNotNone(observed_judgements, "Observed independencies is empty.")
+        self.assert_judgement_types(asserted_judgements)
+
         self.assertTrue(
             all(judgement.is_canonical for judgement in observed_judgements),
             msg="one or more of the returned DSeparationJudgement instances are not canonical",
@@ -166,12 +183,16 @@ class TestGetConditionalIndependencies(unittest.TestCase):
                 )
 
     def assert_valid_judgements(
-        self, graph: Union[NxMixedGraph, SG], judgements: Set[DSeparationJudgement]
+        self, graph: NxMixedGraph, judgements: Set[DSeparationJudgement]
     ) -> None:
         """Check that a set of judgments are valid with respect to a graph."""
-        if isinstance(graph, NxMixedGraph):
-            graph = graph.to_admg()
+        self.assertIsInstance(graph, NxMixedGraph)
+
         for judgement in judgements:
+            self.assertTrue(all(
+                isinstance(condition, Variable)
+                for condition in judgement.conditions
+            ))
             self.assertTrue(
                 are_d_separated(
                     graph,
