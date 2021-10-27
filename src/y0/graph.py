@@ -496,6 +496,9 @@ def _latent_dag(
     if prefix is None:
         prefix = DEFULT_PREFIX
 
+    di_edges = [(u.name, v.name) for u, v in di_edges]
+    bi_edges = [(u.name, v.name) for u, v in bi_edges]
+
     rv = nx.DiGraph()
     rv.add_nodes_from(itt.chain.from_iterable(bi_edges))
     rv.add_edges_from(di_edges)
