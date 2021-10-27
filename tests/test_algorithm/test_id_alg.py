@@ -5,7 +5,8 @@
 import itertools as itt
 import unittest
 
-from y0.algorithm.identify import Unidentifiable, idc, identify
+import y0.examples
+from y0.algorithm.identify import Identification, Query, Unidentifiable, idc, identify
 from y0.algorithm.identify.id_std import (
     line_1,
     line_2,
@@ -16,12 +17,16 @@ from y0.algorithm.identify.id_std import (
     line_7,
 )
 from y0.dsl import (
+    W1,
+    W2,
     Y1,
+    Y2,
     Expression,
+    M,
     P,
+    Probability,
     Product,
     Sum,
-    Variable,
     X,
     Y,
     Z,
@@ -37,15 +42,20 @@ from y0.examples import (
     line_6_example,
     line_7_example,
 )
+from y0.graph import NxMixedGraph
 from y0.mutate import canonicalize
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
-M = Variable("M")
 
 
 class TestIdentify(unittest.TestCase):
     """Test cases from https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb."""
+
+    def assert_identify(self, expected: Expression, graph: NxMixedGraph, query: Probability):
+        """Assert the ID algorithm returns the expected result."""
+        id_in = Identification(Query.from_expression(query), graph)
+        self.assert_expr_equal(expected, identify(id_in))
 
     def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
         """Assert that two expressions are the same."""
@@ -101,7 +111,7 @@ class TestIdentify(unittest.TestCase):
                 line_2(identification["id_in"][0]),
             )
             self.assert_expr_equal(
-                Sum.safe(expression=P(Y, Z), ranges=[Z]),
+                Sum.safe(expression=Sum.safe(expression=P(Y, X, Z), ranges=[X]), ranges=[Z]),
                 identify(identification["id_in"][0]),
             )
 
@@ -149,7 +159,7 @@ class TestIdentify(unittest.TestCase):
                         [
                             P(M | (Z, X)),
                             P(Y | (M, Z, X)),
-                            Sum(P(Z)),
+                            Sum.safe(expression=P(Z, X, M, Y), ranges=[X, M, Y]),
                         ]
                     ),
                 ),
@@ -202,12 +212,51 @@ class TestIdentify(unittest.TestCase):
         """
         for identification in line_7_example.identifications:
             id_out = identification["id_out"][0]
-
-            self.assertEqual(
-                id_out,
-                line_7(identification["id_in"][0]),
-            )
+            id_in = identification["id_in"][0]
+            self.assertEqual(id_out, line_7(id_in))
             self.assert_expr_equal(
-                Sum(P(Y1)),
-                identify(identification["id_in"][0]),
+                Sum.safe(expression=P(Y1 | (W1, X)) * P(W1), ranges=[W1]), identify(id_in)
             )
+
+    def test_figure_2a(self):
+        """Test Figure 2A. from Shpitser *et al.*, (2008)."""
+        graph = y0.examples.figure_2a_example.graph
+        # expr = "[ sum_{} P(Y|X) ]"
+        # frac_expr = P_XY / Sum[Y](P_XY)
+        cond_expr = P(Y | X)
+        self.assert_identify(cond_expr, graph, P(Y @ X))
+
+    def test_figure_2b(self):
+        """Test Figure 2B. from Shpitser *et al.*, (2008)."""
+        graph = y0.examples.figure_2b_example.graph
+        # expr = "[ sum_{Z} P(Z|X) P(Y|X,Z) ]"
+        # frac_expr = Sum[Z](Sum[Y](P_XY) / (Sum[Z](Sum[Y](P_XY))) * (P_XY / Sum[Y](P_XY)))
+        cond_expr = Sum[Z](P(Z | X) * P(Y | X, Z))
+        self.assert_identify(cond_expr, graph, P(Y @ X))
+
+    def test_figure_2d(self):
+        """Test Figure 2D from Shpitser *et al.*, (2008).
+
+        .. note:: frac_expr = Sum[Z](Sum[X, Y](P_XYZ) * P_XYZ / Sum[Y](P_XYZ))
+        """
+        graph = y0.examples.complete_hierarchy_figure_2d_example.graph
+        expr = Sum[Z](P(Y | X, Z) * Sum[X, Y](P(X, Y, Z)))
+        self.assert_identify(expr, graph, P(Y @ X))
+
+    def test_figure_2e(self):
+        """Test Figure 2E from Shpitser *et al.*, (2008)."""
+        graph = y0.examples.complete_hierarchy_figure_2e_example.graph
+        # expr = "[ sum_{Z} [ sum_{} P(Z|X) ] [ sum_{} [ sum_{X} P(X) P(Y|X,Z) ] ] ]"
+        # frac_expr = Sum[Z](Sum[Y](P_XYZ) / Sum[Z](Sum[Y](P_XYZ))) * Sum[X](
+        #     P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
+        # )
+        cond_expr = Sum[Z](Sum[X](P(Y | X, Z) * P(X)) * P(Z | X))
+        self.assert_identify(cond_expr, graph, P(Y @ X))
+
+    def test_figure_3a(self):
+        """Test Figure 3A (A graph hedge-less for ``P(y1,y2|do(x))``) from Shpitser *et al.*, (2008)."""
+        graph = y0.examples.complete_hierarchy_figure_3a_example.graph
+        cond_expr = Sum[W2](
+            Sum[W1, X, Y1, Y2](P(W1, W2, X, Y1, Y2)) * Sum[W1](P(W1) * P(Y1 | W1, X)) * P(Y2 | W2)
+        )
+        self.assert_identify(cond_expr, graph, P(Y1 @ X, Y2 @ X))
