@@ -9,7 +9,8 @@ from typing import Set, Tuple
 import networkx as nx
 from ananke.graphs import ADMG
 
-from y0.examples import verma_1
+from y0.dsl import Variable
+from y0.examples import Example, examples, verma_1
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
 
@@ -31,6 +32,18 @@ class TestGraph(unittest.TestCase):
             set(map(frozenset, b.undirected.edges())),
             msg=msg,
         )
+
+    def test_example_nodes(self):
+        """Test all nodes are variables in example graphs."""
+        for example in examples:
+            with self.subTest(name=example.name):
+                self.assertIsInstance(example, Example)
+                non_variables = {
+                    node for node in example.graph.nodes() if not isinstance(node, Variable)
+                }
+                self.assertEquals(
+                    0, len(non_variables), msg=f"Found non-variables: {non_variables}"
+                )
 
     def test_causaleffect_str_verma_1(self):
         """Test generating R code for the figure 1A graph for causaleffect."""

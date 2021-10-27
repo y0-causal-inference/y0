@@ -12,6 +12,7 @@ from y0.algorithm.conditional_independencies import (
     get_conditional_independencies,
     get_moral_links,
 )
+from y0.dsl import AA, B, C, D, E, F, G
 from y0.examples import Example, d_separation_example, examples
 from y0.graph import NxMixedGraph
 from y0.struct import DSeparationJudgement
@@ -24,13 +25,13 @@ class TestDSeparation(unittest.TestCase):
         """Test checking D-separation on the MIT example."""
         graph = d_separation_example.graph.to_admg()
 
-        self.assertFalse(are_d_separated(graph, "AA", "B", conditions=["D", "F"]))
-        self.assertTrue(are_d_separated(graph, "AA", "B"))
-        self.assertTrue(are_d_separated(graph, "D", "E", conditions=["C"]))
-        self.assertFalse(are_d_separated(graph, "AA", "B", conditions=["C"]))
-        self.assertFalse(are_d_separated(graph, "D", "E"))
-        self.assertFalse(are_d_separated(graph, "D", "E", conditions=["AA", "B"]))
-        self.assertFalse(are_d_separated(graph, "G", "G", conditions=["C"]))
+        self.assertFalse(are_d_separated(graph, AA, B, conditions=[D, F]))
+        self.assertTrue(are_d_separated(graph, AA, B))
+        self.assertTrue(are_d_separated(graph, D, E, conditions=[C]))
+        self.assertFalse(are_d_separated(graph, AA, B, conditions=[C]))
+        self.assertFalse(are_d_separated(graph, D, E))
+        self.assertFalse(are_d_separated(graph, D, E, conditions=[AA, B]))
+        self.assertFalse(are_d_separated(graph, G, G, conditions=[C]))
 
     def test_examples(self):
         """Check that example conditional independencies are d-separations and that conditions (if present) are required.
