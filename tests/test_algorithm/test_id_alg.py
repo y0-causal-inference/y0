@@ -267,10 +267,7 @@ class TestIdentify(unittest.TestCase):
         self.assert_identify(cond_expr, graph, P(Y @ X))
 
     def test_figure_3a(self):
-        """Test Figure 3a. A graph hedge-less for P(y1,y2|do(x))
-        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
-        Journal of Machine Learning Research.
-        """
+        """Test Figure 3A (A graph hedge-less for ``P(y1,y2|do(x))``) from Shpitser *et al.*, (2008)."""
         graph = y0.examples.complete_hierarchy_figure_3a_example.graph
         cond_expr = Sum[W2](
             Sum[W1, X, Y1, Y2](P(W1, W2, X, Y1, Y2)) * Sum[W1](P(W1) * P(Y1 | W1, X)) * P(Y2 | W2)
