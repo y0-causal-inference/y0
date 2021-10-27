@@ -145,9 +145,12 @@ def are_d_separated(
     :param b: A node in the graph
     :param conditions: A collection of graph nodes
     :return: T/F and the final graph (as evidence)
+    :raises NoAnankeError: If an ananke graph is given
+    :raises TypeError: if the left/right arguments or any conditions are
+        not Variable instances
     """
     if isinstance(graph, ADMG):
-        raise TypeError("graph should be given as a Y0 NxMixedGraph")
+        raise NoAnankeError
     if conditions is None:
         conditions = set()
     if not isinstance(a, Variable):
@@ -196,9 +199,10 @@ def d_separations(
     :param return_all: If false (default) only returns the first d-separation per left/right pair.
     :param verbose: If true, prints extra output with tqdm
     :yields: True d-separation judgements
+    :raises NoAnankeError: If an ananke graph is given
     """
     if isinstance(graph, ADMG):
-        raise TypeError("graph should be given as y0 NxMixedGraph")
+        raise NoAnankeError
     vertices = set(graph.nodes())
     for a, b in tqdm(combinations(vertices, 2), disable=not verbose, desc="d-separation check"):
         for conditions in powerset(vertices - {a, b}, stop=max_conditions):

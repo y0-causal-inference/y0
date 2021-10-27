@@ -117,12 +117,7 @@ class NxMixedGraph:
         return self.directed.nodes()
 
     def to_admg(self) -> ADMG:
-        """Get an ADMG instance.
-
-        :returns: An ananke acyclic directed mixed graph
-        :raises ValueError: If the graph contains counterfactual variables, it can not be
-            converted to an ADMG
-        """
+        """Get an :mod:`ananke` ADMG instance."""
         self.raise_on_counterfactual()
         return ADMG(
             vertices=[n.name for n in self.nodes()],
@@ -154,8 +149,7 @@ class NxMixedGraph:
             If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
         :return: A latent variable DAG.
         """
-        if self.is_counterfactual():
-            raise NotImplementedError
+        self.raise_on_counterfactual()
         return _latent_dag(
             di_edges=self.directed.edges(),
             bi_edges=self.undirected.edges(),

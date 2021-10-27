@@ -119,6 +119,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         )
 
     def assert_judgement_types(self, judgements: Iterable[DSeparationJudgement]):
+        """Assert all judgmenets have the right types."""
         self.assertTrue(
             all(
                 (

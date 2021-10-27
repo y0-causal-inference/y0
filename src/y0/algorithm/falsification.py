@@ -9,7 +9,6 @@ from collections import abc
 from typing import Iterable, Optional, Union
 
 import pandas as pd
-from ananke.graphs import SG
 from tqdm import tqdm
 
 from .conditional_independencies import get_conditional_independencies
