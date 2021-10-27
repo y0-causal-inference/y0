@@ -584,7 +584,6 @@ figure_11c = Example(
     ),
 )
 
-
 cyclic_directed_example = Example(
     name="Cyclic directed graph",
     reference="out of the mind of JZ and ZW",
@@ -1026,6 +1025,25 @@ asia_example = Example(
         ],
     ),
     data=pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1}),
+)
+
+figure_2a_example = Example(
+    name="Shpitser et al. (2008), Figure 2A",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
+    "Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[(X, Y)],
+    ),
+)
+
+figure_2b_example = Example(
+    name="Shpitser et al. (2008), Figure 2B",
+    reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy. "
+    "Journal of Machine Learning Research.",
+    graph=NxMixedGraph.from_edges(
+        directed=[(X, Y), (X, Z), (Z, Y)],
+        undirected=[(Y, Z)],
+    ),
 )
 
 complete_hierarchy_figure_2c_example = Example(
