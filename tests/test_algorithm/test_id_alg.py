@@ -16,7 +16,22 @@ from y0.algorithm.identify.id_std import (
     line_6,
     line_7,
 )
-from y0.dsl import (Expression, M, P, Probability, Product, Sum, W1, W2, X, Y, Y1, Y2, Z, get_outcomes_and_treatments)
+from y0.dsl import (
+    W1,
+    W2,
+    Y1,
+    Y2,
+    Expression,
+    M,
+    P,
+    Probability,
+    Product,
+    Sum,
+    X,
+    Y,
+    Z,
+    get_outcomes_and_treatments,
+)
 from y0.examples import (
     figure_6a,
     line_1_example,
@@ -209,28 +224,16 @@ class TestIdentify(unittest.TestCase):
             )
 
     def test_figure_2a(self):
-        """Test Figure 2A.
-        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
-        Journal of Machine Learning Research.
-        """
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Y")
-        # print(identify(graph, Y @ X).to_text())
+        """Test Figure 2A. from Shpitser *et al.*, (2008)."""
+        graph = y0.examples.figure_2a_example.graph
         expr = "[ sum_{} P(Y|X) ]"
         frac_expr = P_XY / Sum[Y](P_XY)
         cond_expr = P(Y | X)
         self.assert_identify(cond_expr, graph, P(Y @ X))
 
     def test_figure_2b(self):
-        """Test Figure 2B.
-        Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.
-        Journal of Machine Learning Research.
-        """
-        graph = NxMixedGraph()
-        graph.add_directed_edge("X", "Y")
-        graph.add_directed_edge("X", "Z")
-        graph.add_directed_edge("Z", "Y")
-        graph.add_undirected_edge("Y", "Z")
+        """Test Figure 2B. from Shpitser *et al.*, (2008)."""
+        graph = y0.examples.figure_2b_example.graph
         expr = "[ sum_{Z} P(Z|X) P(Y|X,Z) ]"
         cond_expr = Sum[Z](P(Z | X) * P(Y | X, Z))
         frac_expr = Sum[Z](Sum[Y](P_XY) / (Sum[Z](Sum[Y](P_XY))) * (P_XY / Sum[Y](P_XY)))
