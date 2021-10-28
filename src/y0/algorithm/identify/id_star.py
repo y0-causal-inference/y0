@@ -3,7 +3,7 @@
 """Implementation of the IDC algorithm."""
 
 from itertools import combinations
-from typing import Collection, Tuple
+from typing import Collection, Optional, Tuple
 
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
@@ -22,7 +22,6 @@ from ...graph import NxMixedGraph
 
 __all__ = [
     "make_parallel_worlds_graph",
-    "combine_parallel_worlds",
     "make_world_graph",
     "lemma_24",
     "lemma_25",
@@ -31,11 +30,15 @@ __all__ = [
 ]
 
 
-def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
+class Inconsistent(ValueError):
+    pass
+
+
+def id_star(graph: NxMixedGraph, query: Probability) -> Optional[Expression]:
     # Line 0
-    if len(query.distribution.parents) != 0:
+    if query.is_conditioned():
         raise ValueError(f"Query {query} must be unconditional")
-    gamma = set(query.distribution.children)
+    gamma = set(query.children)
     # Line 1
     if len(gamma) == 0:
         return One()
@@ -45,7 +48,7 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
                 if intervention.name == counterfactual.name:
                     # Line 2: This violates the Axiom of Effectiveness
                     if intervention.star:
-                        return 0
+                        return None
                     else:
                         # Line 3: This is a tautological event and can be removed without affecting the probability
                         return id_star(graph, P(gamma - {counterfactual}))
@@ -53,18 +56,16 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
     try:
         new_graph, new_query = make_counterfactual_graph(graph, query)
         vertices = set(new_graph.nodes())
-        new_gamma = set(new_query.distribution.children)
+        new_gamma = set(new_query.children)
     # Line 5:
-    except Inconsistent(f"query {query} is inconsistent"):
-        return P(0)
+    except Inconsistent:
+        return None
     # Line 6:
     if not new_graph.is_connected():
         return Sum[vertices - new_gamma](
-            Product(
-                [
-                    id_star(new_graph, P[vertices - district](district))
-                    for district in new_graph.get_c_components()
-                ]
+            Product.safe(
+                id_star(new_graph, P[vertices - district](district))
+                for district in new_graph.get_c_components()
             )
         )
     # Line 7:
@@ -132,7 +133,7 @@ def id_star_line_5(graph: NxMixedGraph, query: Probability) -> Expression:
     raise NotImplementedError
 
 
-def id_star_line_6(graph: NxMixedGraph, query: Probability) -> Collection[Expression]:
+def id_star_line_6(graph: NxMixedGraph, query: Probability) -> list[Expression]:
     r"""Run line 6 of the ID* algorithm.
 
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
@@ -185,6 +186,7 @@ def idc_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
     return probability 0.
     """
     delta = query.parents
+    # FIXME this should be set(query.children).union(query.parents)
     gamma_and_delta = P(query.children + query.parents)
     return make_counterfactual_graph(graph, gamma_and_delta)
 
@@ -203,11 +205,11 @@ def idc_star_line_4(graph: NxMixedGraph, query: Probability) -> bool:
     subscript of :math:`\gamma'` ) if there are no back-door paths from :math:`Y_\mathbf{x}` to
     the counterfactual of interest :math:`\gamma'` .
     """
-    gamma = set(query.distribution.children)
+    gamma = set(query.children)
     raise NotImplementedError
 
 
-def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
+def idc_star(graph: NxMixedGraph, query: Probability) -> Optional[Expression]:
     r"""Run the IDC* algorithm.
 
     INPUT:
@@ -216,22 +218,22 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
         :math:`\delta` a conjunction of counterfactual observations
     :returns: an expression for :math:`P(\gamma | \delta)` in terms of P, FAIL, or UNDEFINED
     """
-    gamma = set(query.distribution.children)
-    delta = set(query.distribution.parents)
-    if len(delta) == 0:
+    delta = set(query.parents)
+    if not delta:
         raise ValueError(f"Query {query} must be conditional")
     # Line 1:
-    if id_star(graph, P(delta)) == 0:
-        return Undefined(f"Query {query} is undefined")
+    if not id_star(graph, P(delta)):
+        raise ValueError(f"Query {query} is undefined")
+    gamma = set(query.children)
     # Line 2:
     try:
         new_graph, new_query = make_counterfactual_graph(graph, P(gamma.union(delta)))
-        new_gamma = {g for g in gamma if g in new_query.distribution.children}
-        new_delta = {d for d in delta if d in new_query.distribution.children}
+        new_gamma = {g for g in gamma if g in new_query.children}
+        new_delta = {d for d in delta if d in new_query.children}
         vertices = set(new_graph.nodes())
     # Line 3:
     except Inconsistent(f"query {gamma.union(delta)} is inconsistent"):
-        return 0
+        return None
     # Line 4:
     for counterfactual in new_delta:
         if are_d_separated(new_graph.remove_out_edges(counterfactual), counterfactual, new_gamma):
@@ -241,18 +243,20 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
             return idc_star(graph, P(children | parents))
     # Line 5:
     estimand = id_star(graph, new_query)
-    return estimand / Sum[vertices - delta](estimand)
+    if estimand is None:
+        raise NotImplementedError
+    return estimand / Sum.safe(estimand, vertices - delta)
 
 
 def get_varnames(query: Probability) -> set[Variable]:
     r"""Return new Variables generated from the names of the outcome variables in the query."""
-    return {Variable(outcome.name) for outcome in query.distribution.children}
+    return {Variable(outcome.name) for outcome in query.children}
 
 
 def get_interventions(query: Probability) -> set[Variable]:
     r"""Generate new Variables from the subscripts of counterfactual variables in the query."""
     interventions = set()
-    for counterfactual in query.distribution.children:
+    for counterfactual in query.children:
         if isinstance(counterfactual, CounterfactualVariable):
             interventions |= set(counterfactual.interventions)
     return sorted(interventions)
@@ -351,7 +355,7 @@ def make_counterfactual_graph(
     """Make counterfactual graph"""
     worlds = get_worlds(query)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
-    new_query_variables = set(query.distribution.children)
+    new_query_variables = set(query.children)
     cf_graph = NxMixedGraph.from_edges(
         nodes=pw_graph.nodes(),
         directed=pw_graph.directed.edges(),
