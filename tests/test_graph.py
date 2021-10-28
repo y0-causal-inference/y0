@@ -189,6 +189,7 @@ class TestGraph(unittest.TestCase):
             directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Y")]
         )
         self.assertEqual({X, Y, Z}, graph.ancestors_inclusive({Y}))
+        self.assertEqual({X, Y, Z}, graph.ancestors_inclusive(Y))
         self.assertEqual({X, Z}, graph.ancestors_inclusive({Z}))
         self.assertEqual({X}, graph.ancestors_inclusive({X}))
 
