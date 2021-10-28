@@ -183,9 +183,7 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
         return 0
     # Line 4:
     for counterfactual in new_delta:
-        if are_d_separated(
-            new_graph.remove_out_edges(counterfactual), counterfactual, new_gamma
-        ):
+        if are_d_separated(new_graph.remove_out_edges(counterfactual), counterfactual, new_gamma):
             counterfactual_value = Variable(counterfactual.name)
             parents = new_delta - {counterfactual}
             children = {g.remove_in_edges(counterfactual_value) for g in new_gamma}
@@ -264,9 +262,7 @@ def lemma_24(pw_graph: NxMixedGraph, node1, node2) -> bool:
     return has_same_function(node1, node2) and has_same_parents(pw_graph, node1, node2)
 
 
-def lemma_25(
-    graph: NxMixedGraph, node1: Variable, node2: Variable
-) -> NxMixedGraph:
+def lemma_25(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGraph:
     r"""Merge node1 and node2 and return the reduced graph and query
 
     Let :math:`M_\mathbf{x}` be a submodel derived from :math:`M` with set :math:`\mathbf{Z}` observed to attain values :math:`\mathbf{z}`, such that Lemma 24 holds for :math:`\alpha`; :math:`\beta`. Let :math:`M'` be a causal model obtained from :math:`M` by merging :math:`\alpha`; :math:`\beta` into a new node :math:`\omega`, which inherits all parents and the functional mechanism of :math:`\alpha`. All children of :math:`\alpha`; :math:`\beta` in :math:`M'` become children of :math:`\omega`. Then :math:`M_\mathbf{x},  M'_\mathbf{x} agree on any distribution consistent with :math:`z` being observed.
@@ -345,9 +341,7 @@ def make_parallel_worlds_graph(
     return combine_worlds(graph, combined_worlds, worlds)
 
 
-def make_world_graph(
-    graph: NxMixedGraph, treatments: Collection[Variable]
-) -> NxMixedGraph:
+def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> NxMixedGraph:
     """Make one parallel world based on interventions specified"""
     world_graph = graph.remove_in_edges(treatments)
     return NxMixedGraph.from_edges(

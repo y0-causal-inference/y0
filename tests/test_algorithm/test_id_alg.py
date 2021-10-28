@@ -239,7 +239,7 @@ class TestIdentify(unittest.TestCase):
         graph = y0.examples.complete_hierarchy_figure_2c_example.graph
         # expr = "[ sum_{Z} P(Z) P(Y|X,Z) ]"
         # frac_expr = Sum[Z](Sum[X, Y](P_XYZ) / (Sum[Z](Sum[X, Y](P_XYZ))) * (P_XYZ / Sum[Y](P_XYZ)))
-        cond_expr =Sum[Z](P(Y | X, Z) * Sum[X, Y](P(X, Y, Z)))
+        cond_expr = Sum[Z](P(Y | X, Z) * Sum[X, Y](P(X, Y, Z)))
         self.assert_identify(cond_expr, graph, P(Y @ X))
 
     def test_figure_2d(self):
