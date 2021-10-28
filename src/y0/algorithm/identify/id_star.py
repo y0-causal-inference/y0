@@ -2,21 +2,23 @@
 
 """Implementation of the IDC algorithm."""
 
-from typing import Collection
+from itertools import combinations
+from typing import Collection, Set, Tuple
 
-from .id_std import identify
-from .utils import Identification
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
+    CounterfactualVariable,
     Expression,
+    Intervention,
     One,
     P,
+    Probability,
     Product,
     Sum,
     Variable,
-    _get_outcome_variables,
     _get_treatment_variables,
 )
+from ...graph import NxMixedGraph
 
 __all__ = [
     "make_parallel_worlds_graph",
@@ -29,24 +31,7 @@ __all__ = [
 ]
 
 
-from itertools import combinations
-from typing import Collection, Set, Tuple
-
-from networkx import DiGraph
-from networkx.algorithms.dag import topological_sort
-
-from y0.dsl import (
-    CounterfactualVariable,
-    Intervention,
-    Probability,
-    Variable,
-    _get_treatment_variables,
-)
-from y0.graph import NxMixedGraph
-
-
 def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
-
     # Line 0
     if len(query.distribution.parents) != 0:
         raise ValueError(f"Query {query} must be unconditional")
