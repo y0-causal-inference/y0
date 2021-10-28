@@ -341,13 +341,13 @@ class NxMixedGraph:
                 raise ValueError(f'unhandled edge type: {edge["type"]}')
         return rv
 
-    def subgraph(self, vertices: Collection[Variable]) -> NxMixedGraph:
+    def subgraph(self, vertices: Union[Variable, Iterable[Variable]]) -> NxMixedGraph:
         """Return a subgraph given a set of vertices.
 
         :param vertices: a subset of nodes
         :returns: A NxMixedGraph subgraph
         """
-        vertices = set(vertices)
+        vertices = _ensure_set(vertices)
         return self.from_edges(
             nodes=vertices,
             directed=_include_adjacent(self.directed, vertices),
@@ -393,8 +393,9 @@ class NxMixedGraph:
             undirected=self.undirected.edges(),
         )
 
-    def ancestors_inclusive(self, sources: Iterable[Variable]) -> set[Variable]:
+    def ancestors_inclusive(self, sources: Union[Variable, Iterable[Variable]]) -> set[Variable]:
         """Ancestors of a set include the set itself."""
+        sources = _ensure_set(sources)
         return _ancestors_inclusive(self.directed, sources)
 
     def topological_sort(self) -> Iterable[Variable]:
@@ -414,33 +415,34 @@ class NxMixedGraph:
         return nx.is_connected(self.undirected)
 
 
-def _ancestors_inclusive(graph: nx.DiGraph, sources: Iterable[Variable]) -> set[Variable]:
-    rv = set(sources)
-    for source in sources:
-        rv.update(nx.algorithms.dag.ancestors(graph, source))
-    return rv
+def _ancestors_inclusive(graph: nx.DiGraph, sources: set[Variable]) -> set[Variable]:
+    ancestors = set(
+        itt.chain.from_iterable(nx.algorithms.dag.ancestors(graph, source) for source in sources)
+    )
+    return sources | ancestors
 
 
 def _include_adjacent(
-    graph: nx.Graph, vertices: Collection[Variable]
+    graph: nx.Graph, vertices: set[Variable]
 ) -> Collection[Tuple[Variable, Variable]]:
+    vertices = _ensure_set(vertices)
     return [(u, v) for u, v in graph.edges() if u in vertices and v in vertices]
 
 
 def _exclude_source(
-    graph: nx.Graph, vertices: Collection[Variable]
+    graph: nx.Graph, vertices: set[Variable]
 ) -> Collection[Tuple[Variable, Variable]]:
     return [(u, v) for u, v in graph.edges() if u not in vertices]
 
 
 def _exclude_target(
-    graph: nx.Graph, vertices: Collection[Variable]
+    graph: nx.Graph, vertices: set[Variable]
 ) -> Collection[Tuple[Variable, Variable]]:
     return [(u, v) for u, v in graph.edges() if v not in vertices]
 
 
 def _exclude_adjacent(
-    graph: nx.Graph, vertices: Collection[Variable]
+    graph: nx.Graph, vertices: set[Variable]
 ) -> Collection[Tuple[Variable, Variable]]:
     return [(u, v) for u, v in graph.edges() if u not in vertices and v not in vertices]
 
