@@ -3,7 +3,7 @@
 """Implementation of the IDC algorithm."""
 
 from itertools import combinations
-from typing import Collection, Set, Tuple
+from typing import Collection, Tuple
 
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
@@ -38,7 +38,7 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
     gamma = set(query.distribution.children)
     # Line 1
     if len(gamma) == 0:
-        return P(1)
+        return One()
     for counterfactual in gamma:
         if isinstance(counterfactual, CounterfactualVariable):
             for intervention in counterfactual.interventions:
@@ -84,53 +84,114 @@ def get_val(counterfactual: CounterfactualVariable, graph: NxMixedGraph) -> Inte
 
 
 def id_star_line_1(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expression:
-    r"""The first line states that if :math:`\gamma` is an empty conjunction, then its probability is 1, by convention."""
+    r"""Run line 1 of the ID* algorithm.
+
+    The first line states that if :math:`\gamma` is an empty conjunction, then its
+    probability is 1, by convention.
+    """
     if len(gamma) == 0:
         return One()
 
 
 def id_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
-    r"""The second line states that if :math:`\gamma` contains a counterfactual which violates the Axiom of Effectiveness (Pearl, 2000), then :math:`\gamma` is inconsistent, and we return probability 0."""
+    r"""Run line 2 of the ID* algorithm.
+
+    The second line states that if :math:`\gamma` contains a counterfactual
+    which violates the Axiom of Effectiveness (Pearl, 2000), then :math:`\gamma`
+    is inconsistent, and we return probability 0.
+    """
+    raise NotImplementedError
 
 
 def id_star_line_3(graph: NxMixedGraph, query: Probability) -> Expression:
-    r"""The third line states that if a counterfactual contains its own value in the subscript, then it is a tautological event, and it can be removed from :math:`\gamma` without affecting its probability."""
+    r"""Run line 3 of the ID* algorithm.
+
+    The third line states that if a counterfactual contains its own value in the subscript,
+    then it is a tautological event, and it can be removed from :math:`\gamma` without
+    affecting its probability.
+    """
+    raise NotImplementedError
 
 
 def id_star_line_4(graph: NxMixedGraph, query: Probability) -> Expression:
-    r"""Line 4 invokes make-cg to construct a counterfactual graph :math:`G'` , and the corresponding relabeled counterfactual :math:`\gamma'` ."""
+    r"""Run line 4 of the ID* algorithm
+
+    Line 4 invokes make-cg to construct a counterfactual graph :math:`G'` , and the
+    corresponding relabeled counterfactual :math:`\gamma'`.
+    """
+    raise NotImplementedError
 
 
 def id_star_line_5(graph: NxMixedGraph, query: Probability) -> Expression:
-    r"""Line 5 returns probability 0 if an inconsistency was found during the construction of the counterfactual graph, for example, if two variables found to be the same in :math:`\gamma` had different value assignments."""
+    r"""Run line 5 of the ID* algorithm.
+
+    Line 5 returns probability 0 if an inconsistency was found during the construction
+    of the counterfactual graph, for example, if two variables found to be the same in
+    :math:`\gamma` had different value assignments.
+    """
+    raise NotImplementedError
 
 
 def id_star_line_6(graph: NxMixedGraph, query: Probability) -> Collection[Expression]:
-    r"""Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a set of subproblems, one for each C-component in the counterfactual graph. In the ID algorithm, the term corresponding to a given C-component :math:`S_i` of the causal diagram was the effect of all variables not in :math:`S_i` on variables in :math:`S_i` , in other words :math:`P_{\mathbf{v}\backslash s_i (s_i )`, and the outermost summation on line 4 was over values of variables not in :math:`\mathbf{Y},\mathbf{X}`. Here, the term corresponding to a given C-component :math:`S^i` of the counterfactual graph :math:`G'` is the conjunction of counterfactual variables where each variable contains in its subscript all variables not in the C-component :math:`S^i` , in other words :math:`\mathbf{v}(G' )\backslash s^i` , and the outermost summation is over observable variables not in :math:`\gamma'` , that is over :math:`\mathbf{v}(G' ) \backslash \gamma'` , where we interpret :math:`\gamma'` as a set of counterfactuals, rather than a conjunction."""
+    r"""Run line 6 of the ID* algorithm.
+
+    Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
+    set of subproblems, one for each C-component in the counterfactual graph. In the ID
+    algorithm, the term corresponding to a given C-component :math:`S_i` of the causal
+    diagram was the effect of all variables not in :math:`S_i` on variables in :math:`S_i` ,
+    in other words :math:`P_{\mathbf{v}\backslash s_i (s_i )`, and the outermost summation
+    on line 4 was over values of variables not in :math:`\mathbf{Y},\mathbf{X}`. Here, the
+    term corresponding to a given C-component :math:`S^i` of the counterfactual graph :math:`G'`
+    is the conjunction of counterfactual variables where each variable contains in its
+    subscript all variables not in the C-component :math:`S^i` , in other words
+    :math:`\mathbf{v}(G' )\backslash s^i` , and the outermost summation is over observable
+    variables not in :math:`\gamma'` , that is over :math:`\mathbf{v}(G' ) \backslash \gamma'` ,
+    where we interpret :math:`\gamma'` as a set of counterfactuals, rather than a conjunction.
+    """
     return [P[vertices - dictrict](district) for district in graph.get_c_components()]
 
 
 def id_star_line_7(graph: NxMixedGraph, query: Probability) -> Collection[Expression]:
-    r"""Line 7 is the base case, where our counterfactual graph has a single C-component"""
+    r"""Run line 7 of the ID* algorithm.
+
+    Line 7 is the base case, where our counterfactual graph has a single C-component
+    """
+    raise NotImplementedError
 
 
 def id_star_line_8(graph: NxMixedGraph, query: Probability) -> Collection[Expression]:
-    r"""Line 8 says that if :math:`\gamma'` contains a "conflict," that is an inconsistent value assignment where at least one value is in the subscript, then we fail."""
+    r"""Run line 8 of the ID* algorithm.
+
+    Line 8 says that if :math:`\gamma'` contains a "conflict," that is an inconsistent
+    value assignment where at least one value is in the subscript, then we fail.
+    """
+    raise NotImplementedError
 
 
 def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Collection[Expression]:
-    r"""Line 9 says if there are no conflicts, then its safe to take the union of all subscripts in :math:`\gamma'` , and return the effect of the subscripts in :math:`\gamma'` on the variables in :math:`\gamma'`."""
+    r"""Run line 9 of the ID* algorithm.
+
+    Line 9 says if there are no conflicts, then its safe to take the union of all
+    subscripts in :math:`\gamma'` , and return the effect of the subscripts in :math:`\gamma'`
+    on the variables in :math:`\gamma'`."""
+    raise NotImplementedError
 
 
 def idc_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
-    r"""The second line states that if :math:`\gamma` contains a counterfactual which violates the Axiom of Effectiveness (Pearl, 2000), then :math:`\gamma` is inconsistent, and we return probability 0."""
+    r"""Run line 2 of the IDC* algorithm.
+
+    The second line states that if :math:`\gamma` contains a counterfactual which violates
+    the Axiom of Effectiveness (Pearl, 2000), then :math:`\gamma` is inconsistent, and we
+    return probability 0.
+    """
     delta = query.parents
     gamma_and_delta = P(query.children + query.parents)
     return make_counterfactual_graph(graph, gamma_and_delta)
 
 
 def idc_star_line_4(graph: NxMixedGraph, query: Probability) -> bool:
-    r"""
+    r"""Run line 4 of the IDC* algorithm.
+
     Line 4 of IDC* is the central line of the algorithm and is
     analogous to line 1 of IDC. In IDC, we moved a value
     assignment :math:`Z = z` from being observed to being fixed if
@@ -143,13 +204,18 @@ def idc_star_line_4(graph: NxMixedGraph, query: Probability) -> bool:
     the counterfactual of interest :math:`\gamma'` .
     """
     gamma = set(query.distribution.children)
+    raise NotImplementedError
 
 
 def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
-    r"""INPUT: G a causal diagram,
-    :math:`\gamma` a conjunction of counterfactual outcomes,
-    :math:`\delta` a conjunction of counterfactual observations
-    OUTPUT: an expression for :math:`P(\gamma | \delta)` in terms of P, FAIL, or UNDEFINED"""
+    r"""Run the IDC* algorithm.
+
+    INPUT:
+        G a causal diagram,
+        :math:`\gamma` a conjunction of counterfactual outcomes,
+        :math:`\delta` a conjunction of counterfactual observations
+    :returns: an expression for :math:`P(\gamma | \delta)` in terms of P, FAIL, or UNDEFINED
+    """
     gamma = set(query.distribution.children)
     delta = set(query.distribution.parents)
     if len(delta) == 0:
@@ -178,13 +244,13 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
     return estimand / Sum[vertices - delta](estimand)
 
 
-def get_varnames(query: Probability) -> Set[Variable]:
-    r"""Returns new Variables generated from the names of the outcome variables in the query"""
+def get_varnames(query: Probability) -> set[Variable]:
+    r"""Return new Variables generated from the names of the outcome variables in the query."""
     return {Variable(outcome.name) for outcome in query.distribution.children}
 
 
-def get_interventions(query: Probability) -> Set[Variable]:
-    r"""Generates new Variables from the subscripts of counterfactual variables in the query"""
+def get_interventions(query: Probability) -> set[Variable]:
+    r"""Generate new Variables from the subscripts of counterfactual variables in the query."""
     interventions = set()
     for counterfactual in query.distribution.children:
         if isinstance(counterfactual, CounterfactualVariable):
@@ -193,14 +259,14 @@ def get_interventions(query: Probability) -> Set[Variable]:
 
 
 def id_star_line_9(query: Probability) -> Expression:
-    """Gathers all interventions and applies them to the varnames of outcome variables"""
+    """Gather all interventions and applies them to the varnames of outcome variables."""
     varnames = get_varnames(query)
     interventions = get_interventions(query)
     return P[interventions](varnames)
 
 
 def has_same_parents(graph: NxMixedGraph, node1: Variable, node2: Variable) -> bool:
-    """Check if all parents of the two nodes are the same
+    """Check if all parents of the two nodes are the same.
 
     This is true if the set of directed parents are the same and either there exists a bidirected edge between the two nodes or there exists no bidirected edges for either node.
     """
@@ -215,6 +281,7 @@ def has_same_parents(graph: NxMixedGraph, node1: Variable, node2: Variable) -> b
 def has_same_domain_of_values(node1: Variable, node2: Variable) -> bool:
     if isinstance(node1, CounterfactualVariable) and isinstance(node2, CounterfactualVariable):
         treatment1, treatment2 = _get_treatment_variables(node1), _get_treatment_variables(node2)
+    raise NotImplementedError
 
 
 def has_same_function(node1: Variable, node2: Variable) -> bool:
@@ -232,7 +299,7 @@ def get_worlds(query: Probability) -> Collection[Collection[Variable]]:
 
 
 def lemma_24(pw_graph: NxMixedGraph, node1, node2) -> bool:
-    r"""Check if two nodes in a parallel worlds graph are equivalent
+    r"""Check if two nodes in a parallel worlds graph are equivalent.
 
     Let :math:`M` be a model inducing :math:`G` containing variables :math:`\alpha`, :math:`\beta` with the following properties:
 
@@ -248,7 +315,7 @@ def lemma_24(pw_graph: NxMixedGraph, node1, node2) -> bool:
 
 
 def lemma_25(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGraph:
-    r"""Merge node1 and node2 and return the reduced graph and query
+    r"""Merge node1 and node2 and return the reduced graph and query.
 
     Let :math:`M_\mathbf{x}` be a submodel derived from :math:`M` with set :math:`\mathbf{Z}` observed to attain values :math:`\mathbf{z}`, such that Lemma 24 holds for :math:`\alpha`; :math:`\beta`. Let :math:`M'` be a causal model obtained from :math:`M` by merging :math:`\alpha`; :math:`\beta` into a new node :math:`\omega`, which inherits all parents and the functional mechanism of :math:`\alpha`. All children of :math:`\alpha`; :math:`\beta` in :math:`M'` become children of :math:`\omega`. Then :math:`M_\mathbf{x},  M'_\mathbf{x} agree on any distribution consistent with :math:`z` being observed.
 
