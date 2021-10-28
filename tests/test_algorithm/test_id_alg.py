@@ -268,31 +268,3 @@ class TestIdentify(unittest.TestCase):
             Sum[W1, X, Y1, Y2](P(W1, W2, X, Y1, Y2)) * Sum[W1](P(W1) * P(Y1 | W1, X)) * P(Y2 | W2)
         )
         self.assert_identify(cond_expr, graph, P(Y1 @ X, Y2 @ X))
-
-    # def test_taheri(self):
-    #     """Test that all graphs produced by Sara's design algorithm can be run with :func:`identify`."""
-    #     VIRAL_PATHOGENESIS_PATH = '../../src/y0/resources/viral_pathogenesis.json'
-    #     DEFAULT_TAG = 'type'
-    #     graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
-
-    #     cause = "EGFR"
-    #     effect = "CytokineStorm"
-    #     stop = 5
-    #     tag = DEFAULT_TAG
-    #     dag = admg_to_latent_variable_dag(graph.to_admg(), tag=tag)
-    #     fixed_latent = {node for node, data in dag.nodes(data=True) if data[tag]}
-    #     for latents, observed, lvdag in iterate_lvdags(
-    #         dag,
-    #         fixed_observed={cause, effect},
-    #         fixed_latents=fixed_latent,
-    #         stop=stop,
-    #     ):
-    #         with self.subTest(latents=latents):
-    #             result = _get_result(
-    #                 lvdag=lvdag,
-    #                 latents=latents,
-    #                 observed=observed,
-    #                 cause=cause,
-    #                 effect=effect,
-    #             )
-    #             self.assertIsNotNone(result)  # throwaway test
