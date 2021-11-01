@@ -1003,6 +1003,8 @@ class Fraction(Expression):
             )
         elif isinstance(expression, One):
             return self
+        elif isinstance(expression, Zero):
+            raise ZeroDivisionError
         else:
             return Fraction(self.numerator, self.denominator * expression)
 
@@ -1014,6 +1016,8 @@ class Fraction(Expression):
     def simplify(self) -> Expression:
         """Simplify this fraction."""
         if isinstance(self.denominator, One):
+            return self.numerator
+        if isinstance(self.numerator, Zero):
             return self.numerator
         if isinstance(self.numerator, One):
             return self
@@ -1105,6 +1109,38 @@ class One(Expression):
 
     def __eq__(self, other):
         return isinstance(other, One)  # all ones are equal
+
+    def _iter_variables(self) -> Iterable[Variable]:
+        """Get the set of variables used in this expression."""
+        return iter([])
+
+
+class Zero(Expression):
+    """The additive identity (0)."""
+
+    def to_text(self) -> str:
+        """Output this identity variable in the internal string format."""
+        return "0"
+
+    def to_latex(self) -> str:
+        """Output this identity instance in the LaTeX string format."""
+        return "0"
+
+    def to_y0(self) -> str:
+        """Output this identity instance as y0 internal DSL code."""
+        return "Zero()"
+
+    def __rmul__(self, expression: Expression) -> Expression:
+        return self
+
+    def __mul__(self, expression: Expression) -> Expression:
+        return self
+
+    def __truediv__(self, other: Expression) -> Expression:
+        return self
+
+    def __eq__(self, other):
+        return isinstance(other, Zero)  # all zeros are equal
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in this expression."""
