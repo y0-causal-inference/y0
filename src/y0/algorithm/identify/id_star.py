@@ -71,11 +71,12 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
         return Zero()
     # Line 6:
     if not new_graph.is_connected():
-        return Sum[vertices - new_gamma](
+        return Sum.safe(
             Product.safe(
                 id_star(new_graph, P[vertices - district](district))
                 for district in new_graph.get_c_components()
-            )
+            ),
+            vertices - new_gamma,
         )
     # Line 7:
     else:
