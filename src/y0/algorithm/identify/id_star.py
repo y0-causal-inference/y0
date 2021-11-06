@@ -424,9 +424,9 @@ def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> N
 
 
 def to_adj(graph: NxMixedGraph):
-    nodes = graph.nodes()
-    directed = {u: [] for u in nodes}
-    undirected = {u: [] for u in nodes}
+    nodes: list[Variable] = list(graph.nodes())
+    directed: dict[Variable, list[Variable]] = {u: [] for u in nodes}
+    undirected: dict[Variable, list[Variable]] = {u: [] for u in nodes}
     for u, v in graph.directed.edges():
         directed[u].append(v)
     for u, v in graph.undirected.edges():
