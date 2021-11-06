@@ -366,14 +366,14 @@ class TestZero(unittest.TestCase):
     def test_divide_failure(self):
         """Test failure is thron on division by zero."""
         for expr in self.exprs:
-            if isinstance(expr, Zero):
-                continue
             with self.subTest(expr=expr), self.assertRaises(ZeroDivisionError):
                 expr / zero
 
     def test_identity(self):
         """Test that zero divided by anything is zero."""
         for expr in self.exprs:
+            if isinstance(expr, Zero):
+                continue  # would raise divides by zero
             with self.subTest(expr=expr):
                 self.assertEqual(zero, zero / expr)
 

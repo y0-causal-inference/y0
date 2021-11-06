@@ -1138,6 +1138,8 @@ class Zero(Expression):
         return self
 
     def __truediv__(self, other: Expression) -> Expression:
+        if isinstance(other, Zero):
+            raise ZeroDivisionError
         return self
 
     def __eq__(self, other):
