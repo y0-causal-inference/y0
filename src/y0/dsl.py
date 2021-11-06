@@ -556,7 +556,7 @@ class Expression(Element, ABC):
     def __mul__(self, other):
         pass
 
-    def __truediv__(self, expression: Expression) -> Fraction:
+    def __truediv__(self, expression: Expression) -> Expression:
         """Divide this expression by another and create a fraction."""
         return Fraction(self, expression)
 
@@ -990,8 +990,10 @@ class Fraction(Expression):
         s = f"({self.numerator.to_y0()} / {self.denominator.to_y0()})"
         return f"({s})" if parens else s
 
-    def __mul__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Fraction):
+    def __mul__(self, expression: Expression) -> Expression:
+        if isinstance(expression, Zero):
+            return expression
+        elif isinstance(expression, Fraction):
             return Fraction(
                 self.numerator * expression.numerator,
                 self.denominator * expression.denominator,
@@ -1230,7 +1232,7 @@ class QFactor(Expression):
         else:
             return Product((self, other))
 
-    def __truediv__(self, expression: Expression) -> Fraction:
+    def __truediv__(self, expression: Expression) -> Expression:
         if isinstance(expression, Fraction):
             return Fraction(self * expression.denominator, expression.numerator)
         else:
