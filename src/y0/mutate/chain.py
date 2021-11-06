@@ -87,7 +87,7 @@ def fraction_expand(p: Probability) -> Fraction:
     .. math::
         P(Y_1,\dots,Y_n | X_1, \dots, X_m) = \frac{P(Y_1,\dots,Y_n,X_1,\dots,X_m)}{P(X_1,\dots,X_m)}
     """
-    return p.uncondition() / P(p.parents)
+    return Fraction(p.uncondition(), P(p.parents))
 
 
 def bayes_expand(p: Probability) -> Fraction:

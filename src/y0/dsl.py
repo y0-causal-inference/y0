@@ -555,9 +555,14 @@ class Expression(Element, ABC):
     def __mul__(self, other):
         pass
 
-    def __truediv__(self, expression: Expression) -> Fraction:
+    def __truediv__(self, expression: Expression) -> Expression:
         """Divide this expression by another and create a fraction."""
-        return Fraction(self, expression)
+        if isinstance(expression, One):
+            return self
+        elif isinstance(expression, Fraction):
+            return Fraction(self * expression.denominator, expression.numerator)
+        else:
+            return Fraction(self, expression)
 
     def marginalize(self, ranges: VariableHint) -> Fraction:
         """Return this expression, marginalized by the given variables.
@@ -987,13 +992,13 @@ class Fraction(Expression):
             return Fraction(self.numerator * expression, self.denominator)
 
     def __truediv__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Fraction):
+        if isinstance(expression, One):
+            return self
+        elif isinstance(expression, Fraction):
             return Fraction(
                 self.numerator * expression.denominator,
                 self.denominator * expression.numerator,
             )
-        elif isinstance(expression, One):
-            return self
         else:
             return Fraction(self.numerator, self.denominator * expression)
 
@@ -1002,12 +1007,19 @@ class Fraction(Expression):
         yield from self.numerator._iter_variables()
         yield from self.denominator._iter_variables()
 
+    def flip(self) -> Fraction:
+        """Exchange the numerator and denominator."""
+        return Fraction(self.denominator, self.numerator)
+
     def simplify(self) -> Expression:
         """Simplify this fraction."""
         if isinstance(self.denominator, One):
             return self.numerator
         if isinstance(self.numerator, One):
-            return self
+            if isinstance(self.denominator, Fraction):
+                return self.denominator.flip().simplify()
+            else:
+                return self
         if self.numerator == self.denominator:
             return One()
         if isinstance(self.numerator, Product) and isinstance(self.denominator, Product):
@@ -1182,12 +1194,6 @@ class QFactor(Expression):
             return Fraction(self * other.numerator, other.denominator)
         else:
             return Product((self, other))
-
-    def __truediv__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Fraction):
-            return Fraction(self * expression.denominator, expression.numerator)
-        else:
-            return super().__truediv__(expression)
 
     def _iter_variables(self) -> Iterable[Variable]:
         yield from self.codomain
