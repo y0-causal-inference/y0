@@ -36,6 +36,7 @@ __all__ = [
     "Fraction",
     "Expression",
     "One",
+    "Zero",
     "Q",
     "QFactor",
     "A",
@@ -631,7 +632,11 @@ class Probability(Expression):
         return self.distribution.is_markov_kernel()
 
     def __mul__(self, other: Expression) -> Expression:
-        if isinstance(other, Product):
+        if isinstance(other, Zero):
+            return other
+        elif isinstance(other, One):
+            return self
+        elif isinstance(other, Product):
             return Product((self, *other.expressions))
         elif isinstance(other, Fraction):
             return Fraction(self * other.numerator, other.denominator)
@@ -639,6 +644,8 @@ class Probability(Expression):
             return Product((self, other))
 
     def __truediv__(self, expression: Expression) -> Fraction:
+        if isinstance(expression, Zero):
+            raise ZeroDivisionError
         return Fraction(self, expression)
 
     def intervene(self, variables: VariableHint) -> Probability:
@@ -839,6 +846,8 @@ class Product(Expression):
         return " ".join(expression.to_latex() for expression in self.expressions)
 
     def __mul__(self, other: Expression):
+        if isinstance(other, Zero):
+            return other
         if isinstance(other, Product):
             return Product((*self.expressions, *other.expressions))
         elif isinstance(other, Fraction):
@@ -847,6 +856,8 @@ class Product(Expression):
             return Product((*self.expressions, other))
 
     def __truediv__(self, expression: Expression) -> Fraction:
+        if isinstance(expression, Zero):
+            raise ZeroDivisionError
         return Fraction(self, expression)
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -930,12 +941,16 @@ class Sum(Expression):
         return f"Sum[{ranges}]({s})"
 
     def __mul__(self, expression: Expression):
-        if isinstance(expression, Product):
+        if isinstance(expression, Zero):
+            return expression
+        elif isinstance(expression, Product):
             return Product((self, *expression.expressions))
         else:
             return Product((self, expression))
 
     def __truediv__(self, expression: Expression) -> Fraction:
+        if isinstance(expression, Zero):
+            raise ZeroDivisionError
         return Fraction(self, expression)
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -1232,7 +1247,9 @@ class QFactor(Expression):
             return Product((self, other))
 
     def __truediv__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Fraction):
+        if isinstance(expression, Zero):
+            raise ZeroDivisionError
+        elif isinstance(expression, Fraction):
             return Fraction(self * expression.denominator, expression.numerator)
         else:
             return Fraction(self, expression)
