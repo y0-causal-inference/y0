@@ -16,6 +16,7 @@ from ...dsl import (
     Product,
     Sum,
     Variable,
+    Zero,
     _get_treatment_variables,
 )
 from ...graph import NxMixedGraph
@@ -42,7 +43,7 @@ class Inconsistent(ValueError):
     pass
 
 
-def id_star(graph: NxMixedGraph, query: Probability) -> Optional[Expression]:
+def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
     # Line 0
     if query.is_conditioned():
         raise ValueError(f"Query {query} must be unconditional")
@@ -56,7 +57,7 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Optional[Expression]:
                 if intervention.name == counterfactual.name:
                     # Line 2: This violates the Axiom of Effectiveness
                     if intervention.star:
-                        return None
+                        return Zero()
                     else:
                         # Line 3: This is a tautological event and can be removed without affecting the probability
                         return id_star(graph, P(gamma - {counterfactual}))
@@ -67,7 +68,7 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Optional[Expression]:
         new_gamma = set(new_query.children)
     # Line 5:
     except Inconsistent:
-        return None
+        return Zero()
     # Line 6:
     if not new_graph.is_connected():
         return Sum[vertices - new_gamma](
@@ -217,7 +218,7 @@ def idc_star_line_4(graph: NxMixedGraph, query: Probability) -> bool:
     raise NotImplementedError
 
 
-def idc_star(graph: NxMixedGraph, query: Probability) -> Optional[Expression]:
+def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
     r"""Run the IDC* algorithm.
 
     INPUT:
@@ -241,7 +242,7 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Optional[Expression]:
         vertices = set(new_graph.nodes())
     # Line 3:
     except Inconsistent(f"query {gamma.union(delta)} is inconsistent"):
-        return None
+        return Zero()
     # Line 4:
     for counterfactual in new_delta:
         # TODO do we need to extend the notion of d-separation from 1-1 to 1-many?
