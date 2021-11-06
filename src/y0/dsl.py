@@ -391,7 +391,8 @@ class CounterfactualVariable(Variable):
 
     def invert(self) -> Intervention:
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
-        return CounterfactualVariable(
+        # FIXME @cthoyt improve DSL model
+        return CounterfactualVariable(  # type:ignore
             name=self.name, interventions=self.interventions, star=not self.star
         )
 
