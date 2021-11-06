@@ -41,9 +41,7 @@ class TestGraph(unittest.TestCase):
                 non_variables = {
                     node for node in example.graph.nodes() if not isinstance(node, Variable)
                 }
-                self.assertEquals(
-                    0, len(non_variables), msg=f"Found non-variables: {non_variables}"
-                )
+                self.assertEqual(0, len(non_variables), msg=f"Found non-variables: {non_variables}")
 
     def test_causaleffect_str_verma_1(self):
         """Test generating R code for the figure 1A graph for causaleffect."""
