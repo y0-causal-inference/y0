@@ -36,6 +36,7 @@ __all__ = [
     "Fraction",
     "Expression",
     "One",
+    "Zero",
     "Q",
     "QFactor",
     "A",
@@ -568,9 +569,14 @@ class Expression(Element, ABC):
     def __mul__(self, other):
         pass
 
-    @abstractmethod
-    def __truediv__(self, other):
-        pass
+    def __truediv__(self, expression: Expression) -> Expression:
+        """Divide this expression by another and create a fraction."""
+        if isinstance(expression, One):
+            return self
+        elif isinstance(expression, Fraction):
+            return Fraction(self * expression.denominator, expression.numerator)
+        else:
+            return Fraction(self, expression)
 
     def marginalize(self, ranges: VariableHint) -> Fraction:
         """Return this expression, marginalized by the given variables.
@@ -644,15 +650,16 @@ class Probability(Expression):
         return self.distribution.is_markov_kernel()
 
     def __mul__(self, other: Expression) -> Expression:
-        if isinstance(other, Product):
+        if isinstance(other, Zero):
+            return other
+        elif isinstance(other, One):
+            return self
+        elif isinstance(other, Product):
             return Product((self, *other.expressions))
         elif isinstance(other, Fraction):
             return Fraction(self * other.numerator, other.denominator)
         else:
             return Product((self, other))
-
-    def __truediv__(self, expression: Expression) -> Fraction:
-        return Fraction(self, expression)
 
     def intervene(self, variables: VariableHint) -> Probability:
         """Return a new probability where the underlying distribution has been intervened by the given variables."""
@@ -852,15 +859,14 @@ class Product(Expression):
         return " ".join(expression.to_latex() for expression in self.expressions)
 
     def __mul__(self, other: Expression):
+        if isinstance(other, Zero):
+            return other
         if isinstance(other, Product):
             return Product((*self.expressions, *other.expressions))
         elif isinstance(other, Fraction):
             return Fraction(self * other.numerator, other.denominator)
         else:
             return Product((*self.expressions, other))
-
-    def __truediv__(self, expression: Expression) -> Fraction:
-        return Fraction(self, expression)
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of the variables used in each expresison in this product."""
@@ -943,13 +949,12 @@ class Sum(Expression):
         return f"Sum[{ranges}]({s})"
 
     def __mul__(self, expression: Expression):
-        if isinstance(expression, Product):
+        if isinstance(expression, Zero):
+            return expression
+        elif isinstance(expression, Product):
             return Product((self, *expression.expressions))
         else:
             return Product((self, expression))
-
-    def __truediv__(self, expression: Expression) -> Fraction:
-        return Fraction(self, expression)
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of the variables used in the range of this sum and variables in its summand."""
@@ -986,6 +991,10 @@ class Fraction(Expression):
     #: The expression in the denominator of the fraction
     denominator: Expression
 
+    def __post_init__(self):
+        if isinstance(self.denominator, Zero):
+            raise ZeroDivisionError
+
     def to_text(self) -> str:
         """Output this fraction in the internal string format."""
         return f"frac_{{{self.numerator.to_text()}}}{{{self.denominator.to_text()}}}"
@@ -999,8 +1008,10 @@ class Fraction(Expression):
         s = f"({self.numerator.to_y0()} / {self.denominator.to_y0()})"
         return f"({s})" if parens else s
 
-    def __mul__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Fraction):
+    def __mul__(self, expression: Expression) -> Expression:
+        if isinstance(expression, Zero):
+            return expression
+        elif isinstance(expression, Fraction):
             return Fraction(
                 self.numerator * expression.numerator,
                 self.denominator * expression.denominator,
@@ -1009,13 +1020,13 @@ class Fraction(Expression):
             return Fraction(self.numerator * expression, self.denominator)
 
     def __truediv__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Fraction):
+        if isinstance(expression, One):
+            return self
+        elif isinstance(expression, Fraction):
             return Fraction(
                 self.numerator * expression.denominator,
                 self.denominator * expression.numerator,
             )
-        elif isinstance(expression, One):
-            return self
         else:
             return Fraction(self.numerator, self.denominator * expression)
 
@@ -1024,12 +1035,21 @@ class Fraction(Expression):
         yield from self.numerator._iter_variables()
         yield from self.denominator._iter_variables()
 
+    def flip(self) -> Fraction:
+        """Exchange the numerator and denominator."""
+        return Fraction(self.denominator, self.numerator)
+
     def simplify(self) -> Expression:
         """Simplify this fraction."""
         if isinstance(self.denominator, One):
             return self.numerator
+        if isinstance(self.numerator, Zero):
+            return self.numerator
         if isinstance(self.numerator, One):
-            return self
+            if isinstance(self.denominator, Fraction):
+                return self.denominator.flip().simplify()
+            else:
+                return self
         if self.numerator == self.denominator:
             return One()
         if isinstance(self.numerator, Product) and isinstance(self.denominator, Product):
@@ -1113,11 +1133,42 @@ class One(Expression):
     def __mul__(self, expression: Expression) -> Expression:
         return expression
 
-    def __truediv__(self, other: Expression) -> Fraction:
-        return Fraction(self, other)
-
     def __eq__(self, other):
         return isinstance(other, One)  # all ones are equal
+
+    def _iter_variables(self) -> Iterable[Variable]:
+        """Get the set of variables used in this expression."""
+        return iter([])
+
+
+class Zero(Expression):
+    """The additive identity (0)."""
+
+    def to_text(self) -> str:
+        """Output this identity variable in the internal string format."""
+        return "0"
+
+    def to_latex(self) -> str:
+        """Output this identity instance in the LaTeX string format."""
+        return "0"
+
+    def to_y0(self) -> str:
+        """Output this identity instance as y0 internal DSL code."""
+        return "Zero()"
+
+    def __rmul__(self, expression: Expression) -> Expression:
+        return self
+
+    def __mul__(self, expression: Expression) -> Expression:
+        return self
+
+    def __truediv__(self, other: Expression) -> Expression:
+        if isinstance(other, Zero):
+            raise ZeroDivisionError
+        return self
+
+    def __eq__(self, other):
+        return isinstance(other, Zero)  # all zeros are equal
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in this expression."""
@@ -1207,12 +1258,6 @@ class QFactor(Expression):
             return Fraction(self * other.numerator, other.denominator)
         else:
             return Product((self, other))
-
-    def __truediv__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Fraction):
-            return Fraction(self * expression.denominator, expression.numerator)
-        else:
-            return Fraction(self, expression)
 
     def _iter_variables(self) -> Iterable[Variable]:
         yield from self.codomain
