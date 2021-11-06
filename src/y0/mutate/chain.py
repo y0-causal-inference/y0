@@ -2,8 +2,6 @@
 
 """Operations for mutating and simplifying expressions."""
 
-from typing import cast
-
 from ..dsl import (
     Distribution,
     Fraction,
