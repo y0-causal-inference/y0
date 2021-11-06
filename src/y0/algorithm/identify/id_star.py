@@ -159,7 +159,7 @@ def id_star_line_6(graph: NxMixedGraph, query: Probability) -> Collection[Expres
     variables not in :math:`\gamma'` , that is over :math:`\mathbf{v}(G' ) \backslash \gamma'` ,
     where we interpret :math:`\gamma'` as a set of counterfactuals, rather than a conjunction.
     """
-    return [P[vertices - dictrict](district) for district in graph.get_c_components()]
+    return [P[vertices - district](district) for district in graph.get_c_components()]
 
 
 def id_star_line_7(graph: NxMixedGraph, query: Probability) -> Collection[Expression]:
