@@ -108,7 +108,10 @@ class TestDSL(unittest.TestCase):
         self.assert_text("Y_{X, W*}", Y @ X @ ~W)
 
         # Invert a counterfactual variable
-        self.assertEqual("Y*_{X}", CounterfactualVariable("Y", (Intervention("X"),), True).to_text())
+        self.assertEqual(
+            "Y*_{X}", CounterfactualVariable("Y", (Intervention("X"),), True).to_text()
+        )
+
     def test_counterfactual_errors(self):
         """Test that if two variables with the same name are given, an error is raised, regardless of star state."""
         for a, b in itt.product([True, False], [True, False]):

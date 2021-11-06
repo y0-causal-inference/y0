@@ -133,6 +133,7 @@ class Variable(Element):
 
     #: The name of the variable
     name: str
+
     def __post_init__(self):
         if self.name in {"P", "Q"}:
             raise ValueError(f"trust me, {self.name} is a bad variable name.")
@@ -321,7 +322,12 @@ class CounterfactualVariable(Variable):
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
         intervention_latex = _list_to_text(self.interventions)
-        return f"{self.name}*_{{{intervention_latex}}}" if self.star else f"{self.name}_{{{intervention_latex}}}"
+        return (
+            f"{self.name}*_{{{intervention_latex}}}"
+            if self.star
+            else f"{self.name}_{{{intervention_latex}}}"
+        )
+
     def to_latex(self) -> str:
         """Output this counterfactual variable in the LaTeX string format.
 
@@ -336,7 +342,11 @@ class CounterfactualVariable(Variable):
         """
         latex = super().to_latex()
         intervention_latex = _list_to_latex(self.interventions)
-        return f"{{{latex}}}^*_{{{intervention_latex}}}" if self.star else f"{{{latex}}}_{{{intervention_latex}}}"
+        return (
+            f"{{{latex}}}^*_{{{intervention_latex}}}"
+            if self.star
+            else f"{{{latex}}}_{{{intervention_latex}}}"
+        )
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
@@ -380,9 +390,8 @@ class CounterfactualVariable(Variable):
 
     def invert(self) -> Intervention:
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
-        return CounterfactualVariable(name=self.name,
-                                      interventions = self.interventions,
-                                      star = not self.star
+        return CounterfactualVariable(
+            name=self.name, interventions=self.interventions, star=not self.star
         )
 
     def _iter_variables(self) -> Iterable[Variable]:
