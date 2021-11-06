@@ -644,8 +644,6 @@ class Probability(Expression):
             return Product((self, other))
 
     def __truediv__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Zero):
-            raise ZeroDivisionError
         return Fraction(self, expression)
 
     def intervene(self, variables: VariableHint) -> Probability:
@@ -856,8 +854,6 @@ class Product(Expression):
             return Product((*self.expressions, other))
 
     def __truediv__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Zero):
-            raise ZeroDivisionError
         return Fraction(self, expression)
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -949,8 +945,6 @@ class Sum(Expression):
             return Product((self, expression))
 
     def __truediv__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Zero):
-            raise ZeroDivisionError
         return Fraction(self, expression)
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -988,6 +982,10 @@ class Fraction(Expression):
     #: The expression in the denominator of the fraction
     denominator: Expression
 
+    def __post_init__(self):
+        if isinstance(self.denominator, Zero):
+            raise ZeroDivisionError
+
     def to_text(self) -> str:
         """Output this fraction in the internal string format."""
         return f"frac_{{{self.numerator.to_text()}}}{{{self.denominator.to_text()}}}"
@@ -1018,8 +1016,6 @@ class Fraction(Expression):
             )
         elif isinstance(expression, One):
             return self
-        elif isinstance(expression, Zero):
-            raise ZeroDivisionError
         else:
             return Fraction(self.numerator, self.denominator * expression)
 
@@ -1247,9 +1243,7 @@ class QFactor(Expression):
             return Product((self, other))
 
     def __truediv__(self, expression: Expression) -> Fraction:
-        if isinstance(expression, Zero):
-            raise ZeroDivisionError
-        elif isinstance(expression, Fraction):
+        if isinstance(expression, Fraction):
             return Fraction(self * expression.denominator, expression.numerator)
         else:
             return Fraction(self, expression)
