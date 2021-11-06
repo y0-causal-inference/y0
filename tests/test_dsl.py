@@ -28,6 +28,7 @@ from y0.dsl import (
     X,
     Y,
     Z,
+    Zero,
 )
 from y0.parser import parse_y0
 
@@ -345,3 +346,41 @@ class TestSafeConstructors(unittest.TestCase):
         self.assertEqual(Product((p,)), Product.safe({p}))
 
         self.assertEqual(Product((P(X), P(Y))), Product.safe(P(v) for v in [X, Y]))
+
+
+zero = Zero()
+
+
+class TestZero(unittest.TestCase):
+    """Tests for zero."""
+
+    exprs = [
+        One(),
+        Zero(),
+        P(A),
+        P(A) * P(B),
+        P(A) / P(B),
+        Sum.safe(P(A), [A]),
+    ]
+
+    def test_divide_failure(self):
+        """Test failure is thron on division by zero."""
+        for expr in self.exprs:
+            with self.subTest(expr=expr), self.assertRaises(ZeroDivisionError):
+                expr / zero
+
+    def test_identity(self):
+        """Test that zero divided by anything is zero."""
+        for expr in self.exprs:
+            if isinstance(expr, Zero):
+                continue  # would raise divides by zero
+            with self.subTest(expr=expr):
+                self.assertEqual(zero, zero / expr)
+
+    def test_multiply(self):
+        """Test other operations."""
+        for expr in self.exprs:
+            with self.subTest(expr=expr.to_y0(), direction="right"):
+                self.assertEqual(zero, zero * expr, msg=f"Got {zero * expr}")
+            with self.subTest(expr=expr.to_y0(), direction="left"):
+                self.assertEqual(zero, expr * zero, msg=f"Got {expr * zero}")
