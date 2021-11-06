@@ -3,7 +3,7 @@
 """Implementation of the IDC algorithm."""
 
 from itertools import combinations
-from typing import Collection, Optional, Tuple
+from typing import Collection, Tuple
 
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
@@ -425,7 +425,9 @@ def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> N
     )
 
 
-def to_adj(graph: NxMixedGraph):
+def to_adj(
+    graph: NxMixedGraph,
+) -> tuple[list[Variable], dict[Variable, list[Variable]], dict[Variable, list[Variable]]]:
     nodes: list[Variable] = list(graph.nodes())
     directed: dict[Variable, list[Variable]] = {u: [] for u in nodes}
     undirected: dict[Variable, list[Variable]] = {u: [] for u in nodes}
