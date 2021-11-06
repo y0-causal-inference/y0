@@ -26,6 +26,14 @@ __all__ = [
     "lemma_24",
     "lemma_25",
     "idc_star_line_2",
+    "id_star_line_1",
+    "id_star_line_2",
+    "id_star_line_3",
+    "id_star_line_4",
+    "id_star_line_5",
+    "id_star_line_6",
+    "id_star_line_7",
+    "id_star_line_8",
     "id_star_line_9",
 ]
 
@@ -133,7 +141,7 @@ def id_star_line_5(graph: NxMixedGraph, query: Probability) -> Expression:
     raise NotImplementedError
 
 
-def id_star_line_6(graph: NxMixedGraph, query: Probability) -> list[Expression]:
+def id_star_line_6(graph: NxMixedGraph, query: Probability) -> Collection[Expression]:
     r"""Run line 6 of the ID* algorithm.
 
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
@@ -249,12 +257,12 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Optional[Expression]:
     return estimand / Sum.safe(estimand, vertices - delta)
 
 
-def get_varnames(query: Probability) -> set[Variable]:
+def get_varnames(query: Probability) -> Collection[Variable]:
     r"""Return new Variables generated from the names of the outcome variables in the query."""
     return {Variable(outcome.name) for outcome in query.children}
 
 
-def get_interventions(query: Probability) -> set[Variable]:
+def get_interventions(query: Probability) -> Collection[Variable]:
     r"""Generate new Variables from the subscripts of counterfactual variables in the query."""
     interventions = set()
     for counterfactual in query.children:

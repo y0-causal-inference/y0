@@ -133,7 +133,6 @@ class Variable(Element):
 
     #: The name of the variable
     name: str
-
     def __post_init__(self):
         if self.name in {"P", "Q"}:
             raise ValueError(f"trust me, {self.name} is a bad variable name.")
@@ -306,6 +305,8 @@ class CounterfactualVariable(Variable):
     name: str
     #: The interventions on the variable. Should be non-empty
     interventions: Tuple[Intervention, ...]
+    # CounterfactualVariables can now be inverted
+    star: bool = False
 
     def __post_init__(self):
         if not self.interventions:
@@ -320,8 +321,7 @@ class CounterfactualVariable(Variable):
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
         intervention_latex = _list_to_text(self.interventions)
-        return f"{self.name}_{{{intervention_latex}}}"
-
+        return f"{self.name}*_{{{intervention_latex}}}" if self.star else f"{self.name}_{{{intervention_latex}}}"
     def to_latex(self) -> str:
         """Output this counterfactual variable in the LaTeX string format.
 
@@ -334,8 +334,9 @@ class CounterfactualVariable(Variable):
         >>> (Variable('X12') @ Variable('Y')).to_latex()
         '{X_{12}}_{Y}'
         """
+        latex = super().to_latex()
         intervention_latex = _list_to_latex(self.interventions)
-        return f"{{{super().to_latex()}}}_{{{intervention_latex}}}"
+        return f"{{{latex}}}^*_{{{intervention_latex}}}" if self.star else f"{{{latex}}}_{{{intervention_latex}}}"
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
@@ -343,7 +344,7 @@ class CounterfactualVariable(Variable):
             return f"{self.name} @ {self.interventions[0].to_y0()}"
         else:
             ins = ", ".join(i.to_y0() for i in self.interventions)
-            return f"{self.name} @ ({ins})"
+            return f"~{self.name} @ ({ins})" if self.star else f"{self.name} @ ({ins})"
 
     def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
@@ -379,7 +380,10 @@ class CounterfactualVariable(Variable):
 
     def invert(self) -> Intervention:
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
-        raise NotImplementedError
+        return CounterfactualVariable(name=self.name,
+                                      interventions = self.interventions,
+                                      star = not self.star
+        )
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of this variable and its interventions."""
