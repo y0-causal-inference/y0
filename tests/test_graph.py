@@ -41,7 +41,7 @@ class TestGraph(unittest.TestCase):
                 non_variables = {
                     node for node in example.graph.nodes() if not isinstance(node, Variable)
                 }
-                self.assertEquals(
+                self.assertEqual(
                     0, len(non_variables), msg=f"Found non-variables: {non_variables}"
                 )
 

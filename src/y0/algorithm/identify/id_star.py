@@ -408,20 +408,17 @@ def make_parallel_worlds_graph(
 
 def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> NxMixedGraph:
     """Make one parallel world based on interventions specified"""
-    world_graph = graph.remove_in_edges(treatments)
+    treatment_variables = [Variable(t.name) for t in treatments]
+    world_graph = graph.remove_in_edges(treatment_variables)
     return NxMixedGraph.from_edges(
         nodes=[node.intervene(treatments) for node in world_graph.nodes()],
         directed=[
-            (u.remove_in_edges(treatments), v.remove_in_edges(treatments))
+            (u.intervene(treatments), v.intervene(treatments))
             for u, v in world_graph.directed.edges()
         ],
         undirected=[
-            (u.remove_in_edges(treatments), v.remove_in_edges(treatments))
+            (u.intervene(treatments), v.intervene(treatments))
             for u, v in world_graph.undirected.edges()
-            if (u not in treatments)
-            and (v not in treatments)
-            and (~u not in treatments)
-            and (~v not in treatments)
         ],
     )
 
