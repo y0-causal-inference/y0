@@ -134,6 +134,10 @@ class Variable(Element):
 
     #: The name of the variable
     name: str
+    #: The star status of the variable. None means it's a variable,
+    #: False means it's the same as the value for the variable,
+    #: and True means it's a different value from the variable.
+    star: Optional[bool] = None
 
     def __post_init__(self):
         if self.name in {"P", "Q"}:
@@ -242,7 +246,7 @@ class Variable(Element):
     def __and__(self, children: VariableHint) -> Distribution:
         return self.joint(children)
 
-    def invert(self) -> Intervention:
+    def invert(self) -> Variable:
         """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
         return Intervention(name=self.name, star=True)
 
@@ -271,10 +275,9 @@ class Intervention(Variable):
     An intervention variable is usually used as a subscript in a :class:`CounterfactualVariable`.
     """
 
-    #: The name of the intervention
-    name: str
-    #: If true, indicates this intervention represents a value different from what was observed
-    star: bool = False
+    def __post_init__(self):
+        if self.star is None:
+            raise ValueError("Intervention must have a non-None star")
 
     def to_text(self) -> str:
         """Output this intervention variable in the internal string format."""
@@ -376,9 +379,13 @@ class CounterfactualVariable(Variable):
         if overlaps:
             raise ValueError(f"Overlapping interventions in new interventions: {overlaps}")
 
-    def invert(self) -> Intervention:
+    def invert(self) -> CounterfactualVariable:
         """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
-        raise NotImplementedError
+        return CounterfactualVariable(
+            name=self.name,
+            star=not self.star,
+            interventions=self.interventions,
+        )
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of this variable and its interventions."""
