@@ -364,6 +364,7 @@ class CounterfactualVariable(Variable):
         self._raise_for_overlapping_interventions(_interventions)
         return CounterfactualVariable(
             name=self.name,
+            star=self.star,
             interventions=(*self.interventions, *_interventions),
         )
 
