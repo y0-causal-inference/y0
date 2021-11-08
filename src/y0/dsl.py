@@ -247,15 +247,21 @@ class Variable(Element):
     def __and__(self, children: VariableHint) -> Distribution:
         return self.joint(children)
 
+    def _variable_with_star(self, star: bool) -> Variable:
+        return Intervention(name=self.name, star=star)
+
     def invert(self) -> Variable:
         """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
-        return Intervention(name=self.name, star=True)
+        return self._variable_with_star(not self.star)
 
     def __invert__(self) -> Variable:
         return self.invert()
 
-    def __neg__(self) -> Intervention:
-        return Intervention(name=self.name, star=False)
+    def __pos__(self) -> Variable:
+        return self._variable_with_star(True)
+
+    def __neg__(self) -> Variable:
+        return self._variable_with_star(False)
 
     @classmethod
     def __class_getitem__(cls, item) -> Variable:
@@ -343,11 +349,12 @@ class CounterfactualVariable(Variable):
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
+        prefix = "~" if self.star else ""
         if len(self.interventions) == 1:
-            return f"{self.name} @ {self.interventions[0].to_y0()}"
+            return f"{prefix}{self.name} @ {self.interventions[0].to_y0()}"
         else:
             ins = ", ".join(i.to_y0() for i in self.interventions)
-            return f"{self.name} @ ({ins})"
+            return f"{prefix}{self.name} @ ({ins})"
 
     def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
@@ -383,7 +390,7 @@ class CounterfactualVariable(Variable):
             raise ValueError(f"Overlapping interventions in new interventions: {overlaps}")
 
     def invert(self) -> CounterfactualVariable:
-        """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
+        """Invert the value of the counterfactual variable."""
         return CounterfactualVariable(
             name=self.name,
             star=not self.star,
