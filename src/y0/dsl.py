@@ -303,10 +303,8 @@ class CounterfactualVariable(Variable):
     was observed (star).
     """
 
-    #: The name of the counterfactual variable
-    name: str
     #: The interventions on the variable. Should be non-empty
-    interventions: Tuple[Intervention, ...]
+    interventions: Tuple[Intervention, ...] = field(default_factory=tuple)
 
     def __post_init__(self):
         if not self.interventions:
