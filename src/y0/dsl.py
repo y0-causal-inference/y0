@@ -196,6 +196,7 @@ class Variable(Element):
         """
         return CounterfactualVariable(
             name=self.name,
+            star=self.star,
             interventions=_to_interventions(_upgrade_variables(variables)),
         )
 
@@ -250,7 +251,7 @@ class Variable(Element):
         """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
         return Intervention(name=self.name, star=True)
 
-    def __invert__(self) -> Intervention:
+    def __invert__(self) -> Variable:
         return self.invert()
 
     def __neg__(self) -> Intervention:
@@ -337,7 +338,8 @@ class CounterfactualVariable(Variable):
         '{X_{12}}_{Y}'
         """
         intervention_latex = _list_to_latex(self.interventions)
-        return f"{{{super().to_latex()}}}_{{{intervention_latex}}}"
+        prefix = "^*" if self.star else ""
+        return f"{{{super().to_latex()}}}{prefix}_{{{intervention_latex}}}"
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
