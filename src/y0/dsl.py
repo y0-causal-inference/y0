@@ -134,6 +134,10 @@ class Variable(Element):
 
     #: The name of the variable
     name: str
+    #: The star status of the variable. None means it's a variable,
+    #: False means it's the same as the value for the variable,
+    #: and True means it's a different value from the variable.
+    star: Optional[bool] = None
 
     def __post_init__(self):
         if self.name in {"P", "Q"}:
@@ -192,6 +196,7 @@ class Variable(Element):
         """
         return CounterfactualVariable(
             name=self.name,
+            star=self.star,
             interventions=_to_interventions(_upgrade_variables(variables)),
         )
 
@@ -242,15 +247,21 @@ class Variable(Element):
     def __and__(self, children: VariableHint) -> Distribution:
         return self.joint(children)
 
-    def invert(self) -> Intervention:
-        """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
-        return Intervention(name=self.name, star=True)
+    def _intervention(self, star: bool) -> Variable:
+        return Intervention(name=self.name, star=star)
 
-    def __invert__(self) -> Intervention:
+    def invert(self) -> Variable:
+        """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
+        return self._intervention(not self.star)
+
+    def __invert__(self) -> Variable:
         return self.invert()
 
-    def __neg__(self) -> Intervention:
-        return Intervention(name=self.name, star=False)
+    def __pos__(self) -> Variable:
+        return self._intervention(True)
+
+    def __neg__(self) -> Variable:
+        return self._intervention(False)
 
     @classmethod
     def __class_getitem__(cls, item) -> Variable:
@@ -271,10 +282,9 @@ class Intervention(Variable):
     An intervention variable is usually used as a subscript in a :class:`CounterfactualVariable`.
     """
 
-    #: The name of the intervention
-    name: str
-    #: If true, indicates this intervention represents a value different from what was observed
-    star: bool = False
+    def __post_init__(self):
+        if self.star is None:
+            raise ValueError("Intervention must have a non-None star")
 
     def to_text(self) -> str:
         """Output this intervention variable in the internal string format."""
@@ -288,10 +298,6 @@ class Intervention(Variable):
     def to_y0(self) -> str:
         """Output this intervention instance as y0 internal DSL code."""
         return f"~{self.name}" if self.star else self.name
-
-    def invert(self) -> Intervention:
-        """Create an :class:`Intervention` variable that is different from what was observed (with a star)."""
-        return Intervention(name=self.name, star=not self.star)
 
 
 @dataclass(frozen=True, order=True, repr=False)
@@ -334,15 +340,17 @@ class CounterfactualVariable(Variable):
         '{X_{12}}_{Y}'
         """
         intervention_latex = _list_to_latex(self.interventions)
-        return f"{{{super().to_latex()}}}_{{{intervention_latex}}}"
+        prefix = "^*" if self.star else ""
+        return f"{{{super().to_latex()}}}{prefix}_{{{intervention_latex}}}"
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
+        prefix = "~" if self.star else ""
         if len(self.interventions) == 1:
-            return f"{self.name} @ {self.interventions[0].to_y0()}"
+            return f"{prefix}{self.name} @ {self.interventions[0].to_y0()}"
         else:
             ins = ", ".join(i.to_y0() for i in self.interventions)
-            return f"{self.name} @ ({ins})"
+            return f"{prefix}{self.name} @ ({ins})"
 
     def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
@@ -359,6 +367,7 @@ class CounterfactualVariable(Variable):
         self._raise_for_overlapping_interventions(_interventions)
         return CounterfactualVariable(
             name=self.name,
+            star=self.star,
             interventions=(*self.interventions, *_interventions),
         )
 
@@ -376,9 +385,22 @@ class CounterfactualVariable(Variable):
         if overlaps:
             raise ValueError(f"Overlapping interventions in new interventions: {overlaps}")
 
-    def invert(self) -> Intervention:
-        """Raise an error, since counterfactuals can't be inverted the same as normal variables or interventions."""
-        raise NotImplementedError
+    def _with_star(self, star: bool) -> CounterfactualVariable:
+        return CounterfactualVariable(
+            name=self.name,
+            star=star,
+            interventions=self.interventions,
+        )
+
+    def invert(self) -> CounterfactualVariable:
+        """Invert the value of the counterfactual variable."""
+        return self._with_star(not self.star)
+
+    def __pos__(self) -> CounterfactualVariable:
+        return self._with_star(True)
+
+    def __neg__(self) -> CounterfactualVariable:
+        return self._with_star(False)
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of this variable and its interventions."""

@@ -4,6 +4,7 @@
 
 import itertools as itt
 import unittest
+from typing import Optional
 
 from y0.dsl import (
     A,
@@ -38,6 +39,18 @@ V = Variable("V")
 class TestDSL(unittest.TestCase):
     """Tests for the stringifying instances of the probability DSL."""
 
+    def assert_exp(self, expression: Element, s: Optional[str] = None):
+        """Test an element can be parsed, serialized, then again."""
+        e = expression.to_y0()
+        if s:
+            self.assertEqual(s, e, msg=repr(e))
+        reconstituted = parse_y0(e)
+        self.assertEqual(
+            expression,
+            reconstituted,
+            msg=f"\nExpected: {expression.to_y0()}\nActual:   {reconstituted.to_y0()}",
+        )
+
     def assert_text(self, s: str, expression: Element):
         """Assert the expression when it is converted to a string."""
         self.assertIsInstance(s, str)
@@ -47,12 +60,7 @@ class TestDSL(unittest.TestCase):
         self.assertIsInstance(expression._repr_latex_(), str)
         self.assertEqual(s, expression.to_text(), msg=f"Expression: {repr(expression)}")
         if not isinstance(expression, (Distribution, Intervention)):
-            reconstituted = parse_y0(repr(expression))
-            self.assertEqual(
-                expression,
-                reconstituted,
-                msg=f"\nExpected: {expression.to_y0()}\nActual:   {reconstituted.to_y0()}",
-            )
+            self.assert_exp(expression)
 
     def test_variable(self):
         """Test the variable DSL object."""
@@ -107,6 +115,20 @@ class TestDSL(unittest.TestCase):
 
         # Instantiation with matmul @ operator (chained)
         self.assert_text("Y_{X, W*}", Y @ X @ ~W)
+
+    def test_star_counterfactual(self):
+        """Tests for generalized counterfactual variables."""
+        for expr, expected in [
+            (P(Y @ X), "P(Y @ X)"),
+            (P(~Y @ X), "P(~Y @ X)"),
+            (P(Y @ ~X), "P(Y @ ~X)"),
+            (P(~Y @ ~X), "P(~Y @ ~X)"),
+            (P(Y @ X | ~X, ~Y), "P(Y @ X | ~X, ~Y)"),
+            (P(~(Y @ ~X) | X, Y), "P(~Y @ ~X | X, Y)"),
+            (P(~Y @ ~X | X, Y), "P(~Y @ ~X | X, Y)"),  # should be same as above
+        ]:
+            with self.subTest(expr=expected):
+                self.assert_exp(expr, expected)
 
     def test_counterfactual_errors(self):
         """Test that if two variables with the same name are given, an error is raised, regardless of star state."""
