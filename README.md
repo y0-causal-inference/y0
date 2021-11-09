@@ -122,7 +122,7 @@ estimand = identify(query)
 assert estimand == P(Y @ X)
 ```
 
-## ⬇️ Installation
+## 🚀 Installation
 
 The most recent release can be installed from
 [PyPI](https://pypi.org/project/y0/) with:
@@ -143,12 +143,17 @@ Contributions, whether filing an issue, making a pull request, or forking, are a
 [CONTRIBUTING.rst](https://github.com/y0-causal-inference/y0/blob/master/CONTRIBUTING.rst) for more information on getting
 involved.
 
-👋 Attribution
+## 👋 Attribution
 
 ### ⚖️ License
 
 The code in this package is licensed under the [BSD-3-Clause
 license](https://github.com/y0-causal-inference/y0/blob/master/LICENSE).
+
+### 📖 Citation
+
+We hope to publish an application note on `y0` in 2022. In the meantime, you
+can cite this software using the Zenodo DOI (see badge above).
 
 ### 🙏 Supporters
 
