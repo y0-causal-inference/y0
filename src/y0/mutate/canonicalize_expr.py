@@ -80,6 +80,7 @@ class Canonicalizer:
         if isinstance(variable, CounterfactualVariable):
             return CounterfactualVariable(
                 name=variable.name,
+                star=variable.star,
                 interventions=tuple(sorted(variable.interventions)),
             )
         else:
