@@ -270,9 +270,7 @@ def idc_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
     return probability 0.
     """
     delta = query.parents
-    # FIXME this should be set(query.children).union(query.parents)
-    # see Probability.uncondition()
-    gamma_and_delta = P(query.children + query.parents)
+    gamma_and_delta = query.uncondition()
     return make_counterfactual_graph(graph, gamma_and_delta)
 
 
@@ -330,10 +328,7 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
             return idc_star(graph, P(children | parents))
     # Line 5:
     estimand = id_star(graph, new_query)
-    if estimand is None:
-        raise NotImplementedError
-    # TODO change to estimand.marginalize(vertices - delta)
-    return estimand / Sum.safe(estimand, vertices - delta)
+    return estimand.marginalize(vertices - delta)
 
 
 def get_varnames(query: Probability) -> set[Variable]:
