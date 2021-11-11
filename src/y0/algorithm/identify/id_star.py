@@ -3,7 +3,7 @@
 """Implementation of the IDC algorithm."""
 
 from itertools import combinations
-from typing import Collection, Tuple
+from typing import Collection, Tuple, Mapping
 
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
@@ -49,21 +49,20 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
         raise ValueError(f"Query {query} must be unconditional")
     gamma = set(query.children)
     # Line 1
-    if len(gamma) == 0:
+
+    if id_star_line_1(graph, query) is not None:
         return One()
-    for counterfactual in gamma:
-        if isinstance(counterfactual, CounterfactualVariable):
-            for intervention in counterfactual.interventions:
-                if intervention.name == counterfactual.name:
-                    # Line 2: This violates the Axiom of Effectiveness
-                    if intervention.star:
-                        return Zero()
-                    else:
-                        # Line 3: This is a tautological event and can be removed without affecting the probability
-                        return id_star(graph, P(gamma - {counterfactual}))
+    # Line 2: This violates the Axiom of Effectiveness
+    if id_star_line_2(graph, query) is not None:
+        return Zero()
+    # Line 3: This is a tautological event and can be removed without affecting the probability
+    new_query = id_star_line_3(graph, query):
+    if new_query is not None:
+        return id_star(graph, new_query)
+
     # Line 4:
     try:
-        new_graph, new_query = make_counterfactual_graph(graph, query)
+        new_graph, new_query = id_star_line_4(graph, query)
         vertices = set(new_graph.nodes())
         new_gamma = set(new_query.children)
     # Line 5:
@@ -81,8 +80,11 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
     # Line 7:
     else:
         # Line 8 is syntactically impossible with the dsl
-        # Line 9
-        return id_star_line_9(query)
+        if id_star_line_8(new_graph, new_query):
+            raise Fails
+        else:
+            # Line 9
+            return id_star_line_9(new_graph, new_query)
 
 
 def get_val(counterfactual: CounterfactualVariable, graph: NxMixedGraph) -> Intervention:
@@ -93,44 +95,72 @@ def get_val(counterfactual: CounterfactualVariable, graph: NxMixedGraph) -> Inte
                 return ~var
     return -var
 
-
-def id_star_line_1(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expression:
+def id_star_line_1(graph: NxMixedGraph, query: Probability) -> Expression:
     r"""Run line 1 of the ID* algorithm.
 
     The first line states that if :math:`\gamma` is an empty conjunction, then its
     probability is 1, by convention.
+
+    :param graph: an NxMixedGraph
+    :param gamma: a conjunction of counterfactual variables
+    :return: One() or None
     """
-    if len(gamma) == 0:
+    if len(query.children) == 0:
         return One()
 
 
-def id_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
+def id_star_line_2(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expression:
     r"""Run line 2 of the ID* algorithm.
 
     The second line states that if :math:`\gamma` contains a counterfactual
     which violates the Axiom of Effectiveness (Pearl, 2000), then :math:`\gamma`
     is inconsistent, and we return probability 0.
+
+    :param graph: an NxMixedGraph
+    :param gamma: a conjunction of counterfactual variables
+    :return: Zero() or None
     """
-    raise NotImplementedError
+    for counterfactual in gamma:
+        if isinstance(counterfactual, CounterfactualVariable):
+            for intervention in counterfactual.interventions:
+                if (intervention.name == counterfactual.name) and (intervention.star != counterfactual.star):
+                    return Zero()
 
 
-def id_star_line_3(graph: NxMixedGraph, query: Probability) -> Expression:
+def id_star_line_3(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expression:
     r"""Run line 3 of the ID* algorithm.
 
     The third line states that if a counterfactual contains its own value in the subscript,
     then it is a tautological event, and it can be removed from :math:`\gamma` without
     affecting its probability.
+
+    :param graph: an NxMixedGraph
+    :param gamma: a conjunction of counterfactual variables
+    :return: updated gamma or None
     """
-    raise NotImplementedError
+    new_gamma = []
+    for counterfactual in gamma
+        if isinstance(counterfactual, CounterfactualVariable):
+            for intervention in counterfactual.interventions:
+                if (intervention.name == counterfactual.name) and (intervention.star == counterfactual.star):
+                    return set(gamma) - set([counterfactual])
 
 
-def id_star_line_4(graph: NxMixedGraph, query: Probability) -> Expression:
+
+
+def id_star_line_4(graph: NxMixedGraph, query: Probability) -> Tuple[NxMixedGraph[Variable], Collection[Variable]]:
     r"""Run line 4 of the ID* algorithm
 
     Line 4 invokes make-cg to construct a counterfactual graph :math:`G'` , and the
     corresponding relabeled counterfactual :math:`\gamma'`.
+
+    :param graph: an NxMixedGraph
+    :param query: a joint distribution over counterfactual variables
+    :return: updated graph and gamma
     """
-    raise NotImplementedError
+
+    new_graph, new_gamma = make_counterfactual_graph(graph, query)
+    return new_graph, new_gamma
 
 
 def id_star_line_5(graph: NxMixedGraph, query: Probability) -> Expression:
@@ -140,7 +170,7 @@ def id_star_line_5(graph: NxMixedGraph, query: Probability) -> Expression:
     of the counterfactual graph, for example, if two variables found to be the same in
     :math:`\gamma` had different value assignments.
     """
-    raise NotImplementedError
+    return Zero()
 
 
 def id_star_line_6(graph: NxMixedGraph, query: Probability) -> Collection[Expression]:
@@ -170,23 +200,49 @@ def id_star_line_7(graph: NxMixedGraph, query: Probability) -> Collection[Expres
     raise NotImplementedError
 
 
-def id_star_line_8(graph: NxMixedGraph, query: Probability) -> Collection[Expression]:
+def id_star_line_8(graph: NxMixedGraph, query: Probability) -> bool
     r"""Run line 8 of the ID* algorithm.
 
     Line 8 says that if :math:`\gamma'` contains a "conflict," that is an inconsistent
     value assignment where at least one value is in the subscript, then we fail.
+
+    :param graph: an NxMixedGraph
+    :param query: a joint distribution over counterfactual variables
+    :return: True if there is a conflict. False otherwise
     """
-    raise NotImplementedError
+    interventions = set()
+    evidence = dict()
+    for counterfactual in query.children:
+        evidence[counterfactual.name] = counterfactual.star
+        if isinstance(counterfactual, CounterfactualVariable):
+            interventions |= set(counterfactual.interventions)
+    for intervention in interventions:
+        if (intervention.name in evidence) and evidence[intervention.name] != intervention.star:
+            return True
+    return False
 
 
-def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Collection[Expression]:
+
+
+
+def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Probability:
     r"""Run line 9 of the ID* algorithm.
 
     Line 9 says if there are no conflicts, then its safe to take the union of all
     subscripts in :math:`\gamma'` , and return the effect of the subscripts in :math:`\gamma'`
-    on the variables in :math:`\gamma'`."""
-    raise NotImplementedError
+    on the variables in :math:`\gamma'`.
 
+    :param graph: an NxMixedGraph
+    :param query: a joint distribution over counterfactual variables
+    :return: An interventional distribution.
+    """
+    interventions = set()
+    evidence = dict()
+    for counterfactual in query.children:
+        evidence[counterfactual.name] = counterfactual.star
+        if isinstance(counterfactual, CounterfactualVariable):
+            interventions |= set(counterfactual.interventions)
+    return P[interventions]([Variable(name, star=evidence[name]) for name in evidence])
 
 def idc_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
     r"""Run line 2 of the IDC* algorithm.
@@ -427,7 +483,7 @@ def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> N
 
 def to_adj(
     graph: NxMixedGraph,
-) -> tuple[list[Variable], dict[Variable, list[Variable]], dict[Variable, list[Variable]]]:
+) -> Tuple[Collection[Variable], Mapping[Variable, Collection[Variable]], Mapping[Variable, Collection[Variable]]]:
     nodes: list[Variable] = list(graph.nodes())
     directed: dict[Variable, list[Variable]] = {u: [] for u in nodes}
     undirected: dict[Variable, list[Variable]] = {u: [] for u in nodes}
