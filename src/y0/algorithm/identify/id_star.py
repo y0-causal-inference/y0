@@ -112,7 +112,7 @@ def id_star_line_1(graph: NxMixedGraph, gamma: Collection[Variable]) -> Optional
         return None
 
 
-def id_star_line_2(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expression:
+def id_star_line_2(graph: NxMixedGraph, gamma: Collection[Variable]) -> Optional[Expression]:
     r"""Run line 2 of the ID* algorithm.
 
     The second line states that if :math:`\gamma` contains a counterfactual
@@ -151,7 +151,7 @@ def id_star_line_3(graph: NxMixedGraph, gamma: Collection[Variable]) -> Optional
                 if (intervention.name == counterfactual.name) and (
                     intervention.star == counterfactual.star
                 ):
-                    return set(gamma) - set([counterfactual])
+                    return set(gamma) - {counterfactual}
     return None
 
 
@@ -252,6 +252,14 @@ def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Probability:
     return P[interventions]([Variable(name, star=evidence[name]) for name in evidence])
 
 
+# FIXME this is defined twice!
+def id_star_line_9(query: Probability) -> Expression:
+    """Gather all interventions and applies them to the varnames of outcome variables."""
+    varnames = get_varnames(query)
+    interventions = get_interventions(query)
+    return P[interventions](varnames)
+
+
 def idc_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
     r"""Run line 2 of the IDC* algorithm.
 
@@ -326,25 +334,18 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
     return estimand / Sum.safe(estimand, vertices - delta)
 
 
-def get_varnames(query: Probability) -> Collection[Variable]:
+def get_varnames(query: Probability) -> set[Variable]:
     r"""Return new Variables generated from the names of the outcome variables in the query."""
     return {Variable(outcome.name) for outcome in query.children}
 
 
-def get_interventions(query: Probability) -> Collection[Variable]:
+def get_interventions(query: Probability) -> list[Variable]:
     r"""Generate new Variables from the subscripts of counterfactual variables in the query."""
     interventions = set()
     for counterfactual in query.children:
         if isinstance(counterfactual, CounterfactualVariable):
             interventions |= set(counterfactual.interventions)
     return sorted(interventions)
-
-
-def id_star_line_9(query: Probability) -> Expression:
-    """Gather all interventions and applies them to the varnames of outcome variables."""
-    varnames = get_varnames(query)
-    interventions = get_interventions(query)
-    return P[interventions](varnames)
 
 
 def has_same_parents(graph: NxMixedGraph, node1: Variable, node2: Variable) -> bool:
@@ -370,7 +371,7 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
     return node1.name == node2.name
 
 
-def get_worlds(query: Probability) -> Collection[Collection[Variable]]:
+def get_worlds(query: Probability) -> list[list[Variable]]:
     return sorted(
         [
             sorted(_get_treatment_variables(var.get_variables()), key=lambda x: str(x))
