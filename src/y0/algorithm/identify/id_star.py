@@ -96,7 +96,7 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
 #     return -var
 
 
-def id_star_line_1(graph: NxMixedGraph, gamma: Collection[Variable]) -> Optional[Expression]:
+def id_star_line_1(graph: NxMixedGraph, gamma: Collection[Variable]) -> Optional[One]:
     r"""Run line 1 of the ID* algorithm.
 
     The first line states that if :math:`\gamma` is an empty conjunction, then its
@@ -144,15 +144,17 @@ def id_star_line_3(graph: NxMixedGraph, gamma: Collection[Variable]) -> Optional
     :param gamma: a conjunction of counterfactual variables
     :return: updated gamma or None
     """
-    new_gamma = []
     for counterfactual in gamma:
-        if isinstance(counterfactual, CounterfactualVariable):
-            for intervention in counterfactual.interventions:
-                if (intervention.name == counterfactual.name) and (
-                    intervention.star == counterfactual.star
-                ):
-                    return set(gamma) - {counterfactual}
+        if not isinstance(counterfactual, CounterfactualVariable):
+            continue
+        for intervention in counterfactual.interventions:
+            if _name_star_eq(intervention, counterfactual):
+                return set(gamma) - {counterfactual}
     return None
+
+
+def _name_star_eq(a: Variable, b: Variable) -> bool:
+    return a.name == b.name and a.star == b.star
 
 
 def id_star_line_4(
