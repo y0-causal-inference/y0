@@ -3,14 +3,13 @@
 """Implementation of the IDC algorithm."""
 
 from itertools import combinations
-from typing import Collection, Mapping, Tuple
+from typing import Collection, Mapping, Optional, Tuple
 
 from .utils import Unidentifiable
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
     CounterfactualVariable,
     Expression,
-    Intervention,
     One,
     P,
     Probability,
@@ -44,7 +43,7 @@ class Inconsistent(ValueError):
     pass
 
 
-def id_star(graph: NxMixedGraph, query: Expression) -> Expression:
+def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
     # Line 0
     if query.is_conditioned():
         raise ValueError(f"Query {query} must be unconditional")
@@ -97,7 +96,7 @@ def id_star(graph: NxMixedGraph, query: Expression) -> Expression:
 #     return -var
 
 
-def id_star_line_1(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expression:
+def id_star_line_1(graph: NxMixedGraph, gamma: Collection[Variable]) -> Optional[Expression]:
     r"""Run line 1 of the ID* algorithm.
 
     The first line states that if :math:`\gamma` is an empty conjunction, then its
@@ -131,9 +130,10 @@ def id_star_line_2(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expressi
                     intervention.star != counterfactual.star
                 ):
                     return Zero()
+    return None
 
 
-def id_star_line_3(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expression:
+def id_star_line_3(graph: NxMixedGraph, gamma: Collection[Variable]) -> Optional[set[Variable]]:
     r"""Run line 3 of the ID* algorithm.
 
     The third line states that if a counterfactual contains its own value in the subscript,
@@ -152,6 +152,7 @@ def id_star_line_3(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expressi
                     intervention.star == counterfactual.star
                 ):
                     return set(gamma) - set([counterfactual])
+    return None
 
 
 def id_star_line_4(
@@ -197,6 +198,7 @@ def id_star_line_6(graph: NxMixedGraph, query: Probability) -> Collection[Expres
     variables not in :math:`\gamma'` , that is over :math:`\mathbf{v}(G' ) \backslash \gamma'` ,
     where we interpret :math:`\gamma'` as a set of counterfactuals, rather than a conjunction.
     """
+    # TODO @jeremy ``vertices`` is not defined in this function
     return [P[vertices - district](district) for district in graph.get_c_components()]
 
 
@@ -259,6 +261,7 @@ def idc_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
     """
     delta = query.parents
     # FIXME this should be set(query.children).union(query.parents)
+    # see Probability.uncondition()
     gamma_and_delta = P(query.children + query.parents)
     return make_counterfactual_graph(graph, gamma_and_delta)
 
@@ -304,7 +307,8 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
         new_delta = {d for d in delta if d in new_query.children}
         vertices = set(new_graph.nodes())
     # Line 3:
-    except Inconsistent(f"query {gamma.union(delta)} is inconsistent"):
+    except Inconsistent:
+        # (f"query {gamma.union(delta)} is inconsistent")
         return Zero()
     # Line 4:
     for counterfactual in new_delta:
@@ -318,6 +322,7 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
     estimand = id_star(graph, new_query)
     if estimand is None:
         raise NotImplementedError
+    # TODO change to estimand.marginalize(vertices - delta)
     return estimand / Sum.safe(estimand, vertices - delta)
 
 
@@ -487,6 +492,7 @@ def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> N
     )
 
 
+# TODO unused, isn't this already implemented in NxMixedGraph?
 def to_adj(
     graph: NxMixedGraph,
 ) -> Tuple[
