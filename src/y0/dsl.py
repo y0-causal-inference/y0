@@ -605,7 +605,8 @@ class Expression(Element, ABC):
         >>> from y0.dsl import P, A, B
         >>> assert P(A, B).marginalize(A) == Sum[A](P(A, B))
         """
-        return  Sum(expression=self, ranges=_upgrade_variables(ranges))
+        return Sum(expression=self, ranges=_upgrade_variables(ranges))
+
 
 @dataclass(frozen=True, repr=False)
 class Probability(Expression):

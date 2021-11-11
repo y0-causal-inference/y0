@@ -112,6 +112,7 @@ def id_star_line_1(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expressi
     else:
         return None
 
+
 def id_star_line_2(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expression:
     r"""Run line 2 of the ID* algorithm.
 
