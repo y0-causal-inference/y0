@@ -351,7 +351,9 @@ def get_interventions(query: Probability) -> list[Variable]:
 def has_same_parents(graph: NxMixedGraph, node1: Variable, node2: Variable) -> bool:
     """Check if all parents of the two nodes are the same.
 
-    This is true if the set of directed parents are the same and either there exists a bidirected edge between the two nodes or there exists no bidirected edges for either node.
+    This is true if the set of directed parents are the same and either there
+    exists a bidirected edge between the two nodes or there exists no bidirected
+    edges for either node.
     """
     return (
         set(graph.directed.predecessors(node1)) == set(graph.directed.predecessors(node2))
@@ -384,28 +386,46 @@ def get_worlds(query: Probability) -> list[list[Variable]]:
 def lemma_24(pw_graph: NxMixedGraph, node1, node2) -> bool:
     r"""Check if two nodes in a parallel worlds graph are equivalent.
 
-    Let :math:`M` be a model inducing :math:`G` containing variables :math:`\alpha`, :math:`\beta` with the following properties:
+    Let :math:`M` be a model inducing :math:`G` containing variables
+    :math:`\alpha`, :math:`\beta` with the following properties:
 
     * :math:`\alpha` and :math:`\beta` have the same domain of values.
-    * There is a bijection :math:`f` from :math:`Pa(\alpha)` to :math:`Pa(\beta)` such that a parent  :math:`\gamma` and :math:`f(\gamma)` have the same domain of values.
-    *  The functional mechanisms of :math:`\alpha` and :math:`\beta` are the same (except whenever the function for :math:`\alpha` uses the parent  :math:`\gamma`, the corresponding function for :math:`\beta` uses :math:`f(\gamma)`).
+    * There is a bijection :math:`f` from :math:`Pa(\alpha)` to :math:`Pa(\beta)`
+      such that a parent  :math:`\gamma` and :math:`f(\gamma)` have the same domain
+      of values.
+    * The functional mechanisms of :math:`\alpha` and :math:`\beta` are the same
+      (except whenever the function for :math:`\alpha` uses the parent :math:`\gamma`,
+      the corresponding function for :math:`\beta` uses :math:`f(\gamma)`).
 
-    Assume an observable variable set :math:`\mathbf{Z}` was observed to attain values :math:`z` in :math:`M_\mathbf{x}` , the submodel obtained from :math:`M` by forcing another observable variable set :math:`\mathbf{X}` to attain values :math:`\mathbf{x}`. Assume further that for each  :math:`\gamma \in Pa(\alpha)`, either :math:`f(\gamma) =  \gamma`, or  :math:`\gamma` and :math:`f(\gamma)` attain the same values (whether by observation or intervention). Then :math:`\alpha` and :math:`\beta` are the same random variable in :math:`M_\mathbf{x}` with observations :math:`\mathbf{z}`
-
+    Assume an observable variable set :math:`\mathbf{Z}` was observed to attain values
+    :math:`z` in :math:`M_\mathbf{x}` , the submodel obtained from :math:`M` by forcing
+    another observable variable set :math:`\mathbf{X}` to attain values :math:`\mathbf{x}`.
+    Assume further that for each  :math:`\gamma \in Pa(\alpha)`, either
+    :math:`f(\gamma) =  \gamma`, or  :math:`\gamma` and :math:`f(\gamma)` attain the
+    same values (whether by observation or intervention). Then :math:`\alpha` and
+    :math:`\beta` are the same random variable in :math:`M_\mathbf{x}` with observations
+    :math:`\mathbf{z}`.
     """
-    # Rather than all n choose 2 combinations, we can restrict ourselves to the original graph variables and their counterfactual versions
+    # Rather than all n choose 2 combinations, we can restrict ourselves to the original
+    # graph variables and their counterfactual versions
     return has_same_function(node1, node2) and has_same_parents(pw_graph, node1, node2)
 
 
 def lemma_25(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGraph:
     r"""Merge node1 and node2 and return the reduced graph and query.
 
-    Let :math:`M_\mathbf{x}` be a submodel derived from :math:`M` with set :math:`\mathbf{Z}` observed to attain values :math:`\mathbf{z}`, such that Lemma 24 holds for :math:`\alpha`; :math:`\beta`. Let :math:`M'` be a causal model obtained from :math:`M` by merging :math:`\alpha`; :math:`\beta` into a new node :math:`\omega`, which inherits all parents and the functional mechanism of :math:`\alpha`. All children of :math:`\alpha`; :math:`\beta` in :math:`M'` become children of :math:`\omega`. Then :math:`M_\mathbf{x},  M'_\mathbf{x} agree on any distribution consistent with :math:`z` being observed.
-
+    Let :math:`M_\mathbf{x}` be a submodel derived from :math:`M` with set :math:`\mathbf{Z}`
+    observed to attain values :math:`\mathbf{z}`, such that Lemma 24 holds for :math:`\alpha`;
+    :math:`\beta`. Let :math:`M'` be a causal model obtained from :math:`M` by merging
+    :math:`\alpha`; :math:`\beta` into a new node :math:`\omega`, which inherits all parents
+    and the functional mechanism of :math:`\alpha`. All children of
+    :math:`\alpha`; :math:`\beta` in :math:`M'` become children of :math:`\omega`. Then
+    :math:`M_\mathbf{x},  M'_\mathbf{x} agree on any distribution consistent with :math:`z`
+    being observed.
     """
     if isinstance(node1, CounterfactualVariable) and not isinstance(node2, CounterfactualVariable):
         node1, node2 = node2, node1
-    elif (not isinstance(node1, CounterfactualVariable)) and isinstance(
+    elif not isinstance(node1, CounterfactualVariable) and isinstance(
         node2, CounterfactualVariable
     ):
         pass
