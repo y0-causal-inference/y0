@@ -585,17 +585,27 @@ class Expression(Element, ABC):
         else:
             return Fraction(self, expression)
 
-    def marginalize(self, ranges: VariableHint) -> Fraction:
-        """Return this expression, marginalized by the given variables.
+    def conditional(self, ranges: VariableHint) -> Fraction:
+        """Return this expression, conditioned by the given variables.
 
         :param ranges: A variable or list of variables over which to marginalize this expression
         :returns: A fraction in which the denominator is represents the sum over the given ranges
 
         >>> from y0.dsl import P, A, B
-        >>> assert P(A, B).marginalize(A) == P(A, B) / Sum[A](P(A, B))
+        >>> assert P(A, B).conditional(A) == P(A, B) / Sum[A](P(A, B))
         """
         return Fraction(self, Sum(expression=self, ranges=_upgrade_variables(ranges)))
 
+    def marginalize(self, ranges: VariableHint) -> Fraction:
+        """Return this expression, marginalizing out the given variables.
+
+        :param ranges: A variable or list of variables over which to marginalize this expression
+        :returns: A fraction in which the denominator is represents the sum over the given ranges
+
+        >>> from y0.dsl import P, A, B
+        >>> assert P(A, B).marginalize(A) == Sum[A](P(A, B))
+        """
+        return  Sum(expression=self, ranges=_upgrade_variables(ranges))
 
 @dataclass(frozen=True, repr=False)
 class Probability(Expression):

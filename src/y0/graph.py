@@ -431,7 +431,7 @@ def _include_adjacent(
 
 def _exclude_source(
     graph: nx.Graph, vertices: set[Variable]
-) -> Collection[Tuple[Variable, Variable]]:
+) -> Collection[Tuple[Variable, Variable]]:d
     return [(u, v) for u, v in graph.edges() if u not in vertices]
 
 

@@ -3,8 +3,9 @@
 """Implementation of the IDC algorithm."""
 
 from itertools import combinations
-from typing import Collection, Tuple, Mapping
+from typing import Collection, Mapping, Tuple
 
+from .utils import Unidentifiable
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
     CounterfactualVariable,
@@ -43,20 +44,20 @@ class Inconsistent(ValueError):
     pass
 
 
-def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
+def id_star(graph: NxMixedGraph, query: Expression) -> Expression:
     # Line 0
     if query.is_conditioned():
         raise ValueError(f"Query {query} must be unconditional")
     gamma = set(query.children)
     # Line 1
 
-    if id_star_line_1(graph, query) is not None:
+    if id_star_line_1(graph, gamma) is not None:
         return One()
     # Line 2: This violates the Axiom of Effectiveness
-    if id_star_line_2(graph, query) is not None:
+    if id_star_line_2(graph, gamma) is not None:
         return Zero()
     # Line 3: This is a tautological event and can be removed without affecting the probability
-    new_query = id_star_line_3(graph, query):
+    new_query = id_star_line_3(graph, gamma)
     if new_query is not None:
         return id_star(graph, new_query)
 
@@ -81,21 +82,22 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
     else:
         # Line 8 is syntactically impossible with the dsl
         if id_star_line_8(new_graph, new_query):
-            raise Fails
+            raise Unidentifiable
         else:
             # Line 9
             return id_star_line_9(new_graph, new_query)
 
 
-def get_val(counterfactual: CounterfactualVariable, graph: NxMixedGraph) -> Intervention:
-    var = Variable(counterfactual.name)
-    for intervention in counterfactual.interventions:
-        if Variable(intervention.name) in graph.ancestors_inclusive(var):
-            if intervention.star:
-                return ~var
-    return -var
+# def get_val(counterfactual: CounterfactualVariable, graph: NxMixedGraph) -> Intervention:
+#     var = Variable(counterfactual.name)
+#     for intervention in counterfactual.interventions:
+#         if Variable(intervention.name) in graph.ancestors_inclusive(var):
+#             if intervention.star:
+#                 return ~var
+#     return -var
 
-def id_star_line_1(graph: NxMixedGraph, query: Probability) -> Expression:
+
+def id_star_line_1(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expression:
     r"""Run line 1 of the ID* algorithm.
 
     The first line states that if :math:`\gamma` is an empty conjunction, then its
@@ -105,9 +107,10 @@ def id_star_line_1(graph: NxMixedGraph, query: Probability) -> Expression:
     :param gamma: a conjunction of counterfactual variables
     :return: One() or None
     """
-    if len(query.children) == 0:
+    if len(gamma) == 0:
         return One()
-
+    else:
+        return None
 
 def id_star_line_2(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expression:
     r"""Run line 2 of the ID* algorithm.
@@ -123,7 +126,9 @@ def id_star_line_2(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expressi
     for counterfactual in gamma:
         if isinstance(counterfactual, CounterfactualVariable):
             for intervention in counterfactual.interventions:
-                if (intervention.name == counterfactual.name) and (intervention.star != counterfactual.star):
+                if (intervention.name == counterfactual.name) and (
+                    intervention.star != counterfactual.star
+                ):
                     return Zero()
 
 
@@ -139,16 +144,18 @@ def id_star_line_3(graph: NxMixedGraph, gamma: Collection[Variable]) -> Expressi
     :return: updated gamma or None
     """
     new_gamma = []
-    for counterfactual in gamma
+    for counterfactual in gamma:
         if isinstance(counterfactual, CounterfactualVariable):
             for intervention in counterfactual.interventions:
-                if (intervention.name == counterfactual.name) and (intervention.star == counterfactual.star):
+                if (intervention.name == counterfactual.name) and (
+                    intervention.star == counterfactual.star
+                ):
                     return set(gamma) - set([counterfactual])
 
 
-
-
-def id_star_line_4(graph: NxMixedGraph, query: Probability) -> Tuple[NxMixedGraph[Variable], Collection[Variable]]:
+def id_star_line_4(
+    graph: NxMixedGraph, query: Probability
+) -> Tuple[NxMixedGraph, Collection[Variable]]:
     r"""Run line 4 of the ID* algorithm
 
     Line 4 invokes make-cg to construct a counterfactual graph :math:`G'` , and the
@@ -200,7 +207,7 @@ def id_star_line_7(graph: NxMixedGraph, query: Probability) -> Collection[Expres
     raise NotImplementedError
 
 
-def id_star_line_8(graph: NxMixedGraph, query: Probability) -> bool
+def id_star_line_8(graph: NxMixedGraph, query: Probability) -> bool:
     r"""Run line 8 of the ID* algorithm.
 
     Line 8 says that if :math:`\gamma'` contains a "conflict," that is an inconsistent
@@ -222,9 +229,6 @@ def id_star_line_8(graph: NxMixedGraph, query: Probability) -> bool
     return False
 
 
-
-
-
 def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Probability:
     r"""Run line 9 of the ID* algorithm.
 
@@ -243,6 +247,7 @@ def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Probability:
         if isinstance(counterfactual, CounterfactualVariable):
             interventions |= set(counterfactual.interventions)
     return P[interventions]([Variable(name, star=evidence[name]) for name in evidence])
+
 
 def idc_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
     r"""Run line 2 of the IDC* algorithm.
@@ -483,7 +488,11 @@ def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> N
 
 def to_adj(
     graph: NxMixedGraph,
-) -> Tuple[Collection[Variable], Mapping[Variable, Collection[Variable]], Mapping[Variable, Collection[Variable]]]:
+) -> Tuple[
+    Collection[Variable],
+    Mapping[Variable, Collection[Variable]],
+    Mapping[Variable, Collection[Variable]],
+]:
     nodes: list[Variable] = list(graph.nodes())
     directed: dict[Variable, list[Variable]] = {u: [] for u in nodes}
     undirected: dict[Variable, list[Variable]] = {u: [] for u in nodes}

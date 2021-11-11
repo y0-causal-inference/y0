@@ -51,6 +51,7 @@ class TestDSL(unittest.TestCase):
             msg=f"\nExpected: {expression.to_y0()}\nActual:   {reconstituted.to_y0()}",
         )
 
+
     def assert_text(self, s: str, expression: Element):
         """Assert the expression when it is converted to a string."""
         self.assertIsInstance(s, str)
@@ -136,11 +137,16 @@ class TestDSL(unittest.TestCase):
             with self.subTest(a=a, b=b), self.assertRaises(ValueError):
                 Y @ Intervention("X", star=a) @ Intervention("X", star=b)
 
+    def test_marginal_distribution(self):
+        """Test that marginals also work"""
+        self.assert_text( '[ sum_{A} P(A, B) ]', P(A, B).marginalize(A))
+
     def test_conditional_distribution(self):
         """Test the :class:`Distribution` DSL object."""
         # Normal instantiation
         self.assert_text("A | B", Distribution((A,), (B,)))
 
+        self.assert_text('frac_{P(A, B)}{[ sum_{A} P(A, B) ]}', P(A, B).conditional(A))
         # Instantiation with list-based operand to or | operator
         self.assert_text("A | B", Variable("A") | (B,))
         self.assert_text("A | B", A | (B,))
