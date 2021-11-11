@@ -102,4 +102,4 @@ def bayes_expand(p: Probability) -> Fraction:
 
     .. note:: This expansion will create a different but equal expression to :func:`fraction_expand`.
     """
-    return p.uncondition().marginalize(p.children)
+    return p.uncondition().conditional(p.children)
