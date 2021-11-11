@@ -345,18 +345,18 @@ def get_interventions(query: Probability) -> list[Variable]:
     return sorted(interventions)
 
 
-def has_same_parents(graph: NxMixedGraph, node1: Variable, node2: Variable) -> bool:
+# TODO update the docs: is this generally applicable, or only to graphs
+#  constructed as parallel worlds? perhaps update the name?
+def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
     """Check if all parents of the two nodes are the same.
 
     This is true if the set of directed parents are the same and either there
     exists a bidirected edge between the two nodes or there exists no bidirected
     edges for either node.
     """
-    return (
-        set(graph.directed.predecessors(node1)) == set(graph.directed.predecessors(node2))
-    ) and (
-        graph.undirected.has_edge(node1, node2)
-        or ((len(graph.undirected.edges(node1)) == 0) and len(graph.undirected.edges(node2)) == 0)
+    return (set(graph.directed.predecessors(a)) == set(graph.directed.predecessors(b))) and (
+        graph.undirected.has_edge(a, b)
+        or (0 == len(graph.undirected.edges(a)) == len(graph.undirected.edges(b)))
     )
 
 
