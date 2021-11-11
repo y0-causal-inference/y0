@@ -335,6 +335,55 @@ class TestDSL(unittest.TestCase):
                 self.assertEqual(variables, expression.get_variables())
 
 
+class TestCounterfactual(unittest.TestCase):
+    """Tests for counterfactuals."""
+
+    def test_default_dsl(self):
+        """Check DSL semantics."""
+        # FIXME
+        self.assertEqual(X @ X, X @ -X)
+        self.assertEqual(X @ ~X, X @ +X)
+        self.assertEqual(-X @ X, X @ -X)
+        self.assertEqual(-X @ ~X, X @ +X)
+        self.assertEqual(-X @ X, -X @ -X)
+        self.assertEqual(-X @ ~X, -X @ +X)
+
+    def test_has_tautology(self):
+        """Check for tautologies."""
+        for expr, status in [
+            # Sanity checks
+            (X @ Y, False),
+            (X @ ~Y, False),
+            (~X @ Y, False),
+            (~X @ ~Y, False),
+            (X @ ~X, False),
+            (~X @ X, False),
+            #
+            (X @ X, False),
+            (X @ +X, False),
+            (X @ -X, True),
+            (X @ ~X, True),
+            #
+            (+X @ X, True),
+            (+X @ +X, True),
+            (+X @ -X, False),
+            (+X @ ~X, False),
+            #
+            (-X @ X, False),
+            (-X @ +X, False),
+            (-X @ -X, True),
+            (-X @ ~X, True),
+            #
+            (~X @ X, False),
+            (~X @ +X, False),
+            (~X @ -X, True),
+            (~X @ ~X, True),
+        ]:
+            with self.subTest(expr=expr.to_y0()):
+                self.assertIsInstance(expr, CounterfactualVariable)
+                self.assertEqual(status, expr.has_tautology())
+
+
 class TestSafeConstructors(unittest.TestCase):
     """Test that the .safe() constructors work properly."""
 
