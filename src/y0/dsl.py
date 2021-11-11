@@ -352,6 +352,13 @@ class CounterfactualVariable(Variable):
             ins = ", ".join(i.to_y0() for i in self.interventions)
             return f"{prefix}{self.name} @ ({ins})"
 
+    def has_tautology(self) -> bool:
+        """Return if any of the interventions are on the same variable/value."""
+        return any(
+            self.name == i.name and self.star == i.star
+            for i in self.interventions
+        )
+
     def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this counterfactual variable with the given variable(s).
 
