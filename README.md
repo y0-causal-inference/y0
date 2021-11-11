@@ -60,7 +60,8 @@ It can also be used to manipulate expressions:
 ```python
 from y0.dsl import P, A, B, Sum
 
-P(A, B).marginalize(A) == P(A, B) / Sum[A](P(A, B))
+P(A, B).marginalize(A) == Sum[A](P(A, B))
+P(A, B).conditional(A) == P(A, B) / Sum[A](P(A, B))
 ```
 
 DSL objects can be converted into strings with `str()` and parsed back

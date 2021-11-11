@@ -24,7 +24,7 @@ def idc(identification: Identification) -> Expression:
             return idc(identification.exchange_observation_with_action(condition))
 
     # Run ID algorithm
-    return identify(identification.uncondition()).marginalize(identification.outcomes)
+    return identify(identification.uncondition()).conditional(identification.outcomes)
 
 
 def rule_2_of_do_calculus_applies(identification: Identification, condition: Variable) -> bool:
