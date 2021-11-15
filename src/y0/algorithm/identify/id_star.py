@@ -62,7 +62,7 @@ def id_star(graph: NxMixedGraph, query: Probability) -> Expression:
 
     # Line 4:
     try:
-        new_graph, new_query = id_star_line_4(graph, query)
+        new_graph, new_query = id_star_line_4(graph, gamma)
         vertices = set(new_graph.nodes())
         new_gamma = set(new_query.children)
     # Line 5:
@@ -126,14 +126,18 @@ def id_star_line_2(graph: NxMixedGraph, gamma: Collection[Variable]) -> Optional
     for counterfactual in gamma:
         if isinstance(counterfactual, CounterfactualVariable):
             for intervention in counterfactual.interventions:
-                if (intervention.name == counterfactual.name) and (
-                    intervention.star != counterfactual.star
+                if (
+                    (intervention.name == counterfactual.name)
+                    and (counterfactual.star is not None)
+                    and (intervention.star != counterfactual.star)
                 ):
                     return Zero()
     return None
 
 
-def id_star_line_3(graph: NxMixedGraph, gamma: Collection[Variable]) -> Optional[set[Variable]]:
+def id_star_line_3(
+    graph: NxMixedGraph, gamma: Collection[Variable]
+) -> Optional[Collection[Variable]]:
     r"""Run line 3 of the ID* algorithm.
 
     The third line states that if a counterfactual contains its own value in the subscript,
@@ -158,7 +162,7 @@ def _name_star_eq(a: Variable, b: Variable) -> bool:
 
 
 def id_star_line_4(
-    graph: NxMixedGraph, query: Probability
+    graph: NxMixedGraph, gamma: Collection[Variable]
 ) -> Tuple[NxMixedGraph, Collection[Variable]]:
     r"""Run line 4 of the ID* algorithm
 
@@ -166,11 +170,11 @@ def id_star_line_4(
     corresponding relabeled counterfactual :math:`\gamma'`.
 
     :param graph: an NxMixedGraph
-    :param query: a joint distribution over counterfactual variables
+    :param gamma: a conjunction of counterfactual variables
     :return: updated graph and gamma
     """
 
-    new_graph, new_gamma = make_counterfactual_graph(graph, query)
+    new_graph, new_gamma = make_counterfactual_graph(graph, P(*gamma))
     return new_graph, new_gamma
 
 
@@ -331,12 +335,12 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
     return estimand.marginalize(vertices - delta)
 
 
-def get_varnames(query: Probability) -> set[Variable]:
+def get_varnames(query: Probability) -> Collection[Variable]:
     r"""Return new Variables generated from the names of the outcome variables in the query."""
     return {Variable(outcome.name) for outcome in query.children}
 
 
-def get_interventions(query: Probability) -> list[Variable]:
+def get_interventions(query: Probability) -> Collection[Variable]:
     r"""Generate new Variables from the subscripts of counterfactual variables in the query."""
     interventions = set()
     for counterfactual in query.children:
@@ -370,7 +374,7 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
     return node1.name == node2.name
 
 
-def get_worlds(query: Probability) -> list[list[Variable]]:
+def get_worlds(query: Probability) -> Collection[Collection[Variable]]:
     return sorted(
         [
             sorted(_get_treatment_variables(var.get_variables()), key=lambda x: str(x))

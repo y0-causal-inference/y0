@@ -37,6 +37,7 @@ from y0.dsl import (
     X,
     Y,
     Z,
+    Zero,
     get_outcomes_and_treatments,
 )
 from y0.examples import (
@@ -189,13 +190,43 @@ class TestIdentifyStar(unittest.TestCase):
 
     def test_id_star_line_1(self):
         """Check if gamma is empty"""
-        self.assert_expr_equal(One(), id_star_line_1(graph=figure_9a.graph, gamma=[]))
+        self.assertEqual(One(), id_star_line_1(graph=figure_9a.graph, gamma=[]))
+
+    def test_id_star_line_2(self):
+        """Check to see if the counterfactual event violates the Axiom of Effectiveness."""
+        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, gamma=[~~X @ ~X]))
+        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, gamma=[~X @ X]))
+        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, gamma=[~X @ (Y, Z, X)]))
+        self.assertEqual(
+            Zero(), id_star_line_2(graph=figure_9a.graph, gamma=[~X @ (X, Z), Y @ (X, ~Y)])
+        )
+        self.assertEqual(
+            Zero(),
+            id_star_line_2(
+                graph=figure_9a.graph, gamma=[~~Y @ X, ~X @ X, ~Y @ X, ~Y @ ~X, ~~Y @ ~X]
+            ),
+        )
+        self.assertIsNone(id_star_line_2(graph=figure_9a.graph, gamma=[~~X @ X]))
+        self.assertIsNone(id_star_line_2(graph=figure_9a.graph, gamma=[~X @ ~X]))
+        self.assertIsNone(
+            id_star_line_2(
+                graph=figure_9a.graph, gamma=[~~X @ X, ~~Y @ X, ~Y @ X, ~Y @ ~X, Y @ ~X, ~X @ ~X]
+            )
+        )
 
     def test_id_star_line_3(self):
         """Check to see if the counterfactual event is tautological."""
+        self.assertEqual(set(), id_star_line_3(graph=figure_9a.graph, gamma=[~~X @ X]))
+        self.assertEqual(
+            set([~~Y @ X]), id_star_line_3(graph=figure_9a.graph, gamma=[~~Y @ X, ~~X @ X])
+        )
+        self.assertIsNone(id_star_line_3(graph=figure_9a.graph, gamma=[~~Y @ X, ~~X @ ~X]))
 
     def test_id_star_line_4(self):
         """Check that the counterfactual graph is correct."""
+        new_graph, new_gamma = id_star_line_4(graph=figure_9a.graph, gamma=[Y @ ~X, X, Z @ D, D])
+        self.assert_graph_equal(figure_9c.graph, new_graph)
+        self.assert_expr_equal(P(Y @ ~X, X, Z, D), new_gamma)
 
     def test_id_star_line_5(self):
         """Check whether the query is inconsistent with the counterfactual graph."""
