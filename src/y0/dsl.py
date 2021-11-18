@@ -353,9 +353,21 @@ class CounterfactualVariable(Variable):
             return f"{prefix}{self.name} @ ({ins})"
 
     def has_tautology(self) -> bool:
-        """Return if any of the interventions are on the same variable/value."""
+        """Does the counterfactual variable contain its own value in the subscript?
+
+        :returns: True if we force a variable X to have a value x and the resulting value of X is x.
+        """
         return any(
             self.name == i.name and self.star == i.star
+            for i in self.interventions
+        )
+    def is_inconsistent(self) -> bool:
+        """Does the counterfactual variable violate the Axiom of Effectiveness?.
+
+        :returns: True if we force a variable X to have a value x and the resulting value of X is not x
+"""
+        return any(
+            self.name == i.name and self.star != i.star
             for i in self.interventions
         )
 
