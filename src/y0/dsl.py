@@ -345,7 +345,12 @@ class CounterfactualVariable(Variable):
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
-        prefix = "~" if self.star else ""
+        if self.star is None:
+            prefix = ""
+        elif self.star:
+            prefix = "+"
+        else:
+            prefix = "-"
         if len(self.interventions) == 1:
             return f"{prefix}{self.name} @ {self.interventions[0].to_y0()}"
         else:
