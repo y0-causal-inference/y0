@@ -402,19 +402,19 @@ class TestCounterfactual(unittest.TestCase):
             (~X @ Y, False),
             (~X @ ~Y, False),
             # Same variable, self.star is False
-            (-X @ X, False),
-            (-X @ +X, False),
+            (-X @ X, True),
             (-X @ -X, True),
-            (-X @ ~X, True),
+            (-X @ +X, False),
+            (-X @ ~X, False),
             # Same variable, self.star is True
-            (+X @ X, True),
-            (+X @ +X, True),
+            (+X @ X, False),
             (+X @ -X, False),
-            (+X @ ~X, False),
+            (+X @ +X, True),
+            (+X @ ~X, True),
             # Same variable, self.star is True
             (~X @ X, False),
-            (~X @ +X, False),
-            (~X @ -X, True),
+            (~X @ -X, False),
+            (~X @ +X, True),
             (~X @ ~X, True),
         ]:
             with self.subTest(expr=expr.to_y0()):
