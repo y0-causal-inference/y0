@@ -419,7 +419,35 @@ class TestCounterfactual(unittest.TestCase):
         ]:
             with self.subTest(expr=expr.to_y0()):
                 self.assertIsInstance(expr, CounterfactualVariable)
+                self.assertTrue(expr.is_event())
                 self.assertEqual(status, expr.has_tautology())
+
+    def test_inconsistent(self):
+        """Check for tautologies."""
+        for expr, status in [
+            # Different Variable
+            (~X @ Y, False),
+            (~X @ ~Y, False),
+            # Same variable, self.star is False
+            (-X @ X, False),
+            (-X @ -X, False),
+            (-X @ +X, True),
+            (-X @ ~X, True),
+            # Same variable, self.star is True
+            (+X @ X, True),
+            (+X @ -X, True),
+            (+X @ +X, False),
+            (+X @ ~X, False),
+            # Same variable, self.star is True
+            (~X @ X, True),
+            (~X @ -X, True),
+            (~X @ +X, False),
+            (~X @ ~X, False),
+        ]:
+            with self.subTest(expr=expr.to_y0()):
+                self.assertIsInstance(expr, CounterfactualVariable)
+                self.assertTrue(expr.is_event())
+                self.assertEqual(status, expr.is_inconsistent())
 
 
 class TestSafeConstructors(unittest.TestCase):
