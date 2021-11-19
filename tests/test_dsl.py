@@ -338,42 +338,59 @@ class TestDSL(unittest.TestCase):
 class TestCounterfactual(unittest.TestCase):
     """Tests for counterfactuals."""
 
-    def test_default_dsl(self):
+    def test_event_semantics(self):
         """Check DSL semantics."""
-        # FIXME
-        self.assertEqual(X @ X, X @ -X)
-        self.assertEqual(X @ ~X, X @ +X)
-        self.assertEqual(-X @ X, X @ -X)
-        self.assertEqual(-X @ ~X, X @ +X)
-        self.assertEqual(-X @ X, -X @ -X)
-        self.assertEqual(-X @ ~X, -X @ +X)
+        for expr, counterfactual_star, intervention_star in [
+            (X @ X, None, False),
+            (-X @ X, False, False),
+            (+X @ X, True, False),
+            (~X @ X, True, False),
+        ]:
+            with self.subTest(expr=expr.to_y0()):
+                self.assertIsInstance(expr, CounterfactualVariable)
+                self.assertEqual(counterfactual_star, expr.star)
+                self.assertEqual(1, len(expr.interventions))
+                self.assertEqual(intervention_star, expr.interventions[0].star)
 
-    def test_has_tautology(self):
+    def test_event_failures(self):
+        """Check for failure to determine tautology/inconsistent."""
+        for expr in [
+            # Opposite variable
+            X @ Y,
+            X @ +Y,
+            X @ -Y,
+            X @ ~Y,
+            # Same variable
+            X @ X,
+            X @ +X,
+            X @ -X,
+            X @ ~X,
+        ]:
+            with self.subTest(expr=expr.to_y0()):
+                self.assertIsInstance(expr, CounterfactualVariable)
+                self.assertFalse(expr.is_event())
+                with self.assertRaises(ValueError):
+                    expr.has_tautology()
+                with self.assertRaises(ValueError):
+                    expr.is_inconsistent()
+
+    def test_tautology(self):
         """Check for tautologies."""
         for expr, status in [
-            # Sanity checks
-            (X @ Y, False),
-            (X @ ~Y, False),
+            # Different Variable
             (~X @ Y, False),
             (~X @ ~Y, False),
-            (X @ ~X, False),
-            (~X @ X, False),
-            #
-            (X @ X, False),
-            (X @ +X, False),
-            (X @ -X, True),
-            (X @ ~X, True),
-            #
-            (+X @ X, True),
-            (+X @ +X, True),
-            (+X @ -X, False),
-            (+X @ ~X, False),
-            #
+            # Same variable, self.star is False
             (-X @ X, False),
             (-X @ +X, False),
             (-X @ -X, True),
             (-X @ ~X, True),
-            #
+            # Same variable, self.star is True
+            (+X @ X, True),
+            (+X @ +X, True),
+            (+X @ -X, False),
+            (+X @ ~X, False),
+            # Same variable, self.star is True
             (~X @ X, False),
             (~X @ +X, False),
             (~X @ -X, True),
