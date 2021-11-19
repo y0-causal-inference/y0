@@ -119,13 +119,34 @@ class TestDSL(unittest.TestCase):
     def test_star_counterfactual(self):
         """Tests for generalized counterfactual variables."""
         for expr, expected in [
+            # Single variable
             (P(Y @ X), "P(Y @ X)"),
-            (P(~Y @ X), "P(~Y @ X)"),
+            (P(Y @ -X), "P(Y @ X)"),
             (P(Y @ ~X), "P(Y @ ~X)"),
-            (P(~Y @ ~X), "P(~Y @ ~X)"),
+            (P(Y @ +X), "P(Y @ ~X)"),
+            #
+            (P(-Y @ X), "P(-Y @ X)"),
+            (P(-Y @ -X), "P(-Y @ X)"),
+            (P(-Y @ ~X), "P(-Y @ ~X)"),
+            (P(-Y @ +X), "P(-Y @ ~X)"),
+            #
+            (P(~Y @ X), "P(+Y @ X)"),
+            (P(~Y @ -X), "P(+Y @ X)"),
+            (P(~Y @ ~X), "P(+Y @ ~X)"),
+            (P(~Y @ +X), "P(+Y @ ~X)"),
+            #
+            (P(+Y @ X), "P(+Y @ X)"),
+            (P(+Y @ -X), "P(+Y @ X)"),
+            (P(+Y @ ~X), "P(+Y @ ~X)"),
+            (P(+Y @ +X), "P(+Y @ ~X)"),
+            #
             (P(Y @ X | ~X, ~Y), "P(Y @ X | ~X, ~Y)"),
-            (P(~(Y @ ~X) | X, Y), "P(~Y @ ~X | X, Y)"),
-            (P(~Y @ ~X | X, Y), "P(~Y @ ~X | X, Y)"),  # should be same as above
+            (P(Y @ -X | ~X, ~Y), "P(Y @ X | ~X, ~Y)"),
+            (P(Y @ +X | ~X, ~Y), "P(Y @ ~X | ~X, ~Y)"),
+            (P(Y @ ~X | ~X, ~Y), "P(Y @ ~X | ~X, ~Y)"),
+            #
+            (P(~(Y @ ~X) | X, Y), "P(+Y @ ~X | X, Y)"),
+            (P(~Y @ ~X | X, Y), "P(+Y @ ~X | X, Y)"),  # should be same as above
         ]:
             with self.subTest(expr=expected):
                 self.assert_exp(expr, expected)
