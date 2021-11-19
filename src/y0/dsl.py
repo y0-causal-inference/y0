@@ -352,13 +352,17 @@ class CounterfactualVariable(Variable):
             ins = ", ".join(i.to_y0() for i in self.interventions)
             return f"{prefix}{self.name} @ ({ins})"
 
+    def is_event(self) -> bool:
+        """Return if the counterfactual variable has a value."""
+        return self.star is not None
+
     def has_tautology(self) -> bool:
         """Return if the counterfactual variable contain its own value in the subscript.
 
         :returns: True if we force a variable X to have a value x and the resulting value of X is x.
         :raises ValueError: if the counterfactual value doesn't have a value assigned
         """
-        if self.star is None:
+        if not self.is_event():
             raise ValueError(
                 "Can not determine the consistency of a counterfactual variable with no value assigned."
             )
@@ -370,7 +374,7 @@ class CounterfactualVariable(Variable):
         :returns: True if we force a variable X to have a value x and the resulting value of X is not x
         :raises ValueError: if the counterfactual value doesn't have a value assigned
         """
-        if self.star is None:
+        if not self.is_event():
             raise ValueError(
                 "Can not determine the consistency of a counterfactual variable with no value assigned."
             )
