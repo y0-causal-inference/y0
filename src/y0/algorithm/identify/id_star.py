@@ -151,14 +151,11 @@ def id_star_line_3(
     for counterfactual in gamma:
         if not isinstance(counterfactual, CounterfactualVariable):
             continue
-        for intervention in counterfactual.interventions:
-            if _name_star_eq(intervention, counterfactual):
-                return set(gamma) - {counterfactual}
+        if counterfactual.is_event() and counterfactual.has_tautology():
+            # TODO is it possible that more than one counterfactual in gamma
+            # are tautological events?
+            return set(gamma) - {counterfactual}
     return None
-
-
-def _name_star_eq(a: Variable, b: Variable) -> bool:
-    return a.name == b.name and a.star == b.star
 
 
 def id_star_line_4(
