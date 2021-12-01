@@ -2,10 +2,13 @@
 
 """Predicates for expressions."""
 
-from .dsl import Expression, Fraction, Probability, Product, Sum
+from .dsl import Expression, Fraction, Probability, Product, Sum, Variable
+from .graph import NxMixedGraph
 
 __all__ = [
     "has_markov_postcondition",
+    "is_good_control",
+    "is_bad_control",
 ]
 
 
@@ -28,3 +31,26 @@ def has_markov_postcondition(expression: Expression) -> bool:
         )
     else:
         raise TypeError
+
+
+def _control_precondition(graph: NxMixedGraph, query: Probability, variable: Variable):
+    if missing := query.get_variables().difference(graph.nodes()):
+        raise ValueError(f"Query variables missing: {missing}")
+    if variable not in graph.nodes():
+        raise ValueError(f"Test variable missing: {variable}")
+    # TODO does this need to be extended to check that the
+    #  query and variable aren't counterfactual?
+
+
+def is_good_control(graph: NxMixedGraph, query: Probability, variable: Variable) -> bool:
+    """Return if the variable is a good control."""
+    _control_precondition(graph, query, variable)
+
+    raise NotImplementedError
+
+
+def is_bad_control(graph: NxMixedGraph, query: Probability, variable: Variable) -> bool:
+    """Return if the variable is a good control."""
+    _control_precondition(graph, query, variable)
+
+    raise NotImplementedError
