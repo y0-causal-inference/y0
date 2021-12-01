@@ -4,7 +4,7 @@
 
 import unittest
 
-from y0.dsl import M, P, U1, U2, Variable, X, Y, Z
+from y0.dsl import U1, U2, M, P, Variable, X, Y, Z
 from y0.graph import NxMixedGraph
 from y0.predicates import is_bad_control, is_good_control
 
