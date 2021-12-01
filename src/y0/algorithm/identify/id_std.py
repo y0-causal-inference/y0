@@ -14,6 +14,17 @@ def identify(identification: Identification) -> Expression:
     :param identification: The identification tuple
     :returns: the expression corresponding to the identification
     :raises Unidentifiable: If no appropriate identification can be found
+
+    If you have an instance of a :class:`y0.graph.NxMixedGraph` and a
+    query as an instance of a :class:`y0.dsl.Probability`, use the following:
+
+    .. code-block:: python
+
+        from y0.algorithm.identify import identify, Identification
+        graph = ...
+        query = ...
+        identification = Identification.from_expression(graph=graph, query=query)
+        estimand = identify(identification)
     """
     graph = identification.graph
     treatments = identification.treatments
