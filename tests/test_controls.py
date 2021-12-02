@@ -5,11 +5,8 @@
 import unittest
 
 from y0.controls import is_bad_control, is_good_control
-from y0.dsl import U1, U2, M, P, Variable, X, Y, Z
+from y0.dsl import U1, U2, M, P, U, W, X, Y, Z
 from y0.graph import NxMixedGraph
-
-U = Variable("U")
-query = P(Y @ X)
 
 model_1 = NxMixedGraph.from_edges(directed=[(Z, X), (Z, Y), (X, Y)])
 model_2 = NxMixedGraph.from_edges(directed=[(U, Z), (Z, X), (X, Y), (U, Y)])
@@ -27,18 +24,18 @@ good_test_models = [
     model_6,
 ]
 
-# M-bias
+# bad control, M-bias
 model_7 = NxMixedGraph.from_edges(directed=[(U1, Z), (U2, Z), (U1, X), (U2, Y), (X, Y)])
-# Bias amplification
+# bad control, Bias amplification
 model_10 = NxMixedGraph.from_edges(directed=[(Z, X), (U, X), (U, Y), (X, Y)])
-#
+# bad control
 model_11 = NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)])
 model_11_variation = NxMixedGraph.from_edges(directed=[(X, Z), (U, Z), (Z, Y), (U, Y)])
 model_12 = NxMixedGraph.from_edges(directed=[(X, M), (M, Y), (M, Z)])
-# Selection bias
+# bad control, Selection bias
 model_16 = NxMixedGraph.from_edges(directed=[(X, Z), (U, Z), (U, Y), (X, Y)])
 model_17 = NxMixedGraph.from_edges(directed=[(X, Z), (Y, Z), (X, Y)])
-# case-control bias
+# bad control, case-control bias
 model_18 = NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)])
 
 bad_test_models = [
@@ -52,6 +49,24 @@ bad_test_models = [
     model_18,
 ]
 
+# neutral control, possibly good for precision
+model_8 = NxMixedGraph.from_edges(directed=[(X, Y), (Z, Y)])
+# neutral control, possibly bad for precision
+model_9 = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)])
+# neutral control, possibly good for precision
+model_13 = NxMixedGraph.from_edges(directed=[(X, W), (Z, W), (W, Y)])
+# neutral control, possibly helpful in the case of selection bias
+model_14 = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z)])
+model_15 = NxMixedGraph.from_edges(directed=[(X, Z), (Z, W), (X, Y), (U, W), (U, Y)])
+
+neutral_test_models = [
+    model_8,
+    model_9,
+    model_13,
+    model_14,
+    model_15,
+]
+
 
 class TestControls(unittest.TestCase):
     """Test case for good, bad, and neutral controls."""
@@ -60,20 +75,16 @@ class TestControls(unittest.TestCase):
         """Test good controls."""
         for model in good_test_models:
             with self.subTest():
-                self.assertTrue(is_good_control(model, query, Z))
-        for model in bad_test_models:
+                self.assertTrue(is_good_control(model, P(Y @ X), Z))
+        for model in bad_test_models + neutral_test_models:
             with self.subTest():
-                self.assertFalse(is_good_control(model, query, Z))
-
-        # TODO need alternative negative examples
+                self.assertFalse(is_good_control(model, P(Y @ X), Z))
 
     def test_bad_controls(self):
         """Test bad controls."""
-        for model in good_test_models:
+        for model in good_test_models + neutral_test_models:
             with self.subTest():
-                self.assertFalse(is_bad_control(model, query, Z))
+                self.assertFalse(is_bad_control(model, P(Y @ X), Z))
         for model in bad_test_models:
             with self.subTest():
-                self.assertTrue(is_bad_control(model, query, Z))
-
-        # TODO need alternative negative examples
+                self.assertTrue(is_bad_control(model, P(Y @ X), Z))
