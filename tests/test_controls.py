@@ -4,7 +4,7 @@
 
 import unittest
 
-from y0.controls import is_bad_control, is_good_control
+from y0.controls import is_bad_control, is_good_control, is_outcome_ancestor
 from y0.dsl import U1, U2, A, M, P, U, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
@@ -95,3 +95,7 @@ class TestControls(unittest.TestCase):
         for model in bad_test_models:
             with self.subTest():
                 self.assertTrue(is_bad_control(model, P(Y @ X), Z))
+
+    def test_neutral_controls(self):
+        """Test neutral controls."""
+        self.assertTrue(is_outcome_ancestor(model_8, X, Y, Z))

@@ -2,6 +2,7 @@
 
 """Predicates for good, bad, and neutral controls."""
 
+from .algorithm.conditional_independencies import are_d_separated
 from .dsl import Probability, Variable
 from .graph import NxMixedGraph
 
@@ -44,3 +45,27 @@ def is_bad_control(graph: NxMixedGraph, query: Probability, variable: Variable) 
     """
     _control_precondition(graph, query, variable)
     raise NotImplementedError
+
+
+def is_outcome_ancestor(
+    graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable
+) -> bool:
+    """Check if the variable is an outcome ancestor given a causal query and graph.
+
+    > In Model 8, Z is not a confounder nor does it block any back-door paths. Likewise,
+    controlling for Z does not open any back-door paths from X to Y . Thus, in terms of
+    asymptotic bias, Z is a “neutral control.” Analysis shows, however, that controlling for
+    Z reduces the variation of the outcome variable Y , and helps to improve the precision
+    of the ACE estimate in finite samples (Hahn, 2004; White and Lu, 2011; Henckel et al.,
+    2019; Rotnitzky and Smucler, 2019).
+
+    :param graph: An ADMG
+    :param cause: The intervention in the causal query
+    :param effect: The outcome of the causal query
+    :param variable: The variable to check
+    :return: If the variable is a bad control
+    """
+    if variable == cause:
+        return False
+    judgement = are_d_separated(graph, cause, variable)
+    return judgement.separated and variable in graph.ancestors_inclusive(effect)
