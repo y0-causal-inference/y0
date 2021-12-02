@@ -12,8 +12,6 @@ __all__ = [
 
 
 def _control_precondition(graph: NxMixedGraph, query: Probability, variable: Variable):
-    if missing := query.get_variables().difference(graph.nodes()):
-        raise ValueError(f"Query variables missing: {missing}")
     if variable not in graph.nodes():
         raise ValueError(f"Test variable missing: {variable}")
     # TODO does this need to be extended to check that the
@@ -29,7 +27,6 @@ def is_good_control(graph: NxMixedGraph, query: Probability, variable: Variable)
     :return: If the variable is a good control
     """
     _control_precondition(graph, query, variable)
-
     raise NotImplementedError
 
 
@@ -46,5 +43,4 @@ def is_bad_control(graph: NxMixedGraph, query: Probability, variable: Variable) 
     :return: If the variable is a bad control
     """
     _control_precondition(graph, query, variable)
-
     raise NotImplementedError

@@ -5,7 +5,7 @@
 import unittest
 
 from y0.controls import is_bad_control, is_good_control
-from y0.dsl import U1, U2, M, P, U, W, X, Y, Z
+from y0.dsl import U1, U2, A, M, P, U, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 model_1 = NxMixedGraph.from_edges(directed=[(Z, X), (Z, Y), (X, Y)])
@@ -70,6 +70,13 @@ neutral_test_models = [
 
 class TestControls(unittest.TestCase):
     """Test case for good, bad, and neutral controls."""
+
+    def test_preconditions(self):
+        """Test the preconditions are checked properly for good controls."""
+        for func in is_good_control, is_bad_control:
+            with self.subTest(name=func.__name__):
+                with self.assertRaises(ValueError):
+                    func(model_1, P(Y @ X), A)
 
     def test_good_controls(self):
         """Test good controls."""
