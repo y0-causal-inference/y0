@@ -522,13 +522,13 @@ def _latent_dag(
 
 def set_latent(
     graph: nx.DiGraph,
-    latent_nodes: Union[str, Iterable[str]],
+    latent_nodes: Union[Variable, Iterable[Variable]],
     tag: Optional[str] = None,
 ) -> None:
     """Quickly set the latent variables in a graph."""
     if tag is None:
         tag = DEFAULT_TAG
-    if isinstance(latent_nodes, str):
+    if isinstance(latent_nodes, Variable):
         latent_nodes = [latent_nodes]
 
     latent_nodes = set(latent_nodes)
