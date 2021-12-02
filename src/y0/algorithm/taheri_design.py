@@ -13,7 +13,6 @@ from typing import Collection, Iterable, List, NamedTuple, Optional, Set, Tuple,
 
 import click
 import networkx as nx
-from ananke.graphs import ADMG
 from more_click import verbose_option
 from tabulate import tabulate
 from tqdm import tqdm
@@ -21,12 +20,7 @@ from tqdm import tqdm
 from y0.algorithm.identify import Identification, Unidentifiable, identify
 from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.dsl import Expression, P, Variable
-from y0.graph import (
-    DEFAULT_TAG,
-    NxMixedGraph,
-    admg_from_latent_variable_dag,
-    admg_to_latent_variable_dag,
-)
+from y0.graph import DEFAULT_TAG, NxMixedGraph
 from y0.identify import is_identifiable
 from y0.mutate import canonicalize
 from y0.util.combinatorics import powerset
@@ -54,13 +48,13 @@ class Result(NamedTuple):
     latents: List[str]
     observed: List[str]
     lvdag: nx.DiGraph
-    admg: ADMG
+    admg: NxMixedGraph
 
 
 def taheri_design_admg(
-    graph: Union[ADMG, NxMixedGraph],
-    cause: str,
-    effect: str,
+    graph: NxMixedGraph,
+    cause: Union[str, Variable],
+    effect: Union[str, Variable],
     *,
     tag: Optional[str] = None,
     stop: Optional[int] = None,
@@ -77,9 +71,9 @@ def taheri_design_admg(
     """
     if tag is None:
         tag = DEFAULT_TAG
-    if isinstance(graph, NxMixedGraph):
-        graph = graph.to_admg()
-    dag = admg_to_latent_variable_dag(graph, tag=tag)
+    cause = Variable.norm(cause)
+    effect = Variable.norm(effect)
+    dag = graph.to_latent_variable_dag(tag=tag)
     fixed_latent = {node for node, data in dag.nodes(data=True) if data[tag]}
     return _help(
         graph=dag,
@@ -114,7 +108,7 @@ def taheri_design_dag(
     :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2)
     """
     cause = Variable.norm(cause)
-    effect= Variable.norm(effect)
+    effect = Variable.norm(effect)
     return _help(
         graph=graph,
         cause=cause,
@@ -171,11 +165,11 @@ def _get_result(
     post_nodes, post_edges = lvdag.number_of_nodes(), lvdag.number_of_edges()
 
     # Convert the latent variable DAG to an ADMG
-    admg = admg_from_latent_variable_dag(lvdag, tag=tag)
+    admg = NxMixedGraph.from_latent_variable_dag(lvdag, tag=tag)
 
-    if cause not in admg.vertices:
+    if cause not in admg.nodes():
         raise KeyError(f"ADMG missing cause: {cause}")
-    if effect not in admg.vertices:
+    if effect not in admg.nodes():
         raise KeyError(f"ADMG missing effect: {effect}")
 
     # Check if the ADMG is identifiable under the (simple) causal query
@@ -204,15 +198,15 @@ def _get_result(
 
 def iterate_lvdags(
     graph: nx.DiGraph,
-    fixed_observed: Optional[Collection[str]] = None,
-    fixed_latents: Optional[Collection[str]] = None,
+    fixed_observed: Optional[Collection[Variable]] = None,
+    fixed_latents: Optional[Collection[Variable]] = None,
     *,
     tag: Optional[str] = None,
     stop: Optional[int] = None,
-) -> Iterable[Tuple[Set[str], Set[str], nx.DiGraph]]:
+) -> Iterable[Tuple[Set[Variable], Set[Variable], nx.DiGraph]]:
     """Iterate over all possible latent variable configurations for the given graph.
 
-    :param graph: A regularDAG
+    :param graph: A regular DAG
     :param fixed_observed: Nodes to skip in the power set of all possible latent variables. Often, the cause and
         effect from a causal query will be used here to avoid setting them as latent (since they can not be).
     :param fixed_latents: Nodes to skip in the power set of all possible latent variables. Often, latent nodes
@@ -228,26 +222,26 @@ def iterate_lvdags(
     fixed_observed = set() if not fixed_observed else set(fixed_observed)
     fixed_latents = set() if not fixed_latents else set(fixed_latents)
 
-    inducible_nodes = set(graph)
+    inducible_nodes: Set[Variable] = set(graph)
     inducible_nodes.difference_update(fixed_observed)
     inducible_nodes.difference_update(fixed_latents)
 
     if stop is None:
         stop = len(inducible_nodes) - 1
-    it = powerset(
+    it: Iterable[Set[Variable]] = map(set, powerset(
         sorted(inducible_nodes),
         stop=stop,
         reverse=True,
         use_tqdm=True,
         tqdm_kwargs=dict(desc="LV powerset"),
-    )
+    ))
 
     graph = graph.copy()
     for node in fixed_observed:
         graph.nodes[node][tag] = False
     for node in fixed_latents:
         graph.nodes[node][tag] = True
-    for induced_latents in map(set, it):
+    for induced_latents in it:
         yv = graph.copy()
         for node in inducible_nodes:
             yv.nodes[node][tag] = node in induced_latents
@@ -273,7 +267,7 @@ def draw_results(
         rendered_results = [
             result
             for result in results
-            if len(result.admg.vertices) - len(result.latents) < max_size
+            if len(result.admg.nodes()) - len(result.latents) < max_size
         ]
 
     logger.debug("rendering %s identifiable queries", rendered_results)
