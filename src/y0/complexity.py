@@ -23,19 +23,22 @@ __all__ = [
 ]
 
 CONST_CONST = 1.0  # yo dawg
+VAR_CONSTANT = 1.0  # yo cat
 SUM_CONST = 0.0
 FRAC_CONST = 0.0
 PROD_CONST = 0.0
 PROB_CONST = 0.0
 Q_CONST = 0.0
-VAR_CONSTANT = 1.0  # yo cat
 
 
 def complexity(expr: Expression) -> float:
     """Calculate the "complexity" of the expression, where a bigger result means more complex.
 
+    Currently, the complexity of the expression is defined recursively, where all of the
+    parts of each expression are added up, counting the number of variables in each.
 
-    :param expr: The input expression (can be any DSL element except
+    :param expr: The input expression
+    :return: The complexity of the expression
     """
     if isinstance(expr, (One, Zero)):
         return CONST_CONST
