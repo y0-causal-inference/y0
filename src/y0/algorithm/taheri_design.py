@@ -94,8 +94,8 @@ def taheri_design_admg(
 
 def taheri_design_dag(
     graph: nx.DiGraph,
-    cause: str,
-    effect: str,
+    cause: Union[str, Variable],
+    effect: Union[str, Variable],
     *,
     tag: Optional[str] = None,
     stop: Optional[int] = None,
@@ -113,6 +113,8 @@ def taheri_design_dag(
     :param stop: Largest combination to get (None means length of the list and is the default)
     :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2)
     """
+    cause = Variable.norm(cause)
+    effect= Variable.norm(effect)
     return _help(
         graph=graph,
         cause=cause,
@@ -125,11 +127,11 @@ def taheri_design_dag(
 
 def _help(
     graph: nx.DiGraph,
-    cause: str,
-    effect: str,
+    cause: Variable,
+    effect: Variable,
     *,
-    fixed_observed: Optional[Collection[str]] = None,
-    fixed_latent: Optional[Collection[str]] = None,
+    fixed_observed: Optional[Collection[Variable]] = None,
+    fixed_latent: Optional[Collection[Variable]] = None,
     tag: Optional[str] = None,
     stop: Optional[int] = None,
 ) -> List[Result]:
@@ -156,8 +158,8 @@ def _get_result(
     lvdag,
     latents,
     observed,
-    cause,
-    effect,
+    cause: Variable,
+    effect: Variable,
     *,
     tag: Optional[str] = None,
 ) -> Result:
@@ -177,7 +179,7 @@ def _get_result(
         raise KeyError(f"ADMG missing effect: {effect}")
 
     # Check if the ADMG is identifiable under the (simple) causal query
-    query = P(Variable(effect) @ ~Variable(cause))
+    query = P(effect @ ~cause)
     identifiable = is_identifiable(admg, query)
     try:
         estimand: Optional[Expression] = canonicalize(
