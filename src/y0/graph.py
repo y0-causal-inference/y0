@@ -528,7 +528,7 @@ def set_latent(
     """Quickly set the latent variables in a graph."""
     if tag is None:
         tag = DEFAULT_TAG
-    if isinstance(latent_nodes, str):
+    if isinstance(latent_nodes, Variable):
         latent_nodes = [latent_nodes]
 
     latent_nodes = set(latent_nodes)
