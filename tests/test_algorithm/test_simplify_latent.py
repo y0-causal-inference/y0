@@ -13,7 +13,19 @@ from y0.algorithm.simplify_latent import (
     remove_widow_latents,
     transform_latents_with_parents,
 )
+from y0.algorithm.taheri_design import taheri_design_dag
+from y0.examples import igf_example
 from y0.graph import set_latent
+
+
+class TestDesign(unittest.TestCase):
+    """Test the design algorithm."""
+
+    def test_design(self):
+        """Test the design algorithm."""
+        results = taheri_design_dag(igf_example.graph.directed, cause="PI3K", effect="Erk", stop=3)
+        self.assertIsNotNone(results)
+        # FIXME do better than this.
 
 
 class TestSimplify(unittest.TestCase):
