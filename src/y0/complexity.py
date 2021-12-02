@@ -4,10 +4,20 @@
 
 from typing import Sequence
 
-from .dsl import Expression, Fraction, One, Probability, Product, QFactor, Sum, Variable, Zero
+from .dsl import (
+    Expression,
+    Fraction,
+    One,
+    Probability,
+    Product,
+    QFactor,
+    Sum,
+    Variable,
+    Zero,
+)
 
 __all__ = [
-    "complexity"
+    "complexity",
 ]
 
 CONST_CONST = 1.0  # yo dawg
@@ -22,25 +32,16 @@ def complexity(expr: Expression) -> float:
     """Calculate the complexity of the given expression, recursively."""
     if isinstance(expr, (One, Zero)):
         return CONST_CONST
-
     if isinstance(expr, Fraction):
         return FRAC_CONST + complexity(expr.numerator) + complexity(expr.denominator)
-
     if isinstance(expr, Product):
-        return PROD_CONST + sum(
-            complexity(subexpr)
-            for subexpr in expr.expressions
-        )
-
+        return PROD_CONST + sum(complexity(subexpr) for subexpr in expr.expressions)
     if isinstance(expr, Sum):
         return SUM_CONST + range_complexity(expr.ranges) + complexity(expr.expression)
-
     if isinstance(expr, QFactor):
-        return range_complexity(expr.domain) + range_complexity(expr.codomain)
-
+        return Q_CONST + range_complexity(expr.domain) + range_complexity(expr.codomain)
     if isinstance(expr, Probability):
         return PROB_CONST + prob_complexity(expr)
-
     raise TypeError(f"Unhandled expression type: {expr.__class__.__name__}")
 
 
