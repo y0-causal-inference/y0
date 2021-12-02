@@ -17,10 +17,21 @@ from ..struct import DSeparationJudgement
 from ..util.combinatorics import powerset
 
 __all__ = [
+    "are_conditionally_independent",
     "are_d_separated",
     "minimal",
     "get_conditional_independencies",
 ]
+
+
+def are_conditionally_independent(
+    graph: NxMixedGraph,
+    a: Variable,
+    b: Variable,
+    given,
+) -> bool:
+    """Check if two variables are conditinally independent, given some other variables."""
+    raise NotImplementedError
 
 
 def get_conditional_independencies(
