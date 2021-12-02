@@ -45,8 +45,8 @@ class Result(NamedTuple):
     pre_edges: int
     post_nodes: int
     post_edges: int
-    latents: List[str]
-    observed: List[str]
+    latents: List[Variable]
+    observed: List[Variable]
     lvdag: nx.DiGraph
     admg: NxMixedGraph
 
@@ -150,8 +150,8 @@ def _help(
 
 def _get_result(
     lvdag: nx.DiGraph,
-    latents,
-    observed,
+    latents: Collection[Variable],
+    observed: Collection[Variable],
     cause: Variable,
     effect: Variable,
     *,
@@ -283,7 +283,7 @@ def draw_results(
             ax.axis("off")
         else:
             mixed_graph = result.admg
-            title = f"{i}) Latent: " + ", ".join(map(str, result.latents))
+            title = f"{i}) Latent: " + ", ".join(f"${v.to_latex()}$" for v in result.latents)
             if result.estimand is not None:
                 title += f"\n${result.estimand.to_latex()}$"
             mixed_graph.draw(ax=ax, title="\n".join(textwrap.wrap(title, width=45)))
@@ -304,7 +304,7 @@ def print_results(results: List[Result], file=None) -> None:
             result.post_nodes - result.pre_nodes,
             result.post_edges - result.pre_edges,
             len(result.latents),
-            ", ".join(result.latents),
+            ", ".join(f"${v.to_latex()}$" for v in result.latents),
         )
         for i, result in enumerate(results, start=1)
     ]
