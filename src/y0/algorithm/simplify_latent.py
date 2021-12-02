@@ -112,7 +112,7 @@ def transform_latents_with_parents(
         graph.remove_node(latent_node)
         graph.add_edges_from(itt.product(parents, children))
 
-        new_node = f"{latent_node}{suffix}"
+        new_node = Variable(f"{latent_node}{suffix}")
         graph.add_node(new_node, **{tag: True})
         for child in children:
             graph.add_edge(new_node, child)

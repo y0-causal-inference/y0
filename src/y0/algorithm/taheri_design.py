@@ -149,7 +149,7 @@ def _help(
 
 
 def _get_result(
-    lvdag,
+    lvdag: nx.DiGraph,
     latents,
     observed,
     cause: Variable,
@@ -228,13 +228,16 @@ def iterate_lvdags(
 
     if stop is None:
         stop = len(inducible_nodes) - 1
-    it: Iterable[Set[Variable]] = map(set, powerset(
-        sorted(inducible_nodes),
-        stop=stop,
-        reverse=True,
-        use_tqdm=True,
-        tqdm_kwargs=dict(desc="LV powerset"),
-    ))
+    it: Iterable[Set[Variable]] = map(
+        set,
+        powerset(
+            sorted(inducible_nodes),
+            stop=stop,
+            reverse=True,
+            use_tqdm=True,
+            tqdm_kwargs=dict(desc="LV powerset"),
+        ),
+    )
 
     graph = graph.copy()
     for node in fixed_observed:
@@ -279,8 +282,8 @@ def draw_results(
         if result is None:
             ax.axis("off")
         else:
-            mixed_graph = NxMixedGraph.from_admg(result.admg)  # type:ignore
-            title = f"{i}) Latent: " + ", ".join(result.latents)
+            mixed_graph = result.admg
+            title = f"{i}) Latent: " + ", ".join(map(str, result.latents))
             if result.estimand is not None:
                 title += f"\n${result.estimand.to_latex()}$"
             mixed_graph.draw(ax=ax, title="\n".join(textwrap.wrap(title, width=45)))
