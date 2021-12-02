@@ -10,7 +10,7 @@ of what's more complex by comparing expressions.
 import unittest
 
 from y0.complexity import complexity
-from y0.dsl import A, B, C, D, Expression, Fraction, One, P, Product, X, Y, Z
+from y0.dsl import A, B, C, D, Expression, Fraction, One, P, X, Y, Z
 from y0.mutate import bayes_expand, chain_expand, fraction_expand
 
 
