@@ -14,7 +14,7 @@ from y0.algorithm.simplify_latent import (
     transform_latents_with_parents,
 )
 from y0.algorithm.taheri_design import taheri_design_dag
-from y0.dsl import Y1, Y2, Y3, U, Variable, W, Y, Z
+from y0.dsl import Y1, Y2, Y3, U, Variable, W
 from y0.examples import igf_example
 from y0.graph import set_latent
 
