@@ -10,7 +10,7 @@ of what's more complex by comparing expressions.
 import unittest
 
 from y0.complexity import complexity
-from y0.dsl import A, B, C, D, Expression, P, X, Y, Z
+from y0.dsl import A, B, C, D, Expression, Fraction, One, P, Product, X, Y, Z
 from y0.mutate import bayes_expand, chain_expand, fraction_expand
 
 
@@ -58,3 +58,14 @@ class TestComplexity(unittest.TestCase):
                 self.assert_complexity_le(example, bayes_expand(example))
             with self.subTest(expr=example.to_y0(), type="chain"):
                 self.assert_complexity_le(example, chain_expand(example))
+
+    def test_fraction_simplify(self):
+        """Test simplifying a fraction always results in at least a less complicated expression."""
+        examples = [
+            Fraction(P(A), One()),
+            Fraction(P(A) * P(B), P(B)),
+        ]
+        for example in examples:
+            with self.subTest(expr=example.to_y0()):
+                self.assertIsInstance(example, Fraction)
+                self.assert_complexity_le(example.simplify(), example)
