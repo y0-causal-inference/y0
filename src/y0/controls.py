@@ -94,7 +94,8 @@ def middle_mediator(
     Strategy:
 
     1. First implement the helper function below:
-        1. Use :func:`y0.algorithm.conditional_independencies.are_conditionally_independent` to check Z _|_ Y | M
+        1. Use :func:`y0.algorithm.conditional_independencies.are_d_separated` with the ``given`` argument
+           to check Z _|_ Y | M
         2. Use :func:`y0.algorithm.conditional_independencies.are_d_separated` to check Z _|_ X
         3. Magic
         4. Small profit
