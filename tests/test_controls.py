@@ -4,7 +4,12 @@
 
 import unittest
 
-from y0.controls import is_bad_control, is_good_control, is_outcome_ancestor
+from y0.controls import (
+    is_bad_control,
+    is_good_control,
+    is_middle_mediator,
+    is_outcome_ancestor,
+)
 from y0.dsl import U1, U2, A, M, P, U, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
@@ -96,6 +101,16 @@ class TestControls(unittest.TestCase):
             with self.subTest():
                 self.assertTrue(is_bad_control(model, P(Y @ X), Z))
 
-    def test_neutral_controls(self):
-        """Test neutral controls."""
+    def test_outcome_ancestors(self):
+        """Test outcome ancestors."""
         self.assertTrue(is_outcome_ancestor(model_8, X, Y, Z))
+        for model in good_test_models + bad_test_models:
+            with self.subTest():
+                self.assertFalse(is_outcome_ancestor(model, X, Y, Z))
+
+    def test_middle_mediators(self):
+        """Test middle mediators."""
+        self.assertTrue(is_middle_mediator(model_13, X, Y, Z))
+        for model in good_test_models + bad_test_models:
+            with self.subTest():
+                self.assertFalse(is_middle_mediator(model, X, Y, Z))

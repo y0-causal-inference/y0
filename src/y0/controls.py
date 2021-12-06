@@ -2,16 +2,15 @@
 
 """Predicates for good, bad, and neutral controls."""
 
-from .algorithm.conditional_independencies import (
-    are_conditionally_independent,
-    are_d_separated,
-)
+from .algorithm.conditional_independencies import are_d_separated
 from .dsl import Probability, Variable
 from .graph import NxMixedGraph
 
 __all__ = [
     "is_good_control",
     "is_bad_control",
+    "is_outcome_ancestor",
+    "is_middle_mediator",
 ]
 
 
@@ -74,7 +73,7 @@ def is_outcome_ancestor(
     return judgement.separated and variable in graph.ancestors_inclusive(effect)
 
 
-def middle_mediator(
+def is_middle_mediator(
     graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable
 ) -> bool:
     """
