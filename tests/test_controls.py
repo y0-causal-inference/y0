@@ -87,19 +87,19 @@ class TestControls(unittest.TestCase):
         """Test good controls."""
         for model in good_test_models:
             with self.subTest():
-                self.assertTrue(is_good_control(model, P(Y @ X), Z))
+                self.assertTrue(is_good_control(model, X, Y, Z))
         for model in bad_test_models + neutral_test_models:
             with self.subTest():
-                self.assertFalse(is_good_control(model, P(Y @ X), Z))
+                self.assertFalse(is_good_control(model, X, Y, Z))
 
     def test_bad_controls(self):
         """Test bad controls."""
         for model in good_test_models + neutral_test_models:
             with self.subTest():
-                self.assertFalse(is_bad_control(model, P(Y @ X), Z))
+                self.assertFalse(is_bad_control(model, X, Y, Z))
         for model in bad_test_models:
             with self.subTest():
-                self.assertTrue(is_bad_control(model, P(Y @ X), Z))
+                self.assertTrue(is_bad_control(model, X, Y, Z))
 
     def test_outcome_ancestors(self):
         """Test outcome ancestors."""

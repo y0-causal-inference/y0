@@ -3,48 +3,41 @@
 """Predicates for good, bad, and neutral controls."""
 
 from .algorithm.conditional_independencies import are_d_separated
-from .dsl import Probability, Variable
+from .dsl import Expression, Variable
 from .graph import NxMixedGraph
 
 __all__ = [
-    "is_good_control",
     "is_bad_control",
+    "is_good_control",
     "is_outcome_ancestor",
     "is_middle_mediator",
 ]
 
 
 def _control_precondition(graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable):
+    if cause not in graph.nodes():
+        raise ValueError(f"Cause variable missing: {variable}")
+    if effect not in graph.nodes():
+        raise ValueError(f"Effect variable missing: {variable}")
     if variable not in graph.nodes():
         raise ValueError(f"Test variable missing: {variable}")
     # TODO does this need to be extended to check that the
     #  query and variable aren't counterfactual?
 
 
-def is_good_control(graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable) -> bool:
-    """Return if the variable is a good control.
-
-    Strategy:
-    
-    1. Get estimand using :func:`y0.algorithm.identify.identify`
-    2. Check if ``variable`` appears in estimand
-
-    :param graph: An ADMG
-    :param cause: The intervention in the causal query
-    :param effect: The outcome of the causal query
-    :param variable: The variable to check
-    :return: If the variable is a good control
-    """
-    _control_precondition(graph, query, variable)
-    raise NotImplementedError
-
-
-def is_bad_control(graph: NxMixedGraph, query: Probability, variable: Variable) -> bool:
+def is_bad_control(graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable) -> bool:
     """Return if the variable is a bad control.
 
     A bad control is a variable that does not appear in the estimand produced
     by :func:`y0.algorithm.identify.identify` when applied to a given graph
     and query.
+
+    Strategy for implementation:
+
+    1. Get estimand using :func:`y0.algorithm.identify.identify`
+    2. Check if ``variable`` appears in estimand, a recursive function might be appropriate!
+       Implement this below in :func:`_is_variable_in_expression`.
+    3. Return if ``variable`` appears in estimand
 
     :param graph: An ADMG
     :param cause: The intervention in the causal query
@@ -52,7 +45,24 @@ def is_bad_control(graph: NxMixedGraph, query: Probability, variable: Variable) 
     :param variable: The variable to check
     :return: If the variable is a bad control
     """
-    _control_precondition(graph, query, variable)
+    _control_precondition(graph, cause, effect, variable)
+    raise NotImplementedError
+
+
+def _is_variable_in_expression(variable: Variable, expr: Expression) -> bool
+    raise NotImplementedError
+
+
+def is_good_control(graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable) -> bool:
+    """Return if the variable is a good control.
+
+    :param graph: An ADMG
+    :param cause: The intervention in the causal query
+    :param effect: The outcome of the causal query
+    :param variable: The variable to check
+    :return: If the variable is a good control
+    """
+    _control_precondition(graph, cause, effect, variable)
     raise NotImplementedError
 
 
