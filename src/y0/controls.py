@@ -14,18 +14,24 @@ __all__ = [
 ]
 
 
-def _control_precondition(graph: NxMixedGraph, query: Probability, variable: Variable):
+def _control_precondition(graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable):
     if variable not in graph.nodes():
         raise ValueError(f"Test variable missing: {variable}")
     # TODO does this need to be extended to check that the
     #  query and variable aren't counterfactual?
 
 
-def is_good_control(graph: NxMixedGraph, query: Probability, variable: Variable) -> bool:
+def is_good_control(graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable) -> bool:
     """Return if the variable is a good control.
 
+    Strategy:
+    
+    1. Get estimand using :func:`y0.algorithm.identify.identify`
+    2. Check if ``variable`` appears in estimand
+
     :param graph: An ADMG
-    :param query: A query in the form of ``P(Y @ X)``
+    :param cause: The intervention in the causal query
+    :param effect: The outcome of the causal query
     :param variable: The variable to check
     :return: If the variable is a good control
     """
@@ -41,7 +47,8 @@ def is_bad_control(graph: NxMixedGraph, query: Probability, variable: Variable) 
     and query.
 
     :param graph: An ADMG
-    :param query: A query in the form of ``P(Y @ X)``
+    :param cause: The intervention in the causal query
+    :param effect: The outcome of the causal query
     :param variable: The variable to check
     :return: If the variable is a bad control
     """
