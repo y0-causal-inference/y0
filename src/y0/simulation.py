@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections import Mapping
 from functools import partial
-from typing import Callable, MutableMapping, NamedTuple, Optional, Tuple
+from typing import Callable, MutableMapping, NamedTuple, Optional, Tuple, cast
 
 import pandas as pd
 from numpy.random import normal, uniform
@@ -56,11 +56,11 @@ def simulate(
 ) -> Tuple[pd.DataFrame, Mapping[Tuple[Variable, Variable], FitTuple]]:
     """Simulate a graph using gaussians for all variables."""
     simulation = Simulation(graph, **kwargs)
-    trials = {
+    results = {
         n: simulation.trial()
         for n in trange(trials, desc="Simulation", unit="trial", unit_scale=True)
     }
-    rv = pd.DataFrame(trials).T
+    rv = pd.DataFrame(results).T
 
     fits = {}
     for parent, child in graph.directed.edges():
@@ -73,6 +73,9 @@ def simulate(
     return rv, fits
 
 
+Generator = Callable[[], float]
+
+
 class Simulation:
     """A data structure for a simulation.
 
@@ -82,7 +85,7 @@ class Simulation:
     """
 
     #: The generator functions for all nodes
-    generators: Mapping[Variable, Callable[[], float]]
+    generators: Mapping[Variable, Generator]
 
     #: Weights corresponding to each edge
     weights: Mapping[Tuple[Variable, Variable], float]
@@ -90,7 +93,7 @@ class Simulation:
     def __init__(
         self,
         graph: NxMixedGraph,
-        generators: Optional[Mapping[Variable, Callable[[], float]]] = None,
+        generators: Optional[Mapping[Variable, Generator]] = None,
         weights: Optional[Mapping[Tuple[Variable, Variable], float]] = None,
     ) -> None:
         """Prepare a simulation.
@@ -112,9 +115,10 @@ class Simulation:
             self.weights = weights
 
         if generators is None:
-            self.generators = {
-                node: partial(uniform, low=-1.0, high=1.0) for node in self.graph.nodes()
-            }
+            self.generators = cast(
+                Mapping[Variable, Generator],
+                {node: partial(uniform, low=-1.0, high=1.0) for node in self.graph.nodes()},
+            )
         elif set(generators) != set(self.graph.nodes()):
             raise ValueError("given node generators do not exactly match nodes in the graph")
         else:
@@ -126,10 +130,13 @@ class Simulation:
 
     def fix(self, values: Mapping[Variable, float]) -> Simulation:
         """Create a new simulation with the given nodes fixed to their values."""
-        generators = {
-            node: lambda: values[node] if node in values else generator
-            for node, generator in self.generators.items()
-        }
+        generators = cast(
+            Mapping[Variable, Generator],
+            {
+                node: lambda: values[node] if node in values else generator
+                for node, generator in self.generators.items()
+            },
+        )
         return Simulation(graph=self.graph, generators=generators, weights=self.weights)
 
     def trial(self) -> Mapping[Variable, float]:
