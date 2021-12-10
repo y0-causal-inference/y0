@@ -2,6 +2,8 @@
 
 """A simulation sort of based on Sara's idea."""
 
+from __future__ import annotations
+
 from collections import Mapping
 from functools import partial
 from typing import Callable, MutableMapping, Optional, Tuple
@@ -30,53 +32,64 @@ def simulate(graph: NxMixedGraph, trials: int = 600) -> pd.DataFrame:
     return rv
 
 
-def _identity(x):
-    return x
-
-
-def _constant_weights(graph: NxMixedGraph) -> Mapping[Tuple[Variable, Variable], float]:
-    return {edge: 1.0 for edge in graph.directed.edges()}
-
-
-def _uniform_random_weights(
-    graph: NxMixedGraph, low: float = -1.0, high: float = 1.0
-) -> Mapping[Tuple[Variable, Variable], float]:
-    return {edge: uniform(low=low, high=high) for edge in graph.directed.edges()}
-
-
 class Simulation:
-    """A data structure for a simulation."""
+    """A data structure for a simulation.
 
-    generators: MutableMapping[Variable, Callable[[], float]]
+    Provides an implementation of the simulation presented in Figure 1 and Example 2.2 in
+    `Graphical criteria for efficient total effect estimation via adjustment in causal
+    linear models <https://arxiv.org/abs/1907.02435>`_
+    """
+
+    #: The generator functions for all nodes
+    generators: Mapping[Variable, Callable[[], float]]
+
+    #: Weights corresponding to each edge
+    weights: Mapping[Tuple[Variable, Variable], float]
 
     def __init__(
         self,
         graph: NxMixedGraph,
         generators: Optional[Mapping[Variable, Callable[[], float]]] = None,
         weights: Optional[Mapping[Tuple[Variable, Variable], float]] = None,
-        default_weight_function: bool = True,
     ) -> None:
-        """Prepare a simulation by calculating source
+        """Prepare a simulation.
 
         :param graph: The ADMG
         :param generators: Generator functions for each node. If none given, defaults to uniformly
-            distributed between -1 and 1.
-        :param default_weight_function: Should edge weights be randomly distributed using a uniform(0, 1)?
-            If false, all edge weights are assigned 1.0.
+            distributed between -1.0 and 1.0.
+        :param weights: Weights for each directed edge. If none given, defaults to uniformly distributed
+            weights between -1.0 and 1.0.
         """
         self.graph = graph
 
         if weights is None:
-            self.weights = _uniform_random_weights(graph) if default_weight_function else _constant_weights(graph)
+            self.weights = {edge: uniform(low=-1.0, high=1.0) for edge in graph.directed.edges()}
+        elif set(weights) != set(self.graph.directed.edges()):
+            raise ValueError("given weights do not exactly match directed edges in the graph")
+        else:
+            self.weights = weights
 
-        self.generators = generators or {}
-        for node in self.graph.nodes():
-            if node not in self.generators:
-                self.generators[node] = partial(uniform, low=-1.0, high=1.0)
+        if generators is None:
+            self.generators = {
+                node: partial(uniform, low=-1.0, high=1.0)
+                for node in self.graph.nodes()
+            }
+        elif set(generators) != set(self.graph.nodes()):
+            raise ValueError("given node generators do not exactly match nodes in the graph")
+        else:
+            self.generators = generators
 
     def generate(self, node: Variable) -> float:
         """Generate a value for the variable."""
         return self.generators[node]()
+
+    def fix(self, values: Mapping[Variable, float]) -> Simulation:
+        """Create a new simulation with the given nodes fixed to their values."""
+        generators = {
+            node: lambda: values[node] if node in values else generator
+            for node, generator in self.generators.items()
+        }
+        return Simulation(graph=self.graph, generators=generators, weights=self.weights)
 
     def trial(self) -> Mapping[Variable, float]:
         """Perform a single trial.
