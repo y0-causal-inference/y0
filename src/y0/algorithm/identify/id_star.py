@@ -201,7 +201,7 @@ def id_star_line_6(graph: NxMixedGraph, query: Probability) -> Collection[Expres
     variables not in :math:`\gamma'` , that is over :math:`\mathbf{v}(G' ) \backslash \gamma'` ,
     where we interpret :math:`\gamma'` as a set of counterfactuals, rather than a conjunction.
     """
-    # TODO @jeremy ``vertices`` is not defined in this function
+    vertices = set(graph.nodes())
     return [P[vertices - district](district) for district in graph.get_c_components()]
 
 
@@ -369,6 +369,15 @@ def has_same_domain_of_values(node1: Variable, node2: Variable) -> bool:
 
 def has_same_function(node1: Variable, node2: Variable) -> bool:
     return node1.name == node2.name
+
+def has_same_value( gamma: Collection[Variable], node1: Variable, node2: Variable) -> bool:
+    for node in gamma:
+        if node == node1:
+            n1 = node
+    for node in gamma:
+        if node == node2:
+            n2 = node
+    return has_same_function(n1, n2) and n1.is_event() and n2.is_event() and (n1.star == n2.star)
 
 
 def get_worlds(query: Probability) -> Collection[Collection[Variable]]:
