@@ -2,13 +2,15 @@
 
 """A simulation sort of based on Sara's idea."""
 
-from collections import Mapping, defaultdict
+from collections import Mapping
+from functools import partial
+from typing import Callable, MutableMapping, Optional, Tuple
 
 import pandas as pd
-from numpy.random import normal, uniform
-from scipy.special import expit
+from numpy.random import uniform
 from tqdm.auto import trange
 
+from .dsl import Variable
 from .graph import NxMixedGraph
 
 __all__ = [
@@ -32,56 +34,59 @@ def _identity(x):
     return x
 
 
+def _constant_weights(graph: NxMixedGraph) -> Mapping[Tuple[Variable, Variable], float]:
+    return {edge: 1.0 for edge in graph.directed.edges()}
+
+
+def _uniform_random_weights(
+    graph: NxMixedGraph, low: float = -1.0, high: float = 1.0
+) -> Mapping[Tuple[Variable, Variable], float]:
+    return {edge: uniform(low=low, high=high) for edge in graph.directed.edges()}
+
+
 class Simulation:
     """A data structure for a simulation."""
 
-    def __init__(self, graph: NxMixedGraph, use_weights: bool = False, nonlinearity: bool = False) -> None:
+    generators: MutableMapping[Variable, Callable[[], float]]
+
+    def __init__(
+        self,
+        graph: NxMixedGraph,
+        generators: Optional[Mapping[Variable, Callable[[], float]]] = None,
+        weights: Optional[Mapping[Tuple[Variable, Variable], float]] = None,
+        default_weight_function: bool = True,
+    ) -> None:
         """Prepare a simulation by calculating source
 
         :param graph: The ADMG
-        :param use_weights: Should edge weights be randomly distributed using a uniform(0, 1)?
+        :param generators: Generator functions for each node. If none given, defaults to uniformly
+            distributed between -1 and 1.
+        :param default_weight_function: Should edge weights be randomly distributed using a uniform(0, 1)?
             If false, all edge weights are assigned 1.0.
         """
         self.graph = graph
-        self.weights = {
-            edge: uniform(low=0, high=1) if use_weights else 1.0
-            for edge in self.graph.directed.edges()
-        }
-        self.sources = {
-            node
-            for node in self.graph.nodes() if not self.graph.directed.in_edges(node)
-        }
-        if nonlinearity:
-            self.activation = expit
-        else:
-            self.activation = _identity
 
-    def trial(self, scale: float = 1.0) -> Mapping[str, float]:
+        if weights is None:
+            self.weights = _uniform_random_weights(graph) if default_weight_function else _constant_weights(graph)
+
+        self.generators = generators or {}
+        for node in self.graph.nodes():
+            if node not in self.generators:
+                self.generators[node] = partial(uniform, low=-1.0, high=1.0)
+
+    def generate(self, node: Variable) -> float:
+        """Generate a value for the variable."""
+        return self.generators[node]()
+
+    def trial(self) -> Mapping[Variable, float]:
         """Perform a single trial.
 
-        :param scale: The scale parameter of the gaussians used
         :return: A mapping from variable names to simulation values
         """
-        # there have to be at least one source since it's a DAG
-        start = self.sources
-        # assign random values to all sources
-        values = {
-            node: normal(loc=0.0, scale=scale)
-            for node in start
-        }
-
-        # TODO this could be implemented iteratively if using a topological sort
-        while start:
-            downstream = {
-                (u, v): normal(loc=self.weights[u, v] * values[u], scale=scale)
-                for u, v in self.graph.directed.out_edges(start)
-            }
-            agg = defaultdict(set)
-            for u, v in downstream:
-                agg[v].add(downstream[u, v])
-            for v, v_values in agg.items():
-                assert v not in values
-                values[v] = self.activation(sum(v_values))
-            start = set(agg.keys())
-
+        values: MutableMapping[Variable, float] = {}
+        for node in self.graph.topological_sort():
+            values[node] = self.generate(node) + sum(
+                self.weights[parent, node] * values[parent]
+                for parent in self.graph.directed.out_edges(node)
+            )
         return values
