@@ -100,6 +100,6 @@ class Simulation:
         for node in self.graph.topological_sort():
             values[node] = self.generate(node) + sum(
                 self.weights[parent, node] * values[parent]
-                for parent in self.graph.directed.out_edges(node)
+                for parent, _ in self.graph.directed.in_edges(node)
             )
         return values
