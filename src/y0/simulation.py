@@ -65,10 +65,12 @@ def simulate(
     fits = {}
     for parent, child in graph.directed.edges():
         x, y = rv[parent].to_numpy().reshape(-1, 1), rv[child]
-        reg = LinearRegression()
-        reg.fit(x, y)
-        score = reg.score(x, y)
-        fits[parent, child] = FitTuple(reg, reg.coef_[0], reg.intercept_, score)
+        regression = LinearRegression()
+        regression.fit(x, y)
+        r2 = regression.score(x, y)
+        fits[parent, child] = FitTuple(
+            regression=regression, slope=regression.coef_[0], intercept=regression.intercept_, r2=r2
+        )
 
     return rv, fits
 
