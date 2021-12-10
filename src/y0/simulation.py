@@ -6,13 +6,14 @@ from __future__ import annotations
 
 from collections import Mapping
 from functools import partial
-from typing import Callable, MutableMapping, Optional, Tuple
+from typing import Callable, MutableMapping, NamedTuple, Optional, Tuple
 
 import pandas as pd
-from numpy.random import uniform
+from numpy.random import normal, uniform
+from sklearn.linear_model import LinearRegression
 from tqdm.auto import trange
 
-from .dsl import Variable
+from .dsl import V1, V2, V3, V4, V5, V6, Variable
 from .graph import NxMixedGraph
 
 __all__ = [
@@ -20,16 +21,56 @@ __all__ = [
     "simulate",
 ]
 
+example_graph = NxMixedGraph.from_edges(
+    directed=[
+        (V1, V2),
+        (V1, V4),
+        (V2, V5),
+        (V4, V5),
+        (V4, V6),
+        (V3, V5),
+        (V5, V6),
+    ],
+)
+example_generators = {
+    V1: partial(uniform, low=-1.0, high=1.0),
+    V2: partial(uniform, low=-2.0, high=2.0),
+    V3: partial(normal, loc=0.0, scale=1.0),
+    V4: partial(normal, loc=0.0, scale=2.0),
+    V5: partial(uniform, low=-3.0, high=3.0),
+    V6: partial(normal, loc=0.0, scale=3.0),
+}
 
-def simulate(graph: NxMixedGraph, trials: int = 600) -> pd.DataFrame:
+
+class FitTuple(NamedTuple):
+    """A tuple representing the linear regression fit."""
+
+    regression: LinearRegression
+    slope: float
+    intercept: float
+    r2: float
+
+
+def simulate(
+    graph: NxMixedGraph, trials: int = 600, **kwargs
+) -> Tuple[pd.DataFrame, Mapping[Tuple[Variable, Variable], FitTuple]]:
     """Simulate a graph using gaussians for all variables."""
-    simulation = Simulation(graph)
+    simulation = Simulation(graph, **kwargs)
     trials = {
         n: simulation.trial()
         for n in trange(trials, desc="Simulation", unit="trial", unit_scale=True)
     }
     rv = pd.DataFrame(trials).T
-    return rv
+
+    fits = {}
+    for parent, child in graph.directed.edges():
+        x, y = rv[parent].to_numpy().reshape(-1, 1), rv[child]
+        reg = LinearRegression()
+        reg.fit(x, y)
+        score = reg.score(x, y)
+        fits[parent, child] = FitTuple(reg, reg.coef_[0], reg.intercept_, score)
+
+    return rv, fits
 
 
 class Simulation:
