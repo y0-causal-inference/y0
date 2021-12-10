@@ -52,7 +52,7 @@ class FitTuple(NamedTuple):
 
 
 def simulate(
-    graph: NxMixedGraph, trials: int = 600, **kwargs
+    graph: NxMixedGraph, trials: int = 200, **kwargs
 ) -> Tuple[pd.DataFrame, Mapping[Tuple[Variable, Variable], FitTuple]]:
     """Simulate a graph using gaussians for all variables."""
     simulation = Simulation(graph, **kwargs)
@@ -105,7 +105,7 @@ class Simulation:
         self.graph = graph
 
         if weights is None:
-            self.weights = {edge: uniform(low=-1.0, high=1.0) for edge in graph.directed.edges()}
+            self.weights = {edge: uniform(low=0.0, high=1.0) for edge in graph.directed.edges()}
         elif set(weights) != set(self.graph.directed.edges()):
             raise ValueError("given weights do not exactly match directed edges in the graph")
         else:
