@@ -59,6 +59,7 @@ class Simulation:
             distributed between -1.0 and 1.0.
         :param weights: Weights for each directed edge. If none given, defaults to uniformly distributed
             weights between -1.0 and 1.0.
+        :raises ValueError: if the generators or weights are given and don't match the graph
         """
         self.graph = graph
 
@@ -71,8 +72,7 @@ class Simulation:
 
         if generators is None:
             self.generators = {
-                node: partial(uniform, low=-1.0, high=1.0)
-                for node in self.graph.nodes()
+                node: partial(uniform, low=-1.0, high=1.0) for node in self.graph.nodes()
             }
         elif set(generators) != set(self.graph.nodes()):
             raise ValueError("given node generators do not exactly match nodes in the graph")
