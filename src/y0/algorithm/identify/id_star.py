@@ -221,10 +221,10 @@ def id_star_line_8(graph: NxMixedGraph, query: Probability) -> bool:
     """
     interventions = get_interventions(query)
     evidence = get_varnames(query)
-    for intervention in interventions:
-        if (intervention.name in evidence) and evidence[intervention.name] != intervention.star:
-            return True
-    return False
+    return any(
+        (intervention.name in evidence) and evidence[intervention.name] != intervention.star
+        for intervention in interventions
+    )
 
 
 def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Probability:
