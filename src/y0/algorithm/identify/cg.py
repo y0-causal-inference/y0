@@ -41,14 +41,15 @@ def forget_value(node: Variable) -> Variable:
 
 
 def get_worlds(query: Probability) -> Collection[Collection[Variable]]:
+    # is sorting necessary? why not just return a set/frozenset?
     return sorted(
-        sorted(_get_treatment_variables(var.get_variables()), key=lambda x: str(x))
-        for var in query.get_variables()
-        if isinstance(var, CounterfactualVariable)
+        sorted(_get_treatment_variables(variable.get_variables()), key=str)
+        for variable in query.get_variables()
+        if isinstance(variable, CounterfactualVariable)
     )
 
 
-def lemma_24(pw_graph: NxMixedGraph, node1, node2) -> bool:
+def lemma_24(pw_graph: NxMixedGraph, node1: Variable, node2: Variable) -> bool:
     r"""Check if two nodes in a parallel worlds graph are equivalent.
 
     Let :math:`M` be a model inducing :math:`G` containing variables
