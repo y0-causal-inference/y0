@@ -97,6 +97,6 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         # Check for inconsistent counterfactual values for merged nodes
         actual_graph3, actual_query3 = make_counterfactual_graph(
             graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
-        query=P(CounterfactualVariable(name='Z', star=False, interventions=(Intervention('D', star=False),)), Variable(name='Z', star=True), -D)
+        query=P(CounterfactualVariable(name='Z', star=None, interventions=(Intervention('D', star=False),)), Variable(name='Z', star=None), D)
         )
         self.assertEqual(Zero(), actual_query3)

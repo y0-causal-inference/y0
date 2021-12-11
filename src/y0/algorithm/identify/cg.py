@@ -1,5 +1,5 @@
 from itertools import combinations
-from typing import Collection, Tuple
+from typing import Collection, Tuple, Union
 
 from y0.dsl import (
     CounterfactualVariable,
@@ -10,7 +10,7 @@ from y0.dsl import (
 )
 from y0.graph import NxMixedGraph
 
-__all__ = ["make_counterfactual_graph", "has_same_function"]
+__all__ = ["make_counterfactual_graph", "has_same_function", "forget_value"]
 
 
 def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
@@ -29,6 +29,11 @@ def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
 def has_same_function(node1: Variable, node2: Variable) -> bool:
     return node1.name == node2.name
 
+def forget_value( node: Union[Variable, CounterfactualVariable]) -> Union[Variable, CounterfactualVariable]:
+    if isinstance(node, CounterfactualVariable):
+        return CounterfactualVariable(name=node.name, interventions=node.interventions, star=None)
+    else:
+        return Variable(name=node.name, star=None)
 
 def get_worlds(query: Probability) -> Collection[Collection[Variable]]:
     return sorted(
@@ -140,9 +145,8 @@ def make_counterfactual_graph(
                         new_query_variables = new_query_variables - {node @ intervention2} | {
                             node @ intervention1
                         }
-    return cf_graph.subgraph(cf_graph.ancestors_inclusive(new_query_variables)), P(
-        new_query_variables
-    )
+    return (cf_graph.subgraph(cf_graph.ancestors_inclusive([forget_value(v) for v in new_query_variables])),
+            P(new_query_variables))
 
 
 def make_parallel_worlds_graph(
