@@ -312,7 +312,7 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
     return estimand.marginalize(vertices - delta)
 
 
-def get_varnames(query: Probability) -> Collection[Variable]:
+def get_varnames(query: Probability) -> Mapping[str, Optional[bool]]:
     """Return new Variables generated from the names of the outcome variables in the query."""
     return {child.name: child.star for child in query.children}
 
