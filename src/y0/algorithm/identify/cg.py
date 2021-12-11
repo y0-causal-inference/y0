@@ -1,8 +1,9 @@
 from itertools import combinations
-from typing import Collection, Tuple, Union
+from typing import Collection, Tuple
 
 from y0.dsl import (
     CounterfactualVariable,
+    Intervention,
     P,
     Probability,
     Variable,
@@ -29,19 +30,21 @@ def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
 def has_same_function(node1: Variable, node2: Variable) -> bool:
     return node1.name == node2.name
 
-def forget_value( node: Union[Variable, CounterfactualVariable]) -> Union[Variable, CounterfactualVariable]:
+
+def forget_value(node: Variable) -> Variable:
+    if isinstance(node, Intervention):
+        raise TypeError
     if isinstance(node, CounterfactualVariable):
         return CounterfactualVariable(name=node.name, interventions=node.interventions, star=None)
     else:
         return Variable(name=node.name, star=None)
 
+
 def get_worlds(query: Probability) -> Collection[Collection[Variable]]:
     return sorted(
-        [
-            sorted(_get_treatment_variables(var.get_variables()), key=lambda x: str(x))
-            for var in query.get_variables()
-            if isinstance(var, CounterfactualVariable)
-        ]
+        sorted(_get_treatment_variables(var.get_variables()), key=lambda x: str(x))
+        for var in query.get_variables()
+        if isinstance(var, CounterfactualVariable)
     )
 
 
@@ -124,14 +127,15 @@ def make_counterfactual_graph(
     )
     for node in graph.topological_sort():
         for intervention in worlds:
+            node_at_intervention = node @ intervention
             if (
                 (node in cf_graph.nodes())
-                and (node @ intervention in cf_graph.nodes())
+                and (node_at_intervention in cf_graph.nodes())
                 and lemma_24(cf_graph, node, node @ intervention)
             ):
-                cf_graph = lemma_25(cf_graph, node, node @ intervention)
-                if node @ intervention in new_query_variables:
-                    new_query_variables = (new_query_variables - {node @ intervention}) | {node}
+                cf_graph = lemma_25(cf_graph, node, node_at_intervention)
+                if node_at_intervention in new_query_variables:
+                    new_query_variables = (new_query_variables - {node_at_intervention}) | {node}
 
         if len(worlds) > 1:
             for intervention1, intervention2 in combinations(worlds, 2):
