@@ -219,12 +219,8 @@ def id_star_line_8(graph: NxMixedGraph, query: Probability) -> bool:
     :param query: a joint distribution over counterfactual variables
     :return: True if there is a conflict. False otherwise
     """
-    interventions = set()
-    evidence = dict()
-    for counterfactual in query.children:
-        evidence[counterfactual.name] = counterfactual.star
-        if isinstance(counterfactual, CounterfactualVariable):
-            interventions |= set(counterfactual.interventions)
+    interventions = get_interventions(query)
+    evidence = get_varnames(query)
     for intervention in interventions:
         if (intervention.name in evidence) and evidence[intervention.name] != intervention.star:
             return True
@@ -234,7 +230,7 @@ def id_star_line_8(graph: NxMixedGraph, query: Probability) -> bool:
 def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Probability:
     r"""Run line 9 of the ID* algorithm.
 
-    Line 9 says if there are no conflicts, then its safe to take the union of all
+    Line 9 says if there are no conflicts, then it's safe to take the union of all
     subscripts in :math:`\gamma'` , and return the effect of the subscripts in :math:`\gamma'`
     on the variables in :math:`\gamma'`.
 
@@ -242,21 +238,9 @@ def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Probability:
     :param query: a joint distribution over counterfactual variables
     :return: An interventional distribution.
     """
-    interventions = set()
-    evidence = dict()
-    for counterfactual in query.children:
-        evidence[counterfactual.name] = counterfactual.star
-        if isinstance(counterfactual, CounterfactualVariable):
-            interventions |= set(counterfactual.interventions)
-    return P[interventions]([Variable(name, star=evidence[name]) for name in evidence])
-
-
-# FIXME this is defined twice!
-def id_star_line_9(query: Probability) -> Expression:
-    """Gather all interventions and applies them to the varnames of outcome variables."""
-    varnames = get_varnames(query)
     interventions = get_interventions(query)
-    return P[interventions](varnames)
+    variables = get_varnames(query)
+    return P[interventions](Variable(name=name, star=star) for name, star in variables.items())
 
 
 def idc_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
@@ -329,8 +313,8 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
 
 
 def get_varnames(query: Probability) -> Collection[Variable]:
-    r"""Return new Variables generated from the names of the outcome variables in the query."""
-    return {Variable(outcome.name) for outcome in query.children}
+    """Return new Variables generated from the names of the outcome variables in the query."""
+    return {child.name: child.star for child in query.children}
 
 
 def get_interventions(query: Probability) -> Collection[Variable]:
