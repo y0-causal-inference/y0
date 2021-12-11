@@ -353,12 +353,22 @@ def has_same_domain_of_values(node1: Variable, node2: Variable) -> bool:
 
 
 def has_same_value(gamma: Collection[Variable], node1: Variable, node2: Variable) -> bool:
+    n1 = None
     for node in gamma:
         if node == node1:
             n1 = node
+    if n1 is None:
+        raise ValueError
+
+    n2 = None
     for node in gamma:
         if node == node2:
             n2 = node
+    if n2 is None:
+        raise ValueError
+
+    # TODO not all variables have is_event().
+    #  Should normal, non-counterfactual variables have this function?
     return has_same_function(n1, n2) and n1.is_event() and n2.is_event() and (n1.star == n2.star)
 
 
