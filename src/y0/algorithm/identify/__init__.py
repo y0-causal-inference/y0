@@ -2,7 +2,7 @@
 
 """Identification algorithms."""
 
-from .cg import lemma_24, lemma_25, make_parallel_worlds_graph, make_world_graph
+from .cg import is_pw_equivalent, make_parallel_worlds_graph, make_world_graph, merge_pw
 from .id_c import idc  # noqa:F401
 from .id_star import (
     id_star_line_1,

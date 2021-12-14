@@ -1,12 +1,23 @@
 from tests.test_algorithm import cases
-from y0.algorithm.identify import lemma_24, lemma_25, make_parallel_worlds_graph
+from y0.algorithm.identify import is_pw_equivalent, make_parallel_worlds_graph, merge_pw
 from y0.algorithm.identify.cg import (
     get_worlds,
     has_same_function,
     has_same_parents,
     make_counterfactual_graph,
 )
-from y0.dsl import D, P, W, X, Y, Z, Zero, Variable, CounterfactualVariable, Intervention
+from y0.dsl import (
+    CounterfactualVariable,
+    D,
+    Intervention,
+    P,
+    Variable,
+    W,
+    X,
+    Y,
+    Z,
+    Zero,
+)
 from y0.examples import (
     figure_9a,
     figure_9b,
@@ -17,6 +28,8 @@ from y0.examples import (
     figure_11c,
 )
 from y0.graph import NxMixedGraph
+
+x, y, z, d, w = -X, -Y, -Z, -D, -W
 
 
 class TestCounterfactualGraph(cases.GraphTestCase):
@@ -48,30 +61,25 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_get_worlds(self):
         """Test that all interventions within each world of a counterfactual conjunction are generated."""
-        expected = [[~X], [-D]]
-        self.assertEqual(
-            sorted(expected), sorted(sorted(world) for world in get_worlds(P(Y @ ~X | X, Z @ D, D)))
-        )
+        self.assertEqual([[-D], [~X]], get_worlds([Y @ ~X, X, Z @ D, D]))
+        self.assertEqual([[-D], [~X, -Z]], get_worlds([Y @ (~X, -Z), X, Z @ -D, D]))
 
-    def test_lemma_24(self):
-        """Test that two nodes in a parallel world graph are the same."""
-        self.assertTrue(lemma_24(figure_9b.graph, D @ ~X, D))
-        self.assertTrue(lemma_24(figure_9b.graph, X @ D, X))
-        self.assertFalse(lemma_24(figure_9b.graph, Z @ D, Z))
-        self.assertFalse(lemma_24(figure_9b.graph, D, D @ D))
-        self.assertFalse(lemma_24(figure_9b.graph, X, D))
-        self.assertFalse(lemma_24(figure_9b.graph, X @ ~X, W @ ~X))
-        self.assertFalse(lemma_24(figure_9b.graph, X @ ~X, X))
+    def test_is_pw_equivalent(self):
+        """Test that two nodes in a parallel world graph are the same. (lemma 24)"""
+        self.assertTrue(is_pw_equivalent(figure_9b.graph, D @ ~X, D))
+        self.assertTrue(is_pw_equivalent(figure_9b.graph, X @ D, X))
+        self.assertFalse(is_pw_equivalent(figure_9b.graph, Z @ D, Z))
+        self.assertFalse(is_pw_equivalent(figure_9b.graph, X, X @ ~X))
 
     def test_lemma_25(self):
         """Test that the parallel worlds graph after merging two nodes is correct."""
-        cf_graph_1 = lemma_25(figure_9b.graph, D, D @ ~X)
-        cf_graph_2 = lemma_25(cf_graph_1, X, X @ D)
-        cf_graph_3 = lemma_25(cf_graph_2, Z, Z @ ~X)
-        cf_graph_4 = lemma_25(cf_graph_3, Z, Z @ D)
-        cf_graph_5 = lemma_25(cf_graph_4, W, W @ D)
-        cf_graph_6 = lemma_25(cf_graph_5, D, D @ D)
-        cf_graph_7 = lemma_25(cf_graph_6, Y, Y @ D)
+        cf_graph_1 = merge_pw(figure_9b.graph, D, D @ ~X)
+        cf_graph_2 = merge_pw(cf_graph_1, X, X @ D)
+        cf_graph_3 = merge_pw(cf_graph_2, Z, Z @ ~X)
+        cf_graph_4 = merge_pw(cf_graph_3, Z, Z @ D)
+        cf_graph_5 = merge_pw(cf_graph_4, W, W @ D)
+        cf_graph_6 = merge_pw(cf_graph_5, D, D @ D)
+        cf_graph_7 = merge_pw(cf_graph_6, Y, Y @ D)
         self.assert_graph_equal(figure_11a.graph, cf_graph_2)
         self.assert_graph_equal(figure_11b.graph, cf_graph_6)
         self.assert_graph_equal(figure_11c.graph, cf_graph_7)
@@ -85,7 +93,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         :math:`P(y_{x,z},x')` will result in the counterfactual graph shown in Fig. 9(d).
         """
         actual_graph, actual_query = make_counterfactual_graph(
-            figure_9a.graph, P(Y @ ~X, X, Z @ D, D)
+            figure_9a.graph, {Y @ -x: -y, X: -x, Z @ -d: z, D: -d}
         )
         self.assert_graph_equal(figure_9c.graph, actual_graph)
         self.assert_expr_equal(expected=P(Y @ ~X, X, Z, D), actual=actual_query)
@@ -97,6 +105,12 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         # Check for inconsistent counterfactual values for merged nodes
         actual_graph3, actual_query3 = make_counterfactual_graph(
             graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
-        query=P(CounterfactualVariable(name='Z', star=None, interventions=(Intervention('D', star=False),)), Variable(name='Z', star=None), D)
+            event=P(
+                CounterfactualVariable(
+                    name="Z", star=None, interventions=(Intervention("D", star=False),)
+                ),
+                Variable(name="Z", star=None),
+                D,
+            ),
         )
         self.assertEqual(Zero(), actual_query3)
