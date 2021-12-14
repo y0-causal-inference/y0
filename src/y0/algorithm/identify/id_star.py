@@ -219,22 +219,18 @@ def id_star_line_8(graph: NxMixedGraph, query: Probability) -> bool:
     :param query: a joint distribution over counterfactual variables
     :return: True if there is a conflict. False otherwise
     """
-    interventions = set()
-    evidence = dict()
-    for counterfactual in query.children:
-        evidence[counterfactual.name] = counterfactual.star
-        if isinstance(counterfactual, CounterfactualVariable):
-            interventions |= set(counterfactual.interventions)
-    for intervention in interventions:
-        if (intervention.name in evidence) and evidence[intervention.name] != intervention.star:
-            return True
-    return False
+    interventions = get_interventions(query)
+    evidence = get_varnames(query)
+    return any(
+        (intervention.name in evidence) and evidence[intervention.name] != intervention.star
+        for intervention in interventions
+    )
 
 
 def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Probability:
     r"""Run line 9 of the ID* algorithm.
 
-    Line 9 says if there are no conflicts, then its safe to take the union of all
+    Line 9 says if there are no conflicts, then it's safe to take the union of all
     subscripts in :math:`\gamma'` , and return the effect of the subscripts in :math:`\gamma'`
     on the variables in :math:`\gamma'`.
 
@@ -242,21 +238,9 @@ def id_star_line_9(graph: NxMixedGraph, query: Probability) -> Probability:
     :param query: a joint distribution over counterfactual variables
     :return: An interventional distribution.
     """
-    interventions = set()
-    evidence = dict()
-    for counterfactual in query.children:
-        evidence[counterfactual.name] = counterfactual.star
-        if isinstance(counterfactual, CounterfactualVariable):
-            interventions |= set(counterfactual.interventions)
-    return P[interventions]([Variable(name, star=evidence[name]) for name in evidence])
-
-
-# FIXME this is defined twice!
-def id_star_line_9(query: Probability) -> Expression:
-    """Gather all interventions and applies them to the varnames of outcome variables."""
-    varnames = get_varnames(query)
     interventions = get_interventions(query)
-    return P[interventions](varnames)
+    variables = get_varnames(query)
+    return P[interventions](Variable(name=name, star=star) for name, star in variables.items())
 
 
 def idc_star_line_2(graph: NxMixedGraph, query: Probability) -> Expression:
@@ -328,9 +312,9 @@ def idc_star(graph: NxMixedGraph, query: Probability) -> Expression:
     return estimand.marginalize(vertices - delta)
 
 
-def get_varnames(query: Probability) -> Collection[Variable]:
-    r"""Return new Variables generated from the names of the outcome variables in the query."""
-    return {Variable(outcome.name) for outcome in query.children}
+def get_varnames(query: Probability) -> Mapping[str, Optional[bool]]:
+    """Return new Variables generated from the names of the outcome variables in the query."""
+    return {child.name: child.star for child in query.children}
 
 
 def get_interventions(query: Probability) -> Collection[Variable]:
@@ -353,12 +337,22 @@ def has_same_domain_of_values(node1: Variable, node2: Variable) -> bool:
 
 
 def has_same_value(gamma: Collection[Variable], node1: Variable, node2: Variable) -> bool:
+    n1 = None
     for node in gamma:
         if node == node1:
             n1 = node
+    if n1 is None:
+        raise ValueError
+
+    n2 = None
     for node in gamma:
         if node == node2:
             n2 = node
+    if n2 is None:
+        raise ValueError
+
+    # TODO not all variables have is_event().
+    #  Should normal, non-counterfactual variables have this function?
     return has_same_function(n1, n2) and n1.is_event() and n2.is_event() and (n1.star == n2.star)
 
 
