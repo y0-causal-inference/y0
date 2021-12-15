@@ -92,25 +92,21 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         The invocation of **make-cg** with the graph in Figure 9(a) and the joint distribution
         :math:`P(y_{x,z},x')` will result in the counterfactual graph shown in Fig. 9(d).
         """
-        actual_graph, actual_query = make_counterfactual_graph(
-            figure_9a.graph, {Y @ -x: -y, X: -x, Z @ -d: z, D: -d}
+        actual_graph, actual_event = make_counterfactual_graph(
+            figure_9a.graph, {Y @ +x: +y, X: -x, Z @ -d: -z, D: -d}
         )
         self.assert_graph_equal(figure_9c.graph, actual_graph)
-        self.assert_expr_equal(expected=P(Y @ ~X, X, Z, D), actual=actual_query)
-        actual_graph2, actual_query2 = make_counterfactual_graph(figure_9a.graph, P(Y @ (Z, ~X), X))
-        expected_graph2, expected_query2 = figure_9d.graph, P(Y @ (Z, ~X), X)
-        self.assert_expr_equal(expected_query2, actual_query2)
+        self.assertEqual({Y @ +x: +y, X: -x, Z: -z, D: -d}, actual_event)
+        actual_graph2, actual_event2 = make_counterfactual_graph(
+            figure_9a.graph, {Y @ (+x, -z): +y, X: -x}
+        )
+        expected_graph2, expected_event2 = figure_9d.graph, {Y @ (+x, -z): +y, X: -x}
+        self.assertEqual(expected_event2, actual_event2)
         self.assert_graph_equal(expected_graph2, actual_graph2)
 
         # Check for inconsistent counterfactual values for merged nodes
-        actual_graph3, actual_query3 = make_counterfactual_graph(
+        actual_graph3, actual_event3 = make_counterfactual_graph(
             graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
-            event=P(
-                CounterfactualVariable(
-                    name="Z", star=None, interventions=(Intervention("D", star=False),)
-                ),
-                Variable(name="Z", star=None),
-                D,
-            ),
+            event={Z @ -d: -z, Z: +z, D: -d},
         )
-        self.assertEqual(Zero(), actual_query3)
+        self.assertEqual(Zero(), actual_event3)

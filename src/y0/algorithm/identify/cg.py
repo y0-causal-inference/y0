@@ -110,7 +110,7 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
 
 def make_counterfactual_graph(
     graph: NxMixedGraph, event: Event
-) -> Tuple[NxMixedGraph, Union[Mapping[Variable, Intervention], Zero]]:
+) -> Tuple[NxMixedGraph, Union[Event, Zero]]:
     """Make counterfactual graph"""
     worlds = get_worlds(event)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
@@ -135,7 +135,9 @@ def make_counterfactual_graph(
                     and (new_event[node] != new_event[node_at_intervention])
                 ):
                     return cf_graph, Zero()
-                new_event.pop(node_at_intervention, None)
+                if node_at_intervention in new_event:
+                    new_event[node] = new_event[node_at_intervention]
+                    new_event.pop(node_at_intervention, None)
 
         if len(worlds) > 1:
             for intervention1, intervention2 in combinations(worlds, 2):
@@ -154,7 +156,9 @@ def make_counterfactual_graph(
                         and (new_event[node_at_intervention1] != new_event[node_at_intervention2])
                     ):
                         return cf_graph, Zero()
-                    new_event.pop(node_at_intervention2, None)
+                    if node_at_intervention2 in new_event:
+                        new_event[node_at_intervention1] = new_event[node_at_intervention2]
+                        new_event.pop(node_at_intervention2, None)
     return (cf_graph.subgraph(cf_graph.ancestors_inclusive(new_event)), new_event)
 
 

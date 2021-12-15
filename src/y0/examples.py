@@ -44,6 +44,8 @@ from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
 
+d, w, x, y, z = -D, -W, -X, -Y, -Z
+
 
 @dataclass
 class Example:
@@ -478,13 +480,13 @@ figure_9d = Example(
     " joint distribution from which :math:`P(y_{x,z}|x')` is derived, namely  :math:`P(y_{x,z}, x')`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(
-        nodes=(X, X @ (Z, ~X), Z @ (Z, ~X), W @ (Z, ~X), Y @ (Z, ~X)),
+        nodes=(X, X @ (+x, -z), Z @ (+x, -z), W @ (+x, -z), Y @ (+x, -z)),
         directed=[
-            (X @ (Z, ~X), W @ (Z, ~X)),
-            (Z @ (Z, ~X), Y @ (Z, ~X)),
-            (W @ (Z, ~X), Y @ (Z, ~X)),
+            (X @ (+x, -z), W @ (+x, -z)),
+            (Z @ (+x, -z), Y @ (+x, -z)),
+            (W @ (+x, -z), Y @ (+x, -z)),
         ],
-        undirected=[(X, Y @ (Z, ~X))],
+        undirected=[(X, Y @ (+x, -z))],
     ),
 )
 
