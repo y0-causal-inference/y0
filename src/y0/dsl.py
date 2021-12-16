@@ -304,7 +304,8 @@ class Intervention(Variable):
 
     def to_y0(self) -> str:
         """Output this intervention instance as y0 internal DSL code."""
-        return f"~{self.name}" if self.star else self.name
+        mark = "+" if self.star else "-"
+        return f"{mark}{self.name}"
 
 
 @dataclass(frozen=True, order=True, repr=False)
