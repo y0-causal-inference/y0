@@ -10,7 +10,7 @@ from ananke.identification import OneLineID
 from .dsl import (
     CounterfactualVariable,
     Distribution,
-    Probability,
+    Event,
     Variable,
     _get_outcome_variables,
     _get_treatment_variables,
@@ -30,11 +30,11 @@ def _get_outcomes(variables: Set[Variable]) -> List[str]:
     return [variable.name for variable in _get_outcome_variables(variables)]
 
 
-def _all_counterfactual(distribution: Union[Probability, Distribution]) -> bool:
+def _all_counterfactual(distribution: Union[Event, Distribution]) -> bool:
     return all(isinstance(variable, CounterfactualVariable) for variable in distribution.children)
 
 
-def _all_intervened_same(distribution: Union[Probability, Distribution]) -> bool:
+def _all_intervened_same(distribution: Union[Event, Distribution]) -> bool:
     return 1 == len(
         {
             variable.interventions  # type:ignore
@@ -43,7 +43,7 @@ def _all_intervened_same(distribution: Union[Probability, Distribution]) -> bool
     )
 
 
-def _get_to(query: Union[Probability, Distribution]) -> Tuple[List[str], List[str]]:
+def _get_to(query: Union[Event, Distribution]) -> Tuple[List[str], List[str]]:
     if not _all_counterfactual(query):
         raise ValueError("all variables in input distribution should be counterfactuals")
 
@@ -58,7 +58,7 @@ def _get_to(query: Union[Probability, Distribution]) -> Tuple[List[str], List[st
 
 
 def is_identifiable(
-    graph: Union[ADMG, NxMixedGraph], query: Union[Probability, Distribution]
+    graph: Union[ADMG, NxMixedGraph], query: Union[Event, Distribution]
 ) -> bool:
     """Check if the expression is identifiable.
 

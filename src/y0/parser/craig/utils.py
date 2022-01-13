@@ -16,7 +16,7 @@ from ...dsl import (
     CounterfactualVariable,
     Distribution,
     Intervention,
-    Probability,
+    Event,
     QFactor,
     Variable,
     _sorted_variables,
@@ -57,11 +57,11 @@ def _make_variable(_s, _l, tokens: ParseResults) -> Variable:
     )
 
 
-def _make_probability(_s, _l, tokens: ParseResults) -> Probability:
+def _make_probability(_s, _l, tokens: ParseResults) -> Event:
     children, parents = tokens["children"].asList(), tokens["parents"].asList()
     if not children:
         raise ValueError
-    return Probability(
+    return Event(
         Distribution(
             children=_sorted_variables(children),
             parents=_sorted_variables(parents),

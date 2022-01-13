@@ -24,7 +24,7 @@ from y0.dsl import (
     Expression,
     M,
     P,
-    Probability,
+    Event,
     Product,
     Sum,
     X,
@@ -52,7 +52,7 @@ P_XYZ = P(X, Y, Z)
 class TestIdentify(unittest.TestCase):
     """Test cases from https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb."""
 
-    def assert_identify(self, expected: Expression, graph: NxMixedGraph, query: Probability):
+    def assert_identify(self, expected: Expression, graph: NxMixedGraph, query: Event):
         """Assert the ID algorithm returns the expected result."""
         id_in = Identification(Query.from_expression(query), graph)
         self.assert_expr_equal(expected, identify(id_in))

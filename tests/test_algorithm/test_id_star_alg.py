@@ -11,20 +11,21 @@ from y0.algorithm.identify.id_star import (
     id_star_line_9,
     idc_star_line_2,
 )
-from y0.dsl import D, One, P, Sum, Variable, W, X, Y, Z, Zero
+from y0.dsl import D, One, P, Sum, Variable, W, D, X, Y, Z, Zero
 from y0.examples import figure_9a, figure_9c, figure_9d
-
+d, w, x, y, z = -D, -W, -X, -Y, -Z
 
 class TestIDStar(cases.GraphTestCase):
     def test_idc_star_line_2(self):
         r"""Test line 2 of the IDC* algorithm.
 
         Construct the counterfactual graph Figure 9(c) where the corresponding modified query
-        is :math:`P(y_x|x',z,d)`
+        is :math:`P(Y_{x} = y|X= x',Z=z,D=d)`
         """
-        input_query = P(Y @ ~X | X, Z, D)
+        input_event= {Y @ -x:  x}
+        input_conditional = {X: +x, Z: -z, D: -d}
         input_graph = figure_9a.graph
-        actual_graph, actual_query = idc_star_line_2(input_graph, input_query)
+        actual_graph, actual_query = idc_star_line_2(input_graph, input_event, input_conditional)
         expected_graph = figure_9c.graph
         expected_query = P(D, X, Y @ ~X, Z)
         self.assert_expr_equal(expected=expected_query, actual=actual_query)
@@ -41,57 +42,62 @@ class TestIDStar(cases.GraphTestCase):
         input_query = P(Y @ ~X | X, Z, D)
         expected_output_query = P(Y @ (~X, Z) | X)
         new_delta = {X, Z, D}
-        new_gamma = {Y @ ~X}
+        new_event = {Y @ ~X}
         graph = figure_9c.graph
         for counterfactual in [Z, D]:
-            # self.assertTrue(are_d_separated(graph.remove_outgoing_edges_from( {counterfactual} ), counterfactual, new_gamma))
+            # self.assertTrue(are_d_separated(graph.remove_outgoing_edges_from( {counterfactual} ), counterfactual, new_event))
             counterfactual_value = Variable(counterfactual.name)
             parents = new_delta - {counterfactual}
-            children = {g.intervene(counterfactual_value) for g in new_gamma}
-            # self.assert_expr_equal( P( Y @ {X, counterfactual}  | new_gamma - {counterfactual}), P(children | parents))
+            children = {g.intervene(counterfactual_value) for g in new_event}
+            # self.assert_expr_equal( P( Y @ {X, counterfactual}  | new_event - {counterfactual}), P(children | parents))
 
     def test_id_star_line_1(self):
-        """Check if gamma is empty"""
-        self.assertEqual(One(), id_star_line_1(graph=figure_9a.graph, gamma=[]))
+        """Check if event is empty"""
+        self.assertEqual(One(), id_star_line_1(graph=figure_9a.graph, event={}))
 
     def test_id_star_line_2(self):
         """Check to see if the counterfactual event violates the Axiom of Effectiveness."""
-        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, gamma=[~~X @ ~X]))
-        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, gamma=[~X @ X]))
-        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, gamma=[~X @ (Y, Z, X)]))
+        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, event={X @ x: ~x}))
+        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, event={X @ ~x: x}))
+        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, event={X @ (y, z, x): ~x}))
         self.assertEqual(
-            Zero(), id_star_line_2(graph=figure_9a.graph, gamma=[~X @ (X, Z), Y @ (X, ~Y)])
+            Zero(), id_star_line_2(graph=figure_9a.graph, event={X @ (x, z): x, Y @ (x, ~y): y})
         )
         self.assertEqual(
             Zero(),
             id_star_line_2(
-                graph=figure_9a.graph, gamma=[~~Y @ X, ~X @ X, ~Y @ X, ~Y @ ~X, ~~Y @ ~X]
+                graph=figure_9a.graph, event={Y @ x: -y, X @ x: x, ~Y @ x: y, ~Y @ ~x: y, ~~Y @ ~x: y}
             ),
         )
-        self.assertIsNone(id_star_line_2(graph=figure_9a.graph, gamma=[~~X @ X]))
-        self.assertIsNone(id_star_line_2(graph=figure_9a.graph, gamma=[~X @ ~X]))
+        self.assertIsNone(id_star_line_2(graph=figure_9a.graph, event={X @ x: x}))
+        self.assertIsNone(id_star_line_2(graph=figure_9a.graph, event={X @ ~x: ~x}))
         self.assertIsNone(
             id_star_line_2(
-                graph=figure_9a.graph, gamma=[~~X @ X, ~~Y @ X, ~Y @ X, ~Y @ ~X, Y @ ~X, ~X @ ~X]
+                graph=figure_9a.graph, event={X @ x: x, Y @ x: y }
             )
         )
 
     def test_id_star_line_3(self):
         """Check to see if the counterfactual event is tautological."""
-        self.assertEqual(set(), id_star_line_3(graph=figure_9a.graph, gamma=[~~X @ X]))
+        self.assertEqual({}, id_star_line_3(graph=figure_9a.graph, event={X @ x: x}))
         self.assertEqual(
-            set([~~Y @ X]), id_star_line_3(graph=figure_9a.graph, gamma=[~~Y @ X, ~~X @ X])
+            {Y @ x: y}), id_star_line_3(graph=figure_9a.graph, event={Y @ x: y, X @ x: x})
         )
-        self.assertIsNone(id_star_line_3(graph=figure_9a.graph, gamma=[~~Y @ X, ~~X @ ~X]))
+        self.assertEqual({Y @ x: +y}, id_star_line_3(graph=figure_9a.graph, event={Y @ x: +y, X @ ~x: ~x}))
 
     def test_id_star_line_4(self):
         """Check that the counterfactual graph is correct."""
-        new_graph, new_gamma = id_star_line_4(graph=figure_9a.graph, gamma=[Y @ ~X, X, Z @ D, D])
+        new_graph, new_event = id_star_line_4(graph=figure_9a.graph, event={Y @ ~x: ~y, X: x, Z @ d: z, D: d})
         self.assert_graph_equal(figure_9c.graph, new_graph)
-        self.assert_expr_equal(P(Y @ ~X, X, Z, D), new_gamma)
+        self.assert_expr_equal({Y @ ~x: ~y, X: x, Z: z, D: d}), new_event)
 
     def test_id_star_line_5(self):
         """Check whether the query is inconsistent with the counterfactual graph."""
+        actual_graph3, actual_event3 = id_star_line_4(
+            graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
+            event={Z @ -d: -z, Z: +z, D: -d}
+        )
+        self.assertEqual(Zero(), actual_event3)
 
     def test_id_star_line_6(self):
         """Check that the input to id_star from each district is properly constructed."""
@@ -109,7 +115,7 @@ class TestIDStar(cases.GraphTestCase):
         """Test line 9 of the ID* algorithm.
 
         Test that estimand returned by taking the effect of all subscripts in
-        new_gamma on variables in new_gamma is correct
+        new_event on variables in new_event is correct
         """
         input_query = P(Y @ (W, Z), X)
         output_query = P[W, Z](Y, X)
@@ -117,7 +123,7 @@ class TestIDStar(cases.GraphTestCase):
 
     def test_id_star(self):
         """Test that the ID* algorithm returns the correct estimand."""
-        query = P(Y @ (~X, Z), X)
+        query = {Y @ (+x, -z): +y, X: -x}
         # actual = id_star( figure_9a.graph, query)
         expected = Sum[W](P(Y @ (Z, W), X @ (Z, W)) * P(W @ X))
         # self.assert_expr_equal(expected, actual)

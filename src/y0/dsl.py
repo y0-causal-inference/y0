@@ -32,7 +32,7 @@ __all__ = [
     "Distribution",
     "Event",
     "P",
-    "Probability",
+    "Event",
     "Sum",
     "Product",
     "Fraction",
@@ -646,7 +646,7 @@ class Expression(Element, ABC):
 
 
 @dataclass(frozen=True, repr=False)
-class Probability(Expression):
+class Event(Expression):
     """The probability over a distribution."""
 
     #: The distribution over which the probability is expressed
@@ -658,7 +658,7 @@ class Probability(Expression):
         distribution: DistributionHint,
         *args: Union[str, Variable],
         interventions: Optional[VariableHint] = None,
-    ) -> Probability:
+    ) -> Event:
         """Create a distribution the given variable(s) or distribution.
 
         :param distribution: If given a :class:`Distribution`, creates a probability expression
@@ -672,7 +672,7 @@ class Probability(Expression):
         distribution = Distribution.safe(distribution, *args)
         if interventions is not None:
             distribution = distribution.intervene(interventions)
-        return Probability(distribution)
+        return Event(distribution)
 
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
@@ -716,14 +716,14 @@ class Probability(Expression):
         else:
             return Product((self, other))
 
-    def intervene(self, variables: VariableHint) -> Probability:
+    def intervene(self, variables: VariableHint) -> Event:
         """Return a new probability where the underlying distribution has been intervened by the given variables."""
-        return Probability(self.distribution.intervene(variables))
+        return Event(self.distribution.intervene(variables))
 
-    def __matmul__(self, variables: VariableHint) -> Probability:
+    def __matmul__(self, variables: VariableHint) -> Event:
         return self.intervene(variables)
 
-    def uncondition(self) -> Probability:
+    def uncondition(self) -> Event:
         """Return a new probability where the underlying distribution is no longer conditioned by the parents.
 
         :returns: A new probability over a distribution over the children and parents of the previous distribution
@@ -731,7 +731,7 @@ class Probability(Expression):
         >>> from y0.dsl import P, A, B
         >>> P(A | B).uncondition() == P(A, B)
         """
-        return Probability(self.distribution.uncondition())
+        return Event(self.distribution.uncondition())
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in the distribution in this probability."""
@@ -749,8 +749,8 @@ class ProbabilityBuilderType:
         distribution: DistributionHint,
         *args: Union[str, Variable],
         interventions: Optional[VariableHint] = None,
-    ) -> Probability:
-        return Probability.safe(distribution, *args, interventions=interventions)
+    ) -> Event:
+        return Event.safe(distribution, *args, interventions=interventions)
 
     def __getitem__(self, interventions: VariableHint):
         """Generate a probability builder closure.

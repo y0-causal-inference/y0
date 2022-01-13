@@ -6,7 +6,7 @@ from y0.dsl import (
     Event,
     Intervention,
     P,
-    Probability,
+    Event,
     Variable,
     Zero,
     _get_treatment_variables,

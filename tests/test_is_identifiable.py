@@ -5,7 +5,7 @@
 import unittest
 from typing import Union
 
-from y0.dsl import Distribution, P, Probability, X, Y, Z
+from y0.dsl import Distribution, P, Event, X, Y, Z
 from y0.graph import NxMixedGraph
 from y0.identify import _get_to, is_identifiable
 
@@ -39,7 +39,7 @@ class TestNotIdentifiable(unittest.TestCase):
     """
 
     def assert_not_identifiable(
-        self, graph: NxMixedGraph, query: Union[Probability, Distribution]
+        self, graph: NxMixedGraph, query: Union[Event, Distribution]
     ) -> None:
         """Asset the graph is not identifiable under the given query."""
         self.assertFalse(is_identifiable(graph, query))
@@ -126,7 +126,7 @@ class TestIdentifiable(unittest.TestCase):
     """
 
     def assert_identifiable(
-        self, graph: NxMixedGraph, query: Union[Probability, Distribution]
+        self, graph: NxMixedGraph, query: Union[Event, Distribution]
     ) -> None:
         """Assert the graph is identifiable under the given query."""
         self.assertTrue(is_identifiable(graph, query))

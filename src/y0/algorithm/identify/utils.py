@@ -14,7 +14,7 @@ from y0.dsl import (
     Expression,
     Intervention,
     P,
-    Probability,
+    Event,
     Variable,
 )
 from y0.graph import NxMixedGraph
@@ -105,7 +105,7 @@ class Query:
     @classmethod
     def from_expression(
         cls,
-        query: Probability,
+        query: Event,
     ) -> Query:
         """Instantiate an identification.
 
@@ -261,7 +261,7 @@ class Identification:
     def from_expression(
         cls,
         *,
-        query: Probability,
+        query: Event,
         graph: Union[ADMG, NxMixedGraph],
         estimand: Optional[Expression] = None,
     ) -> Identification:

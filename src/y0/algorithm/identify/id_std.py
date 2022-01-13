@@ -5,7 +5,7 @@
 from typing import List, Sequence
 
 from .utils import Identification, Unidentifiable
-from ...dsl import Expression, P, Probability, Product, Sum, Variable
+from ...dsl import Expression, P, Event, Product, Sum, Variable
 
 
 def identify(identification: Identification) -> Expression:
@@ -303,7 +303,7 @@ def line_7(identification: Identification) -> Identification:
     raise ValueError("Could not identify suitable district")
 
 
-def p_parents(child: Variable, ordering: Sequence[Variable]) -> Probability:
+def p_parents(child: Variable, ordering: Sequence[Variable]) -> Event:
     """Get a probability expression based on a topological ordering.
 
     :param child: The child variable

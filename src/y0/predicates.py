@@ -2,7 +2,7 @@
 
 """Predicates for expressions."""
 
-from .dsl import Expression, Fraction, Probability, Product, Sum
+from .dsl import Expression, Fraction, Event, Product, Sum
 
 __all__ = [
     "has_markov_postcondition",
@@ -16,7 +16,7 @@ def has_markov_postcondition(expression: Expression) -> bool:
     :return: if the expression satisfies the sum/product of markov kernels condition
     :raises TypeError: if an object with an invalid type is passed
     """
-    if isinstance(expression, Probability):
+    if isinstance(expression, Event):
         return expression.distribution.is_markov_kernel()
     elif isinstance(expression, Product):
         return all(has_markov_postcondition(subexpr) for subexpr in expression.expressions)

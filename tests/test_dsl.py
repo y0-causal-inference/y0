@@ -119,34 +119,13 @@ class TestDSL(unittest.TestCase):
     def test_star_counterfactual(self):
         """Tests for generalized counterfactual variables."""
         for expr, expected in [
-            # Single variable
             (P(Y @ X), "P(Y @ X)"),
-            (P(Y @ -X), "P(Y @ X)"),
+            (P(~Y @ X), "P(~Y @ X)"),
             (P(Y @ ~X), "P(Y @ ~X)"),
-            (P(Y @ +X), "P(Y @ ~X)"),
-            #
-            (P(-Y @ X), "P(-Y @ X)"),
-            (P(-Y @ -X), "P(-Y @ X)"),
-            (P(-Y @ ~X), "P(-Y @ ~X)"),
-            (P(-Y @ +X), "P(-Y @ ~X)"),
-            #
-            (P(~Y @ X), "P(+Y @ X)"),
-            (P(~Y @ -X), "P(+Y @ X)"),
-            (P(~Y @ ~X), "P(+Y @ ~X)"),
-            (P(~Y @ +X), "P(+Y @ ~X)"),
-            #
-            (P(+Y @ X), "P(+Y @ X)"),
-            (P(+Y @ -X), "P(+Y @ X)"),
-            (P(+Y @ ~X), "P(+Y @ ~X)"),
-            (P(+Y @ +X), "P(+Y @ ~X)"),
-            #
+            (P(~Y @ ~X), "P(~Y @ ~X)"),
             (P(Y @ X | ~X, ~Y), "P(Y @ X | ~X, ~Y)"),
-            (P(Y @ -X | ~X, ~Y), "P(Y @ X | ~X, ~Y)"),
-            (P(Y @ +X | ~X, ~Y), "P(Y @ ~X | ~X, ~Y)"),
-            (P(Y @ ~X | ~X, ~Y), "P(Y @ ~X | ~X, ~Y)"),
-            #
-            (P(~(Y @ ~X) | X, Y), "P(+Y @ ~X | X, Y)"),
-            (P(~Y @ ~X | X, Y), "P(+Y @ ~X | X, Y)"),  # should be same as above
+            (P(~(Y @ ~X) | X, Y), "P(~Y @ ~X | X, Y)"),
+            (P(~Y @ ~X | X, Y), "P(~Y @ ~X | X, Y)"),  # should be same as above
         ]:
             with self.subTest(expr=expected):
                 self.assert_exp(expr, expected)
@@ -359,95 +338,85 @@ class TestDSL(unittest.TestCase):
 class TestCounterfactual(unittest.TestCase):
     """Tests for counterfactuals."""
 
-    def test_event_semantics(self):
+    def test_default_dsl(self):
         """Check DSL semantics."""
-        for expr, counterfactual_star, intervention_star in [
-            (X @ X, None, False),
-            (-X @ X, False, False),
-            (+X @ X, True, False),
-            (~X @ X, True, False),
-        ]:
-            with self.subTest(expr=expr.to_y0()):
-                self.assertIsInstance(expr, CounterfactualVariable)
-                self.assertEqual(counterfactual_star, expr.star)
-                self.assertEqual(1, len(expr.interventions))
-                self.assertEqual(intervention_star, expr.interventions[0].star)
+        # FIXME
+        self.assertEqual(X @ X, X @ -X)
+        self.assertEqual(X @ ~X, X @ +X)
+        self.assertEqual(-X @ X, X @ -X)
+        self.assertEqual(-X @ ~X, X @ +X)
+        self.assertEqual(-X @ X, -X @ -X)
+        self.assertEqual(-X @ ~X, -X @ +X)
 
-    def test_event_failures(self):
-        """Check for failure to determine tautology/inconsistent."""
-        for expr in [
-            # Opposite variable
-            X @ Y,
-            X @ +Y,
-            X @ -Y,
-            X @ ~Y,
-            # Same variable
-            X @ X,
-            X @ +X,
-            X @ -X,
-            X @ ~X,
-        ]:
-            with self.subTest(expr=expr.to_y0()):
-                self.assertIsInstance(expr, CounterfactualVariable)
-                self.assertFalse(expr.is_event())
-                with self.assertRaises(ValueError):
-                    expr.has_tautology()
-                with self.assertRaises(ValueError):
-                    expr.is_inconsistent()
-
-    def test_tautology(self):
+    def test_is_tautological_event(self):
         """Check for tautologies."""
         for expr, status in [
-            # Different Variable
+            # Sanity checks
+            (X @ Y, False),
+            (X @ ~Y, False),
             (~X @ Y, False),
             (~X @ ~Y, False),
-            # Same variable, self.star is False
-            (-X @ X, True),
-            (-X @ -X, True),
-            (-X @ +X, False),
-            (-X @ ~X, False),
-            # Same variable, self.star is True
-            (+X @ X, False),
-            (+X @ -X, False),
-            (+X @ +X, True),
-            (+X @ ~X, True),
-            # Same variable, self.star is True
+            (X @ ~X, False),
             (~X @ X, False),
-            (~X @ -X, False),
-            (~X @ +X, True),
+            #
+            (X @ X, True),
+            (X @ +X, False),
+            (X @ -X, True),
+            (X @ ~X, True),
+            #
+            (+X @ X, True),
+            (+X @ +X, True),
+            (+X @ -X, False),
+            (+X @ ~X, False),
+            #
+            (-X @ X, False),
+            (-X @ +X, False),
+            (-X @ -X, True),
+            (-X @ ~X, True),
+            #
+            (~X @ X, False),
+            (~X @ +X, False),
+            (~X @ -X, True),
             (~X @ ~X, True),
         ]:
             with self.subTest(expr=expr.to_y0()):
                 self.assertIsInstance(expr, CounterfactualVariable)
-                self.assertTrue(expr.is_event())
                 self.assertEqual(status, expr.has_tautology())
 
-    def test_inconsistent(self):
-        """Check for tautologies."""
+    def test_is_inconsistent_event(self):
+        """Check for violations of the Axiom of Consistency."""
         for expr, status in [
-            # Different Variable
+            # Sanity checks
+            (X @ Y, False),
+            (X @ ~Y, False),
             (~X @ Y, False),
             (~X @ ~Y, False),
-            # Same variable, self.star is False
-            (-X @ X, False),
-            (-X @ -X, False),
-            (-X @ +X, True),
-            (-X @ ~X, True),
-            # Same variable, self.star is True
-            (+X @ X, True),
-            (+X @ -X, True),
-            (+X @ +X, False),
-            (+X @ ~X, False),
-            # Same variable, self.star is True
+            (X @ ~X, False),
             (~X @ X, True),
-            (~X @ -X, True),
-            (~X @ +X, False),
+            #
+            (X @ X, False),
+            (X @ +X, False),
+            (X @ -X, False),
+            (X @ ~X, False),
+            #
+            (+X @ X, True),
+            (+X @ +X, True),
+            (+X @ -X, False),
+            (+X @ ~X, False),
+            #
+            (-X @ X, True),
+            (-X @ +X, True),
+            (-X @ -X, False),
+            (-X @ ~X, False),
+            #
+            (~X @ X, True),
+            (~X @ +X,  True),
+            (~X @ -X, False),
             (~X @ ~X, False),
         ]:
             with self.subTest(expr=expr.to_y0()):
                 self.assertIsInstance(expr, CounterfactualVariable)
-                self.assertTrue(expr.is_event())
-                self.assertEqual(status, expr.is_inconsistent())
+                self.assertEqual(status, expr.has_tautology())
 
 
 class TestSafeConstructors(unittest.TestCase):
