@@ -8,9 +8,14 @@ from y0.algorithm.identify.id_star import (
     id_star_line_2,
     id_star_line_3,
     id_star_line_4,
+    id_star_line_5,
+    id_star_line_6,
+    id_star_line_7,
+    id_star_line_8,
     id_star_line_9,
     idc_star_line_2,
 )
+from y0.graph import NxMixedGraph
 from y0.dsl import D, One, P, Sum, Variable, W, D, X, Y, Z, Zero
 from y0.examples import figure_9a, figure_9c, figure_9d
 d, w, x, y, z = -D, -W, -X, -Y, -Z
@@ -97,7 +102,7 @@ class TestIDStar(cases.GraphTestCase):
             graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
             event={Z @ -d: -z, Z: +z, D: -d}
         )
-        self.assertEqual(Zero(), actual_event3)
+        self.assertEqual(Zero(), id_star_line_5(actual_graph3, actual_event3))
 
     def test_id_star_line_6(self):
         """Check that the input to id_star from each district is properly constructed."""
