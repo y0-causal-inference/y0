@@ -60,10 +60,11 @@ def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
     except Inconsistent:
         return Zero()
     # Line 6:
+
     if not new_graph.is_connected():
         return Sum.safe(
             Product.safe(
-                id_star(new_graph, P[vertices - district](district))
+                id_star(graph, P[vertices - district](district))
                 for district in new_graph.get_c_components()
             ),
             vertices - new_event,
@@ -184,7 +185,7 @@ def id_star_line_6(graph: NxMixedGraph, event: CounterfactualEvent) -> Tuple[Col
     set of subproblems, one for each C-component in the counterfactual graph. In the ID
     algorithm, the term corresponding to a given C-component :math:`S_i` of the causal
     diagram was the effect of all variables not in :math:`S_i` on variables in :math:`S_i` ,
-    in other words :math:`P_{\mathbf{v}\backslash s_i (s_i )`, and the outermost summation
+    in other words :math:`P_{\mathbf{v}\backslash s_i} (s_i )`, and the outermost summation
     on line 4 was over values of variables not in :math:`\mathbf{Y},\mathbf{X}`. Here, the
     term corresponding to a given C-component :math:`S^i` of the counterfactual graph :math:`G'`
     is the conjunction of counterfactual variables where each variable contains in its
@@ -194,8 +195,9 @@ def id_star_line_6(graph: NxMixedGraph, event: CounterfactualEvent) -> Tuple[Col
     where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
     """
     vertices = set(graph.nodes())
-    return #x [vertices - event], [vertices - district], rict in graph.get_c_components()]
-
+    summand = vertices - event
+    interventions_of_each_district = [district, (vertices - district)   for district in graph.get_c_components()]
+    return  summand, interventions
 
 def id_star_line_7(graph: NxMixedGraph, query: CounterfactualEvent) -> Collection[Expression]:
     r"""Run line 7 of the ID* algorithm.

@@ -109,6 +109,8 @@ class TestIDStar(cases.GraphTestCase):
         graph = figure_9d.graph
 
         query = P(Y @ (X, Z), X)
+        ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
+        # district
 
     def test_id_star_line_7(self):
         """Check that the graph is entirely one c-component."""
