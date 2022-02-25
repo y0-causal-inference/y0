@@ -89,7 +89,7 @@ class TestIDStar(cases.GraphTestCase):
         """Check that the counterfactual graph is correct."""
         new_graph, new_event = id_star_line_4(graph=figure_9a.graph, event={Y @ ~x: ~y, X: x, Z @ d: z, D: d})
         self.assert_graph_equal(figure_9c.graph, new_graph)
-        self.assert_expr_equal({Y @ ~x: ~y, X: x, Z: z, D: d}, new_event)
+        self.assertEqual({Y @ ~x: ~y, X: x, Z: z, D: d}, new_event)
 
     def test_id_star_line_5(self):
         """Check whether the query is inconsistent with the counterfactual graph."""
