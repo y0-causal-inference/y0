@@ -138,6 +138,7 @@ def id_star_line_3(
     :param event: a conjunction of counterfactual variables
     :return: updated event or None
     """
+    new_event = event.copy()
     for counterfactual in event:
         if isinstance(counterfactual, CounterfactualVariable):
            for intervention in counterfactual.interventions:
@@ -145,8 +146,8 @@ def id_star_line_3(
                   (intervention.name == counterfactual.name)
                   and (event[counterfactual].star == intervention.star)
                   ):
-                  event.pop(counterfactual, None)
-    return event
+                  new_event.pop(counterfactual, None)
+    return new_event
 
 def id_star_line_4(
     graph: NxMixedGraph, event: CounterfactualEvent
