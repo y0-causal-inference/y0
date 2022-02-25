@@ -30,7 +30,7 @@ __all__ = [
     "Intervention",
     "CounterfactualVariable",
     "Distribution",
-    "Event",
+    "CounterfactualEvent",
     "P",
     "Event",
     "Sum",
@@ -1409,4 +1409,4 @@ def vmap_adj(adjacency_dict):
 
 
 #: A conjuction of factual and counterfactual events
-Event = Mapping[Variable, Intervention]
+CounterfactualEvent = Mapping[Variable, Intervention]

@@ -9,11 +9,10 @@ from .utils import Unidentifiable
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
     CounterfactualVariable,
-    Event,
+    CounterfactualEvent,
     Expression,
     One,
     P,
-    Event,
     Product,
     Sum,
     Variable,
@@ -40,7 +39,7 @@ class Inconsistent(ValueError):
     pass
 
 
-def id_star(graph: NxMixedGraph, event: Event) -> Expression:
+def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
     # Line 0
     if id_star_line_1(graph, event) is not None:
         return One()
@@ -88,7 +87,7 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
 #     return -var
 
 
-def id_star_line_1(graph: NxMixedGraph, event: Event) -> Optional[One]:
+def id_star_line_1(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[One]:
     r"""Run line 1 of the ID* algorithm.
 
     The first line states that if :math:`\event` is an empty conjunction, then its
@@ -104,7 +103,7 @@ def id_star_line_1(graph: NxMixedGraph, event: Event) -> Optional[One]:
         return None
 
 
-def id_star_line_2(graph: NxMixedGraph, event: Event) -> Optional[Zero]
+def id_star_line_2(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[Zero]:
     r"""Run line 2 of the ID* algorithm.
 
     The second line states that if :math:`\event` contains a counterfactual
@@ -127,8 +126,8 @@ def id_star_line_2(graph: NxMixedGraph, event: Event) -> Optional[Zero]
 
 
 def id_star_line_3(
-    graph: NxMixedGraph, event: Event
-) -> Event:
+    graph: NxMixedGraph, event: CounterfactualEvent
+) -> CounterfactualEvent:
     r"""Run line 3 of the ID* algorithm.
 
     The third line states that if a counterfactual contains its own value in the subscript,
@@ -150,8 +149,8 @@ def id_star_line_3(
     return event
 
 def id_star_line_4(
-    graph: NxMixedGraph, event: Event
-) -> Tuple[NxMixedGraph, Event]:
+    graph: NxMixedGraph, event: CounterfactualEvent
+) -> Tuple[NxMixedGraph, CounterfactualEvent]:
     r"""Run line 4 of the ID* algorithm
 
     Line 4 invokes make-cg to construct a counterfactual graph :math:`G'` , and the
@@ -166,7 +165,7 @@ def id_star_line_4(
     return new_graph, new_event
 
 
-def id_star_line_5(graph: NxMixedGraph, event: Event) -> Optional[Zero]:
+def id_star_line_5(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[Zero]:
     r"""Run line 5 of the ID* algorithm.
 
     Line 5 returns probability 0 if an inconsistency was found during the construction
@@ -177,7 +176,7 @@ def id_star_line_5(graph: NxMixedGraph, event: Event) -> Optional[Zero]:
         return event
 
 
-def id_star_line_6(graph: NxMixedGraph, event: Event) -> Tuple[Collection[Variable], Collection[Event]]:
+def id_star_line_6(graph: NxMixedGraph, event: CounterfactualEvent) -> Tuple[Collection[Variable], Collection[CounterfactualEvent]]:
     r"""Run line 6 of the ID* algorithm.
 
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
@@ -194,10 +193,10 @@ def id_star_line_6(graph: NxMixedGraph, event: Event) -> Tuple[Collection[Variab
     where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
     """
     vertices = set(graph.nodes())
-    return [vertices - event], [vertices - district], rict in graph.get_c_components()]
+    return #x [vertices - event], [vertices - district], rict in graph.get_c_components()]
 
 
-def id_star_line_7(graph: NxMixedGraph, query: Event) -> Collection[Expression]:
+def id_star_line_7(graph: NxMixedGraph, query: CounterfactualEvent) -> Collection[Expression]:
     r"""Run line 7 of the ID* algorithm.
 
     Line 7 is the base case, where our counterfactual graph has a single C-component
@@ -205,7 +204,7 @@ def id_star_line_7(graph: NxMixedGraph, query: Event) -> Collection[Expression]:
     raise NotImplementedError
 
 
-def id_star_line_8(graph: NxMixedGraph, query: Event) -> bool:
+def id_star_line_8(graph: NxMixedGraph, query: CounterfactualEvent) -> bool:
     r"""Run line 8 of the ID* algorithm.
 
     Line 8 says that if :math:`\event'` contains a "conflict," that is an inconsistent
@@ -223,7 +222,7 @@ def id_star_line_8(graph: NxMixedGraph, query: Event) -> bool:
     )
 
 
-def id_star_line_9(graph: NxMixedGraph, query: Event) -> Event:
+def id_star_line_9(graph: NxMixedGraph, query: CounterfactualEvent) -> CounterfactualEvent:
     r"""Run line 9 of the ID* algorithm.
 
     Line 9 says if there are no conflicts, then it's safe to take the union of all
@@ -239,7 +238,7 @@ def id_star_line_9(graph: NxMixedGraph, query: Event) -> Event:
     return P[interventions](Variable(name=name, star=star) for name, star in variables.items())
 
 
-def idc_star_line_2(graph: NxMixedGraph, query: Event) -> Expression:
+def idc_star_line_2(graph: NxMixedGraph, query: CounterfactualEvent) -> Expression:
     r"""Run line 2 of the IDC* algorithm.
 
     The second line states that if :math:`\event` contains a counterfactual which violates
@@ -251,7 +250,7 @@ def idc_star_line_2(graph: NxMixedGraph, query: Event) -> Expression:
     return make_counterfactual_graph(graph, event_and_delta)
 
 
-def idc_star_line_4(graph: NxMixedGraph, query: Event) -> bool:
+def idc_star_line_4(graph: NxMixedGraph, query: CounterfactualEvent) -> bool:
     r"""Run line 4 of the IDC* algorithm.
 
     Line 4 of IDC* is the central line of the algorithm and is
@@ -269,7 +268,7 @@ def idc_star_line_4(graph: NxMixedGraph, query: Event) -> bool:
     raise NotImplementedError
 
 
-def idc_star(graph: NxMixedGraph, query: Event) -> Expression:
+def idc_star(graph: NxMixedGraph, query: CounterfactualEvent) -> Expression:
     r"""Run the IDC* algorithm.
 
     INPUT:
@@ -308,12 +307,12 @@ def idc_star(graph: NxMixedGraph, query: Event) -> Expression:
     return estimand.marginalize(vertices - delta)
 
 
-def get_varnames(query: Event) -> Mapping[str, Optional[bool]]:
+def get_varnames(query: CounterfactualEvent) -> Mapping[str, Optional[bool]]:
     """Return new Variables generated from the names of the outcome variables in the query."""
     return {child.name: child.star for child in query.children}
 
 
-def get_interventions(query: Event) -> Collection[Variable]:
+def get_interventions(query: CounterfactualEvent) -> Collection[Variable]:
     r"""Generate new Variables from the subscripts of counterfactual variables in the query."""
     interventions = set()
     for counterfactual in query.children:
