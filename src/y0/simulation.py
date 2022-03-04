@@ -85,7 +85,7 @@ def simulate(
     _x = {frozenset(edge) for edge in order}
     order.extend(
         (left, right)
-        for left, right in itt.combinations(sorted(graph, key=lambda n: n.name), 2)
+        for left, right in itt.combinations(sorted(graph.nodes(), key=lambda n: n.name), 2)
         if frozenset((left, right)) not in _x
     )
 
