@@ -1,23 +1,35 @@
 # -*- coding: utf-8 -*-
 
-"""A simulation sort of based on Sara's idea."""
+"""Generate data using a linear structural causal model."""
 
 from __future__ import annotations
 
-from collections import Mapping
+import itertools as itt
 from functools import partial
-from typing import Callable, MutableMapping, NamedTuple, Optional, Tuple, cast
+from typing import (
+    Callable,
+    Dict,
+    FrozenSet,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Tuple,
+    cast,
+)
 
 import pandas as pd
 from numpy.random import normal, uniform
 from sklearn.linear_model import LinearRegression
 from tqdm.auto import trange
 
+from .algorithm.conditional_independencies import get_conditional_independencies
 from .dsl import V1, V2, V3, V4, V5, V6, Variable
 from .graph import NxMixedGraph
+from .struct import DSeparationJudgement
 
 __all__ = [
-    "Simulation",
+    "LinearSCM",
     "simulate",
 ]
 
@@ -49,27 +61,47 @@ class FitTuple(NamedTuple):
     slope: float
     intercept: float
     r2: float
+    d_separation: Optional[DSeparationJudgement]
 
 
 def simulate(
     graph: NxMixedGraph, trials: int = 200, **kwargs
-) -> Tuple[pd.DataFrame, Mapping[Tuple[Variable, Variable], FitTuple]]:
-    """Simulate a graph using gaussians for all variables."""
-    simulation = Simulation(graph, **kwargs)
+) -> Tuple[pd.DataFrame, Mapping[FrozenSet[Variable], FitTuple]]:
+    """Simulate a graph using a linear structural causal model."""
+    judgements = get_conditional_independencies(graph)
+    cis: Mapping[FrozenSet[Variable], DSeparationJudgement] = {
+        frozenset((judgement.left, judgement.right)): judgement for judgement in judgements
+    }
+
+    linear_scm = LinearSCM(graph, **kwargs)
     results = {
-        n: simulation.trial()
+        n: linear_scm.trial()
         for n in trange(trials, desc="Simulation", unit="trial", unit_scale=True)
     }
     rv = pd.DataFrame(results).T
 
-    fits = {}
-    for parent, child in graph.directed.edges():
+    # Get a prioritized ordering for edges actually in graph
+    order = list(graph.directed.edges())
+    _x = {frozenset(edge) for edge in order}
+    order.extend(
+        (left, right)
+        for left, right in itt.combinations(sorted(graph, key=lambda n: n.name), 2)
+        if frozenset((left, right)) not in _x
+    )
+
+    fits: Dict[FrozenSet[Variable], FitTuple] = {}
+    for parent, child in order:
         x, y = rv[parent].to_numpy().reshape(-1, 1), rv[child]
         regression = LinearRegression()
         regression.fit(x, y)
         r2 = regression.score(x, y)
-        fits[parent, child] = FitTuple(
-            regression=regression, slope=regression.coef_[0], intercept=regression.intercept_, r2=r2
+        key = frozenset((parent, child))
+        fits[key] = FitTuple(
+            regression=regression,
+            slope=regression.coef_[0],
+            intercept=regression.intercept_,
+            r2=r2,
+            d_separation=cis.get(key),
         )
 
     return rv, fits
@@ -78,7 +110,7 @@ def simulate(
 Generator = Callable[[], float]
 
 
-class Simulation:
+class LinearSCM:
     """A data structure for a simulation.
 
     Provides an implementation of the simulation presented in Figure 1 and Example 2.2 in
@@ -130,16 +162,16 @@ class Simulation:
         """Generate a value for the variable."""
         return self.generators[node]()
 
-    def fix(self, values: Mapping[Variable, float]) -> Simulation:
+    def fix(self, values: Mapping[Variable, float]) -> LinearSCM:
         """Create a new simulation with the given nodes fixed to their values."""
         generators = cast(
             Mapping[Variable, Generator],
             {
-                node: lambda: values[node] if node in values else generator
+                node: generator if node not in values else lambda: values[node]
                 for node, generator in self.generators.items()
             },
         )
-        return Simulation(graph=self.graph, generators=generators, weights=self.weights)
+        return LinearSCM(graph=self.graph, generators=generators, weights=self.weights)
 
     def trial(self) -> Mapping[Variable, float]:
         """Perform a single trial.
