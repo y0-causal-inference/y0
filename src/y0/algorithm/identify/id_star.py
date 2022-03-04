@@ -136,7 +136,7 @@ def id_star_line_3(graph: NxMixedGraph, event: CounterfactualEvent) -> Counterfa
     :param event: a conjunction of counterfactual variables
     :return: updated event or None
     """
-    new_event = event.copy()
+    new_event = dict(event)
     for counterfactual in event:
         if isinstance(counterfactual, CounterfactualVariable):
             for intervention in counterfactual.interventions:
@@ -356,19 +356,3 @@ def has_same_value(event: Collection[Variable], node1: Variable, node2: Variable
     return has_same_function(n1, n2) and n1.is_event() and n2.is_event() and (n1.star == n2.star)
 
 
-# TODO unused, isn't this already implemented in NxMixedGraph?
-def to_adj(
-    graph: NxMixedGraph,
-) -> Tuple[
-    Collection[Variable],
-    Mapping[Variable, Collection[Variable]],
-    Mapping[Variable, Collection[Variable]],
-]:
-    nodes: list[Variable] = list(graph.nodes())
-    directed: dict[Variable, list[Variable]] = {u: [] for u in nodes}
-    undirected: dict[Variable, list[Variable]] = {u: [] for u in nodes}
-    for u, v in graph.directed.edges():
-        directed[u].append(v)
-    for u, v in graph.undirected.edges():
-        undirected[u].append(v)
-    return nodes, directed, undirected

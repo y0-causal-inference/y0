@@ -2,6 +2,7 @@ from itertools import combinations
 from typing import Collection, Iterable, Mapping, Tuple, Union
 
 from y0.dsl import (
+    CounterfactualEvent,
     CounterfactualVariable,
     Intervention,
     P,
@@ -12,7 +13,7 @@ from y0.dsl import (
 )
 from y0.graph import NxMixedGraph
 
-__all__ = ["make_counterfactual_graph", "has_same_function", "forget_value"]
+__all__ = ["make_counterfactual_graph", "has_same_function"]
 
 
 def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
@@ -108,12 +109,12 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
 
 
 def make_counterfactual_graph(
-    graph: NxMixedGraph, event: Probability
-) -> Tuple[NxMixedGraph, Union[Probability, Zero]]:
+    graph: NxMixedGraph, event: CounterfactualEvent
+) -> Tuple[NxMixedGraph, CounterfactualEvent]:
     """Make counterfactual graph"""
     worlds = get_worlds(event)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
-    new_event = event.copy()
+    new_event = dict(event)
     cf_graph = NxMixedGraph.from_edges(
         nodes=pw_graph.nodes(),
         directed=pw_graph.directed.edges(),
@@ -146,7 +147,7 @@ def make_counterfactual_graph(
                 if (
                     (node_at_intervention1 in cf_graph.nodes())
                     and (node_at_intervention2 in cf_graph.nodes())
-                    and is_pw_equivalent(cf_graph, node_at_intervention1)
+                    and is_pw_equivalent(cf_graph, node_at_intervention1, node_at_intervention2)
                 ):
                     cf_graph = merge_pw(cf_graph, node_at_intervention1, node_at_intervention2)
                     if (
