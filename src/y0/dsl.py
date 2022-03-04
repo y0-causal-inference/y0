@@ -50,10 +50,17 @@ __all__ = [
     "R",
     "S",
     "T",
+    "U",
     "W",
     "X",
     "Y",
     "Z",
+    "U1",
+    "U2",
+    "U3",
+    "U4",
+    "U5",
+    "U6",
     "V1",
     "V2",
     "V3",
@@ -299,7 +306,8 @@ class Intervention(Variable):
 
     def to_y0(self) -> str:
         """Output this intervention instance as y0 internal DSL code."""
-        return f"~{self.name}" if self.star else self.name
+        mark = "+" if self.star else "-"
+        return f"{mark}{self.name}"
 
 
 @dataclass(frozen=True, order=True, repr=False)
@@ -1322,7 +1330,8 @@ class QFactor(Expression):
 Q = QFactor
 
 AA = Variable("AA")
-A, B, C, D, E, F, G, M, R, S, T, W, X, Y, Z = map(Variable, "ABCDEFGMRSTWXYZ")  # type: ignore
+A, B, C, D, E, F, G, M, R, S, T, U, W, X, Y, Z = map(Variable, "ABCDEFGMRSTUWXYZ")  # type: ignore
+U1, U2, U3, U4, U5, U6 = [Variable(f"U{i}") for i in range(1, 7)]
 V1, V2, V3, V4, V5, V6 = [Variable(f"V{i}") for i in range(1, 7)]
 W0, W1, W2, W3, W4, W5, W6 = [Variable(f"W{i}") for i in range(7)]
 Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f"Y{i}") for i in range(1, 7)]
