@@ -36,7 +36,7 @@ def get_conditional_independencies(
 
     :param graph: An acyclic directed mixed graph
     :param policy: Retention policy when more than one conditional independency option exists (see minimal for details)
-    :param kwargs: Other keyword arguments are passed to d_separations
+    :param kwargs: Other keyword arguments are passed to :func:`d_separations`
     :return: A set of conditional dependencies
 
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
@@ -52,7 +52,7 @@ def get_conditional_independencies(
 def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSeparationJudgement]:
     """Given some d-separations, reduces to a 'minimal' collection.
 
-    For indepdencies of the form A _||_ B | {C1, C2, ...} the minimal collection will::
+    For independencies of the form A _||_ B | {C1, C2, ...} the minimal collection will::
 
     - Have only one independency with the same A/B nodes.
     - If there are multiples sets of C-nodes, the kept d-separation will be the first/minimal
