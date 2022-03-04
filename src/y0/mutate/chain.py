@@ -7,7 +7,7 @@ from ..dsl import (
     Fraction,
     OrderingHint,
     P,
-    Event,
+    Probability,
     Product,
     ensure_ordering,
 )
@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-def chain_expand(p: Event, *, reorder: bool = True, ordering: OrderingHint = None) -> Product:
+def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint = None) -> Product:
     r"""Expand a probability distribution to a product of conditional probabilities on single variables.
 
     :param p: The given probability expression
@@ -71,7 +71,7 @@ def chain_expand(p: Event, *, reorder: bool = True, ordering: OrderingHint = Non
     )
 
 
-def fraction_expand(p: Event) -> Fraction:
+def fraction_expand(p: Probability) -> Fraction:
     r"""Expand a probability distribution with fractions.
 
     :param p: The given probability expression
@@ -90,7 +90,7 @@ def fraction_expand(p: Event) -> Fraction:
     return Fraction(p.uncondition(), P(p.parents))
 
 
-def bayes_expand(p: Event) -> Fraction:
+def bayes_expand(p: Probability) -> Fraction:
     r"""Expand a probability distribution using Bayes' theorem.
 
     :param p: The given probability expression, with arbitrary number of children and parents

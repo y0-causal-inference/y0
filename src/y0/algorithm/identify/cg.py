@@ -3,10 +3,9 @@ from typing import Collection, Iterable, Mapping, Tuple, Union
 
 from y0.dsl import (
     CounterfactualVariable,
-    Event,
     Intervention,
     P,
-    Event,
+    Probability,
     Variable,
     Zero,
     _get_treatment_variables,
@@ -109,8 +108,8 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
 
 
 def make_counterfactual_graph(
-    graph: NxMixedGraph, event: Event
-) -> Tuple[NxMixedGraph, Union[Event, Zero]]:
+    graph: NxMixedGraph, event: Probability
+) -> Tuple[NxMixedGraph, Union[Probability, Zero]]:
     """Make counterfactual graph"""
     worlds = get_worlds(event)
     pw_graph = make_parallel_worlds_graph(graph, worlds)

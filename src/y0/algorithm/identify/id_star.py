@@ -2,14 +2,14 @@
 
 """Implementation of the IDC algorithm."""
 
-from typing import Collection, Mapping, Optional, Tuple
+from typing import Collection, FrozenSet, Mapping, Optional, Set, Tuple
 
 from .cg import has_same_function, make_counterfactual_graph
 from .utils import Unidentifiable
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
-    CounterfactualVariable,
     CounterfactualEvent,
+    CounterfactualVariable,
     Expression,
     One,
     P,
@@ -118,17 +118,14 @@ def id_star_line_2(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[
     for counterfactual in event:
         if isinstance(counterfactual, CounterfactualVariable):
             for intervention in counterfactual.interventions:
-                if (
-                    (intervention.name == counterfactual.name)
-                    and (event[counterfactual].star != intervention.star)
+                if (intervention.name == counterfactual.name) and (
+                    event[counterfactual].star != intervention.star
                 ):
                     return Zero()
     return None
 
 
-def id_star_line_3(
-    graph: NxMixedGraph, event: CounterfactualEvent
-) -> CounterfactualEvent:
+def id_star_line_3(graph: NxMixedGraph, event: CounterfactualEvent) -> CounterfactualEvent:
     r"""Run line 3 of the ID* algorithm.
 
     The third line states that if a counterfactual contains its own value in the subscript,
@@ -142,13 +139,13 @@ def id_star_line_3(
     new_event = event.copy()
     for counterfactual in event:
         if isinstance(counterfactual, CounterfactualVariable):
-           for intervention in counterfactual.interventions:
-               if (
-                  (intervention.name == counterfactual.name)
-                  and (event[counterfactual].star == intervention.star)
-                  ):
-                  new_event.pop(counterfactual, None)
+            for intervention in counterfactual.interventions:
+                if (intervention.name == counterfactual.name) and (
+                    event[counterfactual].star == intervention.star
+                ):
+                    new_event.pop(counterfactual, None)
     return new_event
+
 
 def id_star_line_4(
     graph: NxMixedGraph, event: CounterfactualEvent
@@ -178,7 +175,9 @@ def id_star_line_5(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[
         return event
 
 
-def id_star_line_6(graph: NxMixedGraph, event: CounterfactualEvent) -> Tuple[Collection[Variable], Collection[CounterfactualEvent]]:
+def id_star_line_6(
+    graph: NxMixedGraph, event: CounterfactualEvent
+) -> Tuple[Collection[Variable], Mapping[FrozenSet[Variable], Set[Variable]]]:
     r"""Run line 6 of the ID* algorithm.
 
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
@@ -195,9 +194,12 @@ def id_star_line_6(graph: NxMixedGraph, event: CounterfactualEvent) -> Tuple[Col
     where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
     """
     vertices = set(graph.nodes())
-    summand = vertices - event
-    interventions_of_each_district = [district, (vertices - district)   for district in graph.get_c_components()]
-    return  summand, interventions
+    summand = vertices - set(event)
+    interventions_of_each_district = {
+        district: vertices - district for district in graph.get_c_components()
+    }
+    return summand, interventions_of_each_district
+
 
 def id_star_line_7(graph: NxMixedGraph, query: CounterfactualEvent) -> Collection[Expression]:
     r"""Run line 7 of the ID* algorithm.

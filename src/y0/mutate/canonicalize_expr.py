@@ -11,7 +11,7 @@ from ..dsl import (
     Expression,
     Fraction,
     One,
-    Event,
+    Probability,
     Product,
     Sum,
     Variable,
@@ -37,7 +37,7 @@ def canonicalize(
     return canonicalizer.canonicalize(expression)
 
 
-def _sort_probability_key(probability: Event) -> Tuple[str, ...]:
+def _sort_probability_key(probability: Probability) -> Tuple[str, ...]:
     return tuple(child.name for child in probability.children)
 
 
@@ -60,8 +60,8 @@ class Canonicalizer:
         self.ordering = ordering
         self.ordering_level = {variable.name: level for level, variable in enumerate(self.ordering)}
 
-    def _canonicalize_probability(self, expression: Event) -> Event:
-        return Event(
+    def _canonicalize_probability(self, expression: Probability) -> Probability:
+        return Probability(
             Distribution(
                 children=self._sorted(expression.children),
                 parents=self._sorted(expression.parents),
@@ -96,7 +96,7 @@ class Canonicalizer:
         :return: A canonicalized expression
         :raises TypeError: if an object with an invalid type is passed
         """
-        if isinstance(expression, Event):  # atomic
+        if isinstance(expression, Probability):  # atomic
             return self._canonicalize_probability(expression)
         elif isinstance(expression, Sum):
             if not expression.ranges:  # flatten unnecessary sum
@@ -113,7 +113,7 @@ class Canonicalizer:
             other = []
             for subexpr in _flatten_product(expression):
                 subexpr = self.canonicalize(subexpr)
-                if isinstance(subexpr, Event):
+                if isinstance(subexpr, Probability):
                     probabilities.append(subexpr)
                 else:
                     other.append(subexpr)
@@ -140,7 +140,7 @@ class Canonicalizer:
             and the rest depends on the expression type.
         :raises TypeError: if an invalid expression type is given
         """
-        if isinstance(expression, Event):
+        if isinstance(expression, Probability):
             return 0, expression.children[0].name
         elif isinstance(expression, Sum):
             return 1, *self._nonatomic_key(expression.expression)

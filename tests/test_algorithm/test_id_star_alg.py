@@ -15,9 +15,9 @@ from y0.algorithm.identify.id_star import (
     id_star_line_9,
     idc_star_line_2,
 )
-from y0.graph import NxMixedGraph
-from y0.dsl import D, One, P, Sum, Variable, W, D, X, Y, Z, Zero
+from y0.dsl import D, One, P, Sum, Variable, W, X, Y, Z, Zero
 from y0.examples import figure_9a, figure_9c, figure_9d
+from y0.graph import NxMixedGraph
 
 d, w, x, y, z = -D, -W, -X, -Y, -Z
 
@@ -109,11 +109,25 @@ class TestIDStar(cases.GraphTestCase):
 
     def test_id_star_line_6(self):
         """Check that the input to id_star from each district is properly constructed."""
-        graph = figure_9d.graph
-
-        query = P(Y @ (X, Z), X)
+        expected_counterfactual_graph = figure_9d.graph
+        event = {Y @ (+X, -Z): +Y, X @ (+X, -D): +X}
+        expected_vertices = expected_counterfactual_graph.nodes()
+        expected_summand = expected_vertices - set(event)
+        expected_interventions_of_districts = {
+            frozenset([Y @ (~X, Z), X]): expected_vertices - {Y @ (~X, Z), X},
+            frozenset([X @ (+X, -Z)]): expected_vertices - {X @ (+X, -Z)},
+            frozenset([W @ (~X, Z)]): expected_vertices - {W @ (~X, Z)},
+            frozenset([Z @ (+X, -Z)]): expected_vertices - {Z @ (+X, -Z)},
+        }
+        self.assertEqual(
+            set(expected_interventions_of_districts),
+            set(expected_counterfactual_graph.get_c_components()),
+        )
         ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
-        # district
+        #
+        actual_summand, actual_iod = id_star_line_6(figure_9d.graph, event)
+        self.assertEqual(expected_summand, actual_summand)
+        self.assertEqual(expected_interventions_of_districts, actual_iod)
 
     def test_id_star_line_7(self):
         """Check that the graph is entirely one c-component."""
