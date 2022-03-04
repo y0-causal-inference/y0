@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 from y0.algorithm.identify import Identification, Unidentifiable, identify
 from y0.algorithm.simplify_latent import simplify_latent_dag
+from y0.complexity import complexity
 from y0.dsl import Expression, P, Variable
 from y0.graph import DEFAULT_TAG, NxMixedGraph
 from y0.identify import is_identifiable
@@ -284,8 +285,9 @@ def draw_results(
         else:
             mixed_graph = result.admg
             title = f"{i}) Latent: " + ", ".join(f"${v.to_latex()}$" for v in result.latents)
+            estimand_complexity = complexity(result.estimand)
             if result.estimand is not None:
-                title += f"\n${result.estimand.to_latex()}$"
+                title += f"\n${result.estimand.to_latex()}$\n$C={estimand_complexity}$"
             mixed_graph.draw(ax=ax, title="\n".join(textwrap.wrap(title, width=45)))
 
     fig.tight_layout()
