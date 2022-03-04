@@ -139,7 +139,7 @@ class TestDSL(unittest.TestCase):
             (P(+Y @ -X), "P(+Y @ -X)"),
             (P(+Y @ ~X), "P(+Y @ +X)"),
             (P(+Y @ +X), "P(+Y @ +X)"),
-            # TODO should it even be possible to have a counterfactual as a given?
+            #
             (P(Y @ X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
             (P(Y @ -X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
             (P(Y @ +X | ~X, ~Y), "P(Y @ +X | +X, +Y)"),
