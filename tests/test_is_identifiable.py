@@ -125,9 +125,7 @@ class TestIdentifiable(unittest.TestCase):
     https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb.
     """
 
-    def assert_identifiable(
-        self, graph: NxMixedGraph, query: Union[Event, Distribution]
-    ) -> None:
+    def assert_identifiable(self, graph: NxMixedGraph, query: Union[Event, Distribution]) -> None:
         """Assert the graph is identifiable under the given query."""
         self.assertTrue(is_identifiable(graph, query))
 

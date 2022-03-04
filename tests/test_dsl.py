@@ -410,7 +410,7 @@ class TestCounterfactual(unittest.TestCase):
             (-X @ ~X, False),
             #
             (~X @ X, True),
-            (~X @ +X,  True),
+            (~X @ +X, True),
             (~X @ -X, False),
             (~X @ ~X, False),
         ]:

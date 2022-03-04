@@ -57,9 +57,7 @@ def _get_to(query: Union[Event, Distribution]) -> Tuple[List[str], List[str]]:
     return treatments, outcomes
 
 
-def is_identifiable(
-    graph: Union[ADMG, NxMixedGraph], query: Union[Event, Distribution]
-) -> bool:
+def is_identifiable(graph: Union[ADMG, NxMixedGraph], query: Union[Event, Distribution]) -> bool:
     """Check if the expression is identifiable.
 
     :param graph: Either an Ananke graph or y0 NxMixedGraph that can be converted to an Ananke graph

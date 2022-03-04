@@ -1639,7 +1639,7 @@ class scm_node(cg_node):
                     ),
                     big_y,
                 )
-                / n_data ** 2
+                / n_data**2
             )
 
             self.std = torch.sqrt(torch.mean((big_y - torch.matmul(big_x, self.alpha)) ** 2))

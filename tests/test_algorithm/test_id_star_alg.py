@@ -18,7 +18,9 @@ from y0.algorithm.identify.id_star import (
 from y0.graph import NxMixedGraph
 from y0.dsl import D, One, P, Sum, Variable, W, D, X, Y, Z, Zero
 from y0.examples import figure_9a, figure_9c, figure_9d
+
 d, w, x, y, z = -D, -W, -X, -Y, -Z
+
 
 class TestIDStar(cases.GraphTestCase):
     # def test_idc_star_line_2(self):
@@ -71,16 +73,13 @@ class TestIDStar(cases.GraphTestCase):
         self.assertEqual(
             Zero(),
             id_star_line_2(
-                graph=figure_9a.graph, event={Y @ -x: -y, X @ +x: -x, Y @ x: y, Y @ ~x: y, Y @ ~x: y}
+                graph=figure_9a.graph,
+                event={Y @ -x: -y, X @ +x: -x, Y @ x: y, Y @ ~x: y, Y @ ~x: y},
             ),
         )
         self.assertIsNone(id_star_line_2(graph=figure_9a.graph, event={X @ x: x}))
         self.assertIsNone(id_star_line_2(graph=figure_9a.graph, event={X @ ~x: ~x}))
-        self.assertIsNone(
-            id_star_line_2(
-                graph=figure_9a.graph, event={X @ x: x, Y @ x: y }
-            )
-        )
+        self.assertIsNone(id_star_line_2(graph=figure_9a.graph, event={X @ x: x, Y @ x: y}))
 
     def test_id_star_line_3(self):
         """Check to see if the counterfactual event is tautological."""
@@ -88,11 +87,15 @@ class TestIDStar(cases.GraphTestCase):
         self.assertEqual(
             {Y @ x: y}, id_star_line_3(graph=figure_9a.graph, event={Y @ x: y, X @ x: x})
         )
-        self.assertEqual({Y @ x: +y}, id_star_line_3(graph=figure_9a.graph, event={Y @ x: +y, X @ ~x: ~x}))
+        self.assertEqual(
+            {Y @ x: +y}, id_star_line_3(graph=figure_9a.graph, event={Y @ x: +y, X @ ~x: ~x})
+        )
 
     def test_id_star_line_4(self):
         """Check that the counterfactual graph is correct."""
-        new_graph, new_event = id_star_line_4(graph=figure_9a.graph, event={Y @ ~x: ~y, X: x, Z @ d: z, D: d})
+        new_graph, new_event = id_star_line_4(
+            graph=figure_9a.graph, event={Y @ ~x: ~y, X: x, Z @ d: z, D: d}
+        )
         self.assert_graph_equal(figure_9c.graph, new_graph)
         self.assertEqual({Y @ ~x: ~y, X: x, Z: z, D: d}, new_event)
 
@@ -100,7 +103,7 @@ class TestIDStar(cases.GraphTestCase):
         """Check whether the query is inconsistent with the counterfactual graph."""
         actual_graph3, actual_event3 = id_star_line_4(
             graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
-            event={Z @ -d: -z, Z: +z, D: -d}
+            event={Z @ -d: -z, Z: +z, D: -d},
         )
         self.assertEqual(Zero(), id_star_line_5(actual_graph3, actual_event3))
 
