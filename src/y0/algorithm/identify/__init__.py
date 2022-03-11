@@ -11,7 +11,6 @@ from .id_star import (
     id_star_line_4,
     id_star_line_5,
     id_star_line_6,
-    id_star_line_7,
     id_star_line_8,
     id_star_line_9,
     idc_star_line_2,
@@ -32,7 +31,6 @@ __all__ = [
     "id_star_line_4",
     "id_star_line_5",
     "id_star_line_6",
-    "id_star_line_7",
     "id_star_line_8",
     "id_star_line_9",
 ]

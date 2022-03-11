@@ -4,19 +4,20 @@
 
 from tests.test_algorithm import cases
 from y0.algorithm.identify.id_star import (
+    ev,
     id_star_line_1,
     id_star_line_2,
     id_star_line_3,
     id_star_line_4,
     id_star_line_5,
     id_star_line_6,
-    id_star_line_7,
     id_star_line_8,
     id_star_line_9,
     idc_star_line_2,
+    sub,
 )
 from y0.dsl import D, One, P, Sum, Variable, W, X, Y, Z, Zero
-from y0.examples import figure_9a, figure_9c, figure_9d
+from y0.examples import figure_9a, figure_9b, figure_9c, figure_9d
 from y0.graph import NxMixedGraph
 
 d, w, x, y, z = -D, -W, -X, -Y, -Z
@@ -129,11 +130,16 @@ class TestIDStar(cases.GraphTestCase):
         self.assertEqual(expected_summand, actual_summand)
         self.assertEqual(expected_interventions_of_districts, actual_iod)
 
-    def test_id_star_line_7(self):
-        """Check that the graph is entirely one c-component."""
-
     def test_id_star_line_8(self):
         """Attempt to generate a conflict with an inconsistent value assignment."""
+        graph = NxMixedGraph.from_edges(undirected=[(Y @ +X, X), (X, D @ -D)])
+        self.assertEqual({-D, +X}, sub(graph))
+        query1 = {Y @ +X: +Y, X: -X, D @ -D: -D}
+        self.assertEqual({-X, -D, +Y}, ev(query1))
+        self.assertTrue(id_star_line_8(graph, query1))
+        query2 = {D @ -D: -D}
+        self.assertEqual({-D}, ev(query2))
+        self.assertFalse(id_star_line_8(graph, query2))
 
     def test_id_star_line_9(self):
         """Test line 9 of the ID* algorithm.

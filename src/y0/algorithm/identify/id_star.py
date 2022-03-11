@@ -11,6 +11,7 @@ from ...dsl import (
     CounterfactualEvent,
     CounterfactualVariable,
     Expression,
+    Intervention,
     One,
     P,
     Product,
@@ -29,7 +30,6 @@ __all__ = [
     "id_star_line_4",
     "id_star_line_5",
     "id_star_line_6",
-    "id_star_line_7",
     "id_star_line_8",
     "id_star_line_9",
 ]
@@ -201,14 +201,6 @@ def id_star_line_6(
     return summand, interventions_of_each_district
 
 
-def id_star_line_7(graph: NxMixedGraph, query: CounterfactualEvent) -> Collection[Expression]:
-    r"""Run line 7 of the ID* algorithm.
-
-    Line 7 is the base case, where our counterfactual graph has a single C-component
-    """
-    raise NotImplementedError
-
-
 def id_star_line_8(graph: NxMixedGraph, query: CounterfactualEvent) -> bool:
     r"""Run line 8 of the ID* algorithm.
 
@@ -219,12 +211,26 @@ def id_star_line_8(graph: NxMixedGraph, query: CounterfactualEvent) -> bool:
     :param query: a joint distribution over counterfactual variables
     :return: True if there is a conflict. False otherwise
     """
-    interventions = get_interventions(query)
-    evidence = get_varnames(query)
     return any(
-        (intervention.name in evidence) and evidence[intervention.name] != intervention.star
-        for intervention in interventions
+        intervention.name == evidence.name and intervention.star != evidence.star
+        for intervention in sub(graph)
+        for evidence in ev(query)
     )
+
+
+def sub(graph: NxMixedGraph) -> Collection[Intervention]:
+    """sub() is the set of interventions that are in each counterfactual variable."""
+    return {
+        intervention
+        for node in graph
+        if isinstance(node, CounterfactualVariable)
+        for intervention in node.interventions
+    }
+
+
+def ev(query: CounterfactualEvent) -> Collection[Intervention]:
+    """ev(:) the set of values (either set or observed) appearing in a given counterfactual conjunction (or set of counterfactual events)"""
+    return set(query.values())
 
 
 def id_star_line_9(graph: NxMixedGraph, query: CounterfactualEvent) -> CounterfactualEvent:
@@ -354,5 +360,3 @@ def has_same_value(event: Collection[Variable], node1: Variable, node2: Variable
     # TODO not all variables have is_event().
     #  Should normal, non-counterfactual variables have this function?
     return has_same_function(n1, n2) and n1.is_event() and n2.is_event() and (n1.star == n2.star)
-
-
