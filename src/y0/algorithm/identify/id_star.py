@@ -14,6 +14,7 @@ from ...dsl import (
     Intervention,
     One,
     P,
+    Probability,
     Product,
     Sum,
     Variable,
@@ -76,16 +77,7 @@ def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
             raise Unidentifiable
         else:
             # Line 9
-            return id_star_line_9(new_graph, new_query)
-
-
-# def get_val(counterfactual: CounterfactualVariable, graph: NxMixedGraph) -> Intervention:
-#     var = Variable(counterfactual.name)
-#     for intervention in counterfactual.interventions:
-#         if Variable(intervention.name) in graph.ancestors_inclusive(var):
-#             if intervention.star:
-#                 return ~var
-#     return -var
+            return id_star_line_9(new_graph)
 
 
 def id_star_line_1(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[One]:
@@ -233,7 +225,7 @@ def ev(query: CounterfactualEvent) -> Collection[Intervention]:
     return set(query.values())
 
 
-def id_star_line_9(graph: NxMixedGraph, query: CounterfactualEvent) -> CounterfactualEvent:
+def id_star_line_9(graph: NxMixedGraph) -> Probability:
     r"""Run line 9 of the ID* algorithm.
 
     Line 9 says if there are no conflicts, then it's safe to take the union of all
@@ -241,12 +233,10 @@ def id_star_line_9(graph: NxMixedGraph, query: CounterfactualEvent) -> Counterfa
     on the variables in :math:`\event'`.
 
     :param graph: an NxMixedGraph
-    :param query: a joint distribution over counterfactual variables
     :return: An interventional distribution.
     """
-    interventions = get_interventions(query)
-    variables = get_varnames(query)
-    return P[interventions](Variable(name=name, star=star) for name, star in variables.items())
+    interventions = sub(graph)
+    return P[interventions](Variable(node.name) for node in graph)
 
 
 def idc_star_line_2(graph: NxMixedGraph, query: CounterfactualEvent) -> Expression:
@@ -316,11 +306,6 @@ def idc_star(graph: NxMixedGraph, query: CounterfactualEvent) -> Expression:
     # Line 5:
     estimand = id_star(graph, new_query)
     return estimand.marginalize(vertices - delta)
-
-
-def get_varnames(query: CounterfactualEvent) -> Mapping[str, Optional[bool]]:
-    """Return new Variables generated from the names of the outcome variables in the query."""
-    return {child.name: child.star for child in query.children}
 
 
 def get_interventions(query: CounterfactualEvent) -> Collection[Variable]:

@@ -147,9 +147,6 @@ class TestIDStar(cases.GraphTestCase):
         Test that estimand returned by taking the effect of all subscripts in
         new_event on variables in new_event is correct
         """
-        input_query = P(Y @ (W, Z), X)
-        output_query = P[W, Z](Y, X)
-        self.assert_expr_equal(output_query, id_star_line_9(input_query))
 
     def test_id_star(self):
         """Test that the ID* algorithm returns the correct estimand."""
