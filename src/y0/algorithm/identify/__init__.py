@@ -3,7 +3,8 @@
 """Identification algorithms."""
 
 from .id_c import idc
-from .id_star import id_star, idc_star
+from .id_c_star import idc_star
+from .id_star import id_star
 from .id_std import identify
 from .utils import Identification, Query, Unidentifiable
 
