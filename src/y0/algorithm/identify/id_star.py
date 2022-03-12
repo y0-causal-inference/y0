@@ -29,16 +29,18 @@ __all__ = [
 
 def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
     """Apply the ``ID*`` algorithm to the graph."""
-    # Line 0
-    if id_star_line_1(graph, event) is not None:
+    # Line 0: There's nothing in the counterfactual event
+    if id_star_line_1(event):
         return One()
     # Line 2: This violates the Axiom of Effectiveness
-    if id_star_line_2(graph, event) is not None:
+    if id_star_line_2(event):
         return Zero()
     # Line 3: This is a tautological event and can be removed without affecting the probability
-    new_query = id_star_line_3(graph, event)
-    if new_query is not None:
-        return id_star(graph, new_query)
+    reduced_event = id_star_line_3(event)
+    if reduced_event != event:
+        # if we did some reducing, recursively start over
+        # FIXME this isn't *technically needed* - we could just overwrite the event with the reduced one
+        return id_star(graph, reduced_event)
     # Line 4:
     new_graph, new_event = id_star_line_4(graph, event)
     # Line 5:
@@ -56,70 +58,65 @@ def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
             summand,
         )
     # Line 7:
-    elif id_star_line_8(new_graph, new_query):
+    elif id_star_line_8(new_graph, reduced_event):
         raise Unidentifiable
     else:
         # Line 9
         return id_star_line_9(new_graph)
 
 
-def id_star_line_1(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[One]:
+def id_star_line_1(event: CounterfactualEvent) -> bool:
     r"""Run line 1 of the ID* algorithm.
 
     The first line states that if :math:`\event` is an empty conjunction, then its
     probability is 1, by convention.
 
-    :param graph: an NxMixedGraph
     :param event: a conjunction of counterfactual variables
-    :return: One() or None
     """
-    if len(event) == 0:
-        return One()
-    else:
-        return None
+    return len(event) == 0
 
 
-def id_star_line_2(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[Zero]:
+def id_star_line_2(event: CounterfactualEvent) -> bool:
     r"""Run line 2 of the ID* algorithm.
 
     The second line states that if :math:`\event` contains a counterfactual
     which violates the Axiom of Effectiveness (Pearl, 2000), then :math:`\event`
     is inconsistent, and we return probability 0.
 
-    :param graph: an NxMixedGraph
     :param event: a conjunction of counterfactual variables
-    :return: Zero() or None
+    :returns: True if violates axiom of effectiveness
     """
-    for counterfactual in event:
-        if isinstance(counterfactual, CounterfactualVariable):
-            for intervention in counterfactual.interventions:
-                if (intervention.name == counterfactual.name) and (
-                    event[counterfactual].star != intervention.star
-                ):
-                    return Zero()
-    return None
+    return any(
+        intervention.name == counterfactual.name and value.star != intervention.star
+        for counterfactual, value in event.items()
+        if isinstance(counterfactual, CounterfactualVariable)
+        for intervention in counterfactual.interventions
+    )
 
 
-def id_star_line_3(graph: NxMixedGraph, event: CounterfactualEvent) -> CounterfactualEvent:
+def id_star_line_3(event: CounterfactualEvent) -> CounterfactualEvent:
     r"""Run line 3 of the ID* algorithm.
 
     The third line states that if a counterfactual contains its own value in the subscript,
     then it is a tautological event, and it can be removed from :math:`\event` without
     affecting its probability.
 
-    :param graph: an NxMixedGraph
     :param event: a conjunction of counterfactual variables
     :return: updated event or None
     """
-    new_event = dict(event)
-    for counterfactual in event:
-        if isinstance(counterfactual, CounterfactualVariable):
-            for intervention in counterfactual.interventions:
-                if (intervention.name == counterfactual.name) and (
-                    event[counterfactual].star == intervention.star
-                ):
-                    new_event.pop(counterfactual, None)
-    return new_event
+    redundant_counterfactuals = {
+        counterfactual
+        for counterfactual, value in event.items()
+        if isinstance(counterfactual, CounterfactualVariable) and any(
+            intervention.name == counterfactual.name and value.star == intervention.star
+            for intervention in counterfactual.interventions
+        )
+    }
+    return {
+        counterfactual: value
+        for counterfactual, value in event.items()
+        if counterfactual not in redundant_counterfactuals
+    }
 
 
 def id_star_line_4(

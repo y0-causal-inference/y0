@@ -27,36 +27,26 @@ class TestIDStar(cases.GraphTestCase):
 
     def test_id_star_line_1(self):
         """Check if event is empty."""
-        self.assertEqual(One(), id_star_line_1(graph=figure_9a.graph, event={}))
+        self.assertTrue(id_star_line_1({}))
+        self.assertFalse(id_star_line_1({X @ x: ~x}))
 
     def test_id_star_line_2(self):
         """Check to see if the counterfactual event violates the Axiom of Effectiveness."""
-        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, event={X @ x: ~x}))
-        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, event={X @ ~x: x}))
-        self.assertEqual(Zero(), id_star_line_2(graph=figure_9a.graph, event={X @ (y, z, x): ~x}))
-        self.assertEqual(
-            Zero(), id_star_line_2(graph=figure_9a.graph, event={X @ (x, z): x, Y @ (x, -y): +y})
-        )
-        self.assertEqual(
-            Zero(),
-            id_star_line_2(
-                graph=figure_9a.graph,
-                event={Y @ -x: -y, X @ +x: -x, Y @ x: y, Y @ ~x: y, Y @ ~x: y},
-            ),
-        )
-        self.assertIsNone(id_star_line_2(graph=figure_9a.graph, event={X @ x: x}))
-        self.assertIsNone(id_star_line_2(graph=figure_9a.graph, event={X @ ~x: ~x}))
-        self.assertIsNone(id_star_line_2(graph=figure_9a.graph, event={X @ x: x, Y @ x: y}))
+        # Examples all from figure_9a.graph
+        self.assertTrue(id_star_line_2({X @ x: ~x}))
+        self.assertTrue(id_star_line_2({X @ ~x: x}))
+        self.assertTrue(id_star_line_2({X @ (y, z, x): ~x}))
+        self.assertTrue(id_star_line_2({X @ (x, z): x, Y @ (x, -y): +y}))
+        self.assertTrue(id_star_line_2({Y @ -x: -y, X @ +x: -x, Y @ x: y, Y @ ~x: y, Y @ ~x: y}))
+        self.assertFalse(id_star_line_2({X @ x: x}))
+        self.assertFalse(id_star_line_2({X @ ~x: ~x}))
+        self.assertFalse(id_star_line_2({X @ x: x, Y @ x: y}))
 
     def test_id_star_line_3(self):
         """Check to see if the counterfactual event is tautological."""
-        self.assertEqual({}, id_star_line_3(graph=figure_9a.graph, event={X @ x: x}))
-        self.assertEqual(
-            {Y @ x: y}, id_star_line_3(graph=figure_9a.graph, event={Y @ x: y, X @ x: x})
-        )
-        self.assertEqual(
-            {Y @ x: +y}, id_star_line_3(graph=figure_9a.graph, event={Y @ x: +y, X @ ~x: ~x})
-        )
+        self.assertEqual({}, id_star_line_3({X @ x: x}))
+        self.assertEqual({Y @ x: y}, id_star_line_3({Y @ x: y, X @ x: x}))
+        self.assertEqual({Y @ x: +y}, id_star_line_3({Y @ x: +y, X @ ~x: ~x}))
 
     def test_id_star_line_4(self):
         """Check that the counterfactual graph is correct."""
@@ -92,7 +82,7 @@ class TestIDStar(cases.GraphTestCase):
         )
         ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
         #
-        actual_summand, actual_iod = id_star_line_6(figure_9d.graph, event)
+        actual_summand, actual_iod = id_star_line_6(figure_9d.graph, ..., event)
         self.assertEqual(expected_summand, actual_summand)
         self.assertEqual(expected_interventions_of_districts, actual_iod)
 
