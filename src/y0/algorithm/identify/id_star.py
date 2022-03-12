@@ -107,7 +107,8 @@ def id_star_line_3(event: CounterfactualEvent) -> CounterfactualEvent:
     redundant_counterfactuals = {
         counterfactual
         for counterfactual, value in event.items()
-        if isinstance(counterfactual, CounterfactualVariable) and any(
+        if isinstance(counterfactual, CounterfactualVariable)
+        and any(
             intervention.name == counterfactual.name and value.star == intervention.star
             for intervention in counterfactual.interventions
         )
