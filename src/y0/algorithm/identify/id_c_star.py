@@ -4,6 +4,7 @@
 
 from .cg import make_counterfactual_graph
 from .id_star import id_star
+from .utils import Unidentifiable
 from ..conditional_independencies import are_d_separated
 from ...dsl import CounterfactualEvent, Expression, P, Variable, Zero
 from ...graph import NxMixedGraph
@@ -18,6 +19,16 @@ class Inconsistent(ValueError):
     pass
 
 
+def get_delta_event(event: CounterfactualEvent) -> CounterfactualEvent:
+    """Return a reduced event that doesn't have any conditionals in it."""
+    raise NotImplementedError
+
+
+def is_event_conditional(query: CounterfactualEvent) -> bool:
+    """Return if a counterfactual event is conditional."""
+    raise NotImplementedError
+
+
 def idc_star(graph: NxMixedGraph, query: CounterfactualEvent) -> Expression:
     r"""Run the ``IDC*`` algorithm.
 
@@ -27,12 +38,17 @@ def idc_star(graph: NxMixedGraph, query: CounterfactualEvent) -> Expression:
         :math:`\delta` a conjunction of counterfactual observations
     :returns: an expression for :math:`P(\event | \delta)` in terms of P, FAIL, or UNDEFINED
     """
-    delta = set(query.parents)
-    if not delta:
+    if not is_event_conditional(query):
         raise ValueError(f"Query {query} must be conditional")
-    # Line 1:
-    if not id_star(graph, P(delta)):
-        raise ValueError(f"Query {query} is undefined")
+
+    delta = get_delta_event(query)
+
+    # Line 1
+    try:
+        id_star(graph, delta)
+    except Unidentifiable:
+        raise Unidentifiable
+
     event = set(query.children)
     # Line 2:
     try:
