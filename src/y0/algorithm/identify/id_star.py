@@ -24,16 +24,8 @@ from ...dsl import (
 from ...graph import NxMixedGraph
 
 __all__ = [
-    "idc_star_line_2",
-    "id_star_line_1",
-    "id_star_line_2",
-    "id_star_line_3",
-    "id_star_line_4",
-    "id_star_line_5",
-    "id_star_line_6",
-    "id_star_line_8",
-    "id_star_line_9",
     "id_star",
+    "idc_star",
 ]
 
 

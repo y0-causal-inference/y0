@@ -13,12 +13,10 @@ from y0.algorithm.identify.id_star import (
     id_star_line_5,
     id_star_line_6,
     id_star_line_8,
-    id_star_line_9,
-    idc_star_line_2,
     sub,
 )
-from y0.dsl import D, One, P, Sum, Variable, W, X, Y, Z, Zero
-from y0.examples import figure_9a, figure_9b, figure_9c, figure_9d
+from y0.dsl import D, One, P, Sum, W, X, Y, Z, Zero
+from y0.examples import figure_9a, figure_9c, figure_9d
 from y0.graph import NxMixedGraph
 
 d, w, x, y, z = -D, -W, -X, -Y, -Z

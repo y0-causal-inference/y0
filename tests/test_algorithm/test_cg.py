@@ -1,23 +1,14 @@
 from tests.test_algorithm import cases
-from y0.algorithm.identify import is_pw_equivalent, make_parallel_worlds_graph, merge_pw
 from y0.algorithm.identify.cg import (
     get_worlds,
     has_same_function,
     has_same_parents,
+    is_pw_equivalent,
     make_counterfactual_graph,
+    make_parallel_worlds_graph,
+    merge_pw,
 )
-from y0.dsl import (
-    CounterfactualVariable,
-    D,
-    Intervention,
-    P,
-    Variable,
-    W,
-    X,
-    Y,
-    Z,
-    Zero,
-)
+from y0.dsl import D, W, X, Y, Z, Zero
 from y0.examples import (
     figure_9a,
     figure_9b,

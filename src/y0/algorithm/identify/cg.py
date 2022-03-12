@@ -1,19 +1,30 @@
+# -*- coding: utf-8 -*-
+
+"""Utilities for parallel world graphs and counterfactual graphs."""
+
 from itertools import combinations
-from typing import Collection, Iterable, Mapping, Tuple, Union
+from typing import Collection, Iterable, Tuple
 
 from y0.dsl import (
     CounterfactualEvent,
     CounterfactualVariable,
     Intervention,
-    P,
-    Probability,
     Variable,
     Zero,
-    _get_treatment_variables,
 )
 from y0.graph import NxMixedGraph
 
-__all__ = ["make_counterfactual_graph", "has_same_function"]
+__all__ = [
+    "has_same_function",
+    "has_same_parents",
+    "get_worlds",
+    "is_pw_equivalent",
+    "merge_pw",
+    "make_counterfactual_graph",
+    "make_parallel_worlds_graph",
+    "make_world_graph",
+    "combine_worlds",
+]
 
 
 def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
