@@ -3,7 +3,7 @@
 """Utilities for parallel world graphs and counterfactual graphs."""
 
 from itertools import combinations
-from typing import Collection, Iterable, Tuple
+from typing import Collection, Iterable, Sequence, Tuple
 
 from y0.dsl import (
     CounterfactualEvent,
@@ -44,12 +44,12 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
     return node1.name == node2.name
 
 
-def get_worlds(query: Iterable[Variable]) -> Collection[Collection[Intervention]]:
+def get_worlds(variables: Iterable[Variable]) -> Sequence[Sequence[Intervention]]:
     # is sorting necessary? why not just return a set/frozenset?
     # Yes, because otherwise different counterfactual graphs will be created each time.
     return sorted(
         sorted(variable.interventions)
-        for variable in query
+        for variable in variables
         if isinstance(variable, CounterfactualVariable)
     )
 
@@ -137,26 +137,28 @@ def make_counterfactual_graph(
         undirected=pw_graph.undirected.edges(),
     )
     for node in graph.topological_sort():
-        for intervention in worlds:
-            node_at_intervention = node @ intervention
+        for treatments in worlds:
+            node_at_treatments = node @ treatments
             if (
                 (node in cf_graph.nodes())
-                and (node_at_intervention in cf_graph.nodes())
-                and is_pw_equivalent(cf_graph, node, node_at_intervention)
+                and (node_at_treatments in cf_graph.nodes())
+                and is_pw_equivalent(cf_graph, node, node_at_treatments)
             ):
-                cf_graph = merge_pw(cf_graph, node, node_at_intervention)
+                cf_graph = merge_pw(cf_graph, node, node_at_treatments)
                 if (
                     (node in new_event)
-                    and (node_at_intervention in new_event)
-                    and (new_event[node] != new_event[node_at_intervention])
+                    and (node_at_treatments in new_event)
+                    and (new_event[node] != new_event[node_at_treatments])
                 ):
+                    # FIXME should it be an empty dict instead of Zero()?
                     return cf_graph, Zero()
-                if node_at_intervention in new_event:
-                    new_event[node] = new_event[node_at_intervention]
-                    new_event.pop(node_at_intervention, None)
+                if node_at_treatments in new_event:
+                    new_event[node] = new_event[node_at_treatments]
+                    new_event.pop(node_at_treatments, None)
 
         if len(worlds) > 1:
             for intervention1, intervention2 in combinations(worlds, 2):
+                # FIXME pick either "treatments" or "interventions" and stick with that
                 node_at_intervention1 = node @ intervention1
                 node_at_intervention2 = node @ intervention2
 
@@ -171,11 +173,13 @@ def make_counterfactual_graph(
                         and (node_at_intervention2 in new_event)
                         and (new_event[node_at_intervention1] != new_event[node_at_intervention2])
                     ):
+                        # FIXME should it be an empty dict instead of Zero()?
                         return cf_graph, Zero()
                     if node_at_intervention2 in new_event:
                         new_event[node_at_intervention1] = new_event[node_at_intervention2]
                         new_event.pop(node_at_intervention2, None)
-    return (cf_graph.subgraph(cf_graph.ancestors_inclusive(new_event)), new_event)
+    rv_graph = cf_graph.subgraph(cf_graph.ancestors_inclusive(new_event))
+    return rv_graph, new_event
 
 
 def make_parallel_worlds_graph(
@@ -187,13 +191,13 @@ def make_parallel_worlds_graph(
     :param worlds: A set of sets of treatments
     :returns: A combine parallel world graph
     """
-    combined_worlds = [make_world_graph(graph, world) for world in worlds]
-    return combine_worlds(graph, combined_worlds, worlds)
+    world_graphs = [make_world_graph(graph, treatments) for treatments in worlds]
+    return combine_worlds(graph, world_graphs, worlds)
 
 
 def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> NxMixedGraph:
     """Make a parallel world graph based on interventions specified."""
-    treatment_variables = [Variable(t.name) for t in treatments]
+    treatment_variables = [Variable(treatment.name) for treatment in treatments]
     world_graph = graph.remove_in_edges(treatment_variables)
     return NxMixedGraph.from_edges(
         nodes=[node.intervene(treatments) for node in world_graph.nodes()],
@@ -210,12 +214,12 @@ def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> N
 
 def combine_worlds(
     graph: NxMixedGraph,
-    combined_worlds: Collection[NxMixedGraph],
+    world_graphs: Collection[NxMixedGraph],
     worlds: Collection[Collection[Variable]],
 ) -> NxMixedGraph:
     """Stitch together parallel worlds through the magic of bidirected edges."""
     # get all the undirected edges in all the parallel worlds
-    undirected = [(u, v) for world in combined_worlds for u, v in world.undirected.edges()]
+    undirected = [(u, v) for world_graph in world_graphs for u, v in world_graph.undirected.edges()]
     # Stitch together counterfactual variables with observed variables
     undirected += [
         (u, u @ treatments)
@@ -257,8 +261,8 @@ def combine_worlds(
         ]
     return NxMixedGraph.from_edges(
         nodes=list(graph.nodes())
-        + [node for pw_graph in combined_worlds for node in pw_graph.nodes()],
+        + [node for pw_graph in world_graphs for node in pw_graph.nodes()],
         directed=list(graph.directed.edges())
-        + [(u, v) for pw_graph in combined_worlds for u, v in pw_graph.directed.edges()],
+        + [(u, v) for pw_graph in world_graphs for u, v in pw_graph.directed.edges()],
         undirected=list(graph.undirected.edges()) + undirected,
     )
