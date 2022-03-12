@@ -33,6 +33,7 @@ __all__ = [
     "id_star_line_6",
     "id_star_line_8",
     "id_star_line_9",
+    "id_star"
 ]
 
 
@@ -53,22 +54,22 @@ def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
         return id_star(graph, new_query)
 
     # Line 4:
-    try:
-        new_graph, new_query = id_star_line_4(graph, event)
-        vertices = set(new_graph.nodes())
-        new_event = set(new_query.children)
+
+    new_graph, new_event = id_star_line_4(graph, event)
+    vertices = set(new_graph.nodes())
     # Line 5:
-    except Inconsistent:
-        return Zero()
+    if new_event == Zero():
+        return new_event
     # Line 6:
 
     if not new_graph.is_connected():
+        summand, interventions_of_each_district = id_star_line_6(new_graph, new_event)
         return Sum.safe(
             Product.safe(
-                id_star(graph, P[vertices - district](district))
-                for district in new_graph.get_c_components()
+                id_star(graph, {element @ interventions: })
+                for district, interventions in interventions_of_each_district.items()
             ),
-            vertices - new_event,
+            summand,
         )
     # Line 7:
     else:
@@ -168,7 +169,7 @@ def id_star_line_5(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[
 
 
 def id_star_line_6(
-    graph: NxMixedGraph, event: CounterfactualEvent
+    graph: NxMixedGraph, new_graph: NxMixedGraph, event: CounterfactualEvent
 ) -> Tuple[Collection[Variable], Mapping[FrozenSet[Variable], Set[Variable]]]:
     r"""Run line 6 of the ID* algorithm.
 

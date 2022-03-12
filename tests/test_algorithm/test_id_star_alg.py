@@ -5,6 +5,7 @@
 from tests.test_algorithm import cases
 from y0.algorithm.identify.id_star import (
     ev,
+    id_star,
     id_star_line_1,
     id_star_line_2,
     id_star_line_3,
@@ -151,9 +152,9 @@ class TestIDStar(cases.GraphTestCase):
     def test_id_star(self):
         """Test that the ID* algorithm returns the correct estimand."""
         query = {Y @ (+x, -z): +y, X: -x}
-        # actual = id_star( figure_9a.graph, query)
+        actual = id_star( figure_9a.graph, query)
         expected = Sum[W](P(Y @ (Z, W), X @ (Z, W)) * P(W @ X))
-        # self.assert_expr_equal(expected, actual)
+        self.assert_expr_equal(expected, actual)
 
     def test_idc_star(self):
         """Test that the IDC* algorithm returns the correct estimand."""

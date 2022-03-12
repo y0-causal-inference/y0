@@ -14,6 +14,7 @@ from .id_star import (
     id_star_line_8,
     id_star_line_9,
     idc_star_line_2,
+    id_star
 )
 from .id_std import identify  # noqa:F401
 from .utils import Identification, Query, Unidentifiable  # noqa:F401
