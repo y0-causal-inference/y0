@@ -7,6 +7,7 @@ from __future__ import annotations
 import itertools as itt
 from functools import partial
 from typing import (
+    Any,
     Callable,
     Dict,
     FrozenSet,
@@ -15,6 +16,7 @@ from typing import (
     NamedTuple,
     Optional,
     Tuple,
+    Union,
     cast,
 )
 
@@ -65,19 +67,24 @@ class FitTuple(NamedTuple):
 
 
 def simulate(
-    graph: NxMixedGraph, trials: int = 200, **kwargs
-) -> Tuple[pd.DataFrame, Mapping[FrozenSet[Variable], FitTuple]]:
+    graph: NxMixedGraph,
+    trials: int = 200,
+    return_fits: bool = True,
+    tqdm_kwargs: Optional[Mapping[str, Any]] = None,
+    **kwargs,
+) -> Union[pd.DataFrame, Tuple[pd.DataFrame, Mapping[FrozenSet[Variable], FitTuple]]]:
     """Simulate a graph using a linear structural causal model."""
     judgements = get_conditional_independencies(graph)
     cis: Mapping[FrozenSet[Variable], DSeparationJudgement] = {
         frozenset((judgement.left, judgement.right)): judgement for judgement in judgements
     }
 
+    _tqdm_kwargs = dict(desc="Simulation", unit="trial", unit_scale=True)
+    if tqdm_kwargs:
+        _tqdm_kwargs.update(tqdm_kwargs)
+
     linear_scm = LinearSCM(graph, **kwargs)
-    results = {
-        n: linear_scm.trial()
-        for n in trange(trials, desc="Simulation", unit="trial", unit_scale=True)
-    }
+    results = {n: linear_scm.trial() for n in trange(trials, **_tqdm_kwargs)}
     rv = pd.DataFrame(results).T
 
     # Get a prioritized ordering for edges actually in graph
@@ -88,6 +95,9 @@ def simulate(
         for left, right in itt.combinations(sorted(graph.nodes(), key=lambda n: n.name), 2)
         if frozenset((left, right)) not in _x
     )
+
+    if not return_fits:
+        return rv
 
     fits: Dict[FrozenSet[Variable], FitTuple] = {}
     for parent, child in order:
