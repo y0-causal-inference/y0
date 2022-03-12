@@ -5,7 +5,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable, NamedTuple, Optional, Tuple
+from typing import Iterable, NamedTuple, Optional, Tuple
+
+import pandas as pd
 
 from .dsl import Expression, Variable
 
@@ -78,12 +80,6 @@ class DSeparationJudgement:
     def __bool__(self) -> bool:
         return self.separated
 
-    def __repr__(self) -> str:
-        return f"{repr(self.separated)} -- '{self.left}' d-sep '{self.right}' conditioned on {self.conditions}"
-
-    def __eq__(self, other: Any) -> bool:
-        return isinstance(other, DSeparationJudgement) and self.separated == other
-
     @property
     def is_canonical(self) -> bool:
         """Return if the conditional independency is in canonical form."""
@@ -91,4 +87,43 @@ class DSeparationJudgement:
             self.left < self.right
             and isinstance(self.conditions, tuple)
             and tuple(sorted(self.conditions)) == (self.conditions)
+        )
+
+    def cressie_read(
+        self, df: pd.DataFrame, boolean: bool = False, **kwargs
+    ) -> Tuple[float, int, float]:
+        """Calculate the Cressie Read statistic for conditional independence.
+
+        :param df: A dataframe.
+        :param boolean: Should results be returned as a pre-cutoff boolean?
+        :param kwargs: Additional kwargs to pass to :func:`cressie_read`
+        :returns:
+            Tests the null hypothesis that X is independent of Y given Zs
+            and returns a three-tuple of chi, dof, p_value
+        :raises ValueError: if any parts of the judgement aren't in the dataframe's
+            columns
+        """
+        from .util.stat_utils import cressie_read
+
+        if self.left.name not in df.columns:
+            raise ValueError(
+                f"left variable {self.left.name} ({type(self.left.name)}) not in columns {list(df.columns)}"
+            )
+        if self.right.name not in df.columns:
+            raise ValueError(
+                f"right variable {self.right.name} ({type(self.right.name)}) not in columns {df.columns}"
+            )
+        for c in self.conditions:
+            if c.name not in df.columns:
+                raise ValueError(
+                    f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
+                )
+
+        return cressie_read(
+            X=self.left.name,
+            Y=self.right.name,
+            Z={condition.name for condition in self.conditions},
+            data=df,
+            boolean=boolean,
+            **kwargs,
         )

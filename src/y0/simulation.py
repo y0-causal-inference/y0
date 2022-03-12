@@ -84,7 +84,10 @@ def simulate(
         _tqdm_kwargs.update(tqdm_kwargs)
 
     linear_scm = LinearSCM(graph, **kwargs)
-    results = {n: linear_scm.trial() for n in trange(trials, **_tqdm_kwargs)}
+    results = {
+        trial: {variable.name: values for variable, values in linear_scm.trial().items()}
+        for trial in trange(trials, **_tqdm_kwargs)
+    }
     rv = pd.DataFrame(results).T
 
     # Get a prioritized ordering for edges actually in graph
