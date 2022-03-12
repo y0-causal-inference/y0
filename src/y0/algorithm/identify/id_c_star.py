@@ -64,7 +64,7 @@ def idc_star(graph: NxMixedGraph, query: CounterfactualEvent) -> Expression:
     for counterfactual in new_delta:
         # TODO do we need to extend the notion of d-separation from 1-1 to 1-many?
         if are_d_separated(new_graph.remove_out_edges(counterfactual), counterfactual, new_event):
-            counterfactual_value = Variable(counterfactual.name)
+            counterfactual_value = counterfactual.parent()
             parents = new_delta - {counterfactual}
             children = {g.remove_in_edges(counterfactual_value) for g in new_event}
             return idc_star(graph, P(children | parents))

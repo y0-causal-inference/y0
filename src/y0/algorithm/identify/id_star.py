@@ -216,7 +216,7 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
     :return: An interventional distribution.
     """
     interventions = sub(graph)
-    return P[interventions](Variable(node.name) for node in graph)
+    return P[interventions](node.parent() for node in graph)
 
 
 # FIXME this is unused -> delete it
