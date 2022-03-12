@@ -14,7 +14,6 @@ from tqdm import tqdm
 from .conditional_independencies import get_conditional_independencies
 from ..graph import NxMixedGraph
 from ..struct import DSeparationJudgement
-from ..util.stat_utils import cressie_read
 
 __all__ = [
     "get_graph_falsifications",
@@ -37,25 +36,6 @@ class Falsifications:
     failures: pd.Series
     #: Collection of all implications tested
     evidence: pd.DataFrame
-
-    def __repr__(self):
-        return repr(self.failures) + "+evidence"
-
-
-def get_variances(
-    judgements: Iterable[DSeparationJudgement], df: pd.DataFrame, use_tqdm: bool = False
-):
-    """Return variances calculated for each judgement."""
-    return {
-        (judgement.left, judgement.right, judgement.conditions): cressie_read(
-            judgement.left.name,
-            judgement.right.name,
-            {c.name for c in judgement.conditions},
-            df,
-            boolean=False,
-        )
-        for judgement in tqdm(judgements, disable=not use_tqdm, desc="Checking conditionals")
-    }
 
 
 def get_graph_falsifications(
@@ -83,6 +63,9 @@ def get_graph_falsifications(
     )
 
 
+HB_LEVEL_NAME = "Holm–Bonferroni level"
+
+
 def get_falsifications(
     judgements: Union[NxMixedGraph, Iterable[DSeparationJudgement]],
     df: pd.DataFrame,
@@ -94,37 +77,42 @@ def get_falsifications(
     :param judgements: A list of D-separation judgements to check.
     :param df: Data to check for consistency with a causal implications
     :param significance_level: Significance for p-value test
-    :param max_given: The maximum set size in the power set of the vertices minus the d-separable pairs
     :param verbose: If true, use tqdm for status updates.
     :return: Falsifications report
     """
     if significance_level is None:
         significance_level = 0.05
-    variances = get_variances(judgements, df, use_tqdm=verbose)
-
-    rows = [
-        (left, right, given, chi, p, dof)
-        for (left, right, given), (chi, p, dof) in variances.items()
-    ]
-
+    variances = {
+        judgement: judgement.cressie_read(df)
+        for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals")
+    }
+    evidence = pd.DataFrame(
+        [
+            (
+                judgement.left.name,
+                judgement.right.name,
+                "|".join(c.name for c in judgement.conditions),
+                chi,
+                p,
+                dof,
+            )
+            for judgement, (chi, p, dof) in variances.items()
+        ],
+        columns=["left", "right", "given", "chi^2", "p", "dof"],
+    )
+    evidence.sort_values("p", ascending=True, inplace=True)
     evidence = (
-        pd.DataFrame(rows, columns=["left", "right", "given", "chi^2", "p", "dof"])
-        .sort_values("p", ascending=True)
-        .assign(
-            **{"Holm–Bonferroni level": significance_level / pd.Series(range(len(rows) + 1, 0, -1))}
+        evidence.assign(
+            **{HB_LEVEL_NAME: significance_level / pd.Series(range(len(evidence.index) + 1, 0, -1))}
         )
         .pipe(_assign_flags)
         .sort_values(["flagged", "dof"], ascending=False)
     )
 
     failures_df = evidence.loc[evidence["flagged"], ["left", "right", "given"]]
-    print("FAILURES DF")
-    print(failures_df)
     failures = failures_df.apply(tuple, axis="columns")
-    print("failures tuple", type(failures))
-    print(failures)
     return Falsifications(failures, evidence)
 
 
 def _assign_flags(df: pd.DataFrame) -> pd.DataFrame:
-    return df.assign(flagged=(df["p"] < df["Holm–Bonferroni level"]))
+    return df.assign(flagged=(df["p"] < df[HB_LEVEL_NAME]))
