@@ -93,6 +93,11 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
     :math:`\alpha`; :math:`\beta` in :math:`M'` become children of :math:`\omega`. Then
     :math:`M_\mathbf{x},  M'_\mathbf{x} agree on any distribution consistent with :math:`z`
     being observed.
+
+    :param graph:
+    :param node1:
+    :param node2:
+    :returns:
     """
     if isinstance(node1, CounterfactualVariable) and not isinstance(node2, CounterfactualVariable):
         node1, node2 = node2, node1
@@ -122,7 +127,7 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
 def make_counterfactual_graph(
     graph: NxMixedGraph, event: CounterfactualEvent
 ) -> Tuple[NxMixedGraph, CounterfactualEvent]:
-    """Make counterfactual graph"""
+    """Make counterfactual graph."""
     worlds = get_worlds(event)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
     new_event = dict(event)
@@ -176,13 +181,18 @@ def make_counterfactual_graph(
 def make_parallel_worlds_graph(
     graph: NxMixedGraph, worlds: Collection[Collection[Variable]]
 ) -> NxMixedGraph:
-    """Make Parallel worlds graph"""
+    """Make a parallel worlds graph.
+
+    :param graph: A normal graph
+    :param worlds: A set of sets of treatments
+    :returns: A combine parallel world graph
+    """
     combined_worlds = [make_world_graph(graph, world) for world in worlds]
     return combine_worlds(graph, combined_worlds, worlds)
 
 
 def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> NxMixedGraph:
-    """Make one parallel world based on interventions specified"""
+    """Make a parallel world graph based on interventions specified."""
     treatment_variables = [Variable(t.name) for t in treatments]
     world_graph = graph.remove_in_edges(treatment_variables)
     return NxMixedGraph.from_edges(
@@ -203,7 +213,7 @@ def combine_worlds(
     combined_worlds: Collection[NxMixedGraph],
     worlds: Collection[Collection[Variable]],
 ) -> NxMixedGraph:
-    """Stitch together parallel worlds through the magic of bidirected edges"""
+    """Stitch together parallel worlds through the magic of bidirected edges."""
     # get all the undirected edges in all the parallel worlds
     undirected = [(u, v) for world in combined_worlds for u, v in world.undirected.edges()]
     # Stitch together counterfactual variables with observed variables
