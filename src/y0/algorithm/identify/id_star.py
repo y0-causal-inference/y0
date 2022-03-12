@@ -33,7 +33,7 @@ __all__ = [
     "id_star_line_6",
     "id_star_line_8",
     "id_star_line_9",
-    "id_star"
+    "id_star",
 ]
 
 
@@ -66,7 +66,7 @@ def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
         summand, interventions_of_each_district = id_star_line_6(new_graph, new_event)
         return Sum.safe(
             Product.safe(
-                id_star(graph, {element @ interventions: })
+                id_star(graph, {element @ interventions: +element for element in district})
                 for district, interventions in interventions_of_each_district.items()
             ),
             summand,
