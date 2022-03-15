@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Implementation of the IDC algorithm."""
+"""Implementation of the ID* algorithm."""
 
 from typing import Collection, FrozenSet, Mapping, Optional, Set, Tuple
 
@@ -36,11 +36,7 @@ def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
     if id_star_line_2(event):
         return Zero()
     # Line 3: This is a tautological event and can be removed without affecting the probability
-    reduced_event = id_star_line_3(event)
-    if reduced_event != event:
-        # if we did some reducing, recursively start over
-        # FIXME this isn't *technically needed* - we could just overwrite the event with the reduced one
-        return id_star(graph, reduced_event)
+    event = id_star_line_3(event)
     # Line 4:
     new_graph, new_event = id_star_line_4(graph, event)
     # Line 5:
@@ -48,7 +44,6 @@ def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
         return new_event
     # Line 6:
     if not new_graph.is_connected():
-        # FIXME missing third parameter to `id_star_line_6`
         summand, interventions_of_each_district = id_star_line_6(new_graph, new_event)
         return Sum.safe(
             Product.safe(
@@ -149,7 +144,7 @@ def id_star_line_5(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[
 
 
 def id_star_line_6(
-    graph: NxMixedGraph, new_graph: NxMixedGraph, event: CounterfactualEvent
+    new_graph: NxMixedGraph, event: CounterfactualEvent
 ) -> Tuple[Collection[Variable], Mapping[FrozenSet[Variable], Set[Variable]]]:
     r"""Run line 6 of the ID* algorithm.
 
@@ -166,12 +161,25 @@ def id_star_line_6(
     variables not in :math:`\event'` , that is over :math:`\mathbf{v}(G' ) \backslash \event'` ,
     where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
     """
-    vertices = set(graph.nodes())
-    summand = vertices - set(event)
+    vertices = set(new_graph)
+    summand = domain_of_counterfactual_values(event, vertices - set(event))
     interventions_of_each_district = {
-        district: vertices - district for district in graph.get_c_components()
+        district: domain_of_counterfactual_values(event, vertices - district)
+        for district in new_graph.get_c_components()
     }
     return summand, interventions_of_each_district
+
+
+def domain_of_counterfactual_values(
+    event: CounterfactualEvent, counterfactuals: Collection[Variable]
+) -> Collection[Intervention]:
+    """Return domain of counterfactual values"""
+    return {
+        event[counterfactual]
+        if counterfactual in event
+        else Intervention(counterfactual.name, star=False)
+        for counterfactual in counterfactuals
+    }
 
 
 def id_star_line_8(graph: NxMixedGraph, query: CounterfactualEvent) -> bool:
@@ -220,11 +228,10 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
     return P[interventions](node.parent() for node in graph)
 
 
-# FIXME this is unused -> delete it
-def get_interventions(query: CounterfactualEvent) -> Collection[Variable]:
+def get_interventions(variables: Collection[Variable]) -> Collection[Variable]:
     r"""Generate new Variables from the subscripts of counterfactual variables in the query."""
     interventions = set()
-    for counterfactual in query.children:
+    for counterfactual in variables:
         if isinstance(counterfactual, CounterfactualVariable):
             interventions |= set(counterfactual.interventions)
     return sorted(interventions)

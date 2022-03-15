@@ -66,23 +66,25 @@ class TestIDStar(cases.GraphTestCase):
 
     def test_id_star_line_6(self):
         """Check that the input to id_star from each district is properly constructed."""
-        expected_counterfactual_graph = figure_9d.graph
-        event = {Y @ (+X, -Z): +Y, X @ (+X, -D): +X}
-        expected_vertices = expected_counterfactual_graph.nodes()
-        expected_summand = expected_vertices - set(event)
+        counterfactual_graph = NxMixedGraph.from_edges(
+            undirected=[(Y @ (~X, Z), X)],
+            directed=[
+                (W @ (~X, Z), Y @ (~X, Z)),
+            ],
+        )
+        event = {Y @ (+X, -Z): -Y, X: -X}
+        expected_summand = {-W}
         expected_interventions_of_districts = {
-            frozenset([Y @ (~X, Z), X]): expected_vertices - {Y @ (~X, Z), X},
-            frozenset([X @ (+X, -Z)]): expected_vertices - {X @ (+X, -Z)},
-            frozenset([W @ (~X, Z)]): expected_vertices - {W @ (~X, Z)},
-            frozenset([Z @ (+X, -Z)]): expected_vertices - {Z @ (+X, -Z)},
+            frozenset([Y @ (~X, Z), X]): {-W},
+            frozenset([W @ (~X, Z)]): {-Y, -X},
         }
         self.assertEqual(
             set(expected_interventions_of_districts),
-            set(expected_counterfactual_graph.get_c_components()),
+            set(counterfactual_graph.get_c_components()),
         )
         ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
         #
-        actual_summand, actual_iod = id_star_line_6(figure_9d.graph, ..., event)
+        actual_summand, actual_iod = id_star_line_6(counterfactual_graph, event)
         self.assertEqual(expected_summand, actual_summand)
         self.assertEqual(expected_interventions_of_districts, actual_iod)
 
