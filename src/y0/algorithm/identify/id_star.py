@@ -7,7 +7,7 @@ from typing import Collection, FrozenSet, Mapping, Optional, Set, Tuple
 from .cg import has_same_function, make_counterfactual_graph
 from .utils import Unidentifiable
 from ...dsl import (
-    CounterfactualEvent,
+    Event,
     CounterfactualVariable,
     Expression,
     Intervention,
@@ -27,7 +27,7 @@ __all__ = [
 ]
 
 
-def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
+def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     """Apply the ``ID*`` algorithm to the graph."""
     # Line 0: There's nothing in the counterfactual event
     if id_star_line_1(event):
@@ -60,7 +60,7 @@ def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
         return id_star_line_9(new_graph)
 
 
-def id_star_line_1(event: CounterfactualEvent) -> bool:
+def id_star_line_1(event: Event) -> bool:
     r"""Run line 1 of the ID* algorithm.
 
     The first line states that if :math:`\event` is an empty conjunction, then its
@@ -71,7 +71,7 @@ def id_star_line_1(event: CounterfactualEvent) -> bool:
     return len(event) == 0
 
 
-def id_star_line_2(event: CounterfactualEvent) -> bool:
+def id_star_line_2(event: Event) -> bool:
     r"""Run line 2 of the ID* algorithm.
 
     The second line states that if :math:`\event` contains a counterfactual
@@ -89,7 +89,7 @@ def id_star_line_2(event: CounterfactualEvent) -> bool:
     )
 
 
-def id_star_line_3(event: CounterfactualEvent) -> CounterfactualEvent:
+def id_star_line_3(event: Event) -> Event:
     r"""Run line 3 of the ID* algorithm.
 
     The third line states that if a counterfactual contains its own value in the subscript,
@@ -116,8 +116,8 @@ def id_star_line_3(event: CounterfactualEvent) -> CounterfactualEvent:
 
 
 def id_star_line_4(
-    graph: NxMixedGraph, event: CounterfactualEvent
-) -> Tuple[NxMixedGraph, Optional[CounterfactualEvent]]:
+    graph: NxMixedGraph, event: Event
+) -> Tuple[NxMixedGraph, Optional[Event]]:
     r"""Run line 4 of the ``ID*`` algorithm.
 
     Line 4 invokes make-cg to construct a counterfactual graph :math:`G'` , and the
@@ -131,7 +131,7 @@ def id_star_line_4(
     return new_graph, new_event
 
 
-def id_star_line_5(graph: NxMixedGraph, event: Optional[CounterfactualEvent]) -> Optional[Zero]:
+def id_star_line_5(graph: NxMixedGraph, event: Optional[Event]) -> Optional[Zero]:
     r"""Run line 5 of the ``ID*`` algorithm.
 
     Line 5 returns probability 0 if an inconsistency was found during the construction
@@ -143,7 +143,7 @@ def id_star_line_5(graph: NxMixedGraph, event: Optional[CounterfactualEvent]) ->
 
 
 def id_star_line_6(
-    new_graph: NxMixedGraph, event: CounterfactualEvent
+    new_graph: NxMixedGraph, event: Event
 ) -> Tuple[Collection[Variable], Mapping[FrozenSet[Variable], Set[Variable]]]:
     r"""Run line 6 of the ID* algorithm.
 
@@ -170,7 +170,7 @@ def id_star_line_6(
 
 
 def domain_of_counterfactual_values(
-    event: CounterfactualEvent, counterfactuals: Collection[Variable]
+    event: Event, counterfactuals: Collection[Variable]
 ) -> Collection[Intervention]:
     """Return domain of counterfactual values"""
     return {
@@ -181,7 +181,7 @@ def domain_of_counterfactual_values(
     }
 
 
-def id_star_line_8(graph: NxMixedGraph, query: CounterfactualEvent) -> bool:
+def id_star_line_8(graph: NxMixedGraph, query: Event) -> bool:
     r"""Run line 8 of the ID* algorithm.
 
     Line 8 says that if :math:`\event'` contains a "conflict," that is an inconsistent
@@ -208,7 +208,7 @@ def sub(graph: NxMixedGraph) -> Collection[Intervention]:
     }
 
 
-def ev(query: CounterfactualEvent) -> Collection[Intervention]:
+def ev(query: Event) -> Collection[Intervention]:
     """ev(:) the set of values (either set or observed) appearing in a given counterfactual conjunction (or set of counterfactual events)"""
     return set(query.values())
 

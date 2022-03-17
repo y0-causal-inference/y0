@@ -6,7 +6,7 @@ from itertools import combinations
 from typing import Collection, Iterable, Optional, Sequence, Tuple
 
 from y0.dsl import (
-    CounterfactualEvent,
+    Event,
     CounterfactualVariable,
     Intervention,
     Variable,
@@ -125,8 +125,8 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
 
 
 def make_counterfactual_graph(
-    graph: NxMixedGraph, event: CounterfactualEvent
-) -> Tuple[NxMixedGraph, Optional[CounterfactualEvent]]:
+    graph: NxMixedGraph, event: Event
+) -> Tuple[NxMixedGraph, Optional[Event]]:
     """Make counterfactual graph."""
     worlds = get_worlds(event)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
