@@ -100,4 +100,4 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
             event={Z @ -d: -z, Z: +z, D: -d},
         )
-        self.assertEqual(Zero(), actual_event3)
+        self.assertIsNone(actual_event3)

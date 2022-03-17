@@ -3,7 +3,7 @@
 """Utilities for parallel world graphs and counterfactual graphs."""
 
 from itertools import combinations
-from typing import Collection, Iterable, Sequence, Tuple
+from typing import Collection, Iterable, Optional, Sequence, Tuple
 
 from y0.dsl import (
     CounterfactualEvent,
@@ -126,7 +126,7 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
 
 def make_counterfactual_graph(
     graph: NxMixedGraph, event: CounterfactualEvent
-) -> Tuple[NxMixedGraph, CounterfactualEvent]:
+) -> Tuple[NxMixedGraph, Optional[CounterfactualEvent]]:
     """Make counterfactual graph."""
     worlds = get_worlds(event)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
@@ -150,8 +150,7 @@ def make_counterfactual_graph(
                     and (node_at_treatments in new_event)
                     and (new_event[node] != new_event[node_at_treatments])
                 ):
-                    # FIXME should it be an empty dict instead of Zero()?
-                    return cf_graph, Zero()
+                    return cf_graph, None
                 if node_at_treatments in new_event:
                     new_event[node] = new_event[node_at_treatments]
                     new_event.pop(node_at_treatments, None)
@@ -174,7 +173,7 @@ def make_counterfactual_graph(
                         and (new_event[node_at_intervention1] != new_event[node_at_intervention2])
                     ):
                         # FIXME should it be an empty dict instead of Zero()?
-                        return cf_graph, Zero()
+                        return cf_graph, None
                     if node_at_intervention2 in new_event:
                         new_event[node_at_intervention1] = new_event[node_at_intervention2]
                         new_event.pop(node_at_intervention2, None)

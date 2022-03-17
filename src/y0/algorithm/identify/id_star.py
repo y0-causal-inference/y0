@@ -40,8 +40,8 @@ def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
     # Line 4:
     new_graph, new_event = id_star_line_4(graph, event)
     # Line 5:
-    if new_event == Zero():
-        return new_event
+    if new_event is None:
+        return Zero()
     # Line 6:
     if not new_graph.is_connected():
         summand, interventions_of_each_district = id_star_line_6(new_graph, new_event)
@@ -53,7 +53,7 @@ def id_star(graph: NxMixedGraph, event: CounterfactualEvent) -> Expression:
             summand,
         )
     # Line 7:
-    elif id_star_line_8(new_graph, reduced_event):
+    elif id_star_line_8(new_graph, event):
         raise Unidentifiable
     else:
         # Line 9
@@ -117,8 +117,8 @@ def id_star_line_3(event: CounterfactualEvent) -> CounterfactualEvent:
 
 def id_star_line_4(
     graph: NxMixedGraph, event: CounterfactualEvent
-) -> Tuple[NxMixedGraph, CounterfactualEvent]:
-    r"""Run line 4 of the ID* algorithm
+) -> Tuple[NxMixedGraph, Optional[CounterfactualEvent]]:
+    r"""Run line 4 of the ``ID*`` algorithm.
 
     Line 4 invokes make-cg to construct a counterfactual graph :math:`G'` , and the
     corresponding relabeled counterfactual event.
@@ -127,20 +127,19 @@ def id_star_line_4(
     :param event: a conjunction of counterfactual variables
     :return: updated graph and event
     """
-
     new_graph, new_event = make_counterfactual_graph(graph, event)
     return new_graph, new_event
 
 
-def id_star_line_5(graph: NxMixedGraph, event: CounterfactualEvent) -> Optional[Zero]:
-    r"""Run line 5 of the ID* algorithm.
+def id_star_line_5(graph: NxMixedGraph, event: Optional[CounterfactualEvent]) -> Optional[Zero]:
+    r"""Run line 5 of the ``ID*`` algorithm.
 
     Line 5 returns probability 0 if an inconsistency was found during the construction
     of the counterfactual graph, for example, if two variables found to be the same in
     event had different value assignments.
     """
-    if event == Zero():
-        return event
+    # FIXME this isn't needed because it's so simple - delete
+    raise NotImplementedError
 
 
 def id_star_line_6(

@@ -10,7 +10,6 @@ from y0.algorithm.identify.id_star import (
     id_star_line_2,
     id_star_line_3,
     id_star_line_4,
-    id_star_line_5,
     id_star_line_6,
     id_star_line_8,
     sub,
@@ -56,13 +55,11 @@ class TestIDStar(cases.GraphTestCase):
         self.assert_graph_equal(figure_9c.graph, new_graph)
         self.assertEqual({Y @ ~x: ~y, X: x, Z: z, D: d}, new_event)
 
-    def test_id_star_line_5(self):
-        """Check whether the query is inconsistent with the counterfactual graph."""
         actual_graph3, actual_event3 = id_star_line_4(
             graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
             event={Z @ -d: -z, Z: +z, D: -d},
         )
-        self.assertEqual(Zero(), id_star_line_5(actual_graph3, actual_event3))
+        self.assertIsNone(actual_event3)
 
     def test_id_star_line_6(self):
         """Check that the input to id_star from each district is properly constructed."""
