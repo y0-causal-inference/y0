@@ -13,6 +13,7 @@ from typing import (
     Callable,
     Iterable,
     List,
+    Mapping,
     Optional,
     Protocol,
     Sequence,
@@ -29,6 +30,7 @@ __all__ = [
     "Intervention",
     "CounterfactualVariable",
     "Distribution",
+    "Event",
     "P",
     "Probability",
     "Sum",
@@ -1417,3 +1419,7 @@ def vmap_adj(adjacency_dict):
         Variable(source): [Variable(target) for target in targets]
         for source, targets in adjacency_dict.items()
     }
+
+
+#: A conjunction of factual and counterfactual events
+Event = Mapping[Variable, Intervention]
