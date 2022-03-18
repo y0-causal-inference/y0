@@ -5,13 +5,7 @@
 from itertools import combinations
 from typing import Collection, Iterable, Optional, Sequence, Tuple
 
-from y0.dsl import (
-    Event,
-    CounterfactualVariable,
-    Intervention,
-    Variable,
-    Zero,
-)
+from y0.dsl import CounterfactualVariable, Event, Intervention, Variable, Zero
 from y0.graph import NxMixedGraph
 
 __all__ = [

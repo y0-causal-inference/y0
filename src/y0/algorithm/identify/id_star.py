@@ -4,11 +4,11 @@
 
 from typing import Collection, FrozenSet, Mapping, Optional, Set, Tuple
 
-from .cg import has_same_function, make_counterfactual_graph
+from .cg import make_counterfactual_graph
 from .utils import Unidentifiable
 from ...dsl import (
-    Event,
     CounterfactualVariable,
+    Event,
     Expression,
     Intervention,
     One,
@@ -18,7 +18,6 @@ from ...dsl import (
     Sum,
     Variable,
     Zero,
-    _get_treatment_variables,
 )
 from ...graph import NxMixedGraph
 
@@ -36,7 +35,9 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     if id_star_line_2(event):
         return Zero()
     # Line 3: This is a tautological event and can be removed without affecting the probability
-    event = id_star_line_3(event)
+    new_event = id_star_line_3(event)
+    if new_event != event:
+        return id_star(graph, new_event)
     # Line 4:
     new_graph, new_event = id_star_line_4(graph, event)
     # Line 5:
@@ -115,9 +116,7 @@ def id_star_line_3(event: Event) -> Event:
     }
 
 
-def id_star_line_4(
-    graph: NxMixedGraph, event: Event
-) -> Tuple[NxMixedGraph, Optional[Event]]:
+def id_star_line_4(graph: NxMixedGraph, event: Event) -> Tuple[NxMixedGraph, Optional[Event]]:
     r"""Run line 4 of the ``ID*`` algorithm.
 
     Line 4 invokes make-cg to construct a counterfactual graph :math:`G'` , and the
@@ -227,41 +226,42 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
     return P[interventions](node.parent() for node in graph)
 
 
-def get_interventions(variables: Collection[Variable]) -> Collection[Variable]:
-    r"""Generate new Variables from the subscripts of counterfactual variables in the query."""
-    interventions = set()
-    for counterfactual in variables:
-        if isinstance(counterfactual, CounterfactualVariable):
-            interventions |= set(counterfactual.interventions)
-    return sorted(interventions)
+# FIXME this is unused -> delete it
+# def get_interventions(variables: Collection[Variable]) -> Collection[Variable]:
+#     r"""Generate new Variables from the subscripts of counterfactual variables in the query."""
+#     interventions = set()
+#     for counterfactual in variables:
+#         if isinstance(counterfactual, CounterfactualVariable):
+#             interventions |= set(counterfactual.interventions)
+#     return sorted(interventions)
 
 
 # TODO update the docs: is this generally applicable, or only to graphs
 #  constructed as parallel worlds? perhaps update the name?
 
 # FIXME this is unused -> delete it
-def has_same_domain_of_values(node1: Variable, node2: Variable) -> bool:
-    if isinstance(node1, CounterfactualVariable) and isinstance(node2, CounterfactualVariable):
-        treatment1, treatment2 = _get_treatment_variables(node1), _get_treatment_variables(node2)
-    raise NotImplementedError
-
+# def has_same_domain_of_values(node1: Variable, node2: Variable) -> bool:
+#     if isinstance(node1, CounterfactualVariable) and isinstance(node2, CounterfactualVariable):
+#         treatment1, treatment2 = _get_treatment_variables(node1), _get_treatment_variables(node2)
+#     raise NotImplementedError
+#
 
 # FIXME this is unused -> delete it
-def has_same_value(event: Collection[Variable], node1: Variable, node2: Variable) -> bool:
-    n1 = None
-    for node in event:
-        if node == node1:
-            n1 = node
-    if n1 is None:
-        raise ValueError
-
-    n2 = None
-    for node in event:
-        if node == node2:
-            n2 = node
-    if n2 is None:
-        raise ValueError
-
-    # TODO not all variables have is_event().
-    #  Should normal, non-counterfactual variables have this function?
-    return has_same_function(n1, n2) and n1.is_event() and n2.is_event() and (n1.star == n2.star)
+# def has_same_value(event: Collection[Variable], node1: Variable, node2: Variable) -> bool:
+#     n1 = None
+#     for node in event:
+#         if node == node1:
+#             n1 = node
+#     if n1 is None:
+#         raise ValueError
+#
+#     n2 = None
+#     for node in event:
+#         if node == node2:
+#             n2 = node
+#     if n2 is None:
+#         raise ValueError
+#
+#     # TODO not all variables have is_event().
+#     #  Should normal, non-counterfactual variables have this function?
+#     return has_same_function(n1, n2) and n1.is_event() and n2.is_event() and (n1.star == n2.star)
