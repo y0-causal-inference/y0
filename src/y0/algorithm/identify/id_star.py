@@ -2,7 +2,7 @@
 
 """Implementation of the ID* algorithm."""
 
-from typing import Collection, FrozenSet, Iterable, List, Mapping, Optional, Set, Tuple
+from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Set, Tuple
 
 from .cg import make_counterfactual_graph
 from .utils import Unidentifiable
@@ -54,7 +54,9 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
         summand, interventions_of_each_district = id_star_line_6(cf_graph, event)
         district_events = get_district_events(interventions_of_each_district)
         return Sum.safe(
-            Product.safe(id_star(graph, district_event) for district_event in district_events.values()),
+            Product.safe(
+                id_star(graph, district_event) for district_event in district_events.values()
+            ),
             summand,
         )
     # Line 7:
@@ -70,12 +72,11 @@ def get_free_variables(graph: NxMixedGraph, event: Event) -> Set[Variable]:
     return {variable.get_base() for variable in graph.nodes() - set(event)}
 
 
-def get_district_events(interventions_of_each_district: DistrictInterventions) -> Mapping[District, Event]:
+def get_district_events(
+    interventions_of_each_district: DistrictInterventions,
+) -> Mapping[District, Event]:
     return {
-        district: {
-            merge_interventions(node, interventions): Intervention(node.name, star=False)
-            for node in district
-        }
+        district: {merge_interventions(node, interventions): -node.get_base() for node in district}
         for district, interventions in interventions_of_each_district.items()
     }
 
@@ -131,7 +132,7 @@ def remove_event_tautologies(event: Event) -> Event:
         counterfactual
         for counterfactual, value in event.items()
         if isinstance(counterfactual, CounterfactualVariable)
-           and any(
+        and any(
             intervention.name == counterfactual.name and value.star == intervention.star
             for intervention in counterfactual.interventions
         )
@@ -168,7 +169,9 @@ def id_star_line_4(graph: NxMixedGraph, event: Event) -> Tuple[NxMixedGraph, Opt
 #     raise NotImplementedError
 
 
-def id_star_line_6(graph: NxMixedGraph, event: Event) -> Tuple[Collection[Variable], DistrictInterventions]:
+def id_star_line_6(
+    graph: NxMixedGraph, event: Event
+) -> Tuple[Collection[Variable], DistrictInterventions]:
     r"""Run line 6 of the ID* algorithm.
 
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
@@ -245,7 +248,8 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
     :return: An interventional distribution.
     """
     interventions = sub(graph)
-    return P[interventions](node.parent() for node in graph.nodes())
+    return P[interventions](node.get_base() for node in graph.nodes())
+
 
 # FIXME this is unused -> delete it
 # def get_interventions(variables: Collection[Variable]) -> Collection[Variable]:
