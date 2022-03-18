@@ -1421,5 +1421,5 @@ def vmap_adj(adjacency_dict):
     }
 
 
-#: A conjuction of factual and counterfactual events
+#: A conjunction of factual and counterfactual events
 Event = Mapping[Variable, Intervention]
