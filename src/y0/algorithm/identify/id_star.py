@@ -2,7 +2,7 @@
 
 """Implementation of the ID* algorithm."""
 
-from typing import Collection, FrozenSet, Mapping, Optional, Set, Tuple
+from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Set, Tuple
 
 from .cg import make_counterfactual_graph
 from .utils import Unidentifiable
@@ -35,9 +35,7 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     if id_star_line_2(event):
         return Zero()
     # Line 3: This is a tautological event and can be removed without affecting the probability
-    new_event = id_star_line_3(event)
-    if new_event != event:
-        return id_star(graph, new_event)
+    event = id_star_line_3(event)
     # Line 4:
     new_graph, new_event = id_star_line_4(graph, event)
     # Line 5:
@@ -48,7 +46,7 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
         summand, interventions_of_each_district = id_star_line_6(new_graph, new_event)
         return Sum.safe(
             Product.safe(
-                id_star(graph, {element @ interventions: +element for element in district})
+                id_star(graph, _create_event(district, interventions))
                 for district, interventions in interventions_of_each_district.items()
             ),
             summand,
@@ -59,6 +57,11 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     else:
         # Line 9
         return id_star_line_9(new_graph)
+
+
+# TODO type annotate
+def _create_event(district, interventions):
+    return {element @ interventions: +element for element in district}
 
 
 def id_star_line_1(event: Event) -> bool:
@@ -143,7 +146,7 @@ def id_star_line_5(graph: NxMixedGraph, event: Optional[Event]) -> Optional[Zero
 
 def id_star_line_6(
     new_graph: NxMixedGraph, event: Event
-) -> Tuple[Collection[Variable], Mapping[FrozenSet[Variable], Set[Variable]]]:
+) -> Tuple[Collection[Variable], Mapping[FrozenSet[Variable], Set[Intervention]]]:
     r"""Run line 6 of the ID* algorithm.
 
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
@@ -159,7 +162,7 @@ def id_star_line_6(
     variables not in :math:`\event'` , that is over :math:`\mathbf{v}(G' ) \backslash \event'` ,
     where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
     """
-    vertices = set(new_graph)
+    vertices: Set[Variable] = set(new_graph.nodes())
     summand = domain_of_counterfactual_values(event, vertices - set(event))
     interventions_of_each_district = {
         district: domain_of_counterfactual_values(event, vertices - district)
@@ -169,8 +172,8 @@ def id_star_line_6(
 
 
 def domain_of_counterfactual_values(
-    event: Event, counterfactuals: Collection[Variable]
-) -> Collection[Intervention]:
+    event: Event, counterfactuals: Iterable[Variable]
+) -> Set[Intervention]:
     """Return domain of counterfactual values"""
     return {
         event[counterfactual]
@@ -201,7 +204,7 @@ def sub(graph: NxMixedGraph) -> Collection[Intervention]:
     """sub() is the set of interventions that are in each counterfactual variable."""
     return {
         intervention
-        for node in graph
+        for node in graph.nodes()
         if isinstance(node, CounterfactualVariable)
         for intervention in node.interventions
     }
@@ -223,7 +226,7 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
     :return: An interventional distribution.
     """
     interventions = sub(graph)
-    return P[interventions](node.parent() for node in graph)
+    return P[interventions](node.parent() for node in graph.nodes())
 
 
 # FIXME this is unused -> delete it
