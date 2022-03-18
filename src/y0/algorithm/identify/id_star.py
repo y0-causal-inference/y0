@@ -49,19 +49,15 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     # Line 6:
     if not cf_graph.is_connected():
         summand, interventions_of_each_district = id_star_line_6(cf_graph, new_event)
+        district_events = [
+            {
+                merge_interventions(element, interventions): Intervention(element.name, star=False)
+                for element in district
+            }
+            for district, interventions in interventions_of_each_district.items()
+        ]
         return Sum.safe(
-            Product.safe(
-                id_star(
-                    graph,
-                    {
-                        merge_interventions(element, interventions): Intervention(
-                            element.name, star=False
-                        )
-                        for element in district
-                    },
-                )
-                for district, interventions in interventions_of_each_district.items()
-            ),
+            Product.safe(id_star(graph, district_event) for district_event in district_events),
             summand,
         )
     # Line 7:
