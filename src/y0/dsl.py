@@ -160,6 +160,10 @@ class Variable(Element):
         else:
             raise TypeError(f"({type(name)}) {name} is not valid")
 
+    def get_base(self) -> Variable:
+        """Return the base variable, with no other nonsense."""
+        return Variable(self.name)
+
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
         return self.name
