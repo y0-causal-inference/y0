@@ -46,18 +46,23 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
         summand, interventions_of_each_district = id_star_line_6(new_graph, new_event)
         return Sum.safe(
             Product.safe(
-                id_star(graph, _create_event(district, interventions))
+                id_star(graph, {merge_interventions(element,  interventions): Intervention(element.name, star=False)
+                                for element in district})
                 for district, interventions in interventions_of_each_district.items()
             ),
             summand,
         )
     # Line 7:
-    elif id_star_line_8(new_graph, event):
+    elif id_star_line_8(new_graph, new_event):
         raise Unidentifiable
     else:
         # Line 9
         return id_star_line_9(new_graph)
 
+def merge_interventions(counterfactual: Variable, interventions: Collection[Intervention])-> CounterfactualVariable:
+    if type(counterfactual) is CounterfactualVariable:
+        interventions = set(interventions) | set(counterfactual.interventions)
+    return CounterfactualVariable(name=counterfactual.name, interventions=tuple(sorted(interventions)))
 
 # TODO type annotate
 def _create_event(district, interventions):

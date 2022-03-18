@@ -131,27 +131,26 @@ def make_counterfactual_graph(
         undirected=pw_graph.undirected.edges(),
     )
     for node in graph.topological_sort():
-        for treatments in worlds:
-            node_at_treatments = node @ treatments
+        for interventions in worlds:
+            node_at_interventions = node @ interventions
             if (
                 (node in cf_graph.nodes())
-                and (node_at_treatments in cf_graph.nodes())
-                and is_pw_equivalent(cf_graph, node, node_at_treatments)
+                and (node_at_interventions in cf_graph.nodes())
+                and is_pw_equivalent(cf_graph, node, node_at_interventions)
             ):
-                cf_graph = merge_pw(cf_graph, node, node_at_treatments)
+                cf_graph = merge_pw(cf_graph, node, node_at_interventions)
                 if (
                     (node in new_event)
-                    and (node_at_treatments in new_event)
-                    and (new_event[node] != new_event[node_at_treatments])
+                    and (node_at_interventions in new_event)
+                    and (new_event[node] != new_event[node_at_interventions])
                 ):
                     return cf_graph, None
-                if node_at_treatments in new_event:
-                    new_event[node] = new_event[node_at_treatments]
-                    new_event.pop(node_at_treatments, None)
+                if node_at_interventions in new_event:
+                    new_event[node] = new_event[node_at_interventions]
+                    new_event.pop(node_at_interventions, None)
 
         if len(worlds) > 1:
             for intervention1, intervention2 in combinations(worlds, 2):
-                # FIXME pick either "treatments" or "interventions" and stick with that
                 node_at_intervention1 = node @ intervention1
                 node_at_intervention2 = node @ intervention2
 
@@ -166,8 +165,8 @@ def make_counterfactual_graph(
                         and (node_at_intervention2 in new_event)
                         and (new_event[node_at_intervention1] != new_event[node_at_intervention2])
                     ):
-                        # FIXME should it be an empty dict instead of Zero()?
                         return cf_graph, None
+
                     if node_at_intervention2 in new_event:
                         new_event[node_at_intervention1] = new_event[node_at_intervention2]
                         new_event.pop(node_at_intervention2, None)
