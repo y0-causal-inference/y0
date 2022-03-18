@@ -28,11 +28,11 @@ __all__ = [
 
 def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     """Apply the ``ID*`` algorithm to the graph."""
-    # Line 0: There's nothing in the counterfactual event
-    if id_star_line_1(event):
+    # Line 1: There's nothing in the counterfactual event
+    if is_event_empty(event):
         return One()
     # Line 2: This violates the Axiom of Effectiveness
-    if id_star_line_2(event):
+    if violates_axiom_of_effectiveness(event):
         return Zero()
     # Line 3: This is a tautological event and can be removed without affecting the probability
     reduced_event = id_star_line_3(event)
@@ -87,7 +87,7 @@ def _create_event(district, interventions):
     return {element @ interventions: +element for element in district}
 
 
-def id_star_line_1(event: Event) -> bool:
+def is_event_empty(event: Event) -> bool:
     r"""Run line 1 of the ID* algorithm.
 
     The first line states that if :math:`\event` is an empty conjunction, then its
@@ -98,7 +98,7 @@ def id_star_line_1(event: Event) -> bool:
     return len(event) == 0
 
 
-def id_star_line_2(event: Event) -> bool:
+def violates_axiom_of_effectiveness(event: Event) -> bool:
     r"""Run line 2 of the ID* algorithm.
 
     The second line states that if :math:`\event` contains a counterfactual
@@ -156,15 +156,15 @@ def id_star_line_4(graph: NxMixedGraph, event: Event) -> Tuple[NxMixedGraph, Opt
     return new_graph, new_event
 
 
-def id_star_line_5(graph: NxMixedGraph, event: Optional[Event]) -> Optional[Zero]:
-    r"""Run line 5 of the ``ID*`` algorithm.
-
-    Line 5 returns probability 0 if an inconsistency was found during the construction
-    of the counterfactual graph, for example, if two variables found to be the same in
-    event had different value assignments.
-    """
-    # FIXME this isn't needed because it's so simple - delete
-    raise NotImplementedError
+# FIXME this is unused -> delete it
+# def id_star_line_5(graph: NxMixedGraph, event: Optional[Event]) -> Optional[Zero]:
+#     r"""Run line 5 of the ``ID*`` algorithm.
+#
+#     Line 5 returns probability 0 if an inconsistency was found during the construction
+#     of the counterfactual graph, for example, if two variables found to be the same in
+#     event had different value assignments.
+#     """
+#     raise NotImplementedError
 
 
 def id_star_line_6(

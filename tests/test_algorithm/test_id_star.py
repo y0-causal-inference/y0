@@ -8,14 +8,14 @@ from y0.algorithm.identify.id_star import (
     domain_of_counterfactual_values,
     ev,
     id_star,
-    id_star_line_1,
-    id_star_line_2,
     id_star_line_3,
     id_star_line_4,
     id_star_line_6,
     id_star_line_8,
+    is_event_empty,
     merge_interventions,
     sub,
+    violates_axiom_of_effectiveness,
 )
 from y0.dsl import D, One, P, Sum, Variable, W, X, Y, Z, Zero
 from y0.examples import figure_9a, figure_9c, figure_9d
@@ -29,20 +29,24 @@ class TestIDStar(cases.GraphTestCase):
 
     def test_id_star_line_1(self):
         """Check if event is empty."""
-        self.assertTrue(id_star_line_1({}))
-        self.assertFalse(id_star_line_1({X @ x: ~x}))
+        self.assertTrue(is_event_empty({}))
+        self.assertFalse(is_event_empty({X @ x: ~x}))
 
     def test_id_star_line_2(self):
         """Check to see if the counterfactual event violates the Axiom of Effectiveness."""
         # Examples all from figure_9a.graph
-        self.assertTrue(id_star_line_2({X @ x: ~x}))
-        self.assertTrue(id_star_line_2({X @ ~x: x}))
-        self.assertTrue(id_star_line_2({X @ (y, z, x): ~x}))
-        self.assertTrue(id_star_line_2({X @ (x, z): x, Y @ (x, -y): +y}))
-        self.assertTrue(id_star_line_2({Y @ -x: -y, X @ +x: -x, Y @ x: y, Y @ ~x: y, Y @ ~x: y}))
-        self.assertFalse(id_star_line_2({X @ x: x}))
-        self.assertFalse(id_star_line_2({X @ ~x: ~x}))
-        self.assertFalse(id_star_line_2({X @ x: x, Y @ x: y}))
+        self.assertTrue(violates_axiom_of_effectiveness({X @ x: ~x}))
+        self.assertTrue(violates_axiom_of_effectiveness({X @ ~x: x}))
+        self.assertTrue(violates_axiom_of_effectiveness({X @ (y, z, x): ~x}))
+        self.assertTrue(violates_axiom_of_effectiveness({X @ (x, z): x, Y @ (x, -y): +y}))
+        self.assertTrue(
+            violates_axiom_of_effectiveness(
+                {Y @ -x: -y, X @ +x: -x, Y @ x: y, Y @ ~x: y, Y @ ~x: y}
+            )
+        )
+        self.assertFalse(violates_axiom_of_effectiveness({X @ x: x}))
+        self.assertFalse(violates_axiom_of_effectiveness({X @ ~x: ~x}))
+        self.assertFalse(violates_axiom_of_effectiveness({X @ x: x, Y @ x: y}))
 
     def test_id_star_line_3(self):
         """Check to see if the counterfactual event is tautological."""
