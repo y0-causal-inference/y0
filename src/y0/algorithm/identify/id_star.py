@@ -186,7 +186,7 @@ def id_star_line_6(
     where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
     """
     vertices: Set[Variable] = set(new_graph.nodes())
-    summand = {variable.parent() for variable in vertices - set(event)}
+    summand = {variable.get_base() for variable in vertices - set(event)}
     interventions_of_each_district = {
         district: domain_of_counterfactual_values(event, vertices - district)
         for district in new_graph.get_c_components()
@@ -196,7 +196,7 @@ def id_star_line_6(
 
 def domain_of_counterfactual_values(event: Event, variables: Iterable[Variable]) -> Set[Variable]:
     """Return domain of counterfactual values"""
-    return {event[variable] if variable in event else variable.parent() for variable in variables}
+    return {event[variable] if variable in event else variable.get_base() for variable in variables}
 
 
 def id_star_line_8(graph: NxMixedGraph, query: Event) -> bool:

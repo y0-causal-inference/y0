@@ -109,7 +109,7 @@ class TestIDStar(cases.GraphTestCase):
             self.assertNotIn(value, vertices)
 
         self.assertEqual(
-            {-cf.parent() for cf in vertices} - set(event.values()),
+            {-cf.get_base() for cf in vertices} - set(event.values()),
             domain_of_counterfactual_values(event, vertices - set(event)),
         )
         ## TODO: add more tests

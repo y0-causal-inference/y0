@@ -189,7 +189,7 @@ def make_parallel_worlds_graph(
 
 def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> NxMixedGraph:
     """Make a parallel world graph based on interventions specified."""
-    treatment_variables = [treatment.parent() for treatment in treatments]
+    treatment_variables = [treatment.get_base() for treatment in treatments]
     world_graph = graph.remove_in_edges(treatment_variables)
     return NxMixedGraph.from_edges(
         nodes=[node.intervene(treatments) for node in world_graph.nodes()],

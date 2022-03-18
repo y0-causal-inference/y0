@@ -162,7 +162,7 @@ class Variable(Element):
         else:
             raise TypeError(f"({type(name)}) {name} is not valid")
 
-    def parent(self) -> Variable:
+    def get_base(self) -> Variable:
         """Return the base variable, with no other nonsense."""
         return Variable(self.name)
 
