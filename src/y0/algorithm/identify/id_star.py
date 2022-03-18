@@ -2,7 +2,7 @@
 
 """Implementation of the ID* algorithm."""
 
-from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Set, Tuple
+from typing import Collection, FrozenSet, Iterable, List, Mapping, Optional, Set, Tuple
 
 from .cg import make_counterfactual_graph
 from .utils import Unidentifiable
@@ -25,6 +25,9 @@ __all__ = [
     "id_star",
 ]
 
+District = FrozenSet[Variable]
+DistrictInterventions = Mapping[District, Set[Variable]]
+
 
 def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     """Apply the ``ID*`` algorithm to the graph."""
@@ -35,7 +38,7 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     if violates_axiom_of_effectiveness(event):
         return Zero()
     # Line 3: This is a tautological event and can be removed without affecting the probability
-    reduced_event = id_star_line_3(event)
+    reduced_event = remove_event_tautologies(event)
     if reduced_event != event:
         return id_star(graph, reduced_event)
     # Line 4:
@@ -48,16 +51,10 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     print(new_event)
     # Line 6:
     if not cf_graph.is_connected():
-        summand, interventions_of_each_district = id_star_line_6(cf_graph, new_event)
-        district_events = [
-            {
-                merge_interventions(element, interventions): Intervention(element.name, star=False)
-                for element in district
-            }
-            for district, interventions in interventions_of_each_district.items()
-        ]
+        summand, interventions_of_each_district = id_star_line_6(cf_graph, event)
+        district_events = get_district_events(interventions_of_each_district)
         return Sum.safe(
-            Product.safe(id_star(graph, district_event) for district_event in district_events),
+            Product.safe(id_star(graph, district_event) for district_event in district_events.values()),
             summand,
         )
     # Line 7:
@@ -68,19 +65,27 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
         return id_star_line_9(cf_graph)
 
 
+def get_free_variables(graph: NxMixedGraph, event: Event) -> Set[Variable]:
+    """Get all nodes in the graph that don't have values fixed by the event."""
+    return {variable.get_base() for variable in graph.nodes() - set(event)}
+
+
+def get_district_events(interventions_of_each_district: DistrictInterventions) -> Mapping[District, Event]:
+    return {
+        district: {
+            merge_interventions(node, interventions): Intervention(node.name, star=False)
+            for node in district
+        }
+        for district, interventions in interventions_of_each_district.items()
+    }
+
+
 def merge_interventions(
-    counterfactual: Variable, interventions: Collection[Intervention]
+    variable: Variable, interventions: Collection[Intervention]
 ) -> CounterfactualVariable:
-    if type(counterfactual) is CounterfactualVariable:
-        interventions = set(interventions) | set(counterfactual.interventions)
-    return CounterfactualVariable(
-        name=counterfactual.name, interventions=tuple(sorted(interventions))
-    )
-
-
-# TODO type annotate
-def _create_event(district, interventions):
-    return {element @ interventions: +element for element in district}
+    if isinstance(variable, CounterfactualVariable):
+        interventions = set(interventions).union(variable.interventions)
+    return CounterfactualVariable(name=variable.name, interventions=tuple(sorted(interventions)))
 
 
 def is_event_empty(event: Event) -> bool:
@@ -112,7 +117,7 @@ def violates_axiom_of_effectiveness(event: Event) -> bool:
     )
 
 
-def id_star_line_3(event: Event) -> Event:
+def remove_event_tautologies(event: Event) -> Event:
     r"""Run line 3 of the ID* algorithm.
 
     The third line states that if a counterfactual contains its own value in the subscript,
@@ -126,7 +131,7 @@ def id_star_line_3(event: Event) -> Event:
         counterfactual
         for counterfactual, value in event.items()
         if isinstance(counterfactual, CounterfactualVariable)
-        and any(
+           and any(
             intervention.name == counterfactual.name and value.star == intervention.star
             for intervention in counterfactual.interventions
         )
@@ -163,9 +168,7 @@ def id_star_line_4(graph: NxMixedGraph, event: Event) -> Tuple[NxMixedGraph, Opt
 #     raise NotImplementedError
 
 
-def id_star_line_6(
-    new_graph: NxMixedGraph, event: Event
-) -> Tuple[Collection[Variable], Mapping[FrozenSet[Variable], Set[Variable]]]:
+def id_star_line_6(graph: NxMixedGraph, event: Event) -> Tuple[Collection[Variable], DistrictInterventions]:
     r"""Run line 6 of the ID* algorithm.
 
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
@@ -181,34 +184,38 @@ def id_star_line_6(
     variables not in :math:`\event'` , that is over :math:`\mathbf{v}(G' ) \backslash \event'` ,
     where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
     """
-    vertices: Set[Variable] = set(new_graph.nodes())
-    summand = {variable.get_base() for variable in vertices - set(event)}
-    interventions_of_each_district = {
-        district: domain_of_counterfactual_values(event, vertices - district)
-        for district in new_graph.get_c_components()
-    }
+    summand = get_free_variables(graph, event)
+    interventions_of_each_district = get_district_domains(graph, event)
     return summand, interventions_of_each_district
 
 
+def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
+    nodes = set(graph.nodes())
+    return {
+        district: domain_of_counterfactual_values(event, nodes - district)
+        for district in graph.get_c_components()
+    }
+
+
 def domain_of_counterfactual_values(event: Event, variables: Iterable[Variable]) -> Set[Variable]:
-    """Return domain of counterfactual values"""
+    """Return domain of counterfactual values."""
     return {event[variable] if variable in event else variable.get_base() for variable in variables}
 
 
-def id_star_line_8(graph: NxMixedGraph, query: Event) -> bool:
+def id_star_line_8(graph: NxMixedGraph, event: Event) -> bool:
     r"""Run line 8 of the ID* algorithm.
 
     Line 8 says that if :math:`\event'` contains a "conflict," that is an inconsistent
     value assignment where at least one value is in the subscript, then we fail.
 
     :param graph: an NxMixedGraph
-    :param query: a joint distribution over counterfactual variables
+    :param event: a joint distribution over counterfactual variables
     :return: True if there is a conflict. False otherwise
     """
     return any(
         intervention.name == evidence.name and intervention.star != evidence.star
         for intervention in sub(graph)
-        for evidence in ev(query)
+        for evidence in ev(event)
     )
 
 
@@ -222,9 +229,9 @@ def sub(graph: NxMixedGraph) -> Collection[Intervention]:
     }
 
 
-def ev(query: Event) -> Collection[Intervention]:
+def ev(event: Event) -> Collection[Intervention]:
     """ev(:) the set of values (either set or observed) appearing in a given counterfactual conjunction (or set of counterfactual events)"""
-    return set(query.values())
+    return set(event.values())
 
 
 def id_star_line_9(graph: NxMixedGraph) -> Probability:
@@ -239,7 +246,6 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
     """
     interventions = sub(graph)
     return P[interventions](node.parent() for node in graph.nodes())
-
 
 # FIXME this is unused -> delete it
 # def get_interventions(variables: Collection[Variable]) -> Collection[Variable]:

@@ -8,12 +8,12 @@ from y0.algorithm.identify.id_star import (
     domain_of_counterfactual_values,
     ev,
     id_star,
-    id_star_line_3,
     id_star_line_4,
     id_star_line_6,
     id_star_line_8,
     is_event_empty,
     merge_interventions,
+    remove_event_tautologies,
     sub,
     violates_axiom_of_effectiveness,
 )
@@ -50,11 +50,11 @@ class TestIDStar(cases.GraphTestCase):
 
     def test_id_star_line_3(self):
         """Check to see if the counterfactual event is tautological."""
-        self.assertEqual({}, id_star_line_3({X @ x: x}))
-        self.assertEqual({Y @ x: y}, id_star_line_3({Y @ x: y, X @ x: x}))
-        self.assertEqual({Y @ x: +y}, id_star_line_3({Y @ x: +y, X @ ~x: ~x}))
+        self.assertEqual({}, remove_event_tautologies({X @ x: x}))
+        self.assertEqual({Y @ x: y}, remove_event_tautologies({Y @ x: y, X @ x: x}))
+        self.assertEqual({Y @ x: +y}, remove_event_tautologies({Y @ x: +y, X @ ~x: ~x}))
         event = {Y @ (+x, -z): +y, X: -x}
-        self.assertEqual(event, id_star_line_3(event))
+        self.assertEqual(event, remove_event_tautologies(event))
 
     def test_id_star_line_4(self):
         """Check that the counterfactual graph is correct."""
