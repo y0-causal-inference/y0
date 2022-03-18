@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 """Tests for the ID* algorithm."""
+from typing import Set
 
 from tests.test_algorithm import cases
 from y0.algorithm.identify.id_star import (
+    domain_of_counterfactual_values,
     ev,
     id_star,
     id_star_line_1,
@@ -12,9 +14,10 @@ from y0.algorithm.identify.id_star import (
     id_star_line_4,
     id_star_line_6,
     id_star_line_8,
+    merge_interventions,
     sub,
 )
-from y0.dsl import D, One, P, Sum, W, X, Y, Z, Zero
+from y0.dsl import D, One, P, Sum, Variable, W, X, Y, Z, Zero
 from y0.examples import figure_9a, figure_9c, figure_9d
 from y0.graph import NxMixedGraph
 
@@ -46,6 +49,8 @@ class TestIDStar(cases.GraphTestCase):
         self.assertEqual({}, id_star_line_3({X @ x: x}))
         self.assertEqual({Y @ x: y}, id_star_line_3({Y @ x: y, X @ x: x}))
         self.assertEqual({Y @ x: +y}, id_star_line_3({Y @ x: +y, X @ ~x: ~x}))
+        event = {Y @ (+x, -z): +y, X: -x}
+        self.assertEqual(event, id_star_line_3(event))
 
     def test_id_star_line_4(self):
         """Check that the counterfactual graph is correct."""
@@ -60,6 +65,13 @@ class TestIDStar(cases.GraphTestCase):
             event={Z @ -d: -z, Z: +z, D: -d},
         )
         self.assertIsNone(actual_event3)
+
+        query4 = {Y @ (+x, -z): +y, X: -x}
+
+        expected_graph = figure_9d.graph
+        expected = expected_graph, query4
+        self.assertEqual(expected, id_star_line_4(figure_9a.graph, query4))
+        self.assertFalse(figure_9d.graph.is_connected())
 
     def test_id_star_line_6(self):
         """Check that the input to id_star from each district is properly constructed."""
@@ -85,6 +97,31 @@ class TestIDStar(cases.GraphTestCase):
         self.assertEqual(expected_summand, actual_summand)
         self.assertEqual(expected_interventions_of_districts, actual_iod)
 
+    def test_domain_of_counterfactual_values(self):
+        """ "Test that we correctly output the domain of a counterfactual"""
+        event = {Y @ (+X, -Z): -Y, X: -X}
+        cf_graph = figure_9d.graph
+        vertices: Set[Variable] = set(cf_graph.nodes())
+        self.assertEqual(
+            vertices - set(event), domain_of_counterfactual_values(event, vertices - set(event))
+        )
+        ## TODO: add more tests
+
+    def test_recursion(self):
+        """ "Test the recursive aspect of line 6"""
+        cf_graph = figure_9d.graph
+        new_event = {Y @ (+X, -Z): -Y, X: -X}
+        summand, interventions_of_each_district = id_star_line_6(cf_graph, new_event)
+        my_list = [
+            {
+                merge_interventions(element, interventions): Intervention(element.name, star=False)
+                for element in district
+            }
+            for district, interventions in interventions_of_each_district.items()
+        ]
+        self.assertEqual()
+        ## TODO: add more tests
+
     def test_id_star_line_8(self):
         """Attempt to generate a conflict with an inconsistent value assignment."""
         graph = NxMixedGraph.from_edges(undirected=[(Y @ +X, X), (X, D @ -D)])
@@ -102,6 +139,13 @@ class TestIDStar(cases.GraphTestCase):
         Test that estimand returned by taking the effect of all subscripts in
         new_event on variables in new_event is correct
         """
+
+    def test_merge_interventions(self):
+        """Test that we can safely merge interventions into a counterfactual"""
+        element = Y @ (X, Z)
+        interventions = (-Z, -W, -D)
+        expected = Y @ (D, W, X, Z)
+        self.assertEqual(expected, merge_interventions(element, interventions))
 
     def test_id_star(self):
         """Test that the ID* algorithm returns the correct estimand."""

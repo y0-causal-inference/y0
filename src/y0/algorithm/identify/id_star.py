@@ -35,34 +35,52 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     if id_star_line_2(event):
         return Zero()
     # Line 3: This is a tautological event and can be removed without affecting the probability
-    event = id_star_line_3(event)
+    reduced_event = id_star_line_3(event)
+    if reduced_event != event:
+        return id_star(graph, reduced_event)
     # Line 4:
-    new_graph, new_event = id_star_line_4(graph, event)
+    cf_graph, new_event = id_star_line_4(graph, event)
     # Line 5:
     if new_event is None:
         return Zero()
+
+    print(cf_graph)
+    print(new_event)
     # Line 6:
-    if not new_graph.is_connected():
-        summand, interventions_of_each_district = id_star_line_6(new_graph, new_event)
+    if not cf_graph.is_connected():
+        summand, interventions_of_each_district = id_star_line_6(cf_graph, new_event)
         return Sum.safe(
             Product.safe(
-                id_star(graph, {merge_interventions(element,  interventions): Intervention(element.name, star=False)
-                                for element in district})
+                id_star(
+                    graph,
+                    {
+                        merge_interventions(element, interventions): Intervention(
+                            element.name, star=False
+                        )
+                        for element in district
+                    },
+                )
                 for district, interventions in interventions_of_each_district.items()
             ),
             summand,
         )
     # Line 7:
-    elif id_star_line_8(new_graph, new_event):
+    elif id_star_line_8(cf_graph, new_event):
         raise Unidentifiable
     else:
         # Line 9
-        return id_star_line_9(new_graph)
+        return id_star_line_9(cf_graph)
 
-def merge_interventions(counterfactual: Variable, interventions: Collection[Intervention])-> CounterfactualVariable:
+
+def merge_interventions(
+    counterfactual: Variable, interventions: Collection[Intervention]
+) -> CounterfactualVariable:
     if type(counterfactual) is CounterfactualVariable:
         interventions = set(interventions) | set(counterfactual.interventions)
-    return CounterfactualVariable(name=counterfactual.name, interventions=tuple(sorted(interventions)))
+    return CounterfactualVariable(
+        name=counterfactual.name, interventions=tuple(sorted(interventions))
+    )
+
 
 # TODO type annotate
 def _create_event(district, interventions):
