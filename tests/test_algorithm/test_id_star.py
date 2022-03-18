@@ -102,8 +102,15 @@ class TestIDStar(cases.GraphTestCase):
         event = {Y @ (+X, -Z): -Y, X: -X}
         cf_graph = figure_9d.graph
         vertices: Set[Variable] = set(cf_graph.nodes())
+
+        for cf in event:
+            self.assertIn(cf, vertices)
+        for value in event.values():
+            self.assertNotIn(value, vertices)
+
         self.assertEqual(
-            vertices - set(event), domain_of_counterfactual_values(event, vertices - set(event))
+            {-cf.parent() for cf in vertices} - set(event.values()),
+            domain_of_counterfactual_values(event, vertices - set(event)),
         )
         ## TODO: add more tests
 

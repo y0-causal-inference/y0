@@ -169,7 +169,7 @@ def id_star_line_5(graph: NxMixedGraph, event: Optional[Event]) -> Optional[Zero
 
 def id_star_line_6(
     new_graph: NxMixedGraph, event: Event
-) -> Tuple[Collection[Variable], Mapping[FrozenSet[Variable], Set[Intervention]]]:
+) -> Tuple[Collection[Variable], Mapping[FrozenSet[Variable], Set[Variable]]]:
     r"""Run line 6 of the ID* algorithm.
 
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
@@ -186,7 +186,7 @@ def id_star_line_6(
     where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
     """
     vertices: Set[Variable] = set(new_graph.nodes())
-    summand = domain_of_counterfactual_values(event, vertices - set(event))
+    summand = {variable.parent() for variable in vertices - set(event)}
     interventions_of_each_district = {
         district: domain_of_counterfactual_values(event, vertices - district)
         for district in new_graph.get_c_components()
@@ -194,16 +194,9 @@ def id_star_line_6(
     return summand, interventions_of_each_district
 
 
-def domain_of_counterfactual_values(
-    event: Event, counterfactuals: Iterable[Variable]
-) -> Set[Intervention]:
+def domain_of_counterfactual_values(event: Event, variables: Iterable[Variable]) -> Set[Variable]:
     """Return domain of counterfactual values"""
-    return {
-        event[counterfactual]
-        if counterfactual in event
-        else Intervention(counterfactual.name, star=False)
-        for counterfactual in counterfactuals
-    }
+    return {event[variable] if variable in event else variable.parent() for variable in variables}
 
 
 def id_star_line_8(graph: NxMixedGraph, query: Event) -> bool:
