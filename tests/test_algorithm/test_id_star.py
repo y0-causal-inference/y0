@@ -15,7 +15,7 @@ from y0.algorithm.identify.id_star import (
     merge_interventions,
     remove_event_tautologies,
     sub,
-    violates_axiom_of_effectiveness,
+    violates_axiom_of_effectiveness, get_district_domains,
 )
 from y0.dsl import D, One, P, Sum, Variable, W, X, Y, Z, Zero
 from y0.examples import figure_9a, figure_9c, figure_9d
@@ -120,8 +120,16 @@ class TestIDStar(cases.GraphTestCase):
     def test_get_district_domains(self):
         """Ensure that for each district, we intervene on the domain of each variable not in the district.
     Confirm that the domain of variables in the event query are restricted to their event value"""
-        cf_graph = figure_9d.graph
-
+        counterfactual_graph = NxMixedGraph.from_edges(
+            undirected=[(Y @ (~X, Z), X)],
+            directed=[
+                (W @ (~X, Z), Y @ (~X, Z)),
+            ],
+        )
+        event = {Y @ (+X, -Z): -Y, X: -X}
+        expected = {frozenset({W @ (+X, -Z)}): {-X, -Y}, frozenset({X, Y @ (+X, -Z)}): {W}}
+        actual = get_district_domains(counterfactual_graph, event)
+        self.assertEqual(expected, actual)
 
     def test_recursion(self):
         """ "Test the recursive aspect of line 6"""
