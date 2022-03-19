@@ -23,7 +23,9 @@ from ...graph import NxMixedGraph
 
 __all__ = [
     "id_star",
-]
+    "get_district_domains",
+    "domain_of_counterfactual_values"
+] + [ f"id_star_line_{i}" for i in [4,6,8]]
 
 District = FrozenSet[Variable]
 DistrictInterventions = Mapping[District, Set[Variable]]
@@ -193,6 +195,8 @@ def id_star_line_6(
 
 
 def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
+    """for each district, intervene on the domain of each variable not in the district.
+    The domain of variables in the event query are restricted to their event value"""
     nodes = set(graph.nodes())
     return {
         district: domain_of_counterfactual_values(event, nodes - district)
@@ -201,7 +205,10 @@ def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictIntervent
 
 
 def domain_of_counterfactual_values(event: Event, variables: Iterable[Variable]) -> Set[Variable]:
-    """Return domain of counterfactual values."""
+    """Return domain of counterfactual values.
+    If a variable is part of an event, just intervene on its observed value.
+    Otherwise, intervene on all values in the variable's domain.
+    """
     return {event[variable] if variable in event else variable.get_base() for variable in variables}
 
 

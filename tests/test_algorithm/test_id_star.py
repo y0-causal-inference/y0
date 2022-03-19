@@ -117,6 +117,11 @@ class TestIDStar(cases.GraphTestCase):
             domain_of_counterfactual_values(event, vertices - set(event)),
         )
         ## TODO: add more tests
+    def test_get_district_domains(self):
+        """Ensure that for each district, we intervene on the domain of each variable not in the district.
+    Confirm that the domain of variables in the event query are restricted to their event value"""
+        cf_graph = figure_9d.graph
+
 
     def test_recursion(self):
         """ "Test the recursive aspect of line 6"""

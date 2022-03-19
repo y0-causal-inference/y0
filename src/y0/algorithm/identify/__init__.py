@@ -17,4 +17,8 @@ __all__ = [
     # Exceptions
     "Unidentifiable",
     "Identification",
-]
+    # internal methods
+    "get_district_domains",
+    "domain_of_counterfactual_values",
+    "id_star_line_1"
+] + [ f"id_star_line_{i}" for i in [4,6,8]]
