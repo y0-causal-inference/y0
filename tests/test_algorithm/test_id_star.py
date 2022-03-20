@@ -7,6 +7,7 @@ from tests.test_algorithm import cases
 from y0.algorithm.identify.id_star import (
     domain_of_counterfactual_values,
     ev,
+    get_district_domains,
     id_star,
     id_star_line_4,
     id_star_line_6,
@@ -15,9 +16,9 @@ from y0.algorithm.identify.id_star import (
     merge_interventions,
     remove_event_tautologies,
     sub,
-    violates_axiom_of_effectiveness, get_district_domains,
+    violates_axiom_of_effectiveness,
 )
-from y0.dsl import D, One, P, Sum, Variable, W, X, Y, Z, Zero
+from y0.dsl import D, Intervention, P, Sum, Variable, W, X, Y, Z
 from y0.examples import figure_9a, figure_9c, figure_9d
 from y0.graph import NxMixedGraph
 
@@ -117,9 +118,10 @@ class TestIDStar(cases.GraphTestCase):
             domain_of_counterfactual_values(event, vertices - set(event)),
         )
         ## TODO: add more tests
+
     def test_get_district_domains(self):
         """Ensure that for each district, we intervene on the domain of each variable not in the district.
-    Confirm that the domain of variables in the event query are restricted to their event value"""
+        Confirm that the domain of variables in the event query are restricted to their event value"""
         counterfactual_graph = NxMixedGraph.from_edges(
             undirected=[(Y @ (~X, Z), X)],
             directed=[
