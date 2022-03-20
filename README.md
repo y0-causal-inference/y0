@@ -108,6 +108,7 @@ unimplemented for the last 15 years of publications including:
 |-----------|-----------------------------------------------------------------------------|
 | ID        | [Shpitser and Pearl, 2006](https://dl.acm.org/doi/10.5555/1597348.1597382)  |
 | IDC       | [Shpitser and Pearl, 2008](https://www.jmlr.org/papers/v9/shpitser08a.html) |
+| ID*       | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
 
 Apply an algorithm to an ADMG and a causal query to generate an estimand
 represented in the DSL like:
@@ -117,7 +118,7 @@ from y0.dsl import P, X, Y
 from y0.examples import napkin
 from y0.algorithm.identify import Identification, identify
 
-# TODO after ID* and IDC* are done, we'll update this interface
+# TODO after IDC* is done, we'll update this interface
 query = Identification.from_expression(graph=napkin, query=P(Y @ X))
 estimand = identify(query)
 assert estimand == P(Y @ X)
