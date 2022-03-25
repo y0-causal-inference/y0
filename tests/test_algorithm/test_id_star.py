@@ -3,6 +3,8 @@
 """Tests for the ID* algorithm."""
 from typing import Set
 
+from networkx import NetworkXPointlessConcept
+
 from tests.test_algorithm import cases
 from y0.algorithm.identify.id_star import (
     domain_of_counterfactual_values,
@@ -21,7 +23,7 @@ from y0.algorithm.identify.id_star import (
 from y0.dsl import D, Intervention, P, Sum, Variable, W, X, Y, Z
 from y0.examples import figure_9a, figure_9c, figure_9d
 from y0.graph import NxMixedGraph
-from networkx import NetworkXPointlessConcept
+
 d, w, x, y, z = -D, -W, -X, -Y, -Z
 
 
@@ -148,7 +150,13 @@ class TestIDStar(cases.GraphTestCase):
             }
             for district, interventions in interventions_of_each_district.items()
         ]
-        self.assertEqual()
+        expected = [
+            {X @ (-W, -X, -Z): -X, Y @ (-W, -X, +X, -Z): -Y},
+            {X @ (-W, -X, +X, -Y, -Z): -X},
+            {Z @ (-W, -X, +X, -Y, -Z): -Z},
+            {W @ (-X, +X, -Y, -Z): -W},
+        ]
+        self.assertEqual(expected, my_list)
         ## TODO: add more tests
 
     def test_merge_interventions(self):
