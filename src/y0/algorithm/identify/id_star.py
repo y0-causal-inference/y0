@@ -24,8 +24,8 @@ from ...graph import NxMixedGraph
 __all__ = [
     "id_star",
     "get_district_domains",
-    "domain_of_counterfactual_values"
-] + [ f"id_star_line_{i}" for i in [4,6,8]]
+    "domain_of_counterfactual_values",
+] + [f"id_star_line_{i}" for i in [4, 6, 8]]
 
 District = FrozenSet[Variable]
 DistrictInterventions = Mapping[District, Set[Variable]]

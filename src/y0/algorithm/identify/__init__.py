@@ -20,5 +20,5 @@ __all__ = [
     # internal methods
     "get_district_domains",
     "domain_of_counterfactual_values",
-    "id_star_line_1"
-] + [ f"id_star_line_{i}" for i in [4,6,8]]
+    "id_star_line_1",
+] + [f"id_star_line_{i}" for i in [4, 6, 8]]
