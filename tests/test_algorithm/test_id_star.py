@@ -20,7 +20,7 @@ from y0.algorithm.identify.id_star import (
 from y0.dsl import D, One, P, Sum, Variable, W, X, Y, Z, Zero
 from y0.examples import figure_9a, figure_9c, figure_9d
 from y0.graph import NxMixedGraph
-
+from networkx import NetworkXPointlessConcept
 d, w, x, y, z = -D, -W, -X, -Y, -Z
 
 
@@ -85,10 +85,13 @@ class TestIDStar(cases.GraphTestCase):
                 (W @ (~X, Z), Y @ (~X, Z)),
             ],
         )
+        null_graph = NxMixedGraph()
+        with self.assertRaises(NetworkXPointlessConcept):
+            null_graph.is_connected()
         event = {Y @ (+X, -Z): -Y, X: -X}
-        expected_summand = {-W}
+        expected_summand = {W}
         expected_interventions_of_districts = {
-            frozenset([Y @ (~X, Z), X]): {-W},
+            frozenset([Y @ (~X, Z), X]): {W},
             frozenset([W @ (~X, Z)]): {-Y, -X},
         }
         self.assertEqual(
@@ -132,7 +135,7 @@ class TestIDStar(cases.GraphTestCase):
         self.assertEqual(expected, actual)
 
     def test_recursion(self):
-        """ "Test the recursive aspect of line 6"""
+        """Test the recursive aspect of line 6"""
         cf_graph = figure_9d.graph
         new_event = {Y @ (+X, -Z): -Y, X: -X}
         summand, interventions_of_each_district = id_star_line_6(cf_graph, new_event)
@@ -145,6 +148,21 @@ class TestIDStar(cases.GraphTestCase):
         ]
         self.assertEqual()
         ## TODO: add more tests
+
+    def test_merge_interventions(self):
+        """Test that we can merge new interventions into a (potentially) counterfactual variable with existing interventions"""
+        counterfactual = Y @ (+x, -z)
+        interventions = (-w,)
+        expected = Y @ (-w, +x, -z)
+        self.assertEqual(expected, merge_interventions(counterfactual, interventions))
+        interventions2 = (W, -d)
+        expected2 = Y @ (-d, W, +x, -z)
+        self.assertEqual(expected2, merge_interventions(counterfactual, interventions2))
+
+        element = Y @ (X, Z)
+        interventions = (-Z, -W, -D)
+        expected = Y @ (D, W, X, Z)
+        self.assertEqual(expected, merge_interventions(element, interventions))
 
     def test_id_star_line_8(self):
         """Attempt to generate a conflict with an inconsistent value assignment."""
@@ -164,25 +182,19 @@ class TestIDStar(cases.GraphTestCase):
         new_event on variables in new_event is correct
         """
 
-    def test_merge_interventions(self):
-        """Test that we can safely merge interventions into a counterfactual"""
-        element = Y @ (X, Z)
-        interventions = (-Z, -W, -D)
-        expected = Y @ (D, W, X, Z)
-        self.assertEqual(expected, merge_interventions(element, interventions))
 
     def test_id_star(self):
         """Test that the ID* algorithm returns the correct estimand."""
         query = {Y @ (+x, -z): +y, X: -x}
         actual = id_star(figure_9a.graph, query)
-        expected = Sum[W](P(Y @ (Z, W), X @ (Z, W)) * P(W @ X))
+        expected = Sum[W](P(Y @ (-z, W), X @ (-z, W)) * P(W @ -x))
         self.assert_expr_equal(expected, actual)
 
     def test_idc_star(self):
         """Test that the IDC* algorithm returns the correct estimand."""
         query = P(Y @ ~X | X, Z @ D, D)
         vertices = set(figure_9a.graph.nodes())
-        estimand = Sum[W](P(Y @ (Z, W), X @ (Z, W)) * P(W @ X))
+        estimand = Sum[W](P(Y @ (-z, W), X @ (-z, W)) * P(W @ -x))
         expected = estimand / Sum[vertices - {X, Z @ D, D}](estimand)
         # actual = idc_star( figure_9a.graph, query)
         # self.assert_expr_equal( expected, actual )

@@ -57,11 +57,11 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
         district_events = get_district_events(interventions_of_each_district)
         return Sum.safe(
             Product.safe(
-                id_star(graph, district_event) for district_event in district_events.values()
+                id_star(graph, events_of_district) for events_of_district in district_events.values()
             ),
-            summand,
+            summand
         )
-    # Line 7:
+    # Line 7 and 8:
     elif id_star_line_8(cf_graph, new_event):
         raise Unidentifiable
     else:
@@ -77,6 +77,7 @@ def get_free_variables(graph: NxMixedGraph, event: Event) -> Set[Variable]:
 def get_district_events(
     interventions_of_each_district: DistrictInterventions,
 ) -> Mapping[District, Event]:
+    """Takes a district and a set of interventions, and applies the set of interventions to each node in the district """
     return {
         district: {merge_interventions(node, interventions): -node.get_base() for node in district}
         for district, interventions in interventions_of_each_district.items()
@@ -86,8 +87,11 @@ def get_district_events(
 def merge_interventions(
     variable: Variable, interventions: Collection[Intervention]
 ) -> CounterfactualVariable:
+    """Takes a (potentially) counterfactual variable and a set of interventions and  returns the counterfactdual
+    variable augmented with the new interventions """
+    interventions = set(Intervention(i.name, star=i.star) if i.star else Intervention(i.name, star=False) for i in interventions)
     if isinstance(variable, CounterfactualVariable):
-        interventions = set(interventions).union(variable.interventions)
+        interventions = interventions.union(variable.interventions)
     return CounterfactualVariable(name=variable.name, interventions=tuple(sorted(interventions)))
 
 
