@@ -31,8 +31,9 @@ District = FrozenSet[Variable]
 DistrictInterventions = Mapping[District, Set[Variable]]
 
 
-def id_star(graph: NxMixedGraph, event: Event) -> Expression:
+def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
     """Apply the ``ID*`` algorithm to the graph."""
+    print(f"[{leonardo}] running on event {event}")
     # Line 1: There's nothing in the counterfactual event
     if is_event_empty(event):
         return One()
@@ -42,22 +43,24 @@ def id_star(graph: NxMixedGraph, event: Event) -> Expression:
     # Line 3: This is a tautological event and can be removed without affecting the probability
     reduced_event = remove_event_tautologies(event)
     if reduced_event != event:
-        return id_star(graph, reduced_event)
+        print(f"[{leonardo}] recurring on reduced event {reduced_event}")
+        return id_star(graph, reduced_event, leonardo=leonardo + 1)
     # Line 4:
     cf_graph, new_event = id_star_line_4(graph, event)
     # Line 5:
     if new_event is None:
         return Zero()
 
-    print(cf_graph)
-    print(new_event)
+    #print(cf_graph)
+    #print(new_event)
     # Line 6:
     if not cf_graph.is_connected():
         summand, interventions_of_each_district = id_star_line_6(cf_graph, event)
         district_events = get_district_events(interventions_of_each_district)
+        assert 1 < len(district_events)
         return Sum.safe(
             Product.safe(
-                id_star(graph, events_of_district)
+                print(f"[{leonardo}] recurring on district events: {events_of_district}") or id_star(graph, events_of_district, leonardo=leonardo+1)
                 for events_of_district in district_events.values()
             ),
             summand,

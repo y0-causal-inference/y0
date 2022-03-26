@@ -192,7 +192,6 @@ class TestIDStar(cases.GraphTestCase):
         new_event on variables in new_event is correct
         """
 
-
     def test_id_star(self):
         """Test that the ID* algorithm returns the correct estimand."""
         query = {Y @ (+x, -z): +y, X: -x}
