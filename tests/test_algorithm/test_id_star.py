@@ -56,6 +56,8 @@ class TestIDStar(cases.GraphTestCase):
         self.assertEqual({}, remove_event_tautologies({X @ x: x}))
         self.assertEqual({Y @ x: y}, remove_event_tautologies({Y @ x: y, X @ x: x}))
         self.assertEqual({Y @ x: +y}, remove_event_tautologies({Y @ x: +y, X @ ~x: ~x}))
+        self.assertEqual({Y @ x: +y}, remove_event_tautologies({Y @ x: +y, X @ (~x, w): ~x}))
+        self.assertEqual({Y @ x: +y}, remove_event_tautologies({Y @ x: +y, X @ (w, ~x): ~x}))
         event = {Y @ (+x, -z): +y, X: -x}
         self.assertEqual(event, remove_event_tautologies(event))
 

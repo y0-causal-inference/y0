@@ -51,8 +51,8 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
     if new_event is None:
         return Zero()
 
-    #print(cf_graph)
-    #print(new_event)
+    # print(cf_graph)
+    # print(new_event)
     # Line 6:
     if not cf_graph.is_connected():
         summand, interventions_of_each_district = id_star_line_6(cf_graph, event)
@@ -60,7 +60,8 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
         assert 1 < len(district_events)
         return Sum.safe(
             Product.safe(
-                print(f"[{leonardo}] recurring on district events: {events_of_district}") or id_star(graph, events_of_district, leonardo=leonardo+1)
+                print(f"[{leonardo}] recurring on district events: {events_of_district}")
+                or id_star(graph, events_of_district, leonardo=leonardo + 1)
                 for events_of_district in district_events.values()
             ),
             summand,
@@ -83,7 +84,7 @@ def get_district_events(
 ) -> Mapping[District, Event]:
     """Takes a district and a set of interventions, and applies the set of interventions to each node in the district"""
     return {
-        district: {merge_interventions(node, interventions): -node.get_base() for node in district}
+        district: {merge_interventions(node, interventions): node.get_base() for node in district}
         for district, interventions in interventions_of_each_district.items()
     }
 
@@ -94,7 +95,7 @@ def merge_interventions(
     """Takes a (potentially) counterfactual variable and a set of interventions and  returns the counterfactdual
     variable augmented with the new interventions"""
     interventions = set(
-        Intervention(i.name, star=i.star) if i.star else Intervention(i.name, star=False)
+        Intervention(i.name, star=False) if not isinstance(i, Intervention) else i
         for i in interventions
     )
     if isinstance(variable, CounterfactualVariable):
