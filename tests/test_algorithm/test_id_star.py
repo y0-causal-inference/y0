@@ -18,7 +18,7 @@ from y0.algorithm.identify.id_star import (
     merge_interventions,
     remove_event_tautologies,
     sub,
-    violates_axiom_of_effectiveness,
+    violates_axiom_of_effectiveness, is_self_intervened,
 )
 from y0.dsl import D, Intervention, P, Sum, Variable, W, X, Y, Z
 from y0.examples import figure_9a, figure_9c, figure_9d
@@ -126,6 +126,12 @@ class TestIDStar(cases.GraphTestCase):
         )
         ## TODO: add more tests
 
+    def test_get_district_events(self):
+        """Ensure that each variable in the district is intervened on and there are no bad interventions"""
+        interventions_of_districts = {frozenset([Y @ (+x, -z), X]): (W,),
+                                      frozenset([W @ (+x, -z)]): (Y, X)}
+        #self.assertEqual()
+
     def test_get_district_domains(self):
         """Ensure that for each district, we intervene on the domain of each variable not in the district.
         Confirm that the domain of variables in the event query are restricted to their event value"""
@@ -139,6 +145,7 @@ class TestIDStar(cases.GraphTestCase):
         expected = {frozenset({W @ (+X, -Z)}): {-X, -Y}, frozenset({X, Y @ (+X, -Z)}): {W}}
         actual = get_district_domains(counterfactual_graph, event)
         self.assertEqual(expected, actual)
+        self.assertEqual(expected, get_district_domains(figure_9d.graph, event))
 
     def test_recursion(self):
         """Test the recursive aspect of line 6"""
@@ -193,10 +200,21 @@ class TestIDStar(cases.GraphTestCase):
         Test that estimand returned by taking the effect of all subscripts in
         new_event on variables in new_event is correct
         """
+    def test_is_self_intervened(self):
+        """Test that we can detect when a counterfactual variable intervenes on itself"""
+        self.assertTrue(is_self_intervened(Y @ (+x, -y)))
+        self.assertFalse(is_self_intervened(Y @ (+x, -z)))
+        self.assertTrue(is_self_intervened( Y @ (+x, +y)))
 
     def test_id_star(self):
         """Test that the ID* algorithm returns the correct estimand."""
         query = {Y @ (+x, -z): +y, X: -x}
+        counterfactual_graph = NxMixedGraph.from_edges(
+            undirected=[(Y @ (~X, Z), X)],
+            directed=[
+                (W @ (~X, Z), Y @ (~X, Z)),
+            ],
+        )
         actual = id_star(figure_9a.graph, query)
         expected = Sum[W](P(Y @ (-z, W), X @ (-z, W)) * P(W @ -x))
         self.assert_expr_equal(expected, actual)

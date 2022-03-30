@@ -47,6 +47,7 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
         return id_star(graph, reduced_event, leonardo=leonardo + 1)
     # Line 4:
     cf_graph, new_event = id_star_line_4(graph, event)
+    print(f"[{leonardo}] new event: {new_event}\n\tcounterfactual graph:\n\t nodes: {cf_graph.nodes()}\n\t directed: {cf_graph.directed.edges()}\n\t undirected: {cf_graph.undirected.edges()}")
     # Line 5:
     if new_event is None:
         return Zero()
@@ -56,6 +57,7 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
     # Line 6:
     if not cf_graph.is_connected():
         summand, interventions_of_each_district = id_star_line_6(cf_graph, event)
+        print(f"[{leonardo}] interventions of each district: {interventions_of_each_district}")
         district_events = get_district_events(interventions_of_each_district)
         assert 1 < len(district_events)
         return Sum.safe(
@@ -145,17 +147,28 @@ def remove_event_tautologies(event: Event) -> Event:
     redundant_counterfactuals = {
         counterfactual
         for counterfactual, value in event.items()
-        if isinstance(counterfactual, CounterfactualVariable)
-        and any(
-            intervention.name == counterfactual.name and value.star == intervention.star
-            for intervention in counterfactual.interventions
-        )
+        if is_redundant_counterfactual( counterfactual, value )
     }
     return {
         counterfactual: value
         for counterfactual, value in event.items()
         if counterfactual not in redundant_counterfactuals
     }
+
+def is_redundant_counterfactual( counterfactual: CounterfactualVariable, value: Intervention ) -> bool:
+    """Check if a counterfactual variable is intervened on itself and has the same value as the intervention"""
+    return isinstance(counterfactual, CounterfactualVariable) and any(
+            intervention.name == counterfactual.name and value.star == intervention.star
+            for intervention in counterfactual.interventions
+        )
+
+
+def is_self_intervened(counterfactual: CounterfactualVariable) -> bool:
+    """Check if a counterfactual variable is intervened on itself """
+    return isinstance(counterfactual, CounterfactualVariable) and any(
+        intervention.name == counterfactual.name
+        for intervention in counterfactual.interventions
+    )
 
 
 def id_star_line_4(graph: NxMixedGraph, event: Event) -> Tuple[NxMixedGraph, Optional[Event]]:
@@ -206,6 +219,7 @@ def id_star_line_6(
     return summand, interventions_of_each_district
 
 
+
 def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
     """for each district, intervene on the domain of each variable not in the district.
     The domain of variables in the event query are restricted to their event value"""
@@ -213,6 +227,7 @@ def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictIntervent
     return {
         district: domain_of_counterfactual_values(event, nodes - district)
         for district in graph.get_c_components()
+        if 1 < len(district) or not is_self_intervened(list(district)[0])
     }
 
 
