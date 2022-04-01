@@ -15,10 +15,11 @@ from y0.algorithm.identify.id_star import (
     id_star_line_6,
     id_star_line_8,
     is_event_empty,
+    is_self_intervened,
     merge_interventions,
     remove_event_tautologies,
     sub,
-    violates_axiom_of_effectiveness, is_self_intervened,
+    violates_axiom_of_effectiveness,
 )
 from y0.dsl import D, Intervention, P, Sum, Variable, W, X, Y, Z
 from y0.examples import figure_9a, figure_9c, figure_9d
@@ -128,9 +129,11 @@ class TestIDStar(cases.GraphTestCase):
 
     def test_get_district_events(self):
         """Ensure that each variable in the district is intervened on and there are no bad interventions"""
-        interventions_of_districts = {frozenset([Y @ (+x, -z), X]): (W,),
-                                      frozenset([W @ (+x, -z)]): (Y, X)}
-        #self.assertEqual()
+        interventions_of_districts = {
+            frozenset([Y @ (+x, -z), X]): (W,),
+            frozenset([W @ (+x, -z)]): (Y, X),
+        }
+        # self.assertEqual()
 
     def test_get_district_domains(self):
         """Ensure that for each district, we intervene on the domain of each variable not in the district.
@@ -200,11 +203,12 @@ class TestIDStar(cases.GraphTestCase):
         Test that estimand returned by taking the effect of all subscripts in
         new_event on variables in new_event is correct
         """
+
     def test_is_self_intervened(self):
         """Test that we can detect when a counterfactual variable intervenes on itself"""
         self.assertTrue(is_self_intervened(Y @ (+x, -y)))
         self.assertFalse(is_self_intervened(Y @ (+x, -z)))
-        self.assertTrue(is_self_intervened( Y @ (+x, +y)))
+        self.assertTrue(is_self_intervened(Y @ (+x, +y)))
 
     def test_id_star(self):
         """Test that the ID* algorithm returns the correct estimand."""

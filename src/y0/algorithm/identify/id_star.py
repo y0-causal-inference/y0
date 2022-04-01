@@ -47,7 +47,9 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
         return id_star(graph, reduced_event, leonardo=leonardo + 1)
     # Line 4:
     cf_graph, new_event = id_star_line_4(graph, event)
-    print(f"[{leonardo}] new event: {new_event}\n\tcounterfactual graph:\n\t nodes: {cf_graph.nodes()}\n\t directed: {cf_graph.directed.edges()}\n\t undirected: {cf_graph.undirected.edges()}")
+    print(
+        f"[{leonardo}] new event: {new_event}\n\tcounterfactual graph:\n\t nodes: {cf_graph.nodes()}\n\t directed: {cf_graph.directed.edges()}\n\t undirected: {cf_graph.undirected.edges()}"
+    )
     # Line 5:
     if new_event is None:
         return Zero()
@@ -147,7 +149,7 @@ def remove_event_tautologies(event: Event) -> Event:
     redundant_counterfactuals = {
         counterfactual
         for counterfactual, value in event.items()
-        if is_redundant_counterfactual( counterfactual, value )
+        if is_redundant_counterfactual(counterfactual, value)
     }
     return {
         counterfactual: value
@@ -155,19 +157,19 @@ def remove_event_tautologies(event: Event) -> Event:
         if counterfactual not in redundant_counterfactuals
     }
 
-def is_redundant_counterfactual( counterfactual: CounterfactualVariable, value: Intervention ) -> bool:
+
+def is_redundant_counterfactual(counterfactual: Variable, value: Intervention) -> bool:
     """Check if a counterfactual variable is intervened on itself and has the same value as the intervention"""
     return isinstance(counterfactual, CounterfactualVariable) and any(
-            intervention.name == counterfactual.name and value.star == intervention.star
-            for intervention in counterfactual.interventions
-        )
-
-
-def is_self_intervened(counterfactual: CounterfactualVariable) -> bool:
-    """Check if a counterfactual variable is intervened on itself """
-    return isinstance(counterfactual, CounterfactualVariable) and any(
-        intervention.name == counterfactual.name
+        intervention.name == counterfactual.name and value.star == intervention.star
         for intervention in counterfactual.interventions
+    )
+
+
+def is_self_intervened(counterfactual: Variable) -> bool:
+    """Check if a counterfactual variable is intervened on itself"""
+    return isinstance(counterfactual, CounterfactualVariable) and any(
+        intervention.name == counterfactual.name for intervention in counterfactual.interventions
     )
 
 
@@ -217,7 +219,6 @@ def id_star_line_6(
     summand = get_free_variables(graph, event)
     interventions_of_each_district = get_district_domains(graph, event)
     return summand, interventions_of_each_district
-
 
 
 def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
