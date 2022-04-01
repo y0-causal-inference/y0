@@ -455,6 +455,17 @@ class CounterfactualVariable(Variable):
         for intervention in self.interventions:
             yield from intervention._iter_variables()
 
+    def is_redundant(self, value: Intervention) -> bool:
+        """Check if a counterfactual variable is intervened on itself and has the same value as the intervention."""
+        return any(
+            intervention.name == self.name and value.star == intervention.star
+            for intervention in self.interventions
+        )
+
+    def is_self_intervened(self) -> bool:
+        """Check if a counterfactual variable is intervened on itself."""
+        return any(intervention.name == self.name for intervention in self.interventions)
+
 
 @dataclass(frozen=True)
 class Distribution(Element):

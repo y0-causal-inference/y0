@@ -96,8 +96,8 @@ def get_district_events(
 def merge_interventions(
     variable: Variable, interventions: Collection[Intervention]
 ) -> CounterfactualVariable:
-    """Takes a (potentially) counterfactual variable and a set of interventions and  returns the counterfactdual
-    variable augmented with the new interventions"""
+    """Take a (potentially) counterfactual variable and a set of interventions and return the counterfactual
+    variable augmented with the new interventions."""
     interventions = set(
         Intervention(i.name, star=False) if not isinstance(i, Intervention) else i
         for i in interventions
@@ -152,25 +152,20 @@ def remove_event_tautologies(event: Event) -> Event:
         if is_redundant_counterfactual(counterfactual, value)
     }
     return {
-        counterfactual: value
-        for counterfactual, value in event.items()
-        if counterfactual not in redundant_counterfactuals
+        variable: value
+        for variable, value in event.items()
+        if variable not in redundant_counterfactuals
     }
 
 
-def is_redundant_counterfactual(counterfactual: Variable, value: Intervention) -> bool:
+def is_redundant_counterfactual(variable: Variable, value: Intervention) -> bool:
     """Check if a counterfactual variable is intervened on itself and has the same value as the intervention"""
-    return isinstance(counterfactual, CounterfactualVariable) and any(
-        intervention.name == counterfactual.name and value.star == intervention.star
-        for intervention in counterfactual.interventions
-    )
+    return isinstance(variable, CounterfactualVariable) and variable.is_redundant(value)
 
 
-def is_self_intervened(counterfactual: Variable) -> bool:
+def is_self_intervened(variable: Variable) -> bool:
     """Check if a counterfactual variable is intervened on itself"""
-    return isinstance(counterfactual, CounterfactualVariable) and any(
-        intervention.name == counterfactual.name for intervention in counterfactual.interventions
-    )
+    return isinstance(variable, CounterfactualVariable) and variable.is_self_intervened()
 
 
 def id_star_line_4(graph: NxMixedGraph, event: Event) -> Tuple[NxMixedGraph, Optional[Event]]:
