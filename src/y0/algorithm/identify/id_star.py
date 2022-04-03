@@ -27,7 +27,7 @@ __all__ = [
     "id_star",
     "get_district_domains",
     "domain_of_counterfactual_values",
-    "is_self_intervened"
+    "is_self_intervened",
 ] + [f"id_star_line_{i}" for i in [4, 6, 8]]
 
 District = FrozenSet[Variable]

@@ -86,7 +86,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         actual_graph, actual_event = make_counterfactual_graph(
             figure_9a.graph, {Y @ +x: +y, X: -x, Z @ -d: -z, D: -d}
         )
-        #self.assert_graph_equal(figure_9c.graph, actual_graph)
+        # self.assert_graph_equal(figure_9c.graph, actual_graph)
         self.assertEqual({Y @ +x: +y, X: -x, Z: -z, D: -d}, actual_event)
         actual_graph2, actual_event2 = make_counterfactual_graph(
             figure_9a.graph, {Y @ (+x, -z): +y, X: -x}
@@ -102,8 +102,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
         self.assertIsNone(actual_event3)
         actual_graph4, actual_event4 = make_counterfactual_graph(
-            graph = figure_9a.graph,
-            event={X @ -W: X, Y @ (-W, +X, -Z): Y}
+            graph=figure_9a.graph, event={X @ -W: X, Y @ (-W, +X, -Z): Y}
         )
         expected_event4 = {Y @ (-W, -Z): Y, X: X}
         expected_graph4 = NxMixedGraph.from_edges(undirected=[(X, Y @ (-W, -Z))])

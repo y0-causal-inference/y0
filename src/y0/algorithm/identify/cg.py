@@ -5,7 +5,14 @@
 from itertools import combinations
 from typing import Collection, Iterable, Optional, Sequence, Tuple
 
-from y0.dsl import CounterfactualVariable, Event, Intervention, Variable, Zero, is_self_intervened
+from y0.dsl import (
+    CounterfactualVariable,
+    Event,
+    Intervention,
+    Variable,
+    Zero,
+    is_self_intervened,
+)
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -171,7 +178,9 @@ def make_counterfactual_graph(
                         new_event[node_at_intervention1] = new_event[node_at_intervention2]
                         new_event.pop(node_at_intervention2, None)
     rv_graph = cf_graph.subgraph(cf_graph.ancestors_inclusive(new_event))
-    rv_graph = rv_graph.remove_nodes_from(node for node in rv_graph.nodes() if is_self_intervened(node))
+    rv_graph = rv_graph.remove_nodes_from(
+        node for node in rv_graph.nodes() if is_self_intervened(node)
+    )
     return rv_graph, new_event
 
 

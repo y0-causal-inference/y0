@@ -113,7 +113,9 @@ class TestIDStar(cases.GraphTestCase):
         """ "Test that we correctly output the domain of a counterfactual"""
         event = {Y @ (+X, -Z): -Y, X: -X}
         cf_graph = figure_9d.graph
-        vertices: Set[Variable] = set(node for node in cf_graph.nodes() if not is_self_intervened(node))
+        vertices: Set[Variable] = set(
+            node for node in cf_graph.nodes() if not is_self_intervened(node)
+        )
 
         for cf in event:
             self.assertIn(cf, vertices)
@@ -195,10 +197,9 @@ class TestIDStar(cases.GraphTestCase):
         query2 = {D @ -D: -D}
         self.assertEqual({-D}, ev(query2))
         self.assertFalse(id_star_line_8(graph, query2))
-        graph3 = NxMixedGraph.from_edges(undirected = [(X, Y @ (-W, +X, -Z))])
+        graph3 = NxMixedGraph.from_edges(undirected=[(X, Y @ (-W, +X, -Z))])
         event3 = {Y @ (-W, +X, -Z): Y, X: X}
         self.assertFalse(id_star_line_8(graph3, event3))
-
 
     def test_id_star_line_9(self):
         """Test line 9 of the ID* algorithm.
