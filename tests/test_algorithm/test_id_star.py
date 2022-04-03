@@ -15,13 +15,12 @@ from y0.algorithm.identify.id_star import (
     id_star_line_6,
     id_star_line_8,
     is_event_empty,
-    is_self_intervened,
     merge_interventions,
     remove_event_tautologies,
     sub,
     violates_axiom_of_effectiveness,
 )
-from y0.dsl import D, Intervention, P, Sum, Variable, W, X, Y, Z
+from y0.dsl import D, Intervention, P, Sum, Variable, W, X, Y, Z, is_self_intervened
 from y0.examples import figure_9a, figure_9c, figure_9d
 from y0.graph import NxMixedGraph
 
@@ -114,7 +113,7 @@ class TestIDStar(cases.GraphTestCase):
         """ "Test that we correctly output the domain of a counterfactual"""
         event = {Y @ (+X, -Z): -Y, X: -X}
         cf_graph = figure_9d.graph
-        vertices: Set[Variable] = set(cf_graph.nodes())
+        vertices: Set[Variable] = set(node for node in cf_graph.nodes() if not is_self_intervened(node))
 
         for cf in event:
             self.assertIn(cf, vertices)
@@ -122,7 +121,7 @@ class TestIDStar(cases.GraphTestCase):
             self.assertNotIn(value, vertices)
 
         self.assertEqual(
-            {-cf.get_base() for cf in vertices} - set(event.values()),
+            {v.get_base() for v in vertices} - set(e.get_base() for e in event),
             domain_of_counterfactual_values(event, vertices - set(event)),
         )
         ## TODO: add more tests
@@ -196,6 +195,10 @@ class TestIDStar(cases.GraphTestCase):
         query2 = {D @ -D: -D}
         self.assertEqual({-D}, ev(query2))
         self.assertFalse(id_star_line_8(graph, query2))
+        graph3 = NxMixedGraph.from_edges(undirected = [(X, Y @ (-W, +X, -Z))])
+        event3 = {Y @ (-W, +X, -Z): Y, X: X}
+        self.assertFalse(id_star_line_8(graph3, event3))
+
 
     def test_id_star_line_9(self):
         """Test line 9 of the ID* algorithm.

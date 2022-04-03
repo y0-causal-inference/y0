@@ -4,6 +4,8 @@
 
 from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Set, Tuple
 
+from y0.dsl import is_self_intervened
+
 from .cg import make_counterfactual_graph
 from .utils import Unidentifiable
 from ...dsl import (
@@ -25,6 +27,7 @@ __all__ = [
     "id_star",
     "get_district_domains",
     "domain_of_counterfactual_values",
+    "is_self_intervened"
 ] + [f"id_star_line_{i}" for i in [4, 6, 8]]
 
 District = FrozenSet[Variable]
@@ -163,11 +166,6 @@ def is_redundant_counterfactual(variable: Variable, value: Intervention) -> bool
     return isinstance(variable, CounterfactualVariable) and variable.is_redundant(value)
 
 
-def is_self_intervened(variable: Variable) -> bool:
-    """Check if a counterfactual variable is intervened on itself"""
-    return isinstance(variable, CounterfactualVariable) and variable.is_self_intervened()
-
-
 def id_star_line_4(graph: NxMixedGraph, event: Event) -> Tuple[NxMixedGraph, Optional[Event]]:
     r"""Run line 4 of the ``ID*`` algorithm.
 
@@ -219,7 +217,7 @@ def id_star_line_6(
 def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
     """for each district, intervene on the domain of each variable not in the district.
     The domain of variables in the event query are restricted to their event value"""
-    nodes = set(graph.nodes())
+    nodes = set(node for node in graph.nodes() if not is_self_intervened(node))
     return {
         district: domain_of_counterfactual_values(event, nodes - district)
         for district in graph.get_c_components()

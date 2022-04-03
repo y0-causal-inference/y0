@@ -1434,3 +1434,8 @@ def vmap_adj(adjacency_dict):
 
 #: A conjunction of factual and counterfactual events
 Event = Mapping[Variable, Intervention]
+
+
+def is_self_intervened(variable: Variable) -> bool:
+    """Check if a counterfactual variable is intervened on itself"""
+    return isinstance(variable, CounterfactualVariable) and variable.is_self_intervened()
