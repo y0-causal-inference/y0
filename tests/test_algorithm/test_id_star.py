@@ -23,6 +23,7 @@ from y0.algorithm.identify.id_star import (
 from y0.dsl import D, Intervention, P, Sum, Variable, W, X, Y, Z, is_self_intervened
 from y0.examples import figure_9a, figure_9c, figure_9d
 from y0.graph import NxMixedGraph
+from y0.algorithm.conditional_independencies import are_d_separated
 
 d, w, x, y, z = -D, -W, -X, -Y, -Z
 
@@ -207,6 +208,29 @@ class TestIDStar(cases.GraphTestCase):
         Test that estimand returned by taking the effect of all subscripts in
         new_event on variables in new_event is correct
         """
+    def test_rule_3_applies(self):
+        r"""Test whether rule 3 of the do calculus applies
+
+        Rule 3 of the do calculus states
+        .. math::
+            P_{x,\color{green}{z}}(y|w) = P_x(y|w)\text{ if }(Y\ci Z|X,W)_{G_{\bar{X}\bar{Z(W)}}}
+
+        So we will test whether Y is independent of X given Z (and W if it exists)
+        with this example:
+
+        Check the two C-components :math:`\{Y_{x,z}, X\}, \{W_{x,z}\}`:math:
+        :math:`P(y_{x,z}, w_{x,z}, x' ) = P(y_{x,z,w}, x'_w )P(w_x, z )`:math,
+        which can be simplified by removing redundant subscripts to :math:`P(y_{z,w}, x' )P(w_x )`:math:.
+        """
+        C1 = (Y @ (-x,+z), +X)
+        C2 = (W @ (-x, z),)
+        input_C1_prob = P( Y @ (-x, -z, -w), +X @ -w)
+        input_C2_prob = P(W @ (-x, -z))
+        expected_C1_prob = P(Y @ (-z, -w), +X)
+        expected_C2_prob = P(W @ -x)
+        graph = figure_9d.graph
+        for c_component in (C1, C2):
+
 
     def test_is_self_intervened(self):
         """Test that we can detect when a counterfactual variable intervenes on itself"""
