@@ -224,13 +224,13 @@ def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictIntervent
         if 1 < len(district) or not is_self_intervened(list(district)[0])
     }
 
+
 def get_markov_pillow(graph: NxMixedGraph, district: Collection[Variable]) -> Collection[Variable]:
     """for each district, intervene on the domain of each parent not in the district."""
     parents_of_district = set()
     for node in district:
-       parents_of_district |= set(graph.directed.predecessors(node))
+        parents_of_district |= set(graph.directed.predecessors(node))
     return parents_of_district - set(district)
-
 
 
 def get_parents_of_district(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
@@ -297,22 +297,31 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
     interventions = sub(graph)
     return P[interventions](node.get_base() for node in graph.nodes())
 
-def rule_3_applies(graph: NxMixedGraph, district: Collection[Variable]) -> Collection[Tuple[CounterfactualVariable, Intervention]]
-    """Apply rule 3 to each intervention in the district 
-    
+
+def rule_3_applies(
+    graph: NxMixedGraph, district: Collection[Variable]
+) -> Collection[Tuple[CounterfactualVariable, Intervention]]:
+    """Apply rule 3 to each intervention in the district
+
     :param graph: A counterfactual graph
     :param district: A tuple of counterfactual variables representing the C-component (district)
     :return: The collection of counterfactual variables and the interventions that are D separated according to the graph
-    
+
     """
     rule_3_applications = []
     for counterfactual in district:
         if isinstance(counterfactual, CounterfactualVariable):
             interventions = set(graph.nodes) - set(district)
             for intervention in interventions:
-                if are_d_separated(graph, intervention, counterfactual,  conditions=interventions - set([intervention])):
-                    rule_3_applications.append( (counterfactual, intervention))
+                if are_d_separated(
+                    graph,
+                    intervention,
+                    counterfactual,
+                    conditions=interventions - set([intervention]),
+                ):
+                    rule_3_applications.append((counterfactual, intervention))
     return rule_3_applications
+
 
 # FIXME this is unused -> delete it
 # def get_interventions(variables: Collection[Variable]) -> Collection[Variable]:

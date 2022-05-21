@@ -184,21 +184,29 @@ def make_counterfactual_graph(
     rv_graph = remove_redundant_interventions(rv_graph)
     return rv_graph, new_event
 
+
 def remove_redundant_interventions(graph: NxMixedGraph) -> NxMixedGraph:
     relabel = {}
     for node in graph.topological_sort():
         if isinstance(node, CounterfactualVariable):
             for intervention in node.interventions:
-                if intervention.get_base() not in [ancestor.get_base() for ancestor in graph.ancestors_inclusive(node)]:
-                    if 1 == len(node.interventions) or (node in relabel and 1 == len(relabel[node].interventions)):
+                if intervention.get_base() not in [
+                    ancestor.get_base() for ancestor in graph.ancestors_inclusive(node)
+                ]:
+                    if 1 == len(node.interventions) or (
+                        node in relabel and 1 == len(relabel[node].interventions)
+                    ):
                         relabel[node] = Variable(name=node.name)
                     elif node not in relabel:
-                        relabel[node] = CounterfactualVariable(name=node.name, interventions=set(node.interventions) - {intervention})
+                        relabel[node] = CounterfactualVariable(
+                            name=node.name, interventions=set(node.interventions) - {intervention}
+                        )
                     else:
-                        relabel[node] = CounterfactualVariable(name=node.name, interventions = set(relabel[node].interventions) - {intervention})
+                        relabel[node] = CounterfactualVariable(
+                            name=node.name,
+                            interventions=set(relabel[node].interventions) - {intervention},
+                        )
     return graph.relabel_nodes(relabel)
-
-
 
 
 def make_parallel_worlds_graph(

@@ -11,9 +11,9 @@ from typing import Any, Collection, Iterable, Mapping, Optional, Tuple, Union
 
 import networkx as nx
 from ananke.graphs import ADMG
+from networkx import relabel_nodes
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
-from networkx import relabel_nodes
 
 from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
 
@@ -418,9 +418,13 @@ class NxMixedGraph:
     def relabel_nodes(self, mapping: Mapping[CounterfactualVariable, Variable]) -> NxMixedGraph:
         directed = relabel_nodes(self.directed, mapping)
         undirected = relabel_nodes(self.directed, mapping)
-        return NxMixedGraph.from_edges(nodes = set(directed.nodes()) | set(undirected.nodes()),
-                                       directed= directed.edges(),
-                                       undirected = undirected.edges())
+        return NxMixedGraph.from_edges(
+            nodes=set(directed.nodes()) | set(undirected.nodes()),
+            directed=directed.edges(),
+            undirected=undirected.edges(),
+        )
+
+
 def _ancestors_inclusive(graph: nx.DiGraph, sources: set[Variable]) -> set[Variable]:
     ancestors = set(
         itt.chain.from_iterable(nx.algorithms.dag.ancestors(graph, source) for source in sources)
