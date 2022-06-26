@@ -28,7 +28,10 @@ __all__ = [
     "get_district_domains",
     "domain_of_counterfactual_values",
     "is_self_intervened",
-] + [f"id_star_line_{i}" for i in [4, 6, 8]]
+    "is_event_empty",
+    "violates_axiom_of_effectiveness",
+    "remove_event_tautologies",
+] + [f"id_star_line_{i}" for i in [4, 6, 8, 9]]
 
 District = FrozenSet[Variable]
 DistrictInterventions = Mapping[District, Set[Variable]]

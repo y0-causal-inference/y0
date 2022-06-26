@@ -86,14 +86,14 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         actual_graph, actual_event = make_counterfactual_graph(
             figure_9a.graph, {Y @ +x: +y, X: -x, Z @ -d: -z, D: -d}
         )
-        # self.assert_graph_equal(figure_9c.graph, actual_graph)
+        self.assert_graph_equal(figure_9c.graph, actual_graph)
         self.assertEqual({Y @ +x: +y, X: -x, Z: -z, D: -d}, actual_event)
         actual_graph2, actual_event2 = make_counterfactual_graph(
             figure_9a.graph, {Y @ (+x, -z): +y, X: -x}
         )
         expected_graph2, expected_event2 = figure_9d.graph, {Y @ (+x, -z): +y, X: -x}
         self.assertEqual(expected_event2, actual_event2)
-        #  self.assert_graph_equal(expected_graph2, actual_graph2)
+        self.assert_graph_equal(expected_graph2, actual_graph2)
 
         # Check for inconsistent counterfactual values for merged nodes
         actual_graph3, actual_event3 = make_counterfactual_graph(
@@ -101,10 +101,16 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             event={Z @ -d: -z, Z: +z, D: -d},
         )
         self.assertIsNone(actual_event3)
+
+        # Check whether {Y_{+x,z,w): -y, X_w: -x} automatically simplifies to {Y_{z,w}: y, X: -x} (it should not)
         actual_graph4, actual_event4 = make_counterfactual_graph(
             graph=figure_9a.graph, event={X @ -W: X, Y @ (-W, +X, -Z): Y}
         )
         expected_event4 = {Y @ (-W, -Z): Y, X: X}
-        expected_graph4 = NxMixedGraph.from_edges(undirected=[(X, Y @ (-W, -Z))])
-        self.assertEqual(expected_event4, actual_event4)
+        expected_graph4 = NxMixedGraph.from_edges(
+            nodes={W @ -W, Y @ (-W, +X, -Z), Z @ (-W, +X, -Z), X},
+            directed={(W @ -W, Y @ (-W, +X, -Z)), (Z @ (-W, +X, -Z), Y @ (-W, +X, -Z))},
+            undirected={frozenset({X, Y @ (-W, +X, -Z)})},
+        )
+        self.assertNotEqual(expected_event4, actual_event4)
         self.assert_graph_equal(expected_graph4, actual_graph4)
