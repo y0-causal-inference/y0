@@ -13,6 +13,7 @@ from typing import (
     Callable,
     Iterable,
     List,
+    Mapping,
     Optional,
     Protocol,
     Sequence,
@@ -29,6 +30,7 @@ __all__ = [
     "Intervention",
     "CounterfactualVariable",
     "Distribution",
+    "Event",
     "P",
     "Probability",
     "Sum",
@@ -159,6 +161,10 @@ class Variable(Element):
             return name
         else:
             raise TypeError(f"({type(name)}) {name} is not valid")
+
+    def get_base(self) -> Variable:
+        """Return the base variable, with no other nonsense."""
+        return Variable(self.name)
 
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
@@ -304,7 +310,8 @@ class Intervention(Variable):
 
     def to_y0(self) -> str:
         """Output this intervention instance as y0 internal DSL code."""
-        return f"~{self.name}" if self.star else self.name
+        mark = "+" if self.star else "-"
+        return f"{mark}{self.name}"
 
 
 @dataclass(frozen=True, order=True, repr=False)
@@ -1412,3 +1419,7 @@ def vmap_adj(adjacency_dict):
         Variable(source): [Variable(target) for target in targets]
         for source, targets in adjacency_dict.items()
     }
+
+
+#: A conjunction of factual and counterfactual events
+Event = Mapping[Variable, Intervention]

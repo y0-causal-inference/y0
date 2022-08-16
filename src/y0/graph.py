@@ -112,7 +112,7 @@ class NxMixedGraph:
         self.directed.add_node(u)
         self.directed.add_node(v)
 
-    def nodes(self) -> NodeView:
+    def nodes(self) -> NodeView[Variable]:
         """Get the nodes in the graph."""
         return self.directed.nodes()
 

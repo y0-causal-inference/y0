@@ -2,14 +2,17 @@
 
 """Identification algorithms."""
 
-from .id_c import idc  # noqa:F401
-from .id_std import identify  # noqa:F401
-from .utils import Identification, Query, Unidentifiable  # noqa:F401
+from .id_c import idc
+from .id_std import identify
+from .utils import Identification, Query, Unidentifiable
 
 __all__ = [
+    # Algorithms
     "identify",
     "idc",
-    "Unidentifiable",
+    # Data Structures
     "Query",
+    # Exceptions
+    "Unidentifiable",
     "Identification",
 ]

@@ -120,33 +120,38 @@ class TestDSL(unittest.TestCase):
         """Tests for generalized counterfactual variables."""
         for expr, expected in [
             # Single variable
-            (P(Y @ X), "P(Y @ X)"),
-            (P(Y @ -X), "P(Y @ X)"),
-            (P(Y @ ~X), "P(Y @ ~X)"),
-            (P(Y @ +X), "P(Y @ ~X)"),
+            (P(Y @ X), "P(Y @ -X)"),
+            (P(Y @ -X), "P(Y @ -X)"),
+            (P(Y @ ~X), "P(Y @ +X)"),
+            (P(Y @ +X), "P(Y @ +X)"),
             #
-            (P(-Y @ X), "P(-Y @ X)"),
-            (P(-Y @ -X), "P(-Y @ X)"),
-            (P(-Y @ ~X), "P(-Y @ ~X)"),
-            (P(-Y @ +X), "P(-Y @ ~X)"),
+            (P(-Y @ X), "P(-Y @ -X)"),
+            (P(-Y @ -X), "P(-Y @ -X)"),
+            (P(-Y @ ~X), "P(-Y @ +X)"),
+            (P(-Y @ +X), "P(-Y @ +X)"),
             #
-            (P(~Y @ X), "P(+Y @ X)"),
-            (P(~Y @ -X), "P(+Y @ X)"),
-            (P(~Y @ ~X), "P(+Y @ ~X)"),
-            (P(~Y @ +X), "P(+Y @ ~X)"),
+            (P(~Y @ X), "P(+Y @ -X)"),
+            (P(~Y @ -X), "P(+Y @ -X)"),
+            (P(~Y @ ~X), "P(+Y @ +X)"),
+            (P(~Y @ +X), "P(+Y @ +X)"),
             #
-            (P(+Y @ X), "P(+Y @ X)"),
-            (P(+Y @ -X), "P(+Y @ X)"),
-            (P(+Y @ ~X), "P(+Y @ ~X)"),
-            (P(+Y @ +X), "P(+Y @ ~X)"),
+            (P(+Y @ X), "P(+Y @ -X)"),
+            (P(+Y @ -X), "P(+Y @ -X)"),
+            (P(+Y @ ~X), "P(+Y @ +X)"),
+            (P(+Y @ +X), "P(+Y @ +X)"),
+            # Interventions can live inside the conditions
+            (P(Y @ X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
+            (P(Y @ -X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
+            (P(Y @ +X | ~X, ~Y), "P(Y @ +X | +X, +Y)"),
+            (P(Y @ ~X | ~X, ~Y), "P(Y @ +X | +X, +Y)"),
             #
-            (P(Y @ X | ~X, ~Y), "P(Y @ X | ~X, ~Y)"),
-            (P(Y @ -X | ~X, ~Y), "P(Y @ X | ~X, ~Y)"),
-            (P(Y @ +X | ~X, ~Y), "P(Y @ ~X | ~X, ~Y)"),
-            (P(Y @ ~X | ~X, ~Y), "P(Y @ ~X | ~X, ~Y)"),
-            #
-            (P(~(Y @ ~X) | X, Y), "P(+Y @ ~X | X, Y)"),
-            (P(~Y @ ~X | X, Y), "P(+Y @ ~X | X, Y)"),  # should be same as above
+            (P(~(Y @ ~X) | X, Y), "P(+Y @ +X | X, Y)"),
+            (P(~Y @ ~X | X, Y), "P(+Y @ +X | X, Y)"),  # should be same as above
+            # Counterfactuals can live inside the conditions
+            (P(Y @ X | ~X, Z @ D, D), "P(Y @ -X | D, +X, Z @ -D)"),
+            (P(Y @ X | ~X, Z @ D, -D), "P(Y @ -X | -D, +X, Z @ -D)"),
+            (P(Y @ X | ~X, Z @ D, +D), "P(Y @ -X | +D, +X, Z @ -D)"),
+            (P(Y @ X | ~X, Z @ D, ~D), "P(Y @ -X | +D, +X, Z @ -D)"),
         ]:
             with self.subTest(expr=expected):
                 self.assert_exp(expr, expected)
