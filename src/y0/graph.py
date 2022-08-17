@@ -456,7 +456,8 @@ def ananke_to_latent_variable_dag(
 ) -> nx.DiGraph:
     """Convert an ADMG to a latent variable DAG.
 
-    :param ananke.graphs.ADMG graph: An ADMG
+    :param graph: An ADMG
+    :type graph: ananke.graphs.ADMG
     :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
     :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
     :param tag: The key for node data describing whether it is latent.

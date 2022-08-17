@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
+from typing import Any, Iterable, Optional, Union
 
 import networkx as nx
 
