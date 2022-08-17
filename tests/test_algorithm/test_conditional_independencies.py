@@ -3,9 +3,7 @@
 """Test getting conditional independencies (and related)."""
 
 import unittest
-from typing import Iterable, Set, Union
-
-from ananke.graphs import ADMG, SG
+from typing import Iterable, Set
 
 from y0.algorithm.conditional_independencies import (
     are_d_separated,
@@ -61,6 +59,11 @@ class TestDSeparation(unittest.TestCase):
 
         This test covers several cases around moral links to ensure that they are added when needed.
         """
+        try:
+            from ananke.graphs import ADMG
+        except ImportError:
+            self.skipTest("could not import ananke")
+
         graph = ADMG(
             vertices=("a", "b", "c"),
             di_edges=[("a", "b"), ("b", "c")],
@@ -131,12 +134,11 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             )
         )
 
-    def assert_has_judgements(
-        self, graph: Union[NxMixedGraph, SG], judgements: Iterable[DSeparationJudgement]
-    ) -> None:
+    def assert_has_judgements(self, graph, judgements: Iterable[DSeparationJudgement]) -> None:
         """Assert that the graph has the correct conditional independencies.
 
         :param graph: the graph to test
+        :type graph: NxMixedGraph or ananke.graphs.SG
         :param judgements: the set of expected conditional independencies
         """
         self.assertTrue(all(isinstance(node, Variable) for node in graph))
