@@ -98,14 +98,27 @@ def is_identifiable(graph: NxMixedGraph, query: Union[Probability, Distribution]
     if query.is_conditioned():
         raise ValueError("input distribution should not have any conditions")
 
-    from ananke.identification import OneLineID
-
-    graph = graph.to_admg()
     treatments, outcomes = _get_to(query)
 
-    one_line_id = OneLineID(
-        graph=graph,
-        treatments=treatments,
-        outcomes=outcomes,
-    )
-    return one_line_id.id()
+    try:
+        from ananke.identification import OneLineID
+    except ImportError:
+        raise
+        # TODO get this to work in a simple way
+        # from y0.algorithm.identify import Identification, Query, identify
+        #
+        # rv = identify(
+        #     Identification.from_expression(
+        #         graph=graph,
+        #         query=query,
+        #     )
+        # )
+        # return rv is not None
+    else:
+        graph = graph.to_admg()
+        one_line_id = OneLineID(
+            graph=graph,
+            treatments=treatments,
+            outcomes=outcomes,
+        )
+        return one_line_id.id()
