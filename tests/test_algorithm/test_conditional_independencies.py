@@ -34,7 +34,7 @@ class TestDSeparation(unittest.TestCase):
         self.assertFalse(are_d_separated(graph, G, G, conditions=[C]))
 
     def test_examples(self):
-        """Check that example conditional independencies are d-separations and that conditions (if present) are required.
+        """Check that example conditional independencies are d-separations and conditions (if present) are required.
 
         This test is using convenient examples to ensure that the d-separation algorithm
         isn't just always returning true or false.
