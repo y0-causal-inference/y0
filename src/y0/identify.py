@@ -103,17 +103,19 @@ def is_identifiable(graph: NxMixedGraph, query: Union[Probability, Distribution]
     try:
         from ananke.identification import OneLineID
     except ImportError:
-        raise
-        # TODO get this to work in a simple way
-        # from y0.algorithm.identify import Identification, Query, identify
-        #
-        # rv = identify(
-        #     Identification.from_expression(
-        #         graph=graph,
-        #         query=query,
-        #     )
-        # )
-        # return rv is not None
+        from y0.algorithm.identify import Identification, Unidentifiable, identify
+
+        try:
+            identify(
+                Identification.from_expression(
+                    graph=graph,
+                    query=query,
+                )
+            )
+        except Unidentifiable:
+            return False
+        else:
+            return True
     else:
         graph = graph.to_admg()
         one_line_id = OneLineID(
