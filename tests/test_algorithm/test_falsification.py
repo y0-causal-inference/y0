@@ -4,11 +4,13 @@
 
 import unittest
 
+from tests.constants import requires_ananke
 from y0.algorithm.conditional_independencies import get_conditional_independencies
 from y0.algorithm.falsification import get_falsifications, get_graph_falsifications
 from y0.examples import asia_example
 
 
+@requires_ananke
 class TestFalsification(unittest.TestCase):
     """Test the falsifiable implications."""
 

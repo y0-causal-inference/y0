@@ -5,6 +5,7 @@
 import unittest
 from typing import Iterable, Set
 
+from tests.constants import requires_ananke
 from y0.algorithm.conditional_independencies import (
     are_d_separated,
     get_conditional_independencies,
@@ -16,6 +17,7 @@ from y0.graph import NxMixedGraph
 from y0.struct import DSeparationJudgement
 
 
+@requires_ananke
 class TestDSeparation(unittest.TestCase):
     """Test the d-separation utility."""
 
@@ -59,10 +61,7 @@ class TestDSeparation(unittest.TestCase):
 
         This test covers several cases around moral links to ensure that they are added when needed.
         """
-        try:
-            from ananke.graphs import ADMG
-        except ImportError:
-            self.skipTest("could not import ananke")
+        from ananke.graphs import ADMG
 
         graph = ADMG(
             vertices=("a", "b", "c"),
