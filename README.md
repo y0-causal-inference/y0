@@ -142,7 +142,7 @@ $ pip install git+https://github.com/y0-causal-inference/y0.git
 ## 👐 Contributing
 
 Contributions, whether filing an issue, making a pull request, or forking, are appreciated. See
-[CONTRIBUTING.rst](https://github.com/y0-causal-inference/y0/blob/master/CONTRIBUTING.rst) for more information on getting
+[CONTRIBUTING.md](https://github.com/y0-causal-inference/y0/blob/master/.github/CONTRIBUTING.md) for more information on getting
 involved.
 
 ## 👋 Attribution

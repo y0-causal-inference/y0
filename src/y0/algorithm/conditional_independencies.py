@@ -8,11 +8,10 @@ from itertools import chain, combinations, groupby
 from typing import Callable, Iterable, List, Optional, Sequence, Set, Tuple
 
 import networkx as nx
-from ananke.graphs import ADMG, SG
 from tqdm import tqdm
 
 from ..dsl import Variable
-from ..graph import NoAnankeError, NxMixedGraph
+from ..graph import NxMixedGraph
 from ..struct import DSeparationJudgement
 from ..util.combinatorics import powerset
 
@@ -80,10 +79,7 @@ def get_topological_policy(
 
     :param graph: a mixed graph
     :return: A function suitable for use as a sort key on d-separations
-    :raises NoAnankeError: If an ananke graph was used instead of a y0 graph
     """
-    if isinstance(graph, ADMG):
-        raise NoAnankeError
     order = list(graph.topological_sort())
     return partial(_topological_policy, order=order)
 
@@ -107,20 +103,26 @@ def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
     return len(judgement.conditions), ",".join(c.name for c in judgement.conditions)
 
 
-def disorient(graph: SG) -> nx.Graph:
-    """Convert an :mod:`ananke` mixed directed/undirected into a undirected (networkx) graph."""
+def disorient(graph) -> nx.Graph:
+    """Convert an :mod:`ananke` mixed directed/undirected into a undirected (networkx) graph.
+
+    :param graph: An ananke graph
+    :type graph: ananke.graphs.SG
+    :returns: A disoriented graph
+    """
     rv = nx.Graph()
     rv.add_nodes_from(graph.vertices)
     rv.add_edges_from(chain(graph.di_edges, graph.ud_edges, graph.bi_edges))
     return rv
 
 
-def get_moral_links(graph: SG) -> List[Tuple[Variable, Variable]]:
+def get_moral_links(graph) -> List[Tuple[Variable, Variable]]:
     """Generate links to ensure all co-parents in a graph are linked.
 
     May generate links that already exist as we assume we are not working on a multi-graph.
 
     :param graph: Graph to process
+    :type graph: ananke.graphs.SG
     :return: An collection of edges to add.
     """
     parents = [graph.parents([v]) for v in graph.vertices]
@@ -145,12 +147,9 @@ def are_d_separated(
     :param b: A node in the graph
     :param conditions: A collection of graph nodes
     :return: T/F and the final graph (as evidence)
-    :raises NoAnankeError: If an ananke graph is given
     :raises TypeError: if the left/right arguments or any conditions are
         not Variable instances
     """
-    if isinstance(graph, ADMG):
-        raise NoAnankeError
     if conditions is None:
         conditions = set()
     if not isinstance(a, Variable):
@@ -199,10 +198,7 @@ def d_separations(
     :param return_all: If false (default) only returns the first d-separation per left/right pair.
     :param verbose: If true, prints extra output with tqdm
     :yields: True d-separation judgements
-    :raises NoAnankeError: If an ananke graph is given
     """
-    if isinstance(graph, ADMG):
-        raise NoAnankeError
     vertices = set(graph.nodes())
     for a, b in tqdm(combinations(vertices, 2), disable=not verbose, desc="d-separation check"):
         for conditions in powerset(vertices - {a, b}, stop=max_conditions):
