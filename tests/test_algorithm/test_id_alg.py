@@ -6,7 +6,6 @@ import itertools as itt
 import unittest
 
 import y0.examples
-from tests.constants import requires_ananke
 from y0.algorithm.identify import Identification, Query, Unidentifiable, idc, identify
 from y0.algorithm.identify.id_std import (
     line_1,
@@ -73,7 +72,6 @@ class TestIdentify(unittest.TestCase):
             msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
         )
 
-    @requires_ananke
     def test_idc(self):
         r"""Test that the IDC algorithm works correctly."""
         for identification in figure_6a.identifications:

@@ -5,7 +5,6 @@
 import unittest
 from typing import Iterable, Set
 
-from tests.constants import requires_ananke
 from y0.algorithm.conditional_independencies import (
     are_d_separated,
     get_conditional_independencies,
@@ -17,7 +16,6 @@ from y0.graph import NxMixedGraph
 from y0.struct import DSeparationJudgement
 
 
-@requires_ananke
 class TestDSeparation(unittest.TestCase):
     """Test the d-separation utility."""
 

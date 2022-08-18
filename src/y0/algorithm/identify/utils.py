@@ -10,6 +10,7 @@ import networkx as nx
 
 from y0.dsl import (
     CounterfactualVariable,
+    Distribution,
     Expression,
     Intervention,
     P,
@@ -104,7 +105,7 @@ class Query:
     @classmethod
     def from_expression(
         cls,
-        query: Probability,
+        query: Union[Probability, Distribution],
     ) -> Query:
         """Instantiate an identification.
 
@@ -257,7 +258,7 @@ class Identification:
     def from_expression(
         cls,
         *,
-        query: Probability,
+        query: Union[Probability, Distribution],
         graph: NxMixedGraph,
         estimand: Optional[Expression] = None,
     ) -> Identification:
