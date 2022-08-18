@@ -177,10 +177,14 @@ class LinearSCM:
 
     def fix(self, values: Mapping[Variable, float]) -> LinearSCM:
         """Create a new simulation with the given nodes fixed to their values."""
+
+        def _get(node: Variable) -> float:
+            return values[node]
+
         generators = cast(
             Mapping[Variable, Generator],
             {
-                node: generator if node not in values else lambda: values[node]
+                node: generator if node not in values else partial(_get, node=node)
                 for node, generator in self.generators.items()
             },
         )

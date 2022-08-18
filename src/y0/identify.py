@@ -4,9 +4,6 @@
 
 from typing import List, Set, Tuple, Union
 
-from ananke.graphs import ADMG
-from ananke.identification import OneLineID
-
 from .dsl import (
     CounterfactualVariable,
     Distribution,
@@ -57,9 +54,7 @@ def _get_to(query: Union[Probability, Distribution]) -> Tuple[List[str], List[st
     return treatments, outcomes
 
 
-def is_identifiable(
-    graph: Union[ADMG, NxMixedGraph], query: Union[Probability, Distribution]
-) -> bool:
+def is_identifiable(graph: NxMixedGraph, query: Union[Probability, Distribution]) -> bool:
     """Check if the expression is identifiable.
 
     :param graph: Either an Ananke graph or y0 NxMixedGraph that can be converted to an Ananke graph
@@ -100,17 +95,32 @@ def is_identifiable(
 
         assert is_identifiable(graph, P(Y @ ~X))
     """
-    if isinstance(graph, NxMixedGraph):
-        graph = graph.to_admg()
-
     if query.is_conditioned():
         raise ValueError("input distribution should not have any conditions")
 
     treatments, outcomes = _get_to(query)
 
-    one_line_id = OneLineID(
-        graph=graph,
-        treatments=treatments,
-        outcomes=outcomes,
-    )
-    return one_line_id.id()
+    try:
+        from ananke.identification import OneLineID
+    except ImportError:
+        from y0.algorithm.identify import Identification, Unidentifiable, identify
+
+        try:
+            identify(
+                Identification.from_expression(
+                    graph=graph,
+                    query=query,
+                )
+            )
+        except Unidentifiable:
+            return False
+        else:
+            return True
+    else:
+        graph = graph.to_admg()
+        one_line_id = OneLineID(
+            graph=graph,
+            treatments=treatments,
+            outcomes=outcomes,
+        )
+        return one_line_id.id()

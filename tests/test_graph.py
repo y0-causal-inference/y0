@@ -7,7 +7,6 @@ from textwrap import dedent
 from typing import Set, Tuple
 
 import networkx as nx
-from ananke.graphs import ADMG
 
 from y0.dsl import A, B, C, D, M, Variable, X, Y, Z
 from y0.examples import Example, examples, verma_1
@@ -94,6 +93,11 @@ class TestGraph(unittest.TestCase):
 
     def test_from_admg(self):
         """Test that all ADMGs can be converted to NxMixedGraph."""
+        try:
+            from ananke.graphs import ADMG
+        except ImportError:
+            self.skipTest("ananke is not available")
+
         expected = NxMixedGraph.from_str_adj(
             directed={"W": [], "X": ["Y"], "Y": ["Z"], "Z": []},
             undirected={"W": [], "X": ["Z"], "Y": [], "Z": []},
