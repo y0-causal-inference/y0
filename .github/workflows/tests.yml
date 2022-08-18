@@ -44,7 +44,7 @@ jobs:
       - name: Install dependencies
         run: |
             pip install tox
-            sudo python3-dev graphviz libgraphviz-dev pkg-config
+            sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
       - name: Check RST conformity with doc8
         run: tox -e doc8
       - name: Check README.rst
@@ -68,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: |
             pip install tox
-            sudo python3-dev graphviz libgraphviz-dev pkg-config
+            sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
       - name: Test with pytest
         run:
           tox -e py
