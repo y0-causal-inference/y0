@@ -1,4 +1,5 @@
-from y0.dsl import Element  
+from y0.dsl import Element, Variable
+from typing import Iterable
 
 __all__ = [
     'Interval',
@@ -27,76 +28,82 @@ class Interval(Element):
         """
         # if it ends with a number, use that as a subscript
         return f"{self.name}_{{{self.start}-{self.end}}}"
-        
-    def __lt__(self, other: Interval) -> bool:
+
+    def to_y0(self):
+        return self.to_text()
+    
+    def _iter_variables(self) -> Iterable[Variable]:
+        return super()._iter_variables()
+       
+    def __lt__(self, other) -> bool:
         """X precedes Y
         ---X----
                   -----Y------
         """
         return self.end < other.start
-    def __gt__(self, other: Interval) -> bool:
+    def __gt__(self, other) -> bool:
         return self.start > other.end
-    def meets(self, other: Interval) -> bool:
+    def meets(self, other) -> bool:
         """ X meets Y
         ----X---
                 ----Y---
         """
         return self.end == other.start
-    def is_met_by(self, other: Interval) -> bool:
+    def is_met_by(self, other) -> bool:
         """ X is met by Y
         ----Y---
                 ----X---
         """
         return self.start == other.end
-    def overlaps_with(self, other: Interval) -> bool:
+    def overlaps_with(self, other) -> bool:
         """ X overlaps Y
         ----X---
              ----Y---
         """
         return (self.start < other.start) and  (self.end > other.start) and (self.end < other.end)
-    def is_overlapped_by(self, other: Interval) -> bool:
+    def is_overlapped_by(self, other) -> bool:
         """ X is overlapped by Y
         ----Y---
              ----X---
         """
-        return (self.start < other.start) and  (self.end > other.start) and (self.end < other.end)
-    def starts(self, other: Interval) -> bool:
+        return (self.start > other.start) and  (self.end > other.start) and (self.end > other.end)
+    def starts(self, other) -> bool:
         """ X starts Y
         ----X---
         ----Y---------
         """
         return (self.start == other.start) and (self.end < other.end)
-    def is_started_by(self, other: Interval) -> bool:
+    def is_started_by(self, other) -> bool:
         """ X is started by Y
         ----Y---
         ----X---------
         """
         return (self.start == other.start) and (other.end < self.end)
-    def during(self, other: Interval) -> bool:
+    def during(self, other) -> bool:
         """ X during Y
           ---X---
         ----Y---------
         """
         return (self.start > other.start) and (self.end < other.end)
-    def contains(self, other: Interval) -> bool:
+    def contains(self, other) -> bool:
         """ X contains Y
           ---Y---
         ----X---------
         """
         return (self.start < other.start) and (self.end > other.end)
-    def finishes(self, other: Interval) -> bool:
+    def finishes(self, other) -> bool:
         """ X finishes Y
                ---X---
         ----Y---------
         """
-        return (self.start < other.start) and (self.end == other.end)
-    def is_finished_by(self, other: Interval) -> bool:
+        return (self.start > other.start) and (self.end == other.end)
+    def is_finished_by(self, other) -> bool:
         """ X is finished by Y
                ---Y---
         ----X---------
         """
-        return (self.start > other.start) and (self.end == other.end)
-    def __eq__(self, other: Interval) -> bool:
+        return (self.start < other.start) and (self.end == other.end)
+    def __eq__(self, other) -> bool:
         """ X is equal to Y
         ---X---
         ---Y---
