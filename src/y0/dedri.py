@@ -104,7 +104,7 @@ class Interval(Element):
         return (self.start == other.start) and (self.end == other.end)
 
 class Fluent(Element):
-    """Any pattern that persists over time is called a fluent.  
+    r"""Any pattern that persists over time is called a fluent.  
     
     For example, the pattern of interest might be that the size of the cohort of sick people is greater than 10% of the population.  
     If this persists over time, it is a fluent.   

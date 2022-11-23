@@ -1,6 +1,5 @@
 import unittest
 from y0.dedri import (
-    Fluent,
     Interval,
 
 )
@@ -45,4 +44,4 @@ class TestDeDri(unittest.TestCase):
         self.assertFalse( a == c)
         self.assertFalse( a == d)
         self.assertFalse(a == e)
-        
+
