@@ -1,4 +1,4 @@
-from y0.dsl import Element, Variable, Intervention, CounterfactualVariable   
+from y0.dsl import Element  
 
 __all__ = [
     'Interval',
