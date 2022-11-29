@@ -1,24 +1,24 @@
 import unittest
-from y0.dedri import (
-    Interval,
 
-)
+from y0.dedri import Interval
+
 
 class TestDeDri(unittest.TestCase):
     """Tests for the stringifying instances of the probability DSL."""
+
     def test_interval(self):
         """Test that the 13 allen interval relations work as expected"""
-        a = Interval('a', 1, 10)
-        b = Interval('b', 11, 20)
-        c = Interval('c', 5, 15)
-        d = Interval('d', 10, 11)
-        e = Interval('e', 1, 20)
-        f = Interval('f', 1, 10)
+        a = Interval("a", 1, 10)
+        b = Interval("b", 11, 20)
+        c = Interval("c", 5, 15)
+        d = Interval("d", 10, 11)
+        e = Interval("e", 1, 20)
+        f = Interval("f", 1, 10)
 
         self.assertTrue(a < b)
         self.assertFalse(a > b)
-        self.assertTrue( b > a)
-        self.assertFalse( b < a)
+        self.assertTrue(b > a)
+        self.assertFalse(b < a)
         self.assertTrue(a.meets(d))
         self.assertFalse(d.meets(a))
         self.assertTrue(d.is_met_by(a))
@@ -41,7 +41,6 @@ class TestDeDri(unittest.TestCase):
         self.assertFalse(b.is_finished_by(e))
         self.assertTrue(a == f)
         self.assertFalse(a == b)
-        self.assertFalse( a == c)
-        self.assertFalse( a == d)
+        self.assertFalse(a == c)
+        self.assertFalse(a == d)
         self.assertFalse(a == e)
-
