@@ -44,3 +44,7 @@ class TestDeDri(unittest.TestCase):
         self.assertFalse(a == c)
         self.assertFalse(a == d)
         self.assertFalse(a == e)
+
+    def test_to_json(self):
+        """Tests for serialization to JSON abstract syntax tree"""
+        
