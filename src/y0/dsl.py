@@ -197,6 +197,10 @@ class Variable(Element):
     def to_y0(self) -> str:
         """Output this variable instance as y0 internal DSL code."""
         return self.name
+    
+    def to_json(self) -> str:
+        """Output this variable instance as y0 internal DSL code."""
+        return self.name
 
     def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this variable with the given variable(s).
@@ -313,6 +317,11 @@ class Intervention(Variable):
         mark = "+" if self.star else "-"
         return f"{mark}{self.name}"
 
+    def to_json(self) -> str:
+        """Output this intervention instance as an abstract syntax tree."""
+        mark = "+" if self.star else "-"
+        return f"{mark}{self.name}"
+
 
 @dataclass(frozen=True, order=True, repr=False)
 class CounterfactualVariable(Variable):
@@ -371,6 +380,19 @@ class CounterfactualVariable(Variable):
             ins = ", ".join(i.to_y0() for i in self.interventions)
             return f"{prefix}{self.name} @ ({ins})"
 
+    def to_json(self) -> str:
+        """Output this counterfactual variable instance as an abstract syntax tree."""
+        if self.star is None:
+            prefix = ""
+        elif self.star:
+            prefix = "+"
+        else:
+            prefix = "-"
+        if len(self.interventions) == 1:
+            return f"{prefix}{self.name} @ {self.interventions[0].to_json()}"
+        else:
+            ins = ", ".join(i.to_json() for i in self.interventions)
+            return f"{prefix}{self.name} @ ({ins})"
     def is_event(self) -> bool:
         """Return if the counterfactual variable has a value."""
         return self.star is not None

@@ -47,4 +47,19 @@ class TestDeDri(unittest.TestCase):
 
     def test_to_json(self):
         """Tests for serialization to JSON abstract syntax tree"""
+        a = Interval("a", 1, 10)
+        b = Interval("b", 11, 20)
+        c = Interval("c", 5, 15)
+        d = Interval("d", 10, 11)
+        e = Interval("e", 1, 20)
+        f = Interval("f", 1, 10)
+
+        self.assertEqual(a.to_json(), {"name": "a", "start": 1, "end": 10})
+        self.assertEqual(b.to_json(), {"name": "b", "start": 11, "end": 20})
+        self.assertEqual(c.to_json(), {"name": "c", "start": 5, "end": 15})
+        self.assertEqual(d.to_json(), {"name": "d", "start": 10, "end": 11})
+        self.assertEqual(e.to_json(), {"name": "e", "start": 1, "end": 20})
+        self.assertEqual(f.to_json(), {"name": "f", "start": 1, "end": 10})
+        
+
         
