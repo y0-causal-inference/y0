@@ -92,6 +92,7 @@ class TestGraph(unittest.TestCase):
         graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
         self.assertIsInstance(graph, NxMixedGraph)
 
+
     def test_from_admg(self):
         """Test that all ADMGs can be converted to NxMixedGraph."""
         expected = NxMixedGraph.from_str_adj(
