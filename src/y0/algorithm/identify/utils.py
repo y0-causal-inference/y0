@@ -7,10 +7,10 @@ from __future__ import annotations
 from typing import Any, Iterable, Optional, Union
 
 import networkx as nx
-from ananke.graphs import ADMG
 
 from y0.dsl import (
     CounterfactualVariable,
+    Distribution,
     Expression,
     Intervention,
     P,
@@ -105,7 +105,7 @@ class Query:
     @classmethod
     def from_expression(
         cls,
-        query: Probability,
+        query: Union[Probability, Distribution],
     ) -> Query:
         """Instantiate an identification.
 
@@ -217,7 +217,7 @@ class Identification:
     def __init__(
         self,
         query: Query,
-        graph: Union[ADMG, NxMixedGraph],
+        graph: NxMixedGraph,
         estimand: Optional[Expression] = None,
     ) -> None:
         """Instantiate an identification.
@@ -227,10 +227,7 @@ class Identification:
         :param estimand: If none is given, will use the joint distribution over all variables in the graph.
         """
         self.query = query
-        if isinstance(graph, ADMG):
-            self.graph = str_nodes_to_variable_nodes(NxMixedGraph.from_admg(graph))
-        else:
-            self.graph = str_nodes_to_variable_nodes(graph)
+        self.graph = str_nodes_to_variable_nodes(graph)
         self.estimand = P(self.graph.nodes()) if estimand is None else estimand
 
     @classmethod
@@ -238,7 +235,7 @@ class Identification:
         cls,
         outcomes: set[Variable],
         treatments: set[Variable],
-        graph: Union[ADMG, NxMixedGraph],
+        graph: NxMixedGraph,
         estimand: Optional[Expression] = None,
         conditions: Optional[set[Variable]] = None,
     ) -> Identification:
@@ -261,8 +258,8 @@ class Identification:
     def from_expression(
         cls,
         *,
-        query: Probability,
-        graph: Union[ADMG, NxMixedGraph],
+        query: Union[Probability, Distribution],
+        graph: NxMixedGraph,
         estimand: Optional[Expression] = None,
     ) -> Identification:
         """Instantiate an identification.
