@@ -1099,6 +1099,31 @@ complete_hierarchy_figure_3a_example = Example(
     ),
 )
 
+id_sir_example = Example(
+    name="IdentifiableSIR",
+    reference="ASKEM",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+                  ("Infected", "Hospitalized"),
+                  ("Hospitalized", "Died"),
+        ],
+        undirected=[
+            ("Infected", "Died")]
+
+    )
+)
+
+nonid_sir_example = Example(
+    name="IdentifiableSIR",
+    reference="ASKEM",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+                  ("Infected", "Died"),
+        ],
+        undirected=[("Infected", "Died")]
+    )
+)
+
 igf_example = Example(
     name="IGF Graph",
     reference="...",  # TODO
