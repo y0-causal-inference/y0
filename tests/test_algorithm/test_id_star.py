@@ -139,7 +139,8 @@ class TestIDStar(cases.GraphTestCase):
 
     def test_get_district_domains(self):
         """Ensure that for each district, we intervene on the domain of each variable not in the district.
-        Confirm that the domain of variables in the event query are restricted to their event value"""
+        Confirm that the domain of variables in the event query are restricted to their event value
+        """
         counterfactual_graph = NxMixedGraph.from_edges(
             undirected=[(Y @ (~X, Z), X)],
             directed=[

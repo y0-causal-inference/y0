@@ -15,7 +15,7 @@ from networkx import relabel_nodes
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
+from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs, VariableHint
 
 __all__ = [
     "NxMixedGraph",
@@ -424,6 +424,23 @@ class NxMixedGraph:
             nodes=set(directed.nodes()) | set(undirected.nodes()),
             directed=directed.edges(),
             undirected=undirected.edges(),
+        )
+
+    def intervene(self, variables: VariableHint) -> NxMixedGraph:
+        """Intervene on the given variables.
+
+        :param graph: A graph
+        :param variables: A set of interventions
+        :returns: A graph that has been intervened on the given interventions
+        """
+        return self.from_edges(
+            nodes=[node.intervene(variables) for node in self.nodes()],
+            directed=[
+                (u.intervene(variables), v.intervene(variables)) for u, v in self.directed.edges()
+            ],
+            undirected=[
+                (u.intervene(variables), v.intervene(variables)) for u, v in self.undirected.edges()
+            ],
         )
 
 

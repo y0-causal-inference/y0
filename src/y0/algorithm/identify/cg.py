@@ -3,7 +3,7 @@
 """Utilities for parallel world graphs and counterfactual graphs."""
 
 from itertools import combinations
-from typing import Collection, Iterable, Optional, Sequence, Tuple
+from typing import Collection, Dict, Iterable, List, Optional, Sequence, Set, Tuple, FrozenSet
 
 from y0.dsl import (
     CounterfactualVariable,
@@ -18,14 +18,17 @@ from y0.graph import NxMixedGraph
 __all__ = [
     "has_same_function",
     "has_same_parents",
-    "get_worlds",
+    "extract_interventions",
     "is_pw_equivalent",
     "merge_pw",
     "make_counterfactual_graph",
     "make_parallel_worlds_graph",
-    "make_world_graph",
+    "make_parallel_world_graph",
     "combine_worlds",
 ]
+
+World = FrozenSet[Intervention]
+Worlds = Set[World]
 
 
 def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
@@ -45,11 +48,12 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
     return node1.name == node2.name
 
 
-def get_worlds(variables: Iterable[Variable]) -> Sequence[Sequence[Intervention]]:
+def extract_interventions(variables: Iterable[Variable]) -> Worlds:
+    """Extract the set of interventions for each counterfactual variable that corresponds to a world."""
     # is sorting necessary? why not just return a set/frozenset?
     # Yes, because otherwise different counterfactual graphs will be created each time.
-    return sorted(
-        sorted(variable.interventions)
+    return set(
+        frozenset(variable.interventions)
         for variable in variables
         if isinstance(variable, CounterfactualVariable)
     )
@@ -129,7 +133,7 @@ def make_counterfactual_graph(
     graph: NxMixedGraph, event: Event
 ) -> Tuple[NxMixedGraph, Optional[Event]]:
     """Make counterfactual graph."""
-    worlds = get_worlds(event)
+    worlds = extract_interventions(event)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
     new_event = dict(event)
     cf_graph = NxMixedGraph.from_edges(
@@ -186,7 +190,7 @@ def make_counterfactual_graph(
 
 
 def remove_redundant_interventions(graph: NxMixedGraph) -> NxMixedGraph:
-    relabel = {}
+    relabel: Dict[CounterfactualVariable, Variable] = {}
     for node in graph.topological_sort():
         if isinstance(node, CounterfactualVariable):
             for intervention in node.interventions:
@@ -209,40 +213,28 @@ def remove_redundant_interventions(graph: NxMixedGraph) -> NxMixedGraph:
     return graph.relabel_nodes(relabel)
 
 
-def make_parallel_worlds_graph(
-    graph: NxMixedGraph, worlds: Collection[Collection[Variable]]
-) -> NxMixedGraph:
+def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGraph:
     """Make a parallel worlds graph.
 
     :param graph: A normal graph
     :param worlds: A set of sets of treatments
     :returns: A combine parallel world graph
     """
-    world_graphs = [make_world_graph(graph, treatments) for treatments in worlds]
+    world_graphs: List[NxMixedGraph] = [make_parallel_world_graph(graph, world) for world in worlds]
     return combine_worlds(graph, world_graphs, worlds)
 
 
-def make_world_graph(graph: NxMixedGraph, treatments: Collection[Variable]) -> NxMixedGraph:
+def make_parallel_world_graph(graph: NxMixedGraph, world: World) -> NxMixedGraph:
     """Make a parallel world graph based on interventions specified."""
-    treatment_variables = [treatment.get_base() for treatment in treatments]
+    treatment_variables = [treatment.get_base() for treatment in world]
     world_graph = graph.remove_in_edges(treatment_variables)
-    return NxMixedGraph.from_edges(
-        nodes=[node.intervene(treatments) for node in world_graph.nodes()],
-        directed=[
-            (u.intervene(treatments), v.intervene(treatments))
-            for u, v in world_graph.directed.edges()
-        ],
-        undirected=[
-            (u.intervene(treatments), v.intervene(treatments))
-            for u, v in world_graph.undirected.edges()
-        ],
-    )
+    return world_graph.intervene(treatment_variables)
 
 
 def combine_worlds(
     graph: NxMixedGraph,
     world_graphs: Collection[NxMixedGraph],
-    worlds: Collection[Collection[Variable]],
+    worlds: Worlds,
 ) -> NxMixedGraph:
     """Stitch together parallel worlds through the magic of bidirected edges."""
     # get all the undirected edges in all the parallel worlds

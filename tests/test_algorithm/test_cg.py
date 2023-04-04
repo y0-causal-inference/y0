@@ -1,6 +1,6 @@
 from tests.test_algorithm import cases
 from y0.algorithm.identify.cg import (
-    get_worlds,
+    extract_interventions,
     has_same_function,
     has_same_parents,
     is_pw_equivalent,
@@ -52,8 +52,8 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_get_worlds(self):
         """Test that all interventions within each world of a counterfactual conjunction are generated."""
-        self.assertEqual([[-D], [~X]], get_worlds([Y @ ~X, X, Z @ D, D]))
-        self.assertEqual([[-D], [~X, -Z]], get_worlds([Y @ (~X, -Z), X, Z @ -D, D]))
+        self.assertEqual([[-D], [~X]], extract_interventions([Y @ ~X, X, Z @ D, D]))
+        self.assertEqual([[-D], [~X, -Z]], extract_interventions([Y @ (~X, -Z), X, Z @ -D, D]))
 
     def test_is_pw_equivalent(self):
         """Test that two nodes in a parallel world graph are the same. (lemma 24)"""

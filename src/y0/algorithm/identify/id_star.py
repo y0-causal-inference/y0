@@ -21,6 +21,7 @@ from ...dsl import (
     Variable,
     Zero,
 )
+from ..conditional_independencies import are_d_separated
 from ...graph import NxMixedGraph
 
 __all__ = [

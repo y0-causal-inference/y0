@@ -143,7 +143,6 @@ class cg_graph:
                 node_type = type_dict[item]
 
             else:
-
                 bel_dict = {}
                 bel_dict["activity"] = ["activity", "act", "molecularActivity", "ma"]
                 bel_dict["abundance"] = [
@@ -347,7 +346,6 @@ class cg_graph:
 
         # line 2
         elif v_not_anc_y:
-
             x_temp = [item for item in y_anc if item in x]
             str_out = Sum(
                 P(Variable(v) for v in graph_temp.nodes),
@@ -408,7 +406,6 @@ class cg_graph:
                 if sorted(s_sets_prime[0]) == sorted(
                     graph_temp.nodes
                 ):  # TODO @jeremy needs test case
-
                     node_list = [ind for ind in s_sets_prime[0]]
                     node_list2 = [ind for ind in graph_temp.nodes if ind in s_sets[0]]
 
@@ -418,7 +415,6 @@ class cg_graph:
 
                 # line 6
                 elif np.any([sorted(s_sets[0]) == sorted(item) for item in s_sets_prime]):
-
                     node_list = [item for item in s_sets[0] if item not in y]
                     str_out = []
 
@@ -447,7 +443,6 @@ class cg_graph:
                     str_out = []
 
                     for item in s_sets_prime[ind]:
-
                         pred = list(nx.algorithms.dag.ancestors(graph_temp, item))
                         par_set = [item2 for item2 in pred if item2 in s_sets_prime[ind]]
                         par_set += [item2 for item2 in pred if item2 not in s_sets_prime[ind]]
@@ -471,7 +466,6 @@ class cg_graph:
                     return expr_out
 
                 else:
-
                     print("error")
                     return ""
 
@@ -530,7 +524,6 @@ class cg_graph:
 
         # line 2
         elif v_not_anc_y:
-
             x_temp = [item for item in y_anc if item in x]
             str_out = "[sum_{" + self.str_list(v_not_anc_y) + "} " + p_expr + "]"
             graph_anc = graph_temp.subgraph(y_anc)
@@ -589,7 +582,6 @@ class cg_graph:
                 if sorted(s_sets_prime[0]) == sorted(
                     graph_temp.nodes
                 ):  # TODO @jeremy needs test case
-
                     node_list = [ind for ind in s_sets_prime[0]]
                     node_list2 = [ind for ind in graph_temp.nodes if ind in s_sets[0]]
 
@@ -602,7 +594,6 @@ class cg_graph:
 
                 # line 6
                 elif np.any([sorted(s_sets[0]) == sorted(item) for item in s_sets_prime]):
-
                     node_list = [item for item in s_sets[0] if item not in y]
                     str_out = "[sum_{" + self.str_list(node_list) + "}"
 
@@ -631,7 +622,6 @@ class cg_graph:
                     str_out = ""
 
                     for item in s_sets_prime[ind]:
-
                         pred = list(nx.algorithms.dag.ancestors(graph_temp, item))
                         par_set = [item2 for item2 in pred if item2 in s_sets_prime[ind]]
                         par_set += [item2 for item2 in pred if item2 not in s_sets_prime[ind]]
@@ -655,7 +645,6 @@ class cg_graph:
                     return expr_out
 
                 else:
-
                     print("error")
                     return ""
 
@@ -862,7 +851,6 @@ class cg_graph:
         traversed_nodes = []
 
         while sorted(traversed_nodes) != sorted(graph_temp.nodes) and node_list:
-
             # start with the first item of node_list
             node_temp = node_list[0]
 
@@ -909,7 +897,6 @@ class cg_graph:
                     )
 
                     if node_temp2 in gamma_list:
-
                         # check for inconsistency
                         if node_temp in gamma_list and node_temp2 in gamma_list:
                             gamma_list = ["INCONSISTENT"]
@@ -1093,7 +1080,8 @@ class cg_graph:
 
     def id_star_alg(self, do_in, obs_in=None, graph_in=None):
         """implement ID* algorithm
-        Denote interventions with asterisks (e.g., 'X*') and observations without asterisks (e.g., 'X')"""
+        Denote interventions with asterisks (e.g., 'X*') and observations without asterisks (e.g., 'X')
+        """
 
         if graph_in is None:
             graph_temp = nx.DiGraph(self.graph)
@@ -1123,7 +1111,6 @@ class cg_graph:
             return "0"
 
         elif np.any([item[0] in item[1] for item in do_in]):
-
             temp_inds = [ind for ind in range(0, len(do_in)) if do_in[ind][0] not in do_in[ind][1]]
 
             # print('Step 3')
@@ -1199,7 +1186,6 @@ class cg_graph:
 
                 str_out = "sum_{" + self.str_list(sum_list) + "}"
                 for item in s_sets:
-
                     check_list = []
 
                     # define the new do-statements
@@ -1319,7 +1305,6 @@ class cg_graph:
                     # print()
                     return " FAIL "
                 else:
-
                     # print('Step 9')
                     # print('P(' + self.str_list(gamma_temp) + ')')
                     # print()
@@ -1328,7 +1313,8 @@ class cg_graph:
 
     def idc_star_alg(self, do_in, do_delta, obs_in=None, obs_delta=None, graph_in=None):
         """Implement IDC* algorithm
-        Denote interventions with asterisks (e.g., 'X*') and observations without asterisks (e.g., 'X')"""
+        Denote interventions with asterisks (e.g., 'X*') and observations without asterisks (e.g., 'X')
+        """
 
         if graph_in is None:
             graph_temp = nx.DiGraph(self.graph)
@@ -1483,7 +1469,6 @@ class str_graph(cg_graph):
         # construct graph from list of BEL statement strings
 
         for item in str_list:
-
             sub_ind = item.find("=")
 
             sub_temp = item[: sub_ind - 1]
@@ -1516,7 +1501,6 @@ class cg_node:
     """Define a superclass of nodes for a causal graph"""
 
     def __init__(self, n_inputs, name, node_type):
-
         self.n_inputs = n_inputs
         self.name = name
         self.node_type = node_type
@@ -1602,7 +1586,6 @@ class scm_node(cg_node):
         """Initialize node parameters associated with its distribution."""
 
         if self.node_type == "continuous":
-
             n_data = input_data.shape[0]
 
             # normalize with respect to y_max and y_min
@@ -1616,7 +1599,6 @@ class scm_node(cg_node):
             big_y = self.logistic_inv(out_data)
 
         elif self.node_type == "binary" or self.node_type == "ternary":
-
             self.y_max = 1.0
             self.y_min = 0.0
 
@@ -1629,7 +1611,6 @@ class scm_node(cg_node):
 
         # add vector of ones to input data
         if self.n_inputs > 0:
-
             big_x = torch.cat([torch.ones((n_data, 1)), x_temp], dim=1)
             self.alpha = (
                 torch.matmul(
@@ -1651,7 +1632,6 @@ class scm_node(cg_node):
         return
 
     def sample(self, data_in=[]):
-
         eps = pyro.sample(self.name + "_eps", pyro.distributions.Normal(0, self.std))
 
         if self.n_inputs > 0:
