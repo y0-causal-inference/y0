@@ -260,7 +260,9 @@ def get_parents_of_district(graph: NxMixedGraph, event: Event) -> DistrictInterv
     }
 
 
-def domain_of_counterfactual_values(event: Event, variables: Iterable[Variable]) -> Set[Intervention]:
+def domain_of_counterfactual_values(
+    event: Event, variables: Iterable[Variable]
+) -> Set[Intervention]:
     """Return domain of counterfactual values.
     If a variable is part of an event, just intervene on its observed value.
     Otherwise, intervene on all values in the variable's domain.

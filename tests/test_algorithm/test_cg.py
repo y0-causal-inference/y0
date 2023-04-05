@@ -52,8 +52,13 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_get_worlds(self):
         """Test that all interventions within each world of a counterfactual conjunction are generated."""
-        self.assertEqual({frozenset([-D]),frozenset([~X])}, extract_interventions([Y @ ~X, X, Z @ D, D]))
-        self.assertEqual({frozenset([-D]), frozenset([~X, -Z])}, extract_interventions([Y @ (~X, -Z), X, Z @ -D, D]))
+        self.assertEqual(
+            {frozenset([-D]), frozenset([~X])}, extract_interventions([Y @ ~X, X, Z @ D, D])
+        )
+        self.assertEqual(
+            {frozenset([-D]), frozenset([~X, -Z])},
+            extract_interventions([Y @ (~X, -Z), X, Z @ -D, D]),
+        )
 
     def test_is_pw_equivalent(self):
         """Test that two nodes in a parallel world graph are the same. (lemma 24)"""

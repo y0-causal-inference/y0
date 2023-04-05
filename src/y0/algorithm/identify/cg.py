@@ -111,7 +111,7 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
         node2, CounterfactualVariable
     ):
         pass
-    else: # both are counterfactual or both are factual, so keep the variable with the lower name
+    else:  # both are counterfactual or both are factual, so keep the variable with the lower name
         node1, node2 = sorted([node1, node2])
     directed = [(u, v) for u, v in graph.directed.edges() if node2 not in (u, v)]
     directed += [(node1, v) for u, v in graph.directed.edges() if node2 == u]
@@ -216,12 +216,15 @@ def remove_redundant_interventions(graph: NxMixedGraph) -> NxMixedGraph:
                     relabel[node] = Variable(name=node.name)
                 elif node not in relabel:
                     relabel[node] = CounterfactualVariable(
-                        name=node.name, interventions=set(node.interventions) - {intervention}
+                        name=node.name,
+                        interventions=tuple(sorted(set(node.interventions) - {intervention})),
                     )
                 else:
                     relabel[node] = CounterfactualVariable(
                         name=node.name,
-                        interventions=set(relabel[node].interventions) - {intervention},
+                        interventions=tuple(
+                            sorted(set(relabel[node].interventions) - {intervention})
+                        ),
                     )
     return graph.relabel_nodes(relabel)
 
@@ -240,7 +243,7 @@ def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGr
 def make_parallel_world_graph(graph: NxMixedGraph, world: World) -> NxMixedGraph:
     """Make a parallel world graph based on interventions specified."""
     treatment_variables = [treatment for treatment in world]
-    #world_graph = graph.remove_in_edges(treatment_variables)
+    # world_graph = graph.remove_in_edges(treatment_variables)
     return graph.intervene(treatment_variables)
 
 

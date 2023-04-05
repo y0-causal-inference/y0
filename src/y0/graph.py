@@ -437,12 +437,14 @@ class NxMixedGraph:
         return self.from_edges(
             nodes=[node.intervene(variables) for node in self.nodes()],
             directed=[
-                (u.intervene(variables), v.intervene(variables)) for u, v in self.directed.edges()
-                if v.get_base() not in  base_variables
+                (u.intervene(variables), v.intervene(variables))
+                for u, v in self.directed.edges()
+                if v.get_base() not in base_variables
             ],
             undirected=[
-                (u.intervene(variables), v.intervene(variables)) for u, v in self.undirected.edges()
-                if (v.get_base() not in base_variables) and ( u.get_base() not in base_variables)
+                (u.intervene(variables), v.intervene(variables))
+                for u, v in self.undirected.edges()
+                if (v.get_base() not in base_variables) and (u.get_base() not in base_variables)
             ],
         )
 
