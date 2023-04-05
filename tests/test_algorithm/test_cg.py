@@ -29,7 +29,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
     def test_make_parallel_worlds(self):
         """Test that parallel worlds graphs are correct."""
         expected = figure_9b.graph
-        actual = make_parallel_worlds_graph(figure_9a.graph, [[~X], [D]])
+        actual = make_parallel_worlds_graph(figure_9a.graph, {frozenset([~X]), frozenset([D])})
         self.assert_graph_equal(expected, actual)
 
     def test_has_same_function(self):
@@ -52,8 +52,8 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_get_worlds(self):
         """Test that all interventions within each world of a counterfactual conjunction are generated."""
-        self.assertEqual([[-D], [~X]], extract_interventions([Y @ ~X, X, Z @ D, D]))
-        self.assertEqual([[-D], [~X, -Z]], extract_interventions([Y @ (~X, -Z), X, Z @ -D, D]))
+        self.assertEqual({frozenset([-D]),frozenset([~X])}, extract_interventions([Y @ ~X, X, Z @ D, D]))
+        self.assertEqual({frozenset([-D]), frozenset([~X, -Z])}, extract_interventions([Y @ (~X, -Z), X, Z @ -D, D]))
 
     def test_is_pw_equivalent(self):
         """Test that two nodes in a parallel world graph are the same. (lemma 24)"""

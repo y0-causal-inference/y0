@@ -431,10 +431,10 @@ figure_9b = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(
         directed=[
-            (X @ ~X, W @ ~X),
-            (W @ ~X, Y @ ~X),
-            (D @ ~X, Z @ ~X),
-            (Z @ ~X, Y @ ~X),
+            (X @ +X, W @ +X),
+            (W @ +X, Y @ +X),
+            (D @ +X, Z @ +X),
+            (Z @ +X, Y @ +X),
             (X, W),
             (W, Y),
             (D, Z),

@@ -104,13 +104,14 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
     :param node2:
     :returns:
     """
+    # If a we are going to merge two nodes, we want to keep the factual variable.
     if isinstance(node1, CounterfactualVariable) and not isinstance(node2, CounterfactualVariable):
         node1, node2 = node2, node1
     elif not isinstance(node1, CounterfactualVariable) and isinstance(
         node2, CounterfactualVariable
     ):
         pass
-    else:
+    else: # both are counterfactual or both are factual, so keep the variable with the lower name
         node1, node2 = sorted([node1, node2])
     directed = [(u, v) for u, v in graph.directed.edges() if node2 not in (u, v)]
     directed += [(node1, v) for u, v in graph.directed.edges() if node2 == u]
@@ -238,9 +239,9 @@ def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGr
 
 def make_parallel_world_graph(graph: NxMixedGraph, world: World) -> NxMixedGraph:
     """Make a parallel world graph based on interventions specified."""
-    treatment_variables = [treatment.get_base() for treatment in world]
-    world_graph = graph.remove_in_edges(treatment_variables)
-    return world_graph.intervene(treatment_variables)
+    treatment_variables = [treatment for treatment in world]
+    #world_graph = graph.remove_in_edges(treatment_variables)
+    return graph.intervene(treatment_variables)
 
 
 def combine_worlds(
