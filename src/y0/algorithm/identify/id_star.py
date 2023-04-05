@@ -2,7 +2,7 @@
 
 """Implementation of the ID* algorithm."""
 
-from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Set, Tuple
+from typing import Collection, FrozenSet, Iterable, List, Mapping, Optional, Set, Tuple
 
 from y0.dsl import is_self_intervened
 
@@ -35,7 +35,7 @@ __all__ = [
 ] + [f"id_star_line_{i}" for i in [4, 6, 8, 9]]
 
 District = FrozenSet[Variable]
-DistrictInterventions = Mapping[District, Set[Variable]]
+DistrictInterventions = Mapping[District, Set[Intervention]]
 
 
 def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
@@ -90,28 +90,38 @@ def get_free_variables(graph: NxMixedGraph, event: Event) -> Set[Variable]:
     return {variable.get_base() for variable in graph.nodes() - set(event)}
 
 
-def get_district_events(
-    interventions_of_each_district: DistrictInterventions,
-) -> Mapping[District, Event]:
+def get_district_events(district_interventions: DistrictInterventions) -> Mapping[District, Event]:
     """Takes a district and a set of interventions, and applies the set of interventions to each node in the district"""
     return {
-        district: {merge_interventions(node, interventions): node.get_base() for node in district}
-        for district, interventions in interventions_of_each_district.items()
+        district: get_district_event(district, interventions)
+        for district, interventions in district_interventions.items()
+    }
+
+
+def get_district_event(district: District, interventions: Set[Intervention]) -> Event:
+    return {
+        # FIXME is node.get_base() right? This does not create interventions but rather variables
+        merge_interventions(node, interventions): node.get_base()
+        for node in district
     }
 
 
 def merge_interventions(
-    variable: Variable, interventions: Collection[Intervention]
+    variable: Variable, interventions: Iterable[Intervention]
 ) -> CounterfactualVariable:
     """Take a (potentially) counterfactual variable and a set of interventions and return the counterfactual
     variable augmented with the new interventions."""
-    interventions = set(
-        Intervention(i.name, star=False) if not isinstance(i, Intervention) else i
-        for i in interventions
+    processed_interventions = set(
+        Intervention(intervention.name, star=False)
+        if not isinstance(intervention, Intervention)
+        else intervention
+        for intervention in interventions
     )
     if isinstance(variable, CounterfactualVariable):
-        interventions = interventions.union(variable.interventions)
-    return CounterfactualVariable(name=variable.name, interventions=tuple(sorted(interventions)))
+        processed_interventions.update(variable.interventions)
+    return CounterfactualVariable(
+        name=variable.name, interventions=tuple(sorted(processed_interventions))
+    )
 
 
 def is_event_empty(event: Event) -> bool:
@@ -219,8 +229,10 @@ def id_star_line_6(
 
 
 def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
-    """for each district, intervene on the domain of each variable not in the district.
-    The domain of variables in the event query are restricted to their event value"""
+    """
+    for each district, intervene on the domain of each variable not in the district.
+    The domain of variables in the event query are restricted to their event value
+    """
     nodes = set(node for node in graph.nodes() if not is_self_intervened(node))
     return {
         district: domain_of_counterfactual_values(event, nodes - district)
@@ -248,11 +260,12 @@ def get_parents_of_district(graph: NxMixedGraph, event: Event) -> DistrictInterv
     }
 
 
-def domain_of_counterfactual_values(event: Event, variables: Iterable[Variable]) -> Set[Variable]:
+def domain_of_counterfactual_values(event: Event, variables: Iterable[Variable]) -> Set[Intervention]:
     """Return domain of counterfactual values.
     If a variable is part of an event, just intervene on its observed value.
     Otherwise, intervene on all values in the variable's domain.
     """
+    # FIXME variable.get_base() does not return an intervention
     return {event[variable] if variable in event else variable.get_base() for variable in variables}
 
 
@@ -304,26 +317,28 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
 
 def rule_3_applies(
     graph: NxMixedGraph, district: Collection[Variable]
-) -> Collection[Tuple[CounterfactualVariable, Intervention]]:
+) -> List[Tuple[CounterfactualVariable, Intervention]]:
     """Apply rule 3 to each intervention in the district
 
     :param graph: A counterfactual graph
     :param district: A tuple of counterfactual variables representing the C-component (district)
     :return: The collection of counterfactual variables and the interventions that are D separated according to the graph
-
     """
     rule_3_applications = []
+    district = set(district)
     for counterfactual in district:
-        if isinstance(counterfactual, CounterfactualVariable):
-            interventions = set(graph.nodes) - set(district)
-            for intervention in interventions:
-                if are_d_separated(
-                    graph,
-                    intervention,
-                    counterfactual,
-                    conditions=interventions - set([intervention]),
-                ):
-                    rule_3_applications.append((counterfactual, intervention))
+        if not isinstance(counterfactual, CounterfactualVariable):
+            continue
+        interventions: Set[Variable] = set(graph.nodes()).difference(district)
+        for intervention in interventions:
+            if are_d_separated(
+                graph,
+                intervention,
+                counterfactual,
+                conditions=interventions - {intervention},
+            ):
+                # FIXME `intervention` can be any variable
+                rule_3_applications.append((counterfactual, intervention))
     return rule_3_applications
 
 

@@ -190,26 +190,38 @@ def make_counterfactual_graph(
 
 
 def remove_redundant_interventions(graph: NxMixedGraph) -> NxMixedGraph:
+    # TODO write documentation on the goal of this function
     relabel: Dict[CounterfactualVariable, Variable] = {}
     for node in graph.topological_sort():
-        if isinstance(node, CounterfactualVariable):
+        if not isinstance(node, CounterfactualVariable):
+            continue
+        ancestor_bases = [ancestor.get_base() for ancestor in graph.ancestors_inclusive(node)]
+        # Things to check:
+        #  1. does not have 0 interventions, 1 intervention, or more than one?
+        #  a. is node already in relabeling?
+        #  2b. if so, is it a regular variable or a counterfactual variable?
+        if 1 == len(node.interventions):
+            intervention = node.interventions[0]
+            raise NotImplementedError
+        else:
             for intervention in node.interventions:
-                if intervention.get_base() not in [
-                    ancestor.get_base() for ancestor in graph.ancestors_inclusive(node)
-                ]:
-                    if 1 == len(node.interventions) or (
-                        node in relabel and 1 == len(relabel[node].interventions)
-                    ):
-                        relabel[node] = Variable(name=node.name)
-                    elif node not in relabel:
-                        relabel[node] = CounterfactualVariable(
-                            name=node.name, interventions=set(node.interventions) - {intervention}
-                        )
-                    else:
-                        relabel[node] = CounterfactualVariable(
-                            name=node.name,
-                            interventions=set(relabel[node].interventions) - {intervention},
-                        )
+                if intervention.get_base() in ancestor_bases:
+                    continue
+                # This next part does not make sense, the same node would get
+                # overwritten in the relabel dictionary for each intervention
+                if 1 == len(node.interventions) or (
+                    node in relabel and 1 == len(relabel[node].interventions)
+                ):
+                    relabel[node] = Variable(name=node.name)
+                elif node not in relabel:
+                    relabel[node] = CounterfactualVariable(
+                        name=node.name, interventions=set(node.interventions) - {intervention}
+                    )
+                else:
+                    relabel[node] = CounterfactualVariable(
+                        name=node.name,
+                        interventions=set(relabel[node].interventions) - {intervention},
+                    )
     return graph.relabel_nodes(relabel)
 
 
