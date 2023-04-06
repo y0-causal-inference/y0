@@ -419,7 +419,7 @@ class NxMixedGraph:
 
     def relabel_nodes(self, mapping: Mapping[CounterfactualVariable, Variable]) -> NxMixedGraph:
         directed = relabel_nodes(self.directed, mapping)
-        undirected = relabel_nodes(self.directed, mapping)
+        undirected = relabel_nodes(self.undirected, mapping)
         return NxMixedGraph.from_edges(
             nodes=set(directed.nodes()) | set(undirected.nodes()),
             directed=directed.edges(),
