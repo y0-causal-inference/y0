@@ -19,7 +19,16 @@ __all__ = [
     "combine_worlds",
 ]
 
-World = FrozenSet[Intervention]
+
+class World(FrozenSet[Intervention]):
+    def __contains__(self, item) -> bool:
+        if not isinstance(item, Intervention):
+            raise TypeError(
+                f"can not check if non-intervention is in a world: ({type(item)}) {item}"
+            )
+        return super().__contains__(item)
+
+
 Worlds = Set[World]
 
 
@@ -45,7 +54,7 @@ def extract_interventions(variables: Iterable[Variable]) -> Worlds:
     # is sorting necessary? why not just return a set/frozenset?
     # Yes, because otherwise different counterfactual graphs will be created each time.
     return set(
-        frozenset(variable.interventions)
+        World(variable.interventions)
         for variable in variables
         if isinstance(variable, CounterfactualVariable)
     )
@@ -135,8 +144,8 @@ def make_counterfactual_graph(
         undirected=pw_graph.undirected.edges(),
     )
     for node in graph.topological_sort():
-        for interventions in worlds:
-            node_at_interventions = node @ interventions
+        for world in worlds:
+            node_at_interventions = node @ world
             if (
                 (node in cf_graph.nodes())
                 and (node_at_interventions in cf_graph.nodes())
@@ -195,30 +204,37 @@ def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGr
     return combine_worlds(graph, world_graphs, worlds)
 
 
-def _stitch_1(graph: NxMixedGraph, worlds: Worlds):
+def _stitch_1(
+    graph: NxMixedGraph, worlds: Worlds
+) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
     # TODO high level documentation
     return [
-        (node, node @ treatments)
-        for treatments in worlds
+        (node, node @ world)
+        for world in worlds
         for node in graph.nodes()
         # Don't add an edge if a variable is intervened on
-        if (node not in treatments) and (~node not in treatments)
+        # TODO make this check part of the World class during pair coding
+        if (node not in world) and (~node not in world)
     ]
 
 
-def _stitch_2(graph: NxMixedGraph, worlds: Worlds):
+def _stitch_2(
+    graph: NxMixedGraph, worlds: Worlds
+) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
     # TODO high level documentation
     return [
-        (u, v @ treatments)
-        for treatments in worlds
+        (u, v @ world)
+        for world in worlds
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)
         # Don't add an edge if a variable is intervened on
-        if (v not in treatments) and (~v not in treatments)
+        if (v not in world) and (~v not in world)
     ]
 
 
-def _stitch_3(graph: NxMixedGraph, worlds: Worlds):
+def _stitch_3(
+    graph: NxMixedGraph, worlds: Worlds
+) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
     return [
         (u @ treatments_from_world_1, u @ treatments_from_world_2)
         for treatments_from_world_1, treatments_from_world_2 in combinations(worlds, 2)
@@ -231,7 +247,9 @@ def _stitch_3(graph: NxMixedGraph, worlds: Worlds):
     ]
 
 
-def _stitch_4(graph: NxMixedGraph, worlds: Worlds):
+def _stitch_4(
+    graph: NxMixedGraph, worlds: Worlds
+) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
     return [
         (u @ treatments_from_world_1, v @ treatments_from_world_2)
         for treatments_from_world_1, treatments_from_world_2 in combinations(worlds, 2)
