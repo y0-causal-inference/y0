@@ -441,19 +441,20 @@ class NxMixedGraph:
         :param variables: A set of interventions
         :returns: A graph that has been intervened on the given interventions
         """
-
-        base_variables = {v.get_base() for v in _upgrade_variables(variables)}
+        variables = _upgrade_variables(variables)
+        bases = {variable.get_base() for variable in variables}
         return self.from_edges(
             nodes=[node.intervene(variables) for node in self.nodes()],
             directed=[
                 (u.intervene(variables), v.intervene(variables))
                 for u, v in self.directed.edges()
-                if v.get_base() not in base_variables
+                # TODO document why not check `u.get_base() not in bases`
+                if v.get_base() not in bases
             ],
             undirected=[
                 (u.intervene(variables), v.intervene(variables))
                 for u, v in self.undirected.edges()
-                if (v.get_base() not in base_variables) and (u.get_base() not in base_variables)
+                if v.get_base() not in bases and u.get_base() not in bases
             ],
         )
 

@@ -3,26 +3,9 @@
 """Utilities for parallel world graphs and counterfactual graphs."""
 
 from itertools import combinations
-from typing import (
-    Collection,
-    Dict,
-    FrozenSet,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-)
+from typing import Collection, Dict, FrozenSet, Iterable, List, Optional, Set, Tuple
 
-from y0.dsl import (
-    CounterfactualVariable,
-    Event,
-    Intervention,
-    Variable,
-    Zero,
-    is_self_intervened,
-)
+from y0.dsl import CounterfactualVariable, Event, Intervention, Variable
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -33,7 +16,6 @@ __all__ = [
     "merge_pw",
     "make_counterfactual_graph",
     "make_parallel_worlds_graph",
-    "make_parallel_world_graph",
     "combine_worlds",
 ]
 
@@ -187,9 +169,11 @@ def make_counterfactual_graph(
                         and (node_at_intervention2 in new_event)
                         and (new_event[node_at_intervention1] != new_event[node_at_intervention2])
                     ):
+                        # TODO needs test case
                         return cf_graph, None
 
                     if node_at_intervention2 in new_event:
+                        # TODO needs test case
                         new_event[node_at_intervention1] = new_event[node_at_intervention2]
                         new_event.pop(node_at_intervention2, None)
     rv_graph = cf_graph.subgraph(cf_graph.ancestors_inclusive(new_event))
@@ -201,6 +185,7 @@ def make_counterfactual_graph(
 
 
 def remove_redundant_interventions(graph: NxMixedGraph) -> NxMixedGraph:
+    # TODO this function is not used. delete?
     # TODO write documentation on the goal of this function
     relabel: Dict[CounterfactualVariable, Variable] = {}
     for node in graph.topological_sort():
@@ -246,15 +231,58 @@ def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGr
     :param worlds: A set of sets of treatments
     :returns: A combine parallel world graph
     """
-    world_graphs: List[NxMixedGraph] = [make_parallel_world_graph(graph, world) for world in worlds]
+    world_graphs: List[NxMixedGraph] = [graph.intervene(world) for world in worlds]
     return combine_worlds(graph, world_graphs, worlds)
 
 
-def make_parallel_world_graph(graph: NxMixedGraph, world: World) -> NxMixedGraph:
-    """Make a parallel world graph based on interventions specified."""
-    treatment_variables = [treatment for treatment in world]
-    # world_graph = graph.remove_in_edges(treatment_variables)
-    return graph.intervene(treatment_variables)
+def _stitch_1(graph: NxMixedGraph, worlds: Worlds):
+    # TODO high level documentation
+    return [
+        (node, node @ treatments)
+        for treatments in worlds
+        for node in graph.nodes()
+        # Don't add an edge if a variable is intervened on
+        if (node not in treatments) and (~node not in treatments)
+    ]
+
+
+def _stitch_2(graph: NxMixedGraph, worlds: Worlds):
+    # TODO high level documentation
+    return [
+        (u, v @ treatments)
+        for treatments in worlds
+        for u in graph.nodes()
+        for v in graph.undirected.neighbors(u)
+        # Don't add an edge if a variable is intervened on
+        if (v not in treatments) and (~v not in treatments)
+    ]
+
+
+def _stitch_3(graph: NxMixedGraph, worlds: Worlds):
+    return [
+        (u @ treatments_from_world_1, u @ treatments_from_world_2)
+        for treatments_from_world_1, treatments_from_world_2 in combinations(worlds, 2)
+        for u in graph.nodes()
+        # Don't add an edge if a variable is intervened on in either world.
+        if (u not in treatments_from_world_1)
+        and (u not in treatments_from_world_2)
+        and (~u not in treatments_from_world_1)
+        and (~u not in treatments_from_world_2)
+    ]
+
+
+def _stitch_4(graph: NxMixedGraph, worlds: Worlds):
+    return [
+        (u @ treatments_from_world_1, v @ treatments_from_world_2)
+        for treatments_from_world_1, treatments_from_world_2 in combinations(worlds, 2)
+        for u in graph.nodes()
+        for v in graph.undirected.neighbors(u)
+        # Don't add an edge if a variable is intervened on in either world.
+        if (u not in treatments_from_world_1)
+        and (v not in treatments_from_world_2)
+        and (~u not in treatments_from_world_1)
+        and (~v not in treatments_from_world_2)
+    ]
 
 
 def combine_worlds(
@@ -265,49 +293,26 @@ def combine_worlds(
     """Stitch together parallel worlds through the magic of bidirected edges."""
     # get all the undirected edges in all the parallel worlds
     undirected = [(u, v) for world_graph in world_graphs for u, v in world_graph.undirected.edges()]
+
     # Stitch together counterfactual variables with observed variables
-    undirected += [
-        (u, u @ treatments)
-        for treatments in worlds
-        for u in graph.nodes()
-        # Don't add an edge if a variable is intervened on
-        if (u not in treatments) and (~u not in treatments)
-    ]
-    undirected += [
-        (u, v @ treatments)
-        for treatments in worlds
-        for u in graph.nodes()
-        for v in graph.undirected.neighbors(u)
-        # Don't add an edge if a variable is intervened on
-        if (v not in treatments) and (~v not in treatments)
-    ]
+    undirected.extend(_stitch_1(graph, worlds))
+    undirected.extend(_stitch_2(graph, worlds))
+
     # Stitch together variables from different counterfactual worlds
     if len(worlds) > 1:
-        undirected += [
-            (u @ treatments_from_world_1, u @ treatments_from_world_2)
-            for treatments_from_world_1, treatments_from_world_2 in combinations(worlds, 2)
-            for u in graph.nodes()
-            # Don't add an edge if a variable is intervened on in either world.
-            if (u not in treatments_from_world_1)
-            and (u not in treatments_from_world_2)
-            and (~u not in treatments_from_world_1)
-            and (~u not in treatments_from_world_2)
-        ]
-        undirected += [
-            (u @ treatments_from_world_1, v @ treatments_from_world_2)
-            for treatments_from_world_1, treatments_from_world_2 in combinations(worlds, 2)
-            for u in graph.nodes()
-            for v in graph.undirected.neighbors(u)
-            # Don't add an edge if a variable is intervened on in either world.
-            if (u not in treatments_from_world_1)
-            and (v not in treatments_from_world_2)
-            and (~u not in treatments_from_world_1)
-            and (~v not in treatments_from_world_2)
-        ]
+        undirected.extend(_stitch_3(graph, worlds))
+        undirected.extend(_stitch_4(graph, worlds))
+
+    nodes = [
+        *graph.nodes(),
+        *(node for world_graph in world_graphs for node in world_graph.nodes()),
+    ]
+    directed = [
+        *graph.directed.edges(),
+        *((u, v) for world_graph in world_graphs for u, v in world_graph.directed.edges()),
+    ]
     return NxMixedGraph.from_edges(
-        nodes=list(graph.nodes())
-        + [node for pw_graph in world_graphs for node in pw_graph.nodes()],
-        directed=list(graph.directed.edges())
-        + [(u, v) for pw_graph in world_graphs for u, v in pw_graph.directed.edges()],
+        nodes=nodes,
+        directed=directed,
         undirected=list(graph.undirected.edges()) + undirected,
     )
