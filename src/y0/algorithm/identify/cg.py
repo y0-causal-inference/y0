@@ -21,6 +21,8 @@ __all__ = [
 
 
 class World(FrozenSet[Intervention]):
+    """A set of interventions corresponding to a "world"."""
+
     def __contains__(self, item) -> bool:
         if not isinstance(item, Intervention):
             raise TypeError(
@@ -204,6 +206,9 @@ def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGr
     return combine_worlds(graph, world_graphs, worlds)
 
 
+def _check_world(world, node):
+    return (node not in world) and (~node not in world)
+
 def _stitch_1(
     graph: NxMixedGraph, worlds: Worlds
 ) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
@@ -214,7 +219,7 @@ def _stitch_1(
         for node in graph.nodes()
         # Don't add an edge if a variable is intervened on
         # TODO make this check part of the World class during pair coding
-        if (node not in world) and (~node not in world)
+        if _check_world(world, node)
     ]
 
 
@@ -228,7 +233,7 @@ def _stitch_2(
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)
         # Don't add an edge if a variable is intervened on
-        if (v not in world) and (~v not in world)
+        if _check_world(world, v)
     ]
 
 
@@ -236,14 +241,11 @@ def _stitch_3(
     graph: NxMixedGraph, worlds: Worlds
 ) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
     return [
-        (u @ treatments_from_world_1, u @ treatments_from_world_2)
-        for treatments_from_world_1, treatments_from_world_2 in combinations(worlds, 2)
+        (u @ world_1, u @ world_2)
+        for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         # Don't add an edge if a variable is intervened on in either world.
-        if (u not in treatments_from_world_1)
-        and (u not in treatments_from_world_2)
-        and (~u not in treatments_from_world_1)
-        and (~u not in treatments_from_world_2)
+        if _check_world(world_1, u) and _check_world(world_2, u)
     ]
 
 
@@ -251,15 +253,12 @@ def _stitch_4(
     graph: NxMixedGraph, worlds: Worlds
 ) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
     return [
-        (u @ treatments_from_world_1, v @ treatments_from_world_2)
-        for treatments_from_world_1, treatments_from_world_2 in combinations(worlds, 2)
+        (u @ world_1, v @ world_2)
+        for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)
         # Don't add an edge if a variable is intervened on in either world.
-        if (u not in treatments_from_world_1)
-        and (v not in treatments_from_world_2)
-        and (~u not in treatments_from_world_1)
-        and (~v not in treatments_from_world_2)
+        if _check_world(u, world_1) and _check_world(v, world_2)
     ]
 
 
