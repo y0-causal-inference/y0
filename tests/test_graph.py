@@ -8,7 +8,7 @@ from typing import Set, Tuple
 
 import networkx as nx
 
-from y0.dsl import A, B, C, D, M, Variable, X, Y, Z
+from y0.dsl import A, B, C, D, M, Variable, W, X, Y, Z
 from y0.examples import Example, examples, verma_1
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
