@@ -37,9 +37,13 @@ Worlds = Set[World]
 def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
     """Check if all parents of the two nodes are the same.
 
-    This is true if the set of directed parents are the same and either there
-    exists a bidirected edge between the two nodes or there exists no bidirected
-    edges for either node.
+    :param graph: An ADMG
+    :param a: A variable in the ADMG
+    :param b: Another variable in the ADMG
+    :returns:
+        True if the set of directed parents are the same and either there
+        exists a bidirected edge between the two nodes or there exists no bidirected
+        edges for either node.
     """
     return (set(graph.directed.predecessors(a)) == set(graph.directed.predecessors(b))) and (
         graph.undirected.has_edge(a, b)
@@ -48,6 +52,8 @@ def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
 
 
 def has_same_function(node1: Variable, node2: Variable) -> bool:
+    """Check if the two nodes have the same name."""
+    # TODO maybe check if the get_base() is the same instead?
     return node1.name == node2.name
 
 
@@ -62,8 +68,13 @@ def extract_interventions(variables: Iterable[Variable]) -> Worlds:
     )
 
 
-def is_pw_equivalent(pw_graph: NxMixedGraph, node1: Variable, node2: Variable) -> bool:
+def is_pw_equivalent(graph: NxMixedGraph, node1: Variable, node2: Variable) -> bool:
     r"""Check if two nodes in a parallel worlds graph are equivalent.
+
+    :param graph: A parallel worlds graph
+    :param node1: A node in the graph
+    :param node2: Another node in the graph
+    :returns: If the two nodes are equivalent under the parallel worlds assumption
 
     Let :math:`M` be a model inducing :math:`G` containing variables
     :math:`\alpha`, :math:`\beta` with the following properties:
@@ -87,7 +98,7 @@ def is_pw_equivalent(pw_graph: NxMixedGraph, node1: Variable, node2: Variable) -
     """
     # Rather than all n choose 2 combinations, we can restrict ourselves to the original
     # graph variables and their counterfactual versions
-    return has_same_function(node1, node2) and has_same_parents(pw_graph, node1, node2)
+    return has_same_function(node1, node2) and has_same_parents(graph, node1, node2)
 
 
 def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGraph:
@@ -102,10 +113,10 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
     :math:`M_\mathbf{x},  M'_\mathbf{x} agree on any distribution consistent with :math:`z`
     being observed.
 
-    :param graph:
-    :param node1:
-    :param node2:
-    :returns:
+    :param graph: A parallel worlds graph
+    :param node1: A node in the graph
+    :param node2: Another node in the graph
+    :returns: A reduced graph
     """
     # If a we are going to merge two nodes, we want to keep the factual variable.
     if isinstance(node1, CounterfactualVariable) and not isinstance(node2, CounterfactualVariable):
@@ -206,8 +217,9 @@ def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGr
     return combine_worlds(graph, world_graphs, worlds)
 
 
-def _check_world(world, node):
+def _check_world(*, world: World, node: Variable) -> bool:
     return (node not in world) and (~node not in world)
+
 
 def _stitch_1(
     graph: NxMixedGraph, worlds: Worlds
@@ -219,7 +231,7 @@ def _stitch_1(
         for node in graph.nodes()
         # Don't add an edge if a variable is intervened on
         # TODO make this check part of the World class during pair coding
-        if _check_world(world, node)
+        if _check_world(world=world, node=node)
     ]
 
 
@@ -233,7 +245,7 @@ def _stitch_2(
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)
         # Don't add an edge if a variable is intervened on
-        if _check_world(world, v)
+        if _check_world(world=world, node=v)
     ]
 
 
@@ -245,7 +257,7 @@ def _stitch_3(
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         # Don't add an edge if a variable is intervened on in either world.
-        if _check_world(world_1, u) and _check_world(world_2, u)
+        if _check_world(world=world_1, node=u) and _check_world(world=world_2, node=u)
     ]
 
 
@@ -258,7 +270,7 @@ def _stitch_4(
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)
         # Don't add an edge if a variable is intervened on in either world.
-        if _check_world(u, world_1) and _check_world(v, world_2)
+        if _check_world(node=u, world=world_1) and _check_world(node=v, world=world_2)
     ]
 
 

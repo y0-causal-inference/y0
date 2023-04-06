@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+"""Tests for parallel world graphs and counterfactual graphs."""
+
 from tests.test_algorithm import cases
 from y0.algorithm.identify.cg import (
     extract_interventions,
@@ -61,7 +65,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
 
     def test_is_pw_equivalent(self):
-        """Test that two nodes in a parallel world graph are the same. (lemma 24)"""
+        """Test that two nodes in a parallel world graph are the same (lemma 24)."""
         self.assertTrue(is_pw_equivalent(figure_9b.graph, D @ ~X, D))
         self.assertTrue(is_pw_equivalent(figure_9b.graph, X @ D, X))
         self.assertFalse(is_pw_equivalent(figure_9b.graph, Z @ D, Z))

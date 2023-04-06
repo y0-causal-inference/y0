@@ -426,7 +426,6 @@ class NxMixedGraph:
     def intervene(self, variables: VariableHint) -> NxMixedGraph:
         """Intervene on the given variables.
 
-        :param graph: A graph
         :param variables: A set of interventions
         :returns: A graph that has been intervened on the given interventions
         """
