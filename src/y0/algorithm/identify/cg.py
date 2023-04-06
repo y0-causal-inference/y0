@@ -3,7 +3,17 @@
 """Utilities for parallel world graphs and counterfactual graphs."""
 
 from itertools import combinations
-from typing import Collection, Dict, Iterable, List, Optional, Sequence, Set, Tuple, FrozenSet
+from typing import (
+    Collection,
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from y0.dsl import (
     CounterfactualVariable,

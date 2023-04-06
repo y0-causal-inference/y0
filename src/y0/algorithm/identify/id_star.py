@@ -8,6 +8,7 @@ from y0.dsl import is_self_intervened
 
 from .cg import make_counterfactual_graph
 from .utils import Unidentifiable
+from ..conditional_independencies import are_d_separated
 from ...dsl import (
     CounterfactualVariable,
     Event,
@@ -21,7 +22,6 @@ from ...dsl import (
     Variable,
     Zero,
 )
-from ..conditional_independencies import are_d_separated
 from ...graph import NxMixedGraph
 
 __all__ = [
@@ -100,10 +100,16 @@ def get_district_events(district_interventions: DistrictInterventions) -> Mappin
 
 def get_district_event(district: District, interventions: Set[Intervention]) -> Event:
     return {
-        # FIXME is node.get_base() right? This does not create interventions but rather variables
-        merge_interventions(node, interventions): node.get_base()
+        merge_interventions(
+            node, interventions
+        ): _get_intervention_from_note_for_get_district_event(node)
         for node in district
     }
+
+
+def _get_intervention_from_note_for_get_district_event(node) -> Intervention:
+    node_base = node.get_base()
+    raise NotImplementedError
 
 
 def merge_interventions(
@@ -267,8 +273,17 @@ def domain_of_counterfactual_values(
     If a variable is part of an event, just intervene on its observed value.
     Otherwise, intervene on all values in the variable's domain.
     """
-    # FIXME variable.get_base() does not return an intervention
-    return {event[variable] if variable in event else variable.get_base() for variable in variables}
+    return {
+        event[variable]
+        if variable in event
+        else _get_intervention_from_variable_for_domain_of_counterfactual_values(variable)
+        for variable in variables
+    }
+
+
+def _get_intervention_from_variable_for_domain_of_counterfactual_values(variable) -> Intervention:
+    base = variable.get_base()
+    raise NotImplementedError
 
 
 def id_star_line_8(graph: NxMixedGraph, event: Event) -> bool:
