@@ -124,11 +124,13 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
     # If a we are going to merge two nodes, we want to keep the factual variable.
     if isinstance(node1, CounterfactualVariable) and not isinstance(node2, CounterfactualVariable):
         node1, node2 = node2, node1
+        # TODO needs test case
     elif not isinstance(node1, CounterfactualVariable) and isinstance(
         node2, CounterfactualVariable
     ):
         pass
     else:  # both are counterfactual or both are factual, so keep the variable with the lower name
+        # TODO needs test case
         node1, node2 = sorted([node1, node2])
     directed = [(u, v) for u, v in graph.directed.edges() if node2 not in (u, v)]
     directed += [(node1, v) for u, v in graph.directed.edges() if node2 == u]
@@ -173,6 +175,7 @@ def make_counterfactual_graph(
                     and (node_at_interventions in new_event)
                     and (new_event[node] != new_event[node_at_interventions])
                 ):
+                    # TODO needs test case
                     return cf_graph, None
                 if node_at_interventions in new_event:
                     new_event[node] = new_event[node_at_interventions]
@@ -221,7 +224,11 @@ def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGr
 
 
 def _check_world(*, world: World, node: Variable) -> bool:
-    return (node not in world) and (~node not in world)
+    if isinstance(node, (Intervention, CounterfactualVariable)):
+        raise TypeError(
+            "this shouldn't happen since the graph should not have interventions as nodes"
+        )
+    return (+node not in world) and (-node not in world)
 
 
 def _stitch_1(
