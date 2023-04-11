@@ -45,7 +45,9 @@ def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
         exists a bidirected edge between the two nodes or there exists no bidirected
         edges for either node.
     """
-    same_directed_predecessors = set(graph.directed.predecessors(a)) == set(graph.directed.predecessors(b))
+    same_directed_predecessors = set(graph.directed.predecessors(a)) == set(
+        graph.directed.predecessors(b)
+    )
     no_undirected_edges = 0 == len(graph.undirected.edges(a)) == len(graph.undirected.edges(b))
     # FIXME rename to something meaningful
     c2 = graph.undirected.has_edge(a, b) or no_undirected_edges
