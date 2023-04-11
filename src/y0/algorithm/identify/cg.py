@@ -49,21 +49,17 @@ def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
         graph.directed.predecessors(b)
     )
     no_undirected_edges = 0 == len(graph.undirected.edges(a)) == len(graph.undirected.edges(b))
-    # FIXME rename to something meaningful
-    c2 = graph.undirected.has_edge(a, b) or no_undirected_edges
-    return same_directed_predecessors and c2
+    same_confounders = graph.undirected.has_edge(a, b) or no_undirected_edges
+    return same_directed_predecessors and same_confounders
 
 
 def has_same_function(node1: Variable, node2: Variable) -> bool:
-    """Check if the two nodes have the same name."""
-    # TODO maybe check if the get_base() is the same instead?
-    return node1.name == node2.name
+    """Check if the two nodes refer to the same factual variable."""
+    return node1.get_base() == node2.get_base()
 
 
 def extract_interventions(variables: Iterable[Variable]) -> Worlds:
     """Extract the set of interventions for each counterfactual variable that corresponds to a world."""
-    # is sorting necessary? why not just return a set/frozenset?
-    # Yes, because otherwise different counterfactual graphs will be created each time.
     return set(
         World(variable.interventions)
         for variable in variables
@@ -223,7 +219,10 @@ def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGr
     return combine_worlds(graph, world_graphs, worlds)
 
 
-def _check_world(*, world: World, node: Variable) -> bool:
+def node_not_an_intervention_in_world(*, world: World, node: Variable) -> bool:
+    """
+    Confirm that node is not an intervention in a given world.
+    """
     if isinstance(node, (Intervention, CounterfactualVariable)):
         raise TypeError(
             "this shouldn't happen since the graph should not have interventions as nodes"
@@ -231,56 +230,60 @@ def _check_world(*, world: World, node: Variable) -> bool:
     return (+node not in world) and (-node not in world)
 
 
-def _stitch_1(
+def stitch_factual_and_dopplegangers(
     graph: NxMixedGraph, worlds: Worlds
-) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
-    # TODO high level documentation
+) -> List[Tuple[Variable, CounterfactualVariable]]:
+    """Stitch together a node and its counterfactual doppleganger in each world
+    """
     return [
         (node, node @ world)
         for world in worlds
         for node in graph.nodes()
-        # Don't add an edge if a variable is intervened on
-        # TODO make this check part of the World class during pair coding
-        if _check_world(world=world, node=node)
+        if node_not_an_intervention_in_world(world=world, node=node)
     ]
 
 
-def _stitch_2(
+def stitch_factual_and_doppleganger_neighbors(
     graph: NxMixedGraph, worlds: Worlds
-) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
-    # TODO high level documentation
+) -> List[Tuple[Variable, CounterfactualVariable]]:
+    """Stitch together a node with the dopplegangers of its neighbors in each world.
+    """
     return [
         (u, v @ world)
         for world in worlds
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)
         # Don't add an edge if a variable is intervened on
-        if _check_world(world=world, node=v)
+        if node_not_an_intervention_in_world(world=world, node=v)
     ]
 
 
-def _stitch_3(
+def stitch_counterfactual_and_dopplegangers(
     graph: NxMixedGraph, worlds: Worlds
 ) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
+    """Stitch together a counterfactual variable with its doppleganger in each world.
+    """
     return [
         (u @ world_1, u @ world_2)
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         # Don't add an edge if a variable is intervened on in either world.
-        if _check_world(world=world_1, node=u) and _check_world(world=world_2, node=u)
+        if node_not_an_intervention_in_world(world=world_1, node=u) and node_not_an_intervention_in_world(world=world_2, node=u)
     ]
 
 
-def _stitch_4(
+def stitch_counterfactual_and_doppleganger_neighbors(
     graph: NxMixedGraph, worlds: Worlds
 ) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
+    """Stitch together a counterfactual variable with the dopplegangers of its neighbors in each world.
+    """
     return [
         (u @ world_1, v @ world_2)
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)
         # Don't add an edge if a variable is intervened on in either world.
-        if _check_world(node=u, world=world_1) and _check_world(node=v, world=world_2)
+        if node_not_an_intervention_in_world(node=u, world=world_1) and node_not_an_intervention_in_world(node=v, world=world_2)
     ]
 
 
@@ -293,14 +296,16 @@ def combine_worlds(
     # get all the undirected edges in all the parallel worlds
     undirected = [(u, v) for world_graph in world_graphs for u, v in world_graph.undirected.edges()]
 
-    # Stitch together counterfactual variables with observed variables
-    undirected.extend(_stitch_1(graph, worlds))
-    undirected.extend(_stitch_2(graph, worlds))
+    # Stitch together factual variables with their dopplegangers in other worlds
+    undirected.extend(stitch_factual_and_dopplegangers(graph, worlds))
+    # Stitch together factual variables with the dopplegangers of their neighbors in other worlds
+    undirected.extend(stitch_factual_and_doppleganger_neighbors(graph, worlds))
 
-    # Stitch together variables from different counterfactual worlds
+    # Stitch together counterfactual variables with their dopplegangers in other worlds
     if len(worlds) > 1:
-        undirected.extend(_stitch_3(graph, worlds))
-        undirected.extend(_stitch_4(graph, worlds))
+        undirected.extend(stitch_counterfactual_and_dopplegangers(graph, worlds))
+        # Stitch together counterfactual variables with the dopplegangers of their neighbors in other worlds
+        undirected.extend(stitch_counterfactual_and_doppleganger_neighbors(graph, worlds))
 
     nodes = [
         *graph.nodes(),
