@@ -99,6 +99,11 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)],
                                           undirected=[(X,Z)]),
             worlds=set([frozenset([+x])])))
+        self.assertEqual([(Y, Y @ +x), (Z, Z @ +x), (D, D @ +x),  (X, X @ -d), (Y, Y @ -d), (Z, Z @ -d)],
+                         stitch_factual_and_dopplegangers(
+            graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z), (D, X)],
+                                          undirected=[(X,Z)]),
+            worlds=set([frozenset([+x]), frozenset([-d])])))
 
 
     def test_is_pw_equivalent(self):
