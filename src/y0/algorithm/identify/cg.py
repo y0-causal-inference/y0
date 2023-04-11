@@ -233,8 +233,7 @@ def node_not_an_intervention_in_world(*, world: World, node: Variable) -> bool:
 def stitch_factual_and_dopplegangers(
     graph: NxMixedGraph, worlds: Worlds
 ) -> List[Tuple[Variable, CounterfactualVariable]]:
-    """Stitch together a node and its counterfactual doppleganger in each world
-    """
+    """Stitch together a node and its counterfactual doppleganger in each world"""
     return [
         (node, node @ world)
         for world in worlds
@@ -246,8 +245,7 @@ def stitch_factual_and_dopplegangers(
 def stitch_factual_and_doppleganger_neighbors(
     graph: NxMixedGraph, worlds: Worlds
 ) -> List[Tuple[Variable, CounterfactualVariable]]:
-    """Stitch together a node with the dopplegangers of its neighbors in each world.
-    """
+    """Stitch together a node with the dopplegangers of its neighbors in each world."""
     return [
         (u, v @ world)
         for world in worlds
@@ -261,29 +259,29 @@ def stitch_factual_and_doppleganger_neighbors(
 def stitch_counterfactual_and_dopplegangers(
     graph: NxMixedGraph, worlds: Worlds
 ) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
-    """Stitch together a counterfactual variable with its doppleganger in each world.
-    """
+    """Stitch together a counterfactual variable with its doppleganger in each world."""
     return [
         (u @ world_1, u @ world_2)
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         # Don't add an edge if a variable is intervened on in either world.
-        if node_not_an_intervention_in_world(world=world_1, node=u) and node_not_an_intervention_in_world(world=world_2, node=u)
+        if node_not_an_intervention_in_world(world=world_1, node=u)
+        and node_not_an_intervention_in_world(world=world_2, node=u)
     ]
 
 
 def stitch_counterfactual_and_doppleganger_neighbors(
     graph: NxMixedGraph, worlds: Worlds
 ) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
-    """Stitch together a counterfactual variable with the dopplegangers of its neighbors in each world.
-    """
+    """Stitch together a counterfactual variable with the dopplegangers of its neighbors in each world."""
     return [
         (u @ world_1, v @ world_2)
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)
         # Don't add an edge if a variable is intervened on in either world.
-        if node_not_an_intervention_in_world(node=u, world=world_1) and node_not_an_intervention_in_world(node=v, world=world_2)
+        if node_not_an_intervention_in_world(node=u, world=world_1)
+        and node_not_an_intervention_in_world(node=v, world=world_2)
     ]
 
 
