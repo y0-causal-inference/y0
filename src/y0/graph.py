@@ -7,7 +7,17 @@ from __future__ import annotations
 import itertools as itt
 import json
 from dataclasses import dataclass, field
-from typing import Any, Collection, Iterable, Mapping, Optional, Tuple, Union
+from typing import (
+    Any,
+    Collection,
+    FrozenSet,
+    Iterable,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 import networkx as nx
 from networkx.classes.reportviews import NodeView
@@ -18,7 +28,6 @@ from .dsl import (
     Intervention,
     Variable,
     VariableHint,
-    _upgrade_variables,
     vmap_adj,
     vmap_pairs,
 )
@@ -423,14 +432,12 @@ class NxMixedGraph:
         """Return if there is only a single connected component in the undirected graph."""
         return nx.is_connected(self.undirected)
 
-    def intervene(self, variables: VariableHint) -> NxMixedGraph:
+    def intervene(self, variables: Set[Intervention]) -> NxMixedGraph:
         """Intervene on the given variables.
 
         :param variables: A set of interventions
         :returns: A graph that has been intervened on the given variables, with edges into the intervened nodes removed
         """
-        variables = _upgrade_variables(variables)
-        bases = {variable.get_base() for variable in variables}
         return self.from_edges(
             nodes=[node.intervene(variables) for node in self.nodes()],
             directed=[
@@ -447,7 +454,7 @@ class NxMixedGraph:
         )
 
 
-def _node_not_an_intervention(node: Variable, interventions: FrozenSet[Intervention]) -> bool:
+def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
     """
     Confirm that node is not an intervention
     """

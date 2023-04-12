@@ -8,7 +8,6 @@ from y0.algorithm.identify.cg import (
     has_same_function,
     has_same_parents,
     is_pw_equivalent,
-    make_counterfactual_graph,
     make_parallel_worlds_graph,
     merge_pw,
     node_not_an_intervention_in_world,
@@ -19,15 +18,7 @@ from y0.algorithm.identify.cg import (
     stitch_factual_and_dopplegangers,
 )
 from y0.dsl import D, W, X, Y, Z
-from y0.examples import (
-    figure_9a,
-    figure_9b,
-    figure_9c,
-    figure_9d,
-    figure_11a,
-    figure_11b,
-    figure_11c,
-)
+from y0.examples import figure_9a, figure_9b, figure_11a, figure_11b, figure_11c
 from y0.graph import NxMixedGraph
 
 x, y, z, d, w = -X, -Y, -Z, -D, -W
