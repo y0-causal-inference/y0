@@ -9,6 +9,7 @@ from y0.algorithm.identify.cg import (
     has_same_function,
     has_same_parents,
     is_pw_equivalent,
+    make_counterfactual_graph,
     make_parallel_worlds_graph,
     merge_pw,
     node_not_an_intervention_in_world,
@@ -17,10 +18,17 @@ from y0.algorithm.identify.cg import (
     stitch_counterfactual_and_neighbors,
     stitch_factual_and_doppleganger_neighbors,
     stitch_factual_and_dopplegangers,
-    make_counterfactual_graph
 )
 from y0.dsl import D, W, X, Y, Z
-from y0.examples import figure_9a, figure_9b, figure_9c, figure_9d, figure_11a, figure_11b, figure_11c
+from y0.examples import (
+    figure_9a,
+    figure_9b,
+    figure_9c,
+    figure_9d,
+    figure_11a,
+    figure_11b,
+    figure_11c,
+)
 from y0.graph import NxMixedGraph
 
 x, y, z, d, w = -X, -Y, -Z, -D, -W
@@ -62,7 +70,6 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertFalse(has_same_parents(figure_9b.graph, X @ ~X, X))
         self.assertFalse(has_same_parents(figure_9b.graph, Z, Z @ ~x))
         self.assertTrue(has_same_parents(figure_11a.graph, Z, Z @ ~x))
-
 
     def test_get_worlds(self):
         """Test that all interventions within each world of a counterfactual conjunction are generated."""
@@ -380,7 +387,6 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertTrue(is_pw_equivalent(figure_11a.graph, D @ -d, D))
         self.assertFalse(is_pw_equivalent(figure_11a.graph, X @ +x, X))
 
-
     def test_merge_pw(self):
         """Test that the parallel worlds graph after merging two nodes is correct.
         (This is lemma 25)"""
@@ -401,7 +407,6 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assert_graph_equal(figure_11c.graph, cf_graph_7)
         self.assert_graph_equal(merge_pw(figure_9b.graph, W @ +x, W @ -d), cf_graph_8)
         self.assert_graph_equal(merge_pw(figure_9b.graph, Z, W), cf_graph_9)
-
 
     def test_make_counterfactual_graph(self):
         r"""Test making a counterfactual graph.

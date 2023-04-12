@@ -54,17 +54,18 @@ def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
 
 def has_same_function(node1: Variable, node2: Variable) -> bool:
     """Check if the two nodes refer to the same factual variable."""
-    return (node1.get_base() == node2.get_base()
-            and is_intervention_same_as_observed(node1)
-            and is_intervention_same_as_observed(node2))
+    return (
+        node1.get_base() == node2.get_base()
+        and is_intervention_same_as_observed(node1)
+        and is_intervention_same_as_observed(node2)
+    )
+
 
 def is_intervention_same_as_observed(node: Variable) -> bool:
     """Check if the two nodes refer to the same factual variable."""
-    return (not isinstance(node, CounterfactualVariable)
-            or  (+(node.get_base()) not in node.interventions)
-            )
-
-
+    return not isinstance(node, CounterfactualVariable) or (
+        +(node.get_base()) not in node.interventions
+    )
 
 
 def extract_interventions(variables: Iterable[Variable]) -> Worlds:
