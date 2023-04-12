@@ -362,27 +362,33 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
 
     def test_is_pw_equivalent(self):
-        """Test that two nodes in a parallel world graph are the same (lemma 24)."""
+        """Test that two nodes in a parallel world graph are the same
+        (lemma 24)."""
         self.assertTrue(is_pw_equivalent(figure_9b.graph, D @ ~X, D))
         self.assertTrue(is_pw_equivalent(figure_9b.graph, X @ D, X))
         self.assertFalse(is_pw_equivalent(figure_9b.graph, Z @ D, Z))
         self.assertFalse(is_pw_equivalent(figure_9b.graph, X, X @ ~X))
 
     def test_merge_pw(self):
-        """Test that the parallel worlds graph after merging two nodes is correct. (This is lemma 25)"""
+        """Test that the parallel worlds graph after merging two nodes is correct.
+        (This is lemma 25)"""
         cf_graph_1 = merge_pw(figure_9b.graph, D, D @ ~X)
         cf_graph_2 = merge_pw(cf_graph_1, X, X @ D)
+        # test that we swap the order of the nodes if the first is a counterfactual
         cf_graph_3 = merge_pw(cf_graph_2, Z @ ~X, Z)
         cf_graph_4 = merge_pw(cf_graph_3, Z, Z @ D)
         cf_graph_5 = merge_pw(cf_graph_4, W, W @ D)
         cf_graph_6 = merge_pw(cf_graph_5, D @ D, D)
         cf_graph_7 = merge_pw(cf_graph_6, Y, Y @ D)
+        # test that we sort the order of the nodes if both are counterfactual
         cf_graph_8 = merge_pw(figure_9b.graph, W @ -d, W @ +x)
-
+        # test that we sort the order of the nodes if the both are factual
+        cf_graph_9 = merge_pw(figure_9b.graph, W, Z)
         self.assert_graph_equal(figure_11a.graph, cf_graph_2)
         self.assert_graph_equal(figure_11b.graph, cf_graph_6)
         self.assert_graph_equal(figure_11c.graph, cf_graph_7)
         self.assert_graph_equal(merge_pw(figure_9b.graph, W @ +x, W @ -d), cf_graph_8)
+        self.assert_graph_equal(merge_pw(figure_9b.graph, Z, W), cf_graph_9)
 
 
     # def test_make_counterfactual_graph(self):
