@@ -27,6 +27,12 @@ x, y, z, d, w = -X, -Y, -Z, -D, -W
 class TestCounterfactualGraph(cases.GraphTestCase):
     """Tests parallel worlds and counterfactual graphs."""
 
+    def assert_set_equal(self, expected, actual):
+        """Assert that two sets are equal."""
+        return self.assertEqual(
+            {frozenset(edge) for edge in expected}, {frozenset(edge) for edge in actual}
+        )
+
     def test_make_parallel_worlds(self):
         """Test that parallel worlds graphs are correct."""
         expected = figure_9b.graph
@@ -53,10 +59,10 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_get_worlds(self):
         """Test that all interventions within each world of a counterfactual conjunction are generated."""
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset([-D]), frozenset([~X])}, extract_interventions([Y @ ~X, X, Z @ D, D])
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset([-D]), frozenset([~X, -Z])},
             extract_interventions([Y @ (~X, -Z), X, Z @ -D, D]),
         )
@@ -73,33 +79,33 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_stitch_factual_and_dopplegangers(self):
         """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon"""
-        self.assertEqual(
+        self.assert_set_equal(
             {(Y, Y @ -x)},
             stitch_factual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {(Y, Y @ +x)},
             stitch_factual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {(Y, Y @ +x), (Z, Z @ +x)},
             stitch_factual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
                 worlds=set([frozenset([+x])]),
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {(Y, Y @ +x), (Z, Z @ +x)},
             stitch_factual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
                 worlds=set([frozenset([+x])]),
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {(Y, Y @ +x), (Z, Z @ +x), (D, D @ +x), (X, X @ -d), (Y, Y @ -d), (Z, Z @ -d)},
             stitch_factual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(
@@ -108,7 +114,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 worlds=set([frozenset([+x]), frozenset([-d])]),
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {
                 (Y, Y @ +x),
                 (Z, Z @ +x),
@@ -126,27 +132,27 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_stitch_factual_and_doppleganger_neighbors(self):
         """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon"""
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             stitch_factual_and_doppleganger_neighbors(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {(X, Y @ +x)},
             stitch_factual_and_doppleganger_neighbors(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
                 worlds=set([frozenset([+x])]),
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {(X, Z @ +x)},
             stitch_factual_and_doppleganger_neighbors(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
                 worlds=set([frozenset([+x])]),
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {(X, Z @ +x), (X, Z @ -d), (Z, X @ -d)},
             stitch_factual_and_doppleganger_neighbors(
                 graph=NxMixedGraph.from_edges(
@@ -158,33 +164,33 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_stitch_counterfactual_and_dopplegangers(self):
         """Test that counterfactual variables and their dopplegangers are stitched together unless it is intervened upon"""
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             stitch_counterfactual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             stitch_counterfactual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             stitch_counterfactual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
                 worlds=set([frozenset([+x])]),
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             stitch_counterfactual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
                 worlds=set([frozenset([+x])]),
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset({Z @ -d, Z @ +x}), frozenset({Y @ +x, Y @ -d})},
             set(
                 stitch_counterfactual_and_dopplegangers(
@@ -195,7 +201,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset({Y @ -d, Y @ +x}), frozenset({W @ +x, W @ -d}), frozenset({Z @ +x, Z @ -d})},
             stitch_counterfactual_and_dopplegangers(
                 graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
@@ -206,7 +212,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         """
         Test that counterfactual variables and their neighbor dopplegangers are stitched together unless either are intervened upon
         """
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             set(
                 stitch_counterfactual_and_doppleganger_neighbors(
@@ -214,7 +220,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             set(
                 stitch_counterfactual_and_doppleganger_neighbors(
@@ -222,7 +228,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             set(
                 stitch_counterfactual_and_doppleganger_neighbors(
@@ -231,7 +237,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             set(
                 stitch_counterfactual_and_doppleganger_neighbors(
@@ -240,7 +246,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset({X @ -d, Z @ +x})},
             set(
                 stitch_counterfactual_and_doppleganger_neighbors(
@@ -251,7 +257,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset({X @ -d, Z @ +x}), frozenset({Y @ +x, Z @ -d}), frozenset({Y @ -d, Z @ +x})},
             set(
                 stitch_counterfactual_and_doppleganger_neighbors(
@@ -262,7 +268,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset({X @ -d, Y @ +x})},
             stitch_counterfactual_and_doppleganger_neighbors(
                 graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
@@ -273,7 +279,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         """
         Test that counterfactual variables and their neighbors are stitched together unless either are intervened upon
         """
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             set(
                 stitch_counterfactual_and_neighbors(
@@ -281,7 +287,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             set(
                 stitch_counterfactual_and_neighbors(
@@ -289,7 +295,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             set(),
             set(
                 stitch_counterfactual_and_neighbors(
@@ -298,7 +304,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset({Y @ +x, Z @ +x})},
             set(
                 stitch_counterfactual_and_neighbors(
@@ -309,7 +315,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset({X @ -d, Z @ -d})},
             set(
                 stitch_counterfactual_and_neighbors(
@@ -320,7 +326,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset({Y @ +x, Z @ +x}), frozenset({Y @ -d, Z @ -d}), frozenset({Z @ -d, X @ -d})},
             set(
                 stitch_counterfactual_and_neighbors(
@@ -331,7 +337,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 )
             ),
         )
-        self.assertEqual(
+        self.assert_set_equal(
             {frozenset({X @ -d, Y @ -d})},
             stitch_counterfactual_and_neighbors(
                 graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
