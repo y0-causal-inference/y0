@@ -427,7 +427,7 @@ class NxMixedGraph:
         """Intervene on the given variables.
 
         :param variables: A set of interventions
-        :returns: A graph that has been intervened on the given interventions
+        :returns: A graph that has been intervened on the given variables, with edges into the intervened nodes removed
         """
         variables = _upgrade_variables(variables)
         bases = {variable.get_base() for variable in variables}
@@ -436,15 +436,26 @@ class NxMixedGraph:
             directed=[
                 (u.intervene(variables), v.intervene(variables))
                 for u, v in self.directed.edges()
-                # TODO document why not check `u.get_base() not in bases`
-                if v.get_base() not in bases
+                if _node_not_an_intervention(v, variables)
             ],
             undirected=[
                 (u.intervene(variables), v.intervene(variables))
                 for u, v in self.undirected.edges()
-                if v.get_base() not in bases and u.get_base() not in bases
+                if _node_not_an_intervention(u, variables)
+                and _node_not_an_intervention(v, variables)
             ],
         )
+
+
+def _node_not_an_intervention(node: Variable, interventions: FrozenSet[Intervention]) -> bool:
+    """
+    Confirm that node is not an intervention
+    """
+    if isinstance(node, (Intervention, CounterfactualVariable)):
+        raise TypeError(
+            "this shouldn't happen since the graph should not have interventions as nodes"
+        )
+    return (+node not in interventions) and (-node not in interventions)
 
 
 def _ancestors_inclusive(graph: nx.DiGraph, sources: set[Variable]) -> set[Variable]:

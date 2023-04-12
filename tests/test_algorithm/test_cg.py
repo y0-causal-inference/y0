@@ -14,6 +14,7 @@ from y0.algorithm.identify.cg import (
     node_not_an_intervention_in_world,
     stitch_counterfactual_and_doppleganger_neighbors,
     stitch_counterfactual_and_dopplegangers,
+    stitch_counterfactual_and_neighbors,
     stitch_factual_and_doppleganger_neighbors,
     stitch_factual_and_dopplegangers,
 )
@@ -35,11 +36,11 @@ x, y, z, d, w = -X, -Y, -Z, -D, -W
 class TestCounterfactualGraph(cases.GraphTestCase):
     """Tests parallel worlds and counterfactual graphs."""
 
-    # def test_make_parallel_worlds(self):
-    #     """Test that parallel worlds graphs are correct."""
-    #     expected = figure_9b.graph
-    #     actual = make_parallel_worlds_graph(figure_9a.graph, {frozenset([~X]), frozenset([D])})
-    #     self.assert_graph_equal(expected, actual)
+    def test_make_parallel_worlds(self):
+        """Test that parallel worlds graphs are correct."""
+        expected = figure_9b.graph
+        actual = make_parallel_worlds_graph(figure_9a.graph, {frozenset([~X]), frozenset([-D])})
+        self.assert_graph_equal(expected, actual)
 
     def test_has_same_function(self):
         """Test that two variables have the same function."""
@@ -83,47 +84,52 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon"""
         self.assertEqual(
             {(Y, Y @ -x)},
-            set(
-                stitch_factual_and_dopplegangers(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
-                )
+            stitch_factual_and_dopplegangers(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
             ),
         )
         self.assertEqual(
             {(Y, Y @ +x)},
-            set(
-                stitch_factual_and_dopplegangers(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
-                )
+            stitch_factual_and_dopplegangers(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
             ),
         )
         self.assertEqual(
             {(Y, Y @ +x), (Z, Z @ +x)},
-            set(
-                stitch_factual_and_dopplegangers(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
-                    worlds=set([frozenset([+x])]),
-                )
+            stitch_factual_and_dopplegangers(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
+                worlds=set([frozenset([+x])]),
             ),
         )
         self.assertEqual(
             {(Y, Y @ +x), (Z, Z @ +x)},
-            set(
-                stitch_factual_and_dopplegangers(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
-                    worlds=set([frozenset([+x])]),
-                )
+            stitch_factual_and_dopplegangers(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
+                worlds=set([frozenset([+x])]),
             ),
         )
         self.assertEqual(
             {(Y, Y @ +x), (Z, Z @ +x), (D, D @ +x), (X, X @ -d), (Y, Y @ -d), (Z, Z @ -d)},
-            set(
-                stitch_factual_and_dopplegangers(
-                    graph=NxMixedGraph.from_edges(
-                        directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
-                    ),
-                    worlds=set([frozenset([+x]), frozenset([-d])]),
-                )
+            stitch_factual_and_dopplegangers(
+                graph=NxMixedGraph.from_edges(
+                    directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
+                ),
+                worlds=set([frozenset([+x]), frozenset([-d])]),
+            ),
+        )
+        self.assertEqual(
+            {
+                (Y, Y @ +x),
+                (Z, Z @ +x),
+                (D, D @ +x),
+                (X, X @ -d),
+                (Y, Y @ -d),
+                (Z, Z @ -d),
+                (W, W @ -d),
+                (W, W @ +x),
+            },
+            stitch_factual_and_dopplegangers(
+                graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
             ),
         )
 
@@ -131,39 +137,31 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon"""
         self.assertEqual(
             set(),
-            set(
-                stitch_factual_and_doppleganger_neighbors(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
-                )
+            stitch_factual_and_doppleganger_neighbors(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
             ),
         )
         self.assertEqual(
             {(X, Y @ +x)},
-            set(
-                stitch_factual_and_doppleganger_neighbors(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
-                    worlds=set([frozenset([+x])]),
-                )
+            stitch_factual_and_doppleganger_neighbors(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
+                worlds=set([frozenset([+x])]),
             ),
         )
         self.assertEqual(
             {(X, Z @ +x)},
-            set(
-                stitch_factual_and_doppleganger_neighbors(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
-                    worlds=set([frozenset([+x])]),
-                )
+            stitch_factual_and_doppleganger_neighbors(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
+                worlds=set([frozenset([+x])]),
             ),
         )
         self.assertEqual(
             {(X, Z @ +x), (X, Z @ -d), (Z, X @ -d)},
-            set(
-                stitch_factual_and_doppleganger_neighbors(
-                    graph=NxMixedGraph.from_edges(
-                        directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
-                    ),
-                    worlds=set([frozenset([+x]), frozenset([-d])]),
-                )
+            stitch_factual_and_doppleganger_neighbors(
+                graph=NxMixedGraph.from_edges(
+                    directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
+                ),
+                worlds=set([frozenset([+x]), frozenset([-d])]),
             ),
         )
 
@@ -171,36 +169,28 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         """Test that counterfactual variables and their dopplegangers are stitched together unless it is intervened upon"""
         self.assertEqual(
             set(),
-            set(
-                stitch_counterfactual_and_dopplegangers(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
-                )
+            stitch_counterfactual_and_dopplegangers(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
             ),
         )
         self.assertEqual(
             set(),
-            set(
-                stitch_counterfactual_and_dopplegangers(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
-                )
+            stitch_counterfactual_and_dopplegangers(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
             ),
         )
         self.assertEqual(
             set(),
-            set(
-                stitch_counterfactual_and_dopplegangers(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
-                    worlds=set([frozenset([+x])]),
-                )
+            stitch_counterfactual_and_dopplegangers(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
+                worlds=set([frozenset([+x])]),
             ),
         )
         self.assertEqual(
             set(),
-            set(
-                stitch_counterfactual_and_dopplegangers(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
-                    worlds=set([frozenset([+x])]),
-                )
+            stitch_counterfactual_and_dopplegangers(
+                graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
+                worlds=set([frozenset([+x])]),
             ),
         )
         self.assertEqual(
@@ -212,6 +202,12 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                     ),
                     worlds=set([frozenset([+x]), frozenset([-d])]),
                 )
+            ),
+        )
+        self.assertEqual(
+            {frozenset({Y @ -d, Y @ +x}), frozenset({W @ +x, W @ -d}), frozenset({Z @ +x, Z @ -d})},
+            stitch_counterfactual_and_dopplegangers(
+                graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
             ),
         )
 
@@ -273,6 +269,81 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                     ),
                     worlds=set([frozenset([+x]), frozenset([-d])]),
                 )
+            ),
+        )
+        self.assertEqual(
+            {frozenset({X @ -d, Y @ +x})},
+            stitch_counterfactual_and_doppleganger_neighbors(
+                graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
+            ),
+        )
+
+    def test_stitch_counterfactual_and_neighbors(self):
+        """
+        Test that counterfactual variables and their neighbors are stitched together unless either are intervened upon
+        """
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_neighbors(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+                )
+            ),
+        )
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_neighbors(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
+                )
+            ),
+        )
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_neighbors(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
+                    worlds=set([frozenset([+x])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            {frozenset({Y @ +x, Z @ +x})},
+            set(
+                stitch_counterfactual_and_neighbors(
+                    graph=NxMixedGraph.from_edges(
+                        directed=[(X, Y), (Y, Z)], undirected=[(X, Z), (Y, Z)]
+                    ),
+                    worlds=set([frozenset([+x])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            {frozenset({X @ -d, Z @ -d})},
+            set(
+                stitch_counterfactual_and_neighbors(
+                    graph=NxMixedGraph.from_edges(
+                        directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
+                    ),
+                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            {frozenset({Y @ +x, Z @ +x}), frozenset({Y @ -d, Z @ -d}), frozenset({Z @ -d, X @ -d})},
+            set(
+                stitch_counterfactual_and_neighbors(
+                    graph=NxMixedGraph.from_edges(
+                        directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z), (Y, Z)]
+                    ),
+                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            {frozenset({X @ -d, Y @ -d})},
+            stitch_counterfactual_and_neighbors(
+                graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
             ),
         )
 

@@ -208,15 +208,15 @@ def make_counterfactual_graph(
     return rv_graph, new_event
 
 
-def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGraph:
-    """Make a parallel worlds graph.
+# def make_parallel_worlds_graph(graph: NxMixedGraph, worlds: Worlds) -> NxMixedGraph:
+#     """Make a parallel worlds graph.
 
-    :param graph: A normal graph
-    :param worlds: A set of sets of treatments
-    :returns: A combine parallel world graph
-    """
-    world_graphs: List[NxMixedGraph] = [graph.intervene(world) for world in worlds]
-    return combine_worlds(graph, world_graphs, worlds)
+#     :param graph: A normal graph
+#     :param worlds: A set of sets of treatments
+#     :returns: A combine parallel world graph
+#     """
+#     world_graphs: List[NxMixedGraph] = [graph.intervene(world) for world in worlds]
+#     return combine_worlds(graph, world_graphs, worlds)
 
 
 def node_not_an_intervention_in_world(*, world: World, node: Variable) -> bool:
@@ -232,49 +232,49 @@ def node_not_an_intervention_in_world(*, world: World, node: Variable) -> bool:
 
 def stitch_factual_and_dopplegangers(
     graph: NxMixedGraph, worlds: Worlds
-) -> List[Tuple[Variable, CounterfactualVariable]]:
+) -> Set[Tuple[Variable, CounterfactualVariable]]:
     """Stitch together a node and its counterfactual doppleganger in each world"""
-    return [
+    return {
         (u, u @ world)
         for world in worlds
         for u in graph.nodes()
         if node_not_an_intervention_in_world(world=world, node=u)
-    ]
+    }
 
 
 def stitch_factual_and_doppleganger_neighbors(
     graph: NxMixedGraph, worlds: Worlds
-) -> List[Tuple[Variable, CounterfactualVariable]]:
+) -> Set[Tuple[Variable, CounterfactualVariable]]:
     """Stitch together a node with the dopplegangers of its neighbors in each world."""
-    return [
+    return {
         (u, v @ world)
         for world in worlds
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)
         # Don't add an edge if a variable is intervened on
         if node_not_an_intervention_in_world(world=world, node=v)
-    ]
+    }
 
 
 def stitch_counterfactual_and_dopplegangers(
     graph: NxMixedGraph, worlds: Worlds
-) -> List[FrozenSet[CounterfactualVariable]]:
+) -> Set[FrozenSet[CounterfactualVariable]]:
     """Stitch together a counterfactual variable with its doppleganger in each world, unless the counterfactual is intervened upon in one of the worlds."""
-    return [
+    return {
         frozenset({u @ world_1, u @ world_2})
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         # Don't add an edge if a variable is intervened on in either world.
         if node_not_an_intervention_in_world(world=world_1, node=u)
         and node_not_an_intervention_in_world(world=world_2, node=u)
-    ]
+    }
 
 
 def stitch_counterfactual_and_doppleganger_neighbors(
     graph: NxMixedGraph, worlds: Worlds
-) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
+) -> Set[FrozenSet[CounterfactualVariable]]:
     """Stitch together a counterfactual variable with the dopplegangers of its neighbors in each world."""
-    return [
+    return {
         frozenset({u @ world_1, v @ world_2})
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
@@ -282,39 +282,65 @@ def stitch_counterfactual_and_doppleganger_neighbors(
         # Don't add an edge if a variable is intervened on in either world.
         if node_not_an_intervention_in_world(node=u, world=world_1)
         and node_not_an_intervention_in_world(node=v, world=world_2)
-    ]
+    }
 
 
-def combine_worlds(
+def stitch_counterfactual_and_neighbors(
+    graph: NxMixedGraph, worlds: Worlds
+) -> Set[FrozenSet[CounterfactualVariable]]:
+    """Stitch together a counterfactual variable with its neighbors in each world."""
+    return {
+        frozenset({u @ world, v @ world})
+        for world in worlds
+        for u in graph.nodes()
+        for v in graph.undirected.neighbors(u)
+        # Don't add an edge if a variable is intervened on in either world.
+        if node_not_an_intervention_in_world(node=u, world=world)
+        and node_not_an_intervention_in_world(node=v, world=world)
+    }
+
+
+def make_parallel_worlds_graph(
     graph: NxMixedGraph,
-    world_graphs: Collection[NxMixedGraph],
     worlds: Worlds,
 ) -> NxMixedGraph:
+    """Make a parallel worlds graph.
+
+    :param graph: A normal graph
+    :param worlds: A set of sets of treatments
+    :returns: A combine parallel world graph
+    """
+
     """Stitch together parallel worlds through the magic of bidirected edges."""
     # get all the undirected edges in all the parallel worlds
-    undirected = [(u, v) for world_graph in world_graphs for u, v in world_graph.undirected.edges()]
+    undirected = stitch_counterfactual_and_neighbors(graph, worlds)
 
     # Stitch together factual variables with their dopplegangers in other worlds
-    undirected.extend(stitch_factual_and_dopplegangers(graph, worlds))
+    undirected |= stitch_factual_and_dopplegangers(graph, worlds)
     # Stitch together factual variables with the dopplegangers of their neighbors in other worlds
-    undirected.extend(stitch_factual_and_doppleganger_neighbors(graph, worlds))
+    undirected |= stitch_factual_and_doppleganger_neighbors(graph, worlds)
 
     # Stitch together counterfactual variables with their dopplegangers in other worlds
     if len(worlds) > 1:
-        undirected.extend(stitch_counterfactual_and_dopplegangers(graph, worlds))
+        undirected |= stitch_counterfactual_and_dopplegangers(graph, worlds)
         # Stitch together counterfactual variables with the dopplegangers of their neighbors in other worlds
-        undirected.extend(stitch_counterfactual_and_doppleganger_neighbors(graph, worlds))
+        undirected |= stitch_counterfactual_and_doppleganger_neighbors(graph, worlds)
 
     nodes = [
         *graph.nodes(),
-        *(node for world_graph in world_graphs for node in world_graph.nodes()),
+        *(node @ world for world in worlds for node in graph.nodes()),
     ]
     directed = [
         *graph.directed.edges(),
-        *((u, v) for world_graph in world_graphs for u, v in world_graph.directed.edges()),
+        *(
+            (u @ world, v @ world)
+            for world in worlds
+            for u, v in graph.directed.edges()
+            if node_not_an_intervention_in_world(world=world, node=v)
+        ),
     ]
     return NxMixedGraph.from_edges(
         nodes=nodes,
         directed=directed,
-        undirected=list(graph.undirected.edges()) + undirected,
+        undirected=set(graph.undirected.edges()) | undirected,
     )
