@@ -82,38 +82,88 @@ class TestCounterfactualGraph(cases.GraphTestCase):
     def test_stitch_factual_and_dopplegangers(self):
         """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon"""
         self.assertEqual(
-            [(Y, Y @ -x)],
-            stitch_factual_and_dopplegangers(
-                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+            {(Y, Y @ -x)},
+            set(
+                stitch_factual_and_dopplegangers(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+                )
             ),
         )
         self.assertEqual(
-            [(Y, Y @ +x)],
-            stitch_factual_and_dopplegangers(
-                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
+            {(Y, Y @ +x)},
+            set(
+                stitch_factual_and_dopplegangers(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
+                )
             ),
         )
         self.assertEqual(
-            [(Y, Y @ +x), (Z, Z @ +x)],
-            stitch_factual_and_dopplegangers(
-                graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
-                worlds=set([frozenset([+x])]),
+            {(Y, Y @ +x), (Z, Z @ +x)},
+            set(
+                stitch_factual_and_dopplegangers(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
+                    worlds=set([frozenset([+x])]),
+                )
             ),
         )
         self.assertEqual(
-            [(Y, Y @ +x), (Z, Z @ +x)],
-            stitch_factual_and_dopplegangers(
-                graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
-                worlds=set([frozenset([+x])]),
+            {(Y, Y @ +x), (Z, Z @ +x)},
+            set(
+                stitch_factual_and_dopplegangers(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
+                    worlds=set([frozenset([+x])]),
+                )
             ),
         )
         self.assertEqual(
-            [(Y, Y @ +x), (Z, Z @ +x), (D, D @ +x), (X, X @ -d), (Y, Y @ -d), (Z, Z @ -d)],
-            stitch_factual_and_dopplegangers(
-                graph=NxMixedGraph.from_edges(
-                    directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
-                ),
-                worlds=set([frozenset([+x]), frozenset([-d])]),
+            {(Y, Y @ +x), (Z, Z @ +x), (D, D @ +x), (X, X @ -d), (Y, Y @ -d), (Z, Z @ -d)},
+            set(
+                stitch_factual_and_dopplegangers(
+                    graph=NxMixedGraph.from_edges(
+                        directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
+                    ),
+                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                )
+            ),
+        )
+
+    def test_stitch_factual_and_doppleganger_neighbors(self):
+        """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon"""
+        self.assertEqual(
+            set(),
+            set(
+                stitch_factual_and_doppleganger_neighbors(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+                )
+            ),
+        )
+        self.assertEqual(
+            {(X, Y @ +x)},
+            set(
+                stitch_factual_and_doppleganger_neighbors(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
+                    worlds=set([frozenset([+x])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            {(X, Z @ +x)},
+            set(
+                stitch_factual_and_doppleganger_neighbors(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
+                    worlds=set([frozenset([+x])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            {(X, Z @ +x), (X, Z @ -d), (Z, X @ -d)},
+            set(
+                stitch_factual_and_doppleganger_neighbors(
+                    graph=NxMixedGraph.from_edges(
+                        directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
+                    ),
+                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                )
             ),
         )
 
