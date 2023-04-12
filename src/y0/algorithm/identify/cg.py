@@ -318,7 +318,7 @@ def make_parallel_worlds_graph(
     :param worlds: A set of sets of treatments
     :returns: A combine parallel world graph
     """
-    """Stitch together parallel worlds through the magic of bidirected edges."""
+    # Get the undirected edges
     undirected: Set[Tuple[Variable, Variable]] = set()
     # get all the undirected edges in all the parallel worlds
     undirected |= stitch_counterfactual_and_neighbors(graph, worlds)

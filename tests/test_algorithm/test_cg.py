@@ -4,6 +4,7 @@
 
 from tests.test_algorithm import cases
 from y0.algorithm.identify.cg import (
+    _get_directed_edges,
     extract_interventions,
     has_same_function,
     has_same_parents,
@@ -341,6 +342,22 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             {frozenset({X @ -d, Y @ -d})},
             stitch_counterfactual_and_neighbors(
                 graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
+            ),
+        )
+
+    def test_get_directed_edges(self):
+        """Test that the directed edges of a parallel world graph are correctly identified."""
+        self.assertEqual(
+            {
+                (X @ -d, Y @ -d),
+                (Y @ -d, Z @ -d),
+                (D @ -d, X @ -d),
+                (X @ +x, Y @ +x),
+                (Y @ +x, Z @ +x),
+            },
+            _get_directed_edges(
+                NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z), (D, X)]),
+                worlds=set([frozenset([+x]), frozenset([-d])]),
             ),
         )
 
