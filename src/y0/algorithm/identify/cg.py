@@ -258,10 +258,10 @@ def stitch_factual_and_doppleganger_neighbors(
 
 def stitch_counterfactual_and_dopplegangers(
     graph: NxMixedGraph, worlds: Worlds
-) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
+) -> List[FrozenSet[CounterfactualVariable]]:
     """Stitch together a counterfactual variable with its doppleganger in each world, unless the counterfactual is intervened upon in one of the worlds."""
     return [
-        (u @ world_1, u @ world_2)
+        frozenset({u @ world_1, u @ world_2})
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         # Don't add an edge if a variable is intervened on in either world.
@@ -275,7 +275,7 @@ def stitch_counterfactual_and_doppleganger_neighbors(
 ) -> List[Tuple[CounterfactualVariable, CounterfactualVariable]]:
     """Stitch together a counterfactual variable with the dopplegangers of its neighbors in each world."""
     return [
-        (u @ world_1, v @ world_2)
+        frozenset({u @ world_1, v @ world_2})
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)

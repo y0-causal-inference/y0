@@ -167,6 +167,115 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             ),
         )
 
+    def test_stitch_counterfactual_and_dopplegangers(self):
+        """Test that counterfactual variables and their dopplegangers are stitched together unless it is intervened upon"""
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_dopplegangers(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+                )
+            ),
+        )
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_dopplegangers(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
+                )
+            ),
+        )
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_dopplegangers(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
+                    worlds=set([frozenset([+x])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_dopplegangers(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
+                    worlds=set([frozenset([+x])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            {frozenset({Z @ -d, Z @ +x}), frozenset({Y @ +x, Y @ -d})},
+            set(
+                stitch_counterfactual_and_dopplegangers(
+                    graph=NxMixedGraph.from_edges(
+                        directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
+                    ),
+                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                )
+            ),
+        )
+
+    def test_stitch_counterfactual_and_doppleganger_neighbors(self):
+        """
+        Test that counterfactual variables and their neighbor dopplegangers are stitched together unless either are intervened upon
+        """
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_doppleganger_neighbors(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+                )
+            ),
+        )
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_doppleganger_neighbors(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
+                )
+            ),
+        )
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_doppleganger_neighbors(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
+                    worlds=set([frozenset([+x])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            set(),
+            set(
+                stitch_counterfactual_and_doppleganger_neighbors(
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
+                    worlds=set([frozenset([+x])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            {frozenset({X @ -d, Z @ +x})},
+            set(
+                stitch_counterfactual_and_doppleganger_neighbors(
+                    graph=NxMixedGraph.from_edges(
+                        directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
+                    ),
+                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                )
+            ),
+        )
+        self.assertEqual(
+            {frozenset({X @ -d, Z @ +x}), frozenset({Y @ +x, Z @ -d}), frozenset({Y @ -d, Z @ +x})},
+            set(
+                stitch_counterfactual_and_doppleganger_neighbors(
+                    graph=NxMixedGraph.from_edges(
+                        directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z), (Y, Z)]
+                    ),
+                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                )
+            ),
+        )
+
     def test_is_pw_equivalent(self):
         """Test that two nodes in a parallel world graph are the same (lemma 24)."""
         self.assertTrue(is_pw_equivalent(figure_9b.graph, D @ ~X, D))
