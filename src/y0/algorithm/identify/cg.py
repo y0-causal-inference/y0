@@ -93,6 +93,10 @@ def is_pw_equivalent(graph: NxMixedGraph, node1: Variable, node2: Variable) -> b
     same values (whether by observation or intervention). Then :math:`\alpha` and
     :math:`\beta` are the same random variable in :math:`M_\mathbf{x}` with observations
     :math:`\mathbf{z}`.
+
+    Lemma 24 from Ilya Shpitser and Judea Pearl. 2008.
+    Complete Identification Methods for the Causal Hierarchy.
+    Journal of Machine Learning Research (2008).
     """
     # Rather than all n choose 2 combinations, we can restrict ourselves to the original
     # graph variables and their counterfactual versions
@@ -101,6 +105,11 @@ def is_pw_equivalent(graph: NxMixedGraph, node1: Variable, node2: Variable) -> b
 
 def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGraph:
     r"""Merge node1 and node2 and return the reduced graph and query.
+
+    :param graph: A parallel worlds graph
+    :param node1: A node in the graph
+    :param node2: Another node in the graph
+    :returns: A reduced graph
 
     Let :math:`M_\mathbf{x}` be a submodel derived from :math:`M` with set :math:`\mathbf{Z}`
     observed to attain values :math:`\mathbf{z}`, such that Lemma 24 holds for :math:`\alpha`;
@@ -111,21 +120,18 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
     :math:`M_\mathbf{x},  M'_\mathbf{x} agree on any distribution consistent with :math:`z`
     being observed.
 
-    :param graph: A parallel worlds graph
-    :param node1: A node in the graph
-    :param node2: Another node in the graph
-    :returns: A reduced graph
+    Lemma 25 from Ilya Shpitser and Judea Pearl. 2008.
+    Complete Identification Methods for the Causal Hierarchy.
+    Journal of Machine Learning Research (2008).
     """
     # If a we are going to merge two nodes, we want to keep the factual variable.
     if isinstance(node1, CounterfactualVariable) and not isinstance(node2, CounterfactualVariable):
         node1, node2 = node2, node1
-        # TODO needs test case
     elif not isinstance(node1, CounterfactualVariable) and isinstance(
         node2, CounterfactualVariable
     ):
         pass
     else:  # both are counterfactual or both are factual, so keep the variable with the lower name
-        # TODO needs test case
         node1, node2 = sorted([node1, node2])
     directed = [(u, v) for u, v in graph.directed.edges() if node2 not in (u, v)]
     directed += [(node1, v) for u, v in graph.directed.edges() if node2 == u]
@@ -147,7 +153,25 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
 def make_counterfactual_graph(
     graph: NxMixedGraph, event: Event
 ) -> Tuple[NxMixedGraph, Optional[Event]]:
-    """Make counterfactual graph."""
+    r"""Make counterfactual graph.
+    :param graph: A causal graph :math:`G`
+    :param worlds: A conjunction of counterfactual events :math:`\gamma`
+    :returns: A counterfactual graph and either a set of new events :math:`\gamma'`
+    such that :math:`P(\gamma') = P(\gamma)` or None
+
+    * Construct a submodel graph :math:`G_{\mathbf{x}_i}` for each action
+    :math:`do(\mathbf{x}_i)` mentioned in the event :math:`\gamma`. Construct the
+    parallel worlds graph :math:`G'` by having all such submodel graphs share their
+    corresponding :math:`U` nodes
+    * Let :math:`\pi` be a topological ordering of nodes in :math:`G'`, let :math:`\gamma' := \gamma`
+    * Apply Lemmas 24 and 25, in order :math:`\pi`, to each observable pair of nodes :math:`\alpha, \beta` in :math:`G`.
+    For each :math:`\alpha, \beta` that are the same, do:
+        * Let :math:`G'` be modified as specified in Lemma 25
+        * Modify :math:`\gamma'` by renaming all occurrences of :math:`\beta` to :math:`\alpha`.
+        * If :math:`\mathbf{\alpha} \ne :math:`\mathbf{\beta}`, return :math:`G'`, None
+    * Return :math:`(G', \gamma')`, where :math:`An(\gamma')` is the set of nodes in :math:`G'`
+    ancestral to nodes corresponding to variables mentioned in :math:`\gamma'`.
+    """
     worlds = extract_interventions(event)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
     new_event = dict(event)
@@ -299,7 +323,8 @@ def stitch_counterfactual_and_neighbors(
 def _get_directed_edges(
     graph: NxMixedGraph, worlds: Worlds
 ) -> Set[Tuple[CounterfactualVariable, CounterfactualVariable]]:
-    """Get the directed edges in the parallel worlds graph except for those where the target node was intervened upon."""
+    """Get the directed edges in the parallel worlds graph except for those where the target node was
+    intervened upon."""
     return {
         (u @ world, v @ world)
         for world in worlds

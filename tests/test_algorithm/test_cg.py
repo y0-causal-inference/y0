@@ -372,14 +372,18 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         """Test that the parallel worlds graph after merging two nodes is correct. (This is lemma 25)"""
         cf_graph_1 = merge_pw(figure_9b.graph, D, D @ ~X)
         cf_graph_2 = merge_pw(cf_graph_1, X, X @ D)
-        cf_graph_3 = merge_pw(cf_graph_2, Z, Z @ ~X)
+        cf_graph_3 = merge_pw(cf_graph_2, Z @ ~X, Z)
         cf_graph_4 = merge_pw(cf_graph_3, Z, Z @ D)
         cf_graph_5 = merge_pw(cf_graph_4, W, W @ D)
-        cf_graph_6 = merge_pw(cf_graph_5, D, D @ D)
+        cf_graph_6 = merge_pw(cf_graph_5, D @ D, D)
         cf_graph_7 = merge_pw(cf_graph_6, Y, Y @ D)
+        cf_graph_8 = merge_pw(figure_9b.graph, W @ -d, W @ +x)
+
         self.assert_graph_equal(figure_11a.graph, cf_graph_2)
         self.assert_graph_equal(figure_11b.graph, cf_graph_6)
         self.assert_graph_equal(figure_11c.graph, cf_graph_7)
+        self.assert_graph_equal(merge_pw(figure_9b.graph, W @ +x, W @ -d), cf_graph_8)
+
 
     # def test_make_counterfactual_graph(self):
     #     r"""Test making a counterfactual graph.
