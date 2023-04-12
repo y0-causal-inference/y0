@@ -299,7 +299,7 @@ def stitch_counterfactual_and_neighbors(
 def _get_directed_edges(
     graph: NxMixedGraph, worlds: Worlds
 ) -> Set[Tuple[CounterfactualVariable, CounterfactualVariable]]:
-    # TODO @jeremy documentation
+    """Get the directed edges in the parallel worlds graph except for those where the target node was intervened upon."""
     return {
         (u @ world, v @ world)
         for world in worlds

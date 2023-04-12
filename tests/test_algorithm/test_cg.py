@@ -36,7 +36,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
     def test_make_parallel_worlds(self):
         """Test that parallel worlds graphs are correct."""
         expected = figure_9b.graph
-        actual = make_parallel_worlds_graph(figure_9a.graph, {frozenset([~X]), frozenset([-D])})
+        actual = make_parallel_worlds_graph(figure_9a.graph, {frozenset([+x]), frozenset([-d])})
         self.assert_graph_equal(expected, actual)
 
     def test_has_same_function(self):
