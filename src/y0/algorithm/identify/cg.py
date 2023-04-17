@@ -33,24 +33,24 @@ class World(FrozenSet[Intervention]):
 Worlds = Set[World]
 
 
-def has_same_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
+def has_same_directed_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
     """Check if all parents of the two nodes are the same.
 
     :param graph: An ADMG
     :param a: A variable in the ADMG
     :param b: Another variable in the ADMG
     :returns:
-        True if the set of directed parents are the same and either there
+        True if the set of directed parents attain the same values and either there
         exists a bidirected edge between the two nodes or there exists no bidirected
         edges for either node.
     """
-    same_directed_predecessors = set(graph.directed.predecessors(a)) == set(
-        graph.directed.predecessors(b)
-    )
-    no_undirected_edges = 0 == len(graph.undirected.edges(a)) == len(graph.undirected.edges(b))
-    same_confounders = graph.undirected.has_edge(a, b) or no_undirected_edges
-    return same_directed_predecessors and same_confounders
+    return set(graph.directed.predecessors(a)) == set(graph.directed.predecessors(b))
 
+
+def has_same_confounders(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
+    """Check if all confounders of the two nodes are the same."""
+    no_undirected_edges = 0 == len(graph.undirected.edges(a)) == len(graph.undirected.edges(b))
+    return graph.undirected.has_edge(a, b) or no_undirected_edges
 
 def has_same_function(node1: Variable, node2: Variable) -> bool:
     """Check if the two nodes refer to the same factual variable."""
@@ -59,6 +59,44 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
         and is_intervention_same_as_observed(node1)
         and is_intervention_same_as_observed(node2)
     )
+
+def nodes_attain_same_value(graph: NxMixedGraph, event: Event, a: Variable, b: Variable) -> bool:
+    """Check if the two nodes attain the same value."""
+    if a == b:
+        return True
+    if not has_same_confounders(graph, a, b):
+        return False
+    elif a.get_base() != b.get_base():
+            return False
+    elif a in event and b in event:
+        if event[a] != event[b]:
+            return False  #  D and D @ -d  events = {D: -d}
+    elif a in event:
+        if not isinstance(b, CounterfactualVariable) or event[a] not in b.interventions:
+            return False
+    elif b in event:
+        if not isinstance(a, CounterfactualVariable) or event[b] not in a.interventions:
+            return False
+    elif isinstance(a, CounterfactualVariable) or isinstance(b, CounterfactualVariable):
+        return False
+    return True
+
+
+
+def parents_attain_same_values(graph: NxMixedGraph, event: Event, a: Variable, b: Variable) -> bool:
+    """Check if the parents of the nodes attain the same value."""
+    if not has_same_confounders(graph, a, b):
+        return False
+    parents_a, parents_b = set(graph.directed.predecessors(a)), set(graph.directed.predecessors(b))
+    if parents_a == parents_b:
+        return True
+    remainder_a, remainder_b = parents_a - parents_b, parents_b - parents_a
+    if len(remainder_a) != len(remainder_b):
+        return False
+    return all(nodes_attain_same_value(graph, event, parent_a, parent_b)
+               for parent_a, parent_b in zip(sorted(remainder_a, key = lambda x: x.get_base()),
+                                             sorted(remainder_b, key = lambda x: x.get_base())))
+
 
 
 def is_intervention_same_as_observed(node: Variable) -> bool:
@@ -77,7 +115,7 @@ def extract_interventions(variables: Iterable[Variable]) -> Worlds:
     )
 
 
-def is_pw_equivalent(graph: NxMixedGraph, node1: Variable, node2: Variable) -> bool:
+def is_pw_equivalent(graph: NxMixedGraph, event: Event, node1: Variable, node2: Variable) -> bool:
     r"""Check if two nodes in a parallel worlds graph are equivalent.
 
     :param graph: A parallel worlds graph
@@ -111,10 +149,10 @@ def is_pw_equivalent(graph: NxMixedGraph, node1: Variable, node2: Variable) -> b
     """
     # Rather than all n choose 2 combinations, we can restrict ourselves to the original
     # graph variables and their counterfactual versions
-    return has_same_function(node1, node2) and has_same_parents(graph, node1, node2)
+    return has_same_function(node1, node2) and parents_attain_same_values(graph, event, node1, node2)
 
 
-def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGraph:
+def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> Tuple[NxMixedGraph, Variable, Variable]:
     r"""Merge node1 and node2 and return the reduced graph and query.
 
     :param graph: A parallel worlds graph
@@ -158,8 +196,31 @@ def merge_pw(graph: NxMixedGraph, node1: Variable, node2: Variable) -> NxMixedGr
         nodes=[node for node in graph.nodes() if node != node2],
         directed=list(set(directed)),
         undirected=[(u, v) for u, v in set(undirected)],
+    ), node1, node2
+
+def lemma_24_holds(cf_graph: NxMixedGraph, event: Event, node: Variable, node_at_interventions: Variable) -> bool:
+    r"""Check if Lemma 24 holds for the given nodes.
+    """
+    return (
+                (node in cf_graph.nodes())
+                and (node_at_interventions in cf_graph.nodes())
+                and is_pw_equivalent(cf_graph, event, node, node_at_interventions)
+            )
+
+def is_inconsistent(event: Event, node: Variable, node_at_interventions: Variable) -> bool:
+    r"""Check if the equivalant nodes (according to lemma 25) have been assigned different values in the event"""
+    return (
+        (node in event)
+        and (node_at_interventions in event)
+        and (event[node] != event[node_at_interventions])
     )
 
+def update_event(event: Event, preferred_node: Variable, eliminated_node: Variable) -> Event:
+    r"""Update the event to reflect the fact that the preferred node has been merged into the eliminated node"""
+    if eliminated_node in event:
+        event[preferred_node] = event[eliminated_node]
+        del event[eliminated_node]
+    return event
 
 def make_counterfactual_graph(
     graph: NxMixedGraph, event: Event
@@ -194,47 +255,26 @@ def make_counterfactual_graph(
     for node in graph.topological_sort():
         for world in worlds:
             node_at_interventions = node @ world
-            if (
-                (node in cf_graph.nodes())
-                and (node_at_interventions in cf_graph.nodes())
-                and is_pw_equivalent(cf_graph, node, node_at_interventions)
-            ):
-                cf_graph = merge_pw(cf_graph, node, node_at_interventions)
-                if (
-                    (node in new_event)
-                    and (node_at_interventions in new_event)
-                    and (new_event[node] != new_event[node_at_interventions])
-                ):
+            if lemma_24_holds(cf_graph, new_event, node, node_at_interventions):
+                cf_graph, preferred_node, eliminated_node = merge_pw(cf_graph, node, node_at_interventions)
+                if is_inconsistent(new_event, preferred_node, eliminated_node):
                     # TODO needs test case
                     return cf_graph, None
-                if node_at_interventions in new_event:
-                    new_event[node] = new_event[node_at_interventions]
-                    new_event.pop(node_at_interventions, None)
-
+                new_event = update_event(new_event, preferred_node, eliminated_node)
         if len(worlds) > 1:
             for intervention1, intervention2 in combinations(worlds, 2):
                 node_at_intervention1 = node @ intervention1
                 node_at_intervention2 = node @ intervention2
 
-                if (
-                    (node_at_intervention1 in cf_graph.nodes())
-                    and (node_at_intervention2 in cf_graph.nodes())
-                    and is_pw_equivalent(cf_graph, node_at_intervention1, node_at_intervention2)
-                ):
-                    cf_graph = merge_pw(cf_graph, node_at_intervention1, node_at_intervention2)
-                    if (
-                        (node_at_intervention1 in new_event)
-                        and (node_at_intervention2 in new_event)
-                        and (new_event[node_at_intervention1] != new_event[node_at_intervention2])
-                    ):
+                if lemma_24_holds(cf_graph, new_event, node_at_intervention1, node_at_intervention2):
+                    cf_graph, preferred_node, eliminated_node = merge_pw(cf_graph, node_at_intervention1, node_at_intervention2)
+                    if is_inconsistent(new_event, node_at_intervention1, node_at_intervention2):
                         # TODO needs test case
                         return cf_graph, None
+                    new_event = update_event(new_event, preferred_node, eliminated_node)
 
-                    if node_at_intervention2 in new_event:
-                        # TODO needs test case
-                        new_event[node_at_intervention1] = new_event[node_at_intervention2]
-                        new_event.pop(node_at_intervention2, None)
-    rv_graph = cf_graph.subgraph(cf_graph.ancestors_inclusive(new_event))
+    ancestors = cf_graph.ancestors_inclusive(new_event)
+    rv_graph = cf_graph.subgraph(ancestors)
     # rv_graph = rv_graph.remove_nodes_from(
     #    node for node in rv_graph.nodes() if is_self_intervened(node)
     # )

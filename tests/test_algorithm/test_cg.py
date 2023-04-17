@@ -7,7 +7,7 @@ from y0.algorithm.identify.cg import (
     _get_directed_edges,
     extract_interventions,
     has_same_function,
-    has_same_parents,
+    #has_same_parents,
     is_pw_equivalent,
     make_counterfactual_graph,
     make_parallel_worlds_graph,
@@ -18,8 +18,11 @@ from y0.algorithm.identify.cg import (
     stitch_counterfactual_and_neighbors,
     stitch_factual_and_doppleganger_neighbors,
     stitch_factual_and_dopplegangers,
+    nodes_attain_same_value,
+    parents_attain_same_values,
+    has_same_confounders,
 )
-from y0.dsl import D, W, X, Y, Z
+from y0.dsl import D, W, X, Y, Z, Event
 from y0.examples import (
     figure_9a,
     figure_9b,
@@ -47,7 +50,11 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         """Test that parallel worlds graphs are correct."""
         expected = figure_9b.graph
         actual = make_parallel_worlds_graph(figure_9a.graph, {frozenset([+x]), frozenset([-d])})
+        expected2 = make_parallel_worlds_graph(figure_9a.graph, {(+x, -z)})
         self.assert_graph_equal(expected, actual)
+        self.assert_graph_equal(expected2, make_parallel_worlds_graph(figure_9a.graph, {(+x, -z)}))
+        self.assertFalse(Y @ (-z, +x) in expected2.nodes())
+        self.assertTrue(Y @ (+x, -z) in expected2.nodes())
 
     def test_has_same_function(self):
         """Test that two variables have the same value."""
@@ -59,22 +66,62 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertFalse(has_same_function(X @ ~X, W @ ~X))
         self.assertFalse(has_same_function(X @ ~X, X))
         self.assertTrue(has_same_function(D, D @ ~x))
+        self.assertTrue(has_same_function(Z @ ~x, Z))
+        self.assertTrue(has_same_function(Z @ ~x, Z @ -d))
+        self.assertTrue(has_same_function(Z @ -d, Z))
 
-    def test_has_same_parents(self):
-        """Test that all parents of two nodes are the same."""
-        self.assertTrue(has_same_parents(figure_9b.graph, D @ ~X, D))
-        self.assertTrue(has_same_parents(figure_9b.graph, X @ D, X))
-        self.assertFalse(has_same_parents(figure_9b.graph, D @ D, D))
-        self.assertFalse(has_same_parents(figure_9b.graph, X, D))
-        self.assertFalse(has_same_parents(figure_9b.graph, X @ ~X, W @ ~X))
-        self.assertFalse(has_same_parents(figure_9b.graph, X @ ~X, X))
-        self.assertFalse(has_same_parents(figure_9b.graph, Z, Z @ ~x))
-        self.assertTrue(has_same_parents(figure_11a.graph, Z, Z @ ~x))
+    def test_nodes_attain_same_value(self):
+        """Test that two variables attain the same value."""
+        event: Event = {D: -d}
+        self.assertTrue(nodes_attain_same_value(figure_11a.graph, event, D, D @ -d))
+        self.assertTrue(nodes_attain_same_value(figure_11a.graph, event, D @ -d, D))
+        self.assertTrue(nodes_attain_same_value(NxMixedGraph.from_edges(directed=[(D @ +d, Z @ +d)]),
+                                                event, D @ +d, D @ +d))
+        self.assertTrue(nodes_attain_same_value(figure_9b.graph, event, D, D))
+        self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, D, D @ -d))
+        self.assertFalse(nodes_attain_same_value(figure_11a.graph, event, Z, Z @ +x))
+        self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, D, X))
+        self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, X, D))
+        self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, D, X @ -d))
+        self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, X @ -d, D))
+        self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, D, X @ -d))
+        self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, D @ -d, D))
+
+    def test_has_same_confounders(self):
+        self.assertFalse(has_same_confounders(figure_9b.graph, D, D))
+        self.assertFalse(has_same_confounders(figure_9b.graph, D, D @ -d))
+        self.assertFalse(has_same_confounders(figure_9b.graph, D @ -d, D))
+        self.assertTrue(has_same_confounders(figure_9b.graph, D @ +x, D))
+
+    def test_parents_attain_same_values(self):
+        """Test that the parents of two nodes attain the same value"""
+        graph = figure_9b.graph
+        event: Event = {Y @ +x: +y, D: -d, Z @ -d: -z, X: -x}
+        self.assertTrue(parents_attain_same_values(figure_11a.graph, event, Z, Z @ -d))
+        self.assertTrue(parents_attain_same_values(figure_11a.graph, event, Z, Z @ +x))
+        self.assertTrue(parents_attain_same_values(figure_11a.graph, event, Z @ -d, Z @ +x))
+        self.assertFalse(parents_attain_same_values(graph, event, Z, Z @ -d))
+        self.assertFalse(parents_attain_same_values(figure_9b.graph, event, D, D @ -d))
+        self.assertFalse(parents_attain_same_values(figure_9b.graph, event, X, X @ +x))
+
+    # def test_has_same_parents(self):
+    #     """Test that all parents of two nodes are the same."""
+    #     self.assertTrue(has_same_parents(figure_9b.graph, D @ ~X, D))
+    #     self.assertTrue(has_same_parents(figure_9b.graph, X @ D, X))
+    #     self.assertFalse(has_same_parents(figure_9b.graph, D @ D, D))
+    #     self.assertFalse(has_same_parents(figure_9b.graph, X, D))
+    #     self.assertFalse(has_same_parents(figure_9b.graph, X @ ~X, W @ ~X))
+    #     self.assertFalse(has_same_parents(figure_9b.graph, X @ ~X, X))
+    #     self.assertFalse(has_same_parents(figure_9b.graph, Z, Z @ ~x))
+    #     self.assertTrue(has_same_parents(figure_11a.graph, Z, Z @ ~x))
+    #     self.assertTrue(has_same_parents(figure_11a.graph, Z @ ~x, Z))
+    #     self.assertFalse(has_same_parents(figure_11a.graph, Z @ ~x, Z @ -d))
+    #     self.assertFalse(has_same_parents(figure_11a.graph, Z @ -d, Z))
 
     def test_get_worlds(self):
         """Test that all interventions within each world of a counterfactual conjunction are generated."""
         self.assert_uedge_set_equal(
-            {frozenset([-D]), frozenset([~X])}, extract_interventions([Y @ ~X, X, Z @ D, D])
+            {frozenset([-D]), frozenset([~X])}, extract_interventions([Y @ ~X, X, Z @ -D, D])
         )
         self.assert_uedge_set_equal(
             {frozenset([-D]), frozenset([~X, -Z])},
@@ -377,36 +424,45 @@ class TestCounterfactualGraph(cases.GraphTestCase):
     def test_is_pw_equivalent(self):
         """Test that two nodes in a parallel world graph are the same
         (lemma 24)."""
-        self.assertTrue(is_pw_equivalent(figure_9b.graph, D @ ~X, D))
-        self.assertTrue(is_pw_equivalent(figure_9b.graph, X @ D, X))
-        self.assertFalse(is_pw_equivalent(figure_9b.graph, Z @ D, Z))
-        self.assertFalse(is_pw_equivalent(figure_9b.graph, X, X @ ~X))
-        self.assertFalse(is_pw_equivalent(figure_9b.graph, Z, Z @ ~X))
-        self.assertTrue(is_pw_equivalent(figure_11a.graph, Z, Z @ ~X))
-        self.assertFalse(is_pw_equivalent(figure_9b.graph, D, D @ -d))
-        self.assertTrue(is_pw_equivalent(figure_11a.graph, D @ -d, D))
-        self.assertFalse(is_pw_equivalent(figure_11a.graph, X @ +x, X))
+        event: Event = {Y @ +x: +y, D: -d, Z @ -d: -z, X: -x}
+        self.assertTrue(is_pw_equivalent(figure_9b.graph, event, D @ ~X, D))
+        self.assertTrue(is_pw_equivalent(figure_9b.graph, event, X @ D, X))
+        self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z, Z @ ~X))
+        self.assertTrue(is_pw_equivalent(figure_11a.graph, event, W, W @ -d))
+        self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ +x, Z))
+        self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ -d, Z))
+        self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ +x, Z @ -d))
+        self.assertTrue(is_pw_equivalent(figure_11a.graph, event, D @ -d, D))
+        self.assertTrue(is_pw_equivalent(figure_9b.graph, event, D @ +x, D))
+        self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ -d, Z))
+        self.assertFalse(is_pw_equivalent(figure_9b.graph, event, X, X @ ~X))
+        self.assertFalse(is_pw_equivalent(figure_9b.graph, event, Z, Z @ ~X))
+        self.assertFalse(is_pw_equivalent(figure_9b.graph, event, D, D @ -d))
+        self.assertFalse(is_pw_equivalent(figure_9b.graph, event, X, X @ -x))
+        self.assertFalse(is_pw_equivalent(figure_11a.graph, event, X @ +x, X))
+
 
     def test_merge_pw(self):
         """Test that the parallel worlds graph after merging two nodes is correct.
         (This is lemma 25)"""
-        cf_graph_1 = merge_pw(figure_9b.graph, D, D @ ~X)
-        cf_graph_2 = merge_pw(cf_graph_1, X, X @ D)
+        cf_graph_1, preferred, eliminated = merge_pw(figure_9b.graph, D, D @ ~X)
+        cf_graph_2, preferred, eliminated = merge_pw(cf_graph_1, X, X @ D)
         # test that we swap the order of the nodes if the first is a counterfactual
-        cf_graph_3 = merge_pw(cf_graph_2, Z @ ~X, Z)
-        cf_graph_4 = merge_pw(cf_graph_3, Z, Z @ D)
-        cf_graph_5 = merge_pw(cf_graph_4, W, W @ D)
-        cf_graph_6 = merge_pw(cf_graph_5, D @ D, D)
-        cf_graph_7 = merge_pw(cf_graph_6, Y, Y @ D)
+        cf_graph_3,  preferred, eliminated = merge_pw(cf_graph_2, Z @ ~X, Z)
+        cf_graph_4,  preferred, eliminated = merge_pw(cf_graph_3, Z, Z @ D)
+        cf_graph_5,  preferred, eliminated = merge_pw(cf_graph_4, W, W @ D)
+        cf_graph_6, preferred, eliminated = merge_pw(cf_graph_5, D @ D, D)
+        cf_graph_7, preferred, eliminated = merge_pw(cf_graph_6, Y, Y @ D)
         # test that we sort the order of the nodes if both are counterfactual
-        cf_graph_8 = merge_pw(figure_9b.graph, W @ -d, W @ +x)
+        cf_graph_8, preferred8, eliminated8 = merge_pw(figure_9b.graph, W @ -d, W @ +x)
         # test that we sort the order of the nodes if the both are factual
-        cf_graph_9 = merge_pw(figure_9b.graph, W, Z)
+        cf_graph_9, preferred9, eliminated9 = merge_pw(figure_9b.graph, W, Z)
         self.assert_graph_equal(figure_11a.graph, cf_graph_2)
         self.assert_graph_equal(figure_11b.graph, cf_graph_6)
         self.assert_graph_equal(figure_11c.graph, cf_graph_7)
-        self.assert_graph_equal(merge_pw(figure_9b.graph, W @ +x, W @ -d), cf_graph_8)
-        self.assert_graph_equal(merge_pw(figure_9b.graph, Z, W), cf_graph_9)
+        self.assert_graph_equal(merge_pw(figure_9b.graph, W @ +x, W @ -d)[0], cf_graph_8)
+        self.assert_graph_equal(merge_pw(figure_9b.graph, Z, W)[0], cf_graph_9)
+
 
     def test_make_counterfactual_graph(self):
         r"""Test making a counterfactual graph.
