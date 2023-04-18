@@ -128,7 +128,7 @@ def is_pw_equivalent(graph: NxMixedGraph, event: Event, node1: Variable, node2: 
     r"""Check if two nodes in a parallel worlds graph are equivalent.
 
     :param graph: A parallel worlds graph
-    :param event:
+    :param event: A dictionary of variables and variables values
     :param node1: A node in the graph
     :param node2: Another node in the graph
     :returns: If the two nodes are equivalent under the parallel worlds assumption
@@ -229,7 +229,7 @@ def lemma_24_holds(
 
 
 def is_inconsistent(event: Event, node: Variable, node_at_interventions: Variable) -> bool:
-    r"""Check if the equivalant nodes (according to lemma 25) have been assigned different values in the event"""
+    r"""Check if the equivalant nodes (according to lemma 25) have been assigned different values in the event."""
     return (
         (node in event)
         and (node_at_interventions in event)
@@ -238,7 +238,7 @@ def is_inconsistent(event: Event, node: Variable, node_at_interventions: Variabl
 
 
 def update_event(event: Event, preferred_node: Variable, eliminated_node: Variable) -> Event:
-    r"""Update the event to reflect the fact that the preferred node has been merged into the eliminated node"""
+    r"""Update the event to reflect the fact that the preferred node has been merged into the eliminated node."""
     if eliminated_node in event:
         event[preferred_node] = event[eliminated_node]
         del event[eliminated_node]
@@ -351,7 +351,14 @@ def stitch_factual_and_doppleganger_neighbors(
 def stitch_counterfactual_and_dopplegangers(
     graph: NxMixedGraph, worlds: Worlds
 ) -> Set[Tuple[CounterfactualVariable, CounterfactualVariable]]:
-    """Stitch together a counterfactual variable with its doppleganger in each world, unless the counterfactual is intervened upon in one of the worlds."""
+    """Stitch together a counterfactual variable with its doppelganger.
+
+    Unless the counterfactual is intervened upon in one of the worlds.
+
+    :param graph: A NxMixedGraph
+    :param worlds: A set of frozensets of interventions
+    :returns: A set of undirected edges
+    """
     rv = {
         (u @ world_1, u @ world_2)
         for world_1, world_2 in combinations(worlds, 2)
@@ -405,8 +412,14 @@ def stitch_counterfactual_and_neighbors(
 def _get_directed_edges(
     graph: NxMixedGraph, worlds: Worlds
 ) -> Set[Tuple[CounterfactualVariable, CounterfactualVariable]]:
-    """Get the directed edges in the parallel worlds graph except for those where the target node was
-    intervened upon."""
+    """Get the directed edges in the parallel worlds graph.
+
+    Except for those where the target node was intervened upon.
+
+    :param graph: A NxMixedGraph
+    :param worlds: A set of frozensets of interventions
+    :returns: A set of directed edges
+    """
     return {
         (u @ world, v @ world)
         for world in worlds
