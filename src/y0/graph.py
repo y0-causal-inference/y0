@@ -7,30 +7,13 @@ from __future__ import annotations
 import itertools as itt
 import json
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Collection,
-    FrozenSet,
-    Iterable,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import (
-    CounterfactualVariable,
-    Intervention,
-    Variable,
-    VariableHint,
-    vmap_adj,
-    vmap_pairs,
-)
+from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
 
 __all__ = [
     "NxMixedGraph",
@@ -455,9 +438,7 @@ class NxMixedGraph:
 
 
 def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
-    """
-    Confirm that node is not an intervention
-    """
+    """Confirm that node is not an intervention."""
     if isinstance(node, (Intervention, CounterfactualVariable)):
         raise TypeError(
             "this shouldn't happen since the graph should not have interventions as nodes"

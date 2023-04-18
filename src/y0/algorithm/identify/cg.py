@@ -10,7 +10,6 @@ from y0.graph import NxMixedGraph
 
 __all__ = [
     "has_same_function",
-    "has_same_parents",
     "extract_interventions",
     "is_pw_equivalent",
     "merge_pw",
@@ -72,7 +71,7 @@ def nodes_attain_same_value(graph: NxMixedGraph, event: Event, a: Variable, b: V
         return False
     elif a in event and b in event:
         if event[a] != event[b]:
-            return False  #  D and D @ -d  events = {D: -d}
+            return False  # D and D @ -d  events = {D: -d}
     elif a in event:
         if not isinstance(b, CounterfactualVariable) or event[a] not in b.interventions:
             return False
@@ -243,23 +242,25 @@ def make_counterfactual_graph(
     graph: NxMixedGraph, event: Event
 ) -> Tuple[NxMixedGraph, Optional[Event]]:
     r"""Make counterfactual graph.
+
     :param graph: A causal graph :math:`G`
-    :param worlds: A conjunction of counterfactual events :math:`\gamma`
-    :returns: A counterfactual graph and either a set of new events :math:`\gamma'`
-    such that :math:`P(\gamma') = P(\gamma)` or None
+    :param event: A conjunction of counterfactual events :math:`\gamma`
+    :returns:
+        A counterfactual graph and either a set of new events :math:`\gamma'`
+        such that :math:`P(\gamma') = P(\gamma)` or None
 
     * Construct a submodel graph :math:`G_{\mathbf{x}_i}` for each action
-    :math:`do(\mathbf{x}_i)` mentioned in the event :math:`\gamma`. Construct the
-    parallel worlds graph :math:`G'` by having all such submodel graphs share their
-    corresponding :math:`U` nodes
+      :math:`do(\mathbf{x}_i)` mentioned in the event :math:`\gamma`. Construct the
+      parallel worlds graph :math:`G'` by having all such submodel graphs share their
+      corresponding :math:`U` nodes
     * Let :math:`\pi` be a topological ordering of nodes in :math:`G'`, let :math:`\gamma' := \gamma`
     * Apply Lemmas 24 and 25, in order :math:`\pi`, to each observable pair of nodes :math:`\alpha, \beta` in :math:`G`.
-    For each :math:`\alpha, \beta` that are the same, do:
+      For each :math:`\alpha, \beta` that are the same, do:
         * Let :math:`G'` be modified as specified in Lemma 25
         * Modify :math:`\gamma'` by renaming all occurrences of :math:`\beta` to :math:`\alpha`.
         * If :math:`\mathbf{\alpha} \ne :math:`\mathbf{\beta}`, return :math:`G'`, None
     * Return :math:`(G', \gamma')`, where :math:`An(\gamma')` is the set of nodes in :math:`G'`
-    ancestral to nodes corresponding to variables mentioned in :math:`\gamma'`.
+      ancestral to nodes corresponding to variables mentioned in :math:`\gamma'`.
     """
     worlds = extract_interventions(event)
     pw_graph = make_parallel_worlds_graph(graph, worlds)
