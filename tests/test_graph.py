@@ -221,7 +221,3 @@ class TestGraph(unittest.TestCase):
         self.assertTrue(graph.is_counterfactual())
         with self.assertRaises(ValueError):
             graph.raise_on_counterfactual()
-
-    def test_relabel_nodes(self):
-        """Test that relabeling the nodes of a graph works"""
-        graph = NxMixedGraph.from_edges(undirected=[(X, Y @ (-W, +X, -Z))], directed=[(W @ ())])
