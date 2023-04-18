@@ -52,7 +52,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         expected2 = make_parallel_worlds_graph(figure_9a.graph, {(+x, -z)})
         self.assert_graph_equal(expected, actual)
         self.assert_graph_equal(expected2, make_parallel_worlds_graph(figure_9a.graph, {(+x, -z)}))
-        self.assertFalse(Y @ (-z, +x) in expected2.nodes())
+        self.assertTrue(Y @ (-z, +x) in expected2.nodes())
         self.assertTrue(Y @ (+x, -z) in expected2.nodes())
 
     def test_has_same_function(self):
