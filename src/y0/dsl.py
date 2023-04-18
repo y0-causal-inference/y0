@@ -210,7 +210,7 @@ class Variable(Element):
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
-            interventions=_to_interventions(_upgrade_variables(variables)),
+            interventions=_to_interventions(_upgrade_ordering(variables)),
         )
 
     def __matmul__(self, variables: VariableHint) -> CounterfactualVariable:
