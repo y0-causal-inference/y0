@@ -480,6 +480,7 @@ figure_9d = Example(
     " joint distribution from which :math:`P(y_{x,z}|x')` is derived, namely  :math:`P(y_{x,z}, x')`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(
+<<<<<<< HEAD
         nodes=(X, X @ (+x, -z), Z @ (+x, -z), W @ (+x, -z), Y @ (+x, -z)),
         directed=[
             (X @ (+x, -z), W @ (+x, -z)),
@@ -487,6 +488,15 @@ figure_9d = Example(
             (W @ (+x, -z), Y @ (+x, -z)),
         ],
         undirected=[(X, Y @ (+x, -z))],
+=======
+        nodes=(X, X @ (~X, Z), Z @ (+X, -Z), W @ (+X, -Z), Y @ (+X, -Z)),
+        directed=[
+            (X @ (+X, -Z), W @ (+X, -Z)),
+            (Z @ (+X, -Z), Y @ (+X, -Z)),
+            (W @ (+X, -Z), Y @ (+X, -Z)),
+        ],
+        undirected=[(X, Y @ (+X, -Z))],
+>>>>>>> main
     ),
 )
 
@@ -1099,6 +1109,31 @@ complete_hierarchy_figure_3a_example = Example(
         directed=[(X, Y1), (W1, X), (W2, Y2)],
         undirected=[(W1, W2), (W1, Y1), (W1, Y2), (X, W2)],
     ),
+)
+
+id_sir_example = Example(
+    name="IdentifiableSIR",
+    reference="ASKEM",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+                  ("Infected", "Hospitalized"),
+                  ("Hospitalized", "Died"),
+        ],
+        undirected=[
+            ("Infected", "Died")]
+
+    )
+)
+
+nonid_sir_example = Example(
+    name="IdentifiableSIR",
+    reference="ASKEM",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+                  ("Infected", "Died"),
+        ],
+        undirected=[("Infected", "Died")]
+    )
 )
 
 igf_example = Example(

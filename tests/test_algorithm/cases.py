@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Tests for the ID* algorithm."""
+"""Test cases."""
 
 import unittest
 

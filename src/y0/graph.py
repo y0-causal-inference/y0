@@ -7,15 +7,13 @@ from __future__ import annotations
 import itertools as itt
 import json
 from dataclasses import dataclass, field
-from typing import Any, Collection, Iterable, Mapping, Optional, Tuple, Union
+from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
-from ananke.graphs import ADMG
-from networkx import relabel_nodes
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs, VariableHint
+from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
 
 __all__ = [
     "NxMixedGraph",
@@ -417,34 +415,35 @@ class NxMixedGraph:
         """Return if there is only a single connected component in the undirected graph."""
         return nx.is_connected(self.undirected)
 
-    def relabel_nodes(self, mapping: Mapping[CounterfactualVariable, Variable]) -> NxMixedGraph:
-        directed = relabel_nodes(self.directed, mapping)
-        undirected = relabel_nodes(self.directed, mapping)
-        return NxMixedGraph.from_edges(
-            nodes=set(directed.nodes()) | set(undirected.nodes()),
-            directed=directed.edges(),
-            undirected=undirected.edges(),
-        )
-
-    def intervene(self, variables: VariableHint) -> NxMixedGraph:
+    def intervene(self, variables: Set[Intervention]) -> NxMixedGraph:
         """Intervene on the given variables.
 
-        :param graph: A graph
         :param variables: A set of interventions
-        :returns: A graph that has been intervened on the given interventions
+        :returns: A graph that has been intervened on the given variables, with edges into the intervened nodes removed
         """
-        base_variables = {v.get_base() for v in variables}
         return self.from_edges(
             nodes=[node.intervene(variables) for node in self.nodes()],
             directed=[
-                (u.intervene(variables), v.intervene(variables)) for u, v in self.directed.edges()
-                if v.get_base() not in  base_variables
+                (u.intervene(variables), v.intervene(variables))
+                for u, v in self.directed.edges()
+                if _node_not_an_intervention(v, variables)
             ],
             undirected=[
-                (u.intervene(variables), v.intervene(variables)) for u, v in self.undirected.edges()
-                if (v.get_base() not in base_variables) and ( u.get_base() not in base_variables)
+                (u.intervene(variables), v.intervene(variables))
+                for u, v in self.undirected.edges()
+                if _node_not_an_intervention(u, variables)
+                and _node_not_an_intervention(v, variables)
             ],
         )
+
+
+def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
+    """Confirm that node is not an intervention."""
+    if isinstance(node, (Intervention, CounterfactualVariable)):
+        raise TypeError(
+            "this shouldn't happen since the graph should not have interventions as nodes"
+        )
+    return (+node not in interventions) and (-node not in interventions)
 
 
 def _ancestors_inclusive(graph: nx.DiGraph, sources: set[Variable]) -> set[Variable]:
