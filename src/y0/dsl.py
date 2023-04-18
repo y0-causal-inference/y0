@@ -210,7 +210,7 @@ class Variable(Element):
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
-            interventions=_to_interventions(_upgrade_variables(variables)),
+            interventions=_to_interventions(_upgrade_ordering(variables)),
         )
 
     def __matmul__(self, variables: VariableHint) -> CounterfactualVariable:
@@ -230,7 +230,7 @@ class Variable(Element):
         if not isinstance(parents, Distribution):
             return Distribution(
                 children=(self,),
-                parents=_upgrade_variables(parents),
+                parents=_upgrade_ordering(parents),
             )
         elif parents.is_conditioned():
             raise TypeError("can not be given a distribution that has conditionals")
@@ -254,7 +254,7 @@ class Variable(Element):
         .. note:: This function can be accessed with the and & operator.
         """
         return Distribution(
-            children=(self, *_upgrade_variables(children)),
+            children=_upgrade_ordering((self, *_upgrade_variables(children))),
         )
 
     def __and__(self, children: VariableHint) -> Distribution:
@@ -409,13 +409,14 @@ class CounterfactualVariable(Variable):
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        _variables = _upgrade_variables(variables)
-        _interventions = _to_interventions(_variables)
+        _interventions = _to_interventions(_upgrade_ordering(variables))
         self._raise_for_overlapping_interventions(_interventions)
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
-            interventions=(*self.interventions, *_interventions),
+            interventions=tuple(
+                sorted((*self.interventions, *_interventions), key=attrgetter("name"))
+            ),
         )
 
     def _raise_for_overlapping_interventions(self, interventions: Iterable[Intervention]) -> None:
@@ -548,7 +549,7 @@ class Distribution(Element):
     def intervene(self, variables: VariableHint) -> Distribution:
         """Return a new distribution that has the given intervention(s) on all variables."""
         # check that the variables aren't in any of them yet
-        variables = _upgrade_variables(variables)
+        variables = _upgrade_ordering(variables)
         return Distribution(
             children=tuple(child.intervene(variables) for child in self.children),
             parents=tuple(parent.intervene(variables) for parent in self.parents),
@@ -572,7 +573,7 @@ class Distribution(Element):
         .. note:: This function can be accessed with the and & operator.
         """
         return Distribution(
-            children=(*self.children, *_upgrade_variables(children)),
+            children=_upgrade_ordering((*self.children, *_upgrade_variables(children))),
             parents=self.parents,
         )
 
@@ -592,7 +593,7 @@ class Distribution(Element):
         if not isinstance(parents, Distribution):
             return Distribution(
                 children=self.children,
-                parents=(*self.parents, *_upgrade_variables(parents)),
+                parents=_upgrade_ordering((*self.parents, *_upgrade_variables(parents))),
             )
         elif parents.is_conditioned():
             raise TypeError("can not be given a distribution that has conditionals")
@@ -654,7 +655,7 @@ class Expression(Element, ABC):
         >>> assert P(A, B).marginalize(A) == Sum[A](P(A, B))
         >>> assert P(A, B, C).marginalize([A, B]) == Sum[A, B](P(A, B, C))
         """
-        return Sum(expression=self, ranges=_upgrade_variables(ranges))
+        return Sum(expression=self, ranges=_upgrade_ordering(ranges))
 
 
 @dataclass(frozen=True, repr=False)
@@ -1266,7 +1267,7 @@ class QFactor(Expression):
         """Create a Q factor with various input types."""
         return cls(
             domain=cls._prepare_domain(domain, *args),
-            codomain=_upgrade_variables(codomain),
+            codomain=_upgrade_ordering(codomain),
         )
 
     @staticmethod

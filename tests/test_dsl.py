@@ -48,7 +48,7 @@ class TestDSL(unittest.TestCase):
         self.assertEqual(
             expression,
             reconstituted,
-            msg=f"\nExpected: {expression.to_y0()}\nActual:   {reconstituted.to_y0()}",
+            msg=f"\nError in reconstitution.\nExpected: {expression.to_y0()}\nActual:   {reconstituted.to_y0()}",
         )
 
     def assert_text(self, s: str, expression: Element):
@@ -100,9 +100,9 @@ class TestDSL(unittest.TestCase):
 
         # Instantiation with two variables
         self.assert_text(
-            "Y_{X, W*}",
+            "Y_{W*, X}",
             CounterfactualVariable(
-                "Y", interventions=(Intervention("X", star=False), ~Intervention("W", star=False))
+                "Y", interventions=(~Intervention("W", star=False), Intervention("X", star=False))
             ),
         )
 
@@ -111,10 +111,10 @@ class TestDSL(unittest.TestCase):
         self.assert_text("Y_{W*}", Y @ ~Intervention("W", star=False))
 
         # Instantiation with matmul @ operator and list operand
-        self.assert_text("Y_{X, W*}", Y @ [X, ~W])
+        self.assert_text("Y_{W*, X}", Y @ [X, ~W])
 
         # Instantiation with matmul @ operator (chained)
-        self.assert_text("Y_{X, W*}", Y @ X @ ~W)
+        self.assert_text("Y_{W*, X}", Y @ X @ ~W)
 
     def test_star_counterfactual(self):
         """Tests for generalized counterfactual variables."""
@@ -307,17 +307,17 @@ class TestDSL(unittest.TestCase):
     def test_jeremy(self):
         """Test assorted complicated objects from Jeremy."""
         self.assert_text(
-            "[ sum_{W} P(X, Y_{Z*, W}) P(D) P(Z_{D}) P(W_{X*}) ]",
+            "[ sum_{W} P(X, Y_{W, Z*}) P(D) P(Z_{D}) P(W_{X*}) ]",
             Sum(P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X), (W,)),
         )
 
         self.assert_text(
-            "[ sum_{W} P(X, Y_{Z*, W}) P(W_{X*}) ]",
+            "[ sum_{W} P(X, Y_{W, Z*}) P(W_{X*}) ]",
             Sum(P(X, Y @ ~Z @ W) * P(W @ ~X), (W,)),
         )
 
         self.assert_text(
-            "frac_{[ sum_{W} P(X, Y_{Z, W}) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(X, Y_{Z, W}) P(W_{X*}) ] ]}",
+            "frac_{[ sum_{W} P(X, Y_{W, Z}) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(X, Y_{W, Z}) P(W_{X*}) ] ]}",
             Fraction(
                 Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)),
                 Sum(Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)), (Y,)),
@@ -325,7 +325,7 @@ class TestDSL(unittest.TestCase):
         )
 
         self.assert_text(
-            "[ sum_{D} P(X, Y_{Z*, W}) P(D) P(Z_{D}) P(W_{X*}) ]",
+            "[ sum_{D} P(X, Y_{W, Z*}) P(D) P(Z_{D}) P(W_{X*}) ]",
             Sum(P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
         )
 
