@@ -210,7 +210,7 @@ class Variable(Element):
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
-            interventions=_to_interventions(_upgrade_variables(variables)),
+            interventions=_to_interventions(_upgrade_ordering(variables)),
         )
 
     def __matmul__(self, variables: VariableHint) -> CounterfactualVariable:
@@ -547,7 +547,7 @@ class Distribution(Element):
     def intervene(self, variables: VariableHint) -> Distribution:
         """Return a new distribution that has the given intervention(s) on all variables."""
         # check that the variables aren't in any of them yet
-        variables = _upgrade_variables(variables)
+        variables = _upgrade_ordering(variables)
         return Distribution(
             children=tuple(child.intervene(variables) for child in self.children),
             parents=tuple(parent.intervene(variables) for parent in self.parents),
