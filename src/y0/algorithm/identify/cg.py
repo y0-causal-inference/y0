@@ -72,12 +72,18 @@ def nodes_attain_same_value(graph: NxMixedGraph, event: Event, a: Variable, b: V
     elif a in event and b in event:
         if event[a] != event[b]:
             return False  # D and D @ -d  events = {D: -d}
+        else:
+            return True
     elif a in event:
         if not isinstance(b, CounterfactualVariable) or event[a] not in b.interventions:
             return False
+        else:
+            return True
     elif b in event:
         if not isinstance(a, CounterfactualVariable) or event[b] not in a.interventions:
             return False
+        else:
+            return True
     elif isinstance(a, CounterfactualVariable) or isinstance(b, CounterfactualVariable):
         return False
     return True
@@ -122,6 +128,7 @@ def is_pw_equivalent(graph: NxMixedGraph, event: Event, node1: Variable, node2: 
     r"""Check if two nodes in a parallel worlds graph are equivalent.
 
     :param graph: A parallel worlds graph
+    :param event:
     :param node1: A node in the graph
     :param node2: Another node in the graph
     :returns: If the two nodes are equivalent under the parallel worlds assumption
