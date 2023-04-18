@@ -100,7 +100,7 @@ class TestDSL(unittest.TestCase):
 
         # Instantiation with two variables
         self.assert_text(
-            "Y_{W*, X}",
+            "Y_{X, W*}",
             CounterfactualVariable(
                 "Y", interventions=(Intervention("X", star=False), ~Intervention("W", star=False))
             ),
