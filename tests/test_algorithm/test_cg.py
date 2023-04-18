@@ -90,13 +90,14 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, D @ -d, D))
 
     def test_has_same_confounders(self):
+        """Check whether two nodes have the same confounding edges."""
         self.assertFalse(has_same_confounders(figure_9b.graph, D, D))
         self.assertFalse(has_same_confounders(figure_9b.graph, D, D @ -d))
         self.assertFalse(has_same_confounders(figure_9b.graph, D @ -d, D))
         self.assertTrue(has_same_confounders(figure_9b.graph, D @ +x, D))
 
     def test_parents_attain_same_values(self):
-        """Test that the parents of two nodes attain the same value"""
+        """Test that the parents of two nodes attain the same value."""
         graph = figure_9b.graph
         event: Event = {Y @ +x: +y, D: -d, Z @ -d: -z, X: -x}
         self.assertTrue(parents_attain_same_values(figure_11a.graph, event, Z, Z @ -d))
@@ -131,7 +132,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
 
     def test_node_not_an_intervention_in_world(self):
-        """Test that a node is not an intervention in a world"""
+        """Test that a node is not an intervention in a world."""
         self.assertTrue(node_not_an_intervention_in_world(world=frozenset([-x]), node=Y))
         self.assertFalse(node_not_an_intervention_in_world(world=frozenset([-x, +z]), node=X))
         self.assertTrue(node_not_an_intervention_in_world(world=frozenset([-x, +x]), node=Y))
@@ -141,7 +142,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertFalse(node_not_an_intervention_in_world(world=frozenset([-x, +y, -y]), node=Y))
 
     def test_stitch_factual_and_dopplegangers(self):
-        """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon"""
+        """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon."""
         self.assert_uedge_set_equal(
             {(Y, Y @ -x)},
             stitch_factual_and_dopplegangers(
@@ -194,7 +195,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
 
     def test_stitch_factual_and_doppleganger_neighbors(self):
-        """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon"""
+        """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon."""
         self.assert_uedge_set_equal(
             set(),
             stitch_factual_and_doppleganger_neighbors(
@@ -226,7 +227,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
 
     def test_stitch_counterfactual_and_dopplegangers(self):
-        """Test that counterfactual variables and their dopplegangers are stitched together unless it is intervened upon"""
+        """Test counterfactual variables and their dopplegangers are stitched together unless it is intervened upon."""
         self.assert_uedge_set_equal(
             set(),
             stitch_counterfactual_and_dopplegangers(
@@ -272,9 +273,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
 
     def test_stitch_counterfactual_and_doppleganger_neighbors(self):
-        """
-        Test that counterfactual variables and their neighbor dopplegangers are stitched together unless either are intervened upon
-        """
+        """Test that counterfactual variables and their neighbor dopplegangers are stitched together."""
         self.assert_uedge_set_equal(
             set(),
             set(
@@ -339,9 +338,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
 
     def test_stitch_counterfactual_and_neighbors(self):
-        """
-        Test that counterfactual variables and their neighbors are stitched together unless either are intervened upon
-        """
+        """Test counterfactual variables and their neighbors are stitched together."""
         self.assert_uedge_set_equal(
             set(),
             set(
@@ -424,8 +421,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
 
     def test_is_pw_equivalent(self):
-        """Test that two nodes in a parallel world graph are the same
-        (lemma 24)."""
+        """Test that two nodes in a parallel world graph are the same (lemma 24)."""
         event: Event = {Y @ +x: +y, D: -d, Z @ -d: -z, X: -x}
         self.assertTrue(is_pw_equivalent(figure_9b.graph, event, D @ ~X, D))
         self.assertTrue(is_pw_equivalent(figure_9b.graph, event, X @ D, X))
@@ -444,8 +440,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertFalse(is_pw_equivalent(figure_11a.graph, event, X @ +x, X))
 
     def test_merge_pw(self):
-        """Test that the parallel worlds graph after merging two nodes is correct.
-        (This is lemma 25)"""
+        """Test the parallel worlds graph after merging two nodes is correct (Lemma 25)."""
         cf_graph_1, preferred, eliminated = merge_pw(figure_9b.graph, D, D @ ~X)
         cf_graph_2, preferred, eliminated = merge_pw(cf_graph_1, X, X @ D)
         # test that we swap the order of the nodes if the first is a counterfactual
