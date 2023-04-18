@@ -571,7 +571,7 @@ class Distribution(Element):
         .. note:: This function can be accessed with the and & operator.
         """
         return Distribution(
-            children=_upgrade_ordering(*self.children, *_upgrade_variables(children)),
+            children=_upgrade_ordering((*self.children, *_upgrade_variables(children))),
             parents=self.parents,
         )
 
