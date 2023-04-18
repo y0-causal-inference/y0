@@ -317,7 +317,7 @@ class TestDSL(unittest.TestCase):
         )
 
         self.assert_text(
-            "frac_{[ sum_{W} P(X, Y_{W, Z}) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(X, Y_{Z, W}) P(W_{X*}) ] ]}",
+            "frac_{[ sum_{W} P(X, Y_{W, Z}) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(X, Y_{W, Z}) P(W_{X*}) ] ]}",
             Fraction(
                 Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)),
                 Sum(Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)), (Y,)),
@@ -325,7 +325,7 @@ class TestDSL(unittest.TestCase):
         )
 
         self.assert_text(
-            "[ sum_{D} P(X, Y_{Z*, W}) P(D) P(Z_{D}) P(W_{X*}) ]",
+            "[ sum_{D} P(X, Y_{W, Z*}) P(D) P(Z_{D}) P(W_{X*}) ]",
             Sum(P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
         )
 
