@@ -480,7 +480,6 @@ figure_9d = Example(
     " joint distribution from which :math:`P(y_{x,z}|x')` is derived, namely  :math:`P(y_{x,z}, x')`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(
-<<<<<<< HEAD
         nodes=(X, X @ (+x, -z), Z @ (+x, -z), W @ (+x, -z), Y @ (+x, -z)),
         directed=[
             (X @ (+x, -z), W @ (+x, -z)),
@@ -488,15 +487,6 @@ figure_9d = Example(
             (W @ (+x, -z), Y @ (+x, -z)),
         ],
         undirected=[(X, Y @ (+x, -z))],
-=======
-        nodes=(X, X @ (~X, Z), Z @ (+X, -Z), W @ (+X, -Z), Y @ (+X, -Z)),
-        directed=[
-            (X @ (+X, -Z), W @ (+X, -Z)),
-            (Z @ (+X, -Z), Y @ (+X, -Z)),
-            (W @ (+X, -Z), Y @ (+X, -Z)),
-        ],
-        undirected=[(X, Y @ (+X, -Z))],
->>>>>>> main
     ),
 )
 
