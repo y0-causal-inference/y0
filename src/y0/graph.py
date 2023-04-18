@@ -7,7 +7,7 @@ from __future__ import annotations
 import itertools as itt
 import json
 from dataclasses import dataclass, field
-from typing import Any, Collection, Iterable, Mapping, Optional, Tuple, Union
+from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
 from networkx.classes.reportviews import NodeView
@@ -414,6 +414,36 @@ class NxMixedGraph:
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""
         return nx.is_connected(self.undirected)
+
+    def intervene(self, variables: Set[Intervention]) -> NxMixedGraph:
+        """Intervene on the given variables.
+
+        :param variables: A set of interventions
+        :returns: A graph that has been intervened on the given variables, with edges into the intervened nodes removed
+        """
+        return self.from_edges(
+            nodes=[node.intervene(variables) for node in self.nodes()],
+            directed=[
+                (u.intervene(variables), v.intervene(variables))
+                for u, v in self.directed.edges()
+                if _node_not_an_intervention(v, variables)
+            ],
+            undirected=[
+                (u.intervene(variables), v.intervene(variables))
+                for u, v in self.undirected.edges()
+                if _node_not_an_intervention(u, variables)
+                and _node_not_an_intervention(v, variables)
+            ],
+        )
+
+
+def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
+    """Confirm that node is not an intervention."""
+    if isinstance(node, (Intervention, CounterfactualVariable)):
+        raise TypeError(
+            "this shouldn't happen since the graph should not have interventions as nodes"
+        )
+    return (+node not in interventions) and (-node not in interventions)
 
 
 def _ancestors_inclusive(graph: nx.DiGraph, sources: set[Variable]) -> set[Variable]:
