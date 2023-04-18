@@ -11,9 +11,9 @@ from dataclasses import dataclass, field
 from operator import attrgetter
 from typing import (
     Callable,
+    Dict,
     Iterable,
     List,
-    Mapping,
     Optional,
     Protocol,
     Sequence,
@@ -1423,4 +1423,4 @@ def vmap_adj(adjacency_dict):
 
 
 #: A conjunction of factual and counterfactual events
-Event = Mapping[Variable, Intervention]
+Event = Dict[Variable, Intervention]
