@@ -414,7 +414,7 @@ class CounterfactualVariable(Variable):
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
-            interventions=(*self.interventions, *_interventions),
+            interventions=tuple(sorted((*self.interventions, *_interventions), key=attrgetter("name"))),
         )
 
     def _raise_for_overlapping_interventions(self, interventions: Iterable[Intervention]) -> None:
