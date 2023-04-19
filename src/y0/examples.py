@@ -1106,13 +1106,11 @@ id_sir_example = Example(
     reference="ASKEM",
     graph=NxMixedGraph.from_edges(
         directed=[
-                  ("Infected", "Hospitalized"),
-                  ("Hospitalized", "Died"),
+            ("Infected", "Hospitalized"),
+            ("Hospitalized", "Died"),
         ],
-        undirected=[
-            ("Infected", "Died")]
-
-    )
+        undirected=[("Infected", "Died")],
+    ),
 )
 
 nonid_sir_example = Example(
@@ -1120,10 +1118,10 @@ nonid_sir_example = Example(
     reference="ASKEM",
     graph=NxMixedGraph.from_edges(
         directed=[
-                  ("Infected", "Died"),
+            ("Infected", "Died"),
         ],
-        undirected=[("Infected", "Died")]
-    )
+        undirected=[("Infected", "Died")],
+    ),
 )
 
 igf_example = Example(
