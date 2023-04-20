@@ -104,7 +104,7 @@ def simulate(
 
     fits: Dict[FrozenSet[Variable], FitTuple] = {}
     for parent, child in order:
-        x, y = rv[parent].to_numpy().reshape(-1, 1), rv[child]
+        x, y = rv[parent.name].to_numpy().reshape(-1, 1), rv[child.name]
         regression = LinearRegression()
         regression.fit(x, y)
         r2 = regression.score(x, y)
