@@ -1424,3 +1424,7 @@ def vmap_adj(adjacency_dict):
 
 #: A conjunction of factual and counterfactual events
 Event = Dict[Variable, Intervention]
+
+
+def is_self_intervened(v) -> bool:
+    raise NotImplementedError

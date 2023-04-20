@@ -4,8 +4,6 @@
 
 from typing import Collection, FrozenSet, Iterable, List, Mapping, Optional, Set, Tuple
 
-from y0.dsl import is_self_intervened
-
 from .cg import make_counterfactual_graph
 from .utils import Unidentifiable
 from ..conditional_independencies import are_d_separated
@@ -21,18 +19,19 @@ from ...dsl import (
     Sum,
     Variable,
     Zero,
+    is_self_intervened,
 )
 from ...graph import NxMixedGraph
 
-__all__ = [
-    "id_star",
-    "get_district_domains",
-    "domain_of_counterfactual_values",
-    "is_self_intervened",
-    "is_event_empty",
-    "violates_axiom_of_effectiveness",
-    "remove_event_tautologies",
-] + [f"id_star_line_{i}" for i in [4, 6, 8, 9]]
+# __all__ = [
+#     "id_star",
+#     "get_district_domains",
+#     "domain_of_counterfactual_values",
+#     "is_self_intervened",
+#     "is_event_empty",
+#     "violates_axiom_of_effectiveness",
+#     "remove_event_tautologies",
+# ]
 
 District = FrozenSet[Variable]
 DistrictInterventions = Mapping[District, Set[Intervention]]
@@ -183,7 +182,9 @@ def remove_event_tautologies(event: Event) -> Event:
 
 def is_redundant_counterfactual(variable: Variable, value: Intervention) -> bool:
     """Check if a counterfactual variable is intervened on itself and has the same value as the intervention"""
-    return isinstance(variable, CounterfactualVariable) and variable.is_redundant(value)
+    if not isinstance(variable, CounterfactualVariable):
+        return False
+    raise NotImplementedError
 
 
 def id_star_line_4(graph: NxMixedGraph, event: Event) -> Tuple[NxMixedGraph, Optional[Event]]:
@@ -345,8 +346,8 @@ def rule_3_applies(
     district = set(district)
     for counterfactual in district:
         if not isinstance(counterfactual, CounterfactualVariable):
-            continue
-        interventions: Set[Variable] = set(graph.nodes()).difference(district)
+            raise TypeError
+        interventions: Set[Intervention] = set(graph.nodes()).difference(district)
         for intervention in interventions:
             if are_d_separated(
                 graph,
