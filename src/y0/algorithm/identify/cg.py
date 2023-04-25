@@ -53,11 +53,10 @@ def has_same_confounders(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
 
 
 def has_same_function(node1: Variable, node2: Variable) -> bool:
-    """Check if the two nodes refer to the same factual variable."""
+    """Check if the two nodes have the same functional mechanism."""
     return (
         node1.get_base() == node2.get_base()
-        and is_intervention_same_as_observed(node1)
-        and is_intervention_same_as_observed(node2)
+        and is_not_self_intervened(node1) == is_not_self_intervened(node2)
     )
 
 
@@ -108,10 +107,11 @@ def parents_attain_same_values(graph: NxMixedGraph, event: Event, a: Variable, b
     )
 
 
-def is_intervention_same_as_observed(node: Variable) -> bool:
-    """Check if the two nodes refer to the same factual variable."""
+def is_not_self_intervened(node: Variable) -> bool:
+    """Check if the node is self-intervened."""
     return not isinstance(node, CounterfactualVariable) or (
         +(node.get_base()) not in node.interventions
+        and -(node.get_base()) not in node.interventions
     )
 
 

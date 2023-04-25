@@ -58,7 +58,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
     def test_has_same_function(self):
         """Test that two variables have the same value."""
         self.assertTrue(has_same_function(D @ X, D))
-        self.assertTrue(has_same_function(D @ D, D))
+        self.assertFalse(has_same_function(D @ D, D))
         self.assertFalse(has_same_function(X, X @ +x))
         self.assertTrue(has_same_function(X @ D, X))
         self.assertFalse(has_same_function(X, D))
@@ -68,6 +68,9 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertTrue(has_same_function(Z @ ~x, Z))
         self.assertTrue(has_same_function(Z @ ~x, Z @ -d))
         self.assertTrue(has_same_function(Z @ -d, Z))
+        self.assertTrue(has_same_function(Z @ (-d, -z), Z @ (-x, -z)))
+        self.assertTrue(has_same_function(Z @ (-d, -z), Z @ (-x, +z)))
+        self.assertFalse(has_same_function(Z @ (-d, -z), Z @ (-d, +x)))
 
     def test_nodes_attain_same_value(self):
         """Test that two variables attain the same value."""
@@ -433,7 +436,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ +x, Z))
         self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ -d, Z))
         self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ +x, Z @ -d))
-        self.assertTrue(is_pw_equivalent(figure_11a.graph, event, D @ -d, D))
+        self.assertFalse(is_pw_equivalent(figure_11a.graph, event, D @ -d, D))
         self.assertTrue(is_pw_equivalent(figure_9b.graph, event, D @ +x, D))
         self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ -d, Z))
         self.assertFalse(is_pw_equivalent(figure_9b.graph, event, X, X @ ~X))
