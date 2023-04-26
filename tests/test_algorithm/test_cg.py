@@ -101,7 +101,6 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertTrue(has_same_confounders(figure_9b.graph, D @ +x, D))
         self.assertTrue(has_same_confounders(figure_11a.graph, D @ -d, D))
 
-
     def test_parents_attain_same_values(self):
         """Test that the parents of two nodes attain the same value."""
         graph = figure_9b.graph
@@ -113,6 +112,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertFalse(parents_attain_same_values(graph, event, Z, Z @ -d))
         self.assertFalse(parents_attain_same_values(figure_9b.graph, event, D, D @ -d))
         self.assertFalse(parents_attain_same_values(figure_9b.graph, event, X, X @ +x))
+
     # def test_has_same_parents(self):
     #     """Test that all parents of two nodes are the same."""
     #     self.assertTrue(has_same_parents(figure_9b.graph, D @ ~X, D))

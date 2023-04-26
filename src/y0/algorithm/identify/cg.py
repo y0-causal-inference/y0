@@ -54,10 +54,9 @@ def has_same_confounders(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
 
 def has_same_function(node1: Variable, node2: Variable) -> bool:
     """Check if the two nodes have the same functional mechanism."""
-    return (
-        node1.get_base() == node2.get_base()
-        and is_not_self_intervened(node1) == is_not_self_intervened(node2)
-    )
+    return node1.get_base() == node2.get_base() and is_not_self_intervened(
+        node1
+    ) == is_not_self_intervened(node2)
 
 
 def nodes_attain_same_value(graph: NxMixedGraph, event: Event, a: Variable, b: Variable) -> bool:
@@ -207,10 +206,16 @@ def merge_pw(
         frozenset({u, node1}) for u, v in graph.undirected.edges() if node2 == v and node1 != u
     ]
     parents_of_node1 = [u for u, v in graph.directed.edges() if v == node1]
-    parents_of_node2_not_node1 = [u for u, v in graph.directed.edges() if v == node2 and u not in parents_of_node1]
+    parents_of_node2_not_node1 = [
+        u for u, v in graph.directed.edges() if v == node2 and u not in parents_of_node1
+    ]
     return (
         NxMixedGraph.from_edges(
-            nodes=[node for node in graph.nodes() if node != node2 and node not in parents_of_node2_not_node1],
+            nodes=[
+                node
+                for node in graph.nodes()
+                if node != node2 and node not in parents_of_node2_not_node1
+            ],
             directed=list(set(directed)),
             undirected=[(u, v) for u, v in set(undirected)],
         ),
