@@ -58,7 +58,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
     def test_has_same_function(self):
         """Test that two variables have the same value."""
         self.assertTrue(has_same_function(D @ X, D))
-        self.assertTrue(has_same_function(D @ D, D))
+        self.assertFalse(has_same_function(D @ D, D))
         self.assertFalse(has_same_function(X, X @ +x))
         self.assertTrue(has_same_function(X @ D, X))
         self.assertFalse(has_same_function(X, D))
@@ -68,6 +68,9 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertTrue(has_same_function(Z @ ~x, Z))
         self.assertTrue(has_same_function(Z @ ~x, Z @ -d))
         self.assertTrue(has_same_function(Z @ -d, Z))
+        self.assertTrue(has_same_function(Z @ (-d, -z), Z @ (-x, -z)))
+        self.assertTrue(has_same_function(Z @ (-d, -z), Z @ (-x, +z)))
+        self.assertFalse(has_same_function(Z @ (-d, -z), Z @ (-d, +x)))
 
     def test_nodes_attain_same_value(self):
         """Test that two variables attain the same value."""
@@ -80,6 +83,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             )
         )
         self.assertTrue(nodes_attain_same_value(figure_9b.graph, event, D, D))
+        self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, D @ -d, D))
         self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, D, D @ -d))
         self.assertFalse(nodes_attain_same_value(figure_11a.graph, event, Z, Z @ +x))
         self.assertFalse(nodes_attain_same_value(figure_9b.graph, event, D, X))
@@ -95,6 +99,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertFalse(has_same_confounders(figure_9b.graph, D, D @ -d))
         self.assertFalse(has_same_confounders(figure_9b.graph, D @ -d, D))
         self.assertTrue(has_same_confounders(figure_9b.graph, D @ +x, D))
+        self.assertTrue(has_same_confounders(figure_11a.graph, D @ -d, D))
 
     def test_parents_attain_same_values(self):
         """Test that the parents of two nodes attain the same value."""
@@ -103,6 +108,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertTrue(parents_attain_same_values(figure_11a.graph, event, Z, Z @ -d))
         self.assertTrue(parents_attain_same_values(figure_11a.graph, event, Z, Z @ +x))
         self.assertTrue(parents_attain_same_values(figure_11a.graph, event, Z @ -d, Z @ +x))
+        self.assertTrue(parents_attain_same_values(figure_11a.graph, event, D, D @ -d))
         self.assertFalse(parents_attain_same_values(graph, event, Z, Z @ -d))
         self.assertFalse(parents_attain_same_values(figure_9b.graph, event, D, D @ -d))
         self.assertFalse(parents_attain_same_values(figure_9b.graph, event, X, X @ +x))
@@ -430,7 +436,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ +x, Z))
         self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ -d, Z))
         self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ +x, Z @ -d))
-        self.assertTrue(is_pw_equivalent(figure_11a.graph, event, D @ -d, D))
+        self.assertFalse(is_pw_equivalent(figure_11a.graph, event, D @ -d, D))
         self.assertTrue(is_pw_equivalent(figure_9b.graph, event, D @ +x, D))
         self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z @ -d, Z))
         self.assertFalse(is_pw_equivalent(figure_9b.graph, event, X, X @ ~X))
@@ -458,6 +464,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assert_graph_equal(figure_11c.graph, cf_graph_7)
         self.assert_graph_equal(merge_pw(figure_9b.graph, W @ +x, W @ -d)[0], cf_graph_8)
         self.assert_graph_equal(merge_pw(figure_9b.graph, Z, W)[0], cf_graph_9)
+        self.assertTrue(D @ -d not in merge_pw(figure_11a.graph, Z, Z @ -d)[0].nodes())
 
     def test_make_counterfactual_graph(self):
         r"""Test making a counterfactual graph.
