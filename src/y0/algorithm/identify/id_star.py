@@ -4,7 +4,7 @@
 
 from typing import Collection, FrozenSet, Iterable, List, Mapping, Optional, Set, Tuple
 
-from .cg import make_counterfactual_graph
+from .cg import make_counterfactual_graph, is_not_self_intervened
 from .utils import Unidentifiable
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
@@ -19,7 +19,6 @@ from ...dsl import (
     Sum,
     Variable,
     Zero,
-    is_self_intervened,
 )
 from ...graph import NxMixedGraph
 
@@ -151,7 +150,7 @@ def violates_axiom_of_effectiveness(event: Event) -> bool:
     :returns: True if violates axiom of effectiveness
     """
     return any(
-        intervention.name == counterfactual.name and value.star != intervention.star
+        intervention.get_base() == value.get_base() and value.star != intervention.star
         for counterfactual, value in event.items()
         if isinstance(counterfactual, CounterfactualVariable)
         for intervention in counterfactual.interventions
@@ -168,15 +167,10 @@ def remove_event_tautologies(event: Event) -> Event:
     :param event: a conjunction of counterfactual variables
     :return: updated event or None
     """
-    redundant_counterfactuals = {
-        counterfactual
-        for counterfactual, value in event.items()
-        if is_redundant_counterfactual(counterfactual, value)
-    }
     return {
         variable: value
         for variable, value in event.items()
-        if variable not in redundant_counterfactuals
+        if not is_redundant_counterfactual(variable, value)
     }
 
 
@@ -184,7 +178,11 @@ def is_redundant_counterfactual(variable: Variable, value: Intervention) -> bool
     """Check if a counterfactual variable is intervened on itself and has the same value as the intervention"""
     if not isinstance(variable, CounterfactualVariable):
         return False
-    raise NotImplementedError
+    else:
+        return any(
+            intervention.get_base() == value.get_base() and value.star == intervention.star
+            for intervention in variable.interventions
+        )
 
 
 def id_star_line_4(graph: NxMixedGraph, event: Event) -> Tuple[NxMixedGraph, Optional[Event]]:
@@ -240,11 +238,11 @@ def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictIntervent
     for each district, intervene on the domain of each variable not in the district.
     The domain of variables in the event query are restricted to their event value
     """
-    nodes = set(node for node in graph.nodes() if not is_self_intervened(node))
+    nodes = set(node for node in graph.nodes() if is_not_self_intervened(node))
     return {
         district: domain_of_counterfactual_values(event, nodes - district)
         for district in graph.get_c_components()
-        if 1 < len(district) or not is_self_intervened(list(district)[0])
+        if 1 < len(district) or is_not_self_intervened(list(district)[0])
     }
 
 
@@ -259,11 +257,11 @@ def get_markov_pillow(graph: NxMixedGraph, district: Collection[Variable]) -> Co
 def get_parents_of_district(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
     """for each district, intervene on the domain of each parent not in the district.
     The domain of variables in the event query are restricted to their event value"""
-    nodes = set(node for node in graph.nodes() if not is_self_intervened(node))
+    nodes = set(node for node in graph.nodes() if is_not_self_intervened(node))
     return {
         district: domain_of_counterfactual_values(event, get_markov_pillow(graph, district))
         for district in graph.get_c_components()
-        if 1 < len(district) or not is_self_intervened(list(district)[0])
+        if 1 < len(district) or is_not_self_intervened(list(district)[0])
     }
 
 

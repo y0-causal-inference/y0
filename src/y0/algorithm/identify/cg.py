@@ -107,7 +107,7 @@ def parents_attain_same_values(graph: NxMixedGraph, event: Event, a: Variable, b
 
 
 def is_not_self_intervened(node: Variable) -> bool:
-    """Check if the node is self-intervened."""
+    """Check if the node is not self-intervened."""
     return not isinstance(node, CounterfactualVariable) or (
         +(node.get_base()) not in node.interventions
         and -(node.get_base()) not in node.interventions
