@@ -64,53 +64,53 @@ class TestIDStar(cases.GraphTestCase):
         event = {Y @ (+x, -z): +y, X: -x}
         self.assertEqual(event, remove_event_tautologies(event))
 
-    # def test_id_star_line_4(self):
-    #     """Check that the counterfactual graph is correct."""
-    #     new_graph, new_event = id_star_line_4(
-    #         graph=figure_9a.graph, event={Y @ ~x: ~y, X: x, Z @ d: z, D: d}
-    #     )
-    #     self.assert_graph_equal(figure_9c.graph, new_graph)
-    #     self.assertEqual({Y @ ~x: ~y, X: x, Z: z, D: d}, new_event)
+    def test_id_star_line_4(self):
+        """Check that the counterfactual graph is correct."""
+        new_graph, new_event = id_star_line_4(
+            graph=figure_9a.graph, event={Y @ ~x: ~y, X: -x, Z @ -d: -z, D: -d}
+        )
+        self.assert_graph_equal(figure_9c.graph, new_graph)
+        self.assertEqual({Y @ ~x: ~y, X: -x, Z: -z, D: -d}, new_event)
 
-    #     actual_graph3, actual_event3 = id_star_line_4(
-    #         graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
-    #         event={Z @ -d: -z, Z: +z, D: -d},
-    #     )
-    #     self.assertIsNone(actual_event3)
+        actual_graph3, actual_event3 = id_star_line_4(
+            graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
+            event={Z @ -d: -z, Z: +z, D: -d},
+        )
+        self.assertIsNone(actual_event3)
 
-    #     query4 = {Y @ (+x, -z): +y, X: -x}
+        query4 = {Y @ (+x, -z): +y, X: -x}
 
-    #     expected_graph = figure_9d.graph
-    #     expected = expected_graph, query4
-    #     self.assertEqual(expected, id_star_line_4(figure_9a.graph, query4))
-    #     self.assertFalse(figure_9d.graph.is_connected())
+        expected_graph = figure_9d.graph
+        expected = expected_graph, query4
+        self.assertEqual(expected, id_star_line_4(figure_9a.graph, query4))
+        self.assertFalse(figure_9d.graph.is_connected())
 
-    # def test_id_star_line_6(self):
-    #     """Check that the input to id_star from each district is properly constructed."""
-    #     counterfactual_graph = NxMixedGraph.from_edges(
-    #         undirected=[(Y @ (~X, Z), X)],
-    #         directed=[
-    #             (W @ (~X, Z), Y @ (~X, Z)),
-    #         ],
-    #     )
-    #     null_graph = NxMixedGraph()
-    #     with self.assertRaises(NetworkXPointlessConcept):
-    #         null_graph.is_connected()
-    #     event = {Y @ (+X, -Z): -Y, X: -X}
-    #     expected_summand = {W}
-    #     expected_interventions_of_districts = {
-    #         frozenset([Y @ (~X, Z), X]): {W},
-    #         frozenset([W @ (~X, Z)]): {-Y, -X},
-    #     }
-    #     self.assertEqual(
-    #         set(expected_interventions_of_districts),
-    #         set(counterfactual_graph.get_c_components()),
-    #     )
-    #     ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
-    #     #
-    #     actual_summand, actual_iod = id_star_line_6(counterfactual_graph, event)
-    #     self.assertEqual(expected_summand, actual_summand)
-    #     self.assertEqual(expected_interventions_of_districts, actual_iod)
+    def test_id_star_line_6(self):
+        """Check that the input to id_star from each district is properly constructed."""
+        counterfactual_graph = NxMixedGraph.from_edges(
+            undirected=[(Y @ (~X, Z), X)],
+            directed=[
+                (W @ (~X, Z), Y @ (~X, Z)),
+            ],
+        )
+        null_graph = NxMixedGraph()
+        with self.assertRaises(NetworkXPointlessConcept):
+            null_graph.is_connected()
+        event = {Y @ (+X, -Z): -Y, X: -X}
+        expected_summand = {W}
+        expected_interventions_of_districts = {
+            frozenset([Y @ (~X, Z), X]): {W},
+            frozenset([W @ (~X, Z)]): {-Y, -X},
+        }
+        self.assertEqual(
+            set(expected_interventions_of_districts),
+            set(counterfactual_graph.get_c_components()),
+        )
+        ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
+        #
+        actual_summand, actual_iod = id_star_line_6(counterfactual_graph, event)
+        self.assertEqual(expected_summand, actual_summand)
+        self.assertEqual(expected_interventions_of_districts, actual_iod)
 
     # def test_domain_of_counterfactual_values(self):
     #     """ "Test that we correctly output the domain of a counterfactual"""
