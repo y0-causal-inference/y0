@@ -84,8 +84,10 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
 
 
 def get_free_variables(graph: NxMixedGraph, event: Event) -> Set[Variable]:
-    """Get all nodes in the graph that don't have values fixed by the event or a self-intervention."""
-    return {variable for variable in graph.nodes() if is_not_self_intervened(variable)} - set(event)
+    """Get the possible values of the counterfactual variables in the graph that don't have values fixed by the event or a self-intervention."""
+    free_variables = {variable for variable in graph.nodes()
+                                   if is_not_self_intervened(variable)} - set(event)
+    return {v.get_base() for v in free_variables}
 
 
 def get_district_events(district_interventions: DistrictInterventions) -> Mapping[District, Event]:

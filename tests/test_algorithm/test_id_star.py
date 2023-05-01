@@ -11,6 +11,7 @@ from y0.algorithm.identify.cg import is_not_self_intervened
 from y0.algorithm.identify.id_star import (
     ev,
     get_district_interventions,
+    get_free_variables,
     id_star,
     id_star_line_4,
     id_star_line_6,
@@ -87,8 +88,8 @@ class TestIDStar(cases.GraphTestCase):
 
     def test_id_star_line_6(self):
         """Check that the input to id_star from each district is properly constructed."""
-        counterfactual_graph = tikka_figure_5.graph
-        input_event = {Y @ -x: -y, X: +x, Z: -z}
+        input_graph = tikka_figure_5.graph
+        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}
         expected_summand = {W}
         expected_district_interventions = {
             frozenset({X, Y @ -x}): {Y @ (-x, -z, -w, -d): -y, X @ (-z, -w, -d): +x},
@@ -97,11 +98,18 @@ class TestIDStar(cases.GraphTestCase):
             frozenset({D}): {D @ (-y, -x, -z, -w): -d}}
         ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
         #
-        actual_summand, actual_district_interventions = id_star_line_6(counterfactual_graph, event)
+        actual_summand, actual_district_interventions = id_star_line_6(input_graph, input_event)
         self.assertEqual(expected_summand, actual_summand)
         self.assertEqual(expected_district_interventions, actual_district_interventions)
 
-    # def test_domain_of_counterfactual_values(self):
+    def test_get_free_variables(self):
+        """Test that each variable not in the event or self-intervened is marginalized out."""
+        input_graph = tikka_figure_5.graph
+        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}
+        expected_summand = {W}
+        self.assertEqual(expected_summand, get_free_variables(input_graph, input_event))
+
+    # Def test_domain_of_counterfactual_values(self):
     #     """ "Test that we correctly output the domain of a counterfactual"""
     #     event = {Y @ (+X, -Z): -Y, X: -X}
     #     cf_graph = figure_9d.graph
