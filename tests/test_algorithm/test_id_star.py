@@ -16,13 +16,13 @@ from y0.algorithm.identify.id_star import (
     id_star_line_4,
     id_star_line_6,
     id_star_line_8,
-    is_event_empty,
-    merge_interventions,
     intervene_on_district,
+    is_event_empty,
+    is_redundant_counterfactual,
+    merge_interventions,
     remove_event_tautologies,
     sub,
     violates_axiom_of_effectiveness,
-    is_redundant_counterfactual
 )
 from y0.dsl import D, Intervention, P, Sum, Variable, W, X, Y, Z
 from y0.examples import figure_9a, figure_9c, figure_9d, tikka_figure_5
@@ -95,7 +95,8 @@ class TestIDStar(cases.GraphTestCase):
             frozenset({X, Y @ -x}): {Y @ (-x, -z, -w, -d): -y, X @ (-z, -w, -d): +x},
             frozenset({Z}): {Z @ (-y, -x, -w, -d): -z},
             frozenset({W @ -x}): {W @ (-y, -x, -z, -d): -w},
-            frozenset({D}): {D @ (-y, -x, -z, -w): -d}}
+            frozenset({D}): {D @ (-y, -x, -z, -w): -d},
+        }
         ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
         #
         actual_summand, actual_district_interventions = id_star_line_6(input_graph, input_event)
@@ -148,16 +149,23 @@ class TestIDStar(cases.GraphTestCase):
         intervention3 = districts - district3
         intervention4 = districts - district4
 
-        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d} # from gamma' (Tikka 2022)
-        expected_event1 = {Y @ (-x, -z, -w, -d): -y, X @ (-z,-w,-d): +x}
+        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}  # from gamma' (Tikka 2022)
+        expected_event1 = {Y @ (-x, -z, -w, -d): -y, X @ (-z, -w, -d): +x}
         expected_event2 = {Z @ (-y, -x, -w, -d): -z}
         expected_event3 = {W @ (-y, -x, -z, -d): -w}
         expected_event4 = {D @ (-y, -x, -z, -w): -d}
-        self.assertEqual(expected_event1, intervene_on_district(district1, intervention1, input_event))
-        self.assertEqual(expected_event2, intervene_on_district(district2, intervention2, input_event))
-        self.assertEqual(expected_event3, intervene_on_district(district3, intervention3, input_event))
-        self.assertEqual(expected_event4, intervene_on_district(district4, intervention4, input_event))
-
+        self.assertEqual(
+            expected_event1, intervene_on_district(district1, intervention1, input_event)
+        )
+        self.assertEqual(
+            expected_event2, intervene_on_district(district2, intervention2, input_event)
+        )
+        self.assertEqual(
+            expected_event3, intervene_on_district(district3, intervention3, input_event)
+        )
+        self.assertEqual(
+            expected_event4, intervene_on_district(district4, intervention4, input_event)
+        )
 
     def test_get_district_interventions(self):
         """Ensure that for each district, we intervene on the domain of each variable not in the district.
@@ -170,19 +178,25 @@ class TestIDStar(cases.GraphTestCase):
         #     ],
         # )
 
-        #event = {Y @ (+X, -Z): -Y, X: -X}
-        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d} # from gamma' (Tikka 2022)
+        # event = {Y @ (+X, -Z): -Y, X: -X}
+        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}  # from gamma' (Tikka 2022)
         input_graph = tikka_figure_5.graph
 
-        expected_districts = {frozenset({X, Y @ -x}), frozenset({Z}), frozenset({W @ -x}), frozenset({D})}
+        expected_districts = {
+            frozenset({X, Y @ -x}),
+            frozenset({Z}),
+            frozenset({W @ -x}),
+            frozenset({D}),
+        }
         expected_summand = {W}
         expected_district_interventions = {
             frozenset({X, Y @ -x}): {Y @ (-x, -z, -w, -d): -y, X @ (-z, -w, -d): +x},
             frozenset({Z}): {Z @ (-y, -x, -w, -d): -z},
             frozenset({W @ -x}): {W @ (-y, -x, -z, -d): -w},
-            frozenset({D}): {D @ (-y, -x, -z, -w): -d}}
-        actual =  get_district_interventions(input_graph, input_event)
-        expected_event1= expected_summand, expected_district_interventions
+            frozenset({D}): {D @ (-y, -x, -z, -w): -d},
+        }
+        actual = get_district_interventions(input_graph, input_event)
+        expected_event1 = expected_summand, expected_district_interventions
         self.assertEqual(expected_district_interventions, actual)
 
     # def test_recursion(self):
@@ -270,7 +284,6 @@ class TestIDStar(cases.GraphTestCase):
         self.assertFalse(is_redundant_counterfactual(Y @ (+x, -y), +y))
         self.assertFalse(is_redundant_counterfactual(Y @ (+x, -z), -y))
         self.assertFalse(is_redundant_counterfactual(Y @ (+x, -z), +y))
-
 
     # def test_is_self_intervened(self):
     #     """Test that we can detect when a counterfactual variable intervenes on itself"""

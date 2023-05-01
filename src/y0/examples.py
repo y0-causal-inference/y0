@@ -44,7 +44,8 @@ from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
 
-x,y,z,w = -X, -Y, -Z, -W
+x, y, z, w = -X, -Y, -Z, -W
+
 
 @dataclass
 class Example:
@@ -480,8 +481,8 @@ tikka_figure_5 = Example(
     graph=NxMixedGraph.from_edges(
         nodes=(X, Y @ -x, D, Z, X @ -x, W @ -x),
         directed=[(D, Z), (Z, Y @ -x), (X @ -x, W @ -x), (W @ -x, Y @ -x)],
-        undirected=[(X, Y @ -x)]
-    )
+        undirected=[(X, Y @ -x)],
+    ),
 )
 
 figure_9d = Example(

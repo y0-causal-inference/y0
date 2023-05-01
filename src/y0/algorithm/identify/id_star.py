@@ -4,7 +4,7 @@
 
 from typing import Collection, FrozenSet, Iterable, List, Mapping, Optional, Set, Tuple
 
-from .cg import make_counterfactual_graph, is_not_self_intervened
+from .cg import is_not_self_intervened, make_counterfactual_graph
 from .utils import Unidentifiable
 from ..conditional_independencies import are_d_separated
 from ...dsl import (
@@ -85,8 +85,9 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
 
 def get_free_variables(graph: NxMixedGraph, event: Event) -> Set[Variable]:
     """Get the possible values of the counterfactual variables in the graph that don't have values fixed by the event or a self-intervention."""
-    free_variables = {variable for variable in graph.nodes()
-                                   if is_not_self_intervened(variable)} - set(event)
+    free_variables = {
+        variable for variable in graph.nodes() if is_not_self_intervened(variable)
+    } - set(event)
     return {v.get_base() for v in free_variables}
 
 
@@ -247,18 +248,22 @@ def get_district_interventions(graph: NxMixedGraph, event: Event) -> DistrictInt
         for district in graph.subgraph(nodes).get_c_components()
     }
 
+
 def intervene_on_district(district: District, interventions: Set[Variable], event: Event) -> Event:
     """For each district, intervene on the variables not in the district.
     The value of each variable in the district is restricted to its value in the event if it has one.
     Otherwise, we set the value to -variable.get_base()
     """
     interventions = {-i.get_base() for i in interventions}
-    return dict([
-        (variable.intervene(interventions), event[variable])
-        if variable in event
-        else (variable.intervene(interventions), -variable.get_base())
-        for variable in district
-    ])
+    return dict(
+        [
+            (variable.intervene(interventions), event[variable])
+            if variable in event
+            else (variable.intervene(interventions), -variable.get_base())
+            for variable in district
+        ]
+    )
+
 
 def get_markov_pillow(graph: NxMixedGraph, district: Collection[Variable]) -> Collection[Variable]:
     """for each district, intervene on the domain of each parent not in the district."""
@@ -277,6 +282,7 @@ def get_parents_of_district(graph: NxMixedGraph, event: Event) -> DistrictInterv
         for district in graph.get_c_components()
         if 1 < len(district) or is_not_self_intervened(list(district)[0])
     }
+
 
 def id_star_line_8(graph: NxMixedGraph, event: Event) -> bool:
     r"""Run line 8 of the ID* algorithm.
