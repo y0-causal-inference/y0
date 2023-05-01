@@ -85,32 +85,21 @@ class TestIDStar(cases.GraphTestCase):
         self.assertEqual(expected, id_star_line_4(figure_9a.graph, query4))
         self.assertFalse(figure_9d.graph.is_connected())
 
-    # def test_id_star_line_6(self):
-    #     """Check that the input to id_star from each district is properly constructed."""
-    #     counterfactual_graph = NxMixedGraph.from_edges(
-    #         undirected=[(Y @ (~X, Z), X)],
-    #         directed=[
-    #             (W @ (~X, Z), Y @ (~X, Z)),
-    #         ],
-    #     )
-    #     null_graph = NxMixedGraph()
-    #     with self.assertRaises(NetworkXPointlessConcept):
-    #         null_graph.is_connected()
-    #     eVent = {Y @ (+X, -Z): -Y, X: -X}
-    #     expected_summand = {W}
-    #     expected_interventions_of_districts = {
-    #         frozenset([Y @ (~X, Z), X]): {W},
-    #         frozenset([W @ (~X, Z)]): {-Y, -X},
-    #     }
-    #     self.assertEqual(
-    #         set(expected_interventions_of_districts),
-    #         set(counterfactual_graph.get_c_components()),
-    #     )
-    #     ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
-    #     #
-    #     actual_summand, actual_iod = id_star_line_6(counterfactual_graph, event)
-    #     self.assertEqual(expected_summand, actual_summand)
-    #     self.assertEqual(expected_interventions_of_districts, actual_iod)
+    def test_id_star_line_6(self):
+        """Check that the input to id_star from each district is properly constructed."""
+        counterfactual_graph = tikka_figure_5.graph
+        input_event = {Y @ -x: -y, X: +x, Z: -z}
+        expected_summand = {W}
+        expected_district_interventions = {
+            frozenset({X, Y @ -x}): {Y @ (-x, -z, -w, -d): -y, X @ (-z, -w, -d): +x},
+            frozenset({Z}): {Z @ (-y, -x, -w, -d): -z},
+            frozenset({W @ -x}): {W @ (-y, -x, -z, -d): -w},
+            frozenset({D}): {D @ (-y, -x, -z, -w): -d}}
+        ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
+        #
+        actual_summand, actual_district_interventions = id_star_line_6(counterfactual_graph, event)
+        self.assertEqual(expected_summand, actual_summand)
+        self.assertEqual(expected_district_interventions, actual_district_interventions)
 
     # def test_domain_of_counterfactual_values(self):
     #     """ "Test that we correctly output the domain of a counterfactual"""
