@@ -44,6 +44,7 @@ from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
 
+x,y,z,w = -X, -Y, -Z, -W
 
 @dataclass
 class Example:
@@ -471,6 +472,16 @@ figure_9c = Example(
         directed=[(X @ ~X, W @ ~X), (W @ ~X, Y @ ~X), (D, Z), (Z, Y @ ~X)],
         undirected=[(X, Y @ ~X)],
     ),
+)
+
+tikka_figure_5 = Example(
+    name=r"Figure 5: Counterfactual graph :math:`G'` for :math:`y_x\wedge x'\wedge z_d\wedge d`",
+    reference="Tikka, S (2022) Identifiying Counterfactual Queries with the R package cfid",
+    graph=NxMixedGraph.from_edges(
+        nodes=(X, Y @ -x, D, Z, X @ -x, W @ -x),
+        directed=[(D, Z), (Z, Y @ -x), (X @ -x, W @ -x), (W @ -x, Y @ -x)],
+        undirected=[(X, Y @ -x)]
+    )
 )
 
 figure_9d = Example(

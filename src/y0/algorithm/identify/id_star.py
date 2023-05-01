@@ -33,7 +33,7 @@ from ...graph import NxMixedGraph
 # ]
 
 District = FrozenSet[Variable]
-DistrictInterventions = Mapping[District, Set[Intervention]]
+DistrictInterventions = Mapping[District, Event]
 
 
 def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
@@ -84,8 +84,8 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
 
 
 def get_free_variables(graph: NxMixedGraph, event: Event) -> Set[Variable]:
-    """Get all nodes in the graph that don't have values fixed by the event."""
-    return {variable.get_base() for variable in graph.nodes() - set(event)}
+    """Get all nodes in the graph that don't have values fixed by the event or a self-intervention."""
+    return {variable for variable in graph.nodes() if is_not_self_intervened(variable)} - set(event)
 
 
 def get_district_events(district_interventions: DistrictInterventions) -> Mapping[District, Event]:
@@ -228,23 +228,35 @@ def id_star_line_6(
     variables not in :math:`\event'` , that is over :math:`\mathbf{v}(G' ) \backslash \event'` ,
     where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
     """
+    # First we get the summand
+    # Then we intervene on each district
     summand = get_free_variables(graph, event)
-    interventions_of_each_district = get_district_domains(graph, event)
+    interventions_of_each_district = get_district_interventions(graph, event)
     return summand, interventions_of_each_district
 
 
-def get_district_domains(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
-    """
-    for each district, intervene on the domain of each variable not in the district.
-    The domain of variables in the event query are restricted to their event value
+def get_district_interventions(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
+    """For each district, intervene on the variables not in the district.
+    Self-interventions are not considered part of the district
     """
     nodes = set(node for node in graph.nodes() if is_not_self_intervened(node))
     return {
-        district: domain_of_counterfactual_values(event, nodes - district)
-        for district in graph.get_c_components()
-        if 1 < len(district) or is_not_self_intervened(list(district)[0])
+        district: intervene_on_district(district, nodes - district, event)
+        for district in graph.subgraph(nodes).get_c_components()
     }
 
+def intervene_on_district(district: District, interventions: Set[Variable], event: Event) -> Event:
+    """For each district, intervene on the variables not in the district.
+    The value of each variable in the district is restricted to its value in the event if it has one.
+    Otherwise, we set the value to -variable.get_base()
+    """
+    interventions = {-i.get_base() for i in interventions}
+    return dict([
+        (variable.intervene(interventions), event[variable])
+        if variable in event
+        else (variable.intervene(interventions), -variable.get_base())
+        for variable in district
+    ])
 
 def get_markov_pillow(graph: NxMixedGraph, district: Collection[Variable]) -> Collection[Variable]:
     """for each district, intervene on the domain of each parent not in the district."""
@@ -263,27 +275,6 @@ def get_parents_of_district(graph: NxMixedGraph, event: Event) -> DistrictInterv
         for district in graph.get_c_components()
         if 1 < len(district) or is_not_self_intervened(list(district)[0])
     }
-
-
-def domain_of_counterfactual_values(
-    event: Event, variables: Iterable[Variable]
-) -> Set[Intervention]:
-    """Return domain of counterfactual values.
-    If a variable is part of an event, just intervene on its observed value.
-    Otherwise, intervene on all values in the variable's domain.
-    """
-    return {
-        event[variable]
-        if variable in event
-        else _get_intervention_from_variable_for_domain_of_counterfactual_values(variable)
-        for variable in variables
-    }
-
-
-def _get_intervention_from_variable_for_domain_of_counterfactual_values(variable) -> Intervention:
-    base = variable.get_base()
-    raise NotImplementedError
-
 
 def id_star_line_8(graph: NxMixedGraph, event: Event) -> bool:
     r"""Run line 8 of the ID* algorithm.

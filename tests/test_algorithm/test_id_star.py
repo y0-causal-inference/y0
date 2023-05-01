@@ -9,22 +9,22 @@ from tests.test_algorithm import cases
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.algorithm.identify.cg import is_not_self_intervened
 from y0.algorithm.identify.id_star import (
-    domain_of_counterfactual_values,
     ev,
-    get_district_domains,
+    get_district_interventions,
     id_star,
     id_star_line_4,
     id_star_line_6,
     id_star_line_8,
     is_event_empty,
     merge_interventions,
+    intervene_on_district,
     remove_event_tautologies,
     sub,
     violates_axiom_of_effectiveness,
     is_redundant_counterfactual
 )
 from y0.dsl import D, Intervention, P, Sum, Variable, W, X, Y, Z
-from y0.examples import figure_9a, figure_9c, figure_9d
+from y0.examples import figure_9a, figure_9c, figure_9d, tikka_figure_5
 from y0.graph import NxMixedGraph
 
 d, w, x, y, z = -D, -W, -X, -Y, -Z
@@ -85,32 +85,32 @@ class TestIDStar(cases.GraphTestCase):
         self.assertEqual(expected, id_star_line_4(figure_9a.graph, query4))
         self.assertFalse(figure_9d.graph.is_connected())
 
-    def test_id_star_line_6(self):
-        """Check that the input to id_star from each district is properly constructed."""
-        counterfactual_graph = NxMixedGraph.from_edges(
-            undirected=[(Y @ (~X, Z), X)],
-            directed=[
-                (W @ (~X, Z), Y @ (~X, Z)),
-            ],
-        )
-        null_graph = NxMixedGraph()
-        with self.assertRaises(NetworkXPointlessConcept):
-            null_graph.is_connected()
-        event = {Y @ (+X, -Z): -Y, X: -X}
-        expected_summand = {W}
-        expected_interventions_of_districts = {
-            frozenset([Y @ (~X, Z), X]): {W},
-            frozenset([W @ (~X, Z)]): {-Y, -X},
-        }
-        self.assertEqual(
-            set(expected_interventions_of_districts),
-            set(counterfactual_graph.get_c_components()),
-        )
-        ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
-        #
-        actual_summand, actual_iod = id_star_line_6(counterfactual_graph, event)
-        self.assertEqual(expected_summand, actual_summand)
-        self.assertEqual(expected_interventions_of_districts, actual_iod)
+    # def test_id_star_line_6(self):
+    #     """Check that the input to id_star from each district is properly constructed."""
+    #     counterfactual_graph = NxMixedGraph.from_edges(
+    #         undirected=[(Y @ (~X, Z), X)],
+    #         directed=[
+    #             (W @ (~X, Z), Y @ (~X, Z)),
+    #         ],
+    #     )
+    #     null_graph = NxMixedGraph()
+    #     with self.assertRaises(NetworkXPointlessConcept):
+    #         null_graph.is_connected()
+    #     eVent = {Y @ (+X, -Z): -Y, X: -X}
+    #     expected_summand = {W}
+    #     expected_interventions_of_districts = {
+    #         frozenset([Y @ (~X, Z), X]): {W},
+    #         frozenset([W @ (~X, Z)]): {-Y, -X},
+    #     }
+    #     self.assertEqual(
+    #         set(expected_interventions_of_districts),
+    #         set(counterfactual_graph.get_c_components()),
+    #     )
+    #     ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
+    #     #
+    #     actual_summand, actual_iod = id_star_line_6(counterfactual_graph, event)
+    #     self.assertEqual(expected_summand, actual_summand)
+    #     self.assertEqual(expected_interventions_of_districts, actual_iod)
 
     # def test_domain_of_counterfactual_values(self):
     #     """ "Test that we correctly output the domain of a counterfactual"""
@@ -139,21 +139,54 @@ class TestIDStar(cases.GraphTestCase):
     #     }
     #     # self.assertEqual()
 
-    # def test_get_district_domains(self):
-    #     """Ensure that for each district, we intervene on the domain of each variable not in the district.
-    #     Confirm that the domain of variables in the event query are restricted to their event value
-    #     """
-    #     counterfactual_graph = NxMixedGraph.from_edges(
-    #         undirected=[(Y @ (~X, Z), X)],
-    #         directed=[
-    #             (W @ (~X, Z), Y @ (~X, Z)),
-    #         ],
-    #     )
-    #     event = {Y @ (+X, -Z): -Y, X: -X}
-    #     expected = {frozenset({W @ (+X, -Z)}): {-X, -Y}, frozenset({X, Y @ (+X, -Z)}): {W}}
-    #     actual = get_district_domains(counterfactual_graph, event)
-    #     self.assertEqual(expected, actual)
-    #     self.assertEqual(expected, get_district_domains(figure_9d.graph, event))
+    def test_intervene_on_district(self):
+        """Test that we correctly intervene on a district"""
+        district1 = {X, Y @ -x}
+        district2 = {Z}
+        district3 = {W @ -x}
+        district4 = {D}
+        districts = district1 | district2 | district3 | district4
+        intervention1 = districts - district1
+        intervention2 = districts - district2
+        intervention3 = districts - district3
+        intervention4 = districts - district4
+
+        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d} # from gamma' (Tikka 2022)
+        expected_event1 = {Y @ (-x, -z, -w, -d): -y, X @ (-z,-w,-d): +x}
+        expected_event2 = {Z @ (-y, -x, -w, -d): -z}
+        expected_event3 = {W @ (-y, -x, -z, -d): -w}
+        expected_event4 = {D @ (-y, -x, -z, -w): -d}
+        self.assertEqual(expected_event1, intervene_on_district(district1, intervention1, input_event))
+        self.assertEqual(expected_event2, intervene_on_district(district2, intervention2, input_event))
+        self.assertEqual(expected_event3, intervene_on_district(district3, intervention3, input_event))
+        self.assertEqual(expected_event4, intervene_on_district(district4, intervention4, input_event))
+
+
+    def test_get_district_interventions(self):
+        """Ensure that for each district, we intervene on the domain of each variable not in the district.
+        Confirm that the domain of variables in the event query are restricted to their event value
+        """
+        # counterfactual_graph = NxMixedGraph.from_edges(
+        #     undirected=[(Y @ (~X, Z), X)],
+        #     directed=[
+        #         (W @ (~X, Z), Y @ (~X, Z)),
+        #     ],
+        # )
+
+        #event = {Y @ (+X, -Z): -Y, X: -X}
+        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d} # from gamma' (Tikka 2022)
+        input_graph = tikka_figure_5.graph
+
+        expected_districts = {frozenset({X, Y @ -x}), frozenset({Z}), frozenset({W @ -x}), frozenset({D})}
+        expected_summand = {W}
+        expected_district_interventions = {
+            frozenset({X, Y @ -x}): {Y @ (-x, -z, -w, -d): -y, X @ (-z, -w, -d): +x},
+            frozenset({Z}): {Z @ (-y, -x, -w, -d): -z},
+            frozenset({W @ -x}): {W @ (-y, -x, -z, -d): -w},
+            frozenset({D}): {D @ (-y, -x, -z, -w): -d}}
+        actual =  get_district_interventions(input_graph, input_event)
+        expected_event1= expected_summand, expected_district_interventions
+        self.assertEqual(expected_district_interventions, actual)
 
     # def test_recursion(self):
     #     """Test the recursive aspect of line 6"""

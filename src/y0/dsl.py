@@ -410,12 +410,13 @@ class CounterfactualVariable(Variable):
         .. note:: This function can be accessed with the matmult @ operator.
         """
         _interventions = _to_interventions(_upgrade_ordering(variables))
-        self._raise_for_overlapping_interventions(_interventions)
+        # Note for @cthoyt: Overlapping interventions isn't a problem as long as we remove redundant interventions
+        # self._raise_for_overlapping_interventions(_interventions)
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
             interventions=tuple(
-                sorted((*self.interventions, *_interventions), key=attrgetter("name"))
+                sorted(set([*self.interventions, *_interventions]), key=attrgetter("name"))
             ),
         )
 
