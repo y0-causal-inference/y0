@@ -120,6 +120,8 @@ class NxMixedGraph:
         self.raise_on_counterfactual()
         from ananke.graphs import ADMG
 
+        # update the way stringification happens so this
+        # can support arbitrary variables, like counterfactuals
         return ADMG(
             vertices=[n.name for n in self.nodes()],
             di_edges=[(u.name, v.name) for u, v in self.directed.edges()],
