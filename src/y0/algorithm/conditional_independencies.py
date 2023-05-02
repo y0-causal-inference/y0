@@ -103,29 +103,28 @@ def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
     return len(judgement.conditions), ",".join(c.name for c in judgement.conditions)
 
 
-def disorient(graph) -> nx.Graph:
+def disorient(graph: NxMixedGraph) -> nx.Graph:
     """Convert an :mod:`ananke` mixed directed/undirected into a undirected (networkx) graph.
 
     :param graph: An ananke graph
-    :type graph: ananke.graphs.SG
     :returns: A disoriented graph
     """
     rv = nx.Graph()
-    rv.add_nodes_from(graph.vertices)
-    rv.add_edges_from(chain(graph.di_edges, graph.ud_edges, graph.bi_edges))
+    rv.add_nodes_from(graph.nodes())
+    rv.add_edges_from(graph.directed.edges())
+    rv.add_edges_from(graph.undirected.edges())
     return rv
 
 
-def get_moral_links(graph) -> List[Tuple[Variable, Variable]]:
+def get_moral_links(graph: NxMixedGraph) -> List[Tuple[Variable, Variable]]:
     """Generate links to ensure all co-parents in a graph are linked.
 
     May generate links that already exist as we assume we are not working on a multi-graph.
 
     :param graph: Graph to process
-    :type graph: ananke.graphs.SG
     :return: An collection of edges to add.
     """
-    parents = [graph.parents([v]) for v in graph.vertices]
+    parents = [graph.directed.predecessors(node) for node in graph.nodes()]
     moral_links = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
     return moral_links
 
@@ -159,27 +158,25 @@ def are_d_separated(
     if not all(isinstance(c, Variable) for c in conditions):
         raise TypeError(f"some conditions are not variables: {conditions}")
 
-    condition_names = {c.name for c in conditions}
-    named = {a.name, b.name}.union(condition_names)
-
-    admg = graph.to_admg()
+    condition_names = {c for c in conditions}
+    named = {a, b}.union(condition_names)
 
     # Filter to ancestors
-    keep = admg.ancestors(named)
-    admg = copy.deepcopy(admg.subgraph(keep))
+    keep = graph.ancestors_inclusive(named)
+    sg = copy.deepcopy(graph.subgraph(keep))
 
     # Moralize (link parents of mentioned nodes)
-    for u, v in get_moral_links(admg):  # type: ignore
-        admg.add_udedge(u, v)
+    for u, v in get_moral_links(sg):
+        sg.add_undirected_edge(u, v)
 
     # disorient & remove conditions
-    evidence_graph = disorient(admg)
+    evidence_graph = disorient(sg)
 
     keep = set(evidence_graph.nodes) - set(condition_names)
     evidence_graph = evidence_graph.subgraph(keep)
 
     # check for path....
-    separated = not nx.has_path(evidence_graph, a.name, b.name)  # If no path, then d-separated!
+    separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
 
     return DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=separated)
 
