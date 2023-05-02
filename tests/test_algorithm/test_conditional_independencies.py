@@ -44,9 +44,14 @@ class TestDSeparation(unittest.TestCase):
         for example in testable:
             with self.subTest(name=example.name):
                 for ci in example.conditional_independencies:
+                    self.assertIn(ci.left, example.graph)
+                    self.assertIn(ci.right, example.graph)
+                    judgement = are_d_separated(
+                        example.graph, ci.left, ci.right, conditions=ci.conditions
+                    )
                     self.assertTrue(
-                        are_d_separated(example.graph, ci.left, ci.right, conditions=ci.conditions),
-                        msg="Expected d-separation not found",
+                        judgement,
+                        msg=f"Expected d-separation not found in {example.name}",
                     )
                     if ci.conditions:
                         self.assertFalse(
@@ -59,49 +64,49 @@ class TestDSeparation(unittest.TestCase):
 
         This test covers several cases around moral links to ensure that they are added when needed.
         """
-        from ananke.graphs import ADMG
-
-        graph = ADMG(
-            vertices=("a", "b", "c"),
-            di_edges=[("a", "b"), ("b", "c")],
+        graph = NxMixedGraph.from_str_edges(
+            nodes=("a", "b", "c"),
+            directed=[("a", "b"), ("b", "c")],
         )
-        links = set(tuple(sorted(e)) for e in get_moral_links(graph))
-        self.assertEqual(set(), links, msg="Unexpected moral links added.")
+        links = list(get_moral_links(graph))
+        self.assertEqual([], links, msg="Unexpected moral links added.")
 
-        graph = ADMG(
-            vertices=("a", "b", "c"),
-            di_edges=[("a", "c"), ("b", "c")],
+        graph = NxMixedGraph.from_str_edges(
+            nodes=("a", "b", "c"),
+            directed=[("a", "c"), ("b", "c")],
         )
         links = set(tuple(sorted(e)) for e in get_moral_links(graph))
         self.assertEqual(
-            {("a", "b")}, links, msg="Moral links not as expected in single-link case."
+            {(Variable("a"), Variable("b"))},
+            links,
+            msg="Moral links not as expected in single-link case.",
         )
 
-        graph = ADMG(
-            vertices=("a", "b", "aa", "bb", "c"),
-            di_edges=[("a", "c"), ("b", "c"), ("aa", "c"), ("bb", "c")],
+        graph = NxMixedGraph.from_str_edges(
+            nodes=("a", "b", "aa", "bb", "c"),
+            directed=[("a", "c"), ("b", "c"), ("aa", "c"), ("bb", "c")],
         )
         links = set(tuple(sorted(e)) for e in get_moral_links(graph))
         self.assertEqual(
             {
-                ("a", "b"),
-                ("a", "aa"),
-                ("a", "bb"),
-                ("aa", "b"),
-                ("aa", "bb"),
-                ("b", "bb"),
+                (Variable("a"), Variable("b")),
+                (Variable("a"), Variable("aa")),
+                (Variable("a"), Variable("bb")),
+                (Variable("aa"), Variable("b")),
+                (Variable("aa"), Variable("bb")),
+                (Variable("b"), Variable("bb")),
             },
             links,
             msg="Moral links not as expected in multi-link case.",
         )
 
-        graph = ADMG(
-            vertices=("a", "b", "c", "d", "e"),
-            di_edges=[("a", "c"), ("b", "c"), ("c", "e"), ("d", "e")],
+        graph = NxMixedGraph.from_str_edges(
+            nodes=("a", "b", "c", "d", "e"),
+            directed=[("a", "c"), ("b", "c"), ("c", "e"), ("d", "e")],
         )
         links = set(tuple(sorted(e)) for e in get_moral_links(graph))
         self.assertEqual(
-            {("a", "b"), ("c", "d")},
+            {(Variable("a"), Variable("b")), (Variable("c"), Variable("d"))},
             links,
             msg="Moral links not as expected in multi-site case.",
         )
