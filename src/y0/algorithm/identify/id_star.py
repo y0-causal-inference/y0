@@ -75,7 +75,7 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
             ),
             summand,
         )
-    # Line 7 and 8:
+    # Line 7:
     elif id_star_line_8(cf_graph, new_event):
         raise Unidentifiable
     else:
@@ -235,6 +235,7 @@ def id_star_line_6(
     # Then we intervene on each district
     summand = get_free_variables(graph, event)
     interventions_of_each_district = get_district_interventions(graph, event)
+
     return summand, interventions_of_each_district
 
 
@@ -331,30 +332,40 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
 
 
 def rule_3_applies(
-    graph: NxMixedGraph, district: Collection[Variable]
-) -> List[Tuple[CounterfactualVariable, Intervention]]:
+        graph: NxMixedGraph, district_events: DistrictInterventions
+) -> DistrictInterventions:
     """Apply rule 3 to each intervention in the district
 
     :param graph: A counterfactual graph
     :param district: A tuple of counterfactual variables representing the C-component (district)
     :return: The collection of counterfactual variables and the interventions that are D separated according to the graph
     """
-    rule_3_applications = []
-    district = set(district)
-    for counterfactual in district:
-        if not isinstance(counterfactual, CounterfactualVariable):
-            raise TypeError
-        interventions: Set[Intervention] = set(graph.nodes()).difference(district)
-        for intervention in interventions:
-            if are_d_separated(
+    new_district_events = dict()
+    for district, events in district_events.items():
+        new_district_events[district] = dict()
+        for counterfactual in intervention_events:
+            new_counterfactual = simplify_counterfactual(graph, district, counterfactual)
+            new_district_events[district][new_counterfactual] = events[counterfactual]
+    return new_district_events
+
+def simplify_counterfactual(graph: NxMixedGraph, district_nodes: Set[Variable], counterfactual_variable) -> CounterfactualVariable:
+    """Simplify a counterfactual variable by removing interventions that are d-separated in the the counterfactual graph."""
+    if not isinstance(counterfactual_variable, CounterfactualVariable):
+        raise TypeError
+    new_counterfactual_variable = CounterfactualVariable(name=counterfactual_variable.name,
+                                                         interventions=counterfactual_variable.interventions,
+                                                         star = counterfactual_variable.star)
+    intervention_nodes: Set[Intervention] = set(graph.nodes()).difference(district_nodes)
+    for intervention_node in intervention_nodes:
+        if are_d_separated(
                 graph,
-                intervention,
-                counterfactual,
-                conditions=interventions - {intervention},
-            ):
-                # FIXME `intervention` can be any variable
-                rule_3_applications.append((counterfactual, intervention))
-    return rule_3_applications
+                intervention_node,
+                counterfactual_variable,
+                conditions=intervention_nodes - {intervention_node},
+        ):
+            new_counterfactual_variable = new_counterfactual_variable.remove_interventions(intervention_node.get_base())
+    return new_counterfactual_variable
+
 
 
 # FIXME this is unused -> delete it
