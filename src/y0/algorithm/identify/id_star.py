@@ -213,7 +213,7 @@ def id_star_line_4(graph: NxMixedGraph, event: Event) -> Tuple[NxMixedGraph, Opt
 #     raise NotImplementedError
 
 
-def id_star_line_6(
+def old_id_star_line_6(
     graph: NxMixedGraph, event: Event
 ) -> Tuple[Collection[Variable], DistrictInterventions]:
     r"""Run line 6 of the ID* algorithm.
@@ -239,6 +239,65 @@ def id_star_line_6(
     return summand, interventions_of_each_district
 
 
+def id_star_line_6(
+    graph: NxMixedGraph, event: Event
+) -> Tuple[Collection[Variable], DistrictInterventions]:
+    r"""Run line 6 of the ID* algorithm.
+
+    Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
+    set of subproblems, one for each C-component in the counterfactual graph. In the ID
+    algorithm, the term corresponding to a given C-component :math:`S_i` of the causal
+    diagram was the effect of all variables not in :math:`S_i` on variables in :math:`S_i` ,
+    in other words :math:`P_{\mathbf{v}\backslash s_i} (s_i )`, and the outermost summation
+    on line 4 was over values of variables not in :math:`\mathbf{Y},\mathbf{X}`. Here, the
+    term corresponding to a given C-component :math:`S^i` of the counterfactual graph :math:`G'`
+    is the conjunction of counterfactual variables where each variable contains in its
+    subscript all variables not in the C-component :math:`S^i` , in other words
+    :math:`\mathbf{v}(G' )\backslash s^i` , and the outermost summation is over observable
+    variables not in :math:`\event'` , that is over :math:`\mathbf{v}(G' ) \backslash \event'` ,
+    where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
+    """
+    # First we get the summand
+    # Then we intervene on each district
+    summand = get_free_variables(graph, event)
+    events_of_each_district = get_district_events(graph, event)
+    return summand, events_of_each_district
+
+def get_events_of_each_district(graph: NxMixedGraph, event: Event) -> DistrictEvents:
+    """For each district, intervene each node on the Markov pillow of the district.
+    Self-interventions are not considered part of the district
+    """
+    nodes = set(node for node in graph.nodes() if is_not_self_intervened(node))
+    events_of_each_district = {}
+    for district in graph.subgraph(nodes).get_c_components():
+        events_of_district = get_events_of_district(graph, district, event)
+        events_of_each_district[district] = events_of_district
+    return events_of_each_district
+
+def get_events_of_district(graph, district, event) -> Event:
+    """For each district, intervene each node on the Markov pillow of the district.
+    :param graph: an NxMixedGraph
+    :param district: a district of the graph
+    :param event: a conjunction of counterfactual variables
+    :return: the events of the district
+    """
+    markov_pillow = get_markov_pillow(graph, district)
+    if len(markov_pillow) == 0:
+        return {
+            node.get_base(): event[node]
+            if node in event
+            else node.get_base(): -node.get_base()
+            for node in district
+        }
+    else:
+        return {
+            node.get_base().intervene(markov_pillow): event[node]
+            if node in event
+            else node.get_base().intervene(markov_pillow): -node.get_base()
+            for node in district
+        }
+
+    
 def get_district_interventions(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
     """For each district, intervene on the variables not in the district.
     Self-interventions are not considered part of the district
@@ -273,16 +332,6 @@ def get_markov_pillow(graph: NxMixedGraph, district: Collection[Variable]) -> Co
         parents_of_district |= set(graph.directed.predecessors(node))
     return parents_of_district - set(district)
 
-
-def get_parents_of_district(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
-    """for each district, intervene on the domain of each parent not in the district.
-    The domain of variables in the event query are restricted to their event value"""
-    nodes = set(node for node in graph.nodes() if is_not_self_intervened(node))
-    return {
-        district: domain_of_counterfactual_values(event, get_markov_pillow(graph, district))
-        for district in graph.get_c_components()
-        if 1 < len(district) or is_not_self_intervened(list(district)[0])
-    }
 
 
 def id_star_line_8(graph: NxMixedGraph, event: Event) -> bool:
@@ -332,7 +381,7 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
 
 
 def rule_3_applies(
-        graph: NxMixedGraph, district_events: DistrictInterventions
+    graph: NxMixedGraph, district_events: DistrictInterventions
 ) -> DistrictInterventions:
     """Apply rule 3 to each intervention in the district
 
@@ -348,23 +397,21 @@ def rule_3_applies(
             new_district_events[district][new_counterfactual] = events[counterfactual]
     return new_district_events
 
-def simplify_counterfactual(graph: NxMixedGraph, district_nodes: Set[Variable], counterfactual_variable) -> CounterfactualVariable:
-    """Simplify a counterfactual variable by removing interventions that are d-separated in the the counterfactual graph."""
+
+def simplify_counterfactual(
+    graph: NxMixedGraph,
+    district_nodes: Set[Variable],
+    counterfactual_variable: CounterfactualVariable
+) -> Variable:
+    """Simplify a counterfactual variable by only including interventions that are in the Markov pillow of the district."""
     if not isinstance(counterfactual_variable, CounterfactualVariable):
         raise TypeError
-    new_counterfactual_variable = CounterfactualVariable(name=counterfactual_variable.name,
-                                                         interventions=counterfactual_variable.interventions,
-                                                         star = counterfactual_variable.star)
-    intervention_nodes: Set[Intervention] = set(graph.nodes()).difference(district_nodes)
-    for intervention_node in intervention_nodes:
-        if are_d_separated(
-                graph,
-                intervention_node,
-                counterfactual_variable,
-                conditions=intervention_nodes - {intervention_node},
-        ):
-            new_counterfactual_variable = new_counterfactual_variable.remove_interventions(intervention_node.get_base())
-    return new_counterfactual_variable
+    intervention_nodes = get_markov_pillow(graph, district_nodes)
+    if len(intervention_nodes) == 0:
+        return Variable(name=counterfactual_variable.name, star=counterfactual_variable.star)
+    else:
+        return Variable(name=counterfactual_variable.name,
+                        star=counterfactual_variable.star).intervene(intervention_nodes)
 
 
 

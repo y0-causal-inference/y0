@@ -420,7 +420,7 @@ class CounterfactualVariable(Variable):
             ),
         )
 
-    def remove_interventions(self, variables: VariableHints) -> CounterfactualVariable:
+    def remove_interventions(self, variables: VariableHints) -> Variable:
         """Remove interventions from this counterfactual variable.
 
         :param variables: The variable(s) used to remove from this counterfactual variable's
@@ -430,13 +430,15 @@ class CounterfactualVariable(Variable):
         .. note:: This function can be accessed with the matmult @ operator.
         """
         _interventions = _to_interventions(_upgrade_ordering(variables))
-        return CounterfactualVariable(
-            name=self.name,
-            star=self.star,
-            interventions=tuple(
-                sorted(set(self.interventions) - set(_interventions), key=attrgetter("name"))
-            ),
-        )
+        new_interventions = tuple(sorted(set(self.interventions) - set(_interventions)))
+        if len(new_interventions) == 0:
+            return Variable(name=self.name, star=self.star)
+        else:
+            return CounterfactualVariable(
+                name=self.name,
+                star=self.star,
+                interventions=new_interventions,
+                )
 
 
     def _raise_for_overlapping_interventions(self, interventions: Iterable[Intervention]) -> None:
