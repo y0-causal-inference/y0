@@ -260,42 +260,39 @@ def id_star_line_6(
     # First we get the summand
     # Then we intervene on each district
     summand = get_free_variables(graph, event)
-    events_of_each_district = get_district_events(graph, event)
+    events_of_each_district = get_events_of_each_district(graph, event)
     return summand, events_of_each_district
 
-def get_events_of_each_district(graph: NxMixedGraph, event: Event) -> DistrictEvents:
+
+
+def get_events_of_each_district(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
     """For each district, intervene each node on the Markov pillow of the district.
     Self-interventions are not considered part of the district
     """
     nodes = set(node for node in graph.nodes() if is_not_self_intervened(node))
-    events_of_each_district = {}
+    new_events_of_each_district = {}
     for district in graph.subgraph(nodes).get_c_components():
-        events_of_district = get_events_of_district(graph, district, event)
-        events_of_each_district[district] = events_of_district
-    return events_of_each_district
+        new_events_of_each_district[district] = get_events_of_district(graph, district, event)
+    return new_events_of_each_district
 
 def get_events_of_district(graph, district, event) -> Event:
-    """For each district, intervene each node on the Markov pillow of the district.
+    """Create new events by intervening each node on the Markov pillow of the district.
+    If the node in in the original event, then the value of the new event is the same as the original event.
     :param graph: an NxMixedGraph
     :param district: a district of the graph
     :param event: a conjunction of counterfactual variables
     :return: the events of the district
     """
     markov_pillow = get_markov_pillow(graph, district)
+    new_events_of_district = {}
     if len(markov_pillow) == 0:
-        return {
-            node.get_base(): event[node]
-            if node in event
-            else node.get_base(): -node.get_base()
-            for node in district
-        }
+        for node in district:
+            new_events_of_district[node.get_base()] = event[node] if node in event else -node.get_base()
     else:
-        return {
-            node.get_base().intervene(markov_pillow): event[node]
-            if node in event
-            else node.get_base().intervene(markov_pillow): -node.get_base()
-            for node in district
-        }
+        for node in district:
+            new_events_of_district[node.get_base().intervene(markov_pillow)] = event[node] if node in event else -node.get_base()
+    return new_events_of_district
+
 
     
 def get_district_interventions(graph: NxMixedGraph, event: Event) -> DistrictInterventions:

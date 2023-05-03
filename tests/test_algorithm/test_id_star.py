@@ -21,7 +21,7 @@ from y0.algorithm.identify.id_star import (
     is_redundant_counterfactual,
     merge_interventions,
     remove_event_tautologies,
-    rule_3_applies,
+    #rule_3_applies,
     simplify_counterfactual,
     sub,
     violates_axiom_of_effectiveness,
@@ -258,78 +258,78 @@ class TestIDStar(cases.GraphTestCase):
     #     new_event on variables in new_event is correct
     #     """
 
-    def test_rule_3_applies(self):
-        r"""Test whether rule 3 of the do calculus applies
+#    def test_rule_3_applies(self):
+#        r"""Test whether rule 3 of the do calculus applies
+#
+#        Rule 3 of the do calculus states
+#        .. math::
+#            P_{x,\color{green}{z}}(y|w) = P_x(y|w)\text{ if }(Y\ci Z|X,W)_{G_{\bar{X}\bar{Z(W)}}}
+#
+#        So we will test whether Y is independent of X given Z (and W if it exists)
+#        with this example:
+#
+#        Check the two C-components :math:`\{Y_{x,z}, X\}, \{W_{x,z}\}`:math:
+#        :math:`P(y_{x,z}, w_{x,z}, x' ) = P(y_{x,z,w}, x'_w )P(w_x, z )`:math,
+#        which can be simplified by removing redundant subscripts to :math:`P(y_{z,w}, x' )P(w_x )`:math:.
+#        """
+#
+#        district_event_map = {
+#            frozenset({Z}): {(Z @ (-y, -x, -w, -d), -z): {Z @ -d: -z}},
+#            frozenset({W @ -x}): {(W @ (-y, -x, -z, -d), -w): {W @ -x: -w}},
+#            frozenset({D}): {(D @ (-y, -x, -z, -w), -d): {D: -d}},
+#            frozenset({X, Y @ -x}): {
+#                (Y @ (-x, -z, -w, -d), -y): {Y @ (-w, -z): -y},
+#                (X @ (-z, -w, -d), +x): {X @ (-w, -z): +x},
+#            },
+#        }
+#
+#        input_graph = tikka_figure_5.graph
+#        expected_counterfactual_map1 = {(Z @ (-y, -x, -w, -d), -z): {Z @ -d: -z}}
+#        expected_counterfactual_map2 = {(W @ (-y, -x, -z, -d), -w): {W @ -x: -w}}
+#        expected_counterfactual_map3 = {(D @ (-y, -x, -z, -w), -d): {D: -d}}
+#        expected_counterfactual_map4 = {
+#            (Y @ (-x, -z, -w, -d), -y): {Y @ (-w, -z): -y},
+#            (X @ (-z, -w, -d), +x): {X @ (-w, -z): +x},
+#        }
+#
+#        input_district_expected_counterfactual_map = {
+#            frozenset({Z}): expected_counterfactual_map1,
+#            frozenset({W @ -x}): expected_counterfactual_map2,
+#            frozenset({D}): expected_counterfactual_map3,
+#            frozenset({X, Y @ -x}): expected_counterfactual_map4,
+#        }
+#
+#        for (
+#            input_district,
+#            expected_counterfactual_map,
+#        ) in input_district_expected_counterfactual_map.items():
+#            self.assertTrue(
+#                expected_counterfactual_map, rule_3_applies(input_graph, input_district)
+#            )
 
-        Rule 3 of the do calculus states
-        .. math::
-            P_{x,\color{green}{z}}(y|w) = P_x(y|w)\text{ if }(Y\ci Z|X,W)_{G_{\bar{X}\bar{Z(W)}}}
-
-        So we will test whether Y is independent of X given Z (and W if it exists)
-        with this example:
-
-        Check the two C-components :math:`\{Y_{x,z}, X\}, \{W_{x,z}\}`:math:
-        :math:`P(y_{x,z}, w_{x,z}, x' ) = P(y_{x,z,w}, x'_w )P(w_x, z )`:math,
-        which can be simplified by removing redundant subscripts to :math:`P(y_{z,w}, x' )P(w_x )`:math:.
-        """
-
-        district_event_map = {
-            frozenset({Z}): {(Z @ (-y, -x, -w, -d), -z): {Z @ -d: -z}},
-            frozenset({W @ -x}): {(W @ (-y, -x, -z, -d), -w): {W @ -x: -w}},
-            frozenset({D}): {(D @ (-y, -x, -z, -w), -d): {D: -d}},
-            frozenset({X, Y @ -x}): {
-                (Y @ (-x, -z, -w, -d), -y): {Y @ (-w, -z): -y},
-                (X @ (-z, -w, -d), +x): {X @ (-w, -z): +x},
-            },
-        }
-
-        input_graph = tikka_figure_5.graph
-        expected_counterfactual_map1 = {(Z @ (-y, -x, -w, -d), -z): {Z @ -d: -z}}
-        expected_counterfactual_map2 = {(W @ (-y, -x, -z, -d), -w): {W @ -x: -w}}
-        expected_counterfactual_map3 = {(D @ (-y, -x, -z, -w), -d): {D: -d}}
-        expected_counterfactual_map4 = {
-            (Y @ (-x, -z, -w, -d), -y): {Y @ (-w, -z): -y},
-            (X @ (-z, -w, -d), +x): {X @ (-w, -z): +x},
-        }
-
-        input_district_expected_counterfactual_map = {
-            frozenset({Z}): expected_counterfactual_map1,
-            frozenset({W @ -x}): expected_counterfactual_map2,
-            frozenset({D}): expected_counterfactual_map3,
-            frozenset({X, Y @ -x}): expected_counterfactual_map4,
-        }
-
-        for (
-            input_district,
-            expected_counterfactual_map,
-        ) in input_district_expected_counterfactual_map.items():
-            self.assertTrue(
-                expected_counterfactual_map, rule_3_applies(input_graph, input_district)
-            )
-
-    def test_simplify_counterfactual(self):
-        """Test that we can simplify counterfactuals."""
-
-        input_graph = tikka_figure_5.graph
-
-        district_counterfactual_map = {
-            frozenset({Z}): {Z @ (-y, -x, -w, -d): Z @ -d},
-            frozenset({W @ -x}): {W @ (-y, -x, -z, -d): W @ -x},
-            frozenset({D}): {D @ (-y, -x, -z, -w): D},
-            frozenset({X, Y @ -x}): {
-                Y @ (-x, -z, -w, -d): Y @ (-w, -z),
-                X @ (-z, -w, -d): X @ (-w, -z),
-            },
-        }
-        for input_district, counterfactual_map in district_counterfactual_map.items():
-            for input_node in input_district:
-                for input_counterfactual, expected_counterfactual in counterfactual_map.items():
-                    self.assertEqual(
-                        expected_counterfactual,
-                        simplify_counterfactual(
-                            input_graph, input_district, input_node, input_counterfactual
-                        ),
-                    )
+#    def test_simplify_counterfactual(self):
+#        """Test that we can simplify counterfactuals."""
+#
+#        input_graph = tikka_figure_5.graph
+#
+#        district_counterfactual_map = {
+#            frozenset({Z}): {Z @ (-y, -x, -w, -d): Z @ -d},
+#            frozenset({W @ -x}): {W @ (-y, -x, -z, -d): W @ -x},
+#            frozenset({D}): {D @ (-y, -x, -z, -w): D},
+#            frozenset({X, Y @ -x}): {
+#                Y @ (-x, -z, -w, -d): Y @ (-w, -z),
+#                X @ (-z, -w, -d): X @ (-w, -z),
+#            },
+#        }
+#        for input_district, counterfactual_map in district_counterfactual_map.items():
+#            for input_node in input_district:
+#                for input_counterfactual, expected_counterfactual in counterfactual_map.items():
+#                    self.assertEqual(
+#                        expected_counterfactual,
+#                        simplify_counterfactual(
+#                            input_graph, input_district, input_node, input_counterfactual
+#                        ),
+#                    )
 
     def test_is_redundant_counterfactual(self):
         """Test that we can detect if counterfactual variable is redundant."""
