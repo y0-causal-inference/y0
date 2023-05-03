@@ -11,6 +11,8 @@ from y0.algorithm.identify.cg import is_not_self_intervened
 from y0.algorithm.identify.id_star import (
     ev,
     get_district_interventions,
+    get_events_of_each_district,
+    get_events_of_district,
     get_free_variables,
     id_star,
     id_star_line_4,
@@ -93,6 +95,21 @@ class TestIDStar(cases.GraphTestCase):
         input_graph = tikka_figure_5.graph
         input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}
         expected_summand = {W}
+        district1 = frozenset({X, Y @ -x})
+        district2 = frozenset({Z})
+        district3 = frozenset({W @ -x})
+        district4 = frozenset({D})
+        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}
+        expected_event1 = {Y @ (-z, -w): -y, X @ (-z, -w): +x}
+        expected_event2 = {Z @ -d: -z}
+        expected_event3 = {W @ -x: -w}
+        expected_event4 = {D: -d}
+        expected_events = {district1: expected_event1,
+                           district2: expected_event2,
+                           district3: expected_event3,
+                           district4: expected_event4
+                           }
+
         expected_district_interventions = {
             frozenset({X, Y @ -x}): {Y @ (-x, -z, -w, -d): -y, X @ (-z, -w, -d): +x},
             frozenset({Z}): {Z @ (-y, -x, -w, -d): -z},
@@ -101,9 +118,9 @@ class TestIDStar(cases.GraphTestCase):
         }
         ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
         #
-        actual_summand, actual_district_interventions = id_star_line_6(input_graph, input_event)
+        actual_summand, actual_district_events = id_star_line_6(input_graph, input_event)
         self.assertEqual(expected_summand, actual_summand)
-        self.assertEqual(expected_district_interventions, actual_district_interventions)
+        self.assertEqual(expected_events, actual_district_events)
 
     def test_get_free_variables(self):
         """Test that each variable not in the event or self-intervened is marginalized out."""
@@ -138,6 +155,46 @@ class TestIDStar(cases.GraphTestCase):
     #         frozenset([W @ (+x, -z)]): (Y, X),
     #     }
     #     # self.assertEqual()
+
+
+    def test_get_events_of_district(self):
+        """Ensure that each variable in the district is intervened on the Markov pillow."""
+        input_graph = tikka_figure_5.graph
+        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}
+        district1 = {X, Y @ -x}
+        district2 = {Z}
+        district3 = {W @ -x}
+        district4 = {D}
+        districts = district1 | district2 | district3 | district4
+        expected_event1 = {Y @ (-z, -w): -y, X @ (-z, -w): +x}
+        expected_event2 = {Z @ -d: -z}
+        expected_event3 = {W @ -x: -w}
+        expected_event4 = {D: -d}
+        self.assertEqual(expected_event1, get_events_of_district(input_graph, district1, input_event))
+        self.assertEqual(expected_event2, get_events_of_district(input_graph, district2, input_event))
+        self.assertEqual(expected_event3, get_events_of_district(input_graph, district3, input_event))
+        self.assertEqual(expected_event4, get_events_of_district(input_graph, district4, input_event))
+
+    def test_events_of_each_district(self):
+        """Ensure that each variable in the district is intervened on the Markov pillow."""
+        input_graph = tikka_figure_5.graph
+        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}
+        district1 = frozenset({X, Y @ -x})
+        district2 = frozenset({Z})
+        district3 = frozenset({W @ -x})
+        district4 = frozenset({D})
+        input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}
+        expected_event1 = {Y @ (-z, -w): -y, X @ (-z, -w): +x}
+        expected_event2 = {Z @ -d: -z}
+        expected_event3 = {W @ -x: -w}
+        expected_event4 = {D: -d}
+        expected_events = {district1: expected_event1,
+                           district2: expected_event2,
+                           district3: expected_event3,
+                           district4: expected_event4
+                           }
+        self.assertEqual(expected_events, get_events_of_each_district(input_graph, input_event))
+                         
 
     def test_intervene_on_district(self):
         """Test that we correctly intervene on a district"""
