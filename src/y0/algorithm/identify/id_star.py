@@ -94,12 +94,12 @@ def get_free_variables(graph: NxMixedGraph, event: Event) -> Set[Variable]:
 def get_district_events(district_interventions: DistrictInterventions) -> Mapping[District, Event]:
     """Takes a district and a set of interventions, and applies the set of interventions to each node in the district"""
     return {
-        district: get_district_event(district, interventions)
+        district: get_district_event(district, interventions)  # FIXME passing interventions here is wrong
         for district, interventions in district_interventions.items()
     }
 
 
-def get_district_event(district: District, interventions: Set[Intervention]) -> Event:
+def get_district_event(district: District, interventions: Iterable[Intervention]) -> Event:
     return {
         merge_interventions(
             node, interventions
@@ -264,7 +264,6 @@ def id_star_line_6(
     return summand, events_of_each_district
 
 
-
 def get_events_of_each_district(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
     """For each district, intervene each node on the Markov pillow of the district.
     Self-interventions are not considered part of the district
@@ -274,6 +273,7 @@ def get_events_of_each_district(graph: NxMixedGraph, event: Event) -> DistrictIn
     for district in graph.subgraph(nodes).get_c_components():
         new_events_of_each_district[district] = get_events_of_district(graph, district, event)
     return new_events_of_each_district
+
 
 def get_events_of_district(graph, district, event) -> Event:
     """Create new events by intervening each node on the Markov pillow of the district.
@@ -287,14 +287,17 @@ def get_events_of_district(graph, district, event) -> Event:
     new_events_of_district = {}
     if len(markov_pillow) == 0:
         for node in district:
-            new_events_of_district[node.get_base()] = event[node] if node in event else -node.get_base()
+            new_events_of_district[node.get_base()] = (
+                event[node] if node in event else -node.get_base()
+            )
     else:
         for node in district:
-            new_events_of_district[node.get_base().intervene(markov_pillow)] = event[node] if node in event else -node.get_base()
+            new_events_of_district[node.get_base().intervene(markov_pillow)] = (
+                event[node] if node in event else -node.get_base()
+            )
     return new_events_of_district
 
 
-    
 def get_district_interventions(graph: NxMixedGraph, event: Event) -> DistrictInterventions:
     """For each district, intervene on the variables not in the district.
     Self-interventions are not considered part of the district
@@ -328,7 +331,6 @@ def get_markov_pillow(graph: NxMixedGraph, district: Collection[Variable]) -> Co
     for node in district:
         parents_of_district |= set(graph.directed.predecessors(node))
     return parents_of_district - set(district)
-
 
 
 def id_star_line_8(graph: NxMixedGraph, event: Event) -> bool:
@@ -386,7 +388,8 @@ def rule_3_applies(
     :param district: A tuple of counterfactual variables representing the C-component (district)
     :return: The collection of counterfactual variables and the interventions that are D separated according to the graph
     """
-    new_district_events = dict()
+    new_district_events: dict[District, Event] = dict()
+    intervention_events = ...  # FIXME this variable does not exist!
     for district, events in district_events.items():
         new_district_events[district] = dict()
         for counterfactual in intervention_events:
@@ -398,7 +401,7 @@ def rule_3_applies(
 def simplify_counterfactual(
     graph: NxMixedGraph,
     district_nodes: Set[Variable],
-    counterfactual_variable: CounterfactualVariable
+    counterfactual_variable: CounterfactualVariable,
 ) -> Variable:
     """Simplify a counterfactual variable by only including interventions that are in the Markov pillow of the district."""
     if not isinstance(counterfactual_variable, CounterfactualVariable):
@@ -407,9 +410,9 @@ def simplify_counterfactual(
     if len(intervention_nodes) == 0:
         return Variable(name=counterfactual_variable.name, star=counterfactual_variable.star)
     else:
-        return Variable(name=counterfactual_variable.name,
-                        star=counterfactual_variable.star).intervene(intervention_nodes)
-
+        return Variable(
+            name=counterfactual_variable.name, star=counterfactual_variable.star
+        ).intervene(intervention_nodes)
 
 
 # FIXME this is unused -> delete it

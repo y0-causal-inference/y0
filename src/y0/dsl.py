@@ -420,7 +420,7 @@ class CounterfactualVariable(Variable):
             ),
         )
 
-    def remove_interventions(self, variables: VariableHints) -> Variable:
+    def remove_interventions(self, variables: VariableHint) -> Variable:
         """Remove interventions from this counterfactual variable.
 
         :param variables: The variable(s) used to remove from this counterfactual variable's
@@ -438,8 +438,7 @@ class CounterfactualVariable(Variable):
                 name=self.name,
                 star=self.star,
                 interventions=new_interventions,
-                )
-
+            )
 
     def _raise_for_overlapping_interventions(self, interventions: Iterable[Intervention]) -> None:
         """Raise an error if any of the given variables are already listed in interventions in this counterfactual.
