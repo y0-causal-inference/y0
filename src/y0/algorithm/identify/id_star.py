@@ -62,25 +62,26 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
     # print(cf_graph)
     # print(new_event)
     # Line 6:
-    if not cf_graph.is_connected():
+    nodes = set(node for node in cf_graph.nodes() if is_not_self_intervened(node))
+    if not cf_graph.subgraph(nodes).is_connected():
         summand, interventions_of_each_district = id_star_line_6(cf_graph, event)
         print(f"[{leonardo}] interventions of each district: {interventions_of_each_district}")
-        district_events = get_district_events(interventions_of_each_district)
-        assert 1 < len(district_events)
+        # district_events = get_district_events(interventions_of_each_district)
+        assert 1 < len(interventions_of_each_district)
         return Sum.safe(
             Product.safe(
                 print(f"[{leonardo}] recurring on district events: {events_of_district}")
                 or id_star(graph, events_of_district, leonardo=leonardo + 1)
-                for events_of_district in district_events.values()
+                for events_of_district in interventions_of_each_district.values()
             ),
             summand,
         )
     # Line 7:
-    elif id_star_line_8(cf_graph, new_event):
+    elif id_star_line_8(cf_graph.subgraph(nodes), new_event):
         raise Unidentifiable
     else:
         # Line 9
-        return id_star_line_9(cf_graph)
+        return id_star_line_9(cf_graph.subgraph(nodes))
 
 
 def get_free_variables(graph: NxMixedGraph, event: Event) -> Set[Variable]:
@@ -376,7 +377,10 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
     :return: An interventional distribution.
     """
     interventions = sub(graph)
-    return P[interventions](node.get_base() for node in graph.nodes())
+    if len(interventions)>0:
+        return P[interventions](node.get_base() for node in graph.nodes())
+    else:
+        return P(node.get_base() for node in graph.nodes())
 
 
 def rule_3_applies(
