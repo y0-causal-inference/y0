@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """Tests for the ID* algorithm."""
-from typing import Set
-
-from networkx import NetworkXPointlessConcept
 
 from tests.test_algorithm import cases
-from y0.algorithm.conditional_independencies import are_d_separated
-from y0.algorithm.identify.cg import is_not_self_intervened
 from y0.algorithm.identify.id_star import (  # rule_3_applies,
     ev,
     get_district_interventions,
@@ -18,6 +13,7 @@ from y0.algorithm.identify.id_star import (  # rule_3_applies,
     id_star_line_4,
     id_star_line_6,
     id_star_line_8,
+    id_star_line_9,    
     intervene_on_district,
     is_event_empty,
     is_redundant_counterfactual,
@@ -27,7 +23,7 @@ from y0.algorithm.identify.id_star import (  # rule_3_applies,
     sub,
     violates_axiom_of_effectiveness,
 )
-from y0.dsl import D, Intervention, P, Sum, Variable, W, X, Y, Z
+from y0.dsl import D, W, X, Y, Z, P, Sum
 from y0.examples import figure_9a, figure_9c, figure_9d, tikka_figure_5
 from y0.graph import NxMixedGraph
 
@@ -110,12 +106,12 @@ class TestIDStar(cases.GraphTestCase):
             district4: expected_event4,
         }
 
-        expected_district_interventions = {
-            frozenset({X, Y @ -x}): {Y @ (-x, -z, -w, -d): -y, X @ (-z, -w, -d): +x},
-            frozenset({Z}): {Z @ (-y, -x, -w, -d): -z},
-            frozenset({W @ -x}): {W @ (-y, -x, -z, -d): -w},
-            frozenset({D}): {D @ (-y, -x, -z, -w): -d},
-        }
+        # expected_district_interventions = {
+        #     frozenset({X, Y @ -x}): {Y @ (-x, -z, -w, -d): -y, X @ (-z, -w, -d): +x},
+        #     frozenset({Z}): {Z @ (-y, -x, -w, -d): -z},
+        #     frozenset({W @ -x}): {W @ (-y, -x, -z, -d): -w},
+        #     frozenset({D}): {D @ (-y, -x, -z, -w): -d},
+        # }
         ## Create a counterfactual graph with at least 2 c-components and return the summand and interventions of each
         #
         actual_summand, actual_district_events = id_star_line_6(input_graph, input_event)
@@ -128,7 +124,9 @@ class TestIDStar(cases.GraphTestCase):
         input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}
         expected_summand = {W}
         self.assertEqual(expected_summand, get_free_variables(input_graph, input_event))
-
+        input_event2 = {Y @ -x: -y, X: +x, Z @ -d: -z, D: -d}
+        expected_summand2 = {W, Z}
+        self.assertEqual(expected_summand2, get_free_variables(input_graph, input_event2))
     # Def test_domain_of_counterfactual_values(self):
     #     """ "Test that we correctly output the domain of a counterfactual"""
     #     event = {Y @ (+X, -Z): -Y, X: -X}
@@ -268,7 +266,7 @@ class TestIDStar(cases.GraphTestCase):
     # def test_recursion(self):
     #     """Test the recursive aspect of line 6"""
     #     cf_graph = figure_9d.graph
-    #     new_event = {Y @ (+X, -Z): -Y, X: -X}
+    #     new_event = {Y @ (+x, -z): -y, X: -x}
     #     summand, interventions_of_each_district = id_star_line_6(cf_graph, new_event)
     #     my_list = [
     #         {
@@ -301,26 +299,35 @@ class TestIDStar(cases.GraphTestCase):
     #     expected = Y @ (D, W, X, Z)
     #     self.assertEqual(expected, merge_interventions(element, interventions))
 
-    # def test_id_star_line_8(self):
-    #     """Attempt to generate a conflict with an inconsistent value assignment."""
-    #     graph = NxMixedGraph.from_edges(undirected=[(Y @ +X, X), (X, D @ -D)])
-    #     self.assertEqual({-D, +X}, sub(graph))
-    #     query1 = {Y @ +X: +Y, X: -X, D @ -D: -D}
-    #     self.assertEqual({-X, -D, +Y}, ev(query1))
-    #     self.assertTrue(id_star_line_8(graph, query1))
-    #     query2 = {D @ -D: -D}
-    #     self.assertEqual({-D}, ev(query2))
-    #     self.assertFalse(id_star_line_8(graph, query2))
-    #     graph3 = NxMixedGraph.from_edges(undirected=[(X, Y @ (-W, +X, -Z))])
-    #     event3 = {Y @ (-W, +X, -Z): Y, X: X}
-    #     self.assertFalse(id_star_line_8(graph3, event3))
+    def test_id_star_line_8(self):
+        """Attempt to generate a conflict with an inconsistent value assignment."""
+        input_graph = NxMixedGraph.from_edges(undirected=[(Y @ +x, X), (X, Z @ -d)])
+        self.assertEqual({-D, +X}, sub(input_graph))
+        query1 = {Y @ +x: +y, X: -x, D @ -d: -d}
+        self.assertEqual({-x, -d, +y}, ev(query1))
+        self.assertTrue(id_star_line_8(input_graph, query1))
+        query2 = {Z @ -d: -z, X: +x}
+        self.assertEqual({-z, +x}, ev(query2))
+        self.assertFalse(id_star_line_8(input_graph, query2))
+        graph3 = NxMixedGraph.from_edges(undirected=[(X, Y @ (-w, +x, -z))])
+        event3 = {Y @ (-w, +x, -z): -y, X: -x}
+        self.assertTrue(id_star_line_8(graph3, event3))
+        graph4 = NxMixedGraph.from_edges(directed=[(X, Y @ -x)], undirected=[(X, Y @ -x)])
+        event4 = {Y @ -x: -y, X: +x}
+        self.assertTrue(id_star_line_8(graph4, event4))
+        
+    def test_id_star_line_9(self):
+        """Test line 9 of the ID* algorithm.
 
-    # def test_id_star_line_9(self):
-    #     """Test line 9 of the ID* algorithm.
-
-    #     Test that estimand returned by taking the effect of all subscripts in
-    #     new_event on variables in new_event is correct
-    #     """
+        Test that estimand returned by taking the effect of all subscripts in
+        new_event on variables in new_event is correct
+        """
+        input_graph1 = NxMixedGraph.from_edges(undirected=[(X, Y @ (-w, +x, -z))])
+        expected1 = P[-w, +x, -z](X, Y)
+        input_graph2 = NxMixedGraph.from_edges(undirected=[(X, Y)])
+        expected2 = P(X, Y)
+        self.assertEqual(expected1, id_star_line_9(input_graph1))
+        self.assertEqual(expected2, id_star_line_9(input_graph2))
 
     #    def test_rule_3_applies(self):
     #        r"""Test whether rule 3 of the do calculus applies
@@ -402,25 +409,25 @@ class TestIDStar(cases.GraphTestCase):
         self.assertFalse(is_redundant_counterfactual(Y @ (+x, -z), -y))
         self.assertFalse(is_redundant_counterfactual(Y @ (+x, -z), +y))
 
-    # def test_is_self_intervened(self):
-    #     """Test that we can detect when a counterfactual variable intervenes on itself"""
-    #     self.assertTrue(is_self_intervened(Y @ (+x, -y)))
-    #     self.assertFalse(is_self_intervened(Y @ (+x, -z)))
-    #     self.assertTrue(is_self_intervened(Y @ (+x, +y)))
 
-    # def test_id_star(self):
-    #     """Test that the ID* algorithm returns the correct estimand."""
-    #     query = {Y @ (+x, -z): +y, X: -x}
-    #     counterfactual_graph = NxMixedGraph.from_edges(
-    #         undirected=[(Y @ (~X, Z), X)],
-    #         directed=[
-    #             (W @ (~X, Z), Y @ (~X, Z)),
-    #         ],
-    #     )
-    #     actual = id_star(figure_9a.graph, query)
-    #     expected = Sum[W](P(Y @ (-z, W), X @ (-z, W)) * P(W @ -x))
-    #     self.assert_expr_equal(expected, actual)
+    def test_id_star(self):
+        """Test that the ID* algorithm returns the correct estimand."""
+        query = {Y @ (+x, -z): +y, X: -x}
+        counterfactual_graph = NxMixedGraph.from_edges(
+            undirected=[(Y @ (~X, Z), X)],
+            directed=[
+                (W @ (~X, Z), Y @ (~X, Z)),
+            ],
+        )
+        actual = id_star(figure_9a.graph, query)
+        expected = Sum[W](P(Y @ (-z, -w), X @ (-z, -w)) * P(W @ -x))
+        self.assert_expr_equal(expected, actual)
 
+        input_graph2 = figure_9a.graph
+        input_event2 = {Y @ -x: -y, X: +x, Z @ -d: -z, D: -d}
+        expected2 = Sum[W](P(Y @ (-z, -w), X @ (-z, -w)) * P(Z @ -d) * P(W @ -x) * P(D))
+        self.assert_expr_equal(expected2, id_star(input_graph2, input_event2))
+        
     # def test_idc_star(self):
     #     """Test that the IDC* algorithm returns the correct estimand."""
     #     query = P(Y @ ~X | X, Z @ D, D)

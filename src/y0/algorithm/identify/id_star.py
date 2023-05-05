@@ -64,7 +64,8 @@ def id_star(graph: NxMixedGraph, event: Event, leonardo=0) -> Expression:
     # Line 6:
     nodes = set(node for node in cf_graph.nodes() if is_not_self_intervened(node))
     if not cf_graph.subgraph(nodes).is_connected():
-        summand, interventions_of_each_district = id_star_line_6(cf_graph, event)
+        summand, interventions_of_each_district = id_star_line_6(cf_graph, new_event)
+        print(f"[{leonardo}] summand: {summand}")
         print(f"[{leonardo}] interventions of each district: {interventions_of_each_district}")
         # district_events = get_district_events(interventions_of_each_district)
         assert 1 < len(interventions_of_each_district)

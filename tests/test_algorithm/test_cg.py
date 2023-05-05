@@ -4,6 +4,7 @@
 
 from tests.test_algorithm import cases
 from y0.algorithm.identify.cg import (  # has_same_parents,
+    is_not_self_intervened,
     _get_directed_edges,
     extract_interventions,
     has_same_confounders,
@@ -199,6 +200,13 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
             ),
         )
+
+        
+    def test_is_not_self_intervened(self):
+        """Test that we can detect when a counterfactual variable intervenes on itself"""
+        self.assertFalse(is_not_self_intervened(Y @ (+x, -y)))
+        self.assertTrue(is_not_self_intervened(Y @ (+x, -z)))
+        self.assertFalse(is_not_self_intervened(Y @ (+x, +y)))
 
     def test_stitch_factual_and_doppleganger_neighbors(self):
         """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon."""
