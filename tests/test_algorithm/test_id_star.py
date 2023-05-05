@@ -13,7 +13,7 @@ from y0.algorithm.identify.id_star import (  # rule_3_applies,
     id_star_line_4,
     id_star_line_6,
     id_star_line_8,
-    id_star_line_9,    
+    id_star_line_9,
     intervene_on_district,
     is_event_empty,
     is_redundant_counterfactual,
@@ -23,7 +23,8 @@ from y0.algorithm.identify.id_star import (  # rule_3_applies,
     sub,
     violates_axiom_of_effectiveness,
 )
-from y0.dsl import D, W, X, Y, Z, P, Sum
+from y0.algorithm.identify import idc_star
+from y0.dsl import D, P, Sum, W, X, Y, Z, Zero
 from y0.examples import figure_9a, figure_9c, figure_9d, tikka_figure_2, tikka_figure_5
 from y0.graph import NxMixedGraph
 
@@ -37,6 +38,7 @@ class TestIDStar(cases.GraphTestCase):
         """Check if event is empty."""
         self.assertTrue(is_event_empty({}))
         self.assertFalse(is_event_empty({X @ x: ~x}))
+        self.assertEqual(One(), id_star(..., {}))
 
     def test_id_star_line_2(self):
         """Check to see if the counterfactual event violates the Axiom of Effectiveness."""
@@ -53,6 +55,7 @@ class TestIDStar(cases.GraphTestCase):
         self.assertFalse(violates_axiom_of_effectiveness({X @ x: x}))
         self.assertFalse(violates_axiom_of_effectiveness({X @ ~x: ~x}))
         self.assertFalse(violates_axiom_of_effectiveness({X @ x: x, Y @ x: y}))
+        self.assertEqual(Zero(), id_star(..., {X @ x: ~x}))
 
     def test_id_star_line_3(self):
         """Check to see if the counterfactual event is tautological."""
@@ -63,6 +66,8 @@ class TestIDStar(cases.GraphTestCase):
         self.assertEqual({Y @ x: +y}, remove_event_tautologies({Y @ x: +y, X @ (w, ~x): ~x}))
         event = {Y @ (+x, -z): +y, X: -x}
         self.assertEqual(event, remove_event_tautologies(event))
+
+        # TODO make a test that uses id_star
 
     def test_id_star_line_4(self):
         """Check that the counterfactual graph is correct."""
@@ -78,12 +83,14 @@ class TestIDStar(cases.GraphTestCase):
         )
         self.assertIsNone(actual_event3)
 
-        query4 = {Y @ (+x, -z): +y, X: -x}
+        event_4 = {Y @ (+x, -z): +y, X: -x}
 
         expected_graph = figure_9d.graph
-        expected = expected_graph, query4
-        self.assertEqual(expected, id_star_line_4(figure_9a.graph, query4))
+        expected = expected_graph, event_4
+        self.assertEqual(expected, id_star_line_4(figure_9a.graph, event_4))
         self.assertFalse(figure_9d.graph.is_connected())
+
+        # TODO create a test case where id_star_line_4 returns None
 
     def test_id_star_line_6(self):
         """Check that the input to id_star from each district is properly constructed."""
@@ -127,6 +134,7 @@ class TestIDStar(cases.GraphTestCase):
         input_event2 = {Y @ -x: -y, X: +x, Z @ -d: -z, D: -d}
         expected_summand2 = {W, Z}
         self.assertEqual(expected_summand2, get_free_variables(input_graph, input_event2))
+
     # Def test_domain_of_counterfactual_values(self):
     #     """ "Test that we correctly output the domain of a counterfactual"""
     #     event = {Y @ (+X, -Z): -Y, X: -X}
@@ -315,7 +323,7 @@ class TestIDStar(cases.GraphTestCase):
         graph4 = NxMixedGraph.from_edges(directed=[(X, Y @ -x)], undirected=[(X, Y @ -x)])
         event4 = {Y @ -x: -y, X: +x}
         self.assertTrue(id_star_line_8(graph4, event4))
-        
+
     def test_id_star_line_9(self):
         """Test line 9 of the ID* algorithm.
 
@@ -409,7 +417,6 @@ class TestIDStar(cases.GraphTestCase):
         self.assertFalse(is_redundant_counterfactual(Y @ (+x, -z), -y))
         self.assertFalse(is_redundant_counterfactual(Y @ (+x, -z), +y))
 
-
     def test_id_star(self):
         """Test that the ID* algorithm returns the correct estimand."""
         query = {Y @ (+x, -z): +y, X: -x}
@@ -437,8 +444,8 @@ class TestIDStar(cases.GraphTestCase):
         self.assert_expr_equal(expected3, idc_star(input_graph3, input_outcome, input_conditional))
 
         P_numerator = Sum[W](P[-z, -w](-y, +x) * P[-x](-w))
-        P_denominator = Sum[W,Y,Z](P[-z, -w](-y, +x) * P[-x](-w))
-        
+        P_denominator = Sum[W, Y, Z](P[-z, -w](-y, +x) * P[-x](-w))
+
     # def test_idc_star(self):
     #     """Test that the IDC* algorithm returns the correct estimand."""
     #     query = P(Y @ ~X | X, Z @ D, D)

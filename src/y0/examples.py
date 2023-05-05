@@ -478,10 +478,8 @@ figure_9c = Example(
 tikka_figure_2 = Example(
     name=r"Figure 2: A graph for the example on identifiability of a conditional counterfacual query :math:`P(y_x|z_x\wedge x')`",
     reference="Tikka, S (2022) Identifiying Counterfactual Queries with the R package cfid",
-    graph=NxMixedGraph.from_edges(
-        directed=[(X, Z), (X, Y), (Z, Y)],
-        undirected=[(X,Z)]),
-    )
+    graph=NxMixedGraph.from_edges(directed=[(X, Z), (X, Y), (Z, Y)], undirected=[(X, Z)]),
+)
 
 tikka_figure_5 = Example(
     name=r"Figure 5: Counterfactual graph :math:`G'` for :math:`y_x\wedge x'\wedge z_d\wedge d`",

@@ -4,8 +4,8 @@
 
 from .id_star import id_star
 from ..conditional_independencies import are_d_separated
-from ...dsl import Expression, Variable
-
+from ...dsl import Expression, Variable, Event
+from ...graph import NxMixedGraph
 
 
 def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0) -> Expression:
@@ -27,16 +27,18 @@ def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0
         return 0
     for condition in conditions:
         if rule_2_of_do_calculus_applies(new_graph.remove_outgoing(condition), outcomes, condition):
-            new_outcomes = {outcome.intervene(condition): value
-                            for outcome, value in outcomes.items()}
+            new_outcomes = {
+                outcome.intervene(condition): value for outcome, value in outcomes.items()
+            }
             new_conditions = conditions.pop(condition)
-            return idc_star(graph, new_outcomes, new_conditions, leonardo+1)
+            return idc_star(graph, new_outcomes, new_conditions, leonardo + 1)
     P_prime = id_star(graph, new_events)
     return P_prime.conditional(conditions)
-   
 
 
-def rule_2_of_do_calculus_applies(graph: NxMixedGraph, outcomes: Set[Variable], condition: Variable) -> bool:
+def rule_2_of_do_calculus_applies(
+    graph: NxMixedGraph, outcomes: set[Variable], condition: Variable
+) -> bool:
     r"""Check if Rule 2 of the Do-Calculus applies to the conditioned variable.
 
     :param identification: The identification tuple
@@ -55,4 +57,3 @@ def rule_2_of_do_calculus_applies(graph: NxMixedGraph, outcomes: Set[Variable], 
         \text{then } P(\mathbf{Y}|do(\mathbf{X}),\mathbf{Z}) = P(\mathbf Y|do(\mathbf X), do(Z), \mathbf{Z} - \{Z\})
     """
     return all(are_d_separated(graph, outcome, condition) for outcome in outcomes)
-
