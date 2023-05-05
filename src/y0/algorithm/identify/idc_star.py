@@ -12,7 +12,7 @@ def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0
     """Run the IDC* algorithm.
 
     :param graph: The causal graph
-    :param outcome: The outcome variable
+    :param outcomes: The outcome variables
     :param conditions: The conditions
     :param leonardo: The number of times to apply the Leonardo rule
     :returns: An expression created by the :func:`idc_star` algorithm after simplifying the original query
@@ -26,7 +26,7 @@ def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0
     if new_events is None:
         return 0
     for condition in conditions:
-        if rule_2_of_do_calculus_applies(new_graph.remove_outgoing(condition), outcome, condition):
+        if rule_2_of_do_calculus_applies(new_graph.remove_outgoing(condition), outcomes, condition):
             new_outcomes = {outcome.intervene(condition): value
                             for outcome, value in outcomes.items()}
             new_conditions = conditions.pop(condition)
