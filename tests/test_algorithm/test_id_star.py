@@ -24,7 +24,7 @@ from y0.algorithm.identify.id_star import (  # rule_3_applies,
     violates_axiom_of_effectiveness,
 )
 from y0.dsl import D, W, X, Y, Z, P, Sum
-from y0.examples import figure_9a, figure_9c, figure_9d, tikka_figure_5
+from y0.examples import figure_9a, figure_9c, figure_9d, tikka_figure_2, tikka_figure_5
 from y0.graph import NxMixedGraph
 
 d, w, x, y, z = -D, -W, -X, -Y, -Z
@@ -427,6 +427,17 @@ class TestIDStar(cases.GraphTestCase):
         input_event2 = {Y @ -x: -y, X: +x, Z @ -d: -z, D: -d}
         expected2 = Sum[W](P(Y @ (-z, -w), X @ (-z, -w)) * P(Z @ -d) * P(W @ -x) * P(D))
         self.assert_expr_equal(expected2, id_star(input_graph2, input_event2))
+
+    def test_idc_star(self):
+        """Test that the IDC* algorithm returns the correct estimand."""
+        input_graph3 = tikka_figure_2.graph
+        input_outcome = {Y @ -x, -y}
+        input_conditional = {Z @ -x: -z, X: +x}
+        expected3 = P[X, Z](Y)
+        self.assert_expr_equal(expected3, idc_star(input_graph3, input_outcome, input_conditional))
+
+        P_numerator = Sum[W](P[-z, -w](-y, +x) * P[-x](-w))
+        P_denominator = Sum[W,Y,Z](P[-z, -w](-y, +x) * P[-x](-w))
         
     # def test_idc_star(self):
     #     """Test that the IDC* algorithm returns the correct estimand."""
