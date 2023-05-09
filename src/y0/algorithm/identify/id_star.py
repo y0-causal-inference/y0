@@ -96,7 +96,9 @@ def get_free_variables(graph: NxMixedGraph, event: Event) -> Set[Variable]:
 def get_district_events(district_interventions: DistrictInterventions) -> Mapping[District, Event]:
     """Takes a district and a set of interventions, and applies the set of interventions to each node in the district"""
     return {
-        district: get_district_event(district, interventions)  # FIXME passing interventions here is wrong
+        district: get_district_event(
+            district, interventions
+        )  # FIXME passing interventions here is wrong
         for district, interventions in district_interventions.items()
     }
 
@@ -378,7 +380,7 @@ def id_star_line_9(graph: NxMixedGraph) -> Probability:
     :return: An interventional distribution.
     """
     interventions = sub(graph)
-    if len(interventions)>0:
+    if len(interventions) > 0:
         return P[interventions](node.get_base() for node in graph.nodes())
     else:
         return P(node.get_base() for node in graph.nodes())

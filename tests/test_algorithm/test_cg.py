@@ -4,11 +4,11 @@
 
 from tests.test_algorithm import cases
 from y0.algorithm.identify.cg import (  # has_same_parents,
-    is_not_self_intervened,
     _get_directed_edges,
     extract_interventions,
     has_same_confounders,
     has_same_function,
+    is_not_self_intervened,
     is_pw_equivalent,
     make_counterfactual_graph,
     make_parallel_worlds_graph,
@@ -201,7 +201,6 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             ),
         )
 
-        
     def test_is_not_self_intervened(self):
         """Test that we can detect when a counterfactual variable intervenes on itself"""
         self.assertFalse(is_not_self_intervened(Y @ (+x, -y)))
