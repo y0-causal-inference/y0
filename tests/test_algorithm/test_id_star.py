@@ -24,7 +24,7 @@ from y0.algorithm.identify.id_star import (  # rule_3_applies,
     violates_axiom_of_effectiveness,
 )
 from y0.algorithm.identify.idc_star import idc_star, rule_2_of_do_calculus_applies
-from y0.dsl import D, P, Sum, W, X, Y, Z, Zero
+from y0.dsl import D, One, P, Sum, W, X, Y, Z, Zero
 from y0.examples import (
     figure_9a,
     figure_9c,
@@ -59,7 +59,7 @@ class TestIDCStar(cases.GraphTestCase):
         self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y @ -x}, X @ -x))
         self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y}, X @ -x))
         self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y, Y @ -x}, X @ -x))
-        self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, X @ -x))
+        self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, X @ (-x, -z)))
         self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, Z))
         self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, X))
 
@@ -473,7 +473,7 @@ class TestIDStar(cases.GraphTestCase):
         input_graph3 = tikka_figure_2.graph
         input_outcome = {Y @ -x: -y}
         input_conditional = {Z @ -x: -z, X: +x}
-        expected3 = Sum[X, Z](P(Y @ (-x, -z), Z @ -x, X))
+        expected3 = Sum[X, Z @ -x](P(Y @ (-x, -z), Z @ -x, X))
         self.assert_expr_equal(expected3, idc_star(input_graph3, input_outcome, input_conditional))
 
         P_numerator = Sum[W](P[-z, -w](-y, +x) * P[-x](-w))
