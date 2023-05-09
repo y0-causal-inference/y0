@@ -2,9 +2,7 @@
 
 """Implementation of the IDC* algorithm."""
 
-from typing import Set
-
-from .cg import make_counterfactual_graph
+from .cg import make_counterfactual_graph, is_not_self_intervened
 from .id_star import id_star
 from .utils import Unidentifiable
 from ..conditional_independencies import are_d_separated
@@ -37,7 +35,7 @@ def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0
             new_outcomes = {
                 outcome.intervene(condition): value for outcome, value in outcomes.items()
             }
-            new_conditions = conditions.pop(condition)
+            new_conditions = {k: v for k, v in conditions.items()  if k != condition}
             return idc_star(graph, new_outcomes, new_conditions, leonardo + 1)
     P_prime = id_star(graph, new_events)
     return P_prime.conditional(conditions)
@@ -63,7 +61,8 @@ def rule_2_of_do_calculus_applies(
         - \{Z\})_{G_{\bar{\mathbf{X}}\ubar{Z}}} \\
         \text{then } P(\mathbf{Y}|do(\mathbf{X}),\mathbf{Z}) = P(\mathbf Y|do(\mathbf X), do(Z), \mathbf{Z} - \{Z\})
     """
+    blocked_nodes = {n for n in graph.nodes() if not is_not_self_intervened(n)}
     return all(
-        are_d_separated(graph.remove_out_edges(condition), outcome, condition)
+        are_d_separated(graph.remove_out_edges(condition), outcome, condition, conditions=blocked_nodes)
         for outcome in outcomes
     )
