@@ -62,7 +62,7 @@ class TestIDCStar(cases.GraphTestCase):
         self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, X @ (-x, -z)))
         self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, Z))
         self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, X))
-
+        self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y @ -x}, Z @ -x))
 
 class TestIDStar(cases.GraphTestCase):
     """Tests for the ``ID*`` algorithm."""
