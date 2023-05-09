@@ -4,9 +4,11 @@
 
 from .id_star import id_star
 from ..conditional_independencies import are_d_separated
-from ...dsl import Expression, Variable
-
-
+from ...dsl import Expression, Variable, Event, Zero
+from ...graph import NxMixedGraph
+from typing import Set
+from .utils import Unidentifiable
+from .cg import make_counterfactual_graph
 
 def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0) -> Expression:
     """Run the IDC* algorithm.
@@ -18,15 +20,18 @@ def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0
     :returns: An expression created by the :func:`idc_star` algorithm after simplifying the original query
     """
     # Run ID* algorithm
-    if id_star(graph, conditions) == 0:
-        raise UndefinedError("The ID* algorithm returned 0, so IDC* cannot be applied.")
-
+    try:
+        if isinstance(id_star(graph, conditions), Zero):
+            raise UndefinedError("The ID* algorithm returned 0, so IDC* cannot be applied.")
+    except Unidentifiable:
+        pass
+    
     new_graph, new_events = make_counterfactual_graph(graph, outcomes | conditions)
 
     if new_events is None:
-        return 0
+        return Zero()
     for condition in conditions:
-        if rule_2_of_do_calculus_applies(new_graph.remove_outgoing(condition), outcomes, condition):
+        if rule_2_of_do_calculus_applies(new_graph, outcomes, condition):
             new_outcomes = {outcome.intervene(condition): value
                             for outcome, value in outcomes.items()}
             new_conditions = conditions.pop(condition)
@@ -54,5 +59,4 @@ def rule_2_of_do_calculus_applies(graph: NxMixedGraph, outcomes: Set[Variable], 
         - \{Z\})_{G_{\bar{\mathbf{X}}\ubar{Z}}} \\
         \text{then } P(\mathbf{Y}|do(\mathbf{X}),\mathbf{Z}) = P(\mathbf Y|do(\mathbf X), do(Z), \mathbf{Z} - \{Z\})
     """
-    return all(are_d_separated(graph, outcome, condition) for outcome in outcomes)
-
+    return all(are_d_separated(graph.remove_out_edges(condition), outcome, condition) for outcome in outcomes)

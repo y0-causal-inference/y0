@@ -23,13 +23,43 @@ from y0.algorithm.identify.id_star import (  # rule_3_applies,
     sub,
     violates_axiom_of_effectiveness,
 )
+from y0.algorithm.identify.idc_star import idc_star, rule_2_of_do_calculus_applies
 from y0.dsl import D, W, X, Y, Z, P, Sum
-from y0.examples import figure_9a, figure_9c, figure_9d, tikka_figure_2, tikka_figure_5
+from y0.examples import figure_9a, figure_9c, figure_9d, tikka_figure_2, tikka_figure_5, tikka_figure_6a, tikka_figure_6b
 from y0.graph import NxMixedGraph
 
 d, w, x, y, z = -D, -W, -X, -Y, -Z
 
 
+class TestIDCStar(cases.GraphTestCase):
+    """Tests for the  ``IDC*`` algorithm."""
+    def test_rule_2_of_do_calculus_applies(self):
+        """Test that rule 2 of do calculus applies."""
+        input_graph1 = NxMixedGraph.from_edges(directed=[(X, Y), (Z, X), (Z, Y)])
+        outcomes = {Y}
+        condition = X
+        self.assertFalse(rule_2_of_do_calculus_applies(input_graph1, outcomes, condition))
+        input_graph2 = NxMixedGraph.from_edges(directed=[(X, Y)])
+        self.assertTrue(rule_2_of_do_calculus_applies(input_graph2, outcomes, condition))
+        self.assertTrue(rule_2_of_do_calculus_applies(input_graph1, outcomes, Z))
+        self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_2.graph, outcomes, condition))
+        self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_5.graph, {Y @ -x}, D))
+        self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y}, Z))
+        self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y}, X))
+        self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y @ -x}, X))
+        self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y @ -x}, X @ -x))
+        self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y}, X @ -x))
+        self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y, Y @ -x}, X @ -x))
+        self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, X @ (-x))
+        self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, Z))
+        self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, X))
+      
+        
+                        
+        
+                         
+
+        
 class TestIDStar(cases.GraphTestCase):
     """Tests for the ``ID*`` algorithm."""
 
@@ -41,7 +71,7 @@ class TestIDStar(cases.GraphTestCase):
     def test_id_star_line_2(self):
         """Check to see if the counterfactual event violates the Axiom of Effectiveness."""
         # Examples all from figure_9a.graph
-        self.assertTrue(violates_axiom_of_effectiveness({X @ x: ~x}))
+        self.assertTrue(violates_axiom_of_effectiveness({X @ -x: +x}))
         self.assertTrue(violates_axiom_of_effectiveness({X @ ~x: x}))
         self.assertTrue(violates_axiom_of_effectiveness({X @ (y, z, x): ~x}))
         self.assertTrue(violates_axiom_of_effectiveness({X @ (x, z): x, Y @ (x, -y): +y}))
@@ -53,6 +83,7 @@ class TestIDStar(cases.GraphTestCase):
         self.assertFalse(violates_axiom_of_effectiveness({X @ x: x}))
         self.assertFalse(violates_axiom_of_effectiveness({X @ ~x: ~x}))
         self.assertFalse(violates_axiom_of_effectiveness({X @ x: x, Y @ x: y}))
+        self.assertFalse(violates_axiom_of_effectiveness({Z @ -x: -z, X: +x}))
 
     def test_id_star_line_3(self):
         """Check to see if the counterfactual event is tautological."""
@@ -361,8 +392,7 @@ class TestIDStar(cases.GraphTestCase):
     #        expected_counterfactual_map4 = {
     #            (Y @ (-x, -z, -w, -d), -y): {Y @ (-w, -z): -y},
     #            (X @ (-z, -w, -d), +x): {X @ (-w, -z): +x},
-    #        }
-    #
+    #        }    #
     #        input_district_expected_counterfactual_map = {
     #            frozenset({Z}): expected_counterfactual_map1,
     #            frozenset({W @ -x}): expected_counterfactual_map2,
@@ -431,9 +461,9 @@ class TestIDStar(cases.GraphTestCase):
     def test_idc_star(self):
         """Test that the IDC* algorithm returns the correct estimand."""
         input_graph3 = tikka_figure_2.graph
-        input_outcome = {Y @ -x, -y}
+        input_outcome = {Y @ -x: -y}
         input_conditional = {Z @ -x: -z, X: +x}
-        expected3 = P[X, Z](Y)
+        expected3 = Sum[X, Z](P(Y @ (-x, -z), Z @ -x, X))
         self.assert_expr_equal(expected3, idc_star(input_graph3, input_outcome, input_conditional))
 
         P_numerator = Sum[W](P[-z, -w](-y, +x) * P[-x](-w))
