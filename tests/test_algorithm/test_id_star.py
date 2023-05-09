@@ -24,8 +24,16 @@ from y0.algorithm.identify.id_star import (  # rule_3_applies,
     violates_axiom_of_effectiveness,
 )
 from y0.algorithm.identify.idc_star import idc_star, rule_2_of_do_calculus_applies
-from y0.dsl import D, W, X, Y, Z, P, Sum, Zero
-from y0.examples import figure_9a, figure_9c, figure_9d, tikka_figure_2, tikka_figure_5, tikka_figure_6a, tikka_figure_6b
+from y0.dsl import D, P, Sum, W, X, Y, Z, Zero
+from y0.examples import (
+    figure_9a,
+    figure_9c,
+    figure_9d,
+    tikka_figure_2,
+    tikka_figure_5,
+    tikka_figure_6a,
+    tikka_figure_6b,
+)
 from y0.graph import NxMixedGraph
 
 d, w, x, y, z = -D, -W, -X, -Y, -Z
@@ -33,6 +41,7 @@ d, w, x, y, z = -D, -W, -X, -Y, -Z
 
 class TestIDCStar(cases.GraphTestCase):
     """Tests for the  ``IDC*`` algorithm."""
+
     def test_rule_2_of_do_calculus_applies(self):
         """Test that rule 2 of do calculus applies."""
         input_graph1 = NxMixedGraph.from_edges(directed=[(X, Y), (Z, X), (Z, Y)])
@@ -50,16 +59,11 @@ class TestIDCStar(cases.GraphTestCase):
         self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y @ -x}, X @ -x))
         self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y}, X @ -x))
         self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6a.graph, {Y, Y @ -x}, X @ -x))
-        self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, X @ (-x))
+        self.assertTrue(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, X @ -x))
         self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, Z))
         self.assertFalse(rule_2_of_do_calculus_applies(tikka_figure_6b.graph, {Y}, X))
-      
-        
-                        
-        
-                         
 
-        
+
 class TestIDStar(cases.GraphTestCase):
     """Tests for the ``ID*`` algorithm."""
 
@@ -86,7 +90,6 @@ class TestIDStar(cases.GraphTestCase):
         self.assertFalse(violates_axiom_of_effectiveness({X @ x: x, Y @ x: y}))
         self.assertFalse(violates_axiom_of_effectiveness({Z @ -x: -z, X: +x}))
         self.assertEqual(Zero(), id_star(..., {X @ x: ~x}))
-
 
     def test_id_star_line_3(self):
         """Check to see if the counterfactual event is tautological."""

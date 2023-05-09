@@ -11,11 +11,11 @@ from ..dsl import (
     Expression,
     Fraction,
     One,
-    Zero,
     Probability,
     Product,
     Sum,
     Variable,
+    Zero,
     ensure_ordering,
 )
 
@@ -157,12 +157,10 @@ class Canonicalizer:
                 self._nonatomic_key(expression.denominator),
             )
         elif isinstance(expression, Zero):
-            return (
-                4,
-                Zero()
-                )
+            return (4, Zero())
         else:
             raise TypeError
+
 
 def _flatten_product(product: Product) -> Iterable[Expression]:
     for expression in product.expressions:

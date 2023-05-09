@@ -497,18 +497,24 @@ tikka_figure_6a = Example(
     reference="Tikka, S (2022) Identifiying Counterfactual Queries with the R package cfid",
     graph=NxMixedGraph.from_edges(
         directed=[(X, Z), (Z, Y), (X, Y), (X @ -x, Z @ -x), (Z @ -x, Y @ -x), (X @ -x, Y @ -x)],
-        undirected=[(X, Z), (X, Z @ -x), (Z, Z @ -x), (Y, Y @ -x)]
-        )
-    )
+        undirected=[(X, Z), (X, Z @ -x), (Z, Z @ -x), (Y, Y @ -x)],
+    ),
+)
 
 tikka_figure_6b = Example(
     name=r"Figure 6b: Parallel worlds graph for :math:`y_{x,z}\wedge x'` (the counterfactual graph)",
     reference="Tikka, S (2022) Identifiying Counterfactual Queries with the R package cfid",
     graph=NxMixedGraph.from_edges(
-        directed=[(X, Z), (Z, Y), (X, Y), (Z @ (-x, -z), Y @ (-x, -z)), (X @ (-x,-z), Y @ (-x,-z))],
-        undirected=[(X, Z), (Y,  Y @ (-x, -z))]
-        )
-    )
+        directed=[
+            (X, Z),
+            (Z, Y),
+            (X, Y),
+            (Z @ (-x, -z), Y @ (-x, -z)),
+            (X @ (-x, -z), Y @ (-x, -z)),
+        ],
+        undirected=[(X, Z), (Y, Y @ (-x, -z))],
+    ),
+)
 
 figure_9d = Example(
     name="Counterfactual graph resulting from application of make_counterfactual_graph() with"
@@ -1141,13 +1147,11 @@ id_sir_example = Example(
     reference="ASKEM",
     graph=NxMixedGraph.from_edges(
         directed=[
-                  ("Infected", "Hospitalized"),
-                  ("Hospitalized", "Died"),
+            ("Infected", "Hospitalized"),
+            ("Hospitalized", "Died"),
         ],
-        undirected=[
-            ("Infected", "Died")]
-
-    )
+        undirected=[("Infected", "Died")],
+    ),
 )
 
 nonid_sir_example = Example(
@@ -1155,10 +1159,10 @@ nonid_sir_example = Example(
     reference="ASKEM",
     graph=NxMixedGraph.from_edges(
         directed=[
-                  ("Infected", "Died"),
+            ("Infected", "Died"),
         ],
-        undirected=[("Infected", "Died")]
-    )
+        undirected=[("Infected", "Died")],
+    ),
 )
 
 igf_example = Example(

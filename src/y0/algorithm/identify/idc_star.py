@@ -2,13 +2,15 @@
 
 """Implementation of the IDC* algorithm."""
 
-from .id_star import id_star
-from ..conditional_independencies import are_d_separated
-from ...dsl import Expression, Variable, Event, Zero
-from ...graph import NxMixedGraph
 from typing import Set
-from .utils import Unidentifiable
+
 from .cg import make_counterfactual_graph
+from .id_star import id_star
+from .utils import Unidentifiable
+from ..conditional_independencies import are_d_separated
+from ...dsl import Event, Expression, Variable, Zero
+from ...graph import NxMixedGraph
+
 
 def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0) -> Expression:
     """Run the IDC* algorithm.
@@ -25,15 +27,16 @@ def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0
             raise UndefinedError("The ID* algorithm returned 0, so IDC* cannot be applied.")
     except Unidentifiable:
         pass
-    
+
     new_graph, new_events = make_counterfactual_graph(graph, outcomes | conditions)
 
     if new_events is None:
         return Zero()
     for condition in conditions:
         if rule_2_of_do_calculus_applies(new_graph, outcomes, condition):
-            new_outcomes = {outcome.intervene(condition): value
-                            for outcome, value in outcomes.items()}
+            new_outcomes = {
+                outcome.intervene(condition): value for outcome, value in outcomes.items()
+            }
             new_conditions = conditions.pop(condition)
             return idc_star(graph, new_outcomes, new_conditions, leonardo + 1)
     P_prime = id_star(graph, new_events)
@@ -60,5 +63,7 @@ def rule_2_of_do_calculus_applies(
         - \{Z\})_{G_{\bar{\mathbf{X}}\ubar{Z}}} \\
         \text{then } P(\mathbf{Y}|do(\mathbf{X}),\mathbf{Z}) = P(\mathbf Y|do(\mathbf X), do(Z), \mathbf{Z} - \{Z\})
     """
-    return all(are_d_separated(graph.remove_out_edges(condition), outcome, condition) for outcome in outcomes)
-
+    return all(
+        are_d_separated(graph.remove_out_edges(condition), outcome, condition)
+        for outcome in outcomes
+    )
