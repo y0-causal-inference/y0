@@ -15,6 +15,7 @@ from ..dsl import (
     Product,
     Sum,
     Variable,
+    Zero,
     ensure_ordering,
 )
 
@@ -109,25 +110,33 @@ class Canonicalizer:
             if 1 == len(expression.expressions):  # flatten unnecessary product
                 return self.canonicalize(expression.expressions[0])
 
+            # If there's an explicit zero, then return zero
+            if Zero() in expression.expressions:
+                return Zero()
             probabilities = []
             other = []
             for subexpr in _flatten_product(expression):
                 subexpr = self.canonicalize(subexpr)
                 if isinstance(subexpr, Probability):
                     probabilities.append(subexpr)
+                elif isinstance(subexpr, One):
+                    continue
                 else:
                     other.append(subexpr)
-            probabilities = sorted(probabilities, key=_sort_probability_key)
+            if not probabilities and not other:
+                return One()
 
+            probabilities = sorted(probabilities, key=_sort_probability_key)
             # If other is empty, this is also atomic
             other = sorted(other, key=self._nonatomic_key)
             return Product((*probabilities, *other))
         elif isinstance(expression, Fraction):
-            return Fraction(
-                numerator=self.canonicalize(expression.numerator),
-                denominator=self.canonicalize(expression.denominator),
-            )
-        elif isinstance(expression, One):
+            numerator = self.canonicalize(expression.numerator)
+            denominator = self.canonicalize(expression.denominator)
+            if isinstance(denominator, One):
+                return numerator
+            return Fraction(numerator=numerator, denominator=denominator)
+        elif isinstance(expression, (One, Zero)):
             return expression
         else:
             raise TypeError
@@ -153,6 +162,8 @@ class Canonicalizer:
                 self._nonatomic_key(expression.numerator),
                 self._nonatomic_key(expression.denominator),
             )
+        elif isinstance(expression, (One, Zero)):
+            return 4, expression.to_text()
         else:
             raise TypeError
 

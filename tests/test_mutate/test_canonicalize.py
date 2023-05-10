@@ -6,7 +6,7 @@ import itertools as itt
 import unittest
 from typing import Sequence
 
-from y0.dsl import A, B, C, D, Expression, One, P, Product, R, Sum, Variable, W, X, Y, Z
+from y0.dsl import A, B, C, D, Expression, One, P, Product, R, Sum, Variable, W, X, Y, Z, Zero
 from y0.mutate import canonical_expr_equal, canonicalize
 
 
@@ -32,6 +32,7 @@ class TestCanonicalize(unittest.TestCase):
         """Test canonicalization of atomic expressions."""
         for expected, expression, ordering in [
             (One(), One(), []),
+            (Zero(), Zero(), []),
             (P(A), P(A), [A]),
             (P(A | B), P(A | B), [A, B]),
             (P(A | (B, C)), P(A | (B, C)), [A, B, C]),
@@ -55,6 +56,13 @@ class TestCanonicalize(unittest.TestCase):
 
     def test_derived_atomic(self):
         """Test canonicalizing."""
+        # self.assert_canonicalize(One(), Sum(One(), ()), ())
+        self.assert_canonicalize(One(), Product((One(),)), ())
+        self.assert_canonicalize(One(), Product((One(), One())), ())
+        self.assert_canonicalize(Zero(), Sum(Zero(), ()), ())
+        self.assert_canonicalize(Zero(), Product((Zero(),)), ())
+        self.assert_canonicalize(Zero(), Product((Zero(), Zero())), ())
+
         # Sum with no range
         self.assert_canonicalize(P(A), Sum(P(A)), [A])
 
