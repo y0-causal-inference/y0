@@ -107,7 +107,6 @@ def disorient(graph: NxMixedGraph) -> nx.Graph:
     """Convert an :mod:`ananke` mixed directed/undirected into a undirected (networkx) graph.
 
     :param graph: An ananke graph
-    :type graph: ananke.graphs.SG
     :returns: A disoriented graph
     """
     rv = nx.Graph()
@@ -123,7 +122,6 @@ def get_moral_links(graph: NxMixedGraph) -> List[Tuple[Variable, Variable]]:
     May generate links that already exist as we assume we are not working on a multi-graph.
 
     :param graph: Graph to process
-    :type graph: ananke.graphs.SG
     :return: An collection of edges to add.
     """
     parents = [graph.directed.predecessors(node) for node in graph.nodes()]
