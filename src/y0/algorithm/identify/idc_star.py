@@ -56,7 +56,9 @@ def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0
                 f"\t[{leonardo}]: line 4 IDC* algorithm: rule 2 of do calculus applies {outcomes} is D-separated from {condition} in G'_({condition}_bar)"
             )
             new_outcomes = {
-                outcome.intervene(condition) if condition in new_graph.ancestors_inclusive(outcome) else outcome: value
+                outcome.intervene(condition)
+                if condition in new_graph.ancestors_inclusive(outcome)
+                else outcome: value
                 for outcome, value in outcomes.items()
             }
             new_conditions = {k: v for k, v in conditions.items() if k != condition}
@@ -71,7 +73,7 @@ def idc_star(graph: NxMixedGraph, outcomes: Event, conditions: Event, leonardo=0
     print(
         f"[{leonardo}]: line 5 IDC* algorithm: Call ID* algorithm on new events {new_events} and old graph:\n\t nodes: {graph.nodes()}\n\t directed: {graph.directed.edges()}\n\t undirected: {graph.undirected.edges()}"
     )
-    
+
     P_prime = id_star(graph, new_events)
     if len(conditions) == 0:
         return P_prime
