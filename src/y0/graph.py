@@ -210,7 +210,8 @@ class NxMixedGraph:
         """
         import matplotlib.pyplot as plt
 
-        layout = nx.nx_pydot.graphviz_layout(self.joint(), prog=prog)
+        #layout = nx.nx_pydot.graphviz_layout(self.joint(), prog=prog)
+        layout = nx.nx_agraph.graphviz_layout(self.joint(), prog=prog)
         u_proxy = nx.DiGraph(self.undirected.edges)
         labels = None if not latex else {node: _get_latex(node) for node in self.directed}
 
