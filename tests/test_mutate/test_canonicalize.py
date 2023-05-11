@@ -26,6 +26,7 @@ from y0.dsl import (
     Zero,
 )
 from y0.mutate import canonical_expr_equal, canonicalize
+from y0.mutate.canonicalize_expr import Canonicalizer
 
 
 class TestCanonicalize(unittest.TestCase):
@@ -45,6 +46,16 @@ class TestCanonicalize(unittest.TestCase):
                 actual,
                 msg=f"\nExpected: {str(expression)}\nActual:   {str(actual)}",
             )
+
+    def test_invalid_ordering(self):
+        """Test raising a value error on duplicates in ordering."""
+        with self.assertRaises(ValueError):
+            Canonicalizer([A, A, B])
+
+    def test_errors(self):
+        """Test errors on types."""
+        with self.assertRaises(TypeError):
+            canonicalize(5, [A, B])
 
     def test_atomic(self):
         """Test canonicalization of atomic expressions."""
