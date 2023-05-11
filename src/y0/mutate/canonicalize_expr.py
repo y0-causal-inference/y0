@@ -116,19 +116,32 @@ class Canonicalizer:
                 subexpr = self.canonicalize(subexpr)
                 if isinstance(subexpr, Probability):
                     probabilities.append(subexpr)
+                elif isinstance(subexpr, One):
+                    continue
+                elif isinstance(subexpr, Zero):
+                    return Zero()  # If there's an explicit zero, then return zero
                 else:
                     other.append(subexpr)
-            probabilities = sorted(probabilities, key=_sort_probability_key)
+            if not probabilities and not other:
+                return One()
 
+            probabilities = sorted(probabilities, key=_sort_probability_key)
             # If other is empty, this is also atomic
             other = sorted(other, key=self._nonatomic_key)
-            return Product((*probabilities, *other))
+            expressions = (*probabilities, *other)
+            if len(expressions) == 1:
+                return expressions[0]
+            return Product(expressions)
         elif isinstance(expression, Fraction):
-            return Fraction(
-                numerator=self.canonicalize(expression.numerator),
-                denominator=self.canonicalize(expression.denominator),
-            )
-        elif isinstance(expression, One):
+            numerator = self.canonicalize(expression.numerator)
+            # TODO check if there's a zero in numerator, then return zero if so
+            denominator = self.canonicalize(expression.denominator)
+            if isinstance(denominator, One):
+                return numerator
+            if numerator == denominator:
+                return One()
+            return numerator / denominator  # TODO
+        elif isinstance(expression, (One, Zero)):
             return expression
         elif isinstance(expression, Zero):
             return expression
@@ -156,8 +169,9 @@ class Canonicalizer:
                 self._nonatomic_key(expression.numerator),
                 self._nonatomic_key(expression.denominator),
             )
-        elif isinstance(expression, Zero):
-            return (4, Zero())
+        elif isinstance(expression, (One, Zero)):
+            return 4, expression.to_text()
+            # TODO find an example where this happens
         else:
             raise TypeError
 
