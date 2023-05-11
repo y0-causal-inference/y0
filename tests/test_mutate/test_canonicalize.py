@@ -6,7 +6,25 @@ import itertools as itt
 import unittest
 from typing import Sequence
 
-from y0.dsl import A, B, C, D, Expression, One, P, Product, R, Sum, Variable, W, X, Y, Z, Zero
+from y0.dsl import (
+    A,
+    B,
+    C,
+    D,
+    Expression,
+    Fraction,
+    One,
+    P,
+    Product,
+    R,
+    Sum,
+    Variable,
+    W,
+    X,
+    Y,
+    Z,
+    Zero,
+)
 from y0.mutate import canonical_expr_equal, canonicalize
 
 
@@ -61,7 +79,10 @@ class TestCanonicalize(unittest.TestCase):
         self.assert_canonicalize(One(), Product((One(), One())), ())
         self.assert_canonicalize(Zero(), Sum(Zero(), ()), ())
         self.assert_canonicalize(Zero(), Product((Zero(),)), ())
+        self.assert_canonicalize(Zero(), Product((P(A), Product((P(B), Zero())))), [A, B])
         self.assert_canonicalize(Zero(), Product((Zero(), Zero())), ())
+        self.assert_canonicalize(P(A), Product((One(), P(A))), [A])
+        self.assert_canonicalize(Zero(), Product((Zero(), One(), P(A))), [A])
 
         # Sum with no range
         self.assert_canonicalize(P(A), Sum(P(A)), [A])
@@ -106,6 +127,16 @@ class TestCanonicalize(unittest.TestCase):
         ):
             expression = (a * b * c) / (x * y * z)
             self.assert_canonicalize(expected, expression, [A, B, C, X, Y, Z])
+
+        # Compound fractions
+        expr = Fraction(
+            numerator=Fraction(numerator=P(A), denominator=P(B)),
+            denominator=Fraction(numerator=P(C), denominator=P(D)),
+        )
+        self.assert_canonicalize(P(A) * P(D) / P(B) / P(C), expr, [A, B, C, D])
+
+        self.assert_canonicalize(P(A), Fraction(P(A), One()), [A])
+        self.assert_canonicalize(P(A), Fraction(numerator=P(A), denominator=P(B) / P(B)), [A, B])
 
     def test_mixed(self):
         """Test mixed expressions."""

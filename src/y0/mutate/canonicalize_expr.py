@@ -110,9 +110,6 @@ class Canonicalizer:
             if 1 == len(expression.expressions):  # flatten unnecessary product
                 return self.canonicalize(expression.expressions[0])
 
-            # If there's an explicit zero, then return zero
-            if Zero() in expression.expressions:
-                return Zero()
             probabilities = []
             other = []
             for subexpr in _flatten_product(expression):
@@ -121,6 +118,8 @@ class Canonicalizer:
                     probabilities.append(subexpr)
                 elif isinstance(subexpr, One):
                     continue
+                elif isinstance(subexpr, Zero):
+                    return Zero()  # If there's an explicit zero, then return zero
                 else:
                     other.append(subexpr)
             if not probabilities and not other:
@@ -129,13 +128,19 @@ class Canonicalizer:
             probabilities = sorted(probabilities, key=_sort_probability_key)
             # If other is empty, this is also atomic
             other = sorted(other, key=self._nonatomic_key)
-            return Product((*probabilities, *other))
+            expressions = (*probabilities, *other)
+            if len(expressions) == 1:
+                return expressions[0]
+            return Product(expressions)
         elif isinstance(expression, Fraction):
             numerator = self.canonicalize(expression.numerator)
+            # TODO check if there's a zero in numerator, then return zero if so
             denominator = self.canonicalize(expression.denominator)
             if isinstance(denominator, One):
                 return numerator
-            return Fraction(numerator=numerator, denominator=denominator)
+            if numerator == denominator:
+                return One()
+            return numerator / denominator  # TODO
         elif isinstance(expression, (One, Zero)):
             return expression
         else:
@@ -164,6 +169,7 @@ class Canonicalizer:
             )
         elif isinstance(expression, (One, Zero)):
             return 4, expression.to_text()
+            # TODO find an example where this happens
         else:
             raise TypeError
 
