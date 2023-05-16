@@ -459,7 +459,10 @@ class CounterfactualVariable(Variable):
 
 @dataclass(frozen=True)
 class Distribution(Element):
-    """A general distribution over several child variables, conditioned by several parents."""
+    """A general distribution over several child variables, conditioned by several parents.
+
+    P(X | Y) means that X is a child and Y is a parent.
+    """
 
     children: Tuple[Variable, ...]
     parents: Tuple[Variable, ...] = field(default_factory=tuple)
@@ -633,17 +636,23 @@ class Expression(Element, ABC):
         else:
             return Fraction(self, expression)
 
-    def conditional(self, ranges: VariableHint) -> Fraction:
+    def conditional(self, ranges: VariableHint) -> Expression:
         """Return this expression, conditioned by the given variables.
 
         :param ranges: A variable or list of variables over which to marginalize this expression
         :returns: A fraction in which the denominator is represents the sum over the given ranges
 
         >>> from y0.dsl import P, A, B
-        >>> assert P(A, B).conditional(A) == P(A, B) / Sum[A](P(A, B))
-        >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[A, B](P(A, B, C))
+        >>> assert P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
+        >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
         """
-        return Fraction(self, self.marginalize(ranges))
+        ranges = _upgrade_ordering(ranges)
+        ranges_complement = set(self._iter_variables()) - set(ranges)
+        return self.normalize_marginalize(ranges_complement)
+
+    def normalize_marginalize(self, ranges: VariableHint) -> Expression:
+        """Return this expression, normalized by this expression marginalized by the given variables."""
+        return self / self.marginalize(ranges)
 
     def marginalize(self, ranges: VariableHint) -> Sum:
         """Return this expression, marginalizing out the given variables.
