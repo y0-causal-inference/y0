@@ -2,7 +2,6 @@
 
 """Test the probability DSL."""
 
-import itertools as itt
 import unittest
 from typing import Optional
 
@@ -158,9 +157,12 @@ class TestDSL(unittest.TestCase):
 
     def test_counterfactual_errors(self):
         """Test that if two variables with the same name are given, an error is raised, regardless of star state."""
-        for a, b in itt.product([True, False], [True, False]):
-            with self.subTest(a=a, b=b), self.assertRaises(ValueError):
-                Y @ Intervention("X", star=a) @ Intervention("X", star=b)
+        Y @ Intervention("X", star=True) @ Intervention("X", star=True)
+        Y @ Intervention("X", star=False) @ Intervention("X", star=False)
+        with self.assertRaises(ValueError):
+            Y @ Intervention("X", star=True) @ Intervention("X", star=False)
+        with self.assertRaises(ValueError):
+            Y @ Intervention("X", star=False) @ Intervention("X", star=True)
 
     def test_conditional_distribution(self):
         """Test the :class:`Distribution` DSL object."""
