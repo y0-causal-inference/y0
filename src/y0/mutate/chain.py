@@ -4,6 +4,7 @@
 
 from ..dsl import (
     Distribution,
+    Expression,
     Fraction,
     OrderingHint,
     P,
@@ -90,7 +91,7 @@ def fraction_expand(p: Probability) -> Fraction:
     return Fraction(p.uncondition(), P(p.parents))
 
 
-def bayes_expand(p: Probability) -> Fraction:
+def bayes_expand(p: Probability) -> Expression:
     r"""Expand a probability distribution using Bayes' theorem.
 
     :param p: The given probability expression, with arbitrary number of children and parents
@@ -102,4 +103,4 @@ def bayes_expand(p: Probability) -> Fraction:
 
     .. note:: This expansion will create a different but equal expression to :func:`fraction_expand`.
     """
-    return p.uncondition().conditional(p.children)
+    return p.uncondition().normalize_marginalize(p.children)
