@@ -3,11 +3,12 @@
 """Tests for parallel world graphs and counterfactual graphs."""
 
 from tests.test_algorithm import cases
-from y0.algorithm.identify.cg import (  # has_same_parents,
+from y0.algorithm.identify.cg import (
     _get_directed_edges,
     extract_interventions,
     has_same_confounders,
     has_same_function,
+    is_not_self_intervened,
     is_pw_equivalent,
     make_counterfactual_graph,
     make_parallel_worlds_graph,
@@ -199,6 +200,12 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
             ),
         )
+
+    def test_is_not_self_intervened(self):
+        """Test that we can detect when a counterfactual variable intervenes on itself."""
+        self.assertFalse(is_not_self_intervened(Y @ (+x, -y)))
+        self.assertTrue(is_not_self_intervened(Y @ (+x, -z)))
+        self.assertFalse(is_not_self_intervened(Y @ (+x, +y)))
 
     def test_stitch_factual_and_doppleganger_neighbors(self):
         """Test that factual variables and their dopplegangers are stitched together unless it is intervened upon."""

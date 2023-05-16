@@ -410,25 +410,25 @@ class CounterfactualVariable(Variable):
         .. note:: This function can be accessed with the matmult @ operator.
         """
         _interventions = _to_interventions(_upgrade_ordering(variables))
-        self._raise_for_overlapping_interventions(_interventions)
+        interventions = {*self.interventions, *_interventions}
+        self._raise_for_overlapping_interventions(interventions)
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
-            interventions=tuple(
-                sorted((*self.interventions, *_interventions), key=attrgetter("name"))
-            ),
+            interventions=tuple(sorted(interventions, key=attrgetter("name"))),
         )
 
-    def _raise_for_overlapping_interventions(self, interventions: Iterable[Intervention]) -> None:
+    @staticmethod
+    def _raise_for_overlapping_interventions(interventions: Iterable[Intervention]) -> None:
         """Raise an error if any of the given variables are already listed in interventions in this counterfactual.
 
         :param interventions: Interventions to check for overlap
         :raises ValueError: If there are overlapping variables given.
         """
         overlaps = {
-            new
-            for old, new in itt.product(self.interventions, interventions)
-            if old.name == new.name
+            (old, new)
+            for old, new in itt.product(interventions, repeat=2)
+            if old.name == new.name and old.star != new.star
         }
         if overlaps:
             raise ValueError(f"Overlapping interventions in new interventions: {overlaps}")
