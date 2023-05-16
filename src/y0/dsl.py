@@ -661,8 +661,8 @@ class Expression(Element, ABC):
         :returns: The expression but summed over the given variables
 
         >>> from y0.dsl import P, A, B, C
-        >>> assert P(A, B).marginalize(A) == Sum[B](P(A, B))
-        >>> assert P(A, B, C).marginalize([A, B]) == Sum[C](P(A, B, C))
+        >>> assert P(A, B).marginalize(A) == Sum[A](P(A, B))
+        >>> assert P(A, B, C).marginalize([A, B]) == Sum[A, B](P(A, B, C))
         """
         return Sum(expression=self, ranges=_upgrade_ordering(ranges))
 
