@@ -15,6 +15,7 @@ __all__ = [
     "merge_pw",
     "make_counterfactual_graph",
     "make_parallel_worlds_graph",
+    "is_not_self_intervened",
 ]
 
 
