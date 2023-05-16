@@ -202,7 +202,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
 
     def test_is_not_self_intervened(self):
-        """Test that we can detect when a counterfactual variable intervenes on itself"""
+        """Test that we can detect when a counterfactual variable intervenes on itself."""
         self.assertFalse(is_not_self_intervened(Y @ (+x, -y)))
         self.assertTrue(is_not_self_intervened(Y @ (+x, -z)))
         self.assertFalse(is_not_self_intervened(Y @ (+x, +y)))
