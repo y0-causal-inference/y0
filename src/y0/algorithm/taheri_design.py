@@ -310,7 +310,7 @@ def print_results(results: List[Result], file=None) -> None:
         )
         for i, result in enumerate(results, start=1)
     ]
-    print(
+    print(  # noqa:T201
         tabulate(rows, headers=["Row", "ID?", "Node Simp.", "Edge Simp.", "N", "Latents"]),
         file=file,
     )
