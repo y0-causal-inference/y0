@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Iterable, Optional, Union
 
 import pandas as pd
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from .conditional_independencies import get_conditional_independencies
 from ..graph import NxMixedGraph

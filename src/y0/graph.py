@@ -7,26 +7,13 @@ from __future__ import annotations
 import itertools as itt
 import json
 from dataclasses import dataclass, field
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Iterable,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
 from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
-
-if TYPE_CHECKING:
-    import ananke.graphs
 
 __all__ = [
     "NxMixedGraph",
@@ -123,7 +110,7 @@ class NxMixedGraph:
         """Get the nodes in the graph."""
         return self.directed.nodes()
 
-    def to_admg(self) -> "ananke.graphs.ADMG":
+    def to_admg(self):
         """Get an ananke ADMG."""
         self.raise_on_counterfactual()
         from ananke.graphs import ADMG
@@ -137,8 +124,8 @@ class NxMixedGraph:
         )
 
     @classmethod
-    def from_admg(cls, admg: "ananke.graphs.ADMG") -> NxMixedGraph:
-        """Create from an ADMG."""
+    def from_admg(cls, admg) -> NxMixedGraph:
+        """Create from an ananke ADMG."""
         return cls.from_str_edges(
             nodes=admg.vertices,
             directed=admg.di_edges,
