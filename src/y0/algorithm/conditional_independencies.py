@@ -8,7 +8,7 @@ from itertools import chain, combinations, groupby
 from typing import Callable, Iterable, List, Optional, Sequence, Set, Tuple
 
 import networkx as nx
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from ..dsl import Variable
 from ..graph import NxMixedGraph
@@ -104,9 +104,9 @@ def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
 
 
 def disorient(graph: NxMixedGraph) -> nx.Graph:
-    """Convert an :mod:`ananke` mixed directed/undirected into a undirected (networkx) graph.
+    """Convert an ADMG into a undirected (networkx) graph.
 
-    :param graph: An ananke graph
+    :param graph: An ADMG
     :returns: A disoriented graph
     """
     rv = nx.Graph()
@@ -197,7 +197,13 @@ def d_separations(
     :yields: True d-separation judgements
     """
     vertices = set(graph.nodes())
-    for a, b in tqdm(combinations(vertices, 2), disable=not verbose, desc="d-separation check"):
+    for a, b in tqdm(
+        combinations(vertices, 2),
+        disable=not verbose,
+        desc="Checking d-separations",
+        unit="pair",
+        total=len(vertices) * (len(vertices) - 1) // 2,
+    ):
         for conditions in powerset(vertices - {a, b}, stop=max_conditions):
             judgement = are_d_separated(graph, a, b, conditions=conditions)
             if judgement.separated:

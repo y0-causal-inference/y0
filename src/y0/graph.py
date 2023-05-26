@@ -20,8 +20,6 @@ __all__ = [
     "CausalEffectGraph",
     "DEFULT_PREFIX",
     "DEFAULT_TAG",
-    "ananke_to_latent_variable_dag",
-    "latent_variable_dag_to_ananke",
     "set_latent",
 ]
 
@@ -46,9 +44,6 @@ class NxMixedGraph:
         graph = NxMixedGraph()
         graph.add_directed_edge('X', 'Y')
         graph.add_undirected_edge('X', 'Y')
-
-        # Convert to an Ananke acyclic directed mixed graph
-        admg_graph = graph.to_admg()
     """
 
     #: A directed graph
@@ -116,7 +111,7 @@ class NxMixedGraph:
         return self.directed.nodes()
 
     def to_admg(self):
-        """Get an :mod:`ananke` ADMG instance."""
+        """Get an ananke ADMG."""
         self.raise_on_counterfactual()
         from ananke.graphs import ADMG
 
@@ -130,7 +125,7 @@ class NxMixedGraph:
 
     @classmethod
     def from_admg(cls, admg) -> NxMixedGraph:
-        """Create from an ADMG."""
+        """Create from an ananke ADMG."""
         return cls.from_str_edges(
             nodes=admg.vertices,
             directed=admg.di_edges,
@@ -478,43 +473,6 @@ def _exclude_adjacent(
     graph: nx.Graph, vertices: set[Variable]
 ) -> Collection[Tuple[Variable, Variable]]:
     return [(u, v) for u, v in graph.edges() if u not in vertices and v not in vertices]
-
-
-def ananke_to_latent_variable_dag(
-    graph,
-    prefix: Optional[str] = None,
-    start: int = 0,
-    tag: Optional[str] = None,
-) -> nx.DiGraph:
-    """Convert an ADMG to a latent variable DAG.
-
-    :param graph: An ADMG
-    :type graph: ananke.graphs.ADMG
-    :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
-    :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
-    :param tag: The key for node data describing whether it is latent.
-        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
-    :return: A latent variable DAG.
-    """
-    return _latent_dag(
-        graph.di_edges,
-        graph.bi_edges,
-        prefix=prefix,
-        start=start,
-        tag=tag,
-    )
-
-
-def latent_variable_dag_to_ananke(graph: nx.DiGraph, *, tag: Optional[str] = None):
-    """Convert a latent variable DAG to an ADMG.
-
-    :param graph: A latent variable directed acyclic graph (LV-DAG)
-    :param tag: The key for node data describing whether it is latent.
-        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
-    :return: An ADMG
-    :rtype: ananke.graphs.ADMG
-    """
-    return NxMixedGraph.from_latent_variable_dag(graph, tag=tag).to_admg()
 
 
 def _latent_dag(
