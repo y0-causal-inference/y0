@@ -7,7 +7,17 @@ from __future__ import annotations
 import itertools as itt
 import json
 from dataclasses import dataclass, field
-from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Collection,
+    Iterable,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 import networkx as nx
 from networkx.classes.reportviews import NodeView
@@ -15,13 +25,14 @@ from networkx.utils import open_file
 
 from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
 
+if TYPE_CHECKING:
+    import ananke.graphs
+
 __all__ = [
     "NxMixedGraph",
     "CausalEffectGraph",
     "DEFULT_PREFIX",
     "DEFAULT_TAG",
-    "ananke_to_latent_variable_dag",
-    "latent_variable_dag_to_ananke",
     "set_latent",
 ]
 
@@ -46,9 +57,6 @@ class NxMixedGraph:
         graph = NxMixedGraph()
         graph.add_directed_edge('X', 'Y')
         graph.add_undirected_edge('X', 'Y')
-
-        # Convert to an Ananke acyclic directed mixed graph
-        admg_graph = graph.to_admg()
     """
 
     #: A directed graph
@@ -115,8 +123,8 @@ class NxMixedGraph:
         """Get the nodes in the graph."""
         return self.directed.nodes()
 
-    def to_admg(self):
-        """Get an :mod:`ananke` ADMG instance."""
+    def to_admg(self) -> "ananke.graphs.ADMG":
+        """Get an ananke ADMG."""
         self.raise_on_counterfactual()
         from ananke.graphs import ADMG
 
@@ -129,7 +137,7 @@ class NxMixedGraph:
         )
 
     @classmethod
-    def from_admg(cls, admg) -> NxMixedGraph:
+    def from_admg(cls, admg: "ananke.graphs.ADMG") -> NxMixedGraph:
         """Create from an ADMG."""
         return cls.from_str_edges(
             nodes=admg.vertices,
@@ -478,43 +486,6 @@ def _exclude_adjacent(
     graph: nx.Graph, vertices: set[Variable]
 ) -> Collection[Tuple[Variable, Variable]]:
     return [(u, v) for u, v in graph.edges() if u not in vertices and v not in vertices]
-
-
-def ananke_to_latent_variable_dag(
-    graph,
-    prefix: Optional[str] = None,
-    start: int = 0,
-    tag: Optional[str] = None,
-) -> nx.DiGraph:
-    """Convert an ADMG to a latent variable DAG.
-
-    :param graph: An ADMG
-    :type graph: ananke.graphs.ADMG
-    :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
-    :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
-    :param tag: The key for node data describing whether it is latent.
-        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
-    :return: A latent variable DAG.
-    """
-    return _latent_dag(
-        graph.di_edges,
-        graph.bi_edges,
-        prefix=prefix,
-        start=start,
-        tag=tag,
-    )
-
-
-def latent_variable_dag_to_ananke(graph: nx.DiGraph, *, tag: Optional[str] = None):
-    """Convert a latent variable DAG to an ADMG.
-
-    :param graph: A latent variable directed acyclic graph (LV-DAG)
-    :param tag: The key for node data describing whether it is latent.
-        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
-    :return: An ADMG
-    :rtype: ananke.graphs.ADMG
-    """
-    return NxMixedGraph.from_latent_variable_dag(graph, tag=tag).to_admg()
 
 
 def _latent_dag(

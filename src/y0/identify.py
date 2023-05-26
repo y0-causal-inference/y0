@@ -57,7 +57,7 @@ def _get_to(query: Union[Probability, Distribution]) -> Tuple[List[str], List[st
 def is_identifiable(graph: NxMixedGraph, query: Union[Probability, Distribution]) -> bool:
     """Check if the expression is identifiable.
 
-    :param graph: Either an Ananke graph or y0 NxMixedGraph that can be converted to an Ananke graph
+    :param graph: An ADMG
     :param query: A probability distribution with the following properties:
 
         1. There are no conditions

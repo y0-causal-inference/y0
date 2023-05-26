@@ -104,9 +104,9 @@ def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
 
 
 def disorient(graph: NxMixedGraph) -> nx.Graph:
-    """Convert an :mod:`ananke` mixed directed/undirected into a undirected (networkx) graph.
+    """Convert an ADMG into a undirected (networkx) graph.
 
-    :param graph: An ananke graph
+    :param graph: An ADMG
     :returns: A disoriented graph
     """
     rv = nx.Graph()
