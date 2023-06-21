@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
+from matplotlib.patches import ArrowStyle
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
@@ -211,16 +212,38 @@ class NxMixedGraph:
 
         if ax is None:
             ax = plt.gca()
-        nx.draw_networkx_nodes(self.directed, pos=layout, node_color="white", node_size=350, ax=ax)
-        nx.draw_networkx_labels(self.directed, pos=layout, ax=ax, labels=labels)
-        nx.draw_networkx_edges(self.directed, pos=layout, edge_color="b", ax=ax)
+
+        node_size = 1_500
+        nx.draw_networkx_nodes(
+            self.directed,
+            pos=layout,
+            node_color="white",
+            node_size=node_size,
+            edgecolors="black",
+            linewidths=2,
+            ax=ax,
+            margins=0.3,
+        )
+        nx.draw_networkx_labels(self.directed, pos=layout, ax=ax, labels=labels, font_size=20)
+        nx.draw_networkx_edges(
+            self.directed,
+            pos=layout,
+            edge_color="black",
+            ax=ax,
+            node_size=node_size + 500,
+            width=2,
+            arrowsize=20,
+        )
         nx.draw_networkx_edges(
             u_proxy,
             pos=layout,
+            node_size=node_size + 500,
             ax=ax,
-            connectionstyle="arc3, rad=0.2",
+            style=":",
+            width=2,
+            connectionstyle="arc3, rad=0.3",
             arrowstyle="-",
-            edge_color="r",
+            edge_color="grey",
         )
 
         if title:
@@ -552,3 +575,22 @@ def _ensure_set(vertices: Union[Variable, Iterable[Variable]]) -> set[Variable]:
     if any(isinstance(v, Intervention) for v in rv):
         raise TypeError("can not use interventions here")
     return rv
+
+
+def _layout(self, prog):
+    joint = self.joint()
+    try:
+        layout = nx.nx_agraph.pygraphviz_layout(joint, prog=prog)
+    except ImportError:
+        pass
+    else:
+        return layout
+
+    try:
+        # FIXME remove - this is deprecated
+        layout = nx.nx_pydot.graphviz_layout(joint, prog=prog)
+    except ImportError:
+        pass
+    else:
+        return layout
+    return nx.circular_layout(joint)
