@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
 
 import networkx as nx
-from matplotlib.patches import ArrowStyle
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
