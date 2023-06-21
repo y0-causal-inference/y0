@@ -195,16 +195,23 @@ class NxMixedGraph:
         return rv
 
     def draw(
-        self, ax=None, title: Optional[str] = None, prog: str = "dot", latex: bool = True
+        self, ax=None, title: Optional[str] = None, prog: Optional[str] = None, latex: bool = True
     ) -> None:
         """Render the graph using matplotlib.
 
         :param ax: Axis to draw on (if none specified, makes a new one)
         :param title: The optional title to show with the graph
-        :param prog: The pydot program to use, like dot, neato, etc.
+        :param prog: The pydot program to use, like dot, neato, osage, etc.
+            If none is given, uses osage for small graphs and dot for larger ones.
         :param latex: Parse string variables as y0 if possible to make pretty latex output
         """
         import matplotlib.pyplot as plt
+
+        if prog is None:
+            if self.directed.number_of_nodes() > 6:
+                prog = "dot"
+            else:
+                prog = "osage"
 
         layout = nx.nx_pydot.graphviz_layout(self.joint(), prog=prog)
         u_proxy = nx.DiGraph(self.undirected.edges)
@@ -213,35 +220,45 @@ class NxMixedGraph:
         if ax is None:
             ax = plt.gca()
 
+        # TODO choose sizes based on size of axis
         node_size = 1_500
+        node_size_offset = 500
+        line_widths = 2
+        margins = 0.3
+        font_size = 20
+        arrow_size = 20
+        radius = 0.3
+
         nx.draw_networkx_nodes(
             self.directed,
             pos=layout,
             node_color="white",
             node_size=node_size,
             edgecolors="black",
-            linewidths=2,
+            linewidths=line_widths,
             ax=ax,
-            margins=0.3,
+            margins=margins,
         )
-        nx.draw_networkx_labels(self.directed, pos=layout, ax=ax, labels=labels, font_size=20)
+        nx.draw_networkx_labels(
+            self.directed, pos=layout, ax=ax, labels=labels, font_size=font_size
+        )
         nx.draw_networkx_edges(
             self.directed,
             pos=layout,
             edge_color="black",
             ax=ax,
-            node_size=node_size + 500,
-            width=2,
-            arrowsize=20,
+            node_size=node_size + node_size_offset,
+            width=line_widths,
+            arrowsize=arrow_size,
         )
         nx.draw_networkx_edges(
             u_proxy,
             pos=layout,
-            node_size=node_size + 500,
+            node_size=node_size + node_size_offset,
             ax=ax,
             style=":",
-            width=2,
-            connectionstyle="arc3, rad=0.3",
+            width=line_widths,
+            connectionstyle=f"arc3, rad={radius}",
             arrowstyle="-",
             edge_color="grey",
         )
