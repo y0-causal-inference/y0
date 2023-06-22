@@ -194,16 +194,23 @@ class NxMixedGraph:
         return rv
 
     def draw(
-        self, ax=None, title: Optional[str] = None, prog: str = "dot", latex: bool = True
+        self, ax=None, title: Optional[str] = None, prog: Optional[str] = None, latex: bool = True
     ) -> None:
         """Render the graph using matplotlib.
 
         :param ax: Axis to draw on (if none specified, makes a new one)
         :param title: The optional title to show with the graph
-        :param prog: The pydot program to use, like dot, neato, etc.
+        :param prog: The pydot program to use, like dot, neato, osage, etc.
+            If none is given, uses osage for small graphs and dot for larger ones.
         :param latex: Parse string variables as y0 if possible to make pretty latex output
         """
         import matplotlib.pyplot as plt
+
+        if prog is None:
+            if self.directed.number_of_nodes() > 6:
+                prog = "dot"
+            else:
+                prog = "osage"
 
         layout = nx.nx_pydot.graphviz_layout(self.joint(), prog=prog)
         u_proxy = nx.DiGraph(self.undirected.edges)
@@ -211,16 +218,48 @@ class NxMixedGraph:
 
         if ax is None:
             ax = plt.gca()
-        nx.draw_networkx_nodes(self.directed, pos=layout, node_color="white", node_size=350, ax=ax)
-        nx.draw_networkx_labels(self.directed, pos=layout, ax=ax, labels=labels)
-        nx.draw_networkx_edges(self.directed, pos=layout, edge_color="b", ax=ax)
+
+        # TODO choose sizes based on size of axis
+        node_size = 1_500
+        node_size_offset = 500
+        line_widths = 2
+        margins = 0.3
+        font_size = 20
+        arrow_size = 20
+        radius = 0.3
+
+        nx.draw_networkx_nodes(
+            self.directed,
+            pos=layout,
+            node_color="white",
+            node_size=node_size,
+            edgecolors="black",
+            linewidths=line_widths,
+            ax=ax,
+            margins=margins,
+        )
+        nx.draw_networkx_labels(
+            self.directed, pos=layout, ax=ax, labels=labels, font_size=font_size
+        )
+        nx.draw_networkx_edges(
+            self.directed,
+            pos=layout,
+            edge_color="black",
+            ax=ax,
+            node_size=node_size + node_size_offset,
+            width=line_widths,
+            arrowsize=arrow_size,
+        )
         nx.draw_networkx_edges(
             u_proxy,
             pos=layout,
+            node_size=node_size + node_size_offset,
             ax=ax,
-            connectionstyle="arc3, rad=0.2",
+            style=":",
+            width=line_widths,
+            connectionstyle=f"arc3, rad={radius}",
             arrowstyle="-",
-            edge_color="r",
+            edge_color="grey",
         )
 
         if title:
@@ -552,3 +591,22 @@ def _ensure_set(vertices: Union[Variable, Iterable[Variable]]) -> set[Variable]:
     if any(isinstance(v, Intervention) for v in rv):
         raise TypeError("can not use interventions here")
     return rv
+
+
+def _layout(self, prog):
+    joint = self.joint()
+    try:
+        layout = nx.nx_agraph.pygraphviz_layout(joint, prog=prog)
+    except ImportError:
+        pass
+    else:
+        return layout
+
+    try:
+        # FIXME remove - this is deprecated
+        layout = nx.nx_pydot.graphviz_layout(joint, prog=prog)
+    except ImportError:
+        pass
+    else:
+        return layout
+    return nx.circular_layout(joint)

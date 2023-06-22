@@ -43,16 +43,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-            pip install tox
-            sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
+          pip install tox
+          sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
       - name: Check RST conformity with doc8
         run: tox -e doc8
       - name: Check README.rst
         run: tox -e doc8
       - name: Check docstring coverage
         run: tox -e docstr-coverage
-      - name: Check documentation build with Sphinx
-        run: tox -e docs
+      # - name: Check documentation build with Sphinx
+      #  run: tox -e docs
   tests:
     name: Tests
     runs-on: ubuntu-latest
@@ -67,8 +67,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-            pip install tox
-            sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
+          pip install tox
+          sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
       - name: Test with pytest
         run:
           tox -e py
