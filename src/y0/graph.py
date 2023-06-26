@@ -212,7 +212,7 @@ class NxMixedGraph:
             else:
                 prog = "osage"
 
-        layout = nx.nx_pydot.graphviz_layout(self.joint(), prog=prog)
+        layout = _layout(self, prog=prog)
         u_proxy = nx.DiGraph(self.undirected.edges)
         labels = None if not latex else {node: _get_latex(node) for node in self.directed}
 
@@ -472,6 +472,13 @@ class NxMixedGraph:
             ],
         )
 
+    def get_markov_pillow(self, nodes: Collection[Variable]) -> Set[Variable]:
+        """For each district, intervene on the domain of each parent not in the district."""
+        parents_of_district: Set[Variable] = set()
+        for node in nodes:
+            parents_of_district |= set(self.directed.predecessors(node))
+        return parents_of_district - set(nodes)
+
 
 def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
     """Confirm that node is not an intervention."""
@@ -601,12 +608,10 @@ def _layout(self, prog):
         pass
     else:
         return layout
-
     try:
-        # FIXME remove - this is deprecated
-        layout = nx.nx_pydot.graphviz_layout(joint, prog=prog)
+        layout = nx.nx_pydot.pydot_layout(joint, prog=prog)
     except ImportError:
         pass
     else:
         return layout
-    return nx.circular_layout(joint)
+    return nx.spring_layout(joint)
