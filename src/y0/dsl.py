@@ -207,10 +207,12 @@ class Variable(Element):
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
+        interventions = _to_interventions(_upgrade_variables(variables))
+        interventions = tuple(sorted(set(interventions), key=lambda i: (i.name, i.star)))
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
-            interventions=_to_interventions(_upgrade_ordering(variables)),
+            interventions=interventions,
         )
 
     def __matmul__(self, variables: VariableHint) -> CounterfactualVariable:
@@ -405,7 +407,12 @@ class CounterfactualVariable(Variable):
         :param variables: The variable(s) used to extend this counterfactual variable's
             current interventions. Automatically converts variables to interventions.
         :returns: A new counterfactual variable with both this counterfactual variable's interventions
-            and the given intervention(s)
+            and the given intervention(s).
+
+        .. warning::
+
+            Will raise a value error ff the value of a new intervention conflicts
+            with the value of intervention already listed in this counterfactual.
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
@@ -420,10 +427,10 @@ class CounterfactualVariable(Variable):
 
     @staticmethod
     def _raise_for_overlapping_interventions(interventions: Iterable[Intervention]) -> None:
-        """Raise an error if any of the given variables are already listed in interventions in this counterfactual.
+        """Raise an error if there are two values of the same variable in the list of interventions.
 
         :param interventions: Interventions to check for overlap
-        :raises ValueError: If there are overlapping variables given.
+        :raises ValueError: If there are overlapping variables given
         """
         overlaps = {
             (old, new)
@@ -646,8 +653,8 @@ class Expression(Element, ABC):
         >>> assert P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
         >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
         """
-        ranges = _upgrade_ordering(ranges)
-        ranges_complement = set(self._iter_variables()) - set(ranges)
+        ranges = _upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)])
+        ranges_complement = set([c.get_base() for c in self._iter_variables()]) - set(ranges)
         return self.normalize_marginalize(ranges_complement)
 
     def normalize_marginalize(self, ranges: VariableHint) -> Expression:
@@ -664,7 +671,10 @@ class Expression(Element, ABC):
         >>> assert P(A, B).marginalize(A) == Sum[A](P(A, B))
         >>> assert P(A, B, C).marginalize([A, B]) == Sum[A, B](P(A, B, C))
         """
-        return Sum(expression=self, ranges=_upgrade_ordering(ranges))
+        return Sum(
+            expression=self,
+            ranges=_upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)]),
+        )
 
 
 @dataclass(frozen=True, repr=False)
@@ -1366,7 +1376,7 @@ def _upgrade_variables(variables: VariableHint) -> Tuple[Variable, ...]:
 
 
 def _upgrade_ordering(variables: VariableHint) -> Tuple[Variable, ...]:
-    return _sorted_variables(_upgrade_variables(variables))
+    return _sorted_variables(set(_upgrade_variables(variables)))
 
 
 OrderingHint = Optional[Iterable[Union[str, Variable]]]

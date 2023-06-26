@@ -114,6 +114,15 @@ class TestIdentify(unittest.TestCase):
                 Sum.safe(expression=Sum.safe(expression=P(Y, X, Z), ranges=[X]), ranges=[Z]),
                 identify(identification["id_in"][0]),
             )
+        with self.assertRaises(ValueError):
+            line_2(
+                Identification.from_parts(
+                    outcomes={Y},
+                    treatments={X},
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)]),
+                )
+            )
 
     def test_line_3(self):
         r"""Test line 3 of the identification algorithm.
@@ -131,6 +140,15 @@ class TestIdentify(unittest.TestCase):
             self.assert_expr_equal(
                 P(Y | (X, Z)),
                 identify(identification["id_in"][0]),
+            )
+        with self.assertRaises(ValueError):
+            line_3(
+                Identification.from_parts(
+                    outcomes={Y},
+                    treatments={X},
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)]),
+                )
             )
 
     def test_line_4(self):
@@ -166,6 +184,16 @@ class TestIdentify(unittest.TestCase):
                 identify(identification["id_in"][0]),
             )
 
+        with self.assertRaises(ValueError):
+            line_4(
+                Identification.from_parts(
+                    outcomes={Y},
+                    treatments={X},
+                    estimand=P(X, Y, Z),
+                    graph=NxMixedGraph.from_edges(undirected=[(X, Y), (Y, Z)]),
+                )
+            )
+
     def test_line_5(self):
         r"""Test line 5 of the identification algorithm.
 
@@ -179,6 +207,14 @@ class TestIdentify(unittest.TestCase):
                 line_5(identification["id_in"][0])
             with self.assertRaises(Unidentifiable):
                 identify(identification["id_in"][0])
+        self.assertIsNone(
+            line_5(
+                Identification(
+                    Query.from_expression(P(X, Y, Z)),
+                    NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
+                )
+            )
+        )
 
     def test_line_6(self):
         r"""Test line 6 of the identification algorithm.
@@ -194,10 +230,8 @@ class TestIdentify(unittest.TestCase):
                 expected=id_out.estimand,
                 actual=line_6(identification["id_in"][0]),
             )
-            self.assert_expr_equal(
-                P(Y | (X, Z)),
-                line_6(identification["id_in"][0]),
-            )
+        with self.assertRaises(ValueError):
+            line_6(line_7_example.identifications[0]["id_in"][0])
 
     def test_line_7(self):
         r"""Test line 2 of the identification algorithm.

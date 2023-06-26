@@ -3,7 +3,7 @@
 """Utilities for parallel world graphs and counterfactual graphs."""
 
 from itertools import combinations
-from typing import FrozenSet, Iterable, Optional, Set, Tuple
+from typing import FrozenSet, Iterable, Optional, Set, Tuple, cast
 
 from y0.dsl import CounterfactualVariable, Event, Intervention, Variable
 from y0.graph import NxMixedGraph
@@ -33,23 +33,11 @@ class World(FrozenSet[Intervention]):
 Worlds = Set[World]
 
 
-def has_same_directed_parents(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
-    """Check if all parents of the two nodes are the same.
-
-    :param graph: An ADMG
-    :param a: A variable in the ADMG
-    :param b: Another variable in the ADMG
-    :returns:
-        True if the set of directed parents attain the same values and either there
-        exists a bidirected edge between the two nodes or there exists no bidirected
-        edges for either node.
-    """
-    return set(graph.directed.predecessors(a)) == set(graph.directed.predecessors(b))
-
-
 def has_same_confounders(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
     """Check if all confounders of the two nodes are the same."""
-    no_undirected_edges = 0 == len(graph.undirected.edges(a)) == len(graph.undirected.edges(b))
+    no_undirected_edges = (
+        0 == len(list(graph.undirected.edges(a))) == len(list(graph.undirected.edges(b)))
+    )
     return graph.undirected.has_edge(a, b) or no_undirected_edges
 
 
@@ -159,9 +147,41 @@ def is_pw_equivalent(graph: NxMixedGraph, event: Event, node1: Variable, node2: 
     """
     # Rather than all n choose 2 combinations, we can restrict ourselves to the original
     # graph variables and their counterfactual versions
-    return has_same_function(node1, node2) and parents_attain_same_values(
-        graph, event, node1, node2
+    assert (node1 in graph.nodes()) and (node2 in graph.nodes()), "Nodes must be in the graph"
+    return (
+        has_same_function(node1, node2)
+        and parents_attain_same_values(graph, event, node1, node2)
+        and nodes_have_same_domain_of_values(graph, event, node1, node2)
     )
+
+
+def nodes_have_same_domain_of_values(
+    graph: NxMixedGraph, event: Event, a: Variable, b: Variable
+) -> bool:
+    """Check if the nodes have the same domain of values."""
+    if not has_same_confounders(graph, a, b):
+        return False
+    if a.get_base() != b.get_base():
+        return False
+    if is_not_self_intervened(a) and is_not_self_intervened(b):
+        return True
+    if is_not_self_intervened(a) or is_not_self_intervened(b):
+        return False
+    if value_of_self_intervention(a) == value_of_self_intervention(b):
+        return True
+    return False
+
+
+def value_of_self_intervention(a: Variable) -> Optional[Intervention]:
+    """Get the value of the self-intervention."""
+    if not isinstance(a, CounterfactualVariable):
+        return None
+    base = a.get_base()
+    if +base in a.interventions:
+        return cast(Intervention, +base)
+    elif -base in a.interventions:
+        return cast(Intervention, -base)
+    return None
 
 
 def merge_pw(
@@ -293,7 +313,6 @@ def make_counterfactual_graph(
                     cf_graph, node, node_at_interventions
                 )
                 if is_inconsistent(new_event, preferred_node, eliminated_node):
-                    # TODO needs test case
                     return cf_graph, None
                 new_event = update_event(new_event, preferred_node, eliminated_node)
         if len(worlds) > 1:
@@ -308,16 +327,11 @@ def make_counterfactual_graph(
                         cf_graph, node_at_intervention1, node_at_intervention2
                     )
                     if is_inconsistent(new_event, node_at_intervention1, node_at_intervention2):
-                        # TODO needs test case
                         return cf_graph, None
                     new_event = update_event(new_event, preferred_node, eliminated_node)
 
     ancestors = cf_graph.ancestors_inclusive(new_event)
     rv_graph = cf_graph.subgraph(ancestors)
-    # rv_graph = rv_graph.remove_nodes_from(
-    #    node for node in rv_graph.nodes() if is_self_intervened(node)
-    # )
-    # rv_graph = remove_redundant_interventions(rv_graph)
     return rv_graph, new_event
 
 

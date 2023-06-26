@@ -70,10 +70,10 @@ class DSeparationJudgement:
         separated: bool = True,
     ) -> DSeparationJudgement:
         """Create a d-separation judgement in canonical form."""
-        left, right = sorted([left, right])
+        left, right = sorted([left, right], key=str)
         if conditions is None:
             conditions = tuple()
-        conditions = tuple(sorted(set(conditions)))
+        conditions = tuple(sorted(set(conditions), key=str))
         return cls(separated, left, right, conditions)
 
     def __bool__(self) -> bool:
@@ -85,7 +85,7 @@ class DSeparationJudgement:
         return (
             self.left < self.right
             and isinstance(self.conditions, tuple)
-            and tuple(sorted(self.conditions)) == (self.conditions)
+            and tuple(sorted(self.conditions, key=str)) == (self.conditions)
         )
 
     def cressie_read(
