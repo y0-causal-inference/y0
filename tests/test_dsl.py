@@ -26,6 +26,8 @@ from y0.dsl import (
     S,
     Sum,
     T,
+    Tr,
+    Transport,
     Variable,
     W,
     X,
@@ -551,4 +553,15 @@ class TestTransport(unittest.TestCase):
                 distribution=P[X](Y).distribution,
             ),
             PopulationProbabilityBuilderType[Pi1][X](Y),
+        )
+
+    def test_transport(self):
+        """Test the transport builder."""
+        self.assertEqual(
+            Transport(variable=X),
+            Tr["X"],
+        )
+        self.assertEqual(
+            Transport(variable=X),
+            Tr[X],
         )

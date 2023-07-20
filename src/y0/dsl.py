@@ -95,6 +95,8 @@ __all__ = [
     "PP",
     "Pi1",
     "Pi2",
+    "Tr",
+    "Transport",
 ]
 
 T_co = TypeVar("T_co", covariant=True)
@@ -142,8 +144,12 @@ class Element(ABC):
         return set(self._iter_variables())
 
 
+class Symbol(Element, ABC):
+    """A mid-level class representing symbols."""
+
+
 @dataclass(frozen=True, order=True, repr=False)
-class Variable(Element):
+class Variable(Symbol):
     """A variable, typically with a single letter."""
 
     #: The name of the variable
@@ -154,7 +160,7 @@ class Variable(Element):
     star: Optional[bool] = None
 
     def __post_init__(self):
-        if self.name in {"P", "Q"}:
+        if self.name in {"P", "Q", "Tr", "PP"}:
             raise ValueError(f"trust me, {self.name} is a bad variable name.")
 
     @classmethod
@@ -1461,6 +1467,9 @@ class PopulationProbability(Probability):
     >>> PP[Pi1](Y)
     >>> # Make a conditioned population of Y @ X
     >>> PP[Pi1][X](Y)
+
+    Related publications:
+    - `Surrogate Outcomes and Transportability <https://arxiv.org/abs/1806.07172>`_ (Tikka and Karvanen, 2018)
     """
 
     population: Population
@@ -1487,3 +1496,39 @@ class PopulationProbabilityBuilderType(ProbabilityBuilderType):
 
 PP = PopulationProbabilityBuilderType
 Pi1, Pi2 = Variable("Pi1"), Variable("Pi2")
+
+
+@dataclass(frozen=True, order=True, repr=False)
+class Transport(Symbol):
+    """An element representing a transportability node.
+
+    Related publications:
+    - `Surrogate Outcomes and Transportability <https://arxiv.org/abs/1806.07172>`_ (Tikka and Karvanen, 2018)
+    """
+
+    variable: Variable
+
+    # populations: List[Population]
+
+    def to_text(self) -> str:
+        """Output this transport as y0 text."""
+        raise NotImplementedError
+
+    def to_latex(self) -> str:
+        """Output this transport as latex."""
+        return f"\\mathscr{{t}}_{{{self.variable.to_latex()}}}"
+
+    def to_y0(self) -> str:
+        """Output this transport as y0 internal DSL code."""
+        return f"Tr[{self.variable.to_y0()}]"
+
+    def _iter_variables(self) -> Iterable[Variable]:
+        yield from self.variable._iter_variables()
+
+
+class _TransportBuilder:
+    def __getitem__(self, variable):
+        return Transport(variable=Variable.norm(variable))
+
+
+Tr = _TransportBuilder()
