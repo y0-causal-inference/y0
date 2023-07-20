@@ -90,6 +90,11 @@ __all__ = [
     "ensure_ordering",
     "vmap_adj",
     "vmap_pairs",
+    # Transport
+    "PopulationProbabilityBuilderType",
+    "PP",
+    "Pi1",
+    "Pi2",
 ]
 
 T_co = TypeVar("T_co", covariant=True)
@@ -1443,3 +1448,42 @@ def vmap_adj(adjacency_dict):
 
 #: A conjunction of factual and counterfactual events
 Event = Dict[Variable, Intervention]
+
+Population = Variable
+
+
+@dataclass(frozen=True, order=True, repr=False)
+class PopulationProbability(Probability):
+    """A probability that is annotated with a population.
+
+    >>> from y0.dsl import PP, Pi1, Y, X
+    >>> # Make a population-annotated probability of Y
+    >>> PP[Pi1](Y)
+    >>> # Make a conditioned population of Y @ X
+    >>> PP[Pi1][X](Y)
+    """
+
+    population: Population
+
+
+class PopulationProbabilityBuilderType(ProbabilityBuilderType):
+    """A magical type for building population probabilities."""
+
+    def __init__(self, population: Population):
+        """Initialize the builder with a given population."""
+        self.population = population
+
+    @classmethod
+    def __class_getitem__(cls, population: Population) -> "PopulationProbabilityBuilderType":
+        """Get a population probability builder class initialized with the given population."""
+        return cls(population)
+
+    def __call__(self, *args, **kwargs) -> PopulationProbability:  # noqa:D102
+        probability = super().__call__(*args, **kwargs)
+        return PopulationProbability(
+            population=self.population, distribution=probability.distribution
+        )
+
+
+PP = PopulationProbabilityBuilderType
+Pi1, Pi2 = Variable("Pi1"), Variable("Pi2")
