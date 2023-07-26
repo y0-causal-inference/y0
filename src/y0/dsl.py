@@ -97,6 +97,7 @@ __all__ = [
     "Pi2",
     "Tr",
     "Transport",
+    "Population",
 ]
 
 T_co = TypeVar("T_co", covariant=True)
