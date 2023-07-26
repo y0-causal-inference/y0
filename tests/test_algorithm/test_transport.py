@@ -3,7 +3,7 @@
 import unittest
 
 from y0.algorithm.transport import transport
-from y0.dsl import Y1, Y2, Pi1, Pi2, Variable, W, Z, PP, Sum
+from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Variable, W, Z
 from y0.graph import NxMixedGraph
 
 X1, X2 = Variable("X1"), Variable("X2")
