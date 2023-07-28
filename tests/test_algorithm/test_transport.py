@@ -52,11 +52,11 @@ class TestTransport(unittest.TestCase):
 
     def find_transport_vertices(self):
         actual = {X1, Y2}
-        expected = find_transport_vertices(X1, Y1, tikka_trso_figure_8)
+        expected = find_transport_vertices([X1], [Y1], tikka_trso_figure_8)
         self.assertEqual(actual, expected)
         actual = {X2}
-        expected = find_transport_vertices(X2, Y2, tikka_trso_figure_8)
+        expected = find_transport_vertices([X2], [Y2], tikka_trso_figure_8)
         self.assertEqual(actual, expected)
 
     def add_transportability_nodes(self):
-        add_transportability_nodes(X1, Y1, tikka_trso_figure_8)
+        add_transportability_nodes([X1], [Y1], tikka_trso_figure_8)
