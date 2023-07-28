@@ -2,7 +2,11 @@
 
 import unittest
 
-from y0.algorithm.transport import transport
+from y0.algorithm.transport import (
+    add_transportability_nodes,
+    find_transport_vertices,
+    transport,
+)
 from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Variable, W, Z
 from y0.graph import NxMixedGraph
 
@@ -45,3 +49,14 @@ class TestTransport(unittest.TestCase):
 
         # TODO probably need to canonicalize both of these
         self.assertEqual(expected, actual)
+
+    def find_transport_vertices(self):
+        actual = {X1, Y2}
+        expected = find_transport_vertices(X1, Y1, tikka_trso_figure_8)
+        self.assertEqual(actual, expected)
+        actual = {X2}
+        expected = find_transport_vertices(X2, Y2, tikka_trso_figure_8)
+        self.assertEqual(actual, expected)
+
+    def add_transportability_nodes(self):
+        add_transportability_nodes(X1, Y1, tikka_trso_figure_8)
