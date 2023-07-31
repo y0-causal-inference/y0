@@ -58,10 +58,10 @@ class TestTransport(unittest.TestCase):
         expected = {X2}
         actual = find_transport_vertices([X2], [Y2], tikka_trso_figure_8)
         self.assertEqual(actual, expected)
-        
-        #Test for multiple vertices in interventions and surrogate_outcomes
+
+        # Test for multiple vertices in interventions and surrogate_outcomes
         expected = {X1, X2, Y1}
-        actual = find_transport_vertices([X2,X1], [Y2,W], tikka_trso_figure_8)
+        actual = find_transport_vertices([X2, X1], [Y2, W], tikka_trso_figure_8)
         self.assertEqual(actual, expected)
 
     def add_transportability_nodes(self):
