@@ -181,7 +181,7 @@ def trso(
 
     # line 4
     C_components = diagram.subgraph(diagram.nodes() - target_interventions).get_c_components()
-    if len(diagram) > 1:
+    if len(C_components) > 1:
         return Sum.safe(
             Product.safe(
                 [
@@ -220,6 +220,7 @@ def trso(
                     # line 7
                     # if Ei != FAIL:
                     #     return Ei
+        raise NotImplementedError
 
         # line8
 

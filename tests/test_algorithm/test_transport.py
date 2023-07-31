@@ -6,6 +6,7 @@ from y0.algorithm.transport import (
     add_transportability_nodes,
     find_transport_vertices,
     transport,
+    trso,
 )
 from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Variable, W, Z
 from y0.graph import NxMixedGraph
@@ -51,7 +52,7 @@ class TestTransport(unittest.TestCase):
         # TODO probably need to canonicalize both of these
         self.assertEqual(expected, actual)
 
-    def find_transport_vertices(self):
+    def test_find_transport_vertices(self):
         expected = {X1, Y2}
         actual = find_transport_vertices([X1], [Y1], tikka_trso_figure_8)
         self.assertEqual(actual, expected)
@@ -64,5 +65,36 @@ class TestTransport(unittest.TestCase):
         actual = find_transport_vertices([X2, X1], [Y2, W], tikka_trso_figure_8)
         self.assertEqual(actual, expected)
 
-    def add_transportability_nodes(self):
+    def test_add_transportability_nodes(self):
         add_transportability_nodes([X1], [Y1], tikka_trso_figure_8)
+
+
+    def test_trso(self):
+        #triggers line 1
+        outcomes = {Y1,Y2}
+        interventions = {}
+        Prob = Variable("Prob")
+        active_experiments = {}
+        domain = Variable("pi*")
+        domain_graph = tikka_trso_figure_8
+        available_experiment_interventions = [{X2},{X1}]
+
+        expected = Sum({W,X1,X2,Z},Prob)
+        actual = trso(outcomes,interventions,Prob,active_experiments,domain,domain_graph,available_experiment_interventions)
+        self.assertEqual(actual, expected)
+
+        #triggers line 2 and then 1
+        outcomes = {W,Z}
+        interventions = {X1,X2,Y1,Y2}
+        expected = Sum({X1,X2,Y1,Y2},Sum({X1,X2,Y1,Y2},Prob))
+        actual = trso(outcomes,interventions,Prob,active_experiments,domain,domain_graph,available_experiment_interventions)
+        self.assertEqual(actual, expected)
+        
+        #triggers line 4 and then Raises(NotImplementedError)
+        outcomes = {Y2}
+        interventions = {X1,X2,W,Z,Y1}
+        with self.assertRaises(NotImplementedError):
+            trso(outcomes,interventions,Prob,active_experiments,domain,domain_graph,available_experiment_interventions)
+
+        
+
