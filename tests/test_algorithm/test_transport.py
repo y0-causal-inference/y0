@@ -23,6 +23,7 @@ tikka_trso_figure_8 = NxMixedGraph.from_edges(
         (Z, Y1),
         (Z, X2),
         (X2, Y2),
+        (Z, Y2),
     ],
 )
 
@@ -51,11 +52,16 @@ class TestTransport(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def find_transport_vertices(self):
-        actual = {X1, Y2}
-        expected = find_transport_vertices([X1], [Y1], tikka_trso_figure_8)
+        expected = {X1, Y2}
+        actual = find_transport_vertices([X1], [Y1], tikka_trso_figure_8)
         self.assertEqual(actual, expected)
-        actual = {X2}
-        expected = find_transport_vertices([X2], [Y2], tikka_trso_figure_8)
+        expected = {X2}
+        actual = find_transport_vertices([X2], [Y2], tikka_trso_figure_8)
+        self.assertEqual(actual, expected)
+        
+        #Test for multiple vertices in interventions and surrogate_outcomes
+        expected = {X1, X2, Y1}
+        actual = find_transport_vertices([X2,X1], [Y2,W], tikka_trso_figure_8)
         self.assertEqual(actual, expected)
 
     def add_transportability_nodes(self):
