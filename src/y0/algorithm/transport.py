@@ -136,7 +136,7 @@ def trso(
     #line 2
     outcomes_anc = diagram.ancestors_inclusive(target_outcomes)
     if diagram.nodes() - outcomes_anc:
-        return trso(target_outcomes,target_interventions.intersect(outcomes_anc),Sum.safe(probability,diagram.nodes() - outcomes_anc),active_experiments,domain,diagram.subgraph(outcomes_anc),available_experiment_interventions)
+        return trso(target_outcomes,target_interventions.intersection(outcomes_anc),Sum.safe(probability,diagram.nodes() - outcomes_anc),active_experiments,domain,diagram.subgraph(outcomes_anc),available_experiment_interventions)
     
     #line 3
     
@@ -165,7 +165,7 @@ def trso(
                     # #transportability_diagrams, transportability_nodes don't exist
                     # transportability_diagrams[i].remove_in_edges(target_interventions)
                     # if are_d_separated(transportability_nodes[i],target_outcomes, ):
-                    #     Ei = trso(target_outcomes,target_interventions - available_experiment_interventions[i],probability,available_experiment_interventions[i].intersect(target_interventions),i,diagram.subgraph(diagram.nodes() - available_experiment_interventions[i].intersect(target_interventions)),available_experiment_interventions)    
+                    #     Ei = trso(target_outcomes,target_interventions - available_experiment_interventions[i],probability,available_experiment_interventions[i].intersection(target_interventions),i,diagram.subgraph(diagram.nodes() - available_experiment_interventions[i].intersection(target_interventions)),available_experiment_interventions)    
                     #     E.append(Ei)
                     
                     #TODO why is line 7 originally outside this loop?
