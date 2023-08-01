@@ -3,7 +3,7 @@
 ..seealso:: https://arxiv.org/abs/1806.07172
 """
 
-from typing import List, Mapping, Optional, Set
+from typing import List, Mapping, Optional, Set, Union, Dict
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import Population, Product, Sum, Transport, Variable
@@ -15,29 +15,31 @@ __all__ = [
 
 
 def find_transport_vertices(
-    interventions: List[Variable], surrogate_outcomes: List[Variable], graph: NxMixedGraph
+    interventions: Union[Set[Variable],Variable], surrogate_outcomes: Union[Set[Variable],Variable], graph: NxMixedGraph
 ) -> Set[Variable]:
     """
     Parameters
     ----------
-    interventions : List[Variables]
-        The interventions performed in an experiment.
-    surrogate_outcomes : List[Variables]
-        The outcomes observed in an experiment.
-    graph : NxMixedGraph
-        The graph of the target domain.
+    interventions: The interventions performed in an experiment.
+    surrogate_outcomes: The outcomes observed in an experiment.
+    graph: The graph of the target domain.
 
     Returns
     -------
-    Set[Variable]
         Set of variables representing target domain nodes where transportability nodes should be added.
     """
+    
+    if isinstance(interventions, Variable):
+        interventions = {interventions}
+        
+    if isinstance(surrogate_outcomes, Variable):
+        surrogate_outcomes = {surrogate_outcomes}    
     # Find the c_component with Wi
     c_components = graph.get_c_components()
     c_component_surrogate_outcomes = set()
     for index, component in enumerate(c_components):
         # Check if Wi is present in the current set
-        if set(surrogate_outcomes).intersection(component):
+        if surrogate_outcomes.intersection(component):
             c_component_surrogate_outcomes = c_component_surrogate_outcomes.union(component)
 
     # subgraph where interventions in edges are removed
@@ -48,23 +50,20 @@ def find_transport_vertices(
     # Descendants of interventions in graph
     Descendants_interventions = graph.descendants_inclusive(interventions)
 
-    return (Descendants_interventions - set(surrogate_outcomes)).union(
+    return (Descendants_interventions - surrogate_outcomes).union(
         c_component_surrogate_outcomes - Ancestors_surrogate_outcomes
     )
 
 
 def add_transportability_nodes(
-    interventions: List[Variable], surrogate_outcomes: List[Variable], graph: NxMixedGraph
+    interventions: Set[Variable], surrogate_outcomes: Set[Variable], graph: NxMixedGraph
 ) -> NxMixedGraph:
     """
     Parameters
     ----------
-    interventions : List[Variable]
-        The interventions performed in an experiment.
-    surrogate_outcomes : List[Variable]
-        The outcomes observed in an experiment.
-    graph : NxMixedGraph
-        The graph of the target domain.
+    interventions : The interventions performed in an experiment.
+    surrogate_outcomes : The outcomes observed in an experiment.
+    graph : The graph of the target domain.
 
     Returns
     -------
@@ -72,17 +71,18 @@ def add_transportability_nodes(
         A graph with transportability nodes.
 
     """
+    raise NotImplementedError
     vertices = find_transport_vertices(interventions, surrogate_outcomes, graph)
     for vertex in vertices:
         T_vertex = Transport(vertex)
-        # graph.add_node(T_vertex)
-        # graph.add_directed_edge(T_vertex, vertex)
+        graph.add_node(T_vertex)
+        graph.add_directed_edge(T_vertex, vertex)
     return graph
 
 
 def surrogate_to_transport(
-    target_outcomes: List[Variable],
-    target_interventions: List[Variable],
+    target_outcomes: Set[Variable],
+    target_interventions: Set[Variable],
     graph: NxMixedGraph,
     available_experiments: List[List[List[Variable]]],
 ):
@@ -91,14 +91,10 @@ def surrogate_to_transport(
 
     Parameters
     ----------
-    target_outcomes : List[Variable]
-        A list of target variables for causal effects.
-    target_interventions : List[Variable]
-        A list of interventions for the target domain.
-    graph : NxMixedGraph
-        The graph of the target domain.
-    available_experiments : List[List[List[Variable]]]
-        A list of Experiments available in each domain.
+    target_outcomes: A set of target variables for causal effects.
+    target_interventions: A set of interventions for the target domain.
+    graph: The graph of the target domain.
+    available_experiments : A set of Experiments available in each domain.
 
 
     Returns
@@ -108,15 +104,15 @@ def surrogate_to_transport(
 
     """
     raise NotImplementedError
-    # Create a list of transportability diagrams for each domain.
+    # Create a dictionary of transportability diagrams for each domain.
     experiment_interventions, experiment_surrogate_outcomes = zip(*available_experiments)
 
-    transportability_diagrams = [
-        add_transportability_nodes(
+    transportability_diagrams = {
+        i: add_transportability_nodes(
             experiment_interventions[i], experiment_surrogate_outcomes[i], graph
         )
         for i in range(len(available_experiments))
-    ]
+    }
     domains = [Variable(f"Pi{i}") for i in range(1, len(available_experiments) + 1)]
     target_domains = Variable("Pi*")
     experiments_in_target_domain = set()
@@ -132,97 +128,227 @@ def surrogate_to_transport(
         experiments_in_target_domain,
     )
 
+def trso_line1(
+        target_outcomes: Set[Variable],
+        probability,
+        transportability_diagram: NxMixedGraph,
+        ):
+    
+        return Sum.safe(probability, transportability_diagram.nodes() - target_outcomes)
 
-# TODO Set of all tranportability diagrams and topological ordering are available globaly trso
+def trso_line2(
+                target_outcomes: Set[Variable],
+               target_interventions: Set[Variable],
+               probability,
+               active_interventions: Set[Variable],
+               domain: Variable,
+               transportability_diagram: NxMixedGraph,
+               available_interventions: List[Set[Variable]],
+               outcomes_anc: Set[Variable],
+        ):
+    return dict(target_outcomes=target_outcomes,
+                target_interventions = target_interventions.intersection(outcomes_anc),
+                probability = Sum.safe(probability, transportability_diagram.nodes() - outcomes_anc),
+                active_interventions=active_interventions,
+                domain=domain,
+                transportability_diagram=transportability_diagram.subgraph(outcomes_anc),
+                available_interventions=available_interventions,
+                )
+
+def trso_line3(
+                target_outcomes: Set[Variable],
+               target_interventions: Set[Variable],
+               probability,
+               active_interventions: Set[Variable],
+               domain: Variable,
+               transportability_diagram: NxMixedGraph,
+               available_interventions: List[Set[Variable]],
+               additional_interventions: Set[Variable],
+        ):
+    return dict(target_outcomes=target_outcomes,
+                target_interventions=target_interventions.union(additional_interventions),
+                probability=probability,
+                active_interventions=active_interventions,
+                domain=domain,
+                transportability_diagram=transportability_diagram,
+                available_interventions=available_interventions,)
+
+def trso_line4(
+                target_outcomes: Set[Variable],
+               target_interventions: Set[Variable],
+               probability,
+               active_interventions: Set[Variable],
+               domain: Variable,
+               transportability_diagram: NxMixedGraph,
+               available_interventions: List[Set[Variable]],
+               component: Set[Variable],
+        ):
+    return dict(target_outcomes=component,
+                target_interventions=transportability_diagram.nodes()-component,
+                probability=probability,
+                active_interventions=active_interventions,
+                domain=domain,
+                transportability_diagram=transportability_diagram,
+                available_interventions=available_interventions,)
+
+
+def trso_line6(
+        target_outcomes: Set[Variable],
+       target_interventions: Set[Variable],
+       probability,
+       active_interventions: Set[Variable],
+       domain: Variable,
+       transportability_diagram: NxMixedGraph,
+       available_interventions: List[Set[Variable]],
+       transportability_diagrams: Dict[int,NxMixedGraph],
+       ):
+    raise NotImplementedError
+
+    if not active_interventions:
+        #TODO E needs a better name
+        expressions = []
+        for i in range(len(available_interventions)):
+            if available_interventions[i].intersection(target_interventions):
+                #TODO transportability_nodes doesn't exist
+                transportability_diagrams[i].remove_in_edges(target_interventions)
+                if are_d_separated(transportability_nodes[i],target_outcomes, ):
+                    expressions.append(dict(target_outcomes = target_outcomes,
+                                          target_interventions=target_interventions - available_interventions[i],
+                                          probability=probability,
+                                          active_interventions=available_interventions[i].intersection(target_interventions),
+                                          domain=i,
+                                          transportability_diagram=transportability_diagram.subgraph(transportability_diagram.nodes() - available_interventions[i].intersection(target_interventions)),
+                                          available_interventions=available_interventions))
+                    
+    return expressions
+
+
+# TODO Tikka paper says that topological ordering is available globaly
 def trso(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
     probability,
-    active_experiments: Set[Variable],
+    active_interventions: Set[Variable],
     domain: Variable,
-    diagram: NxMixedGraph,
-    available_experiment_interventions: List[Set[Variable]],
+    transportability_diagrams: Dict[int,NxMixedGraph],
+    available_interventions: List[Set[Variable]],
 ):
+    transportability_diagram = transportability_diagrams[domain]
     # line 1
     if not target_interventions:
-        return Sum.safe(probability, diagram.nodes() - target_outcomes)
+        return trso_line1(target_outcomes,probability,transportability_diagram)
 
     # line 2
-    outcomes_anc = diagram.ancestors_inclusive(target_outcomes)
-    if diagram.nodes() - outcomes_anc:
-        return trso(
-            target_outcomes,
-            target_interventions.intersection(outcomes_anc),
-            Sum.safe(probability, diagram.nodes() - outcomes_anc),
-            active_experiments,
-            domain,
-            diagram.subgraph(outcomes_anc),
-            available_experiment_interventions,
-        )
+    outcomes_anc = transportability_diagram.ancestors_inclusive(target_outcomes)
+    if transportability_diagram.nodes() - outcomes_anc:
+        return trso(**trso_line2(target_outcomes,
+                                 target_interventions,
+                                 probability,
+                                 active_interventions,
+                                 domain,
+                                 transportability_diagram,
+                                 available_interventions,
+                                 outcomes_anc))
 
     # line 3
 
-    target_interventions_overbar = diagram.remove_in_edges(target_interventions)
+    target_interventions_overbar = transportability_diagram.remove_in_edges(target_interventions)
     additional_interventions = (
-        diagram.nodes()
+        transportability_diagram.nodes()
         - target_interventions
         - target_interventions_overbar.ancestors_inclusive(target_outcomes)
     )
     if additional_interventions:
-        return trso(
-            target_outcomes,
-            target_interventions.union(additional_interventions),
-            probability,
-            active_experiments,
-            domain,
-            diagram,
-            available_experiment_interventions,
-        )
+        return trso(**trso_line3(target_outcomes,
+                                 target_interventions,
+                                 probability,
+                                 active_interventions,
+                                 domain,
+                                 transportability_diagram,
+                                 available_interventions,
+                                 additional_interventions))
 
     # line 4
-    C_components = diagram.subgraph(diagram.nodes() - target_interventions).get_c_components()
-    if len(C_components) > 1:
+    districts_without_interventions = transportability_diagram.subgraph(transportability_diagram.nodes() - target_interventions).get_c_components()
+    if len(districts_without_interventions) > 1:
+        
         return Sum.safe(
             Product.safe(
                 [
-                    trso(
-                        component,
-                        diagram.nodes() - component,
-                        probability,
-                        active_experiments,
-                        domain,
-                        diagram,
-                        available_experiment_interventions,
-                    )
-                    for component in C_components
+                    trso(**trso_line4(target_outcomes,
+                                             target_interventions,
+                                             probability,
+                                             active_interventions,
+                                             domain,
+                                             transportability_diagram,
+                                             available_interventions,
+                                             component))
+                    for component in districts_without_interventions
                 ],
-                len(C_components),
+                len(districts_without_interventions),
             ),
-            diagram.nodes() - target_interventions.union(target_outcomes),
+            transportability_diagram.nodes() - target_interventions.union(target_outcomes),
         )
 
     # line 5
     else:
         # line 6
-        if not active_experiments:
-            # TODO this implementation of E doesn't allow lookup of ith iteration, does that matter?
-            E = []
-            for i in range(len(available_experiment_interventions)):
-                if available_experiment_interventions[i].intersection(target_interventions):
-                    raise NotImplementedError
-                    # #transportability_diagrams, transportability_nodes don't exist
-                    # transportability_diagrams[i].remove_in_edges(target_interventions)
-                    # if are_d_separated(transportability_nodes[i],target_outcomes, ):
-                    #     Ei = trso(target_outcomes,target_interventions - available_experiment_interventions[i],probability,available_experiment_interventions[i].intersection(target_interventions),i,diagram.subgraph(diagram.nodes() - available_experiment_interventions[i].intersection(target_interventions)),available_experiment_interventions)
-                    #     E.append(Ei)
+        trso_inputs = trso_line6(
+            target_outcomes,
+            target_interventions,
+            probability,
+            active_interventions,
+            domain,
+            transportability_diagram,
+            available_interventions,
+            )
+        
+        for trso_input in trso_inputs:
+            expressionk = trso(**trso_input)
+            #line7
+            if expressionk:
+                return expressionk
 
-                    # TODO why is line 7 originally outside this loop?
-                    # line 7
-                    # if Ei != FAIL:
-                    #     return Ei
-        raise NotImplementedError
-
-        # line8
+        #line8
+        districts = transportability_diagram.get_c_components()
+        if len(districts)>1:
+            #line9
+            if districts_without_interventions in districts:
+                return trso_line9(
+                    target_outcomes,
+                    target_interventions,
+                    probability,
+                    active_interventions,
+                    domain,
+                    transportability_diagram,
+                    available_interventions,
+                    )
+            #line10
+            for district in districts: 
+                if districts_without_interventions.issubset(district):
+                    #district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
+                    if len(active_interventions)==0:
+                        new_available_interventions = set()
+                    elif any(isinstance(t,Transport) for t in transportability_diagram.get_markov_pillow(district)):
+                        return None
+                    else:
+                        new_available_interventions = available_interventions
+                    
+                    return trso_line10(
+                        target_outcomes,
+                        target_interventions,
+                        probability,
+                        active_interventions,
+                        domain,
+                        transportability_diagram,
+                        available_interventions,
+                        district,
+                        new_available_interventions,
+                        )
+                    
+        #line11
+        else:
+            return None
 
 
 def transport(

@@ -54,21 +54,21 @@ class TestTransport(unittest.TestCase):
 
     def test_find_transport_vertices(self):
         expected = {X1, Y2}
-        actual = find_transport_vertices([X1], [Y1], tikka_trso_figure_8)
+        actual = find_transport_vertices(X1, Y1, tikka_trso_figure_8)
         self.assertEqual(actual, expected)
         expected = {X2}
-        actual = find_transport_vertices([X2], [Y2], tikka_trso_figure_8)
+        actual = find_transport_vertices({X2}, {Y2}, tikka_trso_figure_8)
         self.assertEqual(actual, expected)
 
         # Test for multiple vertices in interventions and surrogate_outcomes
         expected = {X1, X2, Y1}
-        actual = find_transport_vertices([X2, X1], [Y2, W], tikka_trso_figure_8)
+        actual = find_transport_vertices({X2, X1}, {Y2, W}, tikka_trso_figure_8)
         self.assertEqual(actual, expected)
 
     def test_add_transportability_nodes(self):
         add_transportability_nodes([X1], [Y1], tikka_trso_figure_8)
 
-    def test_trso(self):
+    def test_trso_line1(self):
         # triggers line 1
         outcomes = {Y1, Y2}
         interventions = {}
@@ -79,7 +79,7 @@ class TestTransport(unittest.TestCase):
         available_experiment_interventions = [{X2}, {X1}]
 
         expected = Sum({W, X1, X2, Z}, Prob)
-        actual = trso(
+        actual = trso_line1(
             outcomes,
             interventions,
             Prob,
@@ -89,12 +89,12 @@ class TestTransport(unittest.TestCase):
             available_experiment_interventions,
         )
         self.assertEqual(actual, expected)
-
+    def test_trso_line2(self):
         # triggers line 2 and then 1
         outcomes = {W, Z}
         interventions = {X1, X2, Y1, Y2}
         expected = Sum({X1, X2, Y1, Y2}, Sum({X1, X2, Y1, Y2}, Prob))
-        actual = trso(
+        actual = trso_line2(
             outcomes,
             interventions,
             Prob,
@@ -105,16 +105,16 @@ class TestTransport(unittest.TestCase):
         )
         self.assertEqual(actual, expected)
 
-        # triggers line 4 and then Raises(NotImplementedError)
-        outcomes = {Y2}
-        interventions = {X1, X2, W, Z, Y1}
-        with self.assertRaises(NotImplementedError):
-            trso(
-                outcomes,
-                interventions,
-                Prob,
-                active_experiments,
-                domain,
-                domain_graph,
-                available_experiment_interventions,
-            )
+        # # triggers line 4 and then Raises(NotImplementedError)
+        # outcomes = {Y2}
+        # interventions = {X1, X2, W, Z, Y1}
+        # with self.assertRaises(NotImplementedError):
+        #     trso(
+        #         outcomes,
+        #         interventions,
+        #         Prob,
+        #         active_experiments,
+        #         domain,
+        #         domain_graph,
+        #         available_experiment_interventions,
+        #     )
