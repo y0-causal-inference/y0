@@ -13,7 +13,14 @@ import networkx as nx
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
+from .dsl import (
+    CounterfactualVariable,
+    Intervention,
+    Transport,
+    Variable,
+    vmap_adj,
+    vmap_pairs,
+)
 
 __all__ = [
     "NxMixedGraph",
@@ -108,7 +115,7 @@ class NxMixedGraph:
 
     def nodes(self) -> NodeView[Variable]:
         """Get the nodes in the graph."""
-        return self.directed.nodes()
+        return self.directed.nodes() | self.undirected.nodes()
 
     def to_admg(self):
         """Get an ananke ADMG."""
@@ -155,6 +162,15 @@ class NxMixedGraph:
             start=start,
             tag=tag,
         )
+
+    def get_transport_nodes(self) -> Set[Transport]:
+        """
+        Returns
+        -------
+        Transportability nodes.
+
+        """
+        return {t for t in self.nodes() if isinstance(t, Transport)}
 
     @classmethod
     def from_latent_variable_dag(cls, graph: nx.DiGraph, tag: Optional[str] = None) -> NxMixedGraph:
