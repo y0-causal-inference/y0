@@ -93,8 +93,8 @@ class TestTransport(cases.GraphTestCase):
                 (Z, X2),
                 (X2, Y2),
                 (Z, Y2),
-                (Variable("TX1"),X1),
-                (Variable("TY2"),Y2),
+                (Variable("TX1"), X1),
+                (Variable("TY2"), Y2),
             ],
         )
         transportability_diagram2 = NxMixedGraph.from_edges(
@@ -108,7 +108,7 @@ class TestTransport(cases.GraphTestCase):
                 (Z, X2),
                 (X2, Y2),
                 (Z, Y2),
-                (Variable("TX2"),X2),
+                (Variable("TX2"), X2),
             ],
         )
 
@@ -127,7 +127,7 @@ class TestTransport(cases.GraphTestCase):
             experiment_interventions,
             experiments_in_target_domain,
         )
-        
+
         self.assertEqual(actual, expected)
 
     def test_trso_line1(self):
