@@ -74,7 +74,7 @@ class TestTransport(cases.GraphTestCase):
     def test_surrogate_to_transport(self):
         target_outcomes = {Y1, Y2}
         target_interventions = {X1, X2}
-        available_experiments = [([X1], [Y1]), ([X2], [Y2])]
+        available_experiments = [({X1}, {Y1}), ({X2}, {Y2})]
         actual = surrogate_to_transport(
             target_outcomes, target_interventions, tikka_trso_figure_8, available_experiments
         )
@@ -82,24 +82,42 @@ class TestTransport(cases.GraphTestCase):
         domains = [Variable("pi1"), Variable("pi2")]
         experiment_interventions, experiment_surrogate_outcomes = zip(*available_experiments)
         experiments_in_target_domain = set()
-        transportability_diagram1 = tikka_trso_figure_8.copy()
-        vertices = [X1, Y2]
-        for vertex in vertices:
-            T_vertex = Transport(vertex)
-            transportability_diagram1.add_node(T_vertex)
-            transportability_diagram1.add_directed_edge(T_vertex, vertex)
-        transportability_diagram2 = tikka_trso_figure_8.copy()
-        vertices = [X2]
-        for vertex in vertices:
-            T_vertex = Transport(Variable(vertex))
-            transportability_diagram2.add_node(T_vertex)
-            transportability_diagram2.add_directed_edge(T_vertex, vertex)
+        transportability_diagram1 = NxMixedGraph.from_edges(
+            undirected=[(X1, Y1), (Z, W), (Z, X2)],
+            directed=[
+                (X1, Y1),
+                (X1, Y2),
+                (W, Y1),
+                (W, Y2),
+                (Z, Y1),
+                (Z, X2),
+                (X2, Y2),
+                (Z, Y2),
+                (Variable("TX1"),X1),
+                (Variable("TY2"),Y2),
+            ],
+        )
+        transportability_diagram2 = NxMixedGraph.from_edges(
+            undirected=[(X1, Y1), (Z, W), (Z, X2)],
+            directed=[
+                (X1, Y1),
+                (X1, Y2),
+                (W, Y1),
+                (W, Y2),
+                (Z, Y1),
+                (Z, X2),
+                (X2, Y2),
+                (Z, Y2),
+                (Variable("TX2"),X2),
+            ],
+        )
+
         transportability_diagrams = {
             domains[0]: transportability_diagram1,
             domains[1]: transportability_diagram2,
         }
 
-        expected = [
+        expected = (
             target_interventions,
             target_outcomes,
             transportability_diagrams,
@@ -108,8 +126,9 @@ class TestTransport(cases.GraphTestCase):
             target_domain,
             experiment_interventions,
             experiments_in_target_domain,
-        ]
-        self.assertEqual(expected, actual)
+        )
+        
+        self.assertEqual(actual, expected)
 
     def test_trso_line1(self):
         # triggers line 1

@@ -6,7 +6,7 @@
 from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Union
 
 from y0.algorithm.conditional_independencies import are_d_separated
-from y0.dsl import Population, Product, Sum, Transport, Variable
+from y0.dsl import Population, Transport, Variable,Product, Sum
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -61,7 +61,7 @@ def surrogate_to_transport(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
     graph: NxMixedGraph,
-    available_experiments: List[List[List[Variable]]],
+    available_interventions: List[List[Set[Variable]]],
 ):
     """
 
@@ -71,7 +71,7 @@ def surrogate_to_transport(
     target_outcomes: A set of target variables for causal effects.
     target_interventions: A set of interventions for the target domain.
     graph: The graph of the target domain.
-    available_experiments : A set of Experiments available in each domain.
+    available_interventions : A set of Experiments available in each domain.
 
 
     Returns
@@ -81,19 +81,29 @@ def surrogate_to_transport(
 
     """
     # Create a dictionary of transportability diagrams for each domain.
-    experiment_interventions, experiment_surrogate_outcomes = zip(*available_experiments)
+    experiment_interventions, experiment_surrogate_outcomes = zip(*available_interventions)
 
     transportability_diagrams = {}
-    domains = [Variable(f"pi{i+1}") for i in range(len(available_experiments))]
+    domains = [Variable(f"pi{i+1}") for i in range(len(available_interventions))]
 
     for i, domain in enumerate(domains):
         vertices = find_transport_vertices(
             experiment_interventions[i], experiment_surrogate_outcomes[i], graph
         )
-
-        transportability_diagram = graph.copy()
+        #TODO should we make a NxMixedGraph.copy()
+        #transportability_diagram = graph.copy()
+        transportability_diagram = NxMixedGraph()
+        for node in graph.nodes():
+            transportability_diagram.add_node(node)
+        for dir_edge in graph.directed.edges():
+            transportability_diagram.add_directed_edge(dir_edge[0],dir_edge[1])
+        for bidir_edge in graph.undirected.edges():
+            transportability_diagram.add_undirected_edge(bidir_edge[0],bidir_edge[1])
+        
         for vertex in vertices:
-            T_vertex = Transport(Variable(vertex))
+            #TODO Make this a true Transport instead of a Variable
+            #T_vertex = Transport(vertex)
+            T_vertex = Variable("T"+vertex.to_text())
             transportability_diagram.add_node(T_vertex)
             transportability_diagram.add_directed_edge(T_vertex, vertex)
 
