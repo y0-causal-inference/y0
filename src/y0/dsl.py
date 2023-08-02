@@ -1500,7 +1500,7 @@ Pi1, Pi2 = Variable("Pi1"), Variable("Pi2")
 
 
 @dataclass(frozen=True, order=True, repr=False)
-class Transport(Symbol):
+class Transport(Variable):
     """An element representing a transportability node.
 
     Related publications:

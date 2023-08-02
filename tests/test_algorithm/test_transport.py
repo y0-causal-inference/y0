@@ -4,8 +4,8 @@ import unittest
 
 from tests.test_algorithm import cases
 from y0.algorithm.transport import (
-    add_transportability_nodes,
     find_transport_vertices,
+    surrogate_to_transport,
     transport,
     trso,
     trso_line1,
@@ -14,7 +14,7 @@ from y0.algorithm.transport import (
     trso_line4,
     trso_line6,
 )
-from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Variable, W, X, Y, Z
+from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Transport, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 X1, X2 = Variable("X1"), Variable("X2")
@@ -71,8 +71,45 @@ class TestTransport(cases.GraphTestCase):
         actual = find_transport_vertices({X2, X1}, {Y2, W}, tikka_trso_figure_8)
         self.assertEqual(actual, expected)
 
-    # def test_add_transportability_nodes(self):
-    #     add_transportability_nodes([X1], [Y1], tikka_trso_figure_8)
+    def test_surrogate_to_transport(self):
+        target_outcomes = {Y1, Y2}
+        target_interventions = {X1, X2}
+        available_experiments = [([X1], [Y1]), ([X2], [Y2])]
+        actual = surrogate_to_transport(
+            target_outcomes, target_interventions, tikka_trso_figure_8, available_experiments
+        )
+        target_domain = Variable("pi*")
+        domains = [Variable("pi1"), Variable("pi2")]
+        experiment_interventions, experiment_surrogate_outcomes = zip(*available_experiments)
+        experiments_in_target_domain = set()
+        transportability_diagram1 = tikka_trso_figure_8.copy()
+        vertices = [X1, Y2]
+        for vertex in vertices:
+            T_vertex = Transport(vertex)
+            transportability_diagram1.add_node(T_vertex)
+            transportability_diagram1.add_directed_edge(T_vertex, vertex)
+        transportability_diagram2 = tikka_trso_figure_8.copy()
+        vertices = [X2]
+        for vertex in vertices:
+            T_vertex = Transport(Variable(vertex))
+            transportability_diagram2.add_node(T_vertex)
+            transportability_diagram2.add_directed_edge(T_vertex, vertex)
+        transportability_diagrams = {
+            domains[0]: transportability_diagram1,
+            domains[1]: transportability_diagram2,
+        }
+
+        expected = [
+            target_interventions,
+            target_outcomes,
+            transportability_diagrams,
+            tikka_trso_figure_8,
+            domains,
+            target_domain,
+            experiment_interventions,
+            experiments_in_target_domain,
+        ]
+        self.assertEqual(expected, actual)
 
     def test_trso_line1(self):
         # triggers line 1

@@ -57,31 +57,6 @@ def find_transport_vertices(
     )
 
 
-def add_transportability_nodes(
-    interventions: Set[Variable], surrogate_outcomes: Set[Variable], graph: NxMixedGraph
-) -> NxMixedGraph:
-    """
-    Parameters
-    ----------
-    interventions : The interventions performed in an experiment.
-    surrogate_outcomes : The outcomes observed in an experiment.
-    graph : The graph of the target domain.
-
-    Returns
-    -------
-    NxMixedGraph
-        A graph with transportability nodes.
-
-    """
-    raise NotImplementedError
-    vertices = find_transport_vertices(interventions, surrogate_outcomes, graph)
-    for vertex in vertices:
-        T_vertex = Transport(vertex)
-        graph.add_node(T_vertex)
-        graph.add_directed_edge(T_vertex, vertex)
-    return graph
-
-
 def surrogate_to_transport(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
@@ -105,18 +80,26 @@ def surrogate_to_transport(
         An octuple representing the query transformation of a surrogate outcome query.
 
     """
-    raise NotImplementedError
     # Create a dictionary of transportability diagrams for each domain.
     experiment_interventions, experiment_surrogate_outcomes = zip(*available_experiments)
 
-    transportability_diagrams = {
-        i: add_transportability_nodes(
+    transportability_diagrams = {}
+    domains = [Variable(f"pi{i+1}") for i in range(len(available_experiments))]
+
+    for i, domain in enumerate(domains):
+        vertices = find_transport_vertices(
             experiment_interventions[i], experiment_surrogate_outcomes[i], graph
         )
-        for i in range(len(available_experiments))
-    }
-    domains = [Variable(f"Pi{i}") for i in range(1, len(available_experiments) + 1)]
-    target_domains = Variable("Pi*")
+
+        transportability_diagram = graph.copy()
+        for vertex in vertices:
+            T_vertex = Transport(Variable(vertex))
+            transportability_diagram.add_node(T_vertex)
+            transportability_diagram.add_directed_edge(T_vertex, vertex)
+
+        transportability_diagrams[domain] = transportability_diagram
+
+    target_domain = Variable("pi*")
     experiments_in_target_domain = set()
 
     return (
@@ -125,7 +108,7 @@ def surrogate_to_transport(
         transportability_diagrams,
         graph,
         domains,
-        target_domains,
+        target_domain,
         experiment_interventions,
         experiments_in_target_domain,
     )
