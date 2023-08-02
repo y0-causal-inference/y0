@@ -176,18 +176,56 @@ class TestTransport(cases.GraphTestCase):
         )
         self.assertEqual(actual, expected)
 
-        # def test_trso_line4(self):
+    def test_trso_line4(self):
+        target_outcomes = {Y1, Y2}
+        target_interventions = {X1, X2}
+        domain = Variable("pi*")
+        transportability_diagram = tikka_trso_figure_8
+        prob = PP[domain](*list(transportability_diagram.nodes()))
+        active_interventions = {}
+        available_interventions = {X1, X2}
+        districts_without_interventions = transportability_diagram.subgraph(
+            transportability_diagram.nodes() - target_interventions
+        ).get_c_components()
 
-        # # triggers line 4 and then Raises(NotImplementedError)
-        # outcomes = {Y2}
-        # interventions = {X1, X2, W, Z, Y1}
-        # with self.assertRaises(NotImplementedError):
-        #     trso(
-        #         outcomes,
-        #         interventions,
-        #         Prob,
-        #         active_interventions,
-        #         domain,
-        #         domain_graph,
-        #         available_interventions,
-        #     )
+        expected = {
+            frozenset([Y2]): dict(
+                target_outcomes={Y2},
+                target_interventions={X1, X2, Z, W, Y1},
+                probability=prob,
+                active_interventions=active_interventions,
+                domain=domain,
+                transportability_diagram=transportability_diagram,
+                available_interventions=available_interventions,
+            ),
+            frozenset([Y1]): dict(
+                target_outcomes={Y1},
+                target_interventions={X1, X2, Z, W, Y2},
+                probability=prob,
+                active_interventions=active_interventions,
+                domain=domain,
+                transportability_diagram=transportability_diagram,
+                available_interventions=available_interventions,
+            ),
+            frozenset([W, Z]): dict(
+                target_outcomes={W, Z},
+                target_interventions={X1, X2, Y2, Y1},
+                probability=prob,
+                active_interventions=active_interventions,
+                domain=domain,
+                transportability_diagram=transportability_diagram,
+                available_interventions=available_interventions,
+            ),
+        }
+
+        actual = trso_line4(
+            target_outcomes,
+            target_interventions,
+            prob,
+            active_interventions,
+            domain,
+            transportability_diagram,
+            available_interventions,
+            districts_without_interventions,
+        )
+        self.assertEqual(expected, actual)

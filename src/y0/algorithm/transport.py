@@ -3,7 +3,7 @@
 ..seealso:: https://arxiv.org/abs/1806.07172
 """
 
-from typing import Dict, List, Mapping, Optional, Set, Union
+from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Union
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import Population, Product, Sum, Transport, Variable
@@ -189,17 +189,20 @@ def trso_line4(
     domain: Variable,
     transportability_diagram: NxMixedGraph,
     available_interventions: List[Set[Variable]],
-    component: Set[Variable],
-):
-    return dict(
-        target_outcomes=component,
-        target_interventions=transportability_diagram.nodes() - component,
-        probability=probability,
-        active_interventions=active_interventions,
-        domain=domain,
-        transportability_diagram=transportability_diagram,
-        available_interventions=available_interventions,
-    )
+    components: Set[FrozenSet[Variable]],
+) -> Dict[FrozenSet, Dict]:
+    return {
+        component: dict(
+            target_outcomes=component,
+            target_interventions=transportability_diagram.nodes() - component,
+            probability=probability,
+            active_interventions=active_interventions,
+            domain=domain,
+            transportability_diagram=transportability_diagram,
+            available_interventions=available_interventions,
+        )
+        for component in components
+    }
 
 
 def trso_line6(
@@ -311,24 +314,20 @@ def trso(
         transportability_diagram.nodes() - target_interventions
     ).get_c_components()
     if len(districts_without_interventions) > 1:
+        trso_line4inputs = trso_line4(
+            target_outcomes,
+            target_interventions,
+            probability,
+            active_interventions,
+            domain,
+            transportability_diagram,
+            available_interventions,
+            districts_without_interventions,
+        )
+
         return Sum.safe(
             Product.safe(
-                [
-                    trso(
-                        **trso_line4(
-                            target_outcomes,
-                            target_interventions,
-                            probability,
-                            active_interventions,
-                            domain,
-                            transportability_diagram,
-                            available_interventions,
-                            component,
-                        )
-                    )
-                    for component in districts_without_interventions
-                ],
-                len(districts_without_interventions),
+                [trso(**trso_line4input) for trso_line4input in trso_line4inputs.values()],
             ),
             transportability_diagram.nodes() - target_interventions.union(target_outcomes),
         )
