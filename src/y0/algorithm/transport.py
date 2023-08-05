@@ -80,16 +80,19 @@ def surrogate_to_transport(
     transportability_diagrams = {}
     domains = [Variable(f"pi{i+1}") for i in range(len(available_interventions))]
 
-    for i, domain in enumerate(domains):
+    for i, domain in enumerate(domains):  # FIXME use zip to iterate over multiple lists together
+        # FIXME use more descriptive name implied by function, e.g., transport_verticies
         vertices = find_transport_vertices(
             experiment_interventions[i], experiment_surrogate_outcomes[i], graph
         )
         # TODO should we make a NxMixedGraph.copy()
+        # FIXME better to split this kind of thing into auxiliary function
         # transportability_diagram = graph.copy()
         transportability_diagram = NxMixedGraph()
         for node in graph.nodes():
             transportability_diagram.add_node(node)
         for dir_edge in graph.directed.edges():
+            # FIXME unpack in for loop, using opaque list indexes makes it harder to understand
             transportability_diagram.add_directed_edge(dir_edge[0], dir_edge[1])
         for bidir_edge in graph.undirected.edges():
             transportability_diagram.add_undirected_edge(bidir_edge[0], bidir_edge[1])
@@ -328,7 +331,8 @@ def trso_line6(
                             available_interventions=available_interventions,
                         )
                     )
-
+    else:
+        raise NotImplementedError
     return expressions
 
 
@@ -423,7 +427,7 @@ def trso(
         )
 
         for trso_input in trso_inputs:
-            expressionk = trso(**trso_input)
+            expressionk = trso(**trso_input)  # FIXME this is super opaque, write out explicitly
             # line7
             if expressionk:
                 return expressionk
@@ -470,6 +474,7 @@ def trso(
 
         # line11
         else:
+            # use guard clauses, return early
             return None
 
 
