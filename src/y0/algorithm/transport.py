@@ -6,7 +6,7 @@
 from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Union
 
 from y0.algorithm.conditional_independencies import are_d_separated
-from y0.dsl import PP, Population, Product, Sum, Transport, Variable
+from y0.dsl import Population, PopulationProbability, Product, Sum, Transport, Variable
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -20,22 +20,17 @@ def find_transport_vertices(
     graph: NxMixedGraph,
 ) -> Set[Variable]:
     """
-    Parameters
-    ----------
-    interventions: The interventions performed in an experiment.
-    surrogate_outcomes: The outcomes observed in an experiment.
-    graph: The graph of the target domain.
 
-    Returns
-    -------
-        Set of variables representing target domain nodes where transportability nodes should be added.
+    :param interventions: The interventions performed in an experiment.
+    :param surrogate_outcomes: The outcomes observed in an experiment.
+    :param graph: The graph of the target domain.
+    :returns: A set of variables representing target domain nodes where transportability nodes should be added.
     """
-
     if isinstance(interventions, Variable):
         interventions = {interventions}
-
     if isinstance(surrogate_outcomes, Variable):
         surrogate_outcomes = {surrogate_outcomes}
+
     # Find the c_component with Wi
     c_components = graph.get_c_components()
     c_component_surrogate_outcomes = set()
@@ -64,6 +59,7 @@ def surrogate_to_transport(
     available_interventions: List[List[Set[Variable]]],
 ) -> tuple[Variable]:
     # TODO should this be a list instead of tuple?
+    # Answer: absolutely not, a list has no semantics. Much better to create a named tuple or dataclass for this.
     """
     Parameters
     ----------
@@ -124,7 +120,7 @@ def surrogate_to_transport(
 
 def trso_line1(
     target_outcomes: Set[Variable],
-    probability: PP,
+    probability: PopulationProbability,
     transportability_diagram: NxMixedGraph,
 ) -> Sum:
     """
@@ -146,10 +142,10 @@ def trso_line1(
 def trso_line2(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
-    probability: PP,
+    probability: PopulationProbability,
     active_interventions: Set[Variable],
     domain: Variable,
-    transportability_diagrams: NxMixedGraph,
+    transportability_diagram: NxMixedGraph,
     available_interventions: List[Set[Variable]],
     outcomes_anc: Set[Variable],
 ) -> Dict:
@@ -187,7 +183,7 @@ def trso_line2(
 def trso_line3(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
-    probability: PP,
+    probability: PopulationProbability,
     active_interventions: Set[Variable],
     domain: Variable,
     transportability_diagram: NxMixedGraph,
@@ -228,7 +224,7 @@ def trso_line3(
 def trso_line4(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
-    probability: PP,
+    probability: PopulationProbability,
     active_interventions: Set[Variable],
     domain: Variable,
     transportability_diagram: NxMixedGraph,
@@ -272,7 +268,7 @@ def trso_line4(
 def trso_line6(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
-    probability: PP,
+    probability: PopulationProbability,
     active_interventions: Set[Variable],
     domain: Variable,
     transportability_diagram: NxMixedGraph,
@@ -297,8 +293,6 @@ def trso_line6(
         List of Dictionary of modified trso inputs
 
     """
-    raise NotImplementedError
-
     if not active_interventions:
         expressions = []
         for i in range(len(transportability_diagrams)):
@@ -343,7 +337,7 @@ def trso_line6(
 def trso(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
-    probability: PP,
+    probability: PopulationProbability,
     active_interventions: Set[Variable],
     domain: Variable,
     transportability_diagrams: Dict[Variable, NxMixedGraph],

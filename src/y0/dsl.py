@@ -91,7 +91,7 @@ __all__ = [
     "vmap_adj",
     "vmap_pairs",
     # Transport
-    "PopulationProbabilityBuilderType",
+    "PopulationProbability",
     "PP",
     "Pi1",
     "Pi2",
