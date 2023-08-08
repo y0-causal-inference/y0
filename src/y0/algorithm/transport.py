@@ -3,7 +3,7 @@
 ..seealso:: https://arxiv.org/abs/1806.07172
 """
 
-from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Union
+from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple, Union
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import Population, PopulationProbability, Product, Sum, Transport, Variable
@@ -31,11 +31,11 @@ def find_transport_vertices(
     if isinstance(surrogate_outcomes, Variable):
         surrogate_outcomes = {surrogate_outcomes}
 
-    # Find the c_component with Wi
+    # Find the c_component with surrogate_outcomes
     c_components = graph.get_c_components()
     c_component_surrogate_outcomes = set()
     for index, component in enumerate(c_components):
-        # Check if Wi is present in the current set
+        # Check if surrogate_outcomes is present in the current set
         if surrogate_outcomes.intersection(component):
             c_component_surrogate_outcomes = c_component_surrogate_outcomes.union(component)
 
@@ -52,58 +52,70 @@ def find_transport_vertices(
     )
 
 
+def create_transport_diagram(
+    transport_vertices: Union[Set[Variable], Variable],
+    graph: NxMixedGraph,
+) -> NxMixedGraph:
+    """
+
+    :param transport_vertices: Vertices which have transport nodes pointing to them.
+    :param graph: The graph of the target domain.
+    :returns: graph with transport vertices added
+    """
+
+    # TODO we discussed the possibility of using a dictionary with needed nodes
+    # instead of creating a graph for each diagram.
+    transportability_diagram = NxMixedGraph()
+    for node in graph.nodes():
+        transportability_diagram.add_node(node)
+    for u, v in graph.directed.edges():
+        transportability_diagram.add_directed_edge(u, v)
+    for u, v in graph.undirected.edges():
+        transportability_diagram.add_undirected_edge(u, v)
+
+    for vertex in transport_vertices:
+        # TODO Make this a true Transport instead of a Variable
+        # T_vertex = Transport(vertex)
+        T_vertex = Variable("T" + vertex.to_text())
+        transportability_diagram.add_node(T_vertex)
+        transportability_diagram.add_directed_edge(T_vertex, vertex)
+
+    return transportability_diagram
+
+
 def surrogate_to_transport(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
     graph: NxMixedGraph,
-    available_interventions: List[List[Set[Variable]]],
+    available_interventions: List[Tuple[Set[Variable]]],
 ) -> tuple[Variable]:
-    # TODO should this be a list instead of tuple?
-    # Answer: absolutely not, a list has no semantics. Much better to create a named tuple or dataclass for this.
     """
-    Parameters
-    ----------
-    target_outcomes: A set of target variables for causal effects.
-    target_interventions: A set of interventions for the target domain.
-    graph: The graph of the target domain.
-    available_interventions : A set of Experiments available in each domain.
 
-
-    Returns
-    -------
-    TransportabilityQuery
-        An octuple representing the query transformation of a surrogate outcome query.
+    :param target_outcomes: A set of target variables for causal effects.
+    :param target_interventions: A set of interventions for the target domain.
+    :param graph: The graph of the target domain.
+    :param available_interventions : A set of Experiments available in each domain.
+    :returns: An octuple representing the query transformation of a surrogate outcome query.
 
     """
-    experiment_interventions, experiment_surrogate_outcomes = zip(*available_interventions)
+    # TODO what structure do we want for available_interventions?
+    # We said dictionary, but it should be keyed by domains which doesn't exist yet.
 
     transportability_diagrams = {}
     domains = [Variable(f"pi{i+1}") for i in range(len(available_interventions))]
 
-    for i, domain in enumerate(domains):  # FIXME use zip to iterate over multiple lists together
-        # FIXME use more descriptive name implied by function, e.g., transport_verticies
-        vertices = find_transport_vertices(
-            experiment_interventions[i], experiment_surrogate_outcomes[i], graph
+    surrogate_interventions = {
+        domain: intervention for (intervention, _), domain in zip(available_interventions, domains)
+    }
+    surrogate_outcomes = {
+        domain: outcome for (_, outcome), domain in zip(available_interventions, domains)
+    }
+
+    for domain in domains:
+        transport_vertices = find_transport_vertices(
+            surrogate_interventions[domain], surrogate_outcomes[domain], graph
         )
-        # TODO should we make a NxMixedGraph.copy()
-        # FIXME better to split this kind of thing into auxiliary function
-        # transportability_diagram = graph.copy()
-        transportability_diagram = NxMixedGraph()
-        for node in graph.nodes():
-            transportability_diagram.add_node(node)
-        for dir_edge in graph.directed.edges():
-            # FIXME unpack in for loop, using opaque list indexes makes it harder to understand
-            transportability_diagram.add_directed_edge(dir_edge[0], dir_edge[1])
-        for bidir_edge in graph.undirected.edges():
-            transportability_diagram.add_undirected_edge(bidir_edge[0], bidir_edge[1])
-
-        for vertex in vertices:
-            # TODO Make this a true Transport instead of a Variable
-            # T_vertex = Transport(vertex)
-            T_vertex = Variable("T" + vertex.to_text())
-            transportability_diagram.add_node(T_vertex)
-            transportability_diagram.add_directed_edge(T_vertex, vertex)
-
+        transportability_diagram = create_transport_diagram(graph, transport_vertices)
         transportability_diagrams[domain] = transportability_diagram
 
     target_domain = Variable("pi*")
@@ -116,7 +128,7 @@ def surrogate_to_transport(
         graph,
         domains,
         target_domain,
-        experiment_interventions,
+        surrogate_interventions,  # TODO this is now a dictionary. Need to make changes throughout the code.
         experiments_in_target_domain,
     )
 
