@@ -282,10 +282,12 @@ def trso_line6(
     :return List of Dictionary of modified trso inputs
 
     """
+    domains = transportability_diagrams.keys()  # TODO should we be passing domains through as well?
+    transportability_diagram = transportability_diagrams[domain]
     if active_interventions:
         raise NotImplementedError
     expressions = []
-    for loop_domain in domains:  # TODO we can't do this because domains is not passed through.
+    for loop_domain in domains:
         if not available_interventions[loop_domain].intersection(target_interventions):
             continue
         transportability_nodes = transportability_diagrams[loop_domain].get_transport_nodes()
