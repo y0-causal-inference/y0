@@ -87,14 +87,14 @@ def surrogate_to_transport(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
     graph: NxMixedGraph,
-    available_interventions: List[Tuple[Set[Variable]]],
+    intervention_outcome_pairs: List[Tuple[Set[Variable]]],
 ) -> tuple[Variable]:
     """
 
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
     :param graph: The graph of the target domain.
-    :param available_interventions : A set of Experiments available in each domain.
+    :param intervention_outcome_pairs : A set of Experiments available in each domain.
     :returns: An octuple representing the query transformation of a surrogate outcome query.
 
     """
@@ -102,13 +102,14 @@ def surrogate_to_transport(
     # We said dictionary, but it should be keyed by domains which doesn't exist yet.
 
     transportability_diagrams = {}
-    domains = [Variable(f"pi{i+1}") for i in range(len(available_interventions))]
+    domains = [Variable(f"pi{i+1}") for i in range(len(intervention_outcome_pairs))]
 
     surrogate_interventions = {
-        domain: intervention for (intervention, _), domain in zip(available_interventions, domains)
+        domain: intervention
+        for (intervention, _), domain in zip(intervention_outcome_pairs, domains)
     }
     surrogate_outcomes = {
-        domain: outcome for (_, outcome), domain in zip(available_interventions, domains)
+        domain: outcome for (_, outcome), domain in zip(intervention_outcome_pairs, domains)
     }
 
     for domain in domains:
@@ -128,7 +129,7 @@ def surrogate_to_transport(
         graph,
         domains,
         target_domain,
-        surrogate_interventions,  # TODO this is now a dictionary. Need to make changes throughout the code.
+        surrogate_interventions,
         experiments_in_target_domain,
     )
 
@@ -139,16 +140,11 @@ def trso_line1(
     transportability_diagram: NxMixedGraph,
 ) -> Sum:
     """
-    Parameters
-    ----------
-    target_outcomes: A set of nodes that comprise our target outcomes.
-    probability : The distribution in the current domain.
-    transportability_diagram : The graph with transport nodes in this domain.
 
-    Returns
-    -------
-    Sum
-        Sum over the probabilities of nodes other than target outcomes.
+    :param target_outcomes: A set of nodes that comprise our target outcomes.
+    :param probability : The distribution in the current domain.
+    :param transportability_diagram : The graph with transport nodes in this domain.
+    :returns: Sum over the probabilities of nodes other than target outcomes.
 
     """
     return Sum.safe(probability, transportability_diagram.nodes() - target_outcomes)
@@ -160,37 +156,32 @@ def trso_line2(
     probability: PopulationProbability,
     active_interventions: Set[Variable],
     domain: Variable,
-    transportability_diagram: NxMixedGraph,
-    available_interventions: List[Set[Variable]],
+    transportability_diagrams: NxMixedGraph,
+    available_interventions: Dict[Set[Variable]],
     outcomes_anc: Set[Variable],
 ) -> Dict:
     """
 
-
-    Parameters
-    ----------
-    target_outcomes: A set of target variables for causal effects.
-    target_interventions: A set of interventions for the target domain.
-    probability : The distribution in the current domain.
-    active_interventions : which interventions are currently active
-    domain : current domain
-    transportability_diagram : graph with transport nodes in this domain
-    available_interventions : A set of Experiments available in each domain.
-    outcomes_anc : the ancestors of target variables in transportability_diagram
-
-    Returns
-    -------
-    Dict
-        Dictionary of modified trso inputs.
+    :param target_outcomes: A set of target variables for causal effects.
+    :param target_interventions: A set of interventions for the target domain.
+    :param probability : The distribution in the current domain.
+    :param active_interventions : which interventions are currently active
+    :param domain : current domain
+    :param transportability_diagrams : Dictionary of all available transportability diagrams
+    :param available_interventions : A dictionary of sets of Experiments available in each domain.
+    :param outcomes_anc : the ancestors of target variables in transportability_diagram
+    :returns: Dictionary of modified trso inputs.
 
     """
+    transportability_diagram = transportability_diagrams[domain]
+    transportability_diagram = (transportability_diagram.subgraph(outcomes_anc),)
     return dict(
         target_outcomes=target_outcomes,
         target_interventions=target_interventions.intersection(outcomes_anc),
         probability=Sum.safe(probability, transportability_diagram.nodes() - outcomes_anc),
         active_interventions=active_interventions,
         domain=domain,
-        transportability_diagram=transportability_diagram.subgraph(outcomes_anc),
+        transportability_diagrams=transportability_diagrams,
         available_interventions=available_interventions,
     )
 
@@ -201,28 +192,21 @@ def trso_line3(
     probability: PopulationProbability,
     active_interventions: Set[Variable],
     domain: Variable,
-    transportability_diagram: NxMixedGraph,
-    available_interventions: List[Set[Variable]],
+    transportability_diagrams: Dict[Variable, NxMixedGraph],
+    available_interventions: Dict[Set[Variable]],
     additional_interventions: Set[Variable],
 ) -> Dict:
     """
 
-
-    Parameters
-    ----------
-    target_outcomes: A set of target variables for causal effects.
-    target_interventions: A set of interventions for the target domain.
-    probability : The distribution in the current domain.
-    active_interventions : which interventions are currently active
-    domain : current domain
-    transportability_diagram : graph with transport nodes in this domain
-    available_interventions : A set of Experiments available in each domain.
-    additional_interventions : interventions to be added to target_interventions
-
-    Returns
-    -------
-    Dict
-        Dictionary of modified trso inputs.
+    :param target_outcomes: A set of target variables for causal effects.
+    :param target_interventions: A set of interventions for the target domain.
+    :param probability : The distribution in the current domain.
+    :param active_interventions : which interventions are currently active
+    :param domain : current domain
+    :param transportability_diagrams : Dictionary of all available transportability diagrams
+    :param available_interventions : A dictionary of sets of Experiments available in each domain.
+    :param additional_interventions : interventions to be added to target_interventions
+    :returns: dictionary of modified trso inputs.
 
     """
     return dict(
@@ -231,7 +215,7 @@ def trso_line3(
         probability=probability,
         active_interventions=active_interventions,
         domain=domain,
-        transportability_diagram=transportability_diagram,
+        transportability_diagrams=transportability_diagrams,
         available_interventions=available_interventions,
     )
 
@@ -242,30 +226,26 @@ def trso_line4(
     probability: PopulationProbability,
     active_interventions: Set[Variable],
     domain: Variable,
-    transportability_diagram: NxMixedGraph,
-    available_interventions: List[Set[Variable]],
+    transportability_diagrams: Dict[Variable, NxMixedGraph],
+    available_interventions: Dict[Set[Variable]],
     components: Set[FrozenSet[Variable]],
 ) -> Dict[FrozenSet, Dict]:
     """
 
 
-    Parameters
-    ----------
-    target_outcomes: A set of target variables for causal effects.
-    target_interventions: A set of interventions for the target domain.
-    probability : The distribution in the current domain.
-    active_interventions : which interventions are currently active
-    domain : current domain
-    transportability_diagram : graph with transport nodes in this domain
-    available_interventions : A set of Experiments available in each domain.
-    components : Set of c_components of transportability_diagram without target_interventions
-
-    Returns
-    -------
-    Dict
-        Dictionary with components as keys and dictionary of modified trso inputs as values
+    :param target_outcomes: A set of target variables for causal effects.
+    :param target_interventions: A set of interventions for the target domain.
+    :param probability : The distribution in the current domain.
+    :param active_interventions : which interventions are currently active
+    :param domain : current domain
+    :param transportability_diagrams : Dictionary of all available transportability diagrams
+    :param available_interventions : A dictionary of sets of Experiments available in each domain.
+    :param components : Set of c_components of transportability_diagram without target_interventions
+    :returns: Dictionary with components as keys and dictionary of modified trso inputs as values
 
     """
+    transportability_diagram = transportability_diagrams[domain]
+
     return {
         component: dict(
             target_outcomes=component,
@@ -273,7 +253,7 @@ def trso_line4(
             probability=probability,
             active_interventions=active_interventions,
             domain=domain,
-            transportability_diagram=transportability_diagram,
+            transportability_diagrams=transportability_diagrams,
             available_interventions=available_interventions,
         )
         for component in components
@@ -286,65 +266,61 @@ def trso_line6(
     probability: PopulationProbability,
     active_interventions: Set[Variable],
     domain: Variable,
-    transportability_diagram: NxMixedGraph,
-    available_interventions: List[Set[Variable]],
     transportability_diagrams: Dict[Variable, NxMixedGraph],
+    available_interventions: Dict[Set[Variable]],
 ) -> List[Dict]:
     """
     Parameters
     ----------
-    target_outcomes: A set of target variables for causal effects.
-    target_interventions: A set of interventions for the target domain.
-    probability : The distribution in the current domain.
-    active_interventions : which interventions are currently active
-    domain : current domain
-    transportability_diagrams : Dictionary of all available transportability diagrams
-    available_interventions : A set of Experiments available in each domain.
-    transportability_diagrams : Dictionary of all available transportability diagrams
-
-    Returns
-    -------
-    Dict
-        List of Dictionary of modified trso inputs
+    :param target_outcomes: A set of target variables for causal effects.
+    :param target_interventions: A set of interventions for the target domain.
+    :param probability : The distribution in the current domain.
+    :param active_interventions : which interventions are currently active
+    :param domain : current domain
+    :param transportability_diagrams : Dictionary of all available transportability diagrams
+    :param available_interventions : A dictionary of sets of Experiments available in each domain.
+    :return List of Dictionary of modified trso inputs
 
     """
-    if not active_interventions:
-        expressions = []
-        for i in range(len(transportability_diagrams)):
-            if available_interventions[i].intersection(target_interventions):
-                transportability_nodes = transportability_diagrams[i].get_transport_nodes()
-                diagram_without_interventions = transportability_diagrams[i].remove_in_edges(
-                    target_interventions
-                )
-
-                if all(
-                    are_d_separated(
-                        diagram_without_interventions,
-                        node,
-                        outcome,
-                        conditions=target_interventions,
-                    )
-                    for node in transportability_nodes
-                    for outcome in target_outcomes
-                ):
-                    expressions.append(
-                        dict(
-                            target_outcomes=target_outcomes,
-                            target_interventions=target_interventions - available_interventions[i],
-                            probability=probability,
-                            active_interventions=available_interventions[i].intersection(
-                                target_interventions
-                            ),
-                            domain=i,
-                            transportability_diagram=transportability_diagram.subgraph(
-                                transportability_diagram.nodes()
-                                - available_interventions[i].intersection(target_interventions)
-                            ),
-                            available_interventions=available_interventions,
-                        )
-                    )
-    else:
+    if active_interventions:
         raise NotImplementedError
+    expressions = []
+    for loop_domain in domains:  # TODO we can't do this because domains is not passed through.
+        if not available_interventions[loop_domain].intersection(target_interventions):
+            continue
+        transportability_nodes = transportability_diagrams[loop_domain].get_transport_nodes()
+        diagram_without_interventions = transportability_diagrams[loop_domain].remove_in_edges(
+            target_interventions
+        )
+
+        if not all(
+            are_d_separated(
+                diagram_without_interventions,
+                node,
+                outcome,
+                conditions=target_interventions,
+            )
+            for node in transportability_nodes
+            for outcome in target_outcomes
+        ):
+            continue
+        expressions.append(
+            dict(
+                target_outcomes=target_outcomes,
+                target_interventions=target_interventions - available_interventions[loop_domain],
+                probability=probability,
+                active_interventions=available_interventions[loop_domain].intersection(
+                    target_interventions
+                ),
+                domain=loop_domain,
+                transportability_diagram=transportability_diagram.subgraph(
+                    transportability_diagram.nodes()
+                    - available_interventions[loop_domain].intersection(target_interventions)
+                ),
+                available_interventions=available_interventions,
+            )
+        )
+
     return expressions
 
 
@@ -357,7 +333,7 @@ def trso(
     active_interventions: Set[Variable],
     domain: Variable,
     transportability_diagrams: Dict[Variable, NxMixedGraph],
-    available_interventions: List[Set[Variable]],
+    available_interventions: Dict[Set[Variable]],
 ):
     transportability_diagram = transportability_diagrams[domain]
     # line 1
@@ -463,7 +439,7 @@ def trso(
                 if districts_without_interventions.issubset(district):
                     # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
                     if len(active_interventions) == 0:
-                        new_available_interventions = set()
+                        new_available_interventions = set()  # FIXME this is a dict now
                     elif any(
                         isinstance(t, Transport)
                         for t in transportability_diagram.get_markov_pillow(district)
