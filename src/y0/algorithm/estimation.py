@@ -10,8 +10,8 @@ or P-fixable, so you know which algorithm to use.
 
 from typing import List, Literal, Optional, Union
 
+from y0.dsl import CounterfactualVariable, Variable
 from y0.graph import NxMixedGraph
-from y0.dsl import Variable, CounterfactualVariable
 
 __all__ = [
     "estimate_causal_effect",
@@ -26,18 +26,21 @@ def estimate_causal_effect(
     graph: NxMixedGraph,
     treatment: Variable,
     outcome: Variable,
-    data: ...,
+    data,
     *,
-    query_type: Literal['ate', 'expectation', 'probability'],
+    query_type: Literal["ate", "expectation", "probability"],
     conditions: Optional[List[Variable]] = None,
 ) -> float:
-
-    if query_type == 'ate':
-
-    elif query_type == 'expectation':
+    if query_type == "ate":
+        return estimate_ate(
+            graph=graph, treatment=treatment, outcome=outcome, data=data, conditions=conditions
+        )
+    elif query_type == "expectation":
         raise NotImplementedError
-    elif query_type == 'probability':
+    elif query_type == "probability":
         raise NotImplementedError
+    else:
+        raise TypeError
 
 
 def estimate_ate(
