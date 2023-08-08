@@ -20,7 +20,7 @@ def find_transport_vertices(
     graph: NxMixedGraph,
 ) -> Set[Variable]:
     """
-
+    Identify which vertices the transport vertices should point to.
     :param interventions: The interventions performed in an experiment.
     :param surrogate_outcomes: The outcomes observed in an experiment.
     :param graph: The graph of the target domain.
@@ -57,7 +57,7 @@ def create_transport_diagram(
     graph: NxMixedGraph,
 ) -> NxMixedGraph:
     """
-
+    Create a NxMixedGraph identical to graph but with transport vertices added.
     :param transport_vertices: Vertices which have transport nodes pointing to them.
     :param graph: The graph of the target domain.
     :returns: graph with transport vertices added
@@ -90,7 +90,7 @@ def surrogate_to_transport(
     intervention_outcome_pairs: List[Tuple[Set[Variable]]],
 ) -> tuple[Variable]:
     """
-
+    Create transportability diagrams and query from a surrogate outcome problem.
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
     :param graph: The graph of the target domain.
@@ -140,7 +140,7 @@ def trso_line1(
     transportability_diagram: NxMixedGraph,
 ) -> Sum:
     """
-
+    Return the probability in the case where no interventions are present.
     :param target_outcomes: A set of nodes that comprise our target outcomes.
     :param probability : The distribution in the current domain.
     :param transportability_diagram : The graph with transport nodes in this domain.
@@ -161,7 +161,7 @@ def trso_line2(
     outcomes_anc: Set[Variable],
 ) -> Dict:
     """
-
+    Restrict the interventions and diagram to only include ancestors of target variables.
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
     :param probability : The distribution in the current domain.
@@ -231,8 +231,7 @@ def trso_line4(
     components: Set[FrozenSet[Variable]],
 ) -> Dict[FrozenSet, Dict]:
     """
-
-
+    Find the trso inputs for each c-component.
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
     :param probability : The distribution in the current domain.
@@ -270,8 +269,7 @@ def trso_line6(
     available_interventions: Dict[Set[Variable]],
 ) -> List[Dict]:
     """
-    Parameters
-    ----------
+    Find the active interventions in each diagram, run trso with active interventions.
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
     :param probability : The distribution in the current domain.
@@ -424,10 +422,39 @@ def trso(
 
         # line8
         districts = transportability_diagram.get_c_components()
-        if len(districts) > 1:
-            # line9
-            if districts_without_interventions in districts:
-                return trso_line9(
+        # line 11, return fail
+        if len(districts) <= 1:
+            return None
+        # line 8, i.e. len(districts)>1
+
+        # line9
+        if districts_without_interventions in districts:
+            return trso_line9(
+                target_outcomes,
+                target_interventions,
+                probability,
+                active_interventions,
+                domain,
+                transportability_diagram,
+                available_interventions,
+            )
+        # line10
+        for district in districts:
+            if districts_without_interventions.issubset(district):
+                # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
+                if len(active_interventions) == 0:
+                    new_available_interventions = dict()
+                elif any(
+                    isinstance(
+                        t, Transport
+                    )  # TODO this doesn't match how we create transportability_diagram
+                    for t in transportability_diagram.get_markov_pillow(district)
+                ):
+                    return None
+                else:
+                    new_available_interventions = available_interventions
+
+                return trso_line10(
                     target_outcomes,
                     target_interventions,
                     probability,
@@ -435,37 +462,9 @@ def trso(
                     domain,
                     transportability_diagram,
                     available_interventions,
+                    district,
+                    new_available_interventions,
                 )
-            # line10
-            for district in districts:
-                if districts_without_interventions.issubset(district):
-                    # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
-                    if len(active_interventions) == 0:
-                        new_available_interventions = set()  # FIXME this is a dict now
-                    elif any(
-                        isinstance(t, Transport)
-                        for t in transportability_diagram.get_markov_pillow(district)
-                    ):
-                        return None
-                    else:
-                        new_available_interventions = available_interventions
-
-                    return trso_line10(
-                        target_outcomes,
-                        target_interventions,
-                        probability,
-                        active_interventions,
-                        domain,
-                        transportability_diagram,
-                        available_interventions,
-                        district,
-                        new_available_interventions,
-                    )
-
-        # line11
-        else:
-            # use guard clauses, return early
-            return None
 
 
 def transport(
