@@ -124,13 +124,14 @@ class TestTransport(cases.GraphTestCase):
             experiment_outcomes=experiment_outcomes,
             experiment_interventions=experiment_interventions,
         )
-        domains = [Pi1, Pi2]
+        domains = {Pi1, Pi2}
         experiment_interventions, experiment_surrogate_outcomes = zip(*available_experiments)
         experiments_in_target_domain = set()
 
         transportability_diagrams = {
-            domains[0]: transportability_diagram1,
-            domains[1]: transportability_diagram2,
+            TARGET_DOMAIN: tikka_trso_figure_8,
+            Pi1: transportability_diagram1,
+            Pi2: transportability_diagram2,
         }
 
         expected = (
@@ -142,6 +143,18 @@ class TestTransport(cases.GraphTestCase):
             TARGET_DOMAIN,
             experiment_interventions,
             experiments_in_target_domain,
+        )
+        expected = TransportQuery(
+            target_interventions=target_interventions,
+            target_outcomes=target_outcomes,
+            transportability_diagrams={
+                TARGET_DOMAIN: tikka_trso_figure_8,
+                Pi1: transportability_diagram1,
+                Pi2: transportability_diagram2,
+            },
+            domains={Pi1, Pi2},
+            surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
+            target_experiments=set(),
         )
 
         self.assertEqual(actual, expected)
