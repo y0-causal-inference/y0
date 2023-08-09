@@ -3,7 +3,7 @@
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple, Union, cast
+from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple, Union, cast, Iterable
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
@@ -26,14 +26,13 @@ logger = logging.getLogger(__name__)
 TARGET_DOMAIN = Population("pi*")
 
 
-# FIXME rename this
-def find_transport_nodes(
+def get_nodes_to_transport(
     *,
     surrogate_interventions: Union[Set[Variable], Variable],
     surrogate_outcomes: Union[Set[Variable], Variable],
     graph: NxMixedGraph,
 ) -> Set[Variable]:
-    """Identify which vertices the transport vertices should point to.
+    """Identify which nodes the transport nodes should point to.
 
     :param surrogate_interventions: The interventions performed in an experiment.
     :param surrogate_outcomes: The outcomes observed in an experiment.
@@ -86,14 +85,14 @@ def get_transport_nodes(graph: NxMixedGraph) -> Set[Variable]:
 
 def create_transport_diagram(
     *,
-    nodes: Union[Set[Variable], Variable],
+    nodes_to_transport: Iterable[Variable],
     graph: NxMixedGraph,
 ) -> NxMixedGraph:
-    """Create a NxMixedGraph identical to graph but with transport vertices added.
+    """Create a NxMixedGraph identical to graph but with transport nodes added.
 
-    :param nodes: Vertices which have transport nodes pointing to them.
+    :param nodes_to_transport: nodes which have transport nodes pointing to them.
     :param graph: The graph of the target domain.
-    :returns: graph with transport vertices added
+    :returns: graph with transport nodes added
     """
     # TODO we discussed the possibility of using a dictionary with needed nodes
     #  instead of creating a graph for each diagram.
@@ -104,7 +103,7 @@ def create_transport_diagram(
         rv.add_directed_edge(u, v)
     for u, v in graph.undirected.edges():
         rv.add_undirected_edge(u, v)
-    for node in nodes:
+    for node in nodes_to_transport:
         transport_node = transport_variable(node)
         rv.add_directed_edge(transport_node, node)
     return rv
@@ -144,7 +143,7 @@ def surrogate_to_transport(
     transportability_diagrams = {
         domain: create_transport_diagram(
             graph=graph,
-            nodes=find_transport_nodes(
+            nodes_to_transport=get_nodes_to_transport(
                 surrogate_interventions=surrogate_interventions[domain],
                 surrogate_outcomes=surrogate_outcomes[domain],
                 graph=graph,
