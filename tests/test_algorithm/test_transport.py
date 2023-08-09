@@ -117,8 +117,7 @@ class TestTransport(cases.GraphTestCase):
             experiment_outcomes=experiment_outcomes,
             experiment_interventions=experiment_interventions,
         )
-        target_domain = Variable("pi*")
-        domains = [Variable("pi1"), Variable("pi2")]
+        domains = [Pi1, Pi2]
         experiment_interventions, experiment_surrogate_outcomes = zip(*available_experiments)
         experiments_in_target_domain = set()
 
@@ -133,7 +132,7 @@ class TestTransport(cases.GraphTestCase):
             transportability_diagrams,
             tikka_trso_figure_8,
             domains,
-            target_domain,
+            TARGET_DOMAIN,
             experiment_interventions,
             experiments_in_target_domain,
         )
@@ -145,9 +144,8 @@ class TestTransport(cases.GraphTestCase):
         outcomes = {Y1, Y2}
         interventions = {}
         active_interventions = {}
-        domain = Variable("pi*")
         domain_graph = tikka_trso_figure_8
-        prob = PP[domain](*list(domain_graph.nodes()))
+        prob = PP[TARGET_DOMAIN](*list(domain_graph.nodes()))
         available_interventions = [{X2}, {X1}]
 
         expected = Sum.safe(prob, {W, X1, X2, Z})
@@ -228,8 +226,7 @@ class TestTransport(cases.GraphTestCase):
         target_outcomes = {Y}
         active_interventions = {}
         available_interventions = {X}
-        domain = Variable("pi*")
-        prob = PP[domain](*list(transportability_diagram.nodes()))
+        prob = PP[TARGET_DOMAIN](*list(transportability_diagram.nodes()))
         target_interventions_overbar = transportability_diagram.remove_in_edges(
             target_interventions
         )
@@ -244,7 +241,7 @@ class TestTransport(cases.GraphTestCase):
             target_interventions=target_interventions.union(additional_interventions),
             probability=prob,
             active_interventions=active_interventions,
-            domain=domain,
+            domain=TARGET_DOMAIN,
             transportability_diagram=transportability_diagram,
             available_interventions=available_interventions,
         )
@@ -265,9 +262,8 @@ class TestTransport(cases.GraphTestCase):
     def test_trso_line4(self):
         target_outcomes = {Y1, Y2}
         target_interventions = {X1, X2}
-        domain = Variable("pi*")
         transportability_diagram = tikka_trso_figure_8
-        prob = PP[domain](*list(transportability_diagram.nodes()))
+        prob = PP[TARGET_DOMAIN](*list(transportability_diagram.nodes()))
         active_interventions = {}
         available_interventions = {X1, X2}
         districts_without_interventions = transportability_diagram.subgraph(
@@ -280,7 +276,7 @@ class TestTransport(cases.GraphTestCase):
                 target_interventions={X1, X2, Z, W, Y1},
                 probability=prob,
                 active_interventions=active_interventions,
-                domain=domain,
+                domain=TARGET_DOMAIN,
                 transportability_diagram=transportability_diagram,
                 available_interventions=available_interventions,
             ),
@@ -309,7 +305,7 @@ class TestTransport(cases.GraphTestCase):
             target_interventions,
             prob,
             active_interventions,
-            domain,
+            TARGET_DOMAIN,
             transportability_diagram,
             available_interventions,
             districts_without_interventions,
