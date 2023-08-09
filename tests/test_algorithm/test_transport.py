@@ -91,17 +91,23 @@ class TestTransport(cases.GraphTestCase):
     #     # TODO probably need to canonicalize both of these
     #     self.assertEqual(expected, actual)
 
-    def test_find_transport_vertices(self):
+    def test_get_nodes_to_transport(self):
         expected = {X1, Y2}
-        actual = get_nodes_to_transport(X1, Y1, tikka_trso_figure_8)
+        actual = get_nodes_to_transport(
+            surrogate_interventions=X1, surrogate_outcomes=Y1, graph=tikka_trso_figure_8
+        )
         self.assertEqual(actual, expected)
         expected = {X2}
-        actual = get_nodes_to_transport({X2}, {Y2}, tikka_trso_figure_8)
+        actual = get_nodes_to_transport(
+            surrogate_interventions={X2}, surrogate_outcomes={Y2}, graph=tikka_trso_figure_8
+        )
         self.assertEqual(actual, expected)
 
         # Test for multiple vertices in interventions and surrogate_outcomes
         expected = {X1, X2, Y1}
-        actual = get_nodes_to_transport({X2, X1}, {Y2, W}, tikka_trso_figure_8)
+        actual = get_nodes_to_transport(
+            surrogate_interventions={X2, X1}, surrogate_outcomes={Y2, W}, graph=tikka_trso_figure_8
+        )
         self.assertEqual(actual, expected)
 
     def test_surrogate_to_transport(self):
