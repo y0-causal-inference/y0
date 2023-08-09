@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 TARGET_DOMAIN = Population("pi*")
 
+
 # FIXME rename this
 def find_transport_nodes(
     *,
@@ -45,12 +46,11 @@ def find_transport_nodes(
         surrogate_outcomes = {surrogate_outcomes}
 
     # Find the c_component with surrogate_outcomes
-    c_components = graph.get_c_components()
     c_component_surrogate_outcomes = set()
-    for index, component in enumerate(c_components):
+    for component in graph.get_c_components():
         # Check if surrogate_outcomes is present in the current set
         if surrogate_outcomes.intersection(component):
-            c_component_surrogate_outcomes = c_component_surrogate_outcomes.union(component)
+            c_component_surrogate_outcomes.update(component)
 
     # subgraph where interventions in edges are removed
     interventions_overbar = graph.remove_in_edges(surrogate_interventions)
@@ -147,7 +147,7 @@ def surrogate_to_transport(
             nodes=find_transport_nodes(
                 surrogate_interventions=surrogate_interventions[domain],
                 surrogate_outcomes=surrogate_outcomes[domain],
-                graph=graph
+                graph=graph,
             ),
         )
         for domain in surrogate_outcomes
