@@ -5,6 +5,7 @@ import unittest
 from tests.test_algorithm import cases
 from y0.algorithm.transport import (
     TARGET_DOMAIN,
+    TRANSPORT_PREFIX,
     TransportQuery,
     TRSOQuery,
     get_nodes_to_transport,
@@ -54,8 +55,8 @@ transportability_diagram1 = NxMixedGraph.from_edges(
         (Z, X2),
         (X2, Y2),
         (Z, Y2),
-        (Variable("TX1"), X1),
-        (Variable("TY2"), Y2),
+        (Variable(TRANSPORT_PREFIX + X1.name), X1),
+        (Variable(TRANSPORT_PREFIX + Y2.name), Y2),
     ],
 )
 transportability_diagram2 = NxMixedGraph.from_edges(
@@ -69,7 +70,7 @@ transportability_diagram2 = NxMixedGraph.from_edges(
         (Z, X2),
         (X2, Y2),
         (Z, Y2),
-        (Variable("TX2"), X2),
+        (Variable(TRANSPORT_PREFIX + X2.name), X2),
     ],
 )
 
@@ -113,20 +114,17 @@ class TestTransport(cases.GraphTestCase):
     def test_surrogate_to_transport(self):
         target_outcomes = {Y1, Y2}
         target_interventions = {X1, X2}
-        experiment_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
-        experiment_interventions = {Pi1: {X1}, Pi2: {X2}}
+        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
+        surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
 
         available_experiments = [({X1}, {Y1}), ({X2}, {Y2})]
         actual = surrogate_to_transport(
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
             graph=tikka_trso_figure_8,
-            experiment_outcomes=experiment_outcomes,
-            experiment_interventions=experiment_interventions,
+            surrogate_outcomes=surrogate_outcomes,
+            surrogate_interventions=surrogate_interventions,
         )
-        domains = {Pi1, Pi2}
-        experiment_interventions, experiment_surrogate_outcomes = zip(*available_experiments)
-        experiments_in_target_domain = set()
 
         transportability_diagrams = {
             TARGET_DOMAIN: tikka_trso_figure_8,
@@ -134,16 +132,6 @@ class TestTransport(cases.GraphTestCase):
             Pi2: transportability_diagram2,
         }
 
-        expected = (
-            target_interventions,
-            target_outcomes,
-            transportability_diagrams,
-            tikka_trso_figure_8,
-            domains,
-            TARGET_DOMAIN,
-            experiment_interventions,
-            experiments_in_target_domain,
-        )
         expected = TransportQuery(
             target_interventions=target_interventions,
             target_outcomes=target_outcomes,
@@ -153,10 +141,9 @@ class TestTransport(cases.GraphTestCase):
                 Pi2: transportability_diagram2,
             },
             domains={Pi1, Pi2},
-            surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
             target_experiments=set(),
         )
-
         self.assertEqual(actual, expected)
 
     def test_trso_line1(self):
