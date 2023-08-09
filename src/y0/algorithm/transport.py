@@ -304,6 +304,9 @@ def trso(
     domain: Population,
     probability: Expression,
 ) -> Expression:
+    # Check that domain is in query.domains
+    # check that query.surrogate_interventions keys are equals to domains
+    # check that query.transportability_diagrams keys are equal to domains
     transportability_diagram = query.transportability_diagrams[domain]
     # line 1
     if not query.target_interventions:
@@ -431,16 +434,13 @@ def trso(
             ):
                 return None
             else:
-                new_available_interventions = available_interventions
+                new_available_interventions = query.available_interventions
 
             return trso_line10(
-                target_outcomes,
-                target_interventions,
+                query,
                 probability,
                 active_interventions,
                 domain,
-                transportability_diagram,
-                available_interventions,
                 district,
                 new_available_interventions,
             )

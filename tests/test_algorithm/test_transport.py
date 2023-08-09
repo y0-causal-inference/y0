@@ -4,6 +4,8 @@ import unittest
 
 from tests.test_algorithm import cases
 from y0.algorithm.transport import (
+    TARGET_DOMAIN,
+    TransportQuery,
     find_transport_vertices,
     surrogate_to_transport,
     transport,
@@ -39,6 +41,36 @@ tikka_trso_figure_8_transport = {
     Y2: [Pi1],
     X2: [Pi2],
 }
+
+transportability_diagram1 = NxMixedGraph.from_edges(
+    undirected=[(X1, Y1), (Z, W), (Z, X2)],
+    directed=[
+        (X1, Y1),
+        (X1, Y2),
+        (W, Y1),
+        (W, Y2),
+        (Z, Y1),
+        (Z, X2),
+        (X2, Y2),
+        (Z, Y2),
+        (Variable("TX1"), X1),
+        (Variable("TY2"), Y2),
+    ],
+)
+transportability_diagram2 = NxMixedGraph.from_edges(
+    undirected=[(X1, Y1), (Z, W), (Z, X2)],
+    directed=[
+        (X1, Y1),
+        (X1, Y2),
+        (W, Y1),
+        (W, Y2),
+        (Z, Y1),
+        (Z, X2),
+        (X2, Y2),
+        (Z, Y2),
+        (Variable("TX2"), X2),
+    ],
+)
 
 
 class TestTransport(cases.GraphTestCase):
@@ -89,35 +121,6 @@ class TestTransport(cases.GraphTestCase):
         domains = [Variable("pi1"), Variable("pi2")]
         experiment_interventions, experiment_surrogate_outcomes = zip(*available_experiments)
         experiments_in_target_domain = set()
-        transportability_diagram1 = NxMixedGraph.from_edges(
-            undirected=[(X1, Y1), (Z, W), (Z, X2)],
-            directed=[
-                (X1, Y1),
-                (X1, Y2),
-                (W, Y1),
-                (W, Y2),
-                (Z, Y1),
-                (Z, X2),
-                (X2, Y2),
-                (Z, Y2),
-                (Variable("TX1"), X1),
-                (Variable("TY2"), Y2),
-            ],
-        )
-        transportability_diagram2 = NxMixedGraph.from_edges(
-            undirected=[(X1, Y1), (Z, W), (Z, X2)],
-            directed=[
-                (X1, Y1),
-                (X1, Y2),
-                (W, Y1),
-                (W, Y2),
-                (Z, Y1),
-                (Z, X2),
-                (X2, Y2),
-                (Z, Y2),
-                (Variable("TX2"), X2),
-            ],
-        )
 
         transportability_diagrams = {
             domains[0]: transportability_diagram1,
@@ -157,24 +160,44 @@ class TestTransport(cases.GraphTestCase):
 
     def test_trso_line2(self):
         # triggers line 2 and then 1
+        query = TransportQuery(
+            target_interventions={X1, X2, Y1, Y2},
+            target_outcomes={W, Z},
+            transportability_diagrams=dict(
+                Pi1=transportability_diagram1, Pi2=transportability_diagram2
+            ),
+            graph=tikka_trso_figure_8,
+            domains={Pi1, Pi2},
+            target_domain=TARGET_DOMAIN,
+            surrogate_interventions=dict(Pi1={X2}, Pi2={X1}),
+            target_experiments=set(),
+        )
 
         active_interventions = {}
-        domain = Variable("pi*")
-        domain_graph = tikka_trso_figure_8
-        prob = PP[domain](*list(domain_graph.nodes()))
+        domain = TARGET_DOMAIN
+        probability = PP[Pi1](*list(query.graph.nodes()))
         available_interventions = [{X2}, {X1}]
 
-        outcomes = {W, Z}
-        outcomes_anc = {W, Z}
-        interventions = {X1, X2, Y1, Y2}
+        new_query = TransportQuery(
+            target_interventions={},
+            target_outcomes={W, Z},
+            transportability_diagrams=dict(
+                Pi1=transportability_diagram1, Pi2=transportability_diagram2
+            ),
+            graph=tikka_trso_figure_8,
+            domains={Pi1, Pi2},
+            target_domain=TARGET_DOMAIN,
+            surrogate_interventions=dict(Pi1={X2}, Pi2={X1}),
+            target_experiments=set(),
+        )
+
+        new_probability = Sum.safe(prob, domain_graph.nodes() - outcomes_anc)
         expected = dict(
-            target_outcomes=outcomes,
             target_interventions=interventions.intersection(outcomes_anc),
             probability=Sum.safe(prob, domain_graph.nodes() - outcomes_anc),
             active_interventions=active_interventions,
             domain=domain,
             transportability_diagram=domain_graph.subgraph(outcomes_anc),
-            available_interventions=available_interventions,
         )
 
         # Sum({X1, X2, Y1, Y2}, Sum({X1, X2, Y1, Y2}, Prob))
