@@ -3,15 +3,26 @@
 ..seealso:: https://arxiv.org/abs/1806.07172
 """
 
+from copy import deepcopy
+from dataclasses import dataclass
 from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple, Union
 
 from y0.algorithm.conditional_independencies import are_d_separated
-from y0.dsl import Population, PopulationProbability, Product, Sum, Transport, Variable
+from y0.dsl import (
+    Expression,
+    Population,
+    PopulationProbability,
+    Product,
+    Sum,
+    Transport,
+    Variable,
+)
 from y0.graph import NxMixedGraph
 
 __all__ = [
     "transport",
 ]
+TARGET_DOMAIN = Population("pi*")
 
 
 def find_transport_vertices(
@@ -83,54 +94,53 @@ def create_transport_diagram(
     return transportability_diagram
 
 
+class TransportQuery:
+    target_interventions: Set[Variable]
+    target_outcomes: Set[Variable]
+    transportability_diagrams: Dict[Population, NxMixedGraph]
+    graph: NxMixedGraph
+    domains: Set[Population]
+    target_domain: Population
+    surrogate_interventions: Dict[Population, Set[Variable]]
+    target_experiments: Set[Variable]
+
+
 def surrogate_to_transport(
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
     graph: NxMixedGraph,
-    intervention_outcome_pairs: List[Tuple[Set[Variable]]],
-) -> tuple[Variable]:
-    """
-    Create transportability diagrams and query from a surrogate outcome problem.
+    surrogate_outcomes: Dict[Population, Set[Variable]],
+    surrogate_interventions: Dict[Population, Set[Variable]],
+) -> TransportQuery:
+    """Create transportability diagrams and query from a surrogate outcome problem.
+
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
     :param graph: The graph of the target domain.
     :param intervention_outcome_pairs : A set of Experiments available in each domain.
     :returns: An octuple representing the query transformation of a surrogate outcome query.
-
     """
-    # TODO what structure do we want for available_interventions?
-    # We said dictionary, but it should be keyed by domains which doesn't exist yet.
-
-    transportability_diagrams = {}
-    domains = [Variable(f"pi{i+1}") for i in range(len(intervention_outcome_pairs))]
-
-    surrogate_interventions = {
-        domain: intervention
-        for (intervention, _), domain in zip(intervention_outcome_pairs, domains)
-    }
-    surrogate_outcomes = {
-        domain: outcome for (_, outcome), domain in zip(intervention_outcome_pairs, domains)
-    }
-
-    for domain in domains:
-        transport_vertices = find_transport_vertices(
-            surrogate_interventions[domain], surrogate_outcomes[domain], graph
+    if set(surrogate_outcomes) != set(surrogate_interventions):
+        raise ValueError("Inconsistent surrogate outcome and intervention domains")
+    transportability_diagrams = {
+        domain: create_transport_diagram(
+            graph,
+            find_transport_vertices(
+                surrogate_interventions[domain], surrogate_outcomes[domain], graph
+            ),
         )
-        transportability_diagram = create_transport_diagram(graph, transport_vertices)
-        transportability_diagrams[domain] = transportability_diagram
+        for domain in surrogate_outcomes
+    }
 
-    target_domain = Variable("pi*")
-    experiments_in_target_domain = set()
-
-    return (
-        target_interventions,
-        target_outcomes,
-        transportability_diagrams,
-        graph,
-        domains,
-        target_domain,
-        surrogate_interventions,
-        experiments_in_target_domain,
+    return TransportQuery(
+        target_interventions=target_interventions,
+        target_outcomes=target_outcomes,
+        transportability_diagrams=transportability_diagrams,
+        graph=graph,
+        domains=set(surrogate_outcomes),
+        target_domain=TARGET_DOMAIN,
+        surrogate_interventions=surrogate_interventions,
+        target_experiments=set(),
     )
 
 
@@ -151,15 +161,11 @@ def trso_line1(
 
 
 def trso_line2(
-    target_outcomes: Set[Variable],
-    target_interventions: Set[Variable],
-    probability: PopulationProbability,
-    active_interventions: Set[Variable],
+    query: TransportQuery,
+    probability: Expression,
     domain: Variable,
-    transportability_diagrams: NxMixedGraph,
-    available_interventions: Dict[Set[Variable]],
     outcomes_anc: Set[Variable],
-) -> Dict:
+) -> Tuple[TransportQuery, Expression]:
     """
     Restrict the interventions and diagram to only include ancestors of target variables.
     :param target_outcomes: A set of target variables for causal effects.
@@ -173,29 +179,21 @@ def trso_line2(
     :returns: Dictionary of modified trso inputs.
 
     """
-    transportability_diagram = transportability_diagrams[domain]
-    transportability_diagram = (transportability_diagram.subgraph(outcomes_anc),)
-    return dict(
-        target_outcomes=target_outcomes,
-        target_interventions=target_interventions.intersection(outcomes_anc),
-        probability=Sum.safe(probability, transportability_diagram.nodes() - outcomes_anc),
-        active_interventions=active_interventions,
-        domain=domain,
-        transportability_diagrams=transportability_diagrams,
-        available_interventions=available_interventions,
+    new_query = deepcopy(query)
+    new_query.target_interventions.intersection_update(outcomes_anc)
+    new_query.transportability_diagrams[domain] = new_query.transportability_diagrams[
+        domain
+    ].subgraph(outcomes_anc)
+    new_expression = Sum.safe(
+        probability, new_query.transportability_diagrams[domain].nodes() - outcomes_anc
     )
+    return (new_query, new_expression)
 
 
 def trso_line3(
-    target_outcomes: Set[Variable],
-    target_interventions: Set[Variable],
-    probability: PopulationProbability,
-    active_interventions: Set[Variable],
-    domain: Variable,
-    transportability_diagrams: Dict[Variable, NxMixedGraph],
-    available_interventions: Dict[Set[Variable]],
+    query: TransportQuery,
     additional_interventions: Set[Variable],
-) -> Dict:
+) -> TransportQuery:
     """
 
     :param target_outcomes: A set of target variables for causal effects.
@@ -209,29 +207,18 @@ def trso_line3(
     :returns: dictionary of modified trso inputs.
 
     """
-    return dict(
-        target_outcomes=target_outcomes,
-        target_interventions=target_interventions.union(additional_interventions),
-        probability=probability,
-        active_interventions=active_interventions,
-        domain=domain,
-        transportability_diagrams=transportability_diagrams,
-        available_interventions=available_interventions,
-    )
+    new_query = deepcopy(query)
+    new_query.target_interventions.update(additional_interventions)
+    return new_query
 
 
 def trso_line4(
-    target_outcomes: Set[Variable],
-    target_interventions: Set[Variable],
-    probability: PopulationProbability,
-    active_interventions: Set[Variable],
+    query: TransportQuery,
     domain: Variable,
-    transportability_diagrams: Dict[Variable, NxMixedGraph],
-    available_interventions: Dict[Set[Variable]],
     components: Set[FrozenSet[Variable]],
-) -> Dict[FrozenSet, Dict]:
-    """
-    Find the trso inputs for each c-component.
+) -> Dict[FrozenSet[Variable], TransportQuery]:
+    """Find the trso inputs for each c-component.
+
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
     :param probability : The distribution in the current domain.
@@ -243,33 +230,23 @@ def trso_line4(
     :returns: Dictionary with components as keys and dictionary of modified trso inputs as values
 
     """
-    transportability_diagram = transportability_diagrams[domain]
-
-    return {
-        component: dict(
-            target_outcomes=component,
-            target_interventions=transportability_diagram.nodes() - component,
-            probability=probability,
-            active_interventions=active_interventions,
-            domain=domain,
-            transportability_diagrams=transportability_diagrams,
-            available_interventions=available_interventions,
-        )
-        for component in components
-    }
+    transportability_diagram = query.transportability_diagrams[domain]
+    rv = {}
+    for component in components:
+        new_query = deepcopy(query)
+        new_query.target_outcomes = component
+        new_query.target_interventions = transportability_diagram.nodes() - component
+        rv[component] = new_query
+    return rv
 
 
 def trso_line6(
-    target_outcomes: Set[Variable],
-    target_interventions: Set[Variable],
-    probability: PopulationProbability,
+    query: TransportQuery,
     active_interventions: Set[Variable],
     domain: Variable,
-    transportability_diagrams: Dict[Variable, NxMixedGraph],
-    available_interventions: Dict[Set[Variable]],
-) -> List[Dict]:
-    """
-    Find the active interventions in each diagram, run trso with active interventions.
+) -> Dict[Population, Tuple[TransportQuery, Set[Variable]]]:
+    """Find the active interventions in each diagram, run trso with active interventions.
+
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
     :param probability : The distribution in the current domain.
@@ -280,17 +257,14 @@ def trso_line6(
     :return List of Dictionary of modified trso inputs
 
     """
-    domains = transportability_diagrams.keys()  # TODO should we be passing domains through as well?
-    transportability_diagram = transportability_diagrams[domain]
-    if active_interventions:
-        raise NotImplementedError
-    expressions = []
-    for loop_domain in domains:
-        if not available_interventions[loop_domain].intersection(target_interventions):
+    transportability_diagram = query.transportability_diagrams[domain]
+    expressions = {}
+    for loop_domain, loop_transportability_diagram in query.transportability_diagrams.items():
+        if not query.available_interventions[loop_domain].intersection(query.target_interventions):
             continue
-        transportability_nodes = transportability_diagrams[loop_domain].get_transport_nodes()
-        diagram_without_interventions = transportability_diagrams[loop_domain].remove_in_edges(
-            target_interventions
+        transportability_nodes = loop_transportability_diagram.get_transport_nodes()
+        diagram_without_interventions = loop_transportability_diagram.remove_in_edges(
+            query.target_interventions
         )
 
         if not all(
@@ -298,28 +272,26 @@ def trso_line6(
                 diagram_without_interventions,
                 node,
                 outcome,
-                conditions=target_interventions,
+                conditions=query.target_interventions,
             )
             for node in transportability_nodes
-            for outcome in target_outcomes
+            for outcome in query.target_outcomes
         ):
             continue
-        expressions.append(
-            dict(
-                target_outcomes=target_outcomes,
-                target_interventions=target_interventions - available_interventions[loop_domain],
-                probability=probability,
-                active_interventions=available_interventions[loop_domain].intersection(
-                    target_interventions
-                ),
-                domain=loop_domain,
-                transportability_diagram=transportability_diagram.subgraph(
-                    transportability_diagram.nodes()
-                    - available_interventions[loop_domain].intersection(target_interventions)
-                ),
-                available_interventions=available_interventions,
-            )
+        new_query = deepcopy(query)
+        new_query.target_interventions = (
+            query.target_interventions - query.available_interventions[loop_domain]
         )
+
+        new_query.domain = loop_domain
+        new_query.transportability_diagrams[domain] = transportability_diagram.subgraph(
+            transportability_diagram.nodes()
+            - query.available_interventions[loop_domain].intersection(query.target_interventions)
+        )
+        new_active_interventions = query.available_interventions[loop_domain].intersection(
+            query.target_interventions
+        )
+        expressions[loop_domain] = (new_query, new_active_interventions)
 
     return expressions
 
@@ -327,99 +299,108 @@ def trso_line6(
 # TODO Tikka paper says that topological ordering is available globaly
 # TODO some functions need transportability_diagrams while others need transportability_diagram
 def trso(
-    target_outcomes: Set[Variable],
-    target_interventions: Set[Variable],
-    probability: PopulationProbability,
+    query: TransportQuery,
     active_interventions: Set[Variable],
-    domain: Variable,
-    transportability_diagrams: Dict[Variable, NxMixedGraph],
-    available_interventions: Dict[Set[Variable]],
-):
-    transportability_diagram = transportability_diagrams[domain]
+    domain: Population,
+    probability: Expression,
+) -> Expression:
+    transportability_diagram = query.transportability_diagrams[domain]
     # line 1
-    if not target_interventions:
-        return trso_line1(target_outcomes, probability, transportability_diagram)
+    if not query.target_interventions:
+        return trso_line1(query.target_outcomes, probability, transportability_diagram)
 
     # line 2
-    outcomes_anc = transportability_diagram.ancestors_inclusive(target_outcomes)
+    outcomes_anc = transportability_diagram.ancestors_inclusive(query.target_outcomes)
     if transportability_diagram.nodes() - outcomes_anc:
+        new_query, new_probability = trso_line2(
+            query,
+            probability,
+            domain,
+            outcomes_anc,
+        )
         return trso(
-            **trso_line2(
-                target_outcomes,
-                target_interventions,
-                probability,
-                active_interventions,
-                domain,
-                transportability_diagram,
-                available_interventions,
-                outcomes_anc,
-            )
+            query=new_query,
+            active_interventions=active_interventions,
+            domain=domain,
+            probability=new_probability,
         )
 
     # line 3
 
-    target_interventions_overbar = transportability_diagram.remove_in_edges(target_interventions)
+    target_interventions_overbar = transportability_diagram.remove_in_edges(
+        query.target_interventions
+    )
     additional_interventions = (
         transportability_diagram.nodes()
-        - target_interventions
-        - target_interventions_overbar.ancestors_inclusive(target_outcomes)
+        - query.target_interventions
+        - target_interventions_overbar.ancestors_inclusive(query.target_outcomes)
     )
     if additional_interventions:
+        new_query = trso_line3(
+            query,
+            additional_interventions,
+        )
         return trso(
-            **trso_line3(
-                target_outcomes,
-                target_interventions,
-                probability,
-                active_interventions,
-                domain,
-                transportability_diagram,
-                available_interventions,
-                additional_interventions,
-            )
+            query=new_query,
+            active_interventions=active_interventions,
+            domain=domain,
+            probability=probability,
         )
 
     # line 4
     districts_without_interventions = transportability_diagram.subgraph(
-        transportability_diagram.nodes() - target_interventions
+        transportability_diagram.nodes() - query.target_interventions
     ).get_c_components()
     if len(districts_without_interventions) > 1:
         trso_line4inputs = trso_line4(
-            target_outcomes,
-            target_interventions,
-            probability,
-            active_interventions,
+            query,
             domain,
-            transportability_diagram,
-            available_interventions,
             districts_without_interventions,
         )
 
         return Sum.safe(
             Product.safe(
-                [trso(**trso_line4input) for trso_line4input in trso_line4inputs.values()],
+                [
+                    trso(
+                        query=trso_line4input,
+                        active_interventions=active_interventions,
+                        domain=domain,
+                        probability=probability,
+                    )
+                    for trso_line4input in trso_line4inputs.values()
+                ],
             ),
-            transportability_diagram.nodes() - target_interventions.union(target_outcomes),
+            transportability_diagram.nodes()
+            - query.target_interventions.union(query.target_outcomes),
         )
 
     # line 5
     else:
         # line 6
-        trso_inputs = trso_line6(
-            target_outcomes,
-            target_interventions,
-            probability,
-            active_interventions,
-            domain,
-            transportability_diagram,
-            available_interventions,
-        )
-
-        for trso_input in trso_inputs:
-            expressionk = trso(**trso_input)  # FIXME this is super opaque, write out explicitly
-            # line7
-            if expressionk:
-                return expressionk
-
+        if not active_interventions:
+            trso_inputs = trso_line6(
+                query,
+                active_interventions,
+                domain,
+            )
+            expressions = {}
+            for loop_domain, (loop_query, loop_active_interventions) in trso_inputs.items():
+                expressionk = trso(
+                    query=loop_query,
+                    active_interventions=loop_active_interventions,
+                    domain=loop_domain,
+                    probability=probability,
+                )
+                # line7
+                if expressionk:
+                    expressions[loop_domain] = expressionk
+                    # return expressionk
+            if len(expressions) == 1:
+                return list(expressions.values())[0]
+            elif len(expressions) > 1:
+                # What if more than 1 expression doesn't fail?
+                # Is it non-deterministic or can we prove it will be length 1?
+                return list(expressions.values())[0]
         # line8
         districts = transportability_diagram.get_c_components()
         # line 11, return fail
@@ -430,6 +411,29 @@ def trso(
         # line9
         if districts_without_interventions in districts:
             return trso_line9(
+                query,
+                probability,
+                active_interventions,
+                domain,
+            )
+        # line10
+        for district in districts:
+            if not districts_without_interventions.issubset(district):
+                continue
+            # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
+            if len(active_interventions) == 0:
+                new_available_interventions = dict()
+            elif any(
+                isinstance(
+                    t, Transport
+                )  # TODO this doesn't match how we create transportability_diagram
+                for t in transportability_diagram.get_markov_pillow(district)
+            ):
+                return None
+            else:
+                new_available_interventions = available_interventions
+
+            return trso_line10(
                 target_outcomes,
                 target_interventions,
                 probability,
@@ -437,34 +441,9 @@ def trso(
                 domain,
                 transportability_diagram,
                 available_interventions,
+                district,
+                new_available_interventions,
             )
-        # line10
-        for district in districts:
-            if districts_without_interventions.issubset(district):
-                # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
-                if len(active_interventions) == 0:
-                    new_available_interventions = dict()
-                elif any(
-                    isinstance(
-                        t, Transport
-                    )  # TODO this doesn't match how we create transportability_diagram
-                    for t in transportability_diagram.get_markov_pillow(district)
-                ):
-                    return None
-                else:
-                    new_available_interventions = available_interventions
-
-                return trso_line10(
-                    target_outcomes,
-                    target_interventions,
-                    probability,
-                    active_interventions,
-                    domain,
-                    transportability_diagram,
-                    available_interventions,
-                    district,
-                    new_available_interventions,
-                )
 
 
 def transport(
@@ -475,6 +454,7 @@ def transport(
     conditions: Optional[List[Variable]] = None,
 ):
     """Transport algorithm from https://arxiv.org/abs/1806.07172."""
+
     if conditions is not None:
         raise NotImplementedError
     raise NotImplementedError

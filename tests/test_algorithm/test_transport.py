@@ -74,9 +74,16 @@ class TestTransport(cases.GraphTestCase):
     def test_surrogate_to_transport(self):
         target_outcomes = {Y1, Y2}
         target_interventions = {X1, X2}
+        experiment_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
+        experiment_interventions = {Pi1: {X1}, Pi2: {X2}}
+
         available_experiments = [({X1}, {Y1}), ({X2}, {Y2})]
         actual = surrogate_to_transport(
-            target_outcomes, target_interventions, tikka_trso_figure_8, available_experiments
+            target_outcomes=target_outcomes,
+            target_interventions=target_interventions,
+            graph=tikka_trso_figure_8,
+            experiment_outcomes=experiment_outcomes,
+            experiment_interventions=experiment_interventions,
         )
         target_domain = Variable("pi*")
         domains = [Variable("pi1"), Variable("pi2")]
