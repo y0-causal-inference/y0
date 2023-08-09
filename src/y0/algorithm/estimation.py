@@ -10,6 +10,8 @@ or P-fixable, so you know which algorithm to use.
 
 from typing import List, Literal, Optional, Union
 
+import pandas as pd
+
 from y0.dsl import CounterfactualVariable, Variable
 from y0.graph import NxMixedGraph
 
@@ -26,7 +28,7 @@ def estimate_causal_effect(
     graph: NxMixedGraph,
     treatment: Variable,
     outcome: Variable,
-    data,
+    data: pd.DataFrame,
     *,
     query_type: Literal["ate", "expectation", "probability"],
     conditions: Optional[List[Variable]] = None,
@@ -47,7 +49,7 @@ def estimate_ate(
     graph: NxMixedGraph,
     treatment: Union[Variable, List[Variable]],
     outcome: Union[Variable, List[Variable]],
-    data: ...,
+    data: pd.DataFrame,
     *,
     conditions: Optional[List[Variable]] = None,
 ) -> float:
