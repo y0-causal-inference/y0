@@ -6,7 +6,7 @@ from tests.test_algorithm import cases
 from y0.algorithm.transport import (
     TARGET_DOMAIN,
     TransportQuery,
-    find_transport_vertices,
+    find_transport_nodes,
     surrogate_to_transport,
     transport,
     trso,
@@ -92,15 +92,15 @@ class TestTransport(cases.GraphTestCase):
 
     def test_find_transport_vertices(self):
         expected = {X1, Y2}
-        actual = find_transport_vertices(X1, Y1, tikka_trso_figure_8)
+        actual = find_transport_nodes(X1, Y1, tikka_trso_figure_8)
         self.assertEqual(actual, expected)
         expected = {X2}
-        actual = find_transport_vertices({X2}, {Y2}, tikka_trso_figure_8)
+        actual = find_transport_nodes({X2}, {Y2}, tikka_trso_figure_8)
         self.assertEqual(actual, expected)
 
         # Test for multiple vertices in interventions and surrogate_outcomes
         expected = {X1, X2, Y1}
-        actual = find_transport_vertices({X2, X1}, {Y2, W}, tikka_trso_figure_8)
+        actual = find_transport_nodes({X2, X1}, {Y2, W}, tikka_trso_figure_8)
         self.assertEqual(actual, expected)
 
     def test_surrogate_to_transport(self):
