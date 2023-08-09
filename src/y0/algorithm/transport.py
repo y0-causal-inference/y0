@@ -3,10 +3,22 @@
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple, Union, cast, Iterable
+from typing import (
+    Dict,
+    FrozenSet,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
+    PP,
     CounterfactualVariable,
     Expression,
     Intervention,
@@ -114,11 +126,21 @@ class TransportQuery:
     target_interventions: Set[Variable]
     target_outcomes: Set[Variable]
     transportability_diagrams: Dict[Population, NxMixedGraph]
-    graph: NxMixedGraph
     domains: Set[Population]
-    target_domain: Population
     surrogate_interventions: Dict[Population, Set[Variable]]
     target_experiments: Set[Variable]
+
+
+@dataclass
+class TRSOQuery:
+    target_interventions: Set[Variable]
+    target_outcomes: Set[Variable]
+    expression: Expression
+    active_interventions: Set[Variable]
+    domain: Population
+    domains: Set[Population]
+    transportability_diagrams: Dict[Population, NxMixedGraph]
+    surrogate_interventions: Dict[Population, Set[Variable]]
 
 
 def surrogate_to_transport(
@@ -151,14 +173,13 @@ def surrogate_to_transport(
         )
         for domain in surrogate_outcomes
     }
+    transportability_diagrams[TARGET_DOMAIN] = graph
 
     return TransportQuery(
         target_interventions=target_interventions,
         target_outcomes=target_outcomes,
         transportability_diagrams=transportability_diagrams,
-        graph=graph,
         domains=set(surrogate_outcomes),
-        target_domain=TARGET_DOMAIN,
         surrogate_interventions=surrogate_interventions,
         target_experiments=set(),
     )
@@ -180,9 +201,7 @@ def trso_line1(
 
 
 def trso_line2(
-    query: TransportQuery,
-    probability: Expression,
-    domain: Variable,
+    query: TRSOQuery,
     outcomes_ancestors: Set[Variable],
 ) -> Tuple[TransportQuery, Expression]:
     """Restrict the interventions and diagram to only include ancestors of target variables.
@@ -195,13 +214,15 @@ def trso_line2(
     """
     new_query = deepcopy(query)
     new_query.target_interventions.intersection_update(outcomes_ancestors)
-    new_query.transportability_diagrams[domain] = new_query.transportability_diagrams[
-        domain
+    new_query.transportability_diagrams[new_query.domain] = query.transportability_diagrams[
+        query.domain
     ].subgraph(outcomes_ancestors)
-    new_expression = Sum.safe(
-        probability, new_query.transportability_diagrams[domain].nodes() - outcomes_ancestors
+    new_query.expression = Sum.safe(
+        query.expression,
+        query.transportability_diagrams[query.domain].nodes() - outcomes_ancestors,
     )
-    return new_query, new_expression
+
+    return new_query
 
 
 def trso_line3(query: TransportQuery, additional_interventions: Set[Variable]) -> TransportQuery:
@@ -299,33 +320,25 @@ def trso_line10(
 
 # TODO Tikka paper says that topological ordering is available globaly
 def trso(
-    query: TransportQuery,
-    active_interventions: Set[Variable],
-    domain: Population,
-    expression: Expression,
+    query: TRSOQuery,
 ) -> Optional[Expression]:
     # Check that domain is in query.domains
     # check that query.surrogate_interventions keys are equals to domains
     # check that query.transportability_diagrams keys are equal to domains
-    transportability_diagram = query.transportability_diagrams[domain]
+    transportability_diagram = query.transportability_diagrams[query.domain]
     # line 1
     if not query.target_interventions:
-        return trso_line1(query.target_outcomes, expression, transportability_diagram)
+        return trso_line1(query.target_outcomes, query.expression, transportability_diagram)
 
     # line 2
     outcome_ancestors = transportability_diagram.ancestors_inclusive(query.target_outcomes)
     if transportability_diagram.nodes() - outcome_ancestors:
-        new_query, new_expression = trso_line2(
+        new_query = trso_line2(
             query,
-            expression,
-            domain,
             outcome_ancestors,
         )
         return trso(
             query=new_query,
-            active_interventions=active_interventions,
-            domain=domain,
-            expression=new_expression,
         )
 
     # line 3

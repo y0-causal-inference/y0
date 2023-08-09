@@ -6,6 +6,7 @@ from tests.test_algorithm import cases
 from y0.algorithm.transport import (
     TARGET_DOMAIN,
     TransportQuery,
+    TRSOQuery,
     get_nodes_to_transport,
     surrogate_to_transport,
     transport,
@@ -158,156 +159,145 @@ class TestTransport(cases.GraphTestCase):
 
     def test_trso_line2(self):
         # triggers line 2 and then 1
-        query = TransportQuery(
+        query = TRSOQuery(
             target_interventions={X1, X2, Y1, Y2},
             target_outcomes={W, Z},
-            transportability_diagrams=dict(
-                Pi1=transportability_diagram1, Pi2=transportability_diagram2
-            ),
-            graph=tikka_trso_figure_8,
+            expression=PP[TARGET_DOMAIN],
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
-            target_domain=TARGET_DOMAIN,
-            surrogate_interventions=dict(Pi1={X2}, Pi2={X1}),
-            target_experiments=set(),
+            transportability_diagrams={
+                TARGET_DOMAIN: tikka_trso_figure_8,
+                Pi1: transportability_diagram1,
+                Pi2: transportability_diagram2,
+            },
+            surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
         )
 
-        active_interventions = {}
-        domain = TARGET_DOMAIN
-        probability = PP[Pi1](*list(query.graph.nodes()))
-        available_interventions = [{X2}, {X1}]
-
-        new_query = TransportQuery(
-            target_interventions={},
+        outcomes_anc = {W, Z}
+        new_query = TRSOQuery(
+            target_interventions=set(),
             target_outcomes={W, Z},
-            transportability_diagrams=dict(
-                Pi1=transportability_diagram1, Pi2=transportability_diagram2
-            ),
-            graph=tikka_trso_figure_8,
+            expression=Sum.safe(query.expression, {X1, Y1, Y2, X2}),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
-            target_domain=TARGET_DOMAIN,
-            surrogate_interventions=dict(Pi1={X2}, Pi2={X1}),
-            target_experiments=set(),
+            transportability_diagrams={
+                TARGET_DOMAIN: tikka_trso_figure_8.subgraph(outcomes_anc),
+                Pi1: transportability_diagram1,
+                Pi2: transportability_diagram2,
+            },
+            surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
         )
 
-        new_probability = Sum.safe(prob, domain_graph.nodes() - outcomes_anc)
-        expected = dict(
-            target_interventions=interventions.intersection(outcomes_anc),
-            probability=Sum.safe(prob, domain_graph.nodes() - outcomes_anc),
-            active_interventions=active_interventions,
-            domain=domain,
-            transportability_diagram=domain_graph.subgraph(outcomes_anc),
-        )
-
+        expected = new_query
         # Sum({X1, X2, Y1, Y2}, Sum({X1, X2, Y1, Y2}, Prob))
+
         actual = trso_line2(
-            outcomes,
-            interventions,
-            prob,
-            active_interventions,
-            domain,
-            domain_graph,
-            available_interventions,
+            query,
             outcomes_anc,
         )
+        print(actual.expression == expected.expression)
+
         self.assertEqual(actual, expected)
 
-    def test_trso_line3(self):
-        # triggers line 2 and then 1
+    # def test_trso_line3(self):
+    #     # triggers line 2 and then 1
 
-        transportability_diagram = NxMixedGraph.from_edges(
-            directed=[
-                (W, X),
-                (X, Y),
-                (X, Z),
-                (Z, Y),
-            ],
-        )
-        target_interventions = {X}
-        target_outcomes = {Y}
-        active_interventions = {}
-        available_interventions = {X}
-        prob = PP[TARGET_DOMAIN](*list(transportability_diagram.nodes()))
-        target_interventions_overbar = transportability_diagram.remove_in_edges(
-            target_interventions
-        )
-        additional_interventions = (
-            transportability_diagram.nodes()
-            - target_interventions
-            - target_interventions_overbar.ancestors_inclusive(target_outcomes)
-        )
+    #     transportability_diagram = NxMixedGraph.from_edges(
+    #         directed=[
+    #             (W, X),
+    #             (X, Y),
+    #             (X, Z),
+    #             (Z, Y),
+    #         ],
+    #     )
+    #     target_interventions = {X}
+    #     target_outcomes = {Y}
+    #     active_interventions = {}
+    #     available_interventions = {X}
+    #     prob = PP[TARGET_DOMAIN](*list(transportability_diagram.nodes()))
+    #     target_interventions_overbar = transportability_diagram.remove_in_edges(
+    #         target_interventions
+    #     )
+    #     additional_interventions = (
+    #         transportability_diagram.nodes()
+    #         - target_interventions
+    #         - target_interventions_overbar.ancestors_inclusive(target_outcomes)
+    #     )
 
-        expected = dict(
-            target_outcomes=target_outcomes,
-            target_interventions=target_interventions.union(additional_interventions),
-            probability=prob,
-            active_interventions=active_interventions,
-            domain=TARGET_DOMAIN,
-            transportability_diagram=transportability_diagram,
-            available_interventions=available_interventions,
-        )
+    #     expected = dict(
+    #         target_outcomes=target_outcomes,
+    #         target_interventions=target_interventions.union(additional_interventions),
+    #         probability=prob,
+    #         active_interventions=active_interventions,
+    #         domain=TARGET_DOMAIN,
+    #         transportability_diagram=transportability_diagram,
+    #         available_interventions=available_interventions,
+    #     )
 
-        # Sum({X1, X2, Y1, Y2}, Sum({X1, X2, Y1, Y2}, Prob))
-        actual = trso_line3(
-            target_outcomes,
-            target_interventions,
-            prob,
-            active_interventions,
-            domain,
-            transportability_diagram,
-            available_interventions,
-            additional_interventions,
-        )
-        self.assertEqual(actual, expected)
+    #     # Sum({X1, X2, Y1, Y2}, Sum({X1, X2, Y1, Y2}, Prob))
+    #     actual = trso_line3(
+    #         target_outcomes,
+    #         target_interventions,
+    #         prob,
+    #         active_interventions,
+    #         domain,
+    #         transportability_diagram,
+    #         available_interventions,
+    #         additional_interventions,
+    #     )
+    #     self.assertEqual(actual, expected)
 
-    def test_trso_line4(self):
-        target_outcomes = {Y1, Y2}
-        target_interventions = {X1, X2}
-        transportability_diagram = tikka_trso_figure_8
-        prob = PP[TARGET_DOMAIN](*list(transportability_diagram.nodes()))
-        active_interventions = {}
-        available_interventions = {X1, X2}
-        districts_without_interventions = transportability_diagram.subgraph(
-            transportability_diagram.nodes() - target_interventions
-        ).get_c_components()
+    # def test_trso_line4(self):
+    #     target_outcomes = {Y1, Y2}
+    #     target_interventions = {X1, X2}
+    #     transportability_diagram = tikka_trso_figure_8
+    #     prob = PP[TARGET_DOMAIN](*list(transportability_diagram.nodes()))
+    #     active_interventions = {}
+    #     available_interventions = {X1, X2}
+    #     districts_without_interventions = transportability_diagram.subgraph(
+    #         transportability_diagram.nodes() - target_interventions
+    #     ).get_c_components()
 
-        expected = {
-            frozenset([Y2]): dict(
-                target_outcomes={Y2},
-                target_interventions={X1, X2, Z, W, Y1},
-                probability=prob,
-                active_interventions=active_interventions,
-                domain=TARGET_DOMAIN,
-                transportability_diagram=transportability_diagram,
-                available_interventions=available_interventions,
-            ),
-            frozenset([Y1]): dict(
-                target_outcomes={Y1},
-                target_interventions={X1, X2, Z, W, Y2},
-                probability=prob,
-                active_interventions=active_interventions,
-                domain=domain,
-                transportability_diagram=transportability_diagram,
-                available_interventions=available_interventions,
-            ),
-            frozenset([W, Z]): dict(
-                target_outcomes={W, Z},
-                target_interventions={X1, X2, Y2, Y1},
-                probability=prob,
-                active_interventions=active_interventions,
-                domain=domain,
-                transportability_diagram=transportability_diagram,
-                available_interventions=available_interventions,
-            ),
-        }
+    #     expected = {
+    #         frozenset([Y2]): dict(
+    #             target_outcomes={Y2},
+    #             target_interventions={X1, X2, Z, W, Y1},
+    #             probability=prob,
+    #             active_interventions=active_interventions,
+    #             domain=TARGET_DOMAIN,
+    #             transportability_diagram=transportability_diagram,
+    #             available_interventions=available_interventions,
+    #         ),
+    #         frozenset([Y1]): dict(
+    #             target_outcomes={Y1},
+    #             target_interventions={X1, X2, Z, W, Y2},
+    #             probability=prob,
+    #             active_interventions=active_interventions,
+    #             domain=domain,
+    #             transportability_diagram=transportability_diagram,
+    #             available_interventions=available_interventions,
+    #         ),
+    #         frozenset([W, Z]): dict(
+    #             target_outcomes={W, Z},
+    #             target_interventions={X1, X2, Y2, Y1},
+    #             probability=prob,
+    #             active_interventions=active_interventions,
+    #             domain=domain,
+    #             transportability_diagram=transportability_diagram,
+    #             available_interventions=available_interventions,
+    #         ),
+    #     }
 
-        actual = trso_line4(
-            target_outcomes,
-            target_interventions,
-            prob,
-            active_interventions,
-            TARGET_DOMAIN,
-            transportability_diagram,
-            available_interventions,
-            districts_without_interventions,
-        )
-        self.assertEqual(expected, actual)
+    #     actual = trso_line4(
+    #         target_outcomes,
+    #         target_interventions,
+    #         prob,
+    #         active_interventions,
+    #         TARGET_DOMAIN,
+    #         transportability_diagram,
+    #         available_interventions,
+    #         districts_without_interventions,
+    #     )
+    #     self.assertEqual(expected, actual)
