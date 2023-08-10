@@ -267,10 +267,12 @@ def trso_line6(
     :param domain: current domain
     :returns:
     """
-    transportability_diagram = query.transportability_diagrams[query.domain]
+
     expressions = {}
     for loop_domain, loop_transportability_diagram in query.transportability_diagrams.items():
-        if not query.available_interventions[loop_domain].intersection(query.target_interventions):
+        if loop_domain == TARGET_DOMAIN:
+            continue
+        if not query.surrogate_interventions[loop_domain].intersection(query.target_interventions):
             continue
 
         transportability_nodes = get_transport_nodes(loop_transportability_diagram)
@@ -291,14 +293,16 @@ def trso_line6(
 
         new_query = deepcopy(query)
         new_query.target_interventions = (
-            query.target_interventions - query.available_interventions[loop_domain]
+            query.target_interventions - query.surrogate_interventions[loop_domain]
         )
         new_query.domain = loop_domain
-        new_query.transportability_diagrams[query.domain] = transportability_diagram.subgraph(
-            transportability_diagram.nodes()
-            - query.available_interventions[loop_domain].intersection(query.target_interventions)
+        new_query.transportability_diagrams[
+            new_query.domain
+        ] = loop_transportability_diagram.subgraph(
+            loop_transportability_diagram.nodes()
+            - query.surrogate_interventions[loop_domain].intersection(query.target_interventions)
         )
-        new_query.active_interventions = query.available_interventions[loop_domain].intersection(
+        new_query.active_interventions = query.surrogate_interventions[loop_domain].intersection(
             query.target_interventions
         )
         expressions[loop_domain] = new_query
@@ -306,13 +310,11 @@ def trso_line6(
     return expressions
 
 
-def trso_line9(query, expression, active_interventions, domain) -> Expression:
+def trso_line9(query) -> Expression:
     pass
 
 
-def trso_line10(
-    query, expression, active_interventions, domain, district, new_available_interventions
-) -> Expression:
+def trso_line10(query, district, new_surrogate_interventions) -> Expression:
     pass
 
 
@@ -416,18 +418,18 @@ def trso(
         # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
         if len(query.active_interventions) == 0:
             # FIXME is this even possible? doesn't line 6 check this and return something else?
-            new_available_interventions = dict()
+            new_surrogate_interventions = dict()
         elif any(
             is_transport_node(node) for node in transportability_diagram.get_markov_pillow(district)
         ):
             return None
         else:
-            new_available_interventions = query.available_interventions
+            new_surrogate_interventions = query.surrogate_interventions
 
         return trso_line10(
             query,
             district,
-            new_available_interventions,
+            new_surrogate_interventions,
         )
 
 

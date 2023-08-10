@@ -319,3 +319,45 @@ class TestTransport(cases.GraphTestCase):
             districts_without_interventions,
         )
         self.assertEqual(expected, actual)
+
+    def test_trso_line6(self):
+        query = TRSOQuery(
+            target_interventions={X1, Z, W},
+            target_outcomes={Y1},
+            expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            transportability_diagrams={
+                TARGET_DOMAIN: tikka_trso_figure_8,
+                Pi1: transportability_diagram1,
+                Pi2: transportability_diagram2,
+            },
+            surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
+        )
+
+        actual = trso_line6(
+            query,
+        )
+        new_transportability_diagram = query.transportability_diagrams[Pi2].subgraph(
+            query.transportability_diagrams[Pi2].nodes()
+            - query.surrogate_interventions[Pi2].intersection(query.target_interventions)
+        )
+        expected = {
+            Pi2: TRSOQuery(
+                target_interventions={Z, W},
+                target_outcomes={Y1},
+                expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+                active_interventions={X1},
+                domain=Pi2,
+                domains={Pi1, Pi2},
+                transportability_diagrams={
+                    TARGET_DOMAIN: tikka_trso_figure_8,
+                    Pi1: transportability_diagram1,
+                    Pi2: new_transportability_diagram,
+                },
+                surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
+            )
+        }
+
+        self.assertEqual(expected, actual)
