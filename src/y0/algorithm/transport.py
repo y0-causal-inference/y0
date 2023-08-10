@@ -298,10 +298,10 @@ def trso_line6(
             transportability_diagram.nodes()
             - query.available_interventions[loop_domain].intersection(query.target_interventions)
         )
-        new_query.active_interventions =query.available_interventions[loop_domain].intersection(
+        new_query.active_interventions = query.available_interventions[loop_domain].intersection(
             query.target_interventions
         )
-        expressions[loop_domain] = (new_query)
+        expressions[loop_domain] = new_query
 
     return expressions
 
@@ -406,7 +406,6 @@ def trso(
     if districts_without_interventions in districts:
         return trso_line9(
             query,
-
         )
 
     # line10
