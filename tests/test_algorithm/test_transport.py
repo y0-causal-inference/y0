@@ -3,11 +3,11 @@
 from tests.test_algorithm import cases
 from y0.algorithm.transport import (
     TARGET_DOMAIN,
-    TRANSPORT_PREFIX,
     TransportQuery,
     TRSOQuery,
     get_nodes_to_transport,
     surrogate_to_transport,
+    transport_variable,
     trso_line1,
     trso_line2,
     trso_line3,
@@ -51,8 +51,8 @@ graph_1 = NxMixedGraph.from_edges(
         (Z, X2),
         (X2, Y2),
         (Z, Y2),
-        (Variable(TRANSPORT_PREFIX + X1.name), X1),
-        (Variable(TRANSPORT_PREFIX + Y2.name), Y2),
+        (transport_variable(X1), X1),
+        (transport_variable(Y2), Y2),
     ],
 )
 graph_2 = NxMixedGraph.from_edges(
@@ -66,7 +66,7 @@ graph_2 = NxMixedGraph.from_edges(
         (Z, X2),
         (X2, Y2),
         (Z, Y2),
-        (Variable(TRANSPORT_PREFIX + X2.name), X2),
+        (transport_variable(X2), X2),
     ],
 )
 

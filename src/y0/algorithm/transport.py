@@ -66,18 +66,18 @@ def get_nodes_to_transport(
     )
 
 
-TRANSPORT_PREFIX = "T_"
+_TRANSPORT_PREFIX = "T_"
 
 
 def transport_variable(variable: Variable) -> Variable:
     if isinstance(variable, (CounterfactualVariable, Intervention)):
         raise TypeError
-    return Variable(TRANSPORT_PREFIX + variable.name)
+    return Variable(_TRANSPORT_PREFIX + variable.name)
 
 
 def is_transport_node(node: Variable) -> bool:
     return not isinstance(node, (CounterfactualVariable, Intervention)) and node.name.startswith(
-        TRANSPORT_PREFIX
+        _TRANSPORT_PREFIX
     )
 
 
