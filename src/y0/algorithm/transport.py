@@ -3,6 +3,7 @@
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
+from operator import attrgetter
 from typing import Dict, FrozenSet, Iterable, List, Mapping, Optional, Set, Union, cast
 
 from y0.algorithm.conditional_independencies import are_d_separated
@@ -253,21 +254,13 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
         surrogate_intersect_target = surrogate_interventions.intersection(
             query.target_interventions
         )
-
         if not surrogate_intersect_target:
             continue
 
-        transportability_nodes = get_transport_nodes(graph)
-        diagram_without_interventions = graph.remove_in_edges(query.target_interventions)
-        if not all(
-            are_d_separated(
-                diagram_without_interventions,
-                transportability_node,
-                outcome,
-                conditions=query.target_interventions,
-            )
-            for transportability_node in transportability_nodes
-            for outcome in query.target_outcomes
+        if not all_transports_d_separated(
+            graph,
+            target_interventions=query.target_interventions,
+            target_outcomes=query.target_outcomes,
         ):
             continue
 
@@ -281,10 +274,26 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
     return expressions
 
 
-def trso_line9(query, district) -> Expression:
-    sorted_district_nodes = sorted(district)
+def all_transports_d_separated(graph, target_interventions, target_outcomes) -> bool:
+    transportability_nodes = get_transport_nodes(graph)
+    graph_without_interventions = graph.remove_in_edges(target_interventions)
+    return all(
+        are_d_separated(
+            graph_without_interventions,
+            transportability_node,
+            outcome,
+            conditions=target_interventions,
+        )
+        for transportability_node in transportability_nodes
+        # if transportability_node in diagram_without_interventions
+        for outcome in target_outcomes
+    )
+
+
+def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
+    sorted_district_nodes = sorted(district, key=attrgetter("name"))
     # Will this always return the same order?
-    my_product = One
+    my_product = One()
     for i in range(len(sorted_district_nodes)):
         # TODO I am not convinced this is correct, still trying to decipher the paper
         subset_including_node = set(sorted_district_nodes[: i + 1])
@@ -298,9 +307,11 @@ def trso_line9(query, district) -> Expression:
     return Sum.safe(my_product, district - query.target_outcomes)
 
 
-def trso_line10(query, district, new_surrogate_interventions) -> Expression:
-    sorted_district_nodes = sorted(district)
-    my_product = One
+def trso_line10(
+    query: TRSOQuery, district: set[Variable], new_surrogate_interventions
+) -> Expression:
+    sorted_district_nodes = sorted(district, key=attrgetter("name"))
+    my_product = One()
     for i, node in enumerate(sorted_district_nodes):
         # TODO I am not convinced this is correct, still trying to decipher the paper
         subset_up_to_node = set(sorted_district_nodes[:i])
@@ -349,7 +360,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         return trso(new_query)
 
     # line 4
-    districts_without_interventions = set(
+    districts_without_interventions: set[frozenset[Variable]] = set(
         graph.subgraph_without(query.target_interventions).get_c_components()
     )
     if len(districts_without_interventions) > 1:
@@ -386,16 +397,26 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
 
     # line8
     districts = graph.get_c_components()
-    # line 11, return fail
-    if len(districts) <= 1:
+    # line 11, return fail. keep explict tests for 0 and 1 to ensure adequate testing
+    if len(districts) == 0:
+        return None
+    if len(districts) == 1:
         return None
     # line 8, i.e. len(districts)>1
 
     # line9
+    # TODO check which of the raises below should be passthroughs, annotate explicitly
     if len(districts_without_interventions) == 1:
-        districts_without_interventions = districts_without_interventions.pop()
-    if districts_without_interventions in districts:  # FIXME, this line makes no sense
-        return trso_line9(query, districts_without_interventions)
+        district_without_interventions = districts_without_interventions.pop()
+        if districts_without_interventions in districts:
+            return trso_line9(query, set(district_without_interventions))
+        raise NotImplementedError(
+            "single district without interventions found, but it's not in the districts"
+        )
+    elif len(districts_without_interventions) == 0:
+        raise NotImplementedError("no districts without interventions found")
+    else:  # multiple districts
+        raise NotImplementedError("multiple districts without interventions found")
 
     # line10
     target_district = []
@@ -420,8 +441,6 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         target_district,
         new_surrogate_interventions,
     )
-
-    raise ValueError
 
 
 def _pillow_has_transport(graph, district) -> bool:

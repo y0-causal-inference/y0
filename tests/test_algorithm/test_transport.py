@@ -218,14 +218,14 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={},
         )
 
-        target_interventions_overbar = transportability_diagram_line3.remove_in_edges(
-            query.target_interventions
-        )
-        additional_interventions = (
-            transportability_diagram_line3.nodes()
-            - query.target_interventions
-            - target_interventions_overbar.ancestors_inclusive(query.target_outcomes)
-        )
+        # target_interventions_overbar = transportability_diagram_line3.remove_in_edges(
+        #     query.target_interventions
+        # )
+        # additional_interventions = (
+        #     transportability_diagram_line3.nodes()
+        #     - query.target_interventions
+        #     - target_interventions_overbar.ancestors_inclusive(query.target_outcomes)
+        # )
         additional_interventions = {W}
 
         new_query = TRSOQuery(
@@ -244,6 +244,9 @@ class TestTransport(cases.GraphTestCase):
 
         actual = trso_line3(query=query, additional_interventions=additional_interventions)
         self.assertEqual(actual, expected)
+
+        self.assertIsNotNone(trso(query))
+        self.assertIsNotNone(trso(actual))
 
     def test_trso_line4(self):
         query = TRSOQuery(
@@ -372,3 +375,4 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
         )
         actual = trso(query)
+        self.assertIsNotNone(actual)
