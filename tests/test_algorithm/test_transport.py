@@ -1,7 +1,5 @@
 """Unit tests for transport."""
 
-import unittest
-
 from tests.test_algorithm import cases
 from y0.algorithm.transport import (
     TARGET_DOMAIN,
@@ -10,15 +8,13 @@ from y0.algorithm.transport import (
     TRSOQuery,
     get_nodes_to_transport,
     surrogate_to_transport,
-    transport,
-    trso,
     trso_line1,
     trso_line2,
     trso_line3,
     trso_line4,
     trso_line6,
 )
-from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Transport, Variable, W, X, Y, Z
+from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 X1, X2 = Variable("X1"), Variable("X2")
@@ -44,7 +40,7 @@ tikka_trso_figure_8_transport = {
     X2: [Pi2],
 }
 
-transportability_diagram1 = NxMixedGraph.from_edges(
+graph_1 = NxMixedGraph.from_edges(
     undirected=[(X1, Y1), (Z, W), (Z, X2)],
     directed=[
         (X1, Y1),
@@ -59,7 +55,7 @@ transportability_diagram1 = NxMixedGraph.from_edges(
         (Variable(TRANSPORT_PREFIX + Y2.name), Y2),
     ],
 )
-transportability_diagram2 = NxMixedGraph.from_edges(
+graph_2 = NxMixedGraph.from_edges(
     undirected=[(X1, Y1), (Z, W), (Z, X2)],
     directed=[
         (X1, Y1),
@@ -117,7 +113,6 @@ class TestTransport(cases.GraphTestCase):
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
         surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
 
-        available_experiments = [({X1}, {Y1}), ({X2}, {Y2})]
         actual = surrogate_to_transport(
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
@@ -126,19 +121,13 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions=surrogate_interventions,
         )
 
-        transportability_diagrams = {
-            TARGET_DOMAIN: tikka_trso_figure_8,
-            Pi1: transportability_diagram1,
-            Pi2: transportability_diagram2,
-        }
-
         expected = TransportQuery(
             target_interventions=target_interventions,
             target_outcomes=target_outcomes,
-            transportability_diagrams={
+            graphs={
                 TARGET_DOMAIN: tikka_trso_figure_8,
-                Pi1: transportability_diagram1,
-                Pi2: transportability_diagram2,
+                Pi1: graph_1,
+                Pi2: graph_2,
             },
             domains={Pi1, Pi2},
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
@@ -149,16 +138,13 @@ class TestTransport(cases.GraphTestCase):
     def test_trso_line1(self):
         # triggers line 1
         outcomes = {Y1, Y2}
-        interventions = {}
-        active_interventions = {}
         domain_graph = tikka_trso_figure_8
-        prob = PP[TARGET_DOMAIN](*list(domain_graph.nodes()))
-        available_interventions = [{X2}, {X1}]
+        expression = PP[TARGET_DOMAIN](domain_graph.nodes())
 
-        expected = Sum.safe(prob, {W, X1, X2, Z})
+        expected = Sum.safe(expression, {W, X1, X2, Z})
         actual = trso_line1(
             outcomes,
-            prob,
+            expression,
             domain_graph,
         )
         self.assert_expr_equal(expected, actual)
@@ -168,14 +154,14 @@ class TestTransport(cases.GraphTestCase):
         query = TRSOQuery(
             target_interventions={X1, X2, Y1, Y2},
             target_outcomes={W, Z},
-            expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+            expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
             active_interventions=set(),
             domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
-            transportability_diagrams={
+            graphs={
                 TARGET_DOMAIN: tikka_trso_figure_8,
-                Pi1: transportability_diagram1,
-                Pi2: transportability_diagram2,
+                Pi1: graph_1,
+                Pi2: graph_2,
             },
             surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
         )
@@ -188,10 +174,10 @@ class TestTransport(cases.GraphTestCase):
             active_interventions=set(),
             domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
-            transportability_diagrams={
+            graphs={
                 TARGET_DOMAIN: tikka_trso_figure_8.subgraph(outcomes_anc),
-                Pi1: transportability_diagram1,
-                Pi2: transportability_diagram2,
+                Pi1: graph_1,
+                Pi2: graph_2,
             },
             surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
         )
@@ -220,11 +206,11 @@ class TestTransport(cases.GraphTestCase):
         query = TRSOQuery(
             target_interventions={X},
             target_outcomes={Y},
-            expression=PP[TARGET_DOMAIN](*list(transportability_diagram_line3.nodes())),
+            expression=PP[TARGET_DOMAIN](transportability_diagram_line3.nodes()),
             active_interventions=set(),
             domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
-            transportability_diagrams={
+            graphs={
                 TARGET_DOMAIN: transportability_diagram_line3,
             },
             surrogate_interventions={},
@@ -243,11 +229,11 @@ class TestTransport(cases.GraphTestCase):
         new_query = TRSOQuery(
             target_interventions={X, W},
             target_outcomes={Y},
-            expression=PP[TARGET_DOMAIN](*list(transportability_diagram_line3.nodes())),
+            expression=PP[TARGET_DOMAIN](transportability_diagram_line3.nodes()),
             active_interventions=set(),
             domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
-            transportability_diagrams={
+            graphs={
                 TARGET_DOMAIN: transportability_diagram_line3,
             },
             surrogate_interventions={},
@@ -261,29 +247,29 @@ class TestTransport(cases.GraphTestCase):
         query = TRSOQuery(
             target_interventions={X1, X2},
             target_outcomes={Y1, Y2},
-            expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+            expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
             active_interventions=set(),
             domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
-            transportability_diagrams={
+            graphs={
                 TARGET_DOMAIN: tikka_trso_figure_8,
             },
             surrogate_interventions={},
         )
 
-        districts_without_interventions = tikka_trso_figure_8.subgraph(
-            tikka_trso_figure_8.nodes() - query.target_interventions
+        districts_without_interventions = tikka_trso_figure_8.subgraph_without(
+            query.target_interventions
         ).get_c_components()
 
         expected = {
             frozenset([Y2]): TRSOQuery(
                 target_interventions={X1, X2, Z, W, Y1},
                 target_outcomes={Y2},
-                expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+                expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
                 active_interventions=set(),
                 domain=TARGET_DOMAIN,
                 domains={Pi1, Pi2},
-                transportability_diagrams={
+                graphs={
                     TARGET_DOMAIN: tikka_trso_figure_8,
                 },
                 surrogate_interventions={},
@@ -291,11 +277,11 @@ class TestTransport(cases.GraphTestCase):
             frozenset([Y1]): TRSOQuery(
                 target_interventions={X1, X2, Z, W, Y2},
                 target_outcomes={Y1},
-                expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+                expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
                 active_interventions=set(),
                 domain=TARGET_DOMAIN,
                 domains={Pi1, Pi2},
-                transportability_diagrams={
+                graphs={
                     TARGET_DOMAIN: tikka_trso_figure_8,
                 },
                 surrogate_interventions={},
@@ -303,11 +289,11 @@ class TestTransport(cases.GraphTestCase):
             frozenset([W, Z]): TRSOQuery(
                 target_interventions={X1, X2, Y1, Y2},
                 target_outcomes={W, Z},
-                expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+                expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
                 active_interventions=set(),
                 domain=TARGET_DOMAIN,
                 domains={Pi1, Pi2},
-                transportability_diagrams={
+                graphs={
                     TARGET_DOMAIN: tikka_trso_figure_8,
                 },
                 surrogate_interventions={},
@@ -324,14 +310,14 @@ class TestTransport(cases.GraphTestCase):
         query = TRSOQuery(
             target_interventions={X1, Z, W},
             target_outcomes={Y1},
-            expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+            expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
             active_interventions=set(),
             domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
-            transportability_diagrams={
+            graphs={
                 TARGET_DOMAIN: tikka_trso_figure_8,
-                Pi1: transportability_diagram1,
-                Pi2: transportability_diagram2,
+                Pi1: graph_1,
+                Pi2: graph_2,
             },
             surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
         )
@@ -339,21 +325,21 @@ class TestTransport(cases.GraphTestCase):
         actual = trso_line6(
             query,
         )
-        new_transportability_diagram = query.transportability_diagrams[Pi2].subgraph(
-            query.transportability_diagrams[Pi2].nodes()
+        new_transportability_diagram = query.graphs[Pi2].subgraph(
+            query.graphs[Pi2].nodes()
             - query.surrogate_interventions[Pi2].intersection(query.target_interventions)
         )
         expected = {
             Pi2: TRSOQuery(
                 target_interventions={Z, W},
                 target_outcomes={Y1},
-                expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+                expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
                 active_interventions={X1},
                 domain=Pi2,
                 domains={Pi1, Pi2},
-                transportability_diagrams={
+                graphs={
                     TARGET_DOMAIN: tikka_trso_figure_8,
-                    Pi1: transportability_diagram1,
+                    Pi1: graph_1,
                     Pi2: new_transportability_diagram,
                 },
                 surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
