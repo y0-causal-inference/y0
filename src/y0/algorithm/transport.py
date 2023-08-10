@@ -410,9 +410,10 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         district_without_interventions = districts_without_interventions.pop()
         if districts_without_interventions in districts:
             return trso_line9(query, set(district_without_interventions))
-        raise NotImplementedError(
-            "single district without interventions found, but it's not in the districts"
-        )
+        # raise NotImplementedError(
+        #     "single district without interventions found, but it's not in the districts"
+        # )
+        # This case is covered by line 10.
     elif len(districts_without_interventions) == 0:
         raise NotImplementedError("no districts without interventions found")
     else:  # multiple districts

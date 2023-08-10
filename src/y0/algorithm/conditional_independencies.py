@@ -3,6 +3,7 @@
 """An implementation to get conditional independencies of an ADMG."""
 
 import copy
+import warnings
 from functools import partial
 from itertools import chain, combinations, groupby
 from typing import Callable, Iterable, List, Optional, Sequence, Set, Tuple
@@ -157,6 +158,11 @@ def are_d_separated(
         raise TypeError(f"right argument is not given as a Variable: {type(b)}: {b}")
     if not all(isinstance(c, Variable) for c in conditions):
         raise TypeError(f"some conditions are not variables: {conditions}")
+    if a not in graph or b not in graph:
+        # If either a or b is not in the graph, raise a warning
+        warning_message = f"Variables are d-separted because either '{a}' or '{b}' (or both) is not present in the graph."
+        warnings.warn(warning_message)
+        return DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=True)
 
     condition_names = {c for c in conditions}
     named = {a, b}.union(condition_names)
