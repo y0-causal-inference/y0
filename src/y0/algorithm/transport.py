@@ -225,7 +225,7 @@ def trso_line2(
     return new_query
 
 
-def trso_line3(query: TransportQuery, additional_interventions: Set[Variable]) -> TransportQuery:
+def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> TransportQuery:
     """
 
     :param query: A transport query
@@ -355,9 +355,6 @@ def trso(
         new_query = trso_line3(query, additional_interventions)
         return trso(
             query=new_query,
-            active_interventions=active_interventions,
-            domain=domain,
-            expression=expression,
         )
 
     # line 4

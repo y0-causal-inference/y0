@@ -168,7 +168,7 @@ class TestTransport(cases.GraphTestCase):
         query = TRSOQuery(
             target_interventions={X1, X2, Y1, Y2},
             target_outcomes={W, Z},
-            expression=PP[TARGET_DOMAIN],
+            expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
             active_interventions=set(),
             domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
@@ -207,53 +207,60 @@ class TestTransport(cases.GraphTestCase):
 
         self.assertEqual(actual, expected)
 
-    # def test_trso_line3(self):
-    #     # triggers line 2 and then 1
+    def test_trso_line3(self):
+        
+        transportability_diagram_line3 = NxMixedGraph.from_edges(
+            directed=[
+                (W, X),
+                (X, Y),
+                (X, Z),
+                (Z, Y),
+            ],
+        )
+        
+        
+        query = TRSOQuery(
+            target_interventions={X},
+            target_outcomes={Y},
+            expression=PP[TARGET_DOMAIN](*list(transportability_diagram_line3.nodes())),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            transportability_diagrams={
+                TARGET_DOMAIN: transportability_diagram_line3,
+            },
+            surrogate_interventions={},
+        )
+        
+        
+        target_interventions_overbar = transportability_diagram_line3.remove_in_edges(
+            query.target_interventions
+        )
+        additional_interventions = (
+            transportability_diagram_line3.nodes()
+            - query.target_interventions
+            - target_interventions_overbar.ancestors_inclusive(query.target_outcomes)
+        )
+        additional_interventions = {W}
+        
+        
+        new_query = TRSOQuery(
+            target_interventions={X,W},
+            target_outcomes={Y},
+            expression=PP[TARGET_DOMAIN](*list(transportability_diagram_line3.nodes())),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            transportability_diagrams={
+                TARGET_DOMAIN: transportability_diagram_line3,
+            },
+            surrogate_interventions={},
+        )
+        expected = new_query
 
-    #     transportability_diagram = NxMixedGraph.from_edges(
-    #         directed=[
-    #             (W, X),
-    #             (X, Y),
-    #             (X, Z),
-    #             (Z, Y),
-    #         ],
-    #     )
-    #     target_interventions = {X}
-    #     target_outcomes = {Y}
-    #     active_interventions = {}
-    #     available_interventions = {X}
-    #     prob = PP[TARGET_DOMAIN](*list(transportability_diagram.nodes()))
-    #     target_interventions_overbar = transportability_diagram.remove_in_edges(
-    #         target_interventions
-    #     )
-    #     additional_interventions = (
-    #         transportability_diagram.nodes()
-    #         - target_interventions
-    #         - target_interventions_overbar.ancestors_inclusive(target_outcomes)
-    #     )
-
-    #     expected = dict(
-    #         target_outcomes=target_outcomes,
-    #         target_interventions=target_interventions.union(additional_interventions),
-    #         probability=prob,
-    #         active_interventions=active_interventions,
-    #         domain=TARGET_DOMAIN,
-    #         transportability_diagram=transportability_diagram,
-    #         available_interventions=available_interventions,
-    #     )
-
-    #     # Sum({X1, X2, Y1, Y2}, Sum({X1, X2, Y1, Y2}, Prob))
-    #     actual = trso_line3(
-    #         target_outcomes,
-    #         target_interventions,
-    #         prob,
-    #         active_interventions,
-    #         domain,
-    #         transportability_diagram,
-    #         available_interventions,
-    #         additional_interventions,
-    #     )
-    #     self.assertEqual(actual, expected)
+        # Sum({X1, X2, Y1, Y2}, Sum({X1, X2, Y1, Y2}, Prob))
+        actual = trso_line3(query = query,additional_interventions=additional_interventions)
+        self.assertEqual(actual, expected)
 
     # def test_trso_line4(self):
     #     target_outcomes = {Y1, Y2}
