@@ -208,7 +208,6 @@ class TestTransport(cases.GraphTestCase):
         self.assertEqual(actual, expected)
 
     def test_trso_line3(self):
-        
         transportability_diagram_line3 = NxMixedGraph.from_edges(
             directed=[
                 (W, X),
@@ -217,8 +216,7 @@ class TestTransport(cases.GraphTestCase):
                 (Z, Y),
             ],
         )
-        
-        
+
         query = TRSOQuery(
             target_interventions={X},
             target_outcomes={Y},
@@ -231,8 +229,7 @@ class TestTransport(cases.GraphTestCase):
             },
             surrogate_interventions={},
         )
-        
-        
+
         target_interventions_overbar = transportability_diagram_line3.remove_in_edges(
             query.target_interventions
         )
@@ -242,10 +239,9 @@ class TestTransport(cases.GraphTestCase):
             - target_interventions_overbar.ancestors_inclusive(query.target_outcomes)
         )
         additional_interventions = {W}
-        
-        
+
         new_query = TRSOQuery(
-            target_interventions={X,W},
+            target_interventions={X, W},
             target_outcomes={Y},
             expression=PP[TARGET_DOMAIN](*list(transportability_diagram_line3.nodes())),
             active_interventions=set(),
@@ -258,59 +254,68 @@ class TestTransport(cases.GraphTestCase):
         )
         expected = new_query
 
-        # Sum({X1, X2, Y1, Y2}, Sum({X1, X2, Y1, Y2}, Prob))
-        actual = trso_line3(query = query,additional_interventions=additional_interventions)
+        actual = trso_line3(query=query, additional_interventions=additional_interventions)
         self.assertEqual(actual, expected)
 
-    # def test_trso_line4(self):
-    #     target_outcomes = {Y1, Y2}
-    #     target_interventions = {X1, X2}
-    #     transportability_diagram = tikka_trso_figure_8
-    #     prob = PP[TARGET_DOMAIN](*list(transportability_diagram.nodes()))
-    #     active_interventions = {}
-    #     available_interventions = {X1, X2}
-    #     districts_without_interventions = transportability_diagram.subgraph(
-    #         transportability_diagram.nodes() - target_interventions
-    #     ).get_c_components()
+    def test_trso_line4(self):
+        query = TRSOQuery(
+            target_interventions={X1, X2},
+            target_outcomes={Y1, Y2},
+            expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            transportability_diagrams={
+                TARGET_DOMAIN: tikka_trso_figure_8,
+            },
+            surrogate_interventions={},
+        )
 
-    #     expected = {
-    #         frozenset([Y2]): dict(
-    #             target_outcomes={Y2},
-    #             target_interventions={X1, X2, Z, W, Y1},
-    #             probability=prob,
-    #             active_interventions=active_interventions,
-    #             domain=TARGET_DOMAIN,
-    #             transportability_diagram=transportability_diagram,
-    #             available_interventions=available_interventions,
-    #         ),
-    #         frozenset([Y1]): dict(
-    #             target_outcomes={Y1},
-    #             target_interventions={X1, X2, Z, W, Y2},
-    #             probability=prob,
-    #             active_interventions=active_interventions,
-    #             domain=domain,
-    #             transportability_diagram=transportability_diagram,
-    #             available_interventions=available_interventions,
-    #         ),
-    #         frozenset([W, Z]): dict(
-    #             target_outcomes={W, Z},
-    #             target_interventions={X1, X2, Y2, Y1},
-    #             probability=prob,
-    #             active_interventions=active_interventions,
-    #             domain=domain,
-    #             transportability_diagram=transportability_diagram,
-    #             available_interventions=available_interventions,
-    #         ),
-    #     }
+        districts_without_interventions = tikka_trso_figure_8.subgraph(
+            tikka_trso_figure_8.nodes() - query.target_interventions
+        ).get_c_components()
 
-    #     actual = trso_line4(
-    #         target_outcomes,
-    #         target_interventions,
-    #         prob,
-    #         active_interventions,
-    #         TARGET_DOMAIN,
-    #         transportability_diagram,
-    #         available_interventions,
-    #         districts_without_interventions,
-    #     )
-    #     self.assertEqual(expected, actual)
+        expected = {
+            frozenset([Y2]): TRSOQuery(
+                target_interventions={X1, X2, Z, W, Y1},
+                target_outcomes={Y2},
+                expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+                active_interventions=set(),
+                domain=TARGET_DOMAIN,
+                domains={Pi1, Pi2},
+                transportability_diagrams={
+                    TARGET_DOMAIN: tikka_trso_figure_8,
+                },
+                surrogate_interventions={},
+            ),
+            frozenset([Y1]): TRSOQuery(
+                target_interventions={X1, X2, Z, W, Y2},
+                target_outcomes={Y1},
+                expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+                active_interventions=set(),
+                domain=TARGET_DOMAIN,
+                domains={Pi1, Pi2},
+                transportability_diagrams={
+                    TARGET_DOMAIN: tikka_trso_figure_8,
+                },
+                surrogate_interventions={},
+            ),
+            frozenset([W, Z]): TRSOQuery(
+                target_interventions={X1, X2, Y1, Y2},
+                target_outcomes={W, Z},
+                expression=PP[TARGET_DOMAIN](*list(tikka_trso_figure_8.nodes())),
+                active_interventions=set(),
+                domain=TARGET_DOMAIN,
+                domains={Pi1, Pi2},
+                transportability_diagrams={
+                    TARGET_DOMAIN: tikka_trso_figure_8,
+                },
+                surrogate_interventions={},
+            ),
+        }
+
+        actual = trso_line4(
+            query,
+            districts_without_interventions,
+        )
+        self.assertEqual(expected, actual)

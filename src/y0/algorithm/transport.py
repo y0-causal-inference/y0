@@ -239,7 +239,6 @@ def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> Tra
 
 def trso_line4(
     query: TransportQuery,
-    domain: Variable,
     components: Set[FrozenSet[Variable]],
 ) -> Dict[FrozenSet[Variable], TransportQuery]:
     """Find the trso inputs for each C-component.
@@ -249,7 +248,7 @@ def trso_line4(
     :param components: Set of c_components of transportability_diagram without target_interventions
     :returns: Dictionary with components as keys and dictionary of modified trso inputs as values
     """
-    transportability_diagram = query.transportability_diagrams[domain]
+    transportability_diagram = query.transportability_diagrams[query.domain]
     rv = {}
     for component in components:
         new_query = deepcopy(query)
@@ -364,7 +363,6 @@ def trso(
     if len(districts_without_interventions) > 1:
         trso_line4inputs = trso_line4(
             query,
-            domain,
             districts_without_interventions,
         )
 
@@ -372,9 +370,6 @@ def trso(
             Product.safe(
                 trso(
                     query=trso_line4input,
-                    active_interventions=active_interventions,
-                    domain=domain,
-                    expression=expression,
                 )
                 for trso_line4input in trso_line4inputs.values()
             ),
