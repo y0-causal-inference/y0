@@ -68,7 +68,16 @@ def estimate_ate(
     return causal_effect.compute_effect(data, "eff-aipw")
 
 
-def is_a_fixable() -> bool:
+def is_mb_shielded(graph: NxMixedGraph) -> bool:
+    # TODO re-implement from ananke:
+    #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L381-403
+    admg = graph.to_admg()
+    return admg.mb_shielded()
+
+
+def is_a_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
+    # TODO re-implement the code from ananke directly on NxMixedGraph:
+    #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L58-65
     pass
 
 
@@ -76,7 +85,9 @@ def aipw():
     pass
 
 
-def is_p_fixable() -> bool:
+def is_p_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
+    # TODO re-implement code from
+    #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L85-92
     pass
 
 
