@@ -10,6 +10,7 @@ from y0.dsl import (
     CounterfactualVariable,
     Expression,
     Intervention,
+    One,
     Population,
     Product,
     Sum,
@@ -280,12 +281,43 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
     return expressions
 
 
-def trso_line9(query) -> Expression:
-    pass
+def trso_line9(query, district) -> Expression:
+    sorted_district_nodes = sorted(district)
+    # Will this always return the same order?
+    my_product = One
+    for i in range(len(sorted_district_nodes)):
+        # TODO I am not convinced this is correct, still trying to decipher the paper
+        subset_including_node = set(sorted_district_nodes[: i + 1])
+        subset_up_to_node = set(sorted_district_nodes[:i])
+        numerator = Sum.safe(query.expression, district - subset_including_node)
+        denominator = Sum.safe(query.expression, district - subset_up_to_node)
+        if denominator == 0:
+            pass
+            # TODO is this possible to be zero, should we have a check?
+        my_product *= numerator / denominator
+    return Sum.safe(my_product, district - query.target_outcomes)
 
 
 def trso_line10(query, district, new_surrogate_interventions) -> Expression:
-    pass
+    sorted_district_nodes = sorted(district)
+    my_product = One
+    for i, node in enumerate(sorted_district_nodes):
+        # TODO I am not convinced this is correct, still trying to decipher the paper
+        subset_up_to_node = set(sorted_district_nodes[:i])
+        previous_node = sorted_district_nodes[i - 1]
+        my_product *= query.expression(
+            node.given(subset_up_to_node.intersection(district).union(previous_node))
+        )
+
+    sorted_district_nodes = sorted(district)
+    new_query = deepcopy(query)
+    new_query.target_interventions = query.target_interventions.intersection(district)
+    new_query.expression = my_product
+    new_query.transportability_diagrams = query.transportability_diagrams[query.domain].subgraph(
+        district
+    )
+    new_query.surrogate_interventions = new_surrogate_interventions
+    return new_query
 
 
 # TODO Tikka paper says that topological ordering is available globaly
@@ -361,27 +393,31 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
 
     # line9
     if districts_without_interventions in districts:  # FIXME, this line makes no sense
-        return trso_line9(query)
+        return trso_line9(query, districts_without_interventions)
 
     # line10
-    # FIXME why aren't results collated over all districts? then pick which one to return?
+    target_district = []
     for district in districts:
-        if not districts_without_interventions.issubset(district):
-            continue
-        # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
-        if len(query.active_interventions) == 0:
-            # FIXME is this even possible? doesn't line 6 check this and return something else?
-            new_surrogate_interventions = dict()
-        elif _pillow_has_transport(graph, district):
-            return None
-        else:
-            new_surrogate_interventions = query.surrogate_interventions
+        if districts_without_interventions.issubset(district):
+            target_district.append(district)
+    if len(target_district) != 1:
+        logger.warning("Incorrect number of districts found on line 10")
+        # TODO This shouldn't be possible, should we remove this check?
+    target_district = target_district[0]
+    # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
+    if len(query.active_interventions) == 0:
+        # FIXME is this even possible? doesn't line 6 check this and return something else?
+        new_surrogate_interventions = dict()
+    elif _pillow_has_transport(graph, target_district):
+        return None
+    else:
+        new_surrogate_interventions = query.surrogate_interventions
 
-        return trso_line10(
-            query,
-            district,
-            new_surrogate_interventions,
-        )
+    return trso_line10(
+        query,
+        target_district,
+        new_surrogate_interventions,
+    )
 
     raise ValueError
 
