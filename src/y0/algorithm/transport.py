@@ -203,7 +203,7 @@ def trso_line1(
 def trso_line2(
     query: TRSOQuery,
     outcomes_ancestors: Set[Variable],
-) -> Tuple[TransportQuery, Expression]:
+) -> TRSOQuery:
     """Restrict the interventions and diagram to only include ancestors of target variables.
 
     :param query: A transport query
@@ -225,7 +225,7 @@ def trso_line2(
     return new_query
 
 
-def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> TransportQuery:
+def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> TRSOQuery:
     """
 
     :param query: A transport query
@@ -238,9 +238,9 @@ def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> Tra
 
 
 def trso_line4(
-    query: TransportQuery,
+    query: TRSOQuery,
     components: Set[FrozenSet[Variable]],
-) -> Dict[FrozenSet[Variable], TransportQuery]:
+) -> Dict[FrozenSet[Variable], TRSOQuery]:
     """Find the trso inputs for each C-component.
 
     :param query: A transport query
@@ -259,16 +259,15 @@ def trso_line4(
 
 
 def trso_line6(
-    query: TransportQuery,
-    domain: Variable,
-) -> Dict[Population, Tuple[TransportQuery, Set[Variable]]]:
+    query: TRSOQuery,
+) -> Dict[Population, TRSOQuery]:
     """Find the active interventions in each diagram, run trso with active interventions.
 
     :param query: A transport query
     :param domain: current domain
     :returns:
     """
-    transportability_diagram = query.transportability_diagrams[domain]
+    transportability_diagram = query.transportability_diagrams[query.domain]
     expressions = {}
     for loop_domain, loop_transportability_diagram in query.transportability_diagrams.items():
         if not query.available_interventions[loop_domain].intersection(query.target_interventions):
@@ -295,14 +294,14 @@ def trso_line6(
             query.target_interventions - query.available_interventions[loop_domain]
         )
         new_query.domain = loop_domain
-        new_query.transportability_diagrams[domain] = transportability_diagram.subgraph(
+        new_query.transportability_diagrams[query.domain] = transportability_diagram.subgraph(
             transportability_diagram.nodes()
             - query.available_interventions[loop_domain].intersection(query.target_interventions)
         )
-        new_active_interventions = query.available_interventions[loop_domain].intersection(
+        new_query.active_interventions =query.available_interventions[loop_domain].intersection(
             query.target_interventions
         )
-        expressions[loop_domain] = (new_query, new_active_interventions)
+        expressions[loop_domain] = (new_query)
 
     return expressions
 
@@ -378,15 +377,12 @@ def trso(
         )
 
     # line 6
-    if not active_interventions:
-        subqueries = trso_line6(query, domain)
+    if not query.active_interventions:
+        subqueries = trso_line6(query)
         expressions = {}
-        for loop_domain, (loop_query, loop_active_interventions) in subqueries.items():
+        for loop_domain, loop_query in subqueries.items():
             loop_expression = trso(
                 query=loop_query,
-                active_interventions=loop_active_interventions,
-                domain=loop_domain,
-                expression=expression,
             )
             # line7
             if loop_expression is not None:
@@ -410,9 +406,7 @@ def trso(
     if districts_without_interventions in districts:
         return trso_line9(
             query,
-            expression,
-            active_interventions,
-            domain,
+
         )
 
     # line10
@@ -421,7 +415,7 @@ def trso(
         if not districts_without_interventions.issubset(district):
             continue
         # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
-        if len(active_interventions) == 0:
+        if len(query.active_interventions) == 0:
             # FIXME is this even possible? doesn't line 6 check this and return something else?
             new_available_interventions = dict()
         elif any(
@@ -433,9 +427,6 @@ def trso(
 
         return trso_line10(
             query,
-            expression,
-            active_interventions,
-            domain,
             district,
             new_available_interventions,
         )
