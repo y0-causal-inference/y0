@@ -245,8 +245,8 @@ class TestTransport(cases.GraphTestCase):
         actual = trso_line3(query=query, additional_interventions=additional_interventions)
         self.assertEqual(actual, expected)
 
-        # self.assertIsNotNone(trso(query))
-        # self.assertIsNotNone(trso(actual))
+        self.assertIsNotNone(trso(query))
+        self.assertIsNotNone(trso(actual))
 
     def test_trso_line4(self):
         query = TRSOQuery(
@@ -375,4 +375,4 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
         )
         actual = trso(query)
-        # self.assertIsNotNone(actual)
+        self.assertIsNotNone(actual)
