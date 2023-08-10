@@ -189,8 +189,7 @@ class TestTransport(cases.GraphTestCase):
             query,
             outcomes_anc,
         )
-        print(actual.expression == expected.expression)
-
+        self.assertEqual(actual.expression, expected.expression)
         self.assertEqual(actual, expected)
 
     def test_trso_line3(self):

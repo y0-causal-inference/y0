@@ -3,22 +3,10 @@
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import (
-    Dict,
-    FrozenSet,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Dict, FrozenSet, Iterable, List, Mapping, Optional, Set, Union, cast
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
-    PP,
     CounterfactualVariable,
     Expression,
     Intervention,
@@ -58,7 +46,7 @@ def get_nodes_to_transport(
         surrogate_outcomes = {surrogate_outcomes}
 
     # Find the c_component with surrogate_outcomes
-    c_component_surrogate_outcomes = set()
+    c_component_surrogate_outcomes: Set[Variable] = set()
     for component in graph.get_c_components():
         # Check if surrogate_outcomes is present in the current set
         if surrogate_outcomes.intersection(component):
@@ -93,7 +81,7 @@ def is_transport_node(node: Variable) -> bool:
 
 
 def get_transport_nodes(graph: NxMixedGraph) -> Set[Variable]:
-    return {node for node in graph if is_transport_node(node)}
+    return {node for node in graph.nodes() if is_transport_node(node)}
 
 
 def create_transport_diagram(
@@ -235,7 +223,7 @@ def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> TRS
 
 def trso_line4(
     query: TRSOQuery,
-    components: Set[FrozenSet[Variable]],
+    components: Iterable[FrozenSet[Variable]],
 ) -> Dict[FrozenSet[Variable], TRSOQuery]:
     """Find the trso inputs for each C-component.
 
@@ -247,7 +235,7 @@ def trso_line4(
     rv = {}
     for component in components:
         new_query = deepcopy(query)
-        new_query.target_outcomes = component
+        new_query.target_outcomes = set(component)
         new_query.target_interventions = graph.nodes() - component
         rv[component] = new_query
     return rv
@@ -329,9 +317,9 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         return trso(new_query)
 
     # line 4
-    districts_without_interventions = graph.subgraph_without(
-        query.target_interventions
-    ).get_c_components()
+    districts_without_interventions = set(
+        graph.subgraph_without(query.target_interventions).get_c_components()
+    )
     if len(districts_without_interventions) > 1:
         subqueries = trso_line4(
             query,
@@ -351,9 +339,8 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
 
     # line 6
     if not query.active_interventions:
-        subqueries = trso_line6(query)
-        expressions = {}
-        for domain, subquery in subqueries.items():
+        expressions: Dict[Population, Expression] = {}
+        for domain, subquery in trso_line6(query).items():
             expression = trso(subquery)
             if expression is not None:  # line7
                 expressions[domain] = expression
@@ -373,7 +360,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     # line 8, i.e. len(districts)>1
 
     # line9
-    if districts_without_interventions in districts:
+    if districts_without_interventions in districts:  # FIXME, this line makes no sense
         return trso_line9(query)
 
     # line10
@@ -395,6 +382,8 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
             district,
             new_surrogate_interventions,
         )
+
+    raise ValueError
 
 
 def _pillow_has_transport(graph, district) -> bool:
