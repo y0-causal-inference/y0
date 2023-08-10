@@ -108,7 +108,7 @@ class NxMixedGraph:
 
     def nodes(self) -> NodeView[Variable]:
         """Get the nodes in the graph."""
-        return self.directed.nodes() | self.undirected.nodes()
+        return self.directed.nodes()
 
     def to_admg(self):
         """Get an ananke ADMG."""
