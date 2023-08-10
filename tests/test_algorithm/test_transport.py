@@ -8,11 +8,14 @@ from y0.algorithm.transport import (
     get_nodes_to_transport,
     surrogate_to_transport,
     transport_variable,
+    trso,
     trso_line1,
     trso_line2,
     trso_line3,
     trso_line4,
     trso_line6,
+    trso_line9,
+    trso_line10,
 )
 from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
@@ -346,3 +349,26 @@ class TestTransport(cases.GraphTestCase):
         }
 
         self.assertEqual(expected, actual)
+
+    def test_trso_line9(self):
+        pass
+
+    def test_trso_line10(self):
+        pass
+
+    def test_trso(self):
+        query = TRSOQuery(
+            target_interventions={X1, X2},
+            target_outcomes={Y1, Y2},
+            expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8,
+                Pi1: graph_1,
+                Pi2: graph_2,
+            },
+            surrogate_interventions={Pi1: {X2}, Pi2: {X1}},
+        )
+        actual = trso(query)

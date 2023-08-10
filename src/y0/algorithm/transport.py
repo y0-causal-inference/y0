@@ -392,6 +392,8 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     # line 8, i.e. len(districts)>1
 
     # line9
+    if len(districts_without_interventions) == 1:
+        districts_without_interventions = districts_without_interventions.pop()
     if districts_without_interventions in districts:  # FIXME, this line makes no sense
         return trso_line9(query, districts_without_interventions)
 
