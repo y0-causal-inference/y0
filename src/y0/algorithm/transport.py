@@ -315,9 +315,11 @@ def trso_line10(
     for i, node in enumerate(sorted_district_nodes):
         # TODO I am not convinced this is correct, still trying to decipher the paper
         subset_up_to_node = set(sorted_district_nodes[:i])
-        previous_node = sorted_district_nodes[i - 1]
+        previous_node_without_district = set([sorted_district_nodes[i - 1]]) - district
         my_product *= query.expression(
-            node.given(subset_up_to_node.intersection(district).union(previous_node))
+            node.given(
+                subset_up_to_node.intersection(district).union(previous_node_without_district)
+            )
         )
 
     sorted_district_nodes = sorted(district)
@@ -422,7 +424,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     # line10
     target_district = []
     for district in districts:
-        if districts_without_interventions.issubset(district):
+        if district_without_interventions.issubset(district):
             target_district.append(district)
     if len(target_district) != 1:
         logger.warning("Incorrect number of districts found on line 10")
