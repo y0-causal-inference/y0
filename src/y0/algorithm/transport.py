@@ -8,6 +8,7 @@ from typing import Dict, FrozenSet, Iterable, List, Mapping, Optional, Set, Unio
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
+    PP,
     CounterfactualVariable,
     Expression,
     Intervention,
@@ -285,7 +286,8 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
             conditions=target_interventions,
         )
         for transportability_node in transportability_nodes
-        if transportability_node in graph  # FIXME check if this is okay to exclude
+        if transportability_node
+        in graph_without_interventions  # FIXME check if this is okay to exclude
         for outcome in target_outcomes
     )
 
@@ -317,11 +319,9 @@ def trso_line10(
         subset_up_to_node = set(sorted_district_nodes[:i])
         previous_node_without_district = set([sorted_district_nodes[i - 1]]) - district
         # FIXME calling this doesn't make sense - expression is an object, not a func
-        my_product *= query.expression(
-            node.given(
-                subset_up_to_node.intersection(district).union(previous_node_without_district)
-            )
-        )
+    my_product *= PP[query.domain](
+        node.given(subset_up_to_node.intersection(district).union(previous_node_without_district))
+    )
 
     new_query = deepcopy(query)
     new_query.target_interventions = query.target_interventions.intersection(district)
@@ -410,7 +410,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     # TODO check which of the raises below should be passthroughs, annotate explicitly
     if len(districts_without_interventions) == 1:
         district_without_interventions = districts_without_interventions.pop()
-        if districts_without_interventions in districts:
+        if district_without_interventions in districts:
             return trso_line9(query, set(district_without_interventions))
         # raise NotImplementedError(
         #     "single district without interventions found, but it's not in the districts"
