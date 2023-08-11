@@ -5,7 +5,7 @@
 import copy
 from functools import partial
 from itertools import chain, combinations, groupby
-from typing import Callable, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Callable, Iterable, Optional, Sequence, Set, Tuple
 
 import networkx as nx
 from tqdm.auto import tqdm
@@ -116,17 +116,18 @@ def disorient(graph: NxMixedGraph) -> nx.Graph:
     return rv
 
 
-def get_moral_links(graph: NxMixedGraph) -> List[Tuple[Variable, Variable]]:
+def iter_moral_links(graph: NxMixedGraph) -> Iterable[Tuple[Variable, Variable]]:
     """Generate links to ensure all co-parents in a graph are linked.
 
     May generate links that already exist as we assume we are not working on a multi-graph.
 
     :param graph: Graph to process
-    :return: An collection of edges to add.
+    :yields: An collection of edges to add.
     """
-    parents = [graph.directed.predecessors(node) for node in graph.nodes()]
-    moral_links = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
-    return moral_links
+    #  note that combinations(x, 2) returns an empty list when len(x) == 1
+    yield from chain.from_iterable(
+        combinations(graph.directed.predecessors(node), 2) for node in graph.nodes()
+    )
 
 
 def are_d_separated(
@@ -148,31 +149,40 @@ def are_d_separated(
     :return: T/F and the final graph (as evidence)
     :raises TypeError: if the left/right arguments or any conditions are
         not Variable instances
+    :raises KeyError: if the left/right arguments or any conditions are
+        not in the graph
     """
     if conditions is None:
         conditions = set()
+    conditions = set(conditions)
     if not isinstance(a, Variable):
         raise TypeError(f"left argument is not given as a Variable: {type(a)}: {a}")
     if not isinstance(b, Variable):
         raise TypeError(f"right argument is not given as a Variable: {type(b)}: {b}")
     if not all(isinstance(c, Variable) for c in conditions):
         raise TypeError(f"some conditions are not variables: {conditions}")
+    if a not in graph:
+        raise KeyError(f"left argument is not in graph: {a}")
+    if b not in graph:
+        raise KeyError(f"right argument is not in graph: {b}")
+    missing_conditions = {condition for condition in conditions if condition not in graph}
+    if missing_conditions:
+        raise KeyError(f"conditions missing from graph: {missing_conditions}")
 
-    condition_names = {c for c in conditions}
-    named = {a, b}.union(condition_names)
+    named = {a, b}.union(conditions)
 
     # Filter to ancestors
     keep = graph.ancestors_inclusive(named)
     sg = copy.deepcopy(graph.subgraph(keep))
 
     # Moralize (link parents of mentioned nodes)
-    for u, v in get_moral_links(sg):
+    for u, v in iter_moral_links(sg):
         sg.add_undirected_edge(u, v)
 
     # disorient & remove conditions
     evidence_graph = disorient(sg)
 
-    keep = set(evidence_graph.nodes) - set(condition_names)
+    keep = set(evidence_graph.nodes) - set(conditions)
     evidence_graph = evidence_graph.subgraph(keep)
 
     # check for path....
