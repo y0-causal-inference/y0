@@ -198,16 +198,24 @@ class TestGraph(unittest.TestCase):
     def test_get_c_components(self):
         """Test that get_c_components works correctly."""
         g1 = NxMixedGraph().from_str_edges(directed=[("X", "Y"), ("Z", "X"), ("Z", "Y")])
-        c1 = [frozenset([X]), frozenset([Y]), frozenset([Z])]
+        c1 = {frozenset([X]), frozenset([Y]), frozenset([Z])}
         g2 = NxMixedGraph().from_str_edges(directed=[("X", "Y")], undirected=[("X", "Y")])
-        c2 = [frozenset([X, Y])]
+        c2 = {frozenset([X, Y])}
         g3 = NxMixedGraph().from_edges(directed=[(X, M), (M, Y)], undirected=[(X, Y)])
-        c3 = [frozenset([X, Y]), frozenset([M])]
+        c3 = {frozenset([X, Y]), frozenset([M])}
         for graph, components in [(g1, c1), (g2, c2), (g3, c3)]:
             self.assertIsInstance(graph, NxMixedGraph)
-            actual_components = graph.get_c_components()
-            self.assertTrue(all(isinstance(c, frozenset) for c in actual_components))
-            self.assertTrue(all(isinstance(v, Variable) for c in actual_components for v in c))
+            actual_components = graph.districts()
+            self.assertTrue(
+                all(isinstance(component, frozenset) for component in actual_components)
+            )
+            self.assertTrue(
+                all(
+                    isinstance(node, Variable)
+                    for component in actual_components
+                    for node in component
+                )
+            )
             self.assertEqual(components, actual_components)
 
     def test_counterfactual_predicate(self):
