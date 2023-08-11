@@ -392,11 +392,6 @@ class NxMixedGraph:
             undirected=_include_adjacent(self.undirected, vertices),
         )
 
-    def subgraph_without(self, vertices: Union[Variable, Iterable[Variable]]) -> NxMixedGraph:
-        """Return a subgraph without a set of vertices."""
-        vertices = _ensure_set(vertices)
-        return self.subgraph(self.nodes() - vertices)
-
     def remove_in_edges(self, vertices: Union[Variable, Iterable[Variable]]) -> NxMixedGraph:
         """Return a mutilated graph given a set of interventions.
 
@@ -453,13 +448,6 @@ class NxMixedGraph:
     def districts(self) -> set[frozenset[Variable]]:
         """Get the districts."""
         return {frozenset(c) for c in nx.connected_components(self.undirected)}
-
-    def get_district(self, node: Variable) -> frozenset[Variable]:
-        """Get the district the node is in."""
-        for district in self.districts():
-            if node in district:
-                return district
-        raise KeyError
 
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""
