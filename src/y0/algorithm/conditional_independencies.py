@@ -122,7 +122,7 @@ def iter_moral_links(graph: NxMixedGraph) -> Iterable[Tuple[Variable, Variable]]
     May generate links that already exist as we assume we are not working on a multi-graph.
 
     :param graph: Graph to process
-    :return: An collection of edges to add.
+    :yields: An collection of edges to add.
     """
     #  note that combinations(x, 2) returns an empty list when len(x) == 1
     yield from chain.from_iterable(
@@ -149,6 +149,8 @@ def are_d_separated(
     :return: T/F and the final graph (as evidence)
     :raises TypeError: if the left/right arguments or any conditions are
         not Variable instances
+    :raises KeyError: if the left/right arguments or any conditions are
+        not in the graph
     """
     if conditions is None:
         conditions = set()
