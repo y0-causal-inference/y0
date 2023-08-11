@@ -396,6 +396,8 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
             # What if more than 1 expression doesn't fail?
             # Is it non-deterministic or can we prove it will be length 1?
             return list(expressions.values())[0]
+        else:
+            pass
 
     # line8
     districts = graph.get_c_components()
@@ -416,6 +418,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         #     "single district without interventions found, but it's not in the districts"
         # )
         # This case is covered by line 10.
+        # FIXME ^ doesn't seem quite right since this is exact checking while line 10 is subsets
     elif len(districts_without_interventions) == 0:
         raise NotImplementedError("no districts without interventions found")
     else:  # multiple districts
