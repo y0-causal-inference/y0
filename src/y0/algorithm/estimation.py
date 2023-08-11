@@ -7,7 +7,7 @@ The other algorithms are inferior, and are there just to demonstrate that
 There is also a simple algorithm that can tell you whether a query is A-fixable
 or P-fixable, so you know which algorithm to use.
 """
-
+import itertools
 from typing import List, Literal, Optional, Union
 
 import pandas as pd
@@ -68,11 +68,28 @@ def estimate_ate(
     return causal_effect.compute_effect(data, "eff-aipw")
 
 
+def get_markov_blanket(graph: NxMixedGraph, nodes: Set[Variable]) -> Set[Variable]:
+    """"""
+    raise NotImplementedError
+
+
 def is_mb_shielded(graph: NxMixedGraph) -> bool:
-    # TODO re-implement from ananke:
-    #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L381-403
-    admg = graph.to_admg()
-    return admg.mb_shielded()
+    """Check if the ADMG is a Markov blanket shielded.
+
+    Being Markov blanket shielded means that two vertices are non-adjacent
+    only when they are absent from each others' Markov blankets.
+
+    This code is adapted from the ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L381-403
+    """
+    for u, v in itertools.combinations(graph.nodes(), 2):
+        if not graph.directed.has_edge(u, v) and (
+            u in get_markov_blanket(graph, [v]) or v in get_markov_blanket(graph, [u])
+        ):
+            return False
+    return True
+    # admg = graph.to_admg()
+    # return admg.mb_shielded()
 
 
 def is_a_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
