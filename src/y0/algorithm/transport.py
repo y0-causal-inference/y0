@@ -49,7 +49,7 @@ def get_nodes_to_transport(
 
     # Find the c_component with surrogate_outcomes
     c_component_surrogate_outcomes: Set[Variable] = set()
-    for component in graph.get_c_components():
+    for component in graph.districts():
         # Check if surrogate_outcomes is present in the current set
         if surrogate_outcomes.intersection(component):
             c_component_surrogate_outcomes.update(component)
@@ -285,7 +285,7 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
             conditions=target_interventions,
         )
         for transportability_node in transportability_nodes
-        # if transportability_node in diagram_without_interventions
+        if transportability_node in graph  # FIXME check if this is okay to exclude
         for outcome in target_outcomes
     )
 
@@ -293,7 +293,7 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
 def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     sorted_district_nodes = sorted(district, key=attrgetter("name"))
     # Will this always return the same order?
-    my_product = One()
+    my_product: Expression = One()
     for i in range(len(sorted_district_nodes)):
         # TODO I am not convinced this is correct, still trying to decipher the paper
         subset_including_node = set(sorted_district_nodes[: i + 1])
@@ -309,26 +309,24 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
 
 def trso_line10(
     query: TRSOQuery, district: set[Variable], new_surrogate_interventions
-) -> Expression:
+) -> TRSOQuery:
     sorted_district_nodes = sorted(district, key=attrgetter("name"))
     my_product = One()
     for i, node in enumerate(sorted_district_nodes):
         # TODO I am not convinced this is correct, still trying to decipher the paper
         subset_up_to_node = set(sorted_district_nodes[:i])
         previous_node_without_district = set([sorted_district_nodes[i - 1]]) - district
+        # FIXME calling this doesn't make sense - expression is an object, not a func
         my_product *= query.expression(
             node.given(
                 subset_up_to_node.intersection(district).union(previous_node_without_district)
             )
         )
 
-    sorted_district_nodes = sorted(district)
     new_query = deepcopy(query)
     new_query.target_interventions = query.target_interventions.intersection(district)
     new_query.expression = my_product
-    new_query.transportability_diagrams = query.transportability_diagrams[query.domain].subgraph(
-        district
-    )
+    new_query.graphs[query.domain] = query.graphs[query.domain].subgraph(district)
     new_query.surrogate_interventions = new_surrogate_interventions
     return new_query
 
@@ -337,7 +335,7 @@ def trso_line10(
 def trso(query: TRSOQuery) -> Optional[Expression]:
     # Check that domain is in query.domains
     # check that query.surrogate_interventions keys are equals to domains
-    # check that query.transportability_diagrams keys are equal to domains
+    # check that query.graphs keys are equal to domains
     graph = query.graphs[query.domain]
     # line 1
     if not query.target_interventions:
@@ -362,9 +360,9 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         return trso(new_query)
 
     # line 4
-    districts_without_interventions: set[frozenset[Variable]] = set(
-        graph.subgraph_without(query.target_interventions).get_c_components()
-    )
+    districts_without_interventions: set[frozenset[Variable]] = graph.subgraph_without(
+        query.target_interventions
+    ).districts()
     if len(districts_without_interventions) > 1:
         subqueries = trso_line4(
             query,
@@ -400,7 +398,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
             pass
 
     # line8
-    districts = graph.get_c_components()
+    districts = graph.districts()
     # line 11, return fail. keep explict tests for 0 and 1 to ensure adequate testing
     if len(districts) == 0:
         return None
@@ -425,14 +423,14 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         raise NotImplementedError("multiple districts without interventions found")
 
     # line10
-    target_district = []
+    target_districts = []
     for district in districts:
         if district_without_interventions.issubset(district):
-            target_district.append(district)
-    if len(target_district) != 1:
+            target_districts.append(district)
+    if len(target_districts) != 1:
         logger.warning("Incorrect number of districts found on line 10")
         # TODO This shouldn't be possible, should we remove this check?
-    target_district = target_district[0]
+    target_district = target_districts.pop()
     # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
     if len(query.active_interventions) == 0:
         # FIXME is this even possible? doesn't line 6 check this and return something else?
@@ -444,7 +442,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
 
     return trso_line10(
         query,
-        target_district,
+        set(target_district),
         new_surrogate_interventions,
     )
 
@@ -461,7 +459,6 @@ def transport(
     conditions: Optional[List[Variable]] = None,
 ):
     """Transport algorithm from https://arxiv.org/abs/1806.07172."""
-
     if conditions is not None:
         raise NotImplementedError
     raise NotImplementedError
