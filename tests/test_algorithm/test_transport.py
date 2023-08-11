@@ -262,7 +262,7 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={},
         )
 
-        districts_without_interventions = tikka_trso_figure_8.subgraph_without(
+        districts_without_interventions = tikka_trso_figure_8.remove_nodes_from(
             query.target_interventions
         ).get_c_components()
 

@@ -392,10 +392,6 @@ class NxMixedGraph:
             undirected=_include_adjacent(self.undirected, vertices),
         )
 
-    def subgraph_without(self, vertices: Union[Variable, Iterable[Variable]]) -> NxMixedGraph:
-        vertices = _ensure_set(vertices)
-        return self.subgraph(self.nodes() - vertices)
-
     def remove_in_edges(self, vertices: Union[Variable, Iterable[Variable]]) -> NxMixedGraph:
         """Return a mutilated graph given a set of interventions.
 

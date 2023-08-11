@@ -267,7 +267,7 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
         new_query = deepcopy(query)
         new_query.target_interventions = query.target_interventions - surrogate_interventions
         new_query.domain = domain
-        new_query.graphs[new_query.domain] = graph.subgraph_without(surrogate_intersect_target)
+        new_query.graphs[new_query.domain] = graph.remove_nodes_from(surrogate_intersect_target)
         new_query.active_interventions = surrogate_intersect_target
         expressions[domain] = new_query
 
@@ -360,7 +360,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         return trso(new_query)
 
     # line 4
-    districts_without_interventions: set[frozenset[Variable]] = graph.subgraph_without(
+    districts_without_interventions: set[frozenset[Variable]] = graph.remove_nodes_from(
         query.target_interventions
     ).districts()
     if len(districts_without_interventions) > 1:
