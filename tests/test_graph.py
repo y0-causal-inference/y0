@@ -220,6 +220,15 @@ class TestGraph(unittest.TestCase):
             )
             self.assertEqual(components, actual_components)
 
+    def test_get_district(self):
+        """Test getting districts."""
+        graph = NxMixedGraph().from_edges(directed=[(X, M), (M, Y)], undirected=[(X, Y)])
+        self.assertEqual(frozenset([X, Y]), graph.get_district(X))
+        self.assertEqual(frozenset([X, Y]), graph.get_district(Y))
+        self.assertEqual(frozenset([M]), graph.get_district(M))
+        with self.assertRaises(KeyError):
+            graph.get_district(Z)
+
     def test_counterfactual_predicate(self):
         """Test checking counterfactual graph."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)])

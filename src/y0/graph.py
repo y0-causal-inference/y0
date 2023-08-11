@@ -458,6 +458,13 @@ class NxMixedGraph:
         """Get the districts."""
         return {frozenset(c) for c in nx.connected_components(self.undirected)}
 
+    def get_district(self, node: Variable) -> frozenset[Variable]:
+        """Get the district the node is in."""
+        for district in self.districts():
+            if node in district:
+                return district
+        raise KeyError
+
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""
         return nx.is_connected(self.undirected)
