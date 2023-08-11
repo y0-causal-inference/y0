@@ -6,6 +6,7 @@ from typing import List, Sequence
 
 from .utils import Identification, Unidentifiable
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
+from ...graph import NxMixedGraph
 
 
 def identify(identification: Identification) -> Expression:
@@ -50,14 +51,10 @@ def identify(identification: Identification) -> Expression:
         raise Unidentifiable(graph.nodes(), graph_without_treatments.districts())
 
     # line 6
-    districts = graph.districts()
-    parents = list(graph.topological_sort())
+    district_without_treatment = _get_single_district(graph_without_treatments)
 
-    # There can be only 1 district without treatments because of line 4
-    districts_without_treatment = graph_without_treatments.districts()
-    district_without_treatment = districts_without_treatment.pop()
-
-    if district_without_treatment in districts:
+    if district_without_treatment in graph.districts():
+        parents = list(graph.topological_sort())
         expression = Product.safe(p_parents(v, parents) for v in district_without_treatment)
         ranges = district_without_treatment - outcomes
         if not ranges:
@@ -69,6 +66,13 @@ def identify(identification: Identification) -> Expression:
 
     # line 7
     return identify(line_7(identification))
+
+
+def _get_single_district(graph: NxMixedGraph) -> frozenset[Variable]:
+    districts = graph.districts()
+    if len(districts) != 1:
+        raise RuntimeError
+    return districts.pop()
 
 
 def line_1(identification: Identification) -> Expression:
@@ -232,10 +236,7 @@ def line_6(identification: Identification) -> Expression:
 
     districts = graph.districts()
     graph_without_treatments = graph.remove_nodes_from(treatments)
-    districts_without_treatments = graph_without_treatments.districts()
-    if len(districts_without_treatments) != 1:
-        raise ValueError
-    district_without_treatments = districts_without_treatments.pop()
+    district_without_treatments = _get_single_district(graph_without_treatments)
 
     # line 6
     if district_without_treatments not in districts:
@@ -283,13 +284,8 @@ def line_7(identification: Identification) -> Identification:
     graph = identification.graph
 
     graph_without_treatments = graph.remove_nodes_from(treatments)
-    districts_without_treatments = graph_without_treatments.districts()
-    if 1 != len(districts_without_treatments):
-        raise ValueError(
-            f"Line 7 precondition not met. Graph without treatments had more than"
-            f" one district: {[set(d) for d in districts_without_treatments]}"
-        )
-    district_without_treatments = districts_without_treatments.pop()
+    # line 7 precondition requires single district
+    district_without_treatments = _get_single_district(graph_without_treatments)
 
     # line 7
     for district in graph.districts():
