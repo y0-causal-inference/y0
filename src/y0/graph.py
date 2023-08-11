@@ -436,6 +436,11 @@ class NxMixedGraph:
         sources = _ensure_set(sources)
         return _ancestors_inclusive(self.directed, sources)
 
+    def descendants_inclusive(self, sources: Union[Variable, Iterable[Variable]]) -> set[Variable]:
+        """Descendants of a set include the set itself."""
+        sources = _ensure_set(sources)
+        return _descendants_inclusive(self.directed, sources)
+
     def topological_sort(self) -> Iterable[Variable]:
         """Get a topological sort from the directed component of the mixed graph."""
         return nx.topological_sort(self.directed)
@@ -496,6 +501,13 @@ def _ancestors_inclusive(graph: nx.DiGraph, sources: set[Variable]) -> set[Varia
         itt.chain.from_iterable(nx.algorithms.dag.ancestors(graph, source) for source in sources)
     )
     return sources | ancestors
+
+
+def _descendants_inclusive(graph: nx.DiGraph, sources: set[Variable]) -> set[Variable]:
+    descendants = set(
+        itt.chain.from_iterable(nx.algorithms.dag.descendants(graph, source) for source in sources)
+    )
+    return sources | descendants
 
 
 def _include_adjacent(

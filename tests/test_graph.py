@@ -186,6 +186,8 @@ class TestGraph(unittest.TestCase):
             directed=[("C", "A"), ("C", "B"), ("D", "C"), ("A", "X"), ("A", "Y"), ("B", "Z")]
         )
         self.assertEqual({A, B, C, D}, graph.ancestors_inclusive({A, B}))
+        self.assertEqual({A, X, Y}, graph.descendants_inclusive({A}))
+        self.assertEqual({A, B, X, Y, Z}, graph.descendants_inclusive({A, B}))
 
         graph = NxMixedGraph.from_str_edges(
             directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Y")]
