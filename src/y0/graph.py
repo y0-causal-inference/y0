@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import itertools as itt
 import json
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
 
@@ -439,13 +440,14 @@ class NxMixedGraph:
         """Get a topological sort from the directed component of the mixed graph."""
         return nx.topological_sort(self.directed)
 
-    def connected_components(self) -> Iterable[set[Variable]]:
-        """Iterate over the connected components in the undirected graph."""
-        return nx.connected_components(self.undirected)
-
     def get_c_components(self) -> list[frozenset[Variable]]:
-        """Get the C-components in the undirected portion of the graph."""
-        return [frozenset(c) for c in self.connected_components()]
+        """Get the co-components (i.e., districts) in the undirected portion of the graph."""
+        warnings.warn("use NxMixedGraph.districts()", DeprecationWarning, stacklevel=2)
+        return list(self.districts())
+
+    def districts(self) -> set[frozenset[Variable]]:
+        """Get the districts."""
+        return {frozenset(c) for c in nx.connected_components(self.undirected)}
 
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""
