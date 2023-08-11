@@ -125,6 +125,8 @@ class TransportQuery:
 
 @dataclass
 class TRSOQuery:
+    """A query used for TRSO input"""
+
     target_interventions: Set[Variable]
     target_outcomes: Set[Variable]
     expression: Expression
@@ -147,8 +149,8 @@ def surrogate_to_transport(
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
     :param graph: The graph of the target domain.
-    :param surrogate_outcomes:
-    :param surrogate_interventions:
+    :param surrogate_outcomes: A dictionary of outcomes in other populations
+    :param surrogate_interventions: A dictionary of interentions in other populations
     :returns: An octuple representing the query transformation of a surrogate outcome query.
     """
     if set(surrogate_outcomes) != set(surrogate_interventions):
@@ -198,9 +200,9 @@ def trso_line2(
 ) -> TRSOQuery:
     """Restrict the interventions and diagram to only include ancestors of target variables.
 
-    :param query: A transport query
+    :param query: A TRSO query
     :param outcomes_ancestors: the ancestors of target variables in transportability_diagram
-    :returns: Dictionary of modified trso inputs.
+    :returns: A TRSO query with modified attributes.
     """
     new_query = deepcopy(query)
     new_query.target_interventions.intersection_update(outcomes_ancestors)
@@ -213,11 +215,11 @@ def trso_line2(
 
 
 def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> TRSOQuery:
-    """
+    """Add nodes that will effect the outcome to the interventions of the TRSOQuery.
 
-    :param query: A transport query
+    :param query: A TRSO query
     :param additional_interventions: interventions to be added to target_interventions
-    :returns: dictionary of modified trso inputs.
+    :returns: A TRSO query with modified attributes.
     """
     new_query = deepcopy(query)
     new_query.target_interventions.update(additional_interventions)
@@ -230,9 +232,9 @@ def trso_line4(
 ) -> Dict[FrozenSet[Variable], TRSOQuery]:
     """Find the trso inputs for each C-component.
 
-    :param query: A transport query
+    :param query: A TRSO query
     :param components: Set of c_components of transportability_diagram without target_interventions
-    :returns: Dictionary with components as keys and dictionary of modified trso inputs as values
+    :returns: Dictionary with components as keys TRSOQuery objects as values
     """
     graph = query.graphs[query.domain]
     rv = {}
@@ -245,7 +247,11 @@ def trso_line4(
 
 
 def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
-    """Find the active interventions in each diagram, run trso with active interventions."""
+    """Find the active interventions for each domain, remove available experiments from interventions.
+
+    :param query: A TRSO query
+    :returns: Dictionary with domains as keys TRSOQuery objects as values
+    """
     expressions = {}
     for domain, graph in query.graphs.items():
         if domain == TARGET_DOMAIN:
@@ -276,6 +282,14 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
 
 
 def all_transports_d_separated(graph, target_interventions, target_outcomes) -> bool:
+    """Check if all target_interventions are d-separated from target_outcomes.
+
+    :param graph: The graph with transport nodes in this domain.
+    :param target_interventions: Set of target interventions
+    :param target_outcomes: Set of target interventions
+    :returns: boolean True if all interventions are d-separated from all outcomes, False otherwise.
+    """
+
     transportability_nodes = get_transport_nodes(graph)
     graph_without_interventions = graph.remove_in_edges(target_interventions)
     return all(
@@ -293,6 +307,13 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
 
 
 def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
+    """Return the probability in the case with exactly one districts_without_interventions and it is present in districts.
+
+    :param query: A TRSO query
+    :param district: The C-component present in both districts_without_interventions and districts
+    :returns: An Expression
+    """
+
     sorted_district_nodes = sorted(district, key=attrgetter("name"))
     # Will this always return the same order?
     my_product: Expression = One()
@@ -310,8 +331,17 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
 
 
 def trso_line10(
-    query: TRSOQuery, district: set[Variable], new_surrogate_interventions
+    query: TRSOQuery,
+    district: set[Variable],
+    new_surrogate_interventions: Dict[Population, Set[Variable]],
 ) -> TRSOQuery:
+    """Update the TRSO query to restrict interventions and graph to district.
+
+    :param query: A TRSO query
+    :param district: The C-component of districts which contains district_without_interventions
+    :param new_surrogate_interventions: Dict mapping domains to interventions performed in that domain.
+    :returns: An Expression
+    """
     sorted_district_nodes = sorted(district, key=attrgetter("name"))
     my_product = One()
     for i, node in enumerate(sorted_district_nodes):
