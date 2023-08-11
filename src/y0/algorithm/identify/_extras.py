@@ -90,7 +90,7 @@ def get_district_interventions(graph: NxMixedGraph, event: Event) -> DistrictInt
     nodes = set(node for node in graph.nodes() if is_not_self_intervened(node))
     return {
         district: intervene_on_district(district, nodes - district, event)
-        for district in graph.subgraph(nodes).get_c_components()
+        for district in graph.subgraph(nodes).districts()
     }
 
 

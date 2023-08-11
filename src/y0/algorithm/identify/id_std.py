@@ -47,15 +47,15 @@ def identify(identification: Identification) -> Expression:
 
     # line 5
     if graph.is_connected():  # e.g., there's only 1 c-component, and it encompasses all vertices
-        raise Unidentifiable(graph.nodes(), graph_without_treatments.get_c_components())
+        raise Unidentifiable(graph.nodes(), graph_without_treatments.districts())
 
     # line 6
-    districts = graph.get_c_components()
+    districts = graph.districts()
     parents = list(graph.topological_sort())
 
     # There can be only 1 district without treatments because of line 4
-    districts_without_treatment = graph_without_treatments.get_c_components()
-    district_without_treatment = districts_without_treatment[0]
+    districts_without_treatment = graph_without_treatments.districts()
+    district_without_treatment = districts_without_treatment.pop()
 
     if district_without_treatment in districts:
         expression = Product.safe(p_parents(v, parents) for v in district_without_treatment)
@@ -173,7 +173,7 @@ def line_4(identification: Identification) -> List[Identification]:
 
     # line 4
     graph_without_treatments = graph.remove_nodes_from(treatments)
-    districts_without_treatment = graph_without_treatments.get_c_components()
+    districts_without_treatment = graph_without_treatments.districts()
     if len(districts_without_treatment) <= 1:
         raise ValueError("Line 4 precondition not met")
     return [
@@ -203,11 +203,11 @@ def line_5(identification: Identification) -> None:
     graph = identification.graph
     vertices = set(graph.nodes())
     graph_without_treatments = graph.remove_nodes_from(treatments)
-    districts_without_treatment = graph_without_treatments.get_c_components()
+    districts_without_treatment = graph_without_treatments.districts()
 
     # line 5
-    districts = graph.get_c_components()
-    if districts == [frozenset(vertices)]:
+    districts = graph.districts()
+    if districts == {frozenset(vertices)}:
         raise Unidentifiable(districts, districts_without_treatment)
 
 
@@ -230,16 +230,20 @@ def line_6(identification: Identification) -> Expression:
     treatments = identification.treatments
     graph = identification.graph
 
-    districts = graph.get_c_components()
+    districts = graph.districts()
     graph_without_treatments = graph.remove_nodes_from(treatments)
-    districts_without_treatments = graph_without_treatments.get_c_components()
+    districts_without_treatments = graph_without_treatments.districts()
+    if len(districts_without_treatments) != 1:
+        raise ValueError
+    district_without_treatments = districts_without_treatments.pop()
 
     # line 6
-    parents = list(graph.topological_sort())
-    if districts_without_treatments[0] not in districts:
+    if district_without_treatments not in districts:
         raise ValueError("Line 6 precondition not met")
-    expression = Product.safe(p_parents(v, parents) for v in districts_without_treatments[0])
-    ranges = districts_without_treatments[0] - outcomes
+
+    parents = list(graph.topological_sort())
+    expression = Product.safe(p_parents(v, parents) for v in district_without_treatments)
+    ranges = district_without_treatments - outcomes
     if not ranges:
         return expression
     return Sum.safe(
@@ -278,21 +282,19 @@ def line_7(identification: Identification) -> Identification:
     treatments = identification.treatments
     graph = identification.graph
 
-    districts = graph.get_c_components()
     graph_without_treatments = graph.remove_nodes_from(treatments)
-    districts_without_treatments = graph_without_treatments.get_c_components()
+    districts_without_treatments = graph_without_treatments.districts()
     if 1 != len(districts_without_treatments):
         raise ValueError(
             f"Line 7 precondition not met. Graph without treatments had more than"
             f" one district: {[set(d) for d in districts_without_treatments]}"
         )
-
-    parents = list(graph.topological_sort())
-    district_without_treatments = districts_without_treatments[0]
+    district_without_treatments = districts_without_treatments.pop()
 
     # line 7
-    for district in districts:
+    for district in graph.districts():
         if district_without_treatments < district:
+            parents = list(graph.topological_sort())
             return Identification.from_parts(
                 outcomes=outcomes,
                 treatments=treatments & district,
