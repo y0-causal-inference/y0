@@ -221,7 +221,7 @@ def get_events_of_each_district(graph: NxMixedGraph, event: Event) -> DistrictIn
     subgraph = graph.subgraph(nodes)
     return {
         district: get_events_of_district(graph, district, event)
-        for district in subgraph.get_c_components()
+        for district in subgraph.districts()
     }
 
 
