@@ -83,8 +83,6 @@ def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
         if not graph.directed.has_edge(u, v) and _markov_blanket_overlap(graph, u, v):
             return False
     return True
-    # admg = graph.to_admg()
-    # return admg.mb_shielded()
 
 
 def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bool:
