@@ -78,6 +78,8 @@ def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
     https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L381-403
     """
     for u, v in itertools.combinations(graph.nodes(), 2):
+        # FIXME something is wrong with the notion of not graph.directed.has_edge(u, v)
+        #  compared to the ananke implementation
         if not graph.directed.has_edge(u, v) and _markov_blanket_overlap(graph, u, v):
             return False
     return True
