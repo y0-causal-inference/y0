@@ -239,3 +239,25 @@ class TestGraph(unittest.TestCase):
         self.assertTrue(graph.is_counterfactual())
         with self.assertRaises(ValueError):
             graph.raise_on_counterfactual()
+
+    def test_markov_blanket(self):
+        """Test getting a markov blanket."""
+        x = [Variable(f"X{i}") for i in range(12)]
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (x[1], x[5]),
+                (x[2], x[6]),
+                (x[3], x[6]),
+                (x[4], x[3]),
+                (x[5], x[8]),
+                (x[6], x[8]),
+                (x[6], x[9]),
+                (x[7], x[9]),
+                (x[8], x[10]),
+                (x[9], x[11]),
+            ]
+        )
+        self.assertEqual(
+            {x[2], x[3], x[5], x[7], x[8], x[9]},
+            graph.get_markov_blanket(x[6]),
+        )
