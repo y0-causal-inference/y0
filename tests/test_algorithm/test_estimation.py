@@ -102,6 +102,7 @@ class TestEstimation(unittest.TestCase):
 
     def test_is_a_fixable(self):
         """Test checking for a-fixability."""
+        # see examples at https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_counterfactual_mean.py?ref_type=heads#L20-47
         graph_1 = ...
         treatment_1 = ...
         self.assertFalse(is_a_fixable(graph_1, treatment_1))
@@ -112,6 +113,7 @@ class TestEstimation(unittest.TestCase):
 
     def test_is_p_fixable(self):
         """Test checking for p-fixability."""
+        # see examples at https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_counterfactual_mean.py?ref_type=heads#L151-212
         graph_1 = ...
         treatment_1 = ...
         self.assertFalse(is_p_fixable(graph_1, treatment_1))
