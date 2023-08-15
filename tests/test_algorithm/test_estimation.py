@@ -62,9 +62,9 @@ class TestEstimation(unittest.TestCase):
             undirected=[("SOS", "PI3K")],
         )
         # use Ananke method for sanity check
-        self.assertFalse(graph_4.to_admg().mb_shielded())
+        self.assertTrue(graph_4.to_admg().mb_shielded())
         # test our method
-        self.assertFalse(is_markov_blanket_shielded(graph_4))
+        self.assertTrue(is_markov_blanket_shielded(graph_4))
 
         # Fifth test
         graph_5 = NxMixedGraph.from_str_edges(
@@ -89,16 +89,16 @@ class TestEstimation(unittest.TestCase):
             directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")], undirected=[]
         )
         # use Ananke method for sanity check
-        self.assertFalse(graph_6.to_admg().mb_shielded())
+        self.assertTrue(graph_6.to_admg().mb_shielded())
         # test our method
-        self.assertFalse(is_markov_blanket_shielded(graph_6))
+        self.assertTrue(is_markov_blanket_shielded(graph_6))
 
         # Seventh test
         graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")], undirected=[])
         # use Ananke method for sanity check
-        self.assertFalse(graph_7.to_admg().mb_shielded())
+        self.assertTrue(graph_7.to_admg().mb_shielded())
         # test our method
-        self.assertFalse(is_markov_blanket_shielded(graph_7))
+        self.assertTrue(is_markov_blanket_shielded(graph_7))
 
     def test_is_a_fixable(self):
         """Test checking for a-fixability."""
