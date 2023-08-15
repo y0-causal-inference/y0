@@ -250,37 +250,50 @@ class TestEstimation(unittest.TestCase):
         treatment_8 = "SOS"
         self.assertTrue(is_p_fixable(graph_8, treatment_8))
 
-        graph_9 = NxMixedGraph.from_str_edges(directed=[("C", "T"),
-            ("C", "M"),
-            ("C", "L"),
-            ("C", "Y"),
-            ("T", "M"),
-            ("M", "L"),
-            ("M", "Y"),
-            ("L", "Y")], undirected=[("T", "L"), ("T", "Y")])
+        graph_9 = NxMixedGraph.from_str_edges(
+            directed=[
+                ("C", "T"),
+                ("C", "M"),
+                ("C", "L"),
+                ("C", "Y"),
+                ("T", "M"),
+                ("M", "L"),
+                ("M", "Y"),
+                ("L", "Y"),
+            ],
+            undirected=[("T", "L"), ("T", "Y")],
+        )
         treatment_9 = "T"
         self.assertTrue(is_p_fixable(graph_9, treatment_9))
 
-        graph_10 = NxMixedGraph.from_str_edges(directed=[("C", "T"),
-            ("C", "M"),
-            ("C", "L"),
-            ("C", "Y"),
-            ("T", "M"),
-            ("M", "L"),
-            ("T", "Y"),
-            ("L", "Y")
-], undirected=[("T", "L"), ("M", "Y")])
+        graph_10 = NxMixedGraph.from_str_edges(
+            directed=[
+                ("C", "T"),
+                ("C", "M"),
+                ("C", "L"),
+                ("C", "Y"),
+                ("T", "M"),
+                ("M", "L"),
+                ("T", "Y"),
+                ("L", "Y"),
+            ],
+            undirected=[("T", "L"), ("M", "Y")],
+        )
         treatment_10 = "T"
         self.assertTrue(is_p_fixable(graph_10, treatment_10))
 
-        graph_10 = NxMixedGraph.from_str_edges(directed=[("C1", "T"),
-            ("C1", "L"),
-            ("C2", "M"),
-            ("C2", "L"),
-            ("C2", "Y"),
-            ("T", "M"),
-            ("M", "L"),
-            ("L", "Y")
-], undirected=[("Z1", "C1"), ("Z2", "C2"), ("T", "L")])
+        graph_10 = NxMixedGraph.from_str_edges(
+            directed=[
+                ("C1", "T"),
+                ("C1", "L"),
+                ("C2", "M"),
+                ("C2", "L"),
+                ("C2", "Y"),
+                ("T", "M"),
+                ("M", "L"),
+                ("L", "Y"),
+            ],
+            undirected=[("Z1", "C1"), ("Z2", "C2"), ("T", "L")],
+        )
         treatment_10 = "T"
         self.assertFalse(is_p_fixable(graph_10, treatment_10))
