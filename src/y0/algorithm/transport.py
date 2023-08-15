@@ -8,12 +8,13 @@ from typing import Dict, FrozenSet, Iterable, List, Mapping, Optional, Set, Unio
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
-    PP,
     CounterfactualVariable,
     Expression,
     Intervention,
     One,
     Population,
+    PopulationProbability,
+    Probability,
     Product,
     Sum,
     Variable,
@@ -353,19 +354,23 @@ def trso_line10(
     :returns: An Expression
     """
     sorted_district_nodes = sorted(district, key=attrgetter("name"))
-    my_product = One()
+    expressions = []
     for i, node in enumerate(sorted_district_nodes):
         # TODO I am not convinced this is correct, still trying to decipher the paper
         subset_up_to_node = set(sorted_district_nodes[:i])
         previous_node_without_district = set([sorted_district_nodes[i - 1]]) - district
-        # FIXME calling this doesn't make sense - expression is an object, not a func
-    my_product *= PP[query.domain](
-        node.given(subset_up_to_node.intersection(district).union(previous_node_without_district))
-    )
+        prob = Probability.safe(
+            node.given(
+                subset_up_to_node.intersection(district).union(previous_node_without_district)
+            )
+        )
+        expressions.append(
+            PopulationProbability(population=query.domain, distribution=prob.distribution)
+        )
 
     new_query = deepcopy(query)
     new_query.target_interventions = query.target_interventions.intersection(district)
-    new_query.expression = my_product
+    new_query.expression = Product.safe(expressions)
     new_query.graphs[query.domain] = query.graphs[query.domain].subgraph(district)
     new_query.surrogate_interventions = new_surrogate_interventions
     return new_query
