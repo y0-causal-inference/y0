@@ -1,6 +1,10 @@
 import unittest
 
-from y0.algorithm.estimation import is_markov_blanket_shielded
+from y0.algorithm.estimation import (
+    is_a_fixable,
+    is_markov_blanket_shielded,
+    is_p_fixable,
+)
 from y0.examples import napkin
 from y0.graph import NxMixedGraph
 
@@ -95,3 +99,23 @@ class TestEstimation(unittest.TestCase):
         self.assertFalse(graph_7.to_admg().mb_shielded())
         # test our method
         self.assertFalse(is_markov_blanket_shielded(graph_7))
+
+    def test_is_a_fixable(self):
+        """Test checking for a-fixability."""
+        graph_1 = ...
+        treatment_1 = ...
+        self.assertFalse(is_a_fixable(graph_1, treatment_1))
+
+        graph_2 = ...
+        treatment_2 = ...
+        self.assertTrue(is_a_fixable(graph_2, treatment_2))
+
+    def test_is_p_fixable(self):
+        """Test checking for p-fixability."""
+        graph_1 = ...
+        treatment_1 = ...
+        self.assertFalse(is_p_fixable(graph_1, treatment_1))
+
+        graph_2 = ...
+        treatment_2 = ...
+        self.assertTrue(is_p_fixable(graph_2, treatment_2))
