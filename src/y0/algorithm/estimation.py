@@ -8,7 +8,7 @@ There is also a simple algorithm that can tell you whether a query is A-fixable
 or P-fixable, so you know which algorithm to use.
 """
 import itertools
-from typing import List, Literal, Optional, Union
+from typing import List, Literal, Optional, Union, Collection
 
 import pandas as pd
 
@@ -89,20 +89,26 @@ def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bo
     return u in graph.get_markov_blanket(v) or v in graph.get_markov_blanket(u)
 
 
-def is_a_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
+def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, Collection[Variable]]) -> bool:
+    if not isinstance(treatments, Variable):
+        raise NotImplementedError(
+            "a-fixability on multiple treatments is an open research question"
+        )
     # TODO re-implement the code from ananke directly on NxMixedGraph:
     #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L58-65
-    pass
 
 
 def aipw():
     pass
 
 
-def is_p_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
+def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, Collection[Variable]]) -> bool:
+    if not isinstance(treatments, Variable):
+        raise NotImplementedError(
+            "p-fixability on multiple treatments is an open research question"
+        )
     # TODO re-implement code from
     #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L85-92
-    pass
 
 
 def apipw():
