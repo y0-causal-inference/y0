@@ -191,7 +191,10 @@ def trso_line1(
     :param graph: The graph with transport nodes in this domain.
     :returns: Sum over the probabilities of nodes other than target outcomes.
     """
-    return Sum.safe(expression, graph.nodes() - target_outcomes)
+    if graph.nodes() - target_outcomes:
+        return Sum.safe(expression, graph.nodes() - target_outcomes)
+    else:
+        return expression
 
 
 def trso_line2(
@@ -211,6 +214,7 @@ def trso_line2(
         query.expression,
         query.graphs[query.domain].nodes() - outcomes_ancestors,
     )
+
     return new_query
 
 
@@ -277,7 +281,6 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
         new_query.graphs[new_query.domain] = graph.remove_nodes_from(surrogate_intersect_target)
         new_query.active_interventions = surrogate_intersect_target
         expressions[domain] = new_query
-
     return expressions
 
 
@@ -314,19 +317,26 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     :returns: An Expression
     """
 
-    sorted_district_nodes = sorted(district, key=attrgetter("name"))
-    # Will this always return the same order?
+    sorted_graph_nodes = list(query.graphs[query.domain].topological_sort())
     my_product: Expression = One()
-    for i in range(len(sorted_district_nodes)):
+    for node in district:
+        node_index = sorted_graph_nodes.index(node)
         # TODO I am not convinced this is correct, still trying to decipher the paper
-        subset_including_node = set(sorted_district_nodes[: i + 1])
-        subset_up_to_node = set(sorted_district_nodes[:i])
-        numerator = Sum.safe(query.expression, district - subset_including_node)
-        denominator = Sum.safe(query.expression, district - subset_up_to_node)
+        remove_nodes_including_node = set(sorted_graph_nodes) - set(
+            sorted_graph_nodes[: node_index + 1]
+        )
+        remove_nodes_up_to_node = set(sorted_graph_nodes) - set(sorted_graph_nodes[:node_index])
+        numerator = Sum.safe(query.expression, remove_nodes_including_node)
+        denominator = Sum.safe(query.expression, remove_nodes_up_to_node)
         if denominator == 0:
             pass
             # TODO is this possible to be zero, should we have a check?
         my_product *= numerator / denominator
+
+    # my_product what I hope to get here from the test is somehow Y1|W,Z
+    # TODO what is going on here?
+    # Tikka has an adjustment in the code that avoids the numerator and denominator but I don't understand where it comes from.
+
     return Sum.safe(my_product, district - query.target_outcomes)
 
 
