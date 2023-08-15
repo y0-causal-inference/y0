@@ -7,8 +7,9 @@ The other algorithms are inferior, and are there just to demonstrate that
 There is also a simple algorithm that can tell you whether a query is A-fixable
 or P-fixable, so you know which algorithm to use.
 """
+
 import itertools
-from typing import List, Literal, Optional, Union, Collection
+from typing import List, Literal, Optional, Union
 
 import pandas as pd
 
@@ -89,8 +90,8 @@ def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bo
     return u in graph.get_markov_blanket(v) or v in graph.get_markov_blanket(u)
 
 
-def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, Collection[Variable]]) -> bool:
-    if not isinstance(treatments, Variable):
+def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]]) -> bool:
+    if isinstance(treatments, list):
         raise NotImplementedError(
             "a-fixability on multiple treatments is an open research question"
         )
@@ -102,8 +103,8 @@ def aipw():
     pass
 
 
-def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, Collection[Variable]]) -> bool:
-    if not isinstance(treatments, Variable):
+def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]]) -> bool:
+    if isinstance(treatments, list):
         raise NotImplementedError(
             "p-fixability on multiple treatments is an open research question"
         )
