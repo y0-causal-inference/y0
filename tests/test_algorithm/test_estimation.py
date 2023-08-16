@@ -1,11 +1,15 @@
 import unittest
 
+import pandas as pd
+
+from tests.constants import NAPKIN_TEST_PATH
 from y0.algorithm.estimation import (
+    df_covers_graph,
     is_a_fixable,
     is_markov_blanket_shielded,
     is_p_fixable,
 )
-from y0.examples import napkin
+from y0.examples import frontdoor, napkin
 from y0.graph import NxMixedGraph
 
 
@@ -297,3 +301,9 @@ class TestEstimation(unittest.TestCase):
         )
         treatment_10 = "T"
         self.assertFalse(is_p_fixable(graph_10, treatment_10))
+
+    def test_data_covers_graph(self):
+        """Test the data coverage utility."""
+        df = pd.read_csv(NAPKIN_TEST_PATH, sep="\t")
+        self.assertTrue(df_covers_graph(graph=napkin, df=df))
+        self.assertFalse(df_covers_graph(graph=frontdoor, df=df))

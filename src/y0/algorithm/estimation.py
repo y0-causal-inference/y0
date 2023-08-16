@@ -114,3 +114,12 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
 
 def apipw():
     pass
+
+
+def df_covers_graph(graph: NxMixedGraph, df: pd.DataFrame) -> bool:
+    """Check if all variables in the graph appear as columns in the dataframe."""
+    if graph.is_counterfactual():
+        raise NotImplementedError
+    graph_names = {node.name for node in graph.nodes()}
+    data_names = set(df.columns)
+    return graph_names.issubset(data_names)
