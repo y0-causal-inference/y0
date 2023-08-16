@@ -5,10 +5,12 @@ import pandas as pd
 from tests.constants import NAPKIN_TEST_PATH
 from y0.algorithm.estimation import (
     df_covers_graph,
+    estimate_ate,
     is_a_fixable,
     is_markov_blanket_shielded,
     is_p_fixable,
 )
+from y0.dsl import Variable, X, Y
 from y0.examples import frontdoor, napkin
 from y0.graph import NxMixedGraph
 
@@ -25,11 +27,10 @@ class TestEstimation(unittest.TestCase):
         self.assertFalse(is_markov_blanket_shielded(graph_unshielded))
 
         # Second test: Napkin model
-        graph_napkin = napkin.graph
         # use Ananke method for sanity check
-        self.assertFalse(graph_napkin.to_admg().mb_shielded())
+        self.assertFalse(napkin.to_admg().mb_shielded())
         # test our method
-        self.assertFalse(is_markov_blanket_shielded(graph_napkin))
+        self.assertFalse(is_markov_blanket_shielded(napkin))
 
         # Third test
         graph_3 = NxMixedGraph.from_str_edges(
@@ -110,12 +111,10 @@ class TestEstimation(unittest.TestCase):
         graph_1 = NxMixedGraph.from_str_edges(
             directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
         )
-        treatment_1 = "T"
+        treatment_1 = Variable("T")
         self.assertTrue(is_a_fixable(graph_1, treatment_1))
 
-        graph_2 = napkin.graph
-        treatment_2 = "X"
-        self.assertFalse(is_a_fixable(graph_2, treatment_2))
+        self.assertFalse(is_a_fixable(napkin, X))
 
         graph_3 = NxMixedGraph.from_str_edges(
             directed=[
@@ -162,14 +161,12 @@ class TestEstimation(unittest.TestCase):
             ],
             undirected=[("Z1", "X"), ("Z2", "M1")],
         )
-        treatment_5 = "X"
-        self.assertTrue(is_a_fixable(graph_5, treatment_5))
+        self.assertTrue(is_a_fixable(graph_5, X))
 
         graph_6 = NxMixedGraph.from_str_edges(
             directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")], undirected=[]
         )
-        treatment_6 = "X"
-        self.assertTrue(is_a_fixable(graph_6, treatment_6))
+        self.assertTrue(is_a_fixable(graph_6, X))
 
         graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")], undirected=[])
         treatment_7 = "A"
@@ -188,9 +185,7 @@ class TestEstimation(unittest.TestCase):
         treatment_1 = "T"
         self.assertFalse(is_p_fixable(graph_1, treatment_1))
 
-        graph_2 = napkin.graph
-        treatment_2 = "X"
-        self.assertFalse(is_p_fixable(graph_2, treatment_2))
+        self.assertFalse(is_p_fixable(napkin, X))
 
         graph_3 = NxMixedGraph.from_str_edges(
             directed=[
@@ -237,14 +232,12 @@ class TestEstimation(unittest.TestCase):
             ],
             undirected=[("Z1", "X"), ("Z2", "M1")],
         )
-        treatment_5 = "X"
-        self.assertFalse(is_p_fixable(graph_5, treatment_5))
+        self.assertFalse(is_p_fixable(graph_5, X))
 
         graph_6 = NxMixedGraph.from_str_edges(
             directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")], undirected=[]
         )
-        treatment_6 = "X"
-        self.assertFalse(is_p_fixable(graph_6, treatment_6))
+        self.assertFalse(is_p_fixable(graph_6, X))
 
         graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")], undirected=[])
         treatment_7 = "A"
@@ -308,3 +301,9 @@ class TestEstimation(unittest.TestCase):
         self.assertTrue(df_covers_graph(graph=napkin, df=df))
         self.assertFalse(df_covers_graph(graph=frontdoor, df=df))
 
+    def test_estimate_ate(self):
+        """Run a simple test for ATE on the napkin graph."""
+        df = pd.read_csv(NAPKIN_TEST_PATH, sep="\t")
+        expected_result = 0.0005
+        result = estimate_ate(graph=napkin, data=df, treatment=X, outcome=Y)
+        self.assertAlmostEqual(expected_result, result, delta=1e-5)

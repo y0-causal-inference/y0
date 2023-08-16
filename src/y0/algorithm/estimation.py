@@ -1,20 +1,14 @@
-"""
-for A-fixable, probably "Efficient Generalized AIPW" would be the one to focus on first.
-For P-fixable, probably, "Efficient APIPW" would be the one to focus on first. (edited)
-The other algorithms are inferior, and are there just to demonstrate that
-"Efficient Generalized AIPW" and "Efficient APIPW" is better.
-
-There is also a simple algorithm that can tell you whether a query is A-fixable
-or P-fixable, so you know which algorithm to use.
-"""
+"""Estimation of probabilities generated from identification."""
 
 import itertools
+from contextlib import redirect_stdout
 from typing import List, Literal, Optional, Union
 
 import pandas as pd
 
-from y0.dsl import CounterfactualVariable, Variable
+from y0.dsl import CounterfactualVariable, P, Variable
 from y0.graph import NxMixedGraph
+from y0.identify import is_identifiable
 
 __all__ = [
     "estimate_causal_effect",
@@ -53,6 +47,8 @@ def estimate_ate(
     data: pd.DataFrame,
     *,
     conditions: Optional[List[Variable]] = None,
+    bootstraps: int = 0,
+    alpha: float = 0.05,
 ) -> float:
     """Estimate the average treatment effect."""
     if conditions is not None:
@@ -65,8 +61,31 @@ def estimate_ate(
     ananke_graph = graph.to_admg()
     from ananke.estimation import CausalEffect
 
-    causal_effect = CausalEffect(ananke_graph, treatment.name, outcome.name)
-    return causal_effect.compute_effect(data, "eff-aipw")
+    with redirect_stdout(None):
+        # redirect stdout gets rid of the unnecessary printing from Ananke,
+        # e.g., when CausalEffect says what estimators can be used. We take
+        # care of that explicitly below
+        causal_effect = CausalEffect(ananke_graph, treatment.name, outcome.name)
+
+    # explicitly encode suggestions from Ananke
+    if is_a_fixable(graph, treatment):
+        if is_markov_blanket_shielded(graph):
+            estimator = "eff-aipw"
+        else:
+            estimator = "aipw"
+    elif is_p_fixable(graph, treatment):
+        if is_markov_blanket_shielded(graph):
+            estimator = "eff-apipw"
+        else:
+            estimator = "apipw"
+    elif is_identifiable(graph, P(outcome @ ~treatment)):
+        estimator = "anipw"
+    else:
+        raise RuntimeError("Effect can not be estimated")
+
+    return causal_effect.compute_effect(
+        data, estimator=estimator, n_bootstraps=bootstraps, alpha=alpha
+    )
 
 
 def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
