@@ -10,21 +10,21 @@ def generate_obs_data_for_napkin(
 ) -> pd.DataFrame:
     generator = np.random.default_rng(seed)
     # U1 is the latent variable that is a common cause of W and X
-    U1 = generator.normal(loc=3, scale=1, size=num_samples)
+    u1 = generator.normal(loc=3, scale=1, size=num_samples)
     # U2 is the latent variable that is a common cause of W and Y
-    U2 = generator.normal(loc=5, scale=1, size=num_samples)
-    W = generator.gamma(
-        shape=1 / (1 * (U1 * 0.3 + 0.5 * U2) ** 2),
-        scale=5 * (U1 * 0.3 + 0.5 * U2),
+    u2 = generator.normal(loc=5, scale=1, size=num_samples)
+    w = generator.gamma(
+        shape=1 / (1 * (u1 * 0.3 + 0.5 * u2) ** 2),
+        scale=5 * (u1 * 0.3 + 0.5 * u2),
         size=num_samples,
     )
-    R = generator.normal(loc=W * 0.7, scale=6, size=num_samples)
+    r = generator.normal(loc=w * 0.7, scale=6, size=num_samples)
     if treatment_assignment:
-        X = np.full(num_samples, treatment_assignment)
+        x = np.full(num_samples, treatment_assignment)
     else:
-        X = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * U1 - 0.1 * R)), size=num_samples)
-    Y = generator.normal(loc=U2 * 0.5 + X * 3, scale=6)
-    return pd.DataFrame({"W": W, "R": R, "X": X, "Y": Y})
+        x = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * u1 - 0.1 * r)), size=num_samples)
+    y = generator.normal(loc=u2 * 0.5 + x * 3, scale=6)
+    return pd.DataFrame({"W": w, "R": r, "X": x, "Y": y})
 
 
 def main():
