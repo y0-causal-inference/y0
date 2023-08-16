@@ -4,16 +4,20 @@
 
 from __future__ import annotations
 
-from typing import Iterable, NamedTuple, Set, Tuple
-
-from ananke.graphs import ADMG
+import logging
+from typing import Iterable, List, NamedTuple, Set, Tuple
 
 from ..dsl import Expression
+from ..graph import NxMixedGraph
+from ..r_utils import uses_r
 
 __all__ = [
-    'VermaConstraint',
-    'get_verma_constraints',
+    "VermaConstraint",
+    "get_verma_constraints",
 ]
+
+
+logger = logging.getLogger(__name__)
 
 
 class VermaConstraint(NamedTuple):
@@ -33,12 +37,23 @@ class VermaConstraint(NamedTuple):
         return VermaConstraint(expression, tuple(sorted(set(nodes))))
 
 
-def get_verma_constraints(graph: ADMG) -> Set[VermaConstraint]:
+def get_verma_constraints(graph: NxMixedGraph) -> Set[VermaConstraint]:
     """Get the Verma constraints on the graph.
 
     :param graph: An acyclic directed mixed graph
-    :return: A set of verma constraings, which are pairs of probability expressions and set of nodes.
+    :return: A set of verma constraints, which are pairs of probability expressions and set of nodes.
 
     .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/25
     """
     raise NotImplementedError
+
+
+@uses_r
+def r_get_verma_constraints(graph: NxMixedGraph) -> List[VermaConstraint]:
+    """Calculate the verma constraints on the graph using ``causaleffect``."""
+    graph = graph.to_causaleffect()
+
+    from rpy2 import robjects
+
+    verma_constraints = robjects.r["verma.constraints"]
+    return [VermaConstraint.from_element(row) for row in verma_constraints(graph)]
