@@ -112,11 +112,11 @@ class TestEstimation(unittest.TestCase):
         graph_1 = NxMixedGraph.from_str_edges(
             directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
         )
-        treatment_1 = "T"
+        treatment_1 = Variable("T")
         self.assertTrue(is_a_fixable(graph_1, treatment_1))
 
         graph_2 = napkin.graph
-        treatment_2 = "X"
+        treatment_2 = Variable("X")
         self.assertFalse(is_a_fixable(graph_2, treatment_2))
 
         graph_3 = NxMixedGraph.from_str_edges(
