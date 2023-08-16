@@ -909,6 +909,7 @@ class Product(Expression):
 
         :param expressions: An expression or iterable of expressions which should be multiplied
         :returns: A :class:`Product` object
+        :raises NotImplementedError: If an empty list of expressions is returned
 
         Standard usage, same as the normal ``__init__``:
 
@@ -930,6 +931,11 @@ class Product(Expression):
         if isinstance(expressions, Expression):
             return expressions
         expressions = tuple(expressions)
+        if not expressions:
+            raise NotImplementedError(
+                "Product.safe has not been implement to handle empty list of expressions. "
+                "Should this return One()? Please let us know."
+            )
         if len(expressions) == 1:
             return expressions[0]
         return cls(expressions=expressions)
