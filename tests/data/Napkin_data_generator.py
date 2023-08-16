@@ -19,7 +19,7 @@ def generate_obs_data_for_napkin(
         size=num_samples,
     )
     r = generator.normal(loc=w * 0.7, scale=6, size=num_samples)
-    if treatment_assignment:
+    if treatment_assignment is not None:
         x = np.full(num_samples, treatment_assignment)
     else:
         x = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * u1 - 0.1 * r)), size=num_samples)
