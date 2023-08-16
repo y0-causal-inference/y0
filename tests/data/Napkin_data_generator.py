@@ -1,14 +1,27 @@
+import warnings
 from contextlib import redirect_stdout
 
+import click
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from ananke.estimation import CausalEffect
+from tqdm import trange
+from pathlib import Path
+
 from y0.examples import napkin
+
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
+
+HERE = Path(__file__).parent.resolve()
+DELTAS_PATH = HERE.joinpath("deltas.png")
 
 
 # Generate observational data for napkin
 def generate_obs_data_for_napkin(
-    seed: int, num_samples: int, treatment_assignment: int | None = None
+    *, seed: int | None = None, num_samples: int, treatment_assignment: int | None = None
 ) -> pd.DataFrame:
     generator = np.random.default_rng(seed)
     # U1 is the latent variable that is a common cause of W and X
@@ -29,6 +42,7 @@ def generate_obs_data_for_napkin(
     return pd.DataFrame({"Z2": z2, "Z1": z1, "X": x, "Y": y})
 
 
+@click.command()
 def main():
     seed = 1
     num_samples = 1000
@@ -42,14 +56,20 @@ def main():
     )
     real_ace = np.mean(intv_data_x1["Y"]) - np.mean(intv_data_x0["Y"])
 
-    # Compute the ACE estimated with ananke
-    obs_data = generate_obs_data_for_napkin(seed=seed, num_samples=num_samples)
     with redirect_stdout(None):
         ace_obj_2 = CausalEffect(graph=napkin.to_admg(), treatment="X", outcome="Y")
-    ace_anipw = ace_obj_2.compute_effect(obs_data, "anipw")
 
-    # Output difference
-    print(real_ace - ace_anipw)
+    deltas = []
+    for _ in trange(500):
+        obs_data = generate_obs_data_for_napkin(num_samples=num_samples)
+        ace_anipw = ace_obj_2.compute_effect(obs_data, "anipw")
+        delta = ace_anipw - real_ace
+        deltas.append(delta)
+
+    sns.histplot(deltas)
+    plt.title("Deviation from actual ACE")
+    plt.savefig(DELTAS_PATH)
+    click.echo(f"output histogram to {DELTAS_PATH}")
 
 
 if __name__ == "__main__":
