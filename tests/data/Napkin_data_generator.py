@@ -1,3 +1,5 @@
+from contextlib import redirect_stdout
+
 import numpy as np
 import pandas as pd
 from ananke.estimation import CausalEffect
@@ -13,18 +15,18 @@ def generate_obs_data_for_napkin(
     u1 = generator.normal(loc=3, scale=1, size=num_samples)
     # U2 is the latent variable that is a common cause of W and Y
     u2 = generator.normal(loc=5, scale=1, size=num_samples)
-    w = generator.gamma(
+    z2 = generator.gamma(
         shape=1 / (1 * (u1 * 0.3 + 0.5 * u2) ** 2),
         scale=5 * (u1 * 0.3 + 0.5 * u2),
         size=num_samples,
     )
-    r = generator.normal(loc=w * 0.7, scale=6, size=num_samples)
+    z1 = generator.normal(loc=z2 * 0.7, scale=6, size=num_samples)
     if treatment_assignment is not None:
         x = np.full(num_samples, treatment_assignment)
     else:
-        x = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * u1 - 0.1 * r)), size=num_samples)
+        x = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * u1 - 0.1 * z1)), size=num_samples)
     y = generator.normal(loc=u2 * 0.5 + x * 3, scale=6)
-    return pd.DataFrame({"W": w, "R": r, "X": x, "Y": y})
+    return pd.DataFrame({"Z2": z2, "Z1": z1, "X": x, "Y": y})
 
 
 def main():
@@ -32,18 +34,22 @@ def main():
     num_samples = 1000
 
     # Compute the real ACE value
-    intv_data_X1 = generate_obs_data_for_napkin(
+    intv_data_x1 = generate_obs_data_for_napkin(
         seed=seed, num_samples=num_samples, treatment_assignment=1
     )
-    intv_data_X0 = generate_obs_data_for_napkin(
+    intv_data_x0 = generate_obs_data_for_napkin(
         seed=seed, num_samples=num_samples, treatment_assignment=0
     )
-    real_ace = np.mean(intv_data_X1["Y"]) - np.mean(intv_data_X0["Y"])
+    real_ace = np.mean(intv_data_x1["Y"]) - np.mean(intv_data_x0["Y"])
 
     # Compute the ACE estimated with ananke
     obs_data = generate_obs_data_for_napkin(seed=seed, num_samples=num_samples)
-    ace_obj_2 = CausalEffect(graph=napkin.to_admg(), treatment="X", outcome="Y")
+    with redirect_stdout(None):
+        ace_obj_2 = CausalEffect(graph=napkin.to_admg(), treatment="X", outcome="Y")
     ace_anipw = ace_obj_2.compute_effect(obs_data, "anipw")
+
+    # Output difference
+    print(real_ace - ace_anipw)
 
 
 if __name__ == "__main__":
