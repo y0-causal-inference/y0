@@ -932,9 +932,9 @@ class Product(Expression):
             return expressions
         expressions = tuple(expressions)
         if not expressions:
-            raise NotImplementedError(
-                "Product.safe has not been implement to handle empty list of expressions. "
-                "Should this return One()? Please let us know."
+            raise ValueError(
+                "Product.safe does not explicitly empty list of expressions. "
+                "Should this return One()? Or Zero()? Please let us know."
             )
         if len(expressions) == 1:
             return expressions[0]
