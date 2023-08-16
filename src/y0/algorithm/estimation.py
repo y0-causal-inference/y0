@@ -47,6 +47,8 @@ def estimate_ate(
     data: pd.DataFrame,
     *,
     conditions: Optional[List[Variable]] = None,
+    bootstraps: int = 0,
+    alpha: float = 0.05,
 ) -> float:
     """Estimate the average treatment effect."""
     if conditions is not None:
@@ -81,7 +83,9 @@ def estimate_ate(
     else:
         raise RuntimeError("Effect can not be estimated")
 
-    return causal_effect.compute_effect(data, estimator=estimator)
+    return causal_effect.compute_effect(
+        data, estimator=estimator, n_bootstraps=bootstraps, alpha=alpha
+    )
 
 
 def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
