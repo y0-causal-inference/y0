@@ -102,7 +102,7 @@ class TestEstimation(unittest.TestCase):
 
     def test_is_a_fixable(self):
         """Test checking for a-fixability."""
-        # see examples at https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_counterfactual_mean.py?ref_type=heads#L20-47
+        # graphs 9,10,11 are from https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_counterfactual_mean.py?ref_type=heads#L20-47
         graph_1 = NxMixedGraph.from_str_edges(
             directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
         )
@@ -282,7 +282,7 @@ class TestEstimation(unittest.TestCase):
         treatment_10 = "T"
         self.assertTrue(is_p_fixable(graph_10, treatment_10))
 
-        graph_10 = NxMixedGraph.from_str_edges(
+        graph_11 = NxMixedGraph.from_str_edges(
             directed=[
                 ("C1", "T"),
                 ("C1", "L"),
@@ -295,5 +295,5 @@ class TestEstimation(unittest.TestCase):
             ],
             undirected=[("Z1", "C1"), ("Z2", "C2"), ("T", "L")],
         )
-        treatment_10 = "T"
-        self.assertFalse(is_p_fixable(graph_10, treatment_10))
+        treatment_11 = "T"
+        self.assertFalse(is_p_fixable(graph_11, treatment_11))
