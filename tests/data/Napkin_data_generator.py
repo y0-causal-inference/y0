@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from ananke.estimation import CausalEffect
-from ananke.graphs import ADMG
+from y0.examples import napkin
 
 
 # Generate observational data for napkin
@@ -41,15 +41,8 @@ def main():
     real_ace = np.mean(intv_data_X1["Y"]) - np.mean(intv_data_X0["Y"])
 
     # Compute the ACE estimated with ananke
-    # napkin model
-    vertices = ["W", "R", "X", "Y"]
-    di_edges = [("W", "R"), ("R", "X"), ("X", "Y")]
-    bi_edges = [("W", "X"), ("W", "Y")]
-    graph_napkin = ADMG(vertices, di_edges, bi_edges)
-    graph_napkin.draw(direction="LR")
-
     obs_data = generate_obs_data_for_napkin(seed=seed, num_samples=num_samples)
-    ace_obj_2 = CausalEffect(graph=graph_napkin, treatment="X", outcome="Y")
+    ace_obj_2 = CausalEffect(graph=napkin.to_admg(), treatment="X", outcome="Y")
     ace_anipw = ace_obj_2.compute_effect(obs_data, "anipw")
 
 
