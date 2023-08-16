@@ -1,5 +1,3 @@
-seed = 1
-num_samples = 1000
 import numpy as np
 import pandas as pd
 from ananke.estimation import CausalEffect
@@ -7,7 +5,7 @@ from ananke.graphs import ADMG
 
 
 # Generate observational data for napkin
-def generate_obs_data_for_napkin(seed=seed, num_samples=num_samples):
+def generate_obs_data_for_napkin(seed, num_samples):
     np.random.seed(seed)
     # U1 is the latent variable that is a common cause of W and X
     U1 = np.random.normal(loc=3, scale=1, size=num_samples)
@@ -26,7 +24,7 @@ def generate_obs_data_for_napkin(seed=seed, num_samples=num_samples):
 
 
 # Generate interventional data for napkin
-def generate_intv_data_for_napkin(seed=seed, num_samples=num_samples, treatment_assignment=1):
+def generate_intv_data_for_napkin(seed, num_samples, treatment_assignment=1):
     np.random.seed(seed)
     # U1 is the latent variable that is a common cause of W and X
     U1 = np.random.normal(loc=3, scale=1, size=num_samples)
@@ -44,23 +42,31 @@ def generate_intv_data_for_napkin(seed=seed, num_samples=num_samples, treatment_
     return intv_data
 
 
-# Compute the real ACE value
-intv_data_X1 = generate_intv_data_for_napkin(
-    seed=seed, num_samples=num_samples, treatment_assignment=1
-)
-intv_data_X0 = generate_intv_data_for_napkin(
-    seed=seed, num_samples=num_samples, treatment_assignment=0
-)
-real_ace = np.mean(intv_data_X1["Y"]) - np.mean(intv_data_X0["Y"])
+def main():
+    seed = 1
+    num_samples = 1000
 
-# Compute the ACE estimated with ananke
-# napkin model
-vertices = ["W", "R", "X", "Y"]
-di_edges = [("W", "R"), ("R", "X"), ("X", "Y")]
-bi_edges = [("W", "X"), ("W", "Y")]
-graph_napkin = ADMG(vertices, di_edges, bi_edges)
-graph_napkin.draw(direction="LR")
+    # Compute the real ACE value
+    intv_data_X1 = generate_intv_data_for_napkin(
+        seed=seed, num_samples=num_samples, treatment_assignment=1
+    )
+    intv_data_X0 = generate_intv_data_for_napkin(
+        seed=seed, num_samples=num_samples, treatment_assignment=0
+    )
+    real_ace = np.mean(intv_data_X1["Y"]) - np.mean(intv_data_X0["Y"])
 
-obs_data = generate_obs_data_for_napkin(seed=seed, num_samples=num_samples)
-ace_obj_2 = CausalEffect(graph=graph_napkin, treatment="X", outcome="Y")
-ace_anipw = ace_obj_2.compute_effect(obs_data, "anipw")
+    # Compute the ACE estimated with ananke
+    # napkin model
+    vertices = ["W", "R", "X", "Y"]
+    di_edges = [("W", "R"), ("R", "X"), ("X", "Y")]
+    bi_edges = [("W", "X"), ("W", "Y")]
+    graph_napkin = ADMG(vertices, di_edges, bi_edges)
+    graph_napkin.draw(direction="LR")
+
+    obs_data = generate_obs_data_for_napkin(seed=seed, num_samples=num_samples)
+    ace_obj_2 = CausalEffect(graph=graph_napkin, treatment="X", outcome="Y")
+    ace_anipw = ace_obj_2.compute_effect(obs_data, "anipw")
+
+
+if __name__ == "__main__":
+    main()
