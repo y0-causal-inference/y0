@@ -4,69 +4,60 @@
 
 from typing import List, Set, Tuple, Union
 
-from ananke.graphs import ADMG
-from ananke.identification import OneLineID
-
-from .dsl import CounterfactualVariable, Distribution, Intervention, Probability, Variable
+from .dsl import (
+    CounterfactualVariable,
+    Distribution,
+    Probability,
+    Variable,
+    _get_outcome_variables,
+    _get_treatment_variables,
+)
 from .graph import NxMixedGraph
 
 __all__ = [
-    'is_identifiable',
+    "is_identifiable",
 ]
 
 
 def _get_treatments(variables: Set[Variable]) -> List[str]:
-    return list({
-        variable.name
-        for variable in variables
-        if isinstance(variable, Intervention)
-    })
+    return [variable.name for variable in _get_treatment_variables(variables)]
 
 
 def _get_outcomes(variables: Set[Variable]) -> List[str]:
-    return list({
-        variable.name
-        for variable in variables
-        if not isinstance(variable, Intervention)
-    })
+    return [variable.name for variable in _get_outcome_variables(variables)]
 
 
-def _all_counterfactual(distribution: Distribution) -> bool:
-    return all(
-        isinstance(variable, CounterfactualVariable)
-        for variable in distribution.children
+def _all_counterfactual(distribution: Union[Probability, Distribution]) -> bool:
+    return all(isinstance(variable, CounterfactualVariable) for variable in distribution.children)
+
+
+def _all_intervened_same(distribution: Union[Probability, Distribution]) -> bool:
+    return 1 == len(
+        {
+            variable.interventions  # type:ignore
+            for variable in distribution.children
+        }
     )
 
 
-def _all_intervened_same(distribution: Distribution) -> bool:
-    return 1 == len({
-        variable.interventions  # type:ignore
-        for variable in distribution.children
-    })
-
-
-def _get_to(query: Distribution) -> Tuple[List[str], List[str]]:
+def _get_to(query: Union[Probability, Distribution]) -> Tuple[List[str], List[str]]:
     if not _all_counterfactual(query):
-        raise ValueError('all variables in input distribution should be counterfactuals')
+        raise ValueError("all variables in input distribution should be counterfactuals")
 
     if not _all_intervened_same(query):
-        raise ValueError('not all variables are invervened on the same')
+        raise ValueError("not all variables are invervened on the same")
 
     treatments = [
-        intervention.name
-        for intervention in query.children[0].interventions  # type:ignore
+        intervention.name for intervention in query.children[0].interventions  # type:ignore
     ]
-    outcomes = [
-        variable.name
-        for variable in query.children
-    ]
+    outcomes = [variable.name for variable in query.children]
     return treatments, outcomes
 
 
-def is_identifiable(graph: Union[ADMG, NxMixedGraph], query: Union[Probability, Distribution]) -> bool:
+def is_identifiable(graph: NxMixedGraph, query: Union[Probability, Distribution]) -> bool:
     """Check if the expression is identifiable.
 
-    :param graph: Either an Ananke graph or y0 NxMixedGraph that can be converted to an Ananke graph
+    :param graph: An ADMG
     :param query: A probability distribution with the following properties:
 
         1. There are no conditions
@@ -104,20 +95,32 @@ def is_identifiable(graph: Union[ADMG, NxMixedGraph], query: Union[Probability, 
 
         assert is_identifiable(graph, P(Y @ ~X))
     """
-    if isinstance(graph, NxMixedGraph):
-        graph = graph.to_admg()
-
-    if isinstance(query, Probability):
-        query = query.distribution
-
     if query.is_conditioned():
-        raise ValueError('input distribution should not have any conditions')
+        raise ValueError("input distribution should not have any conditions")
 
     treatments, outcomes = _get_to(query)
 
-    one_line_id = OneLineID(
-        graph=graph,
-        treatments=treatments,
-        outcomes=outcomes,
-    )
-    return one_line_id.id()
+    try:
+        from ananke.identification import OneLineID
+    except ImportError:
+        from y0.algorithm.identify import Identification, Unidentifiable, identify
+
+        try:
+            identify(
+                Identification.from_expression(
+                    graph=graph,
+                    query=query,
+                )
+            )
+        except Unidentifiable:
+            return False
+        else:
+            return True
+    else:
+        graph = graph.to_admg()
+        one_line_id = OneLineID(
+            graph=graph,
+            treatments=treatments,
+            outcomes=outcomes,
+        )
+        return one_line_id.id()

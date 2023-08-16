@@ -11,7 +11,7 @@
         <img alt="Tests" src="https://github.com/y0-causal-inference/y0/workflows/Tests/badge.svg" />
     </a>
    <a href="https://github.com/cthoyt/cookiecutter-python-package">
-      <img alt="Cookiecutter template from @cthoyt" src="https://img.shields.io/badge/Cookiecutter-python--package-yellow" /> 
+      <img alt="Cookiecutter template from @cthoyt" src="https://img.shields.io/badge/Cookiecutter-snekpack-blue" /> 
    </a>
     <a href="https://pypi.org/project/y0">
         <img alt="PyPI" src="https://img.shields.io/pypi/v/y0" />
@@ -28,16 +28,104 @@
     <a href="https://zenodo.org/badge/latestdoi/328745468">
         <img src="https://zenodo.org/badge/328745468.svg" alt="DOI">
     </a>
+    <a href="https://github.com/psf/black">
+        <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black" />
+    </a>
 </p>
 
-`y0` (pronounced "why not?") is Python code for causal inferencing.
+`y0` (pronounced "why not?") is Python code for causal inference.
 
 ## 💪 Getting Started
 
-> TODO show in a very small amount of space the **MOST** useful thing your package can do.
-Make it as short as possible! You have an entire set of docs for later.
+### Representing Probability Expressions
 
-## ⬇️ Installation
+`y0` has a fully featured internal domain specific language for representing
+probability expressions:
+
+```python
+from y0.dsl import P, A, B
+
+# The probability of A given B
+expr_1 = P(A | B)
+
+# The probability of A given not B
+expr_2 = P(A | ~B)
+
+# The joint probability of A and B
+expr_3 = P(A, B)
+```
+
+It can also be used to manipulate expressions:
+
+```python
+from y0.dsl import P, A, B, Sum
+
+P(A, B).marginalize(A) == Sum[A](P(A, B))
+P(A, B).conditional(A) == P(A, B) / Sum[A](P(A, B))
+```
+
+DSL objects can be converted into strings with `str()` and parsed back
+using `y0.parser.parse_y0()`.
+
+A full demo of the DSL can be found in this
+[Jupyter Notebook](https://github.com/y0-causal-inference/y0/blob/main/notebooks/DSL%20Demo.ipynb)
+
+### Representing Causality
+
+`y0` has a notion of acyclic directed mixed graphs built on top of
+`networkx` that can be used to model causality:
+
+```python
+from y0.graph import NxMixedGraph
+from y0.dsl import X, Y, Z1, Z2
+
+# Example from:
+#   J. Pearl and D. Mackenzie (2018)
+#   The Book of Why: The New Science of Cause and Effect.
+#   Basic Books, p. 240.
+napkin = NxMixedGraph.from_edges(
+    directed=[
+        (Z2, Z1),
+        (Z1, X),
+        (X, Y),
+    ],
+    undirected=[
+        (Z2, X),
+        (Z2, Y),
+    ],
+)
+```
+
+`y0` has many pre-written examples in `y0.examples` from Pearl, Shpitser,
+Bareinboim, and others.
+
+### do Calculus
+
+`y0` provides _actual_ implementations of many algorithms that have remained
+unimplemented for the last 15 years of publications including:
+
+| Algorithm | Reference                                                                   |
+|-----------|-----------------------------------------------------------------------------|
+| ID        | [Shpitser and Pearl, 2006](https://dl.acm.org/doi/10.5555/1597348.1597382)  |
+| IDC       | [Shpitser and Pearl, 2008](https://www.jmlr.org/papers/v9/shpitser08a.html) |
+| ID*       | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
+| IDC*      | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
+
+Apply an algorithm to an ADMG and a causal query to generate an estimand
+represented in the DSL like:
+
+```python
+from y0.dsl import P, X, Y
+from y0.examples import napkin
+from y0.algorithm.identify import Identification, identify
+
+# TODO after ID* and IDC* are done, we'll update this interface
+query = Identification.from_expression(graph=napkin, query=P(Y @ X))
+estimand = identify(query)
+assert estimand == P(Y @ X)
+```
+
+## 🚀 Installation
 
 The most recent release can be installed from
 [PyPI](https://pypi.org/project/y0/) with:
@@ -52,6 +140,71 @@ The most recent code and data can be installed directly from GitHub with:
 $ pip install git+https://github.com/y0-causal-inference/y0.git
 ```
 
+## 👐 Contributing
+
+Contributions, whether filing an issue, making a pull request, or forking, are appreciated. See
+[CONTRIBUTING.md](https://github.com/y0-causal-inference/y0/blob/master/.github/CONTRIBUTING.md) for more information on getting
+involved.
+
+## 👋 Attribution
+
+### ⚖️ License
+
+The code in this package is licensed under the [BSD-3-Clause
+license](https://github.com/y0-causal-inference/y0/blob/master/LICENSE).
+
+### 📖 Citation
+
+Before we publish an application note on `y0`, you can cite this software
+via our Zenodo record (also see the badge above):
+
+```bibtex
+@software{y0,
+  author       = {Charles Tapley Hoyt and
+                  Jeremy Zucker and
+                  Marc-Antoine Parent},
+  title        = {y0-causal-inference/y0},
+  month        = jun,
+  year         = 2021,
+  publisher    = {Zenodo},
+  version      = {v0.1.0},
+  doi          = {10.5281/zenodo.4950768},
+  url          = {https://doi.org/10.5281/zenodo.4950768}
+}
+```
+
+### 🙏 Supporters
+
+This project has been supported by several organizations (in alphabetical order):
+
+- [Harvard Program in Therapeutic Science - Laboratory of Systems Pharmacology](https://hits.harvard.edu/the-program/laboratory-of-systems-pharmacology/)
+- [Pacific Northwest National Laboratory](https://www.pnnl.org/)
+
+### 💰 Funding
+
+The development of the Y0 Causal Inference Engine has been funded by the following grants:
+
+| Funding Body                                             | Program                                                                                                                       | Grant           |
+|----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|-----------------|
+| DARPA                                                    | [Automating Scientific Knowledge Extraction (ASKE)](https://www.darpa.mil/program/automating-scientific-knowledge-extraction) | HR00111990009   |
+| PNNL Data Model Convergence Initiative    | [Causal Inference and Machine Learning Methods for Analysis of Security Constrained Unit Commitment (SCY0)](https://www.pnnl.gov/projects/dmc/converged-applications-projects) | 90001   |
+| DARPA                                                    |  [Automating Scientific Knowledge Extraction and Modeling (ASKEM)](https://www.darpa.mil/program/automating-scientific-knowledge-extraction-and-modeling) |  HR00112220036  |
+
+### 🍪 Cookiecutter
+
+This package was created with [@audreyfeldroy](https://github.com/audreyfeldroy)'s
+[cookiecutter](https://github.com/cookiecutter/cookiecutter) package using [@cthoyt](https://github.com/cthoyt)'s
+[cookiecutter-python-package](https://github.com/cthoyt/cookiecutter-python-package) template.
+
+## 🛠️ Development
+
+<details>
+  <summary>See developer instructions</summary>
+
+The final section of the README is for if you want to get involved by making a code contribution.
+
+### Developer Installation
+
 To install in development mode, use the following:
 
 ```bash
@@ -59,25 +212,6 @@ $ git clone git+https://github.com/y0-causal-inference/y0.git
 $ cd y0
 $ pip install -e .
 ```
-
-## ⚖️ License
-
-The code in this package is licensed under the MIT License.
-
-## 🙏 Contributing
-Contributions, whether filing an issue, making a pull request, or forking, are appreciated. See
-[CONTRIBUTING.rst](https://github.com/y0-causal-inference/y0/blob/master/CONTRIBUTING.rst) for more information on getting
-involved.
-
-## 🍪 Cookiecutter Acknowledgement
-
-This package was created with [@audreyr](https://github.com/audreyr)'s
-[cookiecutter](https://github.com/cookiecutter/cookiecutter) package using [@cthoyt](https://github.com/cthoyt)'s
-[cookiecutter-python-package](https://github.com/cthoyt/cookiecutter-python-package) template.
-
-## 🛠️ Development
-
-The final section of the README is for if you want to get involved by making a code contribution.
 
 ### ❓ Testing
 
@@ -110,3 +244,5 @@ This script does the following:
 4. Push to GitHub. You'll need to make a release going with the commit where the version was bumped.
 5. Bump the version to the next patch. If you made big changes and want to bump the version by minor, you can
    use `tox -e bumpversion minor` after.
+
+</details>
