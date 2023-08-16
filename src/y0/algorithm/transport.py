@@ -89,6 +89,10 @@ def get_transport_nodes(graph: NxMixedGraph) -> Set[Variable]:
     return {node for node in graph.nodes() if is_transport_node(node)}
 
 
+def get_regular_nodes(graph: NxMixedGraph) -> Set[Variable]:
+    return {node for node in graph.nodes() if not is_transport_node(node)}
+
+
 def create_transport_diagram(
     *,
     nodes_to_transport: Iterable[Variable],
@@ -193,7 +197,7 @@ def trso_line1(
     :param graph: The graph with transport nodes in this domain.
     :returns: Sum over the probabilities of nodes other than target outcomes.
     """
-    return Sum.safe(expression, graph.nodes() - target_outcomes)
+    return Sum.safe(expression, get_regular_nodes(graph) - target_outcomes)
 
 
 def trso_line2(
@@ -211,7 +215,7 @@ def trso_line2(
     new_query.graphs[new_query.domain] = query.graphs[query.domain].subgraph(outcomes_ancestors)
     new_query.expression = Sum.safe(
         query.expression,
-        query.graphs[query.domain].nodes() - outcomes_ancestors,
+        get_regular_nodes(query.graphs[query.domain]) - outcomes_ancestors,
     )
 
     return new_query
@@ -244,7 +248,7 @@ def trso_line4(
     for component in components:
         new_query = deepcopy(query)
         new_query.target_outcomes = set(component)
-        new_query.target_interventions = graph.nodes() - component
+        new_query.target_interventions = get_regular_nodes(graph) - component
         rv[component] = new_query
     return rv
 
@@ -395,7 +399,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
 
     # line 2
     outcome_ancestors = graph.ancestors_inclusive(query.target_outcomes)
-    if graph.nodes() - outcome_ancestors:
+    if get_regular_nodes(graph) - outcome_ancestors:
         new_query = trso_line2(query, outcome_ancestors)
         return trso(new_query)
 
@@ -403,7 +407,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     # TODO give meaningful name to this variable
     target_interventions_overbar = graph.remove_in_edges(query.target_interventions)
     additional_interventions = (
-        cast(set[Variable], graph.nodes())
+        cast(set[Variable], get_regular_nodes(graph))
         - query.target_interventions
         - target_interventions_overbar.ancestors_inclusive(query.target_outcomes)
     )
@@ -429,7 +433,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
 
         return Sum.safe(
             Product.safe(terms),
-            graph.nodes() - query.target_interventions.union(query.target_outcomes),
+            get_regular_nodes(graph) - query.target_interventions.union(query.target_outcomes),
         )
 
     # line 6
