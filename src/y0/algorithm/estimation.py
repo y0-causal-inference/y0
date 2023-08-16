@@ -53,6 +53,7 @@ def estimate_ate(
     data: pd.DataFrame,
     *,
     conditions: Optional[List[Variable]] = None,
+    estimator: str = "eff-aipw",
 ) -> float:
     """Estimate the average treatment effect."""
     if conditions is not None:
@@ -66,7 +67,7 @@ def estimate_ate(
     from ananke.estimation import CausalEffect
 
     causal_effect = CausalEffect(ananke_graph, treatment.name, outcome.name)
-    return causal_effect.compute_effect(data, "eff-aipw")
+    return causal_effect.compute_effect(data, estimator=estimator)
 
 
 def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:

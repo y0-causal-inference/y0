@@ -8,7 +8,9 @@ from y0.algorithm.estimation import (
     is_a_fixable,
     is_markov_blanket_shielded,
     is_p_fixable,
+    estimate_ate,
 )
+from y0.dsl import Variable, X, Y
 from y0.examples import frontdoor, napkin
 from y0.graph import NxMixedGraph
 
@@ -308,3 +310,20 @@ class TestEstimation(unittest.TestCase):
         self.assertTrue(df_covers_graph(graph=napkin, df=df))
         self.assertFalse(df_covers_graph(graph=frontdoor, df=df))
 
+    def test_estimate_ate(self):
+        """Run a simple test for ATE on the napkin graph."""
+        df = pd.read_csv(NAPKIN_TEST_PATH, sep="\t")
+        expected_result = 0.0005
+
+        with self.assertRaises(RuntimeError):
+            # This fails because napkin is not a-fixable, and eff-aipw requires a graph that's a-fix
+            estimate_ate(
+                graph=napkin,
+                data=df,
+                treatment=X,
+                outcome=Y,
+                estimator="eff-aipw",
+            )
+
+        result = estimate_ate(graph=napkin, data=df, treatment=X, outcome=Y, estimator="anipw")
+        self.assertAlmostEqual(expected_result, result, delta=1e-5)
