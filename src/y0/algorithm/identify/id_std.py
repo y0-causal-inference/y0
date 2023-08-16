@@ -57,8 +57,6 @@ def identify(identification: Identification) -> Expression:
         parents = list(graph.topological_sort())
         expression = Product.safe(p_parents(v, parents) for v in district_without_treatment)
         ranges = district_without_treatment - outcomes
-        if not ranges:
-            return expression
         return Sum.safe(
             expression=expression,
             ranges=ranges,
@@ -245,8 +243,6 @@ def line_6(identification: Identification) -> Expression:
     parents = list(graph.topological_sort())
     expression = Product.safe(p_parents(v, parents) for v in district_without_treatments)
     ranges = district_without_treatments - outcomes
-    if not ranges:
-        return expression
     return Sum.safe(
         expression=expression,
         ranges=ranges,
