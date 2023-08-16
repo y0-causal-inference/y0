@@ -27,11 +27,10 @@ class TestEstimation(unittest.TestCase):
         self.assertFalse(is_markov_blanket_shielded(graph_unshielded))
 
         # Second test: Napkin model
-        graph_napkin = napkin.graph
         # use Ananke method for sanity check
-        self.assertFalse(graph_napkin.to_admg().mb_shielded())
+        self.assertFalse(napkin.to_admg().mb_shielded())
         # test our method
-        self.assertFalse(is_markov_blanket_shielded(graph_napkin))
+        self.assertFalse(is_markov_blanket_shielded(napkin))
 
         # Third test
         graph_3 = NxMixedGraph.from_str_edges(
@@ -115,9 +114,7 @@ class TestEstimation(unittest.TestCase):
         treatment_1 = Variable("T")
         self.assertTrue(is_a_fixable(graph_1, treatment_1))
 
-        graph_2 = napkin.graph
-        treatment_2 = Variable("X")
-        self.assertFalse(is_a_fixable(graph_2, treatment_2))
+        self.assertFalse(is_a_fixable(napkin, X))
 
         graph_3 = NxMixedGraph.from_str_edges(
             directed=[
@@ -164,14 +161,12 @@ class TestEstimation(unittest.TestCase):
             ],
             undirected=[("Z1", "X"), ("Z2", "M1")],
         )
-        treatment_5 = "X"
-        self.assertTrue(is_a_fixable(graph_5, treatment_5))
+        self.assertTrue(is_a_fixable(graph_5, X))
 
         graph_6 = NxMixedGraph.from_str_edges(
             directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")], undirected=[]
         )
-        treatment_6 = "X"
-        self.assertTrue(is_a_fixable(graph_6, treatment_6))
+        self.assertTrue(is_a_fixable(graph_6, X))
 
         graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")], undirected=[])
         treatment_7 = "A"
@@ -190,9 +185,7 @@ class TestEstimation(unittest.TestCase):
         treatment_1 = "T"
         self.assertFalse(is_p_fixable(graph_1, treatment_1))
 
-        graph_2 = napkin.graph
-        treatment_2 = "X"
-        self.assertFalse(is_p_fixable(graph_2, treatment_2))
+        self.assertFalse(is_p_fixable(napkin, X))
 
         graph_3 = NxMixedGraph.from_str_edges(
             directed=[
@@ -239,14 +232,12 @@ class TestEstimation(unittest.TestCase):
             ],
             undirected=[("Z1", "X"), ("Z2", "M1")],
         )
-        treatment_5 = "X"
-        self.assertFalse(is_p_fixable(graph_5, treatment_5))
+        self.assertFalse(is_p_fixable(graph_5, X))
 
         graph_6 = NxMixedGraph.from_str_edges(
             directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")], undirected=[]
         )
-        treatment_6 = "X"
-        self.assertFalse(is_p_fixable(graph_6, treatment_6))
+        self.assertFalse(is_p_fixable(graph_6, X))
 
         graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")], undirected=[])
         treatment_7 = "A"
