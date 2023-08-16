@@ -5,7 +5,7 @@ from ananke.graphs import ADMG
 
 
 # Generate observational data for napkin
-def generate_obs_data_for_napkin(seed, num_samples):
+def generate_obs_data_for_napkin(seed, num_samples, treatment_assignment=None):
     generator = np.random.default_rng(seed)
     # U1 is the latent variable that is a common cause of W and X
     U1 = generator.normal(loc=3, scale=1, size=num_samples)
@@ -17,29 +17,12 @@ def generate_obs_data_for_napkin(seed, num_samples):
         size=num_samples,
     )
     R = generator.normal(loc=W * 0.7, scale=6, size=num_samples)
-    X = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * U1 - 0.1 * R)), size=num_samples)
+    if treatment_assignment:
+        X = np.full(num_samples, treatment_assignment)
+    else:
+        X = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * U1 - 0.1 * R)), size=num_samples)
     Y = generator.normal(loc=U2 * 0.5 + X * 3, scale=6)
-    obs_data = pd.DataFrame({"W": W, "R": R, "X": X, "Y": Y})
-    return obs_data
-
-
-# Generate interventional data for napkin
-def generate_intv_data_for_napkin(seed, num_samples, treatment_assignment=1):
-    generator = np.random.default_rng(seed)
-    # U1 is the latent variable that is a common cause of W and X
-    U1 = generator.normal(loc=3, scale=1, size=num_samples)
-    # U2 is the latent variable that is a common cause of W and Y
-    U2 = generator.normal(loc=5, scale=1, size=num_samples)
-    W = generator.gamma(
-        shape=1 / (1 * (U1 * 0.3 + 0.5 * U2) ** 2),
-        scale=5 * (U1 * 0.3 + 0.5 * U2),
-        size=num_samples,
-    )
-    R = generator.normal(loc=W * 0.7, scale=6, size=num_samples)
-    X_intv = np.full(num_samples, treatment_assignment)
-    Y_intv = generator.normal(loc=U2 * 0.5 + X_intv * 3, scale=6)
-    intv_data = pd.DataFrame({"W": W, "R": R, "X": X_intv, "Y": Y_intv})
-    return intv_data
+    return pd.DataFrame({"W": W, "R": R, "X": X, "Y": Y})
 
 
 def main():
@@ -47,10 +30,10 @@ def main():
     num_samples = 1000
 
     # Compute the real ACE value
-    intv_data_X1 = generate_intv_data_for_napkin(
+    intv_data_X1 = generate_obs_data_for_napkin(
         seed=seed, num_samples=num_samples, treatment_assignment=1
     )
-    intv_data_X0 = generate_intv_data_for_napkin(
+    intv_data_X0 = generate_obs_data_for_napkin(
         seed=seed, num_samples=num_samples, treatment_assignment=0
     )
     real_ace = np.mean(intv_data_X1["Y"]) - np.mean(intv_data_X0["Y"])
