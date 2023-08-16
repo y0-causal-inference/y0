@@ -261,28 +261,33 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
     for domain, graph in query.graphs.items():
         if domain == TARGET_DOMAIN:
             continue
-
-        surrogate_interventions = query.surrogate_interventions[domain]
-        surrogate_intersect_target = surrogate_interventions.intersection(
-            query.target_interventions
-        )
-        if not surrogate_intersect_target:
-            continue
-
-        if not all_transports_d_separated(
-            graph,
-            target_interventions=query.target_interventions,
-            target_outcomes=query.target_outcomes,
-        ):
-            continue
-
-        new_query = deepcopy(query)
-        new_query.target_interventions = query.target_interventions - surrogate_interventions
-        new_query.domain = domain
-        new_query.graphs[new_query.domain] = graph.remove_nodes_from(surrogate_intersect_target)
-        new_query.active_interventions = surrogate_intersect_target
-        expressions[domain] = new_query
+        new_query = _line_6_helper(query, domain, graph)
+        if new_query is not None:
+            expressions[domain] = new_query
     return expressions
+
+
+def _line_6_helper(
+    query: TRSOQuery, domain: Population, graph: NxMixedGraph
+) -> Optional[TRSOQuery]:
+    surrogate_interventions = query.surrogate_interventions[domain]
+    surrogate_intersect_target = surrogate_interventions.intersection(query.target_interventions)
+    if not surrogate_intersect_target:
+        return None
+
+    if not all_transports_d_separated(
+        graph,
+        target_interventions=query.target_interventions,
+        target_outcomes=query.target_outcomes,
+    ):
+        return None
+
+    new_query = deepcopy(query)
+    new_query.target_interventions = query.target_interventions - surrogate_interventions
+    new_query.domain = domain
+    new_query.graphs[new_query.domain] = graph.remove_nodes_from(surrogate_intersect_target)
+    new_query.active_interventions = surrogate_intersect_target
+    return new_query
 
 
 def all_transports_d_separated(graph, target_interventions, target_outcomes) -> bool:
@@ -293,7 +298,6 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
     :param target_outcomes: Set of target interventions
     :returns: boolean True if all interventions are d-separated from all outcomes, False otherwise.
     """
-
     transportability_nodes = get_transport_nodes(graph)
     graph_without_interventions = graph.remove_in_edges(target_interventions)
     return all(
@@ -317,27 +321,31 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     :param district: The C-component present in both districts_without_interventions and districts
     :returns: An Expression
     """
-
-    sorted_graph_nodes = list(query.graphs[query.domain].topological_sort())
+    ordering = list(query.graphs[query.domain].topological_sort())
+    ordering_set = set(ordering)  # TODO this is just all nodes in the graph
     my_product: Expression = One()
     for node in district:
-        node_index = sorted_graph_nodes.index(node)
+        i = ordering.index(node)
+        pre, post = ordering[:i], ordering[: i + 1]
         # TODO I am not convinced this is correct, still trying to decipher the paper
-        remove_nodes_including_node = set(sorted_graph_nodes) - set(
-            sorted_graph_nodes[: node_index + 1]
-        )
-        remove_nodes_up_to_node = set(sorted_graph_nodes) - set(sorted_graph_nodes[:node_index])
-        numerator = Sum.safe(query.expression, remove_nodes_including_node)
-        denominator = Sum.safe(query.expression, remove_nodes_up_to_node)
+        pre_set = ordering_set - set(post)
+        post_set = ordering_set - set(pre)
+        numerator = Sum.safe(query.expression, pre_set)
+        denominator = Sum.safe(query.expression, post_set)
         if denominator == 0:
-            pass
+            raise RuntimeError
             # TODO is this possible to be zero, should we have a check?
+            # from charlie: no, it's not possible to be zero, since you're
+            # wrapping some expression in a sum. This comparison doesn't actually
+            # make sense, either, since this is a DSL object and not an integer.
+            # however, if you do some kind of processing/evaluation, then you
+            # might be able to find out if it's zero
         my_product *= numerator / denominator
 
     # my_product what I hope to get here from the test is somehow Y1|W,Z
     # TODO what is going on here?
-    # Tikka has an adjustment in the code that avoids the numerator and denominator but I don't understand where it comes from.
-
+    # Tikka has an adjustment in the code that avoids the numerator and denominator
+    # but I don't understand where it comes from.
     return Sum.safe(my_product, district - query.target_outcomes)
 
 
