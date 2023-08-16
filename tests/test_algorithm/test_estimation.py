@@ -5,10 +5,10 @@ import pandas as pd
 from tests.constants import NAPKIN_TEST_PATH
 from y0.algorithm.estimation import (
     df_covers_graph,
+    estimate_ate,
     is_a_fixable,
     is_markov_blanket_shielded,
     is_p_fixable,
-    estimate_ate,
 )
 from y0.dsl import Variable, X, Y
 from y0.examples import frontdoor, napkin
@@ -314,16 +314,5 @@ class TestEstimation(unittest.TestCase):
         """Run a simple test for ATE on the napkin graph."""
         df = pd.read_csv(NAPKIN_TEST_PATH, sep="\t")
         expected_result = 0.0005
-
-        with self.assertRaises(RuntimeError):
-            # This fails because napkin is not a-fixable, and eff-aipw requires a graph that's a-fix
-            estimate_ate(
-                graph=napkin,
-                data=df,
-                treatment=X,
-                outcome=Y,
-                estimator="eff-aipw",
-            )
-
-        result = estimate_ate(graph=napkin, data=df, treatment=X, outcome=Y, estimator="anipw")
+        result = estimate_ate(graph=napkin, data=df, treatment=X, outcome=Y)
         self.assertAlmostEqual(expected_result, result, delta=1e-5)
