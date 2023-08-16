@@ -1,5 +1,6 @@
 import warnings
 from contextlib import redirect_stdout
+from pathlib import Path
 
 import click
 import matplotlib.pyplot as plt
@@ -8,10 +9,8 @@ import pandas as pd
 import seaborn as sns
 from ananke.estimation import CausalEffect
 from tqdm import trange
-from pathlib import Path
 
 from y0.examples import napkin
-
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -20,7 +19,7 @@ DELTAS_PATH = HERE.joinpath("deltas.png")
 
 
 # Generate observational data for napkin
-def generate_obs_data_for_napkin(
+def generate_napkin_data(
     *, seed: int | None = None, num_samples: int, treatment_assignment: int | None = None
 ) -> pd.DataFrame:
     generator = np.random.default_rng(seed)
@@ -48,27 +47,32 @@ def main():
     num_samples = 1000
 
     # Compute the real ACE value
-    intv_data_x1 = generate_obs_data_for_napkin(
-        seed=seed, num_samples=num_samples, treatment_assignment=1
-    )
-    intv_data_x0 = generate_obs_data_for_napkin(
-        seed=seed, num_samples=num_samples, treatment_assignment=0
-    )
-    real_ace = np.mean(intv_data_x1["Y"]) - np.mean(intv_data_x0["Y"])
+    df_treat_x_1 = generate_napkin_data(seed=seed, num_samples=num_samples, treatment_assignment=1)
+    df_treat_x_1.to_csv(HERE.joinpath("napkin_treat_x_1.tsv"), sep="\t", index=False)
+    df_treat_x_0 = generate_napkin_data(seed=seed, num_samples=num_samples, treatment_assignment=0)
+    df_treat_x_0.to_csv(HERE.joinpath("napkin_treat_x_0.tsv"), sep="\t", index=False)
+    real_ace = np.mean(df_treat_x_1["Y"]) - np.mean(df_treat_x_0["Y"])
 
     with redirect_stdout(None):
         ace_obj_2 = CausalEffect(graph=napkin.to_admg(), treatment="X", outcome="Y")
 
+    df = generate_napkin_data(num_samples=num_samples)
+    df.to_csv(HERE.joinpath("napkin_observational.tsv"), sep="\t", index=False)
+    # TODO fix output
+    # grid = sns.pairplot(data=df, aspect=1.65, height=1.2, plot_kws=dict(alpha=0.7))
+    # grid.savefig(HERE.joinpath("napkin_observational.png"), dpi=300)
+
     deltas = []
     for _ in trange(500):
-        obs_data = generate_obs_data_for_napkin(num_samples=num_samples)
-        ace_anipw = ace_obj_2.compute_effect(obs_data, "anipw")
+        df = generate_napkin_data(num_samples=num_samples)
+        ace_anipw = ace_obj_2.compute_effect(df, "anipw")
         delta = ace_anipw - real_ace
         deltas.append(delta)
 
-    sns.histplot(deltas)
-    plt.title("Deviation from actual ACE")
-    plt.savefig(DELTAS_PATH)
+    fig, ax = plt.subplots(figsize=(4, 2.3))
+    sns.histplot(deltas, ax=ax)
+    ax.set_title("Deviation from actual ACE")
+    fig.savefig(DELTAS_PATH, dpi=300)
     click.echo(f"output histogram to {DELTAS_PATH}")
 
 
