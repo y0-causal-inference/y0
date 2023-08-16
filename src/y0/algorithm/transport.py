@@ -10,6 +10,7 @@ from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
     CounterfactualVariable,
     Expression,
+    Fraction,
     Intervention,
     One,
     Population,
@@ -341,6 +342,7 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
             # however, if you do some kind of processing/evaluation, then you
             # might be able to find out if it's zero
         my_product *= numerator / denominator
+    my_product = cast(Fraction, my_product).simplify()
 
     # my_product what I hope to get here from the test is somehow Y1|W,Z
     # TODO what is going on here?
@@ -440,6 +442,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
             expression = trso(subquery)
             if expression is not None:  # line7
                 expressions[domain] = expression
+        # TODO add the active interventions here, e.g. do(x1)
         if len(expressions) == 1:
             return list(expressions.values())[0]
         elif len(expressions) > 1:
