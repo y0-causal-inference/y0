@@ -5,7 +5,9 @@ from ananke.graphs import ADMG
 
 
 # Generate observational data for napkin
-def generate_obs_data_for_napkin(seed, num_samples, treatment_assignment=None):
+def generate_obs_data_for_napkin(
+    seed: int, num_samples: int, treatment_assignment: int | None = None
+) -> pd.DataFrame:
     generator = np.random.default_rng(seed)
     # U1 is the latent variable that is a common cause of W and X
     U1 = generator.normal(loc=3, scale=1, size=num_samples)
