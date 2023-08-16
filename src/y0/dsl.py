@@ -916,11 +916,12 @@ class Product(Expression):
     expressions: Tuple[Expression, ...]
 
     @classmethod
-    def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Product:
+    def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Expression:
         """Construct a product from any iterable of expressions.
 
         :param expressions: An expression or iterable of expressions which should be multiplied
         :returns: A :class:`Product` object
+        :raises ValueError: If an empty iterable of expressions is input
 
         Standard usage, same as the normal ``__init__``:
 
@@ -939,11 +940,17 @@ class Product(Expression):
 
         >>> Product.safe(P(X, Y))
         """
-        return cls(
-            expressions=(expressions,)
-            if isinstance(expressions, Expression)
-            else tuple(expressions)
-        )
+        if isinstance(expressions, Expression):
+            return expressions
+        expressions = tuple(expressions)
+        if not expressions:
+            raise ValueError(
+                "Product.safe does not explicitly empty list of expressions. "
+                "Should this return One()? Or Zero()? Please let us know."
+            )
+        if len(expressions) == 1:
+            return expressions[0]
+        return cls(expressions=expressions)
 
     def to_text(self):
         """Output this product in the internal string format."""
@@ -997,7 +1004,7 @@ class Sum(Expression):
     @classmethod
     def safe(
         cls, expression: Expression, ranges: Union[str, Variable, Iterable[Union[str, Variable]]]
-    ) -> Sum:
+    ) -> Expression:
         """Construct a sum from an expression and a permissive set of things in the ranges.
 
         :param expression: The expression over which the sum is done
@@ -1017,13 +1024,17 @@ class Sum(Expression):
 
         >>> Sum.safe(P(X, Y), X)
         """
+        if isinstance(ranges, str):
+            ranges = (Variable(ranges),)
+        elif isinstance(ranges, Variable):
+            ranges = (ranges,)
+        else:
+            ranges = _upgrade_ordering(ranges)
+        if not ranges:
+            return expression
         return cls(
             expression=expression,
-            ranges=(
-                (Variable.norm(ranges),)
-                if isinstance(ranges, (str, Variable))
-                else _upgrade_ordering(ranges)
-            ),
+            ranges=ranges,
         )
 
     def to_text(self) -> str:

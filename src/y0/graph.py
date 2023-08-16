@@ -493,6 +493,27 @@ class NxMixedGraph:
             parents_of_district |= set(self.directed.predecessors(node))
         return parents_of_district - set(nodes)
 
+    def get_markov_blanket(self, nodes: Union[Variable, Iterable[Variable]]) -> Set[Variable]:
+        """Get the Markov blanket for a set of nodes.
+
+        The Markov blanket in a directed graph is the union of the parents, children,
+        and parents of children of a given node.
+
+        :param nodes: A node or nodes to get the Markov blanket from
+        :return: A set of variables comprising the Markov blanket
+        """
+        if isinstance(nodes, Variable):
+            nodes = {nodes}
+        else:
+            nodes = set(nodes)
+        blanket = set()
+        for node in nodes:
+            blanket.update(self.directed.predecessors(node))
+            for successor in self.directed.successors(node):
+                blanket.add(successor)
+                blanket.update(self.directed.predecessors(successor))
+        return blanket.difference(nodes)
+
 
 def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
     """Confirm that node is not an intervention."""
