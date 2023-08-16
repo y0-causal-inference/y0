@@ -483,12 +483,12 @@ class TestSafeConstructors(unittest.TestCase):
 
     def test_product(self):
         """Test the :meth:`Product.safe` constructor."""
-        p = P(X, Y)
-        self.assertEqual(Product((p,)), Product.safe(p))
-        self.assertEqual(Product((p,)), Product.safe((p,)))
-        self.assertEqual(Product((p,)), Product.safe([p]))
-        self.assertEqual(Product((p,)), Product.safe({p}))
-
+        p1 = P(X, Y)
+        p2 = P(Z)
+        self.assertEqual(p1, Product.safe(p1))
+        self.assertEqual(p1, Product.safe([p1]))
+        self.assertEqual(Product((p1, p2)), Product.safe((p1, p2)))
+        self.assertEqual(Product((p1, p2)), Product.safe([p1, p2]))
         self.assertEqual(Product((P(X), P(Y))), Product.safe(P(v) for v in [X, Y]))
 
 
