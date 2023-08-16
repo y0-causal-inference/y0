@@ -493,11 +493,12 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     else:
         new_surrogate_interventions = query.surrogate_interventions
 
-    return trso_line10(
+    new_query = trso_line10(
         query,
         set(target_district),
         new_surrogate_interventions,
     )
+    raise NotImplementedError
 
 
 def _pillow_has_transport(graph, district) -> bool:
