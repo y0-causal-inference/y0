@@ -193,10 +193,7 @@ def trso_line1(
     :param graph: The graph with transport nodes in this domain.
     :returns: Sum over the probabilities of nodes other than target outcomes.
     """
-    if graph.nodes() - target_outcomes:
-        return Sum.safe(expression, graph.nodes() - target_outcomes)
-    else:
-        return expression
+    return Sum.safe(expression, graph.nodes() - target_outcomes)
 
 
 def trso_line2(
