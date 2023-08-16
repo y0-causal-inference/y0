@@ -909,7 +909,7 @@ class Product(Expression):
 
         :param expressions: An expression or iterable of expressions which should be multiplied
         :returns: A :class:`Product` object
-        :raises NotImplementedError: If an empty list of expressions is returned
+        :raises ValueError: If an empty iterable of expressions is input
 
         Standard usage, same as the normal ``__init__``:
 
