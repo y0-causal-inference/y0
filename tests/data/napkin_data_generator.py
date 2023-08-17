@@ -18,7 +18,7 @@ HERE = Path(__file__).parent.resolve()
 DELTAS_PATH = HERE.joinpath("deltas.png")
 
 
-# Generate observational data for napkin
+# Generate data for napkin
 def generate_napkin_data(
     *, seed: int | None = None, num_samples: int, treatment_assignment: int | None = None
 ) -> pd.DataFrame:
@@ -54,7 +54,7 @@ def main():
     real_ace = np.mean(df_treat_x_1["Y"]) - np.mean(df_treat_x_0["Y"])
 
     with redirect_stdout(None):
-        ace_obj_2 = CausalEffect(graph=napkin.to_admg(), treatment="X", outcome="Y")
+        ace_obj = CausalEffect(graph=napkin.to_admg(), treatment="X", outcome="Y")
 
     df = generate_napkin_data(num_samples=num_samples)
     df.to_csv(HERE.joinpath("napkin_observational.tsv"), sep="\t", index=False)
@@ -65,7 +65,7 @@ def main():
     deltas = []
     for _ in trange(500):
         df = generate_napkin_data(num_samples=num_samples)
-        ace_anipw = ace_obj_2.compute_effect(df, "anipw")
+        ace_anipw = ace_obj.compute_effect(df, "anipw")
         delta = ace_anipw - real_ace
         deltas.append(delta)
 
