@@ -146,6 +146,8 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
         )
     # TODO re-implement code from
     #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L85-92
+    raise NotImplementedError
+
 
 def apipw():
     pass

@@ -459,7 +459,7 @@ class NxMixedGraph:
         for district in self.districts():
             if node in district:
                 return district
-        raise KeyError
+        raise KeyError(f"{node} not found in graph")
 
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""
