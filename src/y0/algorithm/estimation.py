@@ -137,13 +137,23 @@ def aipw():
 
 
 def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]]) -> bool:
+    """Check if the treatments are p-fixable.
+
+    This code was adapted from :mod:`ananke` ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L85-92
+
+    :param graph: A NxMixedGraph
+    :param treatments: A list of treatments
+    :raises NotImplementedError: p-fixability on multiple treatments is an open research question
+    :returns: bool
+    """
     if isinstance(treatments, list):
         raise NotImplementedError(
             "p-fixability on multiple treatments is an open research question"
         )
-    # TODO re-implement code from
-    #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L85-92
-    raise NotImplementedError
+    children = graph.directed.successors(treatments)
+    children_in_district = graph.get_district(treatments).intersection(children)
+    return 0 == len(children_in_district)
 
 
 def apipw():
