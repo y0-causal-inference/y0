@@ -31,37 +31,40 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
         # grid = sns.pairplot(data=df, aspect=1.65, height=1.2, plot_kws=dict(alpha=0.7))
         # grid.savefig(HERE.joinpath("napkin_observational.png"), dpi=300)
 
-        if example.example_queries:
-            query: Query = example.example_queries[0]
-            if len(query.treatments) != 1 or len(query.outcomes) != 1:
-                raise NotImplementedError
+        if not example.example_queries:
+            raise ValueError(f"{example.name} should have at least one example query")
 
-            treatment = list(query.treatments)[0]
-            outcome = list(query.outcomes)[0]
+        queries = [q for q in example.example_queries if 1 == len(q.treatments) == len(q.outcomes)]
+        if not queries:
+            raise ValueError(
+                f"{example.name} should have at least one example query with a single treatment and outcome"
+            )
 
-            df_treat_1 = example.generate_data(num_samples, seed=seed, treatment_assignment=1)
-            df_treat_1.to_csv(directory.joinpath("treat_1.tsv"), sep="\t", index=False)
-            df_treat_0 = example.generate_data(num_samples, seed=seed, treatment_assignment=0)
-            df_treat_0.to_csv(directory.joinpath("treat_0.tsv"), sep="\t", index=False)
+        query = queries[0]
+        treatment = list(query.treatments)[0]
+        outcome = list(query.outcomes)[0]
 
-            with redirect_stdout(None):
-                ace_obj = CausalEffect(
-                    graph=example.graph.to_admg(), treatment=treatment.name, outcome=outcome.name
-                )
+        df_treat_1 = example.generate_data(num_samples, seed=seed, treatment_assignment=1)
+        df_treat_1.to_csv(directory.joinpath("treat_1.tsv"), sep="\t", index=False)
+        df_treat_0 = example.generate_data(num_samples, seed=seed, treatment_assignment=0)
+        df_treat_0.to_csv(directory.joinpath("treat_0.tsv"), sep="\t", index=False)
+        actual_ace = np.mean(df_treat_1[outcome.name]) - np.mean(df_treat_0[outcome.name])
 
-            actual_ace = np.mean(df_treat_1[outcome.name]) - np.mean(df_treat_0[outcome.name])
+        with redirect_stdout(None):
+            ace_obj = CausalEffect(
+                graph=example.graph.to_admg(), treatment=treatment.name, outcome=outcome.name
+            )
+        ace_deltas = []
+        for _ in trange(bootstraps, desc=f"ATE {example.name}"):
+            df = example.generate_data(num_samples)
+            estimated_ace = ace_obj.compute_effect(df, "anipw")
+            delta = estimated_ace - actual_ace
+            ace_deltas.append(delta)
 
-            ace_deltas = []
-            for _ in trange(bootstraps, desc=f"ATE {example.name}"):
-                df = example.generate_data(num_samples)
-                estimated_ace = ace_obj.compute_effect(df, "anipw")
-                delta = estimated_ace - actual_ace
-                ace_deltas.append(delta)
-
-            fig, ax = plt.subplots(figsize=(4, 2.3))
-            sns.histplot(ace_deltas, ax=ax)
-            ax.set_title("Deviation from actual ACE")
-            fig.savefig(directory.joinpath("deltas.png"), dpi=300)
+        fig, ax = plt.subplots(figsize=(4, 2.3))
+        sns.histplot(ace_deltas, ax=ax)
+        ax.set_title("Deviation from actual ACE")
+        fig.savefig(directory.joinpath("deltas.png"), dpi=300)
 
 
 if __name__ == "__main__":
