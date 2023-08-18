@@ -127,12 +127,9 @@ def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
         raise NotImplementedError(
             "a-fixability on multiple treatments is an open research question"
         )
-    # TODO re-implement the code from ananke directly on NxMixedGraph:
-    #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L58-65
-    return (
-        len(graph.get_district(treatments).intersection(graph.descendants_inclusive(treatments)))
-        == 1
-    )
+    descendants = graph.descendants_inclusive(treatments)
+    descendants_in_district = graph.get_district(treatments).intersection(descendants)
+    return 1 == len(descendants_in_district)
 
 
 def aipw():
