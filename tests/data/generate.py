@@ -40,13 +40,9 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
             outcome = list(query.outcomes)[0]
 
             df_treat_1 = example.generate_data(num_samples, seed=seed, treatment_assignment=1)
-            df_treat_1.to_csv(
-                directory.joinpath(f"treat_{treatment.name}_1.tsv"), sep="\t", index=False
-            )
+            df_treat_1.to_csv(directory.joinpath("treat_1.tsv"), sep="\t", index=False)
             df_treat_0 = example.generate_data(num_samples, seed=seed, treatment_assignment=0)
-            df_treat_0.to_csv(
-                directory.joinpath(f"treat_{treatment.name}_0.tsv"), sep="\t", index=False
-            )
+            df_treat_0.to_csv(directory.joinpath("treat_0.tsv"), sep="\t", index=False)
 
             with redirect_stdout(None):
                 ace_obj = CausalEffect(
