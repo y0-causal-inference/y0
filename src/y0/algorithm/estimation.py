@@ -97,11 +97,13 @@ def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
     This code was adapted from :mod:`ananke` ananke code at:
     https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L381-403
     """
+    # Iterate over all pairs of vertices
     for u, v in itertools.combinations(graph.nodes(), 2):
-        # FIXME something is wrong with the notion of not graph.directed.has_edge(u, v)
-        #  compared to the ananke implementation
-        if not graph.directed.has_edge(u, v) and _markov_blanket_overlap(graph, u, v):
-            return False
+        # Check if the pair is not adjacent
+        if not(any[graph.directed.has_edge(u, v), graph.directed.has_edge(v, u), graph.undirected.has_edge(u, v)]):
+            # If one is in the Markov blanket of the other, then it is not mb-shielded
+            if any[_markov_blanket_overlap(graph, u, v), _markov_blanket_overlap(graph, v, u)]:
+                return False
     return True
 
 
