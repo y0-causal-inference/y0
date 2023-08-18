@@ -110,12 +110,29 @@ def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bo
 
 
 def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]]) -> bool:
+    """Check if the treatments are a-fixable.
+
+    A treatment is said to be a-fixable if it can be fixed by removing a single directed edge from the graph.
+    In other words, a treatment is a-fixable if it has exactly one descendant in its district.
+
+    This code was adapted from :mod:`ananke` ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L58-65
+
+    :param graph: A NxMixedGraph
+    :param treatments: A list of treatments
+    :raises NotImplementedError: a-fixability on multiple treatments is an open research question
+    :returns: bool
+    """
     if isinstance(treatments, list):
         raise NotImplementedError(
             "a-fixability on multiple treatments is an open research question"
         )
     # TODO re-implement the code from ananke directly on NxMixedGraph:
     #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L58-65
+    return (
+        len(graph.get_district(treatments).intersection(graph.descendants_inclusive(treatments)))
+        == 1
+    )
 
 
 def aipw():
@@ -129,7 +146,6 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
         )
     # TODO re-implement code from
     #  https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L85-92
-
 
 def apipw():
     pass
