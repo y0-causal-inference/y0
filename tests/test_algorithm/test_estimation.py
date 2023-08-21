@@ -313,6 +313,25 @@ class TestEstimation(unittest.TestCase):
         with self.subTest(name="Graph 11"):
             self.assertFalse(is_p_fixable(graph_11, treatment_11))
 
+        graph_12 = NxMixedGraph.from_str_edges(
+            directed=[
+                ("C2", "T"),
+                ("C2", "M1"),
+                ("C2", "M2"),
+                ("C2", "Y"),
+                ("C1", "T"),
+                ("C1", "M2"),
+                ("T", "M1"),
+                ("M1", "M2"),
+                ("M2", "Y"),
+                ("T", "Y")
+            ],
+            undirected=[("T", "M2"), ("M1", "Y")],
+        )
+        treatment_12 = Variable("T")
+        with self.subTest(name="Graph 12"):
+            self.assertTrue(is_p_fixable(graph_12, treatment_12))
+
     def test_data_covers_graph(self):
         """Test the data coverage utility."""
         df = pd.read_csv(NAPKIN_OBSERVATIONAL_PATH, sep="\t")
