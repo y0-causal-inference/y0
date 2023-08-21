@@ -142,6 +142,7 @@ napkin = NxMixedGraph.from_edges(
 def generate_napkin_data(
     num_samples: int, treatment_assignment: int | None = None, *, seed: int | None = None
 ) -> pd.DataFrame:
+    """Generate testing data for the napkin graph."""
     generator = np.random.default_rng(seed)
     # U1 is the latent variable that is a common cause of W and X
     u1 = generator.normal(loc=3, scale=1, size=num_samples)

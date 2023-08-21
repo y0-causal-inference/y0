@@ -1,3 +1,5 @@
+"""Testing constants for Y0."""
+
 from pathlib import Path
 
 __all__ = ["HERE", "DATA_DIRECTORY", "NAPKIN_TEST_PATH"]

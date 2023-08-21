@@ -13,9 +13,7 @@ from y0.identify import is_identifiable
 __all__ = [
     "estimate_causal_effect",
     "is_a_fixable",
-    "aipw",
     "is_p_fixable",
-    "apipw",
 ]
 
 
@@ -28,6 +26,7 @@ def estimate_causal_effect(
     query_type: Literal["ate", "expectation", "probability"],
     conditions: Optional[List[Variable]] = None,
 ) -> float:
+    """Estimate the causal effect of a treatment on an outcome."""
     if query_type == "ate":
         return estimate_ate(
             graph=graph, treatment=treatment, outcome=outcome, data=data, conditions=conditions
@@ -145,10 +144,6 @@ def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
     return 1 == len(descendants_in_district)
 
 
-def aipw():
-    pass
-
-
 def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]]) -> bool:
     """Check if the treatments are p-fixable.
 
@@ -167,10 +162,6 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
     children = graph.directed.successors(treatments)
     children_in_district = graph.get_district(treatments).intersection(children)
     return 0 == len(children_in_district)
-
-
-def apipw():
-    pass
 
 
 def df_covers_graph(graph: NxMixedGraph, df: pd.DataFrame) -> bool:

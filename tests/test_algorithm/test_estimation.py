@@ -1,3 +1,5 @@
+"""Tests for estimation workflows and tools."""
+
 import unittest
 
 import pandas as pd
@@ -16,7 +18,10 @@ from y0.graph import NxMixedGraph
 
 
 class TestEstimation(unittest.TestCase):
+    """A test case for estimation workflows and tools."""
+
     def test_is_mb_shielded(self):
+        """Test checking for markov blanket shielding."""
         # Adapted from https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_automated_if.py#L80-92
         graph_unshielded = NxMixedGraph.from_str_edges(
             directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
@@ -106,8 +111,11 @@ class TestEstimation(unittest.TestCase):
         self.assertTrue(is_markov_blanket_shielded(graph_7))
 
     def test_is_a_fixable(self):
-        """Test checking for a-fixability."""
-        # graphs 9,10,11 are from https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_counterfactual_mean.py?ref_type=heads#L20-47
+        """Test checking for a-fixability.
+
+        Graphs 9, 10, and 11 are from https://gitlab.com/causal/ananke/-/blob/dev/tests/\
+        estimation/test_counterfactual_mean.py?ref_type=heads#L20-47
+        """
         graph_1 = NxMixedGraph.from_str_edges(
             directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
         )
@@ -177,8 +185,11 @@ class TestEstimation(unittest.TestCase):
         self.assertFalse(is_a_fixable(graph_8, treatment_8))
 
     def test_is_p_fixable(self):
-        """Test checking for p-fixability."""
-        # see examples at https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_counterfactual_mean.py?ref_type=heads#L151-212
+        """Test checking for p-fixability.
+
+        .. seealso:: https://gitlab.com/causal/ananke/-/blob/dev/tests/\
+        estimation/test_counterfactual_mean.py?ref_type=heads#L151-212
+        """
         graph_1 = NxMixedGraph.from_str_edges(
             directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
         )
