@@ -20,22 +20,28 @@ from y0.graph import NxMixedGraph
 class TestEstimation(unittest.TestCase):
     """A test case for estimation workflows and tools."""
 
+    def assert_mb_shielded(self, graph: NxMixedGraph):
+        """Assert the graph is mb-shielded"""
+        self.assertTrue(graph.to_admg().mb_shielded())
+        self.assertTrue(is_markov_blanket_shielded(graph))
+
+    def assert_mb_unshielded(self, graph: NxMixedGraph):
+        """Assert the graph is not mb-shielded"""
+        self.assertFalse(graph.to_admg().mb_shielded())
+        self.assertFalse(is_markov_blanket_shielded(graph))
+
     def test_is_mb_shielded(self):
         """Test checking for markov blanket shielding."""
         # Adapted from https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_automated_if.py#L80-92
         graph_unshielded = NxMixedGraph.from_str_edges(
             directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
         )
-        # use Ananke method for sanity check
-        self.assertFalse(graph_unshielded.to_admg().mb_shielded())
-        # test our method
-        self.assertFalse(is_markov_blanket_shielded(graph_unshielded))
+        with self.subTest(name="Graph 1"):
+            self.assert_mb_unshielded(graph_unshielded)
 
         # Second test: Napkin model
-        # use Ananke method for sanity check
-        self.assertFalse(napkin.to_admg().mb_shielded())
-        # test our method
-        self.assertFalse(is_markov_blanket_shielded(napkin))
+        with self.subTest(name="Napkin"):
+            self.assert_mb_unshielded(napkin)
 
         # Third test
         graph_3 = NxMixedGraph.from_str_edges(
@@ -55,10 +61,8 @@ class TestEstimation(unittest.TestCase):
                 ("EGFR", "IL6STAT3"),
             ],
         )
-        # use Ananke method for sanity check
-        self.assertFalse(graph_3.to_admg().mb_shielded())
-        # test our method
-        self.assertFalse(is_markov_blanket_shielded(graph_3))
+        with self.subTest(name="Graph 3"):
+            self.assert_mb_unshielded(graph_3)
 
         # Fourth test
         graph_4 = NxMixedGraph.from_str_edges(
@@ -71,10 +75,8 @@ class TestEstimation(unittest.TestCase):
             ],
             undirected=[("SOS", "PI3K")],
         )
-        # use Ananke method for sanity check
-        self.assertTrue(graph_4.to_admg().mb_shielded())
-        # test our method
-        self.assertTrue(is_markov_blanket_shielded(graph_4))
+        with self.subTest(name="Graph 4"):
+            self.assert_mb_shielded(graph_4)
 
         # Fifth test
         graph_5 = NxMixedGraph.from_str_edges(
@@ -89,26 +91,20 @@ class TestEstimation(unittest.TestCase):
             ],
             undirected=[("Z1", "X"), ("Z2", "M1")],
         )
-        # use Ananke method for sanity check
-        self.assertFalse(graph_5.to_admg().mb_shielded())
-        # test our method
-        self.assertFalse(is_markov_blanket_shielded(graph_5))
+        with self.subTest(name="Graph 5"):
+            self.assert_mb_unshielded(graph_5)
 
         # Sixth test
         graph_6 = NxMixedGraph.from_str_edges(
-            directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")], undirected=[]
+            directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")]
         )
-        # use Ananke method for sanity check
-        self.assertTrue(graph_6.to_admg().mb_shielded())
-        # test our method
-        self.assertTrue(is_markov_blanket_shielded(graph_6))
+        with self.subTest(name="Graph 6"):
+            self.assert_mb_shielded(graph_6)
 
         # Seventh test
-        graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")], undirected=[])
-        # use Ananke method for sanity check
-        self.assertTrue(graph_7.to_admg().mb_shielded())
-        # test our method
-        self.assertTrue(is_markov_blanket_shielded(graph_7))
+        graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")])
+        with self.subTest(name="Graph 6"):
+            self.assert_mb_shielded(graph_7)
 
     def test_is_a_fixable(self):
         """Test checking for a-fixability.
