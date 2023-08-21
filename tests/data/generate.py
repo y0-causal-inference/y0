@@ -1,14 +1,12 @@
 import warnings
-from contextlib import redirect_stdout
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from ananke.estimation import CausalEffect
 from tqdm import trange
 
-from y0.algorithm.identify import Query
+from y0.algorithm.estimation import estimate_ate
 from y0.examples import examples
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -50,14 +48,15 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
         df_treat_0.to_csv(directory.joinpath("treat_0.tsv"), sep="\t", index=False)
         actual_ace = np.mean(df_treat_1[outcome.name]) - np.mean(df_treat_0[outcome.name])
 
-        with redirect_stdout(None):
-            ace_obj = CausalEffect(
-                graph=example.graph.to_admg(), treatment=treatment.name, outcome=outcome.name
-            )
         ace_deltas = []
         for _ in trange(bootstraps, desc=f"ATE {example.name}"):
             df = example.generate_data(num_samples)
-            estimated_ace = ace_obj.compute_effect(df, "anipw")
+            estimated_ace = estimate_ate(
+                graph=example.graph,
+                treatment=treatment.name,
+                outcome=outcome.name,
+                data=df,
+            )
             delta = estimated_ace - actual_ace
             ace_deltas.append(delta)
 
