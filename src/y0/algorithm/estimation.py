@@ -4,7 +4,10 @@ import itertools
 from contextlib import redirect_stdout
 from typing import List, Literal, Optional, Union
 
+import numpy as np
 import pandas as pd
+from statsmodels.api import GLM
+from statsmodels.api.families import Binomial, Gaussian
 
 from y0.dsl import CounterfactualVariable, P, Variable
 from y0.graph import NxMixedGraph
@@ -165,6 +168,61 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
     children = graph.directed.successors(treatments)
     children_in_district = graph.get_district(treatments).intersection(children)
     return 0 == len(children_in_district)
+
+
+def primal_ipw(
+    *,
+    data: pd.DataFrame,
+    graph: NxMixedGraph,
+    treatment: Variable,
+    treatment_value,
+    outcome: Variable,
+) -> float:
+    """Estimate the counterfactual mean E[Y(t)] with the Primal IPW estimator."""
+    beta_primal = get_beta_primal(
+        data=data,
+        graph=graph,
+        treatment=treatment,
+        treatment_value=treatment_value,
+        outcome=outcome,
+    )
+    return np.mean(beta_primal).item()
+
+
+def fit_binary_model(data, formula, weights=None) -> GLM:
+    """Fit a binary general linear model."""
+    return GLM.from_formula(
+        formula,
+        data=data,
+        family=Binomial(),
+        freq_weights=weights,
+    ).fit()
+
+
+def fit_continuous_glm(data, formula, weights=None) -> GLM:
+    """Fit a continuous general linear model."""
+    return GLM.from_formula(
+        formula,
+        data=data,
+        family=Gaussian(),
+        freq_weights=weights,
+    ).fit()
+
+
+def get_beta_primal(
+    *,
+    data: pd.DataFrame,
+    graph: NxMixedGraph,
+    treatment: Variable,
+    outcome: Variable,
+    treatment_value,
+) -> np.array:
+    """Return the beta primal value for each row in the data."""
+    # TODO anywhere in ananke's CounterfactualEffect._beta_primal it uses
+    #  model_binary, use fit_binary_model(). Similarly, anywhere it uses
+    #  model_continuous, use our fit_continuous_glm()
+    # TODO we need to implement a reusable graph.pre() function
+    raise NotImplementedError
 
 
 def df_covers_graph(graph: NxMixedGraph, df: pd.DataFrame) -> bool:
