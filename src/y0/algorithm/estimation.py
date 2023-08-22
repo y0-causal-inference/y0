@@ -14,6 +14,9 @@ __all__ = [
     "estimate_causal_effect",
     "is_a_fixable",
     "is_p_fixable",
+    "is_markov_blanket_shielded",
+    "df_covers_graph",
+    "estimate_ate",
 ]
 
 
