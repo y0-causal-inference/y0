@@ -217,7 +217,10 @@ def get_beta_primal(
     outcome: Variable,
     treatment_value,
 ) -> np.array:
-    """Return the beta primal value for each row in the data."""
+    """Return the beta primal value for each row in the data.
+
+    .. seealso:: https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L408-513
+    """
     # TODO anywhere in ananke's CounterfactualEffect._beta_primal it uses
     #  model_binary, use fit_binary_model(). Similarly, anywhere it uses
     #  model_continuous, use our fit_continuous_glm()
