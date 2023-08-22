@@ -116,7 +116,7 @@ def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
                 return False
     return True
 
-g
+
 def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bool:
     return u in graph.get_markov_blanket(v) or v in graph.get_markov_blanket(u)
 
