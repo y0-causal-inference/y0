@@ -19,6 +19,7 @@ from y0.dsl import (
     Product,
     Sum,
     Variable,
+    Zero,
 )
 from y0.graph import NxMixedGraph
 
@@ -316,6 +317,16 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     :param district: The C-component present in both districts_without_interventions and districts
     :returns: An Expression
     """
+    # first simplify before this check
+    if isinstance(query.expression, Zero):
+        # TODO is this possible to be zero, should we have a check?
+        # from charlie: no, it's not possible to be zero, since you're
+        # wrapping some expression in a sum. This comparison doesn't actually
+        # make sense, either, since this is a DSL object and not an integer.
+        # however, if you do some kind of processing/evaluation, then you
+        # might be able to find out if it's zero
+        raise RuntimeError
+
     ordering = list(query.graphs[query.domain].topological_sort())
     ordering_set = set(ordering)  # TODO this is just all nodes in the graph
     my_product: Expression = One()
@@ -327,14 +338,6 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
         post_set = ordering_set - set(pre)
         numerator = Sum.safe(query.expression, pre_set)
         denominator = Sum.safe(query.expression, post_set)
-        if denominator == 0:
-            raise RuntimeError
-            # TODO is this possible to be zero, should we have a check?
-            # from charlie: no, it's not possible to be zero, since you're
-            # wrapping some expression in a sum. This comparison doesn't actually
-            # make sense, either, since this is a DSL object and not an integer.
-            # however, if you do some kind of processing/evaluation, then you
-            # might be able to find out if it's zero
         my_product *= numerator / denominator
     my_product = cast(Fraction, my_product).simplify()
 
