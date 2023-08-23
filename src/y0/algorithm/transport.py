@@ -19,6 +19,7 @@ from y0.dsl import (
     Product,
     Sum,
     Variable,
+    Zero,
 )
 from y0.graph import NxMixedGraph
 
@@ -57,10 +58,7 @@ def get_nodes_to_transport(
         if surrogate_outcomes.intersection(component):
             c_component_surrogate_outcomes.update(component)
 
-    # subgraph where interventions in edges are removed
-    interventions_overbar = graph.remove_in_edges(surrogate_interventions)
-    # Ancestors of surrogate_outcomes in interventions_overbar
-    Ancestors_surrogate_outcomes = interventions_overbar.ancestors_inclusive(surrogate_outcomes)
+    Ancestors_surrogate_outcomes = graph.get_intervened_ancestors(surrogate_interventions, surrogate_outcomes)
 
     # Descendants of interventions in graph
     Descendants_interventions = graph.descendants_inclusive(surrogate_interventions)
@@ -323,6 +321,16 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     :param district: The C-component present in both districts_without_interventions and districts
     :returns: An Expression
     """
+    # first simplify before this check
+    if isinstance(query.expression, Zero):
+        # TODO is this possible to be zero, should we have a check?
+        # from charlie: no, it's not possible to be zero, since you're
+        # wrapping some expression in a sum. This comparison doesn't actually
+        # make sense, either, since this is a DSL object and not an integer.
+        # however, if you do some kind of processing/evaluation, then you
+        # might be able to find out if it's zero
+        raise RuntimeError
+
     ordering = list(query.graphs[query.domain].topological_sort())
     ordering_set = set(ordering)  # TODO this is just all nodes in the graph
     my_product: Expression = One()
@@ -334,14 +342,6 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
         post_set = ordering_set - set(pre)
         numerator = Sum.safe(query.expression, pre_set)
         denominator = Sum.safe(query.expression, post_set)
-        if denominator == 0:
-            raise RuntimeError
-            # TODO is this possible to be zero, should we have a check?
-            # from charlie: no, it's not possible to be zero, since you're
-            # wrapping some expression in a sum. This comparison doesn't actually
-            # make sense, either, since this is a DSL object and not an integer.
-            # however, if you do some kind of processing/evaluation, then you
-            # might be able to find out if it's zero
         my_product *= numerator / denominator
     my_product = cast(Fraction, my_product).simplify()
 
@@ -404,13 +404,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         return trso(new_query)
 
     # line 3
-    # TODO give meaningful name to this variable
-    target_interventions_overbar = graph.remove_in_edges(query.target_interventions)
-    additional_interventions = (
-        cast(set[Variable], get_regular_nodes(graph))
-        - query.target_interventions
-        - target_interventions_overbar.ancestors_inclusive(query.target_outcomes)
-    )
+    additional_interventions = graph.get_no_effect_on_outcomes(query.target_interventions, query.target_outcomes)
     if additional_interventions:
         new_query = trso_line3(query, additional_interventions)
         return trso(new_query)

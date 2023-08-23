@@ -17,8 +17,9 @@ from y0.algorithm.transport import (
     trso_line9,
     trso_line10,
 )
-from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Variable, W, X, Y, Z
+from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Variable, W, X, Y, Z, Expression
 from y0.graph import NxMixedGraph
+from y0.mutate import canonicalize
 
 X1, X2 = Variable("X1"), Variable("X2")
 
@@ -90,6 +91,18 @@ class TestTransport(cases.GraphTestCase):
 
     #     # TODO probably need to canonicalize both of these
     #     self.assertEqual(expected, actual)
+
+
+    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
+        """Assert that two expressions are the same."""
+        ordering = tuple(expected.get_variables())
+        expected_canonical = canonicalize(expected, ordering)
+        actual_canonical = canonicalize(actual, ordering)
+        self.assertEqual(
+            expected_canonical,
+            actual_canonical,
+            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
+        )
 
     def test_get_nodes_to_transport(self):
         expected = {X1, Y2}
