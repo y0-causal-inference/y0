@@ -57,10 +57,7 @@ def get_nodes_to_transport(
         if surrogate_outcomes.intersection(component):
             c_component_surrogate_outcomes.update(component)
 
-    # subgraph where interventions in edges are removed
-    interventions_overbar = graph.remove_in_edges(surrogate_interventions)
-    # Ancestors of surrogate_outcomes in interventions_overbar
-    Ancestors_surrogate_outcomes = interventions_overbar.ancestors_inclusive(surrogate_outcomes)
+    Ancestors_surrogate_outcomes = graph.get_intervened_ancestors(surrogate_interventions, surrogate_outcomes)
 
     # Descendants of interventions in graph
     Descendants_interventions = graph.descendants_inclusive(surrogate_interventions)
@@ -400,13 +397,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         return trso(new_query)
 
     # line 3
-    # TODO give meaningful name to this variable
-    target_interventions_overbar = graph.remove_in_edges(query.target_interventions)
-    additional_interventions = (
-        cast(set[Variable], graph.nodes())
-        - query.target_interventions
-        - target_interventions_overbar.ancestors_inclusive(query.target_outcomes)
-    )
+    additional_interventions = graph.get_no_effect_on_outcomes(query.target_interventions, query.target_outcomes)
     if additional_interventions:
         new_query = trso_line3(query, additional_interventions)
         return trso(new_query)

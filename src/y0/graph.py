@@ -405,6 +405,12 @@ class NxMixedGraph:
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
+    def get_intervened_ancestors(self, interventions, outcomes) -> Set[Variable]:
+        return self.remove_in_edges(interventions).ancestors_inclusive(outcomes)
+
+    def get_no_effect_on_outcomes(self, interventions, outcomes) -> Set[Variable]:
+        return self.nodes() - interventions - self.get_intervened_ancestors(interventions, outcomes)
+
     def remove_nodes_from(self, vertices: Union[Variable, Iterable[Variable]]) -> NxMixedGraph:
         """Return a subgraph that does not contain any of the specified vertices.
 
