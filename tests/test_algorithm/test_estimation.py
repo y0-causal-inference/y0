@@ -324,7 +324,7 @@ class TestEstimation(unittest.TestCase):
                 ("T", "M1"),
                 ("M1", "M2"),
                 ("M2", "Y"),
-                ("T", "Y")
+                ("T", "Y"),
             ],
             undirected=[("T", "M2"), ("M1", "Y")],
         )
