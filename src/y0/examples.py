@@ -63,7 +63,7 @@ class Example:
     #: Example queries are just to give an idea to a new user
     #: what might be interesting to use in the ID algorithm
     example_queries: Optional[list[Query]] = None
-    generate_data: Optional[Callable[[int, Optional[float]], pd.DataFrame]] = None
+    generate_data: Optional[Callable[[int, Optional[dict[Variable, float]]], pd.DataFrame]] = None
 
 
 u_2 = Variable("u_2")
@@ -140,26 +140,38 @@ napkin = NxMixedGraph.from_edges(
 
 
 def generate_napkin_data(
-    num_samples: int, treatment_assignment: int | None = None, *, seed: int | None = None
+    num_samples: int, treatments: dict[Variable, float] | None = None, *, seed: int | None = None
 ) -> pd.DataFrame:
     """Generate testing data for the napkin graph."""
+    if treatments is None:
+        treatments = {}
     generator = np.random.default_rng(seed)
     # U1 is the latent variable that is a common cause of W and X
     u1 = generator.normal(loc=3, scale=1, size=num_samples)
     # U2 is the latent variable that is a common cause of W and Y
     u2 = generator.normal(loc=5, scale=1, size=num_samples)
-    z2 = generator.gamma(
-        shape=1 / (1 * (u1 * 0.3 + 0.5 * u2) ** 2),
-        scale=5 * (u1 * 0.3 + 0.5 * u2),
-        size=num_samples,
-    )
-    z1 = generator.normal(loc=z2 * 0.7, scale=6, size=num_samples)
-    if treatment_assignment is not None:
-        x = np.full(num_samples, treatment_assignment)
+    if Z2 in treatments:
+        z2 = np.full(num_samples, treatments[Z2])
+    else:
+        u_linear_combination = 0.3 * u1 + 0.5 * u2
+        z2 = generator.gamma(
+            shape=u_linear_combination ** -2,
+            scale=5 * u_linear_combination,
+            size=num_samples,
+        )
+    if Z1 in treatments:
+        z1 = np.full(num_samples, treatments[Z1])
+    else:
+        z1 = generator.normal(loc=z2 * 0.7, scale=6, size=num_samples)
+    if X in treatments:
+        x = np.full(num_samples, treatments[X])
     else:
         x = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * u1 - 0.1 * z1)), size=num_samples)
-    y = generator.normal(loc=u2 * 0.5 + x * 3, scale=6)
-    return pd.DataFrame({"Z2": z2, "Z1": z1, "X": x, "Y": y})
+    if Y in treatments:
+        y = np.full(num_samples, treatments[Y])
+    else:
+        y = generator.normal(loc=u2 * 0.5 + x * 3, scale=6)
+    return pd.DataFrame({Z2.name: z2, Z1.name: z1, X.name: x, Y.name: y})
 
 
 napkin_example = Example(
