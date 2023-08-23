@@ -7,7 +7,7 @@ from typing import List, Literal, Optional, Union
 import numpy as np
 import pandas as pd
 from statsmodels.api import GLM
-from statsmodels.api.families import Binomial, Gaussian
+from statsmodels.genmod.families import Binomial, Gaussian
 
 from y0.dsl import CounterfactualVariable, P, Variable
 from y0.graph import NxMixedGraph
