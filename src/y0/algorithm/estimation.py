@@ -2,12 +2,13 @@
 
 import itertools
 from contextlib import redirect_stdout
-from typing import List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 from statsmodels.api import GLM
-from statsmodels.api.families import Binomial, Gaussian
+from statsmodels.genmod.families import Binomial, Gaussian
 
 from y0.dsl import CounterfactualVariable, P, Variable
 from y0.graph import NxMixedGraph
@@ -216,16 +217,112 @@ def get_beta_primal(
     treatment: Variable,
     outcome: Variable,
     treatment_value,
+    state_space_map: Dict[Variable, str],
 ) -> np.array:
     """Return the beta primal value for each row in the data.
 
-    .. seealso:: https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L408-513
+    This code was adapted from :mod:`ananke` ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L408-513
+
+    :param data: Given data
+    :param graph: A NxMixedGraph
+    :param treatment: Given treatment
+    :param outcome: Given outcome
+    :param treatment_value: Given treatment value
+    :param state_space_map: Contains the state space of a variable (binary/continuous)
+    :returns: np.array
     """
-    # TODO anywhere in ananke's CounterfactualEffect._beta_primal it uses
-    #  model_binary, use fit_binary_model(). Similarly, anywhere it uses
-    #  model_continuous, use our fit_continuous_glm()
-    # TODO we need to implement a reusable graph.pre() function
-    raise NotImplementedError
+    # extract the outcome
+    y = data[outcome.name]
+
+    # c := pre-treatment vars and l := post-treatment vars in district of treatment
+    c = graph.pre(treatment)
+    post = set(graph.nodes()).difference(c)
+    l = post.intersection(graph.get_district(treatment))
+
+    # create copies of the data with treatment assignments t=0 and t=1
+    data_t1 = data.copy()
+    data_t1[treatment.name] = 1
+    data_t0 = data.copy()
+    data_t0[treatment.name] = 0
+
+    indices = data[treatment.name] == treatment_value
+
+    # prob: stores \prod_{li in l} p(li | mp(li))
+    # prob_t1: stores \prod_{li in l} p(li | mp(li)) at t=1
+    # prob_t0: stores \prod_{li in l} p(li | mp(li)) at t=0
+
+    mp_t = graph.get_markov_pillow([treatment])
+    indices_t0 = data.index[data[treatment.name] == 0]
+
+    if len(mp_t) != 0:
+        formula = treatment.name + " ~ " + "+".join([variable.name for variable in mp_t])
+        model = fit_binary_model(data, formula)
+        prob = model.predict(data)
+        prob[indices_t0] = 1 - prob[indices_t0]
+        prob_t1 = model.predict(data)
+        prob_t0 = 1 - prob_t1
+    else:
+        prob = np.ones(len(data)) * np.mean(data[treatment.name])
+        prob[indices_t0] = 1 - prob[indices_t0]
+        prob_t1 = np.ones(len(data)) * np.mean(data[treatment.name])
+        prob_t0 = 1 - prob_t1
+
+    # iterate over vertices in l (except the treatment and outcome)
+    for v in l.difference([treatment, outcome]):
+        # fit v | mp(v)
+        mp_v = graph.get_markov_pillow(v)
+        formula = v.name + " ~ " + "+".join([variable.name for variable in mp_v])
+
+        # p(v =v | .), p(v = v | . , t=1), p(v = v | ., t=0)
+        if state_space_map[v] == "binary":
+            model = fit_binary_model(data, formula)
+            prob_v = model.predict(data)
+            prob_v_t1 = model.predict(data_t1)
+            prob_v_t0 = model.predict(data_t0)
+
+            indices_v0 = data.index[data[v.name] == 0]
+
+            # p(v | .), p(v | ., t=t)
+            prob_v[indices_v0] = 1 - prob_v[indices_v0]
+            prob_v_t1[indices_v0] = 1 - prob_v_t1[indices_v0]
+            prob_v_t0[indices_v0] = 1 - prob_v_t0[indices_v0]
+
+        else:
+            model = fit_continuous_glm(data, formula)
+            e_v = model.predict(data)
+            e_v_t1 = model.predict(data_t1)
+            e_v_t0 = model.predict(data_t0)
+
+            std = np.std(data[v.name] - e_v)
+            prob_v = norm.pdf(data[v.name], loc=e_v, scale=std)
+            prob_v_t1 = norm.pdf(data[v.name], loc=e_v_t1, scale=std)
+            prob_v_t0 = norm.pdf(data[v.name], loc=e_v_t0, scale=std)
+
+        prob *= prob_v
+        prob_t1 *= prob_v_t1
+        prob_t0 *= prob_v_t0
+
+    # special case when the outcome is in l
+    if outcome in l:
+        # fit a binary/continuous model for y | mp(y)
+        mp_y = graph.get_markov_pillow([outcome])
+        formula = outcome.name + " ~ " + "+".join([variable.name for variable in mp_y])
+        if state_space_map[outcome] == "binary":
+            model = fit_binary_model(data, formula)
+        else:
+            model = fit_continuous_glm(data, formula)
+
+        # predict the outcome and adjust numerator of primal accordingly
+        yhat_t1 = model.predict(data_t1)
+        yhat_t0 = model.predict(data_t0)
+        prob_sumt = prob_t1 * yhat_t1 + prob_t0 * yhat_t0
+        beta_primal = indices * (prob_sumt / prob)
+    else:
+        prob_sumt = prob_t1 + prob_t0
+        beta_primal = indices * (prob_sumt / prob) * y
+
+    return beta_primal
 
 
 def df_covers_graph(graph: NxMixedGraph, df: pd.DataFrame) -> bool:
