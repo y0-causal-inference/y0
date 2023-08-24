@@ -304,29 +304,40 @@ def _line_6_helper(
     new_query.active_interventions = surrogate_intersect_target
     return new_query
 
+
 def add_active_interventions(
-    expression: Union[Sum,Product,Fraction,Probability,Variable], active_interventions: Set[Variable])->Union[Sum,Product,Fraction,Probability]:
+    expression: Union[Sum, Product, Fraction, Probability, Variable],
+    active_interventions: Set[Variable],
+) -> Union[Sum, Product, Fraction, Probability]:
     """Intervene on the expression using the active interventions.
-    
+
     :param expression: A probability expression.
     :param active_interventions: Set of active interventions
     :returns: boolean True if all interventions are d-separated from all outcomes, False otherwise.
     """
-    
+
     if isinstance(expression, Probability):
         return expression.intervene(active_interventions)
-    if isinstance(expression,Sum):
-        intervened_expression = add_active_interventions(expression.expression,active_interventions)
-        intervened_ranges = tuple(variable.intervene(active_interventions) for variable in expression.ranges)
-        return Sum.safe(intervened_expression,intervened_ranges)
-    if isinstance(expression,Fraction):
-        new_numerator = add_active_interventions(expression.numerator,active_interventions)
-        new_denominator = add_active_interventions(expression.denominator,active_interventions)
-        return  cast(Fraction,new_numerator/new_denominator).simplify()
-    if isinstance(expression,Product):
-        intervened_expression = add_active_interventions(expression.expression,active_interventions)
-        intervened_ranges = tuple(variable.intervene(active_interventions) for variable in expression.ranges)
-        return Sum.safe(intervened_expression,intervened_ranges)
+    if isinstance(expression, Sum):
+        intervened_expression = add_active_interventions(
+            expression.expression, active_interventions
+        )
+        intervened_ranges = tuple(
+            variable.intervene(active_interventions) for variable in expression.ranges
+        )
+        return Sum.safe(intervened_expression, intervened_ranges)
+    if isinstance(expression, Fraction):
+        new_numerator = add_active_interventions(expression.numerator, active_interventions)
+        new_denominator = add_active_interventions(expression.denominator, active_interventions)
+        return cast(Fraction, new_numerator / new_denominator).simplify()
+    if isinstance(expression, Product):
+        intervened_expression = add_active_interventions(
+            expression.expression, active_interventions
+        )
+        intervened_ranges = tuple(
+            variable.intervene(active_interventions) for variable in expression.ranges
+        )
+        return Sum.safe(intervened_expression, intervened_ranges)
 
 
 def all_transports_d_separated(graph, target_interventions, target_outcomes) -> bool:
@@ -387,7 +398,6 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
         denominator = Sum.safe(query.expression, post_set)
         my_product *= numerator / denominator
     my_product = cast(Fraction, my_product).simplify()
-
 
     logger.debug(
         "Returning trso algorithm line 9 with expression %s",
@@ -509,8 +519,8 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         for domain, subquery in trso_line6(query).items():
             logger.debug("Calling trso algorithm line 6 for domain %s", domain)
             expression = trso(subquery)
-            #Add the active interventions here
-            expression = add_active_interventions(expression,subquery.active_interventions)
+            # Add the active interventions here
+            expression = add_active_interventions(expression, subquery.active_interventions)
             if expression is not None:  # line7
                 logger.debug(
                     "Calling trso algorithm line 7",
