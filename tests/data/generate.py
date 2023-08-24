@@ -10,6 +10,7 @@ from tqdm import trange
 
 from y0.algorithm.estimation import estimate_ate
 from y0.examples import examples
+from y0.dsl import X
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -44,19 +45,19 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
         treatment = list(query.treatments)[0]
         outcome = list(query.outcomes)[0]
 
-        df_treat_1 = example.generate_data(num_samples, seed=seed, treatment_assignment=1)
-        df_treat_1.to_csv(directory.joinpath("treat_1.tsv"), sep="\t", index=False)
-        df_treat_0 = example.generate_data(num_samples, seed=seed, treatment_assignment=0)
-        df_treat_0.to_csv(directory.joinpath("treat_0.tsv"), sep="\t", index=False)
-        actual_ace = np.mean(df_treat_1[outcome.name]) - np.mean(df_treat_0[outcome.name])
+        df_treat_x_1 = example.generate_data(num_samples, seed=seed, treatments={X: 1})
+        df_treat_x_1.to_csv(directory.joinpath("treat_x_1.tsv"), sep="\t", index=False)
+        df_treat_x_0 = example.generate_data(num_samples, seed=seed, treatments={X: 0})
+        df_treat_x_0.to_csv(directory.joinpath("treat_x_0.tsv"), sep="\t", index=False)
+        actual_ace = np.mean(df_treat_x_1[outcome.name]) - np.mean(df_treat_x_0[outcome.name])
 
         ace_deltas = []
-        for _ in trange(bootstraps, desc=f"ATE {example.name}"):
+        for _ in trange(bootstraps, desc=f"ACE {example.name}"):
             df = example.generate_data(num_samples)
             estimated_ace = estimate_ate(
                 graph=example.graph,
-                treatment=treatment.name,
-                outcome=outcome.name,
+                treatment=treatment,
+                outcome=outcome,
                 data=df,
             )
             delta = estimated_ace - actual_ace
