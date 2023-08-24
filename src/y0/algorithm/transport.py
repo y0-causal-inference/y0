@@ -217,6 +217,7 @@ def trso_line2(
     new_query.target_interventions.intersection_update(outcomes_ancestors)
     new_query.graphs[new_query.domain] = query.graphs[query.domain].subgraph(outcomes_ancestors)
     if isinstance(query.expression, PopulationProbability):
+        # This is true by the chain rule and marginalizing
         new_query.expression = PP[query.domain](
             set(query.expression.children).intersection(outcomes_ancestors)
         )
@@ -438,14 +439,14 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     # line 1
     if not query.target_interventions:
         logger.debug("Calling trso algorithm line 1")
-        return trso_line1(query.target_outcomes, query.expression, graph)
+        return canonicalize(trso_line1(query.target_outcomes, query.expression, graph))
 
     # line 2
     outcome_ancestors = graph.ancestors_inclusive(query.target_outcomes)
     if get_regular_nodes(graph) - outcome_ancestors:
         new_query = trso_line2(query, outcome_ancestors)
         logger.debug("Calling trso algorithm line 2")
-        return trso(new_query)
+        return canonicalize(trso(new_query))
 
     # line 3
     additional_interventions = graph.get_no_effect_on_outcomes(
@@ -454,7 +455,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     if additional_interventions:
         new_query = trso_line3(query, additional_interventions)
         logger.debug("Calling trso algorithm line 3")
-        return trso(new_query)
+        return canonicalize(trso(new_query))
 
     # line 4
     districts_without_interventions: set[frozenset[Variable]] = graph.remove_nodes_from(
@@ -474,9 +475,11 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
                 raise NotImplementedError
             terms.append(term)
 
-        return Sum.safe(
-            Product.safe(terms),
-            get_regular_nodes(graph) - query.target_interventions.union(query.target_outcomes),
+        return canonicalize(
+            Sum.safe(
+                Product.safe(terms),
+                get_regular_nodes(graph) - query.target_interventions.union(query.target_outcomes),
+            )
         )
 
     # line 6
@@ -492,12 +495,12 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
                 expressions[domain] = expression
         # TODO add the active interventions here, e.g. do(x1)
         if len(expressions) == 1:
-            return list(expressions.values())[0]
+            return canonicalize(list(expressions.values())[0])
         elif len(expressions) > 1:
             logger.warning("more than one expression were non-none")
             # What if more than 1 expression doesn't fail?
             # Is it non-deterministic or can we prove it will be length 1?
-            return list(expressions.values())[0]
+            return canonicalize(list(expressions.values())[0])
         else:
             pass
 
@@ -521,7 +524,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     if len(districts_without_interventions) == 1:
         district_without_interventions = districts_without_interventions.pop()
         if district_without_interventions in districts:
-            return trso_line9(query, set(district_without_interventions))
+            return canonicalize(trso_line9(query, set(district_without_interventions)))
         # raise NotImplementedError(
         #     "single district without interventions found, but it's not in the districts"
         # )
