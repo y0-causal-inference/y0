@@ -261,3 +261,10 @@ class TestGraph(unittest.TestCase):
             {x[2], x[3], x[5], x[7], x[8], x[9]},
             graph.get_markov_blanket(x[6]),
         )
+
+    def test_disorient(self):
+        """Test disorienting a graph."""
+        graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(Y, Z)])
+        disoriented = graph.disorient()
+        self.assertTrue(disoriented.has_edge(X, Y))
+        self.assertTrue(disoriented.has_edge(Y, Z))
