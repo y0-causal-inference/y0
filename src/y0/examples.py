@@ -142,7 +142,34 @@ napkin = NxMixedGraph.from_edges(
 def generate_napkin_data(
     num_samples: int, treatments: dict[Variable, float] | None = None, *, seed: int | None = None
 ) -> pd.DataFrame:
-    """Generate testing data for the napkin graph."""
+    """Generate testing data for the napkin graph.
+
+    :param num_samples: The number of samples to generate. Try 1000.
+    :param treatments: An optional dictionary of the values to fix each variable
+        to. The keys in this dictionary must correspond to variables in the
+        napkin graph as defined in :data:`y0.examples.napkin` (i.e.,
+        with :data:`y0.dsl.Z1`, :data:`y0.dsl.Z2`, :data:`y0.dsl.X`,
+        and :data:`y0.dsl.Y`).
+    :param seed: An optional random seed for reproducibility purposes
+    :returns: A pandas Dataframe with columns corresponding to the four
+        variable names in the Napkin graph (i.e., ``Z1``, ``Z2``, ``X``,
+        and ``Y``)
+
+    Generate _observational_ data with the following:
+
+    >>> from y0.examples.napkin_example
+    >>> napkin_example.generate_data(1000)
+
+    Generate interventional data on $X=1$ with the following:
+
+    >>> from y0.dsl import X
+    >>> napkin_example.generate_data(1000, treatments={X: 1})
+
+    Multiple treatments can be specified:
+
+    >>> from y0.dsl import X, Z1
+    >>> napkin_example.generate_data(1000, treatments={X: 1, Z1: 0})
+    """
     if treatments is None:
         treatments = {}
     generator = np.random.default_rng(seed)
