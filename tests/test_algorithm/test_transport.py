@@ -464,6 +464,24 @@ class TestTransport(cases.GraphTestCase):
         pass
 
     def test_trso(self):
+        query = TRSOQuery(
+            target_interventions={X1, X2},
+            target_outcomes={Y1,Y2},
+            expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8,
+                Pi1: graph_1,
+                Pi2: graph_2,
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
+
+        
+        
+        
         query_part1 = TRSOQuery(
             target_interventions={X1, X2, Y1, Y2},
             target_outcomes={Z, W},

@@ -7,6 +7,8 @@ from operator import attrgetter
 from typing import Dict, FrozenSet, Iterable, List, Mapping, Optional, Set, Union, cast
 
 from y0.algorithm.conditional_independencies import are_d_separated
+from y0.mutate.canonicalize_expr import canonicalize
+from y0.mutate.chain import chain_expand
 from y0.dsl import (
     CounterfactualVariable,
     Expression,
@@ -321,6 +323,10 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     :param district: The C-component present in both districts_without_interventions and districts
     :returns: An Expression
     """
+    logger.debug(
+    "Calling trso algorithm line 9 with expression %s",
+    query.expression,
+    ) 
     # first simplify before this check
     if isinstance(query.expression, Zero):
         # TODO is this possible to be zero, should we have a check?
@@ -349,6 +355,10 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     # TODO what is going on here?
     # Tikka has an adjustment in the code that avoids the numerator and denominator
     # but I don't understand where it comes from.
+    logger.debug(
+    "Returning trso algorithm line 9 with expression %s",
+    Sum.safe(my_product, district - query.target_outcomes)
+    ) 
     return Sum.safe(my_product, district - query.target_outcomes)
 
 
@@ -386,27 +396,59 @@ def trso_line10(
     new_query.surrogate_interventions = new_surrogate_interventions
     return new_query
 
-
+logger.setLevel(logging.DEBUG)
 # TODO Tikka paper says that topological ordering is available globaly
 def trso(query: TRSOQuery) -> Optional[Expression]:
     # Check that domain is in query.domains
     # check that query.surrogate_interventions keys are equals to domains
     # check that query.graphs keys are equal to domains
+    logger.debug(
+    "Calling trso algorithm with "
+    "\t- target_interventions: %s\n"
+    "\t- target_outcomes: %s\n"
+    "\t- expression: %s\n"
+    "\t- active_interventions: %s\n"
+    "\t- domain: %s\n"
+    "\t- domains: %s\n"
+    # "\t- graphs: %s\n"
+    "\t- surrogate_interventions: %s",
+    query.target_interventions,
+    query.target_outcomes,
+    query.expression,
+    query.active_interventions,
+    query.domain,
+    query.domains,
+    #query.graphs,
+    query.surrogate_interventions
+    )
+    
+    
+    
+    
     graph = query.graphs[query.domain]
     # line 1
     if not query.target_interventions:
+        logger.debug(
+        "Calling trso algorithm line 1"
+        )
         return trso_line1(query.target_outcomes, query.expression, graph)
 
     # line 2
     outcome_ancestors = graph.ancestors_inclusive(query.target_outcomes)
-    if get_regular_nodes(graph) - outcome_ancestors:
+    if get_regular_nodes(graph) - outcome_ancestors:       
         new_query = trso_line2(query, outcome_ancestors)
+        logger.debug(
+        "Calling trso algorithm line 2"
+        ) 
         return trso(new_query)
 
     # line 3
     additional_interventions = graph.get_no_effect_on_outcomes(query.target_interventions, query.target_outcomes)
     if additional_interventions:
         new_query = trso_line3(query, additional_interventions)
+        logger.debug(
+        "Calling trso algorithm line 3"
+        ) 
         return trso(new_query)
 
     # line 4
@@ -419,7 +461,15 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
             districts_without_interventions,
         )
         terms = []
-        for subquery in subqueries.values():
+        logger.debug(
+        "Calling trso algorithm line 4 with %d subqueries",
+        len(subqueries)
+        ) 
+        for i,subquery in enumerate(subqueries.values()):
+            logger.debug(
+            "Calling subquery %d of trso algorithm line 4",
+            i+1
+            ) 
             term = trso(subquery)
             if term is None:
                 raise NotImplementedError
@@ -434,8 +484,15 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     if not query.active_interventions:
         expressions: Dict[Population, Expression] = {}
         for domain, subquery in trso_line6(query).items():
+            logger.debug(
+            "Calling trso algorithm line 6 for domain %s",
+            domain
+            ) 
             expression = trso(subquery)
             if expression is not None:  # line7
+                logger.debug(
+                "Calling trso algorithm line 7",
+                ) 
                 expressions[domain] = expression
         # TODO add the active interventions here, e.g. do(x1)
         if len(expressions) == 1:
@@ -452,8 +509,14 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
     districts = graph.districts()
     # line 11, return fail. keep explict tests for 0 and 1 to ensure adequate testing
     if len(districts) == 0:
+        logger.debug(
+        "Fail on algorithm line 11 (length of districts equals 0)",
+        ) 
         return None
     if len(districts) == 1:
+        logger.debug(
+        "Fail on trso algorithm line 11 (length of districts equals 1)",
+        ) 
         return None
     # line 8, i.e. len(districts)>1
 
