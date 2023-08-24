@@ -514,6 +514,26 @@ class NxMixedGraph:
                 blanket.update(self.directed.predecessors(successor))
         return blanket.difference(nodes)
 
+    @staticmethod
+    def pre(nodes: Union[Variable, Iterable[Variable]], topological_sort_order: Iterable[Variable]):
+        """
+        Find all nodes prior to the given set of nodes under a topological sort order.
+
+        :param nodes: iterable of nodes.
+        :param topological_sort_order: a valid topological sort order.
+        :return: list corresponding to the order up until the given nodes.
+        """
+        if isinstance(nodes, Variable):
+            nodes = {nodes}
+        else:
+            nodes = set(nodes)
+        pre = []
+        for node in topological_sort_order:
+            if node in nodes:
+                break
+            pre.append(node)
+        return pre
+
 
 def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
     """Confirm that node is not an intervention."""
