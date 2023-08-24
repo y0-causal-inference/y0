@@ -17,7 +17,22 @@ from y0.algorithm.transport import (
     trso_line9,
     trso_line10,
 )
-from y0.dsl import PP, Y1, Y2, Expression, Pi1, Pi2, Product, Sum, Variable, W, X, Y, Z
+from y0.dsl import (
+    PP,
+    Y1,
+    Y2,
+    Expression,
+    Pi1,
+    Pi2,
+    Product,
+    Sum,
+    Variable,
+    W,
+    X,
+    Y,
+    Z,
+    Zero,
+)
 from y0.graph import NxMixedGraph
 from y0.mutate import canonicalize
 
@@ -510,6 +525,24 @@ class TestTransport(cases.GraphTestCase):
         line9_actual2 = trso_line9(line9_query2, district2)
         line9_expected2 = PP[Pi2](W, Y1, Z) / Sum.safe(PP[Pi2](W, Y1, Z), (Y1,))
         self.assertEqual(line9_expected2, line9_actual2)
+
+        line9_query3 = TRSOQuery(
+            target_interventions={W, Z},
+            target_outcomes={Y1},
+            expression=Zero(),
+            active_interventions={X1},
+            domain=Pi1,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8.subgraph({W, Y1, Z}),
+                Pi1: graph_1.subgraph({W, Y1, Z}),
+                Pi2: graph_2.subgraph({W, Y1, Z}),
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
+        district3 = {Y1}
+        with self.assertRaises(RuntimeError):
+            trso_line9(line9_query3, district3)
 
     def test_trso_line10(self):
         pass
