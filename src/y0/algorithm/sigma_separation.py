@@ -236,18 +236,3 @@ def get_equivalence_classes(graph: NxMixedGraph) -> dict[Variable, set[Variable]
         node: graph.ancestors_inclusive(node).intersection(graph.descendants_inclusive(node))
         for node in graph.nodes()
     }
-
-
-def _get_eq_classes_alt(graph):
-    rv = {}
-    for cycle in nx.simple_cycles(graph.directed):
-        cycle = set(cycle)
-        for node in cycle:
-            rv[node] = cycle
-    # nodes that don't appear in any cycles get their own class
-    for node in graph:
-        if node not in rv:
-            rv[node] = {node}
-    # FIXME what happens if a node appears in multiple cycles?
-    #  Maybe join them together into a super-cycle?
-    return rv

@@ -6,6 +6,10 @@ from y0.algorithm.conditional_independencies import are_d_separated
 from y0.algorithm.sigma_separation import (
     are_sigma_separated,
     get_equivalence_classes,
+    is_collider,
+    is_non_collider_fork,
+    is_non_collider_left_chain,
+    is_non_collider_right_chain,
     is_z_sigma_open,
 )
 from y0.dsl import V1, V2, V3, V4, V5, V6, Variable
@@ -42,6 +46,10 @@ class TestSigmaSeparation(unittest.TestCase):
     {v6, v7}, and {v8}.
     """
 
+    def setUp(self) -> None:
+        """Set up the test case."""
+        self.sigma = get_equivalence_classes(graph)
+
     def test_equivalence_classes(self):
         """Test getting equivalence classes."""
         equivalent_classes = {
@@ -51,8 +59,51 @@ class TestSigmaSeparation(unittest.TestCase):
             frozenset([V8]),
         }
         expected_equivalent_classes = {n: c for c in equivalent_classes for n in c}
-        actual_equivalent_classes = get_equivalence_classes(graph)
-        self.assertEqual(expected_equivalent_classes, actual_equivalent_classes)
+        self.assertEqual(expected_equivalent_classes, self.sigma)
+
+    def test_collider(self):
+        """Test checking colliders."""
+        self.assertTrue(is_collider(graph, left=..., middle=..., right=..., conditions=...))
+        self.assertFalse(is_collider(graph, left=..., middle=..., right=..., conditions=...))
+
+    def test_left_chain(self):
+        """Test checking non-colliders (left chain)."""
+        self.assertTrue(
+            is_non_collider_left_chain(
+                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
+            )
+        )
+        self.assertFalse(
+            is_non_collider_left_chain(
+                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
+            )
+        )
+
+    def test_right_chain(self):
+        """Test checking non-colliders (right chain)."""
+        self.assertTrue(
+            is_non_collider_right_chain(
+                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
+            )
+        )
+        self.assertFalse(
+            is_non_collider_right_chain(
+                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
+            )
+        )
+
+    def test_fork(self):
+        """Test checking non-colliders (fork)."""
+        self.assertTrue(
+            is_non_collider_fork(
+                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
+            )
+        )
+        self.assertFalse(
+            is_non_collider_fork(
+                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
+            )
+        )
 
     def test_z_sigma_open(self):
         """Tests for z-sigma-open paths."""
