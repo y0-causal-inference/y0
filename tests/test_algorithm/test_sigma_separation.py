@@ -63,19 +63,14 @@ class TestSigmaSeparation(unittest.TestCase):
 
     def test_collider(self):
         """Test checking colliders."""
-        self.assertTrue(is_collider(graph, left=..., middle=..., right=..., conditions=...))
+        self.assertTrue(is_collider(graph, left=V4, middle=V5, right=V6, conditions={V3, V5}))
         self.assertFalse(is_collider(graph, left=..., middle=..., right=..., conditions=...))
 
     def test_left_chain(self):
         """Test checking non-colliders (left chain)."""
         self.assertTrue(
             is_non_collider_left_chain(
-                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
-            )
-        )
-        self.assertFalse(
-            is_non_collider_left_chain(
-                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
+                graph, left=V5, middle=V4, right=V6, conditions={V3, V5}, sigma=self.sigma
             )
         )
 
@@ -83,12 +78,17 @@ class TestSigmaSeparation(unittest.TestCase):
         """Test checking non-colliders (right chain)."""
         self.assertTrue(
             is_non_collider_right_chain(
-                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
+                graph, left=V1, middle=V2, right=V3, conditions={V3, V5}, sigma=self.sigma
             )
         )
-        self.assertFalse(
+        self.assertTrue(
             is_non_collider_right_chain(
-                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
+                graph, left=V2, middle=V3, right=V4, conditions={V3, V5}, sigma=self.sigma
+            )
+        )
+        self.assertTrue(
+            is_non_collider_right_chain(
+                graph, left=V3, middle=V4, right=V5, conditions={V3, V5}, sigma=self.sigma
             )
         )
 
