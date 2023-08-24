@@ -6,8 +6,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Sequence
+from typing import Callable, Optional, Sequence
 
+import numpy as np
 import pandas as pd
 
 from .algorithm.identify import Identification, Query
@@ -62,6 +63,7 @@ class Example:
     #: Example queries are just to give an idea to a new user
     #: what might be interesting to use in the ID algorithm
     example_queries: Optional[list[Query]] = None
+    generate_data: Optional[Callable[[int, Optional[dict[Variable, float]]], pd.DataFrame]] = None
 
 
 u_2 = Variable("u_2")
@@ -135,11 +137,77 @@ napkin = NxMixedGraph.from_edges(
         (Z2, Y),
     ],
 )
+
+
+def generate_napkin_data(
+    num_samples: int, treatments: dict[Variable, float] | None = None, *, seed: int | None = None
+) -> pd.DataFrame:
+    """Generate testing data for the napkin graph.
+
+    :param num_samples: The number of samples to generate. Try 1000.
+    :param treatments: An optional dictionary of the values to fix each variable
+        to. The keys in this dictionary must correspond to variables in the
+        napkin graph as defined in :data:`y0.examples.napkin` (i.e.,
+        with :data:`y0.dsl.Z1`, :data:`y0.dsl.Z2`, :data:`y0.dsl.X`,
+        and :data:`y0.dsl.Y`).
+    :param seed: An optional random seed for reproducibility purposes
+    :returns: A pandas Dataframe with columns corresponding to the four
+        variable names in the Napkin graph (i.e., ``Z1``, ``Z2``, ``X``,
+        and ``Y``)
+
+    Generate _observational_ data with the following:
+
+    >>> from y0.examples.napkin_example
+    >>> napkin_example.generate_data(1000)
+
+    Generate interventional data on $X=1$ with the following:
+
+    >>> from y0.dsl import X
+    >>> napkin_example.generate_data(1000, treatments={X: 1})
+
+    Multiple treatments can be specified:
+
+    >>> from y0.dsl import X, Z1
+    >>> napkin_example.generate_data(1000, treatments={X: 1, Z1: 0})
+    """
+    if treatments is None:
+        treatments = {}
+    generator = np.random.default_rng(seed)
+    # U1 is the latent variable that is a common cause of W and X
+    u1 = generator.normal(loc=3, scale=1, size=num_samples)
+    # U2 is the latent variable that is a common cause of W and Y
+    u2 = generator.normal(loc=5, scale=1, size=num_samples)
+    if Z2 in treatments:
+        z2 = np.full(num_samples, treatments[Z2])
+    else:
+        u_linear_combination = 0.3 * u1 + 0.5 * u2
+        z2 = generator.gamma(
+            shape=u_linear_combination**-2,
+            scale=5 * u_linear_combination,
+            size=num_samples,
+        )
+    if Z1 in treatments:
+        z1 = np.full(num_samples, treatments[Z1])
+    else:
+        z1 = generator.normal(loc=z2 * 0.7, scale=6, size=num_samples)
+    if X in treatments:
+        x = np.full(num_samples, treatments[X])
+    else:
+        x = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * u1 - 0.1 * z1)), size=num_samples)
+    if Y in treatments:
+        y = np.full(num_samples, treatments[Y])
+    else:
+        y = generator.normal(loc=u2 * 0.5 + x * 3, scale=6)
+    return pd.DataFrame({Z2.name: z2, Z1.name: z1, X.name: x, Y.name: y})
+
+
 napkin_example = Example(
     name="Napkin",
     reference='J. Pearl and D. Mackenzie. 2018. "The Book of Why: The New Science of Cause and Effect."'
     " Basic Books, p. 240.",
     graph=napkin,
+    generate_data=generate_napkin_data,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
     verma_constraints=[
         VermaConstraint(
             lhs_cfactor=Q[X, Y](Z1, X, Y) / Sum[Y](Q[X, Y](Z1, X, Y)),

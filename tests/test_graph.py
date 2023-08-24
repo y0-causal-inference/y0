@@ -186,6 +186,8 @@ class TestGraph(unittest.TestCase):
             directed=[("C", "A"), ("C", "B"), ("D", "C"), ("A", "X"), ("A", "Y"), ("B", "Z")]
         )
         self.assertEqual({A, B, C, D}, graph.ancestors_inclusive({A, B}))
+        self.assertEqual({A, X, Y}, graph.descendants_inclusive({A}))
+        self.assertEqual({A, B, X, Y, Z}, graph.descendants_inclusive({A, B}))
 
         graph = NxMixedGraph.from_str_edges(
             directed=[("X", "Z"), ("Z", "Y")], undirected=[("X", "Y")]
@@ -198,17 +200,34 @@ class TestGraph(unittest.TestCase):
     def test_get_c_components(self):
         """Test that get_c_components works correctly."""
         g1 = NxMixedGraph().from_str_edges(directed=[("X", "Y"), ("Z", "X"), ("Z", "Y")])
-        c1 = [frozenset([X]), frozenset([Y]), frozenset([Z])]
+        c1 = {frozenset([X]), frozenset([Y]), frozenset([Z])}
         g2 = NxMixedGraph().from_str_edges(directed=[("X", "Y")], undirected=[("X", "Y")])
-        c2 = [frozenset([X, Y])]
+        c2 = {frozenset([X, Y])}
         g3 = NxMixedGraph().from_edges(directed=[(X, M), (M, Y)], undirected=[(X, Y)])
-        c3 = [frozenset([X, Y]), frozenset([M])]
+        c3 = {frozenset([X, Y]), frozenset([M])}
         for graph, components in [(g1, c1), (g2, c2), (g3, c3)]:
             self.assertIsInstance(graph, NxMixedGraph)
-            actual_components = graph.get_c_components()
-            self.assertTrue(all(isinstance(c, frozenset) for c in actual_components))
-            self.assertTrue(all(isinstance(v, Variable) for c in actual_components for v in c))
+            actual_components = graph.districts()
+            self.assertTrue(
+                all(isinstance(component, frozenset) for component in actual_components)
+            )
+            self.assertTrue(
+                all(
+                    isinstance(node, Variable)
+                    for component in actual_components
+                    for node in component
+                )
+            )
             self.assertEqual(components, actual_components)
+
+    def test_get_district(self):
+        """Test getting districts."""
+        graph = NxMixedGraph().from_edges(directed=[(X, M), (M, Y)], undirected=[(X, Y)])
+        self.assertEqual(frozenset([X, Y]), graph.get_district(X))
+        self.assertEqual(frozenset([X, Y]), graph.get_district(Y))
+        self.assertEqual(frozenset([M]), graph.get_district(M))
+        with self.assertRaises(KeyError):
+            graph.get_district(Z)
 
     def test_counterfactual_predicate(self):
         """Test checking counterfactual graph."""
@@ -220,3 +239,25 @@ class TestGraph(unittest.TestCase):
         self.assertTrue(graph.is_counterfactual())
         with self.assertRaises(ValueError):
             graph.raise_on_counterfactual()
+
+    def test_markov_blanket(self):
+        """Test getting a markov blanket."""
+        x = [Variable(f"X{i}") for i in range(12)]
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (x[1], x[5]),
+                (x[2], x[6]),
+                (x[3], x[6]),
+                (x[4], x[3]),
+                (x[5], x[8]),
+                (x[6], x[8]),
+                (x[6], x[9]),
+                (x[7], x[9]),
+                (x[8], x[10]),
+                (x[9], x[11]),
+            ]
+        )
+        self.assertEqual(
+            {x[2], x[3], x[5], x[7], x[8], x[9]},
+            graph.get_markov_blanket(x[6]),
+        )
