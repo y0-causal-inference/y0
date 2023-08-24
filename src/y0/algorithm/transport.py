@@ -424,16 +424,31 @@ def trso_line10(
     :param new_surrogate_interventions: Dict mapping domains to interventions performed in that domain.
     :returns: An Expression
     """
-    sorted_district_nodes = sorted(district, key=attrgetter("name"))
+
+    ordering = list(query.graphs[query.domain].topological_sort())
+    ordering_set = set(ordering)  # TODO this is just all nodes in the graph
+    my_product: Expression = One()
+    for node in district:
+        i = ordering.index(node)
+        pre, post = ordering[:i], ordering[: i + 1]
+        pre_set = ordering_set - set(post)
+        post_set = ordering_set - set(pre)
+        numerator = Sum.safe(query.expression, pre_set)
+        denominator = Sum.safe(query.expression, post_set)
+        my_product *= numerator / denominator
+    my_product = cast(Fraction, my_product).simplify()
+
     expressions = []
-    for i, node in enumerate(sorted_district_nodes):
-        # TODO I am not convinced this is correct, still trying to decipher the paper
-        subset_up_to_node = set(sorted_district_nodes[:i])
-        previous_node_without_district = set([sorted_district_nodes[i - 1]]) - district
+    for node in district:
+        i = ordering.index(node)
+        pre_node = set(ordering[:i])
+        # FIXME Doesn't this expression just return pre_node?
         prob = Probability.safe(
-            node.given(
-                subset_up_to_node.intersection(district).union(previous_node_without_district)
-            )
+            node.given(pre_node.intersection(district).union(pre_node - district))
+        )
+        # or is it supposed to be this?
+        prob = Probability.safe(
+            node.given(pre_node.intersection(district).union(set(ordering[i - 1]) - district))
         )
         expressions.append(
             PopulationProbability(population=query.domain, distribution=prob.distribution)
@@ -447,7 +462,6 @@ def trso_line10(
     return new_query
 
 
-# TODO Tikka paper says that topological ordering is available globaly
 def trso(query: TRSOQuery) -> Optional[Expression]:
     # Check that domain is in query.domains
     # check that query.surrogate_interventions keys are equals to domains
@@ -525,7 +539,6 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         for domain, subquery in trso_line6(query).items():
             logger.debug("Calling trso algorithm line 6 for domain %s", domain)
             expression = trso(subquery)
-            # Add the active interventions here
             expression = add_active_interventions(
                 expression, subquery.active_interventions, subquery.target_outcomes
             )
@@ -534,7 +547,6 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
                     "Calling trso algorithm line 7",
                 )
                 expressions[domain] = expression
-        # TODO add the active interventions here, e.g. do(x1)
         if len(expressions) == 1:
             return canonicalize(list(expressions.values())[0])
         elif len(expressions) > 1:
