@@ -61,15 +61,15 @@ def get_nodes_to_transport(
         if surrogate_outcomes.intersection(component):
             c_component_surrogate_outcomes.update(component)
 
-    Ancestors_surrogate_outcomes = graph.get_intervened_ancestors(
+    ancestors_surrogate_outcomes = graph.get_intervened_ancestors(
         surrogate_interventions, surrogate_outcomes
     )
 
     # Descendants of interventions in graph
-    Descendants_interventions = graph.descendants_inclusive(surrogate_interventions)
+    descendants_interventions = graph.descendants_inclusive(surrogate_interventions)
 
-    return (Descendants_interventions - surrogate_outcomes).union(
-        c_component_surrogate_outcomes - Ancestors_surrogate_outcomes
+    return (descendants_interventions - surrogate_outcomes).union(
+        c_component_surrogate_outcomes - ancestors_surrogate_outcomes
     )
 
 
@@ -134,7 +134,7 @@ class TransportQuery:
 
 @dataclass
 class TRSOQuery:
-    """A query used for TRSO input"""
+    """A query used for TRSO input."""
 
     target_interventions: Set[Variable]
     target_outcomes: Set[Variable]
@@ -317,7 +317,6 @@ def add_active_interventions(
     :param target_outcomes: Set of outcomes on which we will intervene
     :returns: boolean True if all interventions are d-separated from all outcomes, False otherwise.
     """
-
     if isinstance(expression, Probability):
         return expression.intervene_on_target(active_interventions, target_outcomes)
     if isinstance(expression, Sum):
@@ -424,7 +423,6 @@ def trso_line10(
     :param new_surrogate_interventions: Dict mapping domains to interventions performed in that domain.
     :returns: An Expression
     """
-
     ordering = list(query.graphs[query.domain].topological_sort())
     ordering_set = set(ordering)  # TODO this is just all nodes in the graph
     my_product: Expression = One()

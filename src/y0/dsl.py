@@ -795,7 +795,7 @@ class Probability(Expression):
         variables: VariableHint,
         target_variables: VariableHint,
     ) -> Probability:
-        """Return a new probability where target variables of underlying distribution are intervened by the given variables."""
+        """Return new probability with target variables of underlying distribution intervened by given variables."""
         return Probability(self.distribution.intervene_on_target(variables, target_variables))
 
     def __matmul__(self, variables: VariableHint) -> Probability:
