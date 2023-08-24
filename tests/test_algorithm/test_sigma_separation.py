@@ -6,6 +6,7 @@ from y0.algorithm.conditional_independencies import are_d_separated
 from y0.algorithm.sigma_separation import (
     are_sigma_separated,
     get_sigma_equivalence_class,
+    is_z_sigma_open,
 )
 from y0.dsl import V1, V2, V3, V4, V5, V6, Variable
 from y0.graph import NxMixedGraph
@@ -53,6 +54,10 @@ class TestSigmaSeparation(unittest.TestCase):
             equivalence_class = set(equivalence_class)
             for variable in equivalence_class:
                 self.assertEqual(equivalence_class, get_sigma_equivalence_class(graph, variable))
+
+        # this is a weird example since it backtracks
+        path = [V1, V2, V3, V4, V5, V4, V6]
+        self.assertTrue(is_z_sigma_open(graph, path, conditions={V3, V5}))
 
         self.assertTrue(are_d_separated(graph, V2, V4, conditions=[V3, V5]))
         self.assertFalse(are_sigma_separated(graph, V2, V4, conditions=[V3, V5]))

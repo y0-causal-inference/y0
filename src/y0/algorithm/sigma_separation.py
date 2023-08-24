@@ -8,8 +8,6 @@ from more_itertools import triplewise
 from y0.dsl import Variable
 from y0.graph import NxMixedGraph
 
-from .conditional_independencies import disorient
-
 __all__ = [
     "are_sigma_separated",
 ]
@@ -49,7 +47,7 @@ def are_sigma_separated(
         conditions = set(conditions)
     return not any(
         is_z_sigma_open(graph, path, conditions)
-        for path in nx.all_simple_paths(disorient(graph), left, right, cutoff=cutoff)
+        for path in nx.all_simple_paths(graph.disorient(), left, right, cutoff=cutoff)
     )
 
 
@@ -218,5 +216,5 @@ def get_sigma_equivalence_class(graph: NxMixedGraph, node: Variable) -> set[Vari
     every equivalence class σ(v), v ∈ V , is a loop in the underlying directed
     graph structure: σ(v) ∈ L(G).
     """
-    # not sure what this is yet
+    # not sure what this is yet. I think this maps to all elements in a loop that this one is in
     raise NotImplementedError

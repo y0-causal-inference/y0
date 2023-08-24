@@ -479,6 +479,14 @@ class NxMixedGraph:
             parents_of_district |= set(self.directed.predecessors(node))
         return parents_of_district - set(nodes)
 
+    def disorient(self) -> nx.Graph:
+        """Return a graph with all edges converted to a flat undirected graph."""
+        rv = nx.Graph()
+        rv.add_nodes_from(self.nodes())
+        rv.add_edges_from(self.directed.edges())
+        rv.add_edges_from(self.undirected.edges())
+        return rv
+
 
 def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
     """Confirm that node is not an intervention."""
