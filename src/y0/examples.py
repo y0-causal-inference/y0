@@ -162,9 +162,13 @@ def generate_napkin_data(
 
     Generate interventional data on $X=1$ with the following:
 
-    >>> from y0.examples.napkin_example
     >>> from y0.dsl import X
     >>> napkin_example.generate_data(1000, treatments={X: 1})
+
+    Multiple treatments can be specified:
+
+    >>> from y0.dsl import X, Z1
+    >>> napkin_example.generate_data(1000, treatments={X: 1, Z1: 0})
     """
     if treatments is None:
         treatments = {}
