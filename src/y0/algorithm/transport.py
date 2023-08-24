@@ -8,6 +8,7 @@ from typing import Dict, FrozenSet, Iterable, List, Mapping, Optional, Set, Unio
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
+    PP,
     CounterfactualVariable,
     Expression,
     Fraction,
@@ -215,10 +216,19 @@ def trso_line2(
     new_query = deepcopy(query)
     new_query.target_interventions.intersection_update(outcomes_ancestors)
     new_query.graphs[new_query.domain] = query.graphs[query.domain].subgraph(outcomes_ancestors)
-    new_query.expression = Sum.safe(
-        query.expression,
-        get_regular_nodes(query.graphs[query.domain]) - outcomes_ancestors,
-    )
+    if isinstance(query.expression, PopulationProbability):
+        new_query.expression = PP[query.domain](
+            set(query.expression.children).intersection(outcomes_ancestors)
+        )
+    else:
+        logger.debug(
+            "Calling trso algorithm line 2 else loop",
+            query.expression,
+        )
+        new_query.expression = Sum.safe(
+            query.expression,
+            get_regular_nodes(query.graphs[query.domain]) - outcomes_ancestors,
+        )
 
     return new_query
 
@@ -397,9 +407,6 @@ def trso_line10(
     new_query.graphs[query.domain] = query.graphs[query.domain].subgraph(district)
     new_query.surrogate_interventions = new_surrogate_interventions
     return new_query
-
-
-logger.setLevel(logging.DEBUG)
 
 
 # TODO Tikka paper says that topological ordering is available globaly
