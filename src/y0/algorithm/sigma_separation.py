@@ -45,14 +45,19 @@ def are_sigma_separated(
         conditions = set()
     else:
         conditions = set(conditions)
+
+    equivalence_classes = get_equivalence_classes(graph)
     return not any(
-        is_z_sigma_open(graph, path, conditions)
+        is_z_sigma_open(graph, path, conditions, equivalence_classes)
         for path in nx.all_simple_paths(graph.disorient(), left, right, cutoff=cutoff)
     )
 
 
 def is_z_sigma_open(
-    graph: NxMixedGraph, path: Sequence[Variable], conditions: set[Variable]
+    graph: NxMixedGraph,
+    path: Sequence[Variable],
+    conditions: set[Variable],
+    sigma: dict[Variable, set[Variable]],
 ) -> bool:
     r"""Check if a path is Z-sigma-open.
 
@@ -60,6 +65,8 @@ def is_z_sigma_open(
     :param path: A path in the graph. Denoted as $\pi$ in the paper. The
         node in position $i$ in the path is denoted with $v_i$.
     :param conditions : A set of nodes chosen as conditions, denoted by $Z$ in the paper
+    :param sigma: The set of equivalence classes. Can be calculated with
+        :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
     :returns: If the path is Z-sigma-open
 
     A path is $Z-\sigma-\text{open}$ if:
@@ -77,9 +84,9 @@ def is_z_sigma_open(
     return all(
         (
             is_collider(graph, left, middle, right, conditions)
-            or is_non_collider_left_chain(graph, left, middle, right, conditions)
-            or is_non_collider_right_chain(graph, left, middle, right, conditions)
-            or is_non_collider_fork(graph, left, middle, right, conditions)
+            or is_non_collider_left_chain(graph, left, middle, right, conditions, sigma)
+            or is_non_collider_right_chain(graph, left, middle, right, conditions, sigma)
+            or is_non_collider_fork(graph, left, middle, right, conditions, sigma)
             # or is_non_collider_undirected(graph, a, b, c, z) TODO implement me!
         )
         for left, middle, right in triplewise(path)
@@ -116,24 +123,24 @@ def is_non_collider_left_chain(
     middle: Variable,
     right: Variable,
     conditions: set[Variable],
+    sigma: dict[Variable, set[Variable]],
 ) -> bool:
-    """Check if three nodes form a non-collider (left chain) given the conditions.
+    r"""Check if three nodes form a non-collider (left chain) given the conditions.
 
     :param graph: A mixed graph
     :param left: The first node in the subsequence, denoted as $v_{i-1}$ in the paper
     :param middle: The second node in the subsequence, denoted as $v_i$ in the paper
     :param right: The third node in the subsequence, denoted as $v_{i+1}$ in the paper
     :param conditions: The conditional variables, denoted as $Z$ in the paper
+    :param sigma: The set of equivalence classes. Can be calculated with
+        :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
     :return: If the three nodes form a non-collider (left chain) given the conditions.
     """
     return (
         graph.directed.has_edge(middle, left)
         and graph.directed.has_edge(right, middle)
         and graph.undirected.has_edge(middle, right)
-    ) and (
-        middle not in conditions
-        or middle in conditions.intersection(get_sigma_equivalence_class(graph, left))
-    )
+    ) and (middle not in conditions or middle in conditions.intersection(sigma[left]))
 
 
 def is_non_collider_right_chain(
@@ -142,24 +149,24 @@ def is_non_collider_right_chain(
     middle: Variable,
     right: Variable,
     conditions: set[Variable],
+    sigma: dict[Variable, set[Variable]],
 ) -> bool:
-    """Check if three nodes form a non-collider (right chain) given the conditions.
+    r"""Check if three nodes form a non-collider (right chain) given the conditions.
 
     :param graph: A mixed graph
     :param left: The first node in the subsequence, denoted as $v_{i-1}$ in the paper
     :param middle: The second node in the subsequence, denoted as $v_i$ in the paper
     :param right: The third node in the subsequence, denoted as $v_{i+1}$ in the paper
     :param conditions: The conditional variables, denoted as $Z$ in the paper
+    :param sigma: The set of equivalence classes. Can be calculated with
+        :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
     :return: If the three nodes form a non-collider (right chain) given the conditions.
     """
     return (
         graph.directed.has_edge(left, middle)
         and graph.directed.has_edge(middle, right)
         and graph.undirected.has_edge(left, middle)
-    ) and (
-        middle not in conditions
-        or middle in conditions.intersection(get_sigma_equivalence_class(graph, right))
-    )
+    ) and (middle not in conditions or middle in conditions.intersection(sigma[right]))
 
 
 def is_non_collider_fork(
@@ -168,22 +175,22 @@ def is_non_collider_fork(
     middle: Variable,
     right: Variable,
     conditions: set[Variable],
+    sigma: dict[Variable, set[Variable]],
 ) -> bool:
-    """Check if three nodes form a non-collider (fork) given the conditions.
+    r"""Check if three nodes form a non-collider (fork) given the conditions.
 
     :param graph: A mixed graph
     :param left: The first node in the subsequence, denoted as $v_{i-1}$ in the paper
     :param middle: The second node in the subsequence, denoted as $v_i$ in the paper
     :param right: The third node in the subsequence, denoted as $v_{i+1}$ in the paper
     :param conditions: The conditional variables, denoted as $Z$ in the paper
+    :param sigma: The set of equivalence classes. Can be calculated with
+        :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
     :return: If the three nodes form a non-collider (fork) given the conditions.
     """
     return (graph.directed.has_edge(middle, left) and graph.directed.has_edge(middle, right)) and (
         middle not in conditions
-        or middle
-        in conditions.intersection(get_sigma_equivalence_class(graph, left)).intersection(
-            get_sigma_equivalence_class(graph, right)
-        )
+        or middle in conditions.intersection(sigma[left]).intersection(sigma[right])
     )
 
 
@@ -201,20 +208,46 @@ def is_non_collider_undirected(
     :param middle: The second node in the subsequence, denoted as $v_i$ in the paper
     :param right: The third node in the subsequence, denoted as $v_{i+1}$ in the paper
     :param conditions: The conditional variables, denoted as $Z$ in the paper
-    :return: If the three nodes form a non-collider (fork) given the conditions.
+    :raises NotImplementedError: We need to update the data model
     """
     raise NotImplementedError("this would require additional edge types to NxMixedGraph")
 
 
-def get_sigma_equivalence_class(graph: NxMixedGraph, node: Variable) -> set[Variable]:
-    """Get the set of sigma equivalent nodes to the given node.
+def get_equivalence_classes(graph: NxMixedGraph) -> dict[Variable, set[Variable]]:
+    """Get equivalence classes.
 
     :param graph: A mixed graph
-    :param node: A node in the graph
-    :returns: The set of sigma-equivalent nodes
+    :returns: A mapping from variables to their equivalence class,
+        defined as the second option from the paper (see below)
 
-    every equivalence class σ(v), v ∈ V , is a loop in the underlying directed
-    graph structure: σ(v) ∈ L(G).
+    1. The finest/trivial σ-CG structure of
+       a mixed graph G is given by σ(v) := {v} for all
+       v ∈ V . In this way σ-separation in G coincides with
+       the usual notion of d-separation in a d-connection
+       graph (d-CG) G (see [19]). We will take this as the
+       definition of d-separation and d-CG in the following.
+    2. The coarsest σ-CG structure of a mixed graph G is
+       given by σ(v) := ScG(v) := AncG(v) ∩ DescG(v)
+       w.r.t. the underlying directed graph. Note that the
+       definition of strongly connected component totally
+       ignores the bi- and undirected edges of the σ-CG.
     """
-    # not sure what this is yet. I think this maps to all elements in a loop that this one is in
-    raise NotImplementedError
+    return {
+        node: graph.ancestors_inclusive(node).intersection(graph.descendants_inclusive(node))
+        for node in graph.nodes()
+    }
+
+
+def _get_eq_classes_alt(graph):
+    rv = {}
+    for cycle in nx.simple_cycles(graph.directed):
+        cycle = set(cycle)
+        for node in cycle:
+            rv[node] = cycle
+    # nodes that don't appear in any cycles get their own class
+    for node in graph:
+        if node not in rv:
+            rv[node] = {node}
+    # FIXME what happens if a node appears in multiple cycles?
+    #  Maybe join them together into a super-cycle?
+    return rv

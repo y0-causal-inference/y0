@@ -103,7 +103,7 @@ def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
     return len(judgement.conditions), ",".join(c.name for c in judgement.conditions)
 
 
-def get_moral_links(graph: NxMixedGraph) -> Iterable[Tuple[Variable, Variable]]:
+def iter_moral_links(graph: NxMixedGraph) -> Iterable[Tuple[Variable, Variable]]:
     """Generate links to ensure all co-parents in a graph are linked.
 
     May generate links that already exist as we assume we are not working on a multi-graph.
