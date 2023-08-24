@@ -8,7 +8,17 @@ import itertools as itt
 import json
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    Collection,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import networkx as nx
 from networkx.classes.reportviews import NodeView
@@ -514,22 +524,23 @@ class NxMixedGraph:
                 blanket.update(self.directed.predecessors(successor))
         return blanket.difference(nodes)
 
-    @staticmethod
-    def pre(nodes: Union[Variable, Iterable[Variable]], topological_sort_order: Iterable[Variable]):
-        """
-        Find all nodes prior to the given set of nodes under a topological sort order.
+    def pre(
+        self,
+        nodes: Union[Variable, Iterable[Variable]],
+        topological_sort_order: Optional[Sequence[Variable]] = None,
+    ) -> list[Variable]:
+        """Find all nodes prior to the given set of nodes under a topological sort order.
 
         :param nodes: iterable of nodes.
-        :param topological_sort_order: a valid topological sort order.
+        :param topological_sort_order: A valid topological sort order. If none given, calculates from the graph.
         :return: list corresponding to the order up until the given nodes.
         """
-        if isinstance(nodes, Variable):
-            nodes = {nodes}
-        else:
-            nodes = set(nodes)
+        if not topological_sort_order:
+            topological_sort_order = list(self.topological_sort())
+        node_set = _ensure_set(nodes)
         pre = []
         for node in topological_sort_order:
-            if node in nodes:
+            if node in node_set:
                 break
             pre.append(node)
         return pre

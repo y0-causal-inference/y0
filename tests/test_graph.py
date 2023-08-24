@@ -261,3 +261,7 @@ class TestGraph(unittest.TestCase):
             {x[2], x[3], x[5], x[7], x[8], x[9]},
             graph.get_markov_blanket(x[6]),
         )
+
+    def test_pre(self):
+        """Test getting the pre-ordering for a given node or set of nodes."""
+        raise NotImplementedError

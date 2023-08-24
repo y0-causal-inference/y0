@@ -155,7 +155,7 @@ def generate_napkin_data(
     else:
         u_linear_combination = 0.3 * u1 + 0.5 * u2
         z2 = generator.gamma(
-            shape=u_linear_combination ** -2,
+            shape=u_linear_combination**-2,
             scale=5 * u_linear_combination,
             size=num_samples,
         )

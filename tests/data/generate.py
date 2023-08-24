@@ -9,8 +9,8 @@ import seaborn as sns
 from tqdm import trange
 
 from y0.algorithm.estimation import estimate_ate
-from y0.examples import examples
 from y0.dsl import X
+from y0.examples import examples
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
