@@ -17,7 +17,7 @@ from y0.algorithm.transport import (
     trso_line9,
     trso_line10,
 )
-from y0.dsl import PP, Y1, Y2, Pi1, Pi2, Sum, Variable, W, X, Y, Z, Expression
+from y0.dsl import PP, Y1, Y2, Expression, Pi1, Pi2, Sum, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 from y0.mutate import canonicalize
 
@@ -91,7 +91,6 @@ class TestTransport(cases.GraphTestCase):
 
     #     # TODO probably need to canonicalize both of these
     #     self.assertEqual(expected, actual)
-
 
     def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
         """Assert that two expressions are the same."""
@@ -466,7 +465,7 @@ class TestTransport(cases.GraphTestCase):
     def test_trso(self):
         query = TRSOQuery(
             target_interventions={X1, X2},
-            target_outcomes={Y1,Y2},
+            target_outcomes={Y1, Y2},
             expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
             active_interventions=set(),
             domain=TARGET_DOMAIN,
@@ -479,9 +478,6 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
 
-        
-        
-        
         query_part1 = TRSOQuery(
             target_interventions={X1, X2, Y1, Y2},
             target_outcomes={Z, W},
