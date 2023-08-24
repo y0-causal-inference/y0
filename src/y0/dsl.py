@@ -577,6 +577,32 @@ class Distribution(Element):
             parents=tuple(parent.intervene(variables) for parent in self.parents),
         )
 
+    def intervene_on_target(
+        self,
+        variables: VariableHint,
+        target_variables: VariableHint,
+    ) -> Distribution:
+        """Return a new distribution with interventions on the target variables."""
+        variables = _upgrade_ordering(variables)
+        target_variables = _upgrade_ordering(target_variables)
+
+        new_children = ()
+        new_parents = ()
+
+        for child in self.children:
+            if child in target_variables:
+                new_children += (child.intervene(variables),)
+            else:
+                new_children += (child,)
+
+        for parent in self.parents:
+            if parent in target_variables:
+                new_parents += (parent.intervene(variables),)
+            else:
+                new_parents += (parent,)
+
+        return Distribution(children=new_children, parents=new_parents)
+
     def __matmul__(self, variables: VariableHint) -> Distribution:
         return self.intervene(variables)
 
@@ -763,6 +789,14 @@ class Probability(Expression):
     def intervene(self, variables: VariableHint) -> Probability:
         """Return a new probability where the underlying distribution has been intervened by the given variables."""
         return Probability(self.distribution.intervene(variables))
+
+    def intervene_on_target(
+        self,
+        variables: VariableHint,
+        target_variables: VariableHint,
+    ) -> Probability:
+        """Return a new probability where target variables of underlying distribution are intervened by the given variables."""
+        return Probability(self.distribution.intervene_on_target(variables, target_variables))
 
     def __matmul__(self, variables: VariableHint) -> Probability:
         return self.intervene(variables)

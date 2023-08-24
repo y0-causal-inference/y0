@@ -512,8 +512,7 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
         actual_part2 = trso(query_part2)
-        expected_part2 = canonicalize(PP[TARGET_DOMAIN](Y1, Z, W).conditional((Z, W)))
-        # TODO there is still a missing piece here (do[x1])
+        expected_part2 = canonicalize(PP[TARGET_DOMAIN](Y1 @ X1, Z, W).conditional((Z, W)))
         self.assert_expr_equal(expected_part2, actual_part2)
 
         # The path here should be
@@ -537,8 +536,7 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
         actual_part3 = trso(query_part3)
-        expected_part3 = canonicalize(PP[TARGET_DOMAIN](Y2, X1, Z, W).conditional((X1, Z, W)))
-        # TODO there is still a missing piece here (do[x2])
+        expected_part3 = canonicalize(PP[TARGET_DOMAIN](Y2 @ X2, X1, Z, W).conditional((X1, Z, W)))
         self.assert_expr_equal(expected_part3, actual_part3)
 
         query = TRSOQuery(
@@ -558,8 +556,8 @@ class TestTransport(cases.GraphTestCase):
 
         actual = trso(query)
         expected_part1 = PP[TARGET_DOMAIN](W, Z)
-        expected_part2 = PP[TARGET_DOMAIN](Y1, Z, W).conditional((Z, W))
-        expected_part3 = PP[TARGET_DOMAIN](Y2, X1, Z, W).conditional((X1, Z, W))
+        expected_part2 = PP[TARGET_DOMAIN](Y1 @ X1, Z, W).conditional((Z, W))
+        expected_part3 = PP[TARGET_DOMAIN](Y2 @ X2, X1, Z, W).conditional((X1, Z, W))
 
         expected = canonicalize(
             Sum.safe(

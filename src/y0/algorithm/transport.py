@@ -308,31 +308,37 @@ def _line_6_helper(
 def add_active_interventions(
     expression: Union[Sum, Product, Fraction, Probability, Variable],
     active_interventions: Set[Variable],
+    target_outcomes: Set[Variable],
 ) -> Union[Sum, Product, Fraction, Probability]:
-    """Intervene on the expression using the active interventions.
+    """Intervene on the target variables of expression using the active interventions.
 
     :param expression: A probability expression.
     :param active_interventions: Set of active interventions
+    :param target_outcomes: Set of outcomes on which we will intervene
     :returns: boolean True if all interventions are d-separated from all outcomes, False otherwise.
     """
 
     if isinstance(expression, Probability):
-        return expression.intervene(active_interventions)
+        return expression.intervene_on_target(active_interventions, target_outcomes)
     if isinstance(expression, Sum):
         intervened_expression = add_active_interventions(
-            expression.expression, active_interventions
+            expression.expression, active_interventions, target_outcomes
         )
         intervened_ranges = tuple(
             variable.intervene(active_interventions) for variable in expression.ranges
         )
         return Sum.safe(intervened_expression, intervened_ranges)
     if isinstance(expression, Fraction):
-        new_numerator = add_active_interventions(expression.numerator, active_interventions)
-        new_denominator = add_active_interventions(expression.denominator, active_interventions)
+        new_numerator = add_active_interventions(
+            expression.numerator, active_interventions, target_outcomes
+        )
+        new_denominator = add_active_interventions(
+            expression.denominator, active_interventions, target_outcomes
+        )
         return cast(Fraction, new_numerator / new_denominator).simplify()
     if isinstance(expression, Product):
         intervened_expression = add_active_interventions(
-            expression.expression, active_interventions
+            expression.expression, active_interventions, target_outcomes
         )
         intervened_ranges = tuple(
             variable.intervene(active_interventions) for variable in expression.ranges
@@ -520,7 +526,9 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
             logger.debug("Calling trso algorithm line 6 for domain %s", domain)
             expression = trso(subquery)
             # Add the active interventions here
-            expression = add_active_interventions(expression, subquery.active_interventions)
+            expression = add_active_interventions(
+                expression, subquery.active_interventions, subquery.target_outcomes
+            )
             if expression is not None:  # line7
                 logger.debug(
                     "Calling trso algorithm line 7",
