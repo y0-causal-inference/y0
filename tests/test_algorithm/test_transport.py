@@ -164,95 +164,111 @@ class TestTransport(cases.GraphTestCase):
         )
         self.assert_expr_equal(expected, actual)
 
-    # def test_trso_line2(self):
-    #     query_part1 = TRSOQuery(
-    #         target_interventions={X1, X2, Y1, Y2},
-    #         target_outcomes={Z, W},
-    #         expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
-    #         active_interventions=set(),
-    #         domain=TARGET_DOMAIN,
-    #         domains={Pi1, Pi2},
-    #         graphs={
-    #             TARGET_DOMAIN: tikka_trso_figure_8,
-    #             Pi1: graph_1,
-    #             Pi2: graph_2,
-    #         },
-    #         surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
-    #     )
+    def test_trso_line2(self):
+        query_part1 = TRSOQuery(
+            target_interventions={X1, X2, Y1, Y2},
+            target_outcomes={Z, W},
+            expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8,
+                Pi1: graph_1,
+                Pi2: graph_2,
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
 
-    #     # actual_part1 = trso(query_part1)
-    #     # triggers line 2
-    #     graph = query_part1.graphs[query_part1.domain]
-    #     outcome_ancestors = graph.ancestors_inclusive(query_part1.target_outcomes)
-    #     actual_part1 = trso_line2(query_part1, outcome_ancestors)
+        # actual_part1 = trso(query_part1)
+        # triggers line 2
+        graph = query_part1.graphs[query_part1.domain]
+        outcome_ancestors = graph.ancestors_inclusive(query_part1.target_outcomes)
+        actual_part1 = trso_line2(query_part1, outcome_ancestors)
 
-    #     outcomes_anc = {W, Z}
-    #     new_query_part1 = TRSOQuery(
-    #         target_interventions=set(),
-    #         target_outcomes={W, Z},
-    #         expression=Sum.safe(PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()), {X1, Y1, Y2, X2}),
-    #         active_interventions=set(),
-    #         domain=TARGET_DOMAIN,
-    #         domains={Pi1, Pi2},
-    #         graphs={
-    #             TARGET_DOMAIN: tikka_trso_figure_8.subgraph(outcomes_anc),
-    #             Pi1: graph_1,
-    #             Pi2: graph_2,
-    #         },
-    #         surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
-    #     )
+        outcomes_anc = {W, Z}
+        new_query_part1 = TRSOQuery(
+            target_interventions=set(),
+            target_outcomes={W, Z},
+            expression=canonicalize(PP[TARGET_DOMAIN]((W, Z))),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8.subgraph(outcomes_anc),
+                Pi1: graph_1,
+                Pi2: graph_2,
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
 
-    #     expected_part1 = new_query_part1
-    #     self.assertEqual(actual_part1.expression, expected_part1.expression)
-    #     self.assertEqual(actual_part1, expected_part1)
+        expected_part1 = new_query_part1
+        self.assertEqual(actual_part1.target_interventions, expected_part1.target_interventions)
+        self.assertEqual(actual_part1.target_outcomes, expected_part1.target_outcomes)
+        self.assert_expr_equal(actual_part1.expression, expected_part1.expression)
+        self.assertEqual(actual_part1.active_interventions, expected_part1.active_interventions)
+        self.assertEqual(actual_part1.domain, expected_part1.domain)
+        self.assertEqual(actual_part1.domains, expected_part1.domains)
+        self.assertEqual(actual_part1.graphs, expected_part1.graphs)
+        self.assertEqual(
+            actual_part1.surrogate_interventions, expected_part1.surrogate_interventions
+        )
 
-    #     # this is the simplified form of the expression
-    #     # Maybe to be done in some future implementation
-    #     # expected3 = PP[TARGET_DOMAIN]({W,Z})
-    #     # actual_part1_simplified = actual_part1.simplified
-    #     # self.assertEqual(expected3, actual_part1_simplified)
+        # this is the simplified form of the expression
+        # Maybe to be done in some future implementation
+        # expected3 = PP[TARGET_DOMAIN]({W,Z})
+        # actual_part1_simplified = actual_part1.simplified
+        # self.assertEqual(expected3, actual_part1_simplified)
 
-    #     query_part2 = TRSOQuery(
-    #         target_interventions={X1, X2, Z, W, Y2},
-    #         target_outcomes={Y1},
-    #         expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
-    #         active_interventions=set(),
-    #         domain=TARGET_DOMAIN,
-    #         domains={Pi1, Pi2},
-    #         graphs={
-    #             TARGET_DOMAIN: tikka_trso_figure_8,
-    #             Pi1: graph_1,
-    #             Pi2: graph_2,
-    #         },
-    #         surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
-    #     )
+        query_part2 = TRSOQuery(
+            target_interventions={X1, X2, Z, W, Y2},
+            target_outcomes={Y1},
+            expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8,
+                Pi1: graph_1,
+                Pi2: graph_2,
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
 
-    #     # actual_part2 = trso(query_part2)
-    #     # should trigger line 2
-    #     graph = query_part2.graphs[query_part2.domain]
-    #     outcome_ancestors = graph.ancestors_inclusive(query_part2.target_outcomes)
-    #     actual_part2 = trso_line2(query_part2, outcome_ancestors)
-    #     # triggers line 2
+        # actual_part2 = trso(query_part2)
+        # should trigger line 2
+        graph = query_part2.graphs[query_part2.domain]
+        outcome_ancestors = graph.ancestors_inclusive(query_part2.target_outcomes)
+        actual_part2 = trso_line2(query_part2, outcome_ancestors)
+        # triggers line 2
 
-    #     outcomes_anc = {X1, W, Z, Y1}
-    #     new_query_part2 = TRSOQuery(
-    #         target_interventions={X1, W, Z},
-    #         target_outcomes={Y1},
-    #         expression=Sum.safe(PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()), {X2, Y2}),
-    #         active_interventions=set(),
-    #         domain=TARGET_DOMAIN,
-    #         domains={Pi1, Pi2},
-    #         graphs={
-    #             TARGET_DOMAIN: tikka_trso_figure_8.subgraph(outcomes_anc),
-    #             Pi1: graph_1,
-    #             Pi2: graph_2,
-    #         },
-    #         surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
-    #     )
+        outcomes_anc = {X1, W, Z, Y1}
+        new_query_part2 = TRSOQuery(
+            target_interventions={X1, W, Z},
+            target_outcomes={Y1},
+            expression=canonicalize(PP[TARGET_DOMAIN](X1, W, Z, Y1)),
+            active_interventions=set(),
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8.subgraph(outcomes_anc),
+                Pi1: graph_1,
+                Pi2: graph_2,
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
 
-    #     expected_part2 = new_query_part2
-    #     self.assertEqual(actual_part2.expression, expected_part2.expression)
-    #     self.assertEqual(actual_part2, expected_part2)
+        expected_part2 = new_query_part2
+        self.assertEqual(actual_part2.target_interventions, expected_part2.target_interventions)
+        self.assertEqual(actual_part2.target_outcomes, expected_part2.target_outcomes)
+        self.assert_expr_equal(actual_part2.expression, expected_part2.expression)
+        self.assertEqual(actual_part2.active_interventions, expected_part2.active_interventions)
+        self.assertEqual(actual_part2.domain, expected_part2.domain)
+        self.assertEqual(actual_part2.domains, expected_part2.domains)
+        self.assertEqual(actual_part2.graphs, expected_part2.graphs)
+        self.assertEqual(
+            actual_part2.surrogate_interventions, expected_part2.surrogate_interventions
+        )
 
     def test_trso_line3(self):
         transportability_diagram_line3 = NxMixedGraph.from_edges(
@@ -457,7 +473,43 @@ class TestTransport(cases.GraphTestCase):
         self.assertEqual(expected_part2, actual_part2)
 
     def test_trso_line9(self):
-        pass
+        line9_query1 = TRSOQuery(
+            target_interventions={W, Z, X1},
+            target_outcomes={Y2},
+            expression=PP[Pi2](W, X1, Y2, Z),
+            active_interventions={X2},
+            domain=Pi2,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8.subgraph({W, X1, Y2, Z}),
+                Pi1: graph_1.subgraph({W, X1, Y2, Z}),
+                Pi2: graph_2.subgraph({W, X1, Y2, Z}),
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
+        district1 = {Y2}
+        line9_actual1 = trso_line9(line9_query1, district1)
+        line9_expected1 = PP[Pi2](W, X1, Y2, Z) / Sum.safe(PP[Pi2](W, X1, Y2, Z), (Y2,))
+        self.assertEqual(line9_expected1, line9_actual1)
+
+        line9_query2 = TRSOQuery(
+            target_interventions={W, Z},
+            target_outcomes={Y1},
+            expression=PP[Pi2](W, Y1, Z),
+            active_interventions={X1},
+            domain=Pi1,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8.subgraph({W, Y1, Z}),
+                Pi1: graph_1.subgraph({W, Y1, Z}),
+                Pi2: graph_2.subgraph({W, Y1, Z}),
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
+        district2 = {Y1}
+        line9_actual2 = trso_line9(line9_query2, district2)
+        line9_expected2 = PP[Pi2](W, Y1, Z) / Sum.safe(PP[Pi2](W, Y1, Z), (Y1,))
+        self.assertEqual(line9_expected2, line9_actual2)
 
     def test_trso_line10(self):
         pass

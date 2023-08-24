@@ -378,8 +378,9 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     :returns: An Expression
     """
     logger.debug(
-        "Calling trso algorithm line 9 with expression %s",
+        "Calling trso algorithm line 9 with expression %s \n district %s",
         query.expression,
+        district,
     )
     # first simplify before this check
     if isinstance(query.expression, Zero):
@@ -397,7 +398,6 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     for node in district:
         i = ordering.index(node)
         pre, post = ordering[:i], ordering[: i + 1]
-        # TODO I am not convinced this is correct, still trying to decipher the paper
         pre_set = ordering_set - set(post)
         post_set = ordering_set - set(pre)
         numerator = Sum.safe(query.expression, pre_set)
