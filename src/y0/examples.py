@@ -41,6 +41,7 @@ from .dsl import (
     Y,
     Z,
 )
+from .example_sars import generate_data_for_covid_case_study
 from .graph import NxMixedGraph
 from .resources import ASIA_PATH
 from .struct import DSeparationJudgement, VermaConstraint
@@ -1294,7 +1295,7 @@ igf_example = Example(
     example_queries=[Query.from_str(treatments="SOS", outcomes="Erk")],
 )
 
-sars_example = Example(
+sars_large_example = Example(
     name="SARS-CoV-2 Graph",
     reference="Jeremy Zucker, Sara Mohammad-Taheri, Kaushal Paneri, Somya Bhargava, Pallavi Kolambkar"
     ", Craig Bakker, Jeremy Teuton, Charles Tapley Hoyt, Kristie Oxford, Robert Ness, and Olga Vitek. 2021."
@@ -1352,6 +1353,32 @@ sars_example = Example(
         Query.from_str(treatments="Sil6r", outcomes="cytok"),
         Query.from_str(treatments="EGFR", outcomes="cytok"),
     ],
+)
+
+SARS_SMALL_GRAPH = NxMixedGraph.from_str_edges(
+    directed=[
+        ("ADAM17", "EGFR"),
+        ("ADAM17", "TNF"),
+        ("ADAM17", "Sil6r"),
+        ("EGFR", "cytok"),
+        ("TNF", "cytok"),
+        ("Sil6r", "IL6STAT3"),
+        ("IL6STAT3", "cytok"),
+    ],
+    undirected=[
+        ("ADAM17", "cytok"),
+        ("ADAM17", "Sil6r"),
+        ("EGFR", "TNF"),
+        ("EGFR", "IL6STAT3"),
+    ],
+)
+
+sars_small_example = Example(
+    name="SARS-CoV-2 Small Graph",
+    reference="Sara!",  # FIXME
+    graph=SARS_SMALL_GRAPH,
+    generate_data=generate_data_for_covid_case_study,
+    example_queries=[Query.from_str(outcomes="cytok", treatments="EGFR")],
 )
 
 examples = [v for name, v in locals().items() if name.endswith("_example")]

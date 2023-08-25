@@ -23,7 +23,7 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
     for example in examples:
         if example.generate_data is None:
             continue
-        directory = HERE.joinpath(example.name.lower())
+        directory = HERE.joinpath(example.name.lower().replace(" ", "-").replace("_", "-"))
         directory.mkdir(exist_ok=True, parents=True)
 
         df = example.generate_data(num_samples)
@@ -44,11 +44,16 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
         query = queries[0]
         treatment = list(query.treatments)[0]
         outcome = list(query.outcomes)[0]
+        treatment_name = treatment.name.lower().replace("-", "").replace("_", "")
 
         df_treat_x_1 = example.generate_data(num_samples, seed=seed, treatments={X: 1})
-        df_treat_x_1.to_csv(directory.joinpath("treat_x_1.tsv"), sep="\t", index=False)
+        df_treat_x_1.to_csv(
+            directory.joinpath(f"treat_{treatment_name}_1.tsv"), sep="\t", index=False
+        )
         df_treat_x_0 = example.generate_data(num_samples, seed=seed, treatments={X: 0})
-        df_treat_x_0.to_csv(directory.joinpath("treat_x_0.tsv"), sep="\t", index=False)
+        df_treat_x_0.to_csv(
+            directory.joinpath(f"treat_{treatment_name}_0.tsv"), sep="\t", index=False
+        )
         actual_ace = np.mean(df_treat_x_1[outcome.name]) - np.mean(df_treat_x_0[outcome.name])
 
         ace_deltas = []
@@ -66,6 +71,7 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
         fig, ax = plt.subplots(figsize=(4, 2.3))
         sns.histplot(ace_deltas, ax=ax)
         ax.set_title("Deviation from actual ACE")
+        ax.vlines(actual_ace)
         fig.savefig(directory.joinpath("deltas.png"), dpi=300)
 
 

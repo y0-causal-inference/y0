@@ -13,7 +13,7 @@ from y0.algorithm.estimation import (
     is_p_fixable,
 )
 from y0.dsl import Variable, X, Y
-from y0.examples import frontdoor, napkin
+from y0.examples import SARS_SMALL_GRAPH, frontdoor, napkin
 from y0.graph import NxMixedGraph
 
 
@@ -44,25 +44,8 @@ class TestEstimation(unittest.TestCase):
             self.assert_mb_unshielded(napkin)
 
         # Third test
-        graph_3 = NxMixedGraph.from_str_edges(
-            directed=[
-                ("ADAM17", "EGFR"),
-                ("ADAM17", "TNF"),
-                ("ADAM17", "Sil6r"),
-                ("EGFR", "cytok"),
-                ("TNF", "cytok"),
-                ("Sil6r", "IL6STAT3"),
-                ("IL6STAT3", "cytok"),
-            ],
-            undirected=[
-                ("ADAM17", "cytok"),
-                ("ADAM17", "Sil6r"),
-                ("EGFR", "TNF"),
-                ("EGFR", "IL6STAT3"),
-            ],
-        )
         with self.subTest(name="Graph 3"):
-            self.assert_mb_unshielded(graph_3)
+            self.assert_mb_unshielded(SARS_SMALL_GRAPH)
 
         # Fourth test
         graph_4 = NxMixedGraph.from_str_edges(
@@ -196,26 +179,9 @@ class TestEstimation(unittest.TestCase):
         with self.subTest(name="Napkin"):
             self.assertFalse(is_p_fixable(napkin, X))
 
-        graph_3 = NxMixedGraph.from_str_edges(
-            directed=[
-                ("ADAM17", "EGFR"),
-                ("ADAM17", "TNF"),
-                ("ADAM17", "Sil6r"),
-                ("EGFR", "cytok"),
-                ("TNF", "cytok"),
-                ("Sil6r", "IL6STAT3"),
-                ("IL6STAT3", "cytok"),
-            ],
-            undirected=[
-                ("ADAM17", "cytok"),
-                ("ADAM17", "Sil6r"),
-                ("EGFR", "TNF"),
-                ("EGFR", "IL6STAT3"),
-            ],
-        )
         treatment_3 = Variable("EGFR")
         with self.subTest(name="Graph 3"):
-            self.assertFalse(is_p_fixable(graph_3, treatment_3))
+            self.assertFalse(is_p_fixable(SARS_SMALL_GRAPH, treatment_3))
 
         graph_4 = NxMixedGraph.from_str_edges(
             directed=[
