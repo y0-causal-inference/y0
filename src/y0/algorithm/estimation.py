@@ -55,6 +55,7 @@ def estimate_ate(
     conditions: Optional[List[Variable]] = None,
     bootstraps: int = 0,
     alpha: float = 0.05,
+    estimator: Optional[str] = None,
 ) -> float:
     """Estimate the average treatment effect."""
     if conditions is not None:
@@ -74,7 +75,9 @@ def estimate_ate(
         causal_effect = CausalEffect(ananke_graph, treatment.name, outcome.name)
 
     # explicitly encode suggestions from Ananke
-    if is_a_fixable(graph, treatment):
+    if estimator is not None:
+        pass
+    elif is_a_fixable(graph, treatment):
         if is_markov_blanket_shielded(graph):
             estimator = "eff-aipw"
         else:
