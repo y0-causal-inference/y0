@@ -46,9 +46,13 @@ def are_sigma_separated(
     else:
         conditions = set(conditions)
 
-    equivalence_classes = get_equivalence_classes(graph)
+    sigma = get_equivalence_classes(graph)
     return not any(
-        is_z_sigma_open(graph, path, conditions, equivalence_classes)
+        is_z_sigma_open(graph, path, conditions=conditions, sigma=sigma)
+        # FIXME there's an issue here where some non-simple paths are
+        #  necessary to get the job done. There's a failing test that
+        #  requires something of a backtrack, so it's not clear what
+        #  the best extension of all simple paths could be
         for path in nx.all_simple_paths(graph.disorient(), left, right, cutoff=cutoff)
     )
 
@@ -56,8 +60,9 @@ def are_sigma_separated(
 def is_z_sigma_open(
     graph: NxMixedGraph,
     path: Sequence[Variable],
-    conditions: set[Variable],
+    *,
     sigma: dict[Variable, set[Variable]],
+    conditions: Optional[set[Variable]] = None,
 ) -> bool:
     r"""Check if a path is Z-sigma-open.
 
@@ -79,6 +84,8 @@ def is_z_sigma_open(
        4. (non-collider) fork (:func:`is_non_collider_fork`)
        5. (non-collider) with undirected edge (:func:`is_non_collider_undirected`, not implemented)
     """
+    if conditions is None:
+        conditions = set()
     if path[0] in conditions or path[-1] in conditions:
         return False
     return all(
@@ -87,14 +94,17 @@ def is_z_sigma_open(
             or is_non_collider_left_chain(graph, left, middle, right, conditions, sigma)
             or is_non_collider_right_chain(graph, left, middle, right, conditions, sigma)
             or is_non_collider_fork(graph, left, middle, right, conditions, sigma)
-            # or is_non_collider_undirected(graph, a, b, c, z) TODO implement me!
         )
         for left, middle, right in triplewise(path)
     )
 
 
-def _has_disoriented_edge(graph: NxMixedGraph, u, v) -> bool:
+def _has_either_edge(graph: NxMixedGraph, u, v) -> bool:
     return graph.directed.has_edge(u, v) or graph.undirected.has_edge(u, v)
+
+
+def _only_directed_edge(graph, u, v) -> bool:
+    return graph.directed.has_edge(u, v) and not graph.undirected.has_edge(u, v)
 
 
 def is_collider(
@@ -114,8 +124,8 @@ def is_collider(
     :return: If the three nodes form a collider
     """
     return (
-        _has_disoriented_edge(graph, left, middle)
-        and _has_disoriented_edge(graph, right, middle)
+        _has_either_edge(graph, left, middle)
+        and _has_either_edge(graph, right, middle)
         and middle in conditions
     )
 
@@ -140,8 +150,8 @@ def is_non_collider_left_chain(
     :return: If the three nodes form a non-collider (left chain) given the conditions.
     """
     return (
-        graph.directed.has_edge(middle, left)
-        and _has_disoriented_edge(graph, right, middle)
+        _only_directed_edge(graph, middle, left)
+        and _has_either_edge(graph, right, middle)
         and (middle not in conditions or middle in conditions.intersection(sigma[left]))
     )
 
@@ -166,8 +176,8 @@ def is_non_collider_right_chain(
     :return: If the three nodes form a non-collider (right chain) given the conditions.
     """
     return (
-        _has_disoriented_edge(graph, left, middle)
-        and graph.directed.has_edge(middle, right)
+        _has_either_edge(graph, left, middle)
+        and _only_directed_edge(graph, middle, right)
         and (middle not in conditions or middle in conditions.intersection(sigma[right]))
     )
 
@@ -191,33 +201,11 @@ def is_non_collider_fork(
         :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
     :return: If the three nodes form a non-collider (fork) given the conditions.
     """
-    return (
-        graph.directed.has_edge(middle, left)
-        and graph.directed.has_edge(middle, right)
-        and (
-            middle not in conditions
-            or middle in conditions.intersection(sigma[left]).intersection(sigma[right])
-        )
-    )
-
-
-def is_non_collider_undirected(
-    graph: NxMixedGraph,
-    left: Variable,
-    middle: Variable,
-    right: Variable,
-    conditions: set[Variable],
-) -> bool:
-    """Check if three nodes form a non-collider (with undirected) given the conditions.
-
-    :param graph: A mixed graph
-    :param left: The first node in the subsequence, denoted as $v_{i-1}$ in the paper
-    :param middle: The second node in the subsequence, denoted as $v_i$ in the paper
-    :param right: The third node in the subsequence, denoted as $v_{i+1}$ in the paper
-    :param conditions: The conditional variables, denoted as $Z$ in the paper
-    :raises NotImplementedError: We need to update the data model
-    """
-    raise NotImplementedError("this would require additional edge types to NxMixedGraph")
+    a = _only_directed_edge(graph, middle, left)
+    b = _only_directed_edge(graph, middle, right)
+    c = middle not in conditions
+    d = middle in conditions.intersection(sigma[left]).intersection(sigma[right])
+    return a and b and (c or d)
 
 
 def get_equivalence_classes(graph: NxMixedGraph) -> dict[Variable, set[Variable]]:

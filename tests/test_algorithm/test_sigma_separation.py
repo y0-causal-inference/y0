@@ -24,8 +24,8 @@ graph = NxMixedGraph.from_edges(
         (V2, V3),
         (V3, V4),
         (V4, V5),
+        (V4, V8),
         (V5, V2),
-        (V5, V8),
         (V6, V7),
         (V7, V6),
     ],
@@ -63,8 +63,7 @@ class TestSigmaSeparation(unittest.TestCase):
 
     def test_collider(self):
         """Test checking colliders."""
-        self.assertTrue(is_collider(graph, left=V4, middle=V5, right=V6, conditions={V3, V5}))
-        self.assertFalse(is_collider(graph, left=..., middle=..., right=..., conditions=...))
+        self.assertTrue(is_collider(graph, left=V4, middle=V5, right=V4, conditions={V3, V5}))
 
     def test_left_chain(self):
         """Test checking non-colliders (left chain)."""
@@ -96,39 +95,32 @@ class TestSigmaSeparation(unittest.TestCase):
         """Test checking non-colliders (fork)."""
         self.assertTrue(
             is_non_collider_fork(
-                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
-            )
-        )
-        self.assertFalse(
-            is_non_collider_fork(
-                graph, left=..., middle=..., right=..., conditions=..., sigma=self.sigma
+                graph, left=V5, middle=V4, right=V8, conditions={V3, V5}, sigma=self.sigma
             )
         )
 
     def test_z_sigma_open(self):
         """Tests for z-sigma-open paths."""
-        equivalent_classes = get_equivalence_classes(graph)
-
         # this is a weird example since it backtracks
         path = [V1, V2, V3, V4, V5, V4, V6]
-        self.assertTrue(is_z_sigma_open(graph, path, conditions={V3, V5}, sigma=equivalent_classes))
+        self.assertFalse(is_z_sigma_open(graph, path, sigma=self.sigma))
+        self.assertTrue(is_z_sigma_open(graph, path, conditions={V3, V5}, sigma=self.sigma))
 
     def test_separations_figure_3(self):
         """Test comparisons of d-separation and sigma-separation."""
-        self.assertTrue(are_d_separated(graph, V2, V4, conditions=[V3, V5]))
-        self.assertFalse(are_sigma_separated(graph, V2, V4, conditions=[V3, V5]))
-
-        self.assertTrue(are_d_separated(graph, V1, V6))
-        self.assertTrue(are_sigma_separated(graph, V1, V6))
-
-        self.assertTrue(are_d_separated(graph, V1, V6, conditions=[V3, V5]))
-        self.assertFalse(are_sigma_separated(graph, V1, V6, conditions=[V3, V5]))
-
-        self.assertFalse(are_d_separated(graph, V1, V8))
-        self.assertFalse(are_sigma_separated(graph, V1, V8))
-
-        self.assertTrue(are_d_separated(graph, V1, V8, conditions=[V3, V5]))
-        self.assertFalse(are_sigma_separated(graph, V1, V8, conditions=[V3, V5]))
-
-        self.assertTrue(are_d_separated(graph, V1, V8, conditions=[V4]))
-        self.assertTrue(are_sigma_separated(graph, V1, V8, conditions=[V4]))
+        for left, right, conditions, d, s in [
+            (V2, V4, [V3, V5], True, False),
+            (V1, V6, [], True, True),
+            # FIXME the issue here is we're using nx.all_simple_paths and the
+            #  path we need to find is 𝑣1→𝑣2→𝑣3→𝑣4→𝑣5←𝑣4↔𝑣6, which has a duplicate
+            #  visitation to v4
+            (V1, V6, [V3, V5], True, False),
+            (V1, V8, [], False, False),
+            (V1, V8, [V3, V5], True, False),
+            (V1, V8, [V4], True, True),
+        ]:
+            with self.subTest(left=left, right=right, conditions=conditions):
+                self.assertEqual(
+                    d, are_d_separated(graph, left, right, conditions=conditions).separated
+                )
+                self.assertEqual(s, are_sigma_separated(graph, left, right, conditions=conditions))
