@@ -93,6 +93,10 @@ def is_z_sigma_open(
     )
 
 
+def _has_disoriented_edge(graph: NxMixedGraph, u, v) -> bool:
+    return graph.directed.has_edge(u, v) or graph.undirected.has_edge(u, v)
+
+
 def is_collider(
     graph: NxMixedGraph,
     left: Variable,
@@ -110,11 +114,10 @@ def is_collider(
     :return: If the three nodes form a collider
     """
     return (
-        graph.directed.has_edge(left, middle)
-        and graph.directed.has_edge(right, middle)
-        and graph.undirected.has_edge(left, middle)
-        and graph.undirected.has_edge(middle, right)
-    ) and middle in conditions
+        _has_disoriented_edge(graph, left, middle)
+        and _has_disoriented_edge(graph, right, middle)
+        and middle in conditions
+    )
 
 
 def is_non_collider_left_chain(
@@ -138,9 +141,9 @@ def is_non_collider_left_chain(
     """
     return (
         graph.directed.has_edge(middle, left)
-        and graph.directed.has_edge(right, middle)
-        and graph.undirected.has_edge(middle, right)
-    ) and (middle not in conditions or middle in conditions.intersection(sigma[left]))
+        and _has_disoriented_edge(graph, right, middle)
+        and (middle not in conditions or middle in conditions.intersection(sigma[left]))
+    )
 
 
 def is_non_collider_right_chain(
@@ -163,10 +166,10 @@ def is_non_collider_right_chain(
     :return: If the three nodes form a non-collider (right chain) given the conditions.
     """
     return (
-        graph.directed.has_edge(left, middle)
+        _has_disoriented_edge(graph, left, middle)
         and graph.directed.has_edge(middle, right)
-        and graph.undirected.has_edge(left, middle)
-    ) and (middle not in conditions or middle in conditions.intersection(sigma[right]))
+        and (middle not in conditions or middle in conditions.intersection(sigma[right]))
+    )
 
 
 def is_non_collider_fork(
@@ -188,9 +191,13 @@ def is_non_collider_fork(
         :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
     :return: If the three nodes form a non-collider (fork) given the conditions.
     """
-    return (graph.directed.has_edge(middle, left) and graph.directed.has_edge(middle, right)) and (
-        middle not in conditions
-        or middle in conditions.intersection(sigma[left]).intersection(sigma[right])
+    return (
+        graph.directed.has_edge(middle, left)
+        and graph.directed.has_edge(middle, right)
+        and (
+            middle not in conditions
+            or middle in conditions.intersection(sigma[left]).intersection(sigma[right])
+        )
     )
 
 
