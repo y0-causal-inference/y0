@@ -71,7 +71,6 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
         fig, ax = plt.subplots(figsize=(4, 2.3))
         sns.histplot(ace_deltas, ax=ax)
         ax.set_title("Deviation from actual ACE")
-        ax.vlines(actual_ace)
         fig.savefig(directory.joinpath("deltas.png"), dpi=300)
 
 
