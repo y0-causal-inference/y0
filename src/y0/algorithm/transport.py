@@ -77,22 +77,41 @@ _TRANSPORT_PREFIX = "T_"
 
 
 def transport_variable(variable: Variable) -> Variable:
+    """Create a transport Variable by adding the transport prefix to a variable.
+
+    :param variable: variable that the transport node will point to
+    :returns: Variable with _TRANSPORT_PREFIX and variable name
+    """
     if isinstance(variable, (CounterfactualVariable, Intervention)):
         raise TypeError
     return Variable(_TRANSPORT_PREFIX + variable.name)
 
 
 def is_transport_node(node: Variable) -> bool:
+    """Check if a Variable is a tranport node.
+
+    :returns: boolean True if node is a tranport node, False otherwise.
+    """
     return not isinstance(node, (CounterfactualVariable, Intervention)) and node.name.startswith(
         _TRANSPORT_PREFIX
     )
 
 
 def get_transport_nodes(graph: NxMixedGraph) -> Set[Variable]:
+    """Find all of the transport nodes in a graph.
+
+    :param graph: an NxMixedGraph which may have transport nodes
+    :returns: Set containing all transport nodes in the graph
+    """
     return {node for node in graph.nodes() if is_transport_node(node)}
 
 
 def get_regular_nodes(graph: NxMixedGraph) -> Set[Variable]:
+    """Find all of the nodes in a graph which are not transport nodes.
+
+    :param graph: an NxMixedGraph w
+    :returns: Set containing all nodes which are not transport nodes
+    """
     return {node for node in graph.nodes() if not is_transport_node(node)}
 
 
@@ -124,6 +143,8 @@ def create_transport_diagram(
 
 @dataclass
 class TransportQuery:
+    """A query used as output for surrogate_to_transport."""
+
     target_interventions: Set[Variable]
     target_outcomes: Set[Variable]
     graphs: Dict[Population, NxMixedGraph]
@@ -285,6 +306,13 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
 def _line_6_helper(
     query: TRSOQuery, domain: Population, graph: NxMixedGraph
 ) -> Optional[TRSOQuery]:
+    """Modifies the query in a given domain, specifically query.active_interventions.
+
+    :param query: A TRSO query
+    :param domain: A given population
+    :param graph: A NxMixedGraph
+    :returns: A TRSO query or None
+    """
     surrogate_interventions = query.surrogate_interventions[domain]
     surrogate_intersect_target = surrogate_interventions.intersection(query.target_interventions)
     if not surrogate_intersect_target:
@@ -461,6 +489,11 @@ def trso_line10(
 
 
 def trso(query: TRSOQuery) -> Optional[Expression]:
+    """Run the TRSO algorithm to evaluate a transport problem.
+
+    :param query: A TRSO query, which contains 8 instance variables needed for TRSO
+    :returns: An Expression evaluating the given query, or None
+    """
     # Check that domain is in query.domains
     # check that query.surrogate_interventions keys are equals to domains
     # check that query.graphs keys are equal to domains
