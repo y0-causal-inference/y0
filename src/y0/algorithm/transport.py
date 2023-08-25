@@ -90,6 +90,7 @@ def transport_variable(variable: Variable) -> Variable:
 def is_transport_node(node: Variable) -> bool:
     """Check if a Variable is a tranport node.
 
+    :param node: A node to evaluate.
     :returns: boolean True if node is a tranport node, False otherwise.
     """
     return not isinstance(node, (CounterfactualVariable, Intervention)) and node.name.startswith(
@@ -109,7 +110,7 @@ def get_transport_nodes(graph: NxMixedGraph) -> Set[Variable]:
 def get_regular_nodes(graph: NxMixedGraph) -> Set[Variable]:
     """Find all of the nodes in a graph which are not transport nodes.
 
-    :param graph: an NxMixedGraph w
+    :param graph: an NxMixedGraph
     :returns: Set containing all nodes which are not transport nodes
     """
     return {node for node in graph.nodes() if not is_transport_node(node)}
@@ -306,7 +307,7 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
 def _line_6_helper(
     query: TRSOQuery, domain: Population, graph: NxMixedGraph
 ) -> Optional[TRSOQuery]:
-    """Modifies the query in a given domain, specifically query.active_interventions.
+    """Perform d-separation check and then modify query active interventions.
 
     :param query: A TRSO query
     :param domain: A given population
@@ -449,7 +450,7 @@ def trso_line10(
     :param query: A TRSO query
     :param district: The C-component of districts which contains district_without_interventions
     :param new_surrogate_interventions: Dict mapping domains to interventions performed in that domain.
-    :returns: An Expression
+    :returns: An modified TRSOQuery
     """
     ordering = list(query.graphs[query.domain].topological_sort())
     ordering_set = set(ordering)  # TODO this is just all nodes in the graph

@@ -119,6 +119,7 @@ class TestTransport(cases.GraphTestCase):
         )
 
     def test_get_nodes_to_transport(self):
+        """Test that we can correctly find the nodes which should have transport nodes."""
         expected = {X1, Y2}
         actual = get_nodes_to_transport(
             surrogate_interventions=X1, surrogate_outcomes=Y1, graph=tikka_trso_figure_8
@@ -138,6 +139,7 @@ class TestTransport(cases.GraphTestCase):
         self.assertEqual(actual, expected)
 
     def test_surrogate_to_transport(self):
+        """Test that surrogate_to_transport correctly converts to a transport query."""
         target_outcomes = {Y1, Y2}
         target_interventions = {X1, X2}
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
@@ -166,6 +168,7 @@ class TestTransport(cases.GraphTestCase):
         self.assertEqual(actual, expected)
 
     def test_trso_line1(self):
+        """Test that trso_line 1 returns the correct expression."""
         # triggers line 1
         outcomes = {Y1, Y2}
         domain_graph = tikka_trso_figure_8
@@ -180,6 +183,7 @@ class TestTransport(cases.GraphTestCase):
         self.assert_expr_equal(expected, actual)
 
     def test_trso_line2(self):
+        """Test that trso _line2 correctly modifies the query."""
         query_part1 = TRSOQuery(
             target_interventions={X1, X2, Y1, Y2},
             target_outcomes={Z, W},
@@ -286,6 +290,7 @@ class TestTransport(cases.GraphTestCase):
         )
 
     def test_trso_line3(self):
+        """Test that trso_line3 correctly modifies the query."""
         transportability_diagram_line3 = NxMixedGraph.from_edges(
             directed=[
                 (W, X),
@@ -339,6 +344,7 @@ class TestTransport(cases.GraphTestCase):
         self.assertIsNotNone(trso(actual))
 
     def test_trso_line4(self):
+        """Test that trso_line4 builds a dictionary of components and modified queries."""
         query = TRSOQuery(
             target_interventions={X1, X2},
             target_outcomes={Y1, Y2},
@@ -403,6 +409,7 @@ class TestTransport(cases.GraphTestCase):
         self.assertEqual(expected, actual)
 
     def test_trso_line6(self):
+        """Test that trso_line6 builds a dictionary of domains and modified queries."""
         query = TRSOQuery(
             target_interventions={X1, Z, W},
             target_outcomes={Y1},
@@ -488,6 +495,7 @@ class TestTransport(cases.GraphTestCase):
         self.assertEqual(expected_part2, actual_part2)
 
     def test_trso_line9(self):
+        """Test that trso_line3 returns the correct expression."""
         line9_query1 = TRSOQuery(
             target_interventions={W, Z, X1},
             target_outcomes={Y2},
@@ -545,9 +553,11 @@ class TestTransport(cases.GraphTestCase):
             trso_line9(line9_query3, district3)
 
     def test_trso_line10(self):
+        """Test that trso_line10 correctly modifies the query."""
         pass
 
     def test_trso(self):
+        """Test that trso returns the correct expression."""
         query_part1 = TRSOQuery(
             target_interventions={X1, X2, Y1, Y2},
             target_outcomes={Z, W},
