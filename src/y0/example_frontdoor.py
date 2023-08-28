@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from y0.dsl import Variable
+from y0.dsl import Variable, X, Y, Z
 
 
 def _r_exp(x):
@@ -29,28 +29,31 @@ def generate_data_for_frontdoor(
 
     beta0_x = -1
     beta_u_to_x = 0.05
-
-    if Variable("x") in treatments:
-        x = np.full(num_samples, treatments[Variable("x")])
+    if X in treatments:
+        x = np.full(num_samples, treatments[X])
     else:
         p = _r_exp(-beta0_x - u * beta_u_to_x)
         x = generator.binomial(1, p, size=num_samples)
 
     beta0_z = -1.9
     beta_x_to_z = 0.04
-    z = generator.normal(loc=100 * _r_exp(-beta0_z - x * beta_x_to_z), scale=1, size=num_samples)
+    if Z in treatments:
+        z = np.full(num_samples, treatments[Z])
+    else:
+        z = generator.normal(
+            loc=100 * _r_exp(-beta0_z - x * beta_x_to_z), scale=1, size=num_samples
+        )
 
     beta0_y = -1.8
     beta_z_to_y = 0.05
     beta_u_to_y = 0.06
-    y = generator.normal(
-        loc=100 * _r_exp(-beta0_y - z * beta_z_to_y - u * beta_u_to_y), scale=1, size=num_samples
-    )
+    if Y in treatments:
+        y = np.full(num_samples, treatments[Y])
+    else:
+        y = generator.normal(
+            loc=100 * _r_exp(-beta0_y - z * beta_z_to_y - u * beta_u_to_y),
+            scale=1,
+            size=num_samples,
+        )
 
-    data = {
-        "x": x,
-        "z": z,
-        "y": y,
-    }
-    df = pd.DataFrame(data)
-    return df
+    return pd.DataFrame({X.name: x, Z.name: z, Y.name: y})

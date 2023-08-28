@@ -41,6 +41,8 @@ from .dsl import (
     Y,
     Z,
 )
+from .example_backdoor import generate_data_for_backdoor
+from .example_frontdoor import generate_data_for_frontdoor
 from .example_sars import generate_data_for_covid_case_study
 from .graph import NxMixedGraph
 from .resources import ASIA_PATH
@@ -86,6 +88,8 @@ backdoor_example = Example(
     reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
     ' 2nd ed." Cambridge University Press, p. 178.',
     graph=backdoor,
+    generate_data=generate_data_for_backdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
 )
 
 #: Treatment: X
@@ -105,6 +109,8 @@ frontdoor_example = Example(
     reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
     ' 2nd ed." Cambridge University Press, p. 81.',
     graph=frontdoor,
+    generate_data=generate_data_for_frontdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
 )
 
 #: Treatment: X

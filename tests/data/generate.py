@@ -46,15 +46,15 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
         outcome = list(query.outcomes)[0]
         treatment_name = treatment.name.lower().replace("-", "").replace("_", "")
 
-        df_treat_x_1 = example.generate_data(num_samples, seed=seed, treatments={X: 1})
-        df_treat_x_1.to_csv(
+        df_treat_1 = example.generate_data(num_samples, seed=seed, treatments={treatment: 1})
+        df_treat_1.to_csv(
             directory.joinpath(f"treat_{treatment_name}_1.tsv"), sep="\t", index=False
         )
-        df_treat_x_0 = example.generate_data(num_samples, seed=seed, treatments={X: 0})
-        df_treat_x_0.to_csv(
+        df_treat_0 = example.generate_data(num_samples, seed=seed, treatments={treatment: 0})
+        df_treat_0.to_csv(
             directory.joinpath(f"treat_{treatment_name}_0.tsv"), sep="\t", index=False
         )
-        actual_ace = np.mean(df_treat_x_1[outcome.name]) - np.mean(df_treat_x_0[outcome.name])
+        actual_ace = np.mean(df_treat_1[outcome.name]) - np.mean(df_treat_0[outcome.name])
 
         ace_deltas = []
         for _ in trange(bootstraps, desc=f"ACE {example.name}"):
