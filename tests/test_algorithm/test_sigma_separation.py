@@ -111,9 +111,6 @@ class TestSigmaSeparation(unittest.TestCase):
         for left, right, conditions, d, s in [
             (V2, V4, [V3, V5], True, False),
             (V1, V6, [], True, True),
-            # FIXME the issue here is we're using nx.all_simple_paths and the
-            #  path we need to find is 𝑣1→𝑣2→𝑣3→𝑣4→𝑣5←𝑣4↔𝑣6, which has a duplicate
-            #  visitation to v4
             (V1, V6, [V3, V5], True, False),
             (V1, V8, [], False, False),
             (V1, V8, [V3, V5], True, False),
