@@ -102,6 +102,31 @@ def _triple_has_correct_form(
     conditions: set[Variable],
     sigma: dict[Variable, set[Variable]],
 ) -> bool:
+    if _triple_helper(graph, left, middle, right, conditions, sigma):
+        return True
+    # augment with backtracks, since you're allowed to go back (just like Season 5 of Lost).
+    # this is a better solution than generating infinite paths, but might still be mathematically
+    # incomplete. In this setup, 𝑣3→𝑣4↔𝑣6 becomes 𝑣3→𝑣4→𝑣5←𝑣4↔𝑣6 to get some sweet backtrack paths
+    # through the middle node to a neighbor and then back before going to the right node.
+    neighbors = {n for n in graph.disorient().neighbors(middle) if n != middle}
+    for neighbor in neighbors:
+        if (
+            _triple_helper(graph, left, middle, neighbor, conditions, sigma)
+            and _triple_helper(graph, middle, neighbor, middle, conditions, sigma)
+            and _triple_helper(graph, neighbor, middle, right, conditions, sigma)
+        ):
+            return True
+    return False
+
+
+def _triple_helper(
+    graph: NxMixedGraph,
+    left: Variable,
+    middle: Variable,
+    right: Variable,
+    conditions: set[Variable],
+    sigma: dict[Variable, set[Variable]],
+) -> bool:
     return (
         is_collider(graph, left, middle, right, conditions)
         or is_non_collider_left_chain(graph, left, middle, right, conditions, sigma)
