@@ -21,7 +21,7 @@ class TestEstimation(unittest.TestCase):
     """A test case for estimation workflows and tools."""
 
     def assert_mb_shielded(self, graph: NxMixedGraph):
-        """pipAssert the graph is mb-shielded."""
+        """Assert the graph is mb-shielded."""
         self.assertTrue(graph.to_admg().mb_shielded())
         self.assertTrue(is_markov_blanket_shielded(graph))
 
