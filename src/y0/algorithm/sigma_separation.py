@@ -10,6 +10,8 @@ from y0.graph import NxMixedGraph
 
 __all__ = [
     "are_sigma_separated",
+    "is_z_sigma_open",
+    "get_equivalence_classes",
 ]
 
 
@@ -49,10 +51,10 @@ def are_sigma_separated(
     sigma = get_equivalence_classes(graph)
     return not any(
         is_z_sigma_open(graph, path, conditions=conditions, sigma=sigma)
-        # FIXME there's an issue here where some non-simple paths are
-        #  necessary to get the job done. There's a failing test that
-        #  requires something of a backtrack, so it's not clear what
-        #  the best extension of all simple paths could be
+        # Technically, this algorithm should generate all paths, which could include
+        # repeat visits to nodes and edges, but this is computationally intractable,
+        # so the is_z_sigma_open() subroutine contains a novel path augmentation
+        # algorithm. This might not be officially complete.
         for path in nx.all_simple_paths(graph.disorient(), left, right, cutoff=cutoff)
     )
 
