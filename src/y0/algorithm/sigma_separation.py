@@ -89,13 +89,24 @@ def is_z_sigma_open(
     if path[0] in conditions or path[-1] in conditions:
         return False
     return all(
-        (
-            is_collider(graph, left, middle, right, conditions)
-            or is_non_collider_left_chain(graph, left, middle, right, conditions, sigma)
-            or is_non_collider_right_chain(graph, left, middle, right, conditions, sigma)
-            or is_non_collider_fork(graph, left, middle, right, conditions, sigma)
-        )
+        _triple_has_correct_form(graph, left, middle, right, conditions, sigma)
         for left, middle, right in triplewise(path)
+    )
+
+
+def _triple_has_correct_form(
+    graph: NxMixedGraph,
+    left: Variable,
+    middle: Variable,
+    right: Variable,
+    conditions: set[Variable],
+    sigma: dict[Variable, set[Variable]],
+) -> bool:
+    return (
+        is_collider(graph, left, middle, right, conditions)
+        or is_non_collider_left_chain(graph, left, middle, right, conditions, sigma)
+        or is_non_collider_right_chain(graph, left, middle, right, conditions, sigma)
+        or is_non_collider_fork(graph, left, middle, right, conditions, sigma)
     )
 
 
