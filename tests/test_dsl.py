@@ -13,7 +13,6 @@ from y0.dsl import (
     D,
     Distribution,
     Element,
-    Fraction,
     Intervention,
     One,
     P,
