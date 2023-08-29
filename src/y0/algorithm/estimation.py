@@ -213,6 +213,14 @@ def fit_continuous_glm(data, formula, weights=None) -> GLM:
     ).fit()
 
 
+def get_conditional_probability_formula_for_node(graph: NxMixedGraph, node: Variable) -> str:
+    """Generates the conditional probability formula for a given node based on its markov pillow."""
+    mp_node = graph.get_markov_pillow([node])
+    node_dependent_on = [node.name for node in mp_node]
+    formula = node.name + "~" + "+".join(node_dependent_on)
+    return formula
+
+
 def get_beta_primal(
     *,
     data: pd.DataFrame,
@@ -239,9 +247,11 @@ def get_beta_primal(
     y = data[outcome.name]
 
     # c := pre-treatment vars and l := post-treatment vars in district of treatment
-    c = graph.pre(treatment)
-    post = set(graph.nodes()).difference(c)
-    l = post.intersection(graph.get_district(treatment))
+    pre_treatment_vars = graph.pre(treatment)
+    post_treatment_vars = set(graph.nodes()).difference(pre_treatment_vars)
+    post_treatment_vars_in_district = post_treatment_vars.intersection(
+        graph.get_district(treatment)
+    )
 
     # create copies of the data with treatment assignments t=0 and t=1
     data_t1 = data.copy()
@@ -255,11 +265,11 @@ def get_beta_primal(
     # prob_t1: stores \prod_{li in l} p(li | mp(li)) at t=1
     # prob_t0: stores \prod_{li in l} p(li | mp(li)) at t=0
 
-    mp_t = graph.get_markov_pillow([treatment])
     indices_t0 = data.index[data[treatment.name] == 0]
+    mp_t = graph.get_markov_pillow([treatment])
 
     if len(mp_t) != 0:
-        formula = treatment.name + " ~ " + "+".join([variable.name for variable in mp_t])
+        formula = get_conditional_probability_formula_for_node(graph=graph, node=treatment)
         model = fit_binary_model(data, formula)
         prob = model.predict(data)
         prob[indices_t0] = 1 - prob[indices_t0]
@@ -272,10 +282,9 @@ def get_beta_primal(
     prob_t0 = 1 - prob_t1
 
     # iterate over vertices in l (except the treatment and outcome)
-    for v in l.difference([treatment, outcome]):
+    for v in post_treatment_vars_in_district.difference([treatment, outcome]):
         # fit v | mp(v)
-        mp_v = graph.get_markov_pillow(v)
-        formula = v.name + " ~ " + "+".join([variable.name for variable in mp_v])
+        formula = get_conditional_probability_formula_for_node(graph=graph, node=v)
 
         # p(v =v | .), p(v = v | . , t=1), p(v = v | ., t=0)
         if state_space_map[v] == "binary":
@@ -307,10 +316,11 @@ def get_beta_primal(
         prob_t0 *= prob_v_t0
 
     # special case when the outcome is in l
-    if outcome in l:
+    if outcome in post_treatment_vars_in_district:
         # fit a binary/continuous model for y | mp(y)
-        mp_y = graph.get_markov_pillow([outcome])
-        formula = outcome.name + " ~ " + "+".join([variable.name for variable in mp_y])
+
+        formula = get_conditional_probability_formula_for_node(graph=graph, node=outcome)
+
         if state_space_map[outcome] == "binary":
             model = fit_binary_model(data, formula)
         else:
