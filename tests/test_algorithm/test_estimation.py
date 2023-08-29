@@ -1,5 +1,5 @@
 """Tests for estimation workflows and tools."""
-
+import logging
 import unittest
 
 import pandas as pd
@@ -10,6 +10,7 @@ from y0.algorithm.estimation import (
     df_covers_graph,
     estimate_ate,
     get_primal_ipw_ace,
+    get_state_space_map,
     is_a_fixable,
     is_markov_blanket_shielded,
     is_p_fixable,
@@ -324,3 +325,16 @@ class TestEstimation(unittest.TestCase):
         )
         y0_results = get_primal_ipw_ace(graph=napkin, data=data, treatment=X, outcome=Y)
         self.assertAlmostEqual(ananke_results, y0_results, delta=0.1)
+
+    def test_get_state_space_map(self):
+        """Test the state space map creation for the variables in the data."""
+        data = pd.DataFrame.from_dict(
+            data={"test1": [0, 0, 1, 0, 1], "test2": [1, 2, 3, 4, 5], "test3": [0, 1, 2, 3, 4]}
+        )
+        computed_state_space_map = get_state_space_map(data)
+        expected_state_space_map = {
+            Variable("test1"): "binary",
+            Variable("test2"): "continuous",
+            Variable("test3"): "continuous",
+        }
+        self.assertEqual(computed_state_space_map, expected_state_space_map)

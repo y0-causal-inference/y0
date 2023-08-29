@@ -275,7 +275,15 @@ def get_conditional_probability_formula_for_node(graph: NxMixedGraph, node: Vari
 
 def get_state_space_map(data: pd.DataFrame) -> Dict[Variable, Literal["binary", "continuous"]]:
     """Get a dictionary from each variable to its type."""
-    raise NotImplementedError
+    from typing import Any
+    state_space_map = dict()
+    binary_set = {0, 1}
+    for column_name, column_values in data.items():
+        if binary_set.issuperset(column_values.unique()):
+            state_space_map[Variable(column_name)] = "binary"
+        else:
+            state_space_map[Variable(column_name)] = "continuous"
+    return state_space_map
 
 
 def get_beta_primal(
@@ -296,7 +304,7 @@ def get_beta_primal(
     :param treatment: Given treatment
     :param outcome: Given outcome
     :param treatment_value: Given treatment value
-    :returns: np.array
+    :returns: Beta primal value for each row in the data
     """
     state_space_map = get_state_space_map(data)
 
