@@ -506,9 +506,6 @@ class NxMixedGraph:
     def get_markov_blanket(self, nodes: Union[Variable, Iterable[Variable]]) -> Set[Variable]:
         """Get the Markov blanket for a set of nodes.
 
-        The Markov blanket in a directed graph is the union of the parents, children,
-        and parents of children of a given node.
-
         :param nodes: A node or nodes to get the Markov blanket from
         :return: A set of variables comprising the Markov blanket
         """
@@ -518,10 +515,9 @@ class NxMixedGraph:
             nodes = set(nodes)
         blanket = set()
         for node in nodes:
+            blanket.update(self.get_district(node))
+        for node in blanket.copy():
             blanket.update(self.directed.predecessors(node))
-            for successor in self.directed.successors(node):
-                blanket.add(successor)
-                blanket.update(self.directed.predecessors(successor))
         return blanket.difference(nodes)
 
     def disorient(self) -> nx.Graph:
