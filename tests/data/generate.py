@@ -5,6 +5,7 @@ from pathlib import Path
 
 import click
 import numpy as np
+from tabulate import tabulate
 
 from y0.examples import examples
 
@@ -16,6 +17,7 @@ HERE = Path(__file__).parent.resolve()
 
 def main(seed: int = 1, num_samples: int = 1000):
     """Generate example data."""
+    aces = []
     for example in examples:
         if example.generate_data is None:
             continue
@@ -51,7 +53,9 @@ def main(seed: int = 1, num_samples: int = 1000):
             directory.joinpath(f"treat_{treatment_name}_0.tsv"), sep="\t", index=False
         )
         actual_ace = np.mean(df_treat_1[outcome.name]) - np.mean(df_treat_0[outcome.name])
-        click.echo(f"{example.name} ACE: {actual_ace}")
+        aces.append((example.name, actual_ace))
+
+    click.echo(tabulate(aces, headers=["Name", "ACE"], tablefmt="github"))
 
 
 if __name__ == "__main__":
