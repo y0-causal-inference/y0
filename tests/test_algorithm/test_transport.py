@@ -22,6 +22,7 @@ from y0.dsl import (
     Y1,
     Y2,
     Expression,
+    P,
     Pi1,
     Pi2,
     Product,
@@ -607,8 +608,14 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
         actual_part2 = trso(query_part2)
-        expected_part2 = canonicalize(PP[TARGET_DOMAIN](Y1 @ X1, Z, W).conditional((Z, W)))
-        self.assert_expr_equal(expected_part2, actual_part2)
+        expected_part2_conditional = canonicalize(
+            PP[TARGET_DOMAIN](Y1 @ X1, Z @ X1, W @ X1).conditional((Z, W))
+        )
+        expected_part2_magic_p = P[X1](Y1 | W, Z)
+        expected_part2_full = P(W @ -X1, Y1 @ -X1, Z @ -X1) / Sum[Y1 @ -X1](
+            P(W @ -X1, Y1 @ -X1, Z @ -X1)
+        )
+        self.assert_expr_equal(expected_part2_full, actual_part2)
 
         # The path here should be
         # line2, line6, line10, return from line7
@@ -631,8 +638,14 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
         actual_part3 = trso(query_part3)
-        expected_part3 = canonicalize(PP[TARGET_DOMAIN](Y2 @ X2, X1, Z, W).conditional((X1, Z, W)))
-        self.assert_expr_equal(expected_part3, actual_part3)
+        expected_part3_conditional = canonicalize(
+            PP[TARGET_DOMAIN](Y2 @ X2, X1 @ X2, Z @ X2, W @ X2).conditional((X1, Z, W))
+        )
+        expected_part3_magic_p = P[X2](Y2 | W, Z, X1)
+        expected_part3_full = P(W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2) / Sum[Y2 @ -X2](
+            P(W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2)
+        )
+        self.assert_expr_equal(expected_part3_full, actual_part3)
 
         query = TRSOQuery(
             target_interventions={X1, X2},
@@ -651,8 +664,8 @@ class TestTransport(cases.GraphTestCase):
 
         actual = trso(query)
         expected_part1 = PP[TARGET_DOMAIN](W, Z)
-        expected_part2 = PP[TARGET_DOMAIN](Y1 @ X1, Z, W).conditional((Z, W))
-        expected_part3 = PP[TARGET_DOMAIN](Y2 @ X2, X1, Z, W).conditional((X1, Z, W))
+        expected_part2 = expected_part2_full
+        expected_part3 = expected_part3_full
 
         expected = canonicalize(
             Sum.safe(

@@ -14,6 +14,7 @@ from y0.dsl import (
     Fraction,
     Intervention,
     One,
+    P,
     Population,
     PopulationProbability,
     Probability,
@@ -151,7 +152,7 @@ class TransportQuery:
     graphs: Dict[Population, NxMixedGraph]
     domains: Set[Population]
     surrogate_interventions: Dict[Population, Set[Variable]]
-    target_experiments: Set[Variable]
+    target_experiments: Set[Variable]  #
 
 
 @dataclass
@@ -160,9 +161,9 @@ class TRSOQuery:
 
     target_interventions: Set[Variable]
     target_outcomes: Set[Variable]
-    expression: Expression
-    active_interventions: Set[Variable]
-    domain: Population
+    expression: Expression  #
+    active_interventions: Set[Variable]  #
+    domain: Population  #
     domains: Set[Population]
     graphs: Dict[Population, NxMixedGraph]
     surrogate_interventions: Dict[Population, Set[Variable]]
@@ -347,7 +348,7 @@ def add_active_interventions(
     :returns: boolean True if all interventions are d-separated from all outcomes, False otherwise.
     """
     if isinstance(expression, Probability):
-        return expression.intervene_on_target(active_interventions, target_outcomes)
+        return expression.intervene(active_interventions)
     if isinstance(expression, Sum):
         intervened_expression = add_active_interventions(
             expression.expression, active_interventions, target_outcomes
