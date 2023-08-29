@@ -11,8 +11,11 @@ from typing import Callable, Optional, Sequence
 import numpy as np
 import pandas as pd
 
-from .algorithm.identify import Identification, Query
-from .dsl import (
+from .backdoor import generate_data_for_backdoor
+from .frontdoor import generate_data_for_frontdoor
+from .sars import generate_data_for_covid_case_study
+from ..algorithm.identify import Identification, Query
+from ..dsl import (
     AA,
     W0,
     W1,
@@ -41,9 +44,9 @@ from .dsl import (
     Y,
     Z,
 )
-from .graph import NxMixedGraph
-from .resources import ASIA_PATH
-from .struct import DSeparationJudgement, VermaConstraint
+from ..graph import NxMixedGraph
+from ..resources import ASIA_PATH
+from ..struct import DSeparationJudgement, VermaConstraint
 
 x, y, z, w = -X, -Y, -Z, -W
 
@@ -85,6 +88,8 @@ backdoor_example = Example(
     reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
     ' 2nd ed." Cambridge University Press, p. 178.',
     graph=backdoor,
+    generate_data=generate_data_for_backdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
 )
 
 #: Treatment: X
@@ -104,6 +109,8 @@ frontdoor_example = Example(
     reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
     ' 2nd ed." Cambridge University Press, p. 81.',
     graph=frontdoor,
+    generate_data=generate_data_for_frontdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
 )
 
 #: Treatment: X
@@ -1252,7 +1259,7 @@ complete_hierarchy_figure_3a_example = Example(
 id_sir_example = Example(
     name="Identifiable SIR",
     reference="ASKEM",
-    graph=NxMixedGraph.from_edges(
+    graph=NxMixedGraph.from_str_edges(
         directed=[
             ("Infected", "Hospitalized"),
             ("Hospitalized", "Died"),
@@ -1264,7 +1271,7 @@ id_sir_example = Example(
 nonid_sir_example = Example(
     name="Non-Identifiable SIR",
     reference="ASKEM",
-    graph=NxMixedGraph.from_edges(
+    graph=NxMixedGraph.from_str_edges(
         directed=[
             ("Infected", "Died"),
         ],
@@ -1294,7 +1301,7 @@ igf_example = Example(
     example_queries=[Query.from_str(treatments="SOS", outcomes="Erk")],
 )
 
-sars_example = Example(
+sars_large_example = Example(
     name="SARS-CoV-2 Graph",
     reference="Jeremy Zucker, Sara Mohammad-Taheri, Kaushal Paneri, Somya Bhargava, Pallavi Kolambkar"
     ", Craig Bakker, Jeremy Teuton, Charles Tapley Hoyt, Kristie Oxford, Robert Ness, and Olga Vitek. 2021."
@@ -1352,6 +1359,32 @@ sars_example = Example(
         Query.from_str(treatments="Sil6r", outcomes="cytok"),
         Query.from_str(treatments="EGFR", outcomes="cytok"),
     ],
+)
+
+SARS_SMALL_GRAPH = NxMixedGraph.from_str_edges(
+    directed=[
+        ("ADAM17", "EGFR"),
+        ("ADAM17", "TNF"),
+        ("ADAM17", "Sil6r"),
+        ("EGFR", "cytok"),
+        ("TNF", "cytok"),
+        ("Sil6r", "IL6STAT3"),
+        ("IL6STAT3", "cytok"),
+    ],
+    undirected=[
+        ("ADAM17", "cytok"),
+        ("ADAM17", "Sil6r"),
+        ("EGFR", "TNF"),
+        ("EGFR", "IL6STAT3"),
+    ],
+)
+
+sars_small_example = Example(
+    name="SARS-CoV-2 Small Graph",
+    reference="Sara!",  # FIXME
+    graph=SARS_SMALL_GRAPH,
+    generate_data=generate_data_for_covid_case_study,
+    example_queries=[Query.from_str(outcomes="cytok", treatments="EGFR")],
 )
 
 examples = [v for name, v in locals().items() if name.endswith("_example")]
