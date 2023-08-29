@@ -101,6 +101,17 @@ def bayes_expand(p: Probability) -> Expression:
         P(Y_1,\dots,Y_n|X_1,\dots,X_m)
         = \frac{P(Y_1,\dots,Y_n,X_1,\dots,X_m)}{\sum_{Y_1,\dots,Y_n} P(Y_1,\dots,Y_n,X_1,\dots,X_m)}
 
+    >>> from y0.dsl import P, A, B, C, Sum
+    >>> from y0.mutate.chain import bayes_expand
+    >>> assert bayes_expand(P(A | B)) == P(A, B) / Sum[A](P(A, B)
+
+    If there are no conditions (i.e., parents), then the probability
+    is returned without modification.
+
+    >>> assert bayes_expand(P(A, B)) == P(A, B)
+
     .. note:: This expansion will create a different but equal expression to :func:`fraction_expand`.
     """
+    if not p.parents:
+        return p
     return p.uncondition().normalize_marginalize(p.children)
