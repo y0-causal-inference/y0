@@ -673,7 +673,7 @@ class Expression(Element, ABC):
         """Return this expression, normalized by this expression marginalized by the given variables."""
         return self / self.marginalize(ranges)
 
-    def marginalize(self, ranges: VariableHint) -> Sum:
+    def marginalize(self, ranges: VariableHint) -> Expression:
         """Return this expression, marginalizing out the given variables.
 
         :param ranges: A variable or list of variables over which to marginalize this expression
@@ -683,7 +683,7 @@ class Expression(Element, ABC):
         >>> assert P(A, B).marginalize(A) == Sum[A](P(A, B))
         >>> assert P(A, B, C).marginalize([A, B]) == Sum[A, B](P(A, B, C))
         """
-        return Sum(
+        return Sum.safe(
             expression=self,
             ranges=_upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)]),
         )
@@ -760,9 +760,13 @@ class Probability(Expression):
         else:
             return Product((self, other))
 
+    def _new(self, distribution: Distribution):
+        # This is implemented this way to make overriding easier
+        return Probability(distribution)
+
     def intervene(self, variables: VariableHint) -> Probability:
         """Return a new probability where the underlying distribution has been intervened by the given variables."""
-        return Probability(self.distribution.intervene(variables))
+        return self._new(self.distribution.intervene(variables))
 
     def __matmul__(self, variables: VariableHint) -> Probability:
         return self.intervene(variables)
@@ -775,7 +779,7 @@ class Probability(Expression):
         >>> from y0.dsl import P, A, B
         >>> P(A | B).uncondition() == P(A, B)
         """
-        return Probability(self.distribution.uncondition())
+        return self._new(self.distribution.uncondition())
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in the distribution in this probability."""
@@ -1485,6 +1489,9 @@ class PopulationProbability(Probability):
     """
 
     population: Population
+
+    def _new(self, distribution) -> PopulationProbability:
+        return PopulationProbability(population=self.population, distribution=distribution)
 
 
 class PopulationProbabilityBuilderType(ProbabilityBuilderType):
