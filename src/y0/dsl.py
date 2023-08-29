@@ -1005,6 +1005,15 @@ class Sum(Expression):
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
     ranges: Tuple[Variable, ...] = field(default_factory=tuple)
 
+    def __post_init__(self):
+        #  if not self.ranges:
+        #    raise ValueError("sum range should never be empty")
+        for var in self.ranges:
+            if isinstance(var, CounterfactualVariable):
+                raise TypeError("sum should never have counterfactual variables")
+            if isinstance(var, Intervention):
+                raise TypeError("sum should never have intervention variables")
+
     @classmethod
     def safe(
         cls, expression: Expression, ranges: Union[str, Variable, Iterable[Union[str, Variable]]]
