@@ -11,8 +11,11 @@ from typing import Callable, Optional, Sequence
 import numpy as np
 import pandas as pd
 
-from .algorithm.identify import Identification, Query
-from .dsl import (
+from .backdoor import generate_data_for_backdoor
+from .frontdoor import generate_data_for_frontdoor
+from .sars import generate_data_for_covid_case_study
+from ..algorithm.identify import Identification, Query
+from ..dsl import (
     AA,
     W0,
     W1,
@@ -41,12 +44,9 @@ from .dsl import (
     Y,
     Z,
 )
-from .example_backdoor import generate_data_for_backdoor
-from .example_frontdoor import generate_data_for_frontdoor
-from .example_sars import generate_data_for_covid_case_study
-from .graph import NxMixedGraph
-from .resources import ASIA_PATH
-from .struct import DSeparationJudgement, VermaConstraint
+from ..graph import NxMixedGraph
+from ..resources import ASIA_PATH
+from ..struct import DSeparationJudgement, VermaConstraint
 
 x, y, z, w = -X, -Y, -Z, -W
 
@@ -1259,7 +1259,7 @@ complete_hierarchy_figure_3a_example = Example(
 id_sir_example = Example(
     name="Identifiable SIR",
     reference="ASKEM",
-    graph=NxMixedGraph.from_edges(
+    graph=NxMixedGraph.from_str_edges(
         directed=[
             ("Infected", "Hospitalized"),
             ("Hospitalized", "Died"),
@@ -1271,7 +1271,7 @@ id_sir_example = Example(
 nonid_sir_example = Example(
     name="Non-Identifiable SIR",
     reference="ASKEM",
-    graph=NxMixedGraph.from_edges(
+    graph=NxMixedGraph.from_str_edges(
         directed=[
             ("Infected", "Died"),
         ],

@@ -3,9 +3,11 @@
 import warnings
 from pathlib import Path
 
+import click
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from tabulate import tabulate
 from tqdm import trange
 
 from y0.algorithm.estimation import estimate_ate
@@ -20,6 +22,7 @@ HERE = Path(__file__).parent.resolve()
 
 def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
     """Generate example data."""
+    aces = []
     for example in examples:
         if example.generate_data is None:
             continue
@@ -55,6 +58,7 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
             directory.joinpath(f"treat_{treatment_name}_0.tsv"), sep="\t", index=False
         )
         actual_ace = np.mean(df_treat_1[outcome.name]) - np.mean(df_treat_0[outcome.name])
+        aces.append((example.name, actual_ace))
 
         ace_deltas = []
         for _ in trange(bootstraps, desc=f"ACE {example.name}"):
@@ -72,6 +76,8 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
         sns.histplot(ace_deltas, ax=ax)
         ax.set_title("Deviation from actual ACE")
         fig.savefig(directory.joinpath("deltas.png"), dpi=300)
+
+    click.echo(tabulate(aces, headers=["Name", "ACE"], tablefmt="github"))
 
 
 if __name__ == "__main__":
