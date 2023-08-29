@@ -215,10 +215,15 @@ def fit_continuous_glm(data, formula, weights=None) -> GLM:
 
 def get_conditional_probability_formula_for_node(graph: NxMixedGraph, node: Variable) -> str:
     """Generates the conditional probability formula for a given node based on its markov pillow."""
-    mp_node = graph.get_markov_pillow([node])
-    node_dependent_on = [node.name for node in mp_node]
-    formula = node.name + "~" + "+".join(node_dependent_on)
+    markov_pillow = graph.get_markov_pillow([node])
+    markov_pillow_names = [node.name for node in markov_pillow]
+    formula = node.name + "~" + "+".join(markov_pillow_names)
     return formula
+
+
+def get_state_space_map(data: pd.DataFrame) -> Dict[Variable, Literal["binary", "continuous"]]:
+    """Get a dictionary from each variable to its type."""
+    raise NotImplementedError
 
 
 def get_beta_primal(
@@ -228,7 +233,6 @@ def get_beta_primal(
     treatment: Variable,
     outcome: Variable,
     treatment_value,
-    state_space_map: Dict[Variable, str],
 ) -> np.array:
     """Return the beta primal value for each row in the data.
 
@@ -240,9 +244,10 @@ def get_beta_primal(
     :param treatment: Given treatment
     :param outcome: Given outcome
     :param treatment_value: Given treatment value
-    :param state_space_map: Contains the state space of a variable (binary/continuous)
     :returns: np.array
     """
+    state_space_map = get_state_space_map(data)
+
     # extract the outcome
     y = data[outcome.name]
 
