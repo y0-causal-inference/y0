@@ -9,7 +9,7 @@ from typing import Set, Tuple
 import networkx as nx
 
 from y0.dsl import A, B, C, D, M, Variable, X, Y, Z
-from y0.examples import Example, examples, verma_1
+from y0.examples import Example, examples, verma_1, SARS_SMALL_GRAPH
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
 
@@ -264,4 +264,21 @@ class TestGraph(unittest.TestCase):
 
     def test_pre(self):
         """Test getting the pre-ordering for a given node or set of nodes."""
-        raise NotImplementedError
+        g1 = NxMixedGraph.from_str_adj(directed={
+            "1": ["2", "3"],
+            "2": ["4", "5"],
+            "3": ["4"],
+            "4": ["5"]
+        })
+        g1_ananke = g1.to_admg()
+        g1_pre = set(g1.pre(Variable("4")))
+        g1_ananke_pre = set(g1_ananke.pre(vertices=["4"], top_order=g1_ananke.topological_sort()))
+        g1_pre = set(map(lambda node: node.name, g1_pre))
+        self.assertEqual(g1_pre, g1_ananke_pre)
+
+        g2 = SARS_SMALL_GRAPH
+        g2_ananke = g2.to_admg()
+        g2_pre = set(g2.pre(Variable("cytok")))
+        g2_ananke_pre = set(g2_ananke.pre(vertices=["cytok"], top_order=g2_ananke.topological_sort()))
+        g2_pre = set(map(lambda node: node.name, g2_pre))
+        self.assertEqual(g2_pre, g2_ananke_pre)

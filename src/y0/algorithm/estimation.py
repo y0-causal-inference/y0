@@ -264,12 +264,12 @@ def get_beta_primal(
         prob = model.predict(data)
         prob[indices_t0] = 1 - prob[indices_t0]
         prob_t1 = model.predict(data)
-        prob_t0 = 1 - prob_t1
     else:
         prob = np.ones(len(data)) * np.mean(data[treatment.name])
         prob[indices_t0] = 1 - prob[indices_t0]
         prob_t1 = np.ones(len(data)) * np.mean(data[treatment.name])
-        prob_t0 = 1 - prob_t1
+
+    prob_t0 = 1 - prob_t1
 
     # iterate over vertices in l (except the treatment and outcome)
     for v in l.difference([treatment, outcome]):
