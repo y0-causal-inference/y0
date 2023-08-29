@@ -1036,6 +1036,16 @@ class Sum(Expression):
             ranges = _upgrade_ordering(ranges)
         if not ranges:
             return expression
+
+        # Special case when ranges cover
+        if isinstance(expression, Probability) and not expression.parents:  # i.e., no conditions
+            if set(ranges) == set(expression.children):
+                return One()
+            elif set(ranges) > set(expression.children):
+                raise NotImplementedError
+            else:
+                pass
+
         return cls(
             expression=expression,
             ranges=ranges,
