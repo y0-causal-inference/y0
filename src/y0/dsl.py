@@ -1037,14 +1037,26 @@ class Sum(Expression):
         if not ranges:
             return expression
 
+        if isinstance(expression, Zero):
+            return expression
+
         # Special case when ranges cover
         if isinstance(expression, Probability) and not expression.parents:  # i.e., no conditions
             if set(ranges) == set(expression.children):
                 return One()
             elif set(ranges) > set(expression.children):
-                raise NotImplementedError
+                return cls(
+                    expression=One(),
+                    ranges=_sorted_variables(set(ranges).difference(expression.children))
+                )
             else:
-                pass
+                ranges = set(ranges)
+                children = set(expression.children)
+                intersection = ranges.intersection(children)
+                return cls(
+                    expression=Probability.safe(children - intersection),
+                    ranges=_sorted_variables(ranges - intersection),
+                )
 
         return cls(
             expression=expression,
