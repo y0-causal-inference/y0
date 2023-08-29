@@ -81,10 +81,10 @@ class TestGrammar(unittest.TestCase):
         for g in (sum_pe, grammar):
             self.assert_many(
                 [
-                    Sum(P(A)),
-                    Sum(P(A, B)),
-                    Sum(P(A | B)),
-                    Sum(P(A | B) * P(B)),
+                    Sum[B](P(A)),
+                    Sum[C](P(A, B)),
+                    Sum[C](P(A | B)),
+                    Sum[C](P(A | B) * P(B)),
                     Sum[B](P(A | B) * P(B)),
                     Sum[B, C](P(A | B) * P(B)),
                 ],
@@ -96,9 +96,9 @@ class TestGrammar(unittest.TestCase):
         for g in (fraction_pe, grammar):
             self.assert_many(
                 [
-                    Sum(P(A)) / P(B),
-                    Sum(P(A, B)) / P(A),
-                    Sum[B](P(A | B) * P(B)) / Sum(P(A | B) * P(B)),
+                    Sum[C](P(A)) / P(B),
+                    Sum[C](P(A, B)) / P(A),
+                    Sum[B](P(A | B) * P(B)) / Sum[B](P(A | B) * P(B)),
                 ],
                 g,
             )

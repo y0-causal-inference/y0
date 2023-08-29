@@ -989,6 +989,10 @@ class Sum(Expression):
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
     ranges: Tuple[Variable, ...] = field(default_factory=tuple)
 
+    def __post_init__(self):
+        if not self.ranges:
+            raise ValueError("Sum must have ranges")
+
     @classmethod
     def safe(
         cls, expression: Expression, ranges: Union[str, Variable, Iterable[Union[str, Variable]]]
@@ -1019,6 +1023,8 @@ class Sum(Expression):
         else:
             ranges = _upgrade_ordering(ranges)
         if not ranges:
+            return expression
+        if isinstance(expression, Zero):
             return expression
         return cls(
             expression=expression,
