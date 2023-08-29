@@ -1083,7 +1083,7 @@ class Sum(Expression):
         >>> from y0.dsl import Sum, P, A, B, C
         >>> Sum[B, C](P(A | B) * P(B))
         """
-        return functools.partial(Sum, ranges=_upgrade_ordering(ranges))
+        return functools.partial(Sum.safe, ranges=_upgrade_ordering(ranges))
 
 
 @dataclass(frozen=True, repr=False)
