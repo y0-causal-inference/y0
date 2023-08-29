@@ -1067,7 +1067,7 @@ class Sum(Expression):
             yield from variable._iter_variables()
 
     @classmethod
-    def __class_getitem__(cls, ranges: VariableHint) -> Callable[[Expression], Sum]:
+    def __class_getitem__(cls, ranges: VariableHint) -> Callable[[Expression], Expression]:
         """Create a partial sum object over the given ranges.
 
         :param ranges: The variables over which the partial sum will be done
