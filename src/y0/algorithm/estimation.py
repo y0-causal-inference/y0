@@ -189,7 +189,7 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
         raise NotImplementedError(
             "p-fixability on multiple treatments is an open research question"
         )
-    children = graph.directed.successors(treatments)
+    children = set(graph.directed.successors(treatments))
     children_in_district = graph.get_district(treatments).intersection(children)
     return 0 == len(children_in_district)
 

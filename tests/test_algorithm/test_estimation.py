@@ -177,14 +177,14 @@ class TestEstimation(unittest.TestCase):
         )
         treatment_1 = Variable("T")
         with self.subTest(name="Graph 1"):
-            self.assertFalse(is_p_fixable(graph_1, treatment_1))
+            self.assertTrue(is_p_fixable(graph_1, treatment_1))
 
         with self.subTest(name="Napkin"):
             self.assertFalse(is_p_fixable(napkin, X))
 
         treatment_3 = Variable("EGFR")
         with self.subTest(name="Graph 3"):
-            self.assertFalse(is_p_fixable(SARS_SMALL_GRAPH, treatment_3))
+            self.assertTrue(is_p_fixable(SARS_SMALL_GRAPH, treatment_3))
 
         graph_4 = NxMixedGraph.from_str_edges(
             directed=[
@@ -198,7 +198,7 @@ class TestEstimation(unittest.TestCase):
         )
         treatment_4 = Variable("PI3K")
         with self.subTest(name="Graph 4"):
-            self.assertFalse(is_p_fixable(graph_4, treatment_4))
+            self.assertTrue(is_p_fixable(graph_4, treatment_4))
 
         graph_5 = NxMixedGraph.from_str_edges(
             directed=[
@@ -213,18 +213,18 @@ class TestEstimation(unittest.TestCase):
             undirected=[("Z1", "X"), ("Z2", "M1")],
         )
         with self.subTest(name="Graph 5"):
-            self.assertFalse(is_p_fixable(graph_5, X))
+            self.assertTrue(is_p_fixable(graph_5, X))
 
         graph_6 = NxMixedGraph.from_str_edges(
             directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")], undirected=[]
         )
         with self.subTest(name="Graph 6"):
-            self.assertFalse(is_p_fixable(graph_6, X))
+            self.assertTrue(is_p_fixable(graph_6, X))
 
         graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")], undirected=[])
         treatment_7 = Variable("A")
         with self.subTest(name="Graph 7"):
-            self.assertFalse(is_p_fixable(graph_7, treatment_7))
+            self.assertTrue(is_p_fixable(graph_7, treatment_7))
 
         graph_8 = graph_4
         treatment_8 = Variable("SOS")
@@ -280,7 +280,7 @@ class TestEstimation(unittest.TestCase):
         )
         treatment_11 = Variable("T")
         with self.subTest(name="Graph 11"):
-            self.assertFalse(is_p_fixable(graph_11, treatment_11))
+            self.assertTrue(is_p_fixable(graph_11, treatment_11))
 
         graph_12 = NxMixedGraph.from_str_edges(
             directed=[
