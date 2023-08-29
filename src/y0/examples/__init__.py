@@ -1259,7 +1259,7 @@ complete_hierarchy_figure_3a_example = Example(
 id_sir_example = Example(
     name="Identifiable SIR",
     reference="ASKEM",
-    graph=NxMixedGraph.from_edges(
+    graph=NxMixedGraph.from_str_edges(
         directed=[
             ("Infected", "Hospitalized"),
             ("Hospitalized", "Died"),
@@ -1271,7 +1271,7 @@ id_sir_example = Example(
 nonid_sir_example = Example(
     name="Non-Identifiable SIR",
     reference="ASKEM",
-    graph=NxMixedGraph.from_edges(
+    graph=NxMixedGraph.from_str_edges(
         directed=[
             ("Infected", "Died"),
         ],
