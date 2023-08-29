@@ -989,6 +989,10 @@ class Sum(Expression):
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
     ranges: Tuple[Variable, ...] = field(default_factory=tuple)
 
+    def __post_init__(self):
+        if not self.ranges:
+            raise ValueError("Sum must have ranges")
+
     @classmethod
     def safe(
         cls, expression: Expression, ranges: Union[str, Variable, Iterable[Union[str, Variable]]]
@@ -1019,6 +1023,8 @@ class Sum(Expression):
         else:
             ranges = _upgrade_ordering(ranges)
         if not ranges:
+            return expression
+        if isinstance(expression, Zero):
             return expression
         return cls(
             expression=expression,
@@ -1061,7 +1067,7 @@ class Sum(Expression):
             yield from variable._iter_variables()
 
     @classmethod
-    def __class_getitem__(cls, ranges: VariableHint) -> Callable[[Expression], Sum]:
+    def __class_getitem__(cls, ranges: VariableHint) -> Callable[[Expression], Expression]:
         """Create a partial sum object over the given ranges.
 
         :param ranges: The variables over which the partial sum will be done
@@ -1077,7 +1083,7 @@ class Sum(Expression):
         >>> from y0.dsl import Sum, P, A, B, C
         >>> Sum[B, C](P(A | B) * P(B))
         """
-        return functools.partial(Sum, ranges=_upgrade_ordering(ranges))
+        return functools.partial(Sum.safe, ranges=_upgrade_ordering(ranges))
 
 
 @dataclass(frozen=True, repr=False)

@@ -13,7 +13,6 @@ from y0.dsl import (
     D,
     Distribution,
     Element,
-    Fraction,
     Intervention,
     One,
     P,
@@ -267,11 +266,6 @@ class TestDSL(unittest.TestCase):
 
     def test_sum(self):
         """Test the Sum DSL object."""
-        # Sum with no variables
-        self.assert_text(
-            "[ sum_{} P(A | B) P(C | D) ]",
-            Sum(P(A | B) * P(C | D)),
-        )
         # Sum with one variable
         self.assert_text(
             "[ sum_{S} P(A | B) P(C | D) ]",
@@ -319,29 +313,8 @@ class TestDSL(unittest.TestCase):
         )
 
         self.assert_text(
-            "frac_{[ sum_{W} P(X, Y_{W, Z}) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(X, Y_{W, Z}) P(W_{X*}) ] ]}",
-            Fraction(
-                Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)),
-                Sum(Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)), (Y,)),
-            ),
-        )
-
-        self.assert_text(
             "[ sum_{D} P(X, Y_{W, Z*}) P(D) P(Z_{D}) P(W_{X*}) ]",
             Sum(P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
-        )
-
-        self.assert_text(
-            "[ sum_{D, V, W, Z} [ sum_{} P(W | X) ] [ sum_{} [ sum_{V, W, X, Y, Z} P(D, V, W, X, Y, Z) ] ]"
-            " [ sum_{} P(Z | D, V) ] [ sum_{} [ sum_{X} P(Y | D, V, W, X, Z) P(X) ] ]"
-            " [ sum_{} [ sum_{D, W, X, Y, Z} P(D, V, W, X, Y, Z) ] ] ]",
-            Sum[W, D, Z, V](
-                Sum(P(W | X))
-                * Sum(Sum[X, W, Z, Y, V](P(D, V, W, X, Y, Z)))
-                * Sum(P(Z | D, V))
-                * Sum(Sum[X](P(Y | D, V, W, X, Z) * P(X)))
-                * Sum(Sum[X, W, D, Z, Y](P(X, W, D, Z, Y, V))),
-            ),
         )
 
     def test_api(self):
