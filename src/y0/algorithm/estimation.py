@@ -53,8 +53,8 @@ def estimate_ate(
     data: pd.DataFrame,
     *,
     conditions: Optional[List[Variable]] = None,
-    bootstraps: int = 0,
-    alpha: float = 0.05,
+    bootstraps: int | None = None,
+    alpha: float | None = None,
     estimator: Optional[str] = None,
 ) -> float:
     """Estimate the average treatment effect."""
@@ -64,15 +64,6 @@ def estimate_ate(
         raise NotImplementedError("can not yet handle multiple treatments nor outcomes")
     if isinstance(treatment, CounterfactualVariable) or isinstance(outcome, CounterfactualVariable):
         raise NotImplementedError("can not yet handle counterfactual treatments nor outcomes")
-
-    ananke_graph = graph.to_admg()
-    from ananke.estimation import CausalEffect
-
-    with redirect_stdout(None):
-        # redirect stdout gets rid of the unnecessary printing from Ananke,
-        # e.g., when CausalEffect says what estimators can be used. We take
-        # care of that explicitly below
-        causal_effect = CausalEffect(ananke_graph, treatment.name, outcome.name)
 
     # explicitly encode suggestions from Ananke
     if estimator is not None:
@@ -92,8 +83,36 @@ def estimate_ate(
     else:
         raise RuntimeError("Effect can not be estimated")
 
+    return _ananke_compute_effect(
+        graph=graph,
+        treatment=treatment,
+        outcome=outcome,
+        estimator=estimator,
+        bootstraps=bootstraps,
+        alpha=alpha,
+    )
+
+
+def _ananke_compute_effect(
+    graph: NxMixedGraph,
+    data: pd.DataFrame,
+    treatment: Variable,
+    outcome: Variable,
+    estimator: str,
+    bootstraps: int | None = None,
+    alpha: float | None = None,
+) -> float:
+    ananke_graph = graph.to_admg()
+    from ananke.estimation import CausalEffect
+
+    with redirect_stdout(None):
+        # redirect stdout gets rid of the unnecessary printing from Ananke,
+        # e.g., when CausalEffect says what estimators can be used. We take
+        # care of that explicitly below
+        causal_effect = CausalEffect(ananke_graph, treatment.name, outcome.name)
+
     return causal_effect.compute_effect(
-        data, estimator=estimator, n_bootstraps=bootstraps, alpha=alpha
+        data, estimator=estimator, n_bootstraps=bootstraps or 0, alpha=alpha or 0.05
     )
 
 
@@ -174,7 +193,36 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
     return 0 == len(children_in_district)
 
 
-def primal_ipw(
+def _log_odds(point_estimate_t1, point_estimate_t0) -> float:
+    return np.log(
+        (point_estimate_t1 / (1 - point_estimate_t1))
+        / (point_estimate_t0 / (1 - point_estimate_t0))
+    )
+
+
+def get_primal_ipw_ace(
+    graph: NxMixedGraph,
+    data: pd.DataFrame,
+    treatment: Variable,
+    outcome: Variable,
+    report_log_odds: bool = True,
+) -> float:
+    """Get ACE using the primal IPW estimator."""
+    point_estimate_t1 = get_primal_ipw_point_estimate(
+        graph=graph, data=data, treatment_value=1, treatment=treatment, outcome=outcome
+    )
+    point_estimate_t0 = get_primal_ipw_point_estimate(
+        graph=graph, data=data, treatment_value=0, treatment=treatment, outcome=outcome
+    )
+    state_space_map = get_state_space_map(data)
+    # if Y is binary report log of odds ration, if Y is continuous report ACE
+    if report_log_odds and state_space_map[outcome] == "binary":
+        return _log_odds(point_estimate_t1, point_estimate_t0)
+    else:
+        return point_estimate_t1 - point_estimate_t0
+
+
+def get_primal_ipw_point_estimate(
     *,
     data: pd.DataFrame,
     graph: NxMixedGraph,
@@ -182,7 +230,10 @@ def primal_ipw(
     treatment_value,
     outcome: Variable,
 ) -> float:
-    """Estimate the counterfactual mean E[Y(t)] with the Primal IPW estimator."""
+    """Estimate the counterfactual mean E[Y(t)] with the Primal IPW estimator.
+
+    This can be applied to graphs that are not a-fixable but are p-fixable.
+    """
     beta_primal = get_beta_primal(
         data=data,
         graph=graph,

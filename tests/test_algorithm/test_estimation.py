@@ -6,14 +6,16 @@ import pandas as pd
 
 from tests.constants import NAPKIN_OBSERVATIONAL_PATH
 from y0.algorithm.estimation import (
+    _ananke_compute_effect,
     df_covers_graph,
     estimate_ate,
+    get_primal_ipw_ace,
     is_a_fixable,
     is_markov_blanket_shielded,
     is_p_fixable,
 )
 from y0.dsl import Variable, X, Y
-from y0.examples import SARS_SMALL_GRAPH, frontdoor, napkin
+from y0.examples import SARS_SMALL_GRAPH, frontdoor, napkin, napkin_example
 from y0.graph import NxMixedGraph
 
 
@@ -311,3 +313,14 @@ class TestEstimation(unittest.TestCase):
         expected_result = 0.0005
         result = estimate_ate(graph=napkin, data=df, treatment=X, outcome=Y)
         self.assertAlmostEqual(expected_result, result, delta=1e-5)
+
+    def test_beta_primal(self):
+        """Test beta primal on the Napkin graph."""
+        example = napkin_example  # FIXME need one that is p-fixable
+
+        data = example.generate_data(1000)
+        ananke_results = _ananke_compute_effect(
+            graph=napkin, treatment=X, outcome=Y, data=data, estimator="p-ipw"
+        )
+        y0_results = get_primal_ipw_ace(graph=napkin, data=data, treatment=X, outcome=Y)
+        self.assertAlmostEqual(ananke_results, y0_results, delta=0.1)
