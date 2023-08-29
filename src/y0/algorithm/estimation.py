@@ -85,6 +85,7 @@ def estimate_ate(
 
     return _ananke_compute_effect(
         graph=graph,
+        data=data,
         treatment=treatment,
         outcome=outcome,
         estimator=estimator,
