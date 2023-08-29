@@ -5,6 +5,10 @@ import pandas as pd
 
 from y0.dsl import Variable
 
+__all__ = [
+    "generate_data_for_covid_case_study",
+]
+
 
 def _r_exp(x):
     return 1 / (1 + np.exp(x))
@@ -66,7 +70,7 @@ def generate_data_for_covid_case_study(
         scale=1,
     )
 
-    beta0_EGFR = -1.9
+    beta0_egfr = -1.9
     beta_adam17_egfr = 0.03
     beta_u_il6_stat_egfr = -0.04
     beta_u_tnf_egfr = 0.02
@@ -74,7 +78,7 @@ def generate_data_for_covid_case_study(
         egfr = np.full(num_samples, treatments[Variable("EGFR")])
     else:
         p = _r_exp(
-            -beta0_EGFR
+            -beta0_egfr
             - adam17 * beta_adam17_egfr
             - u_il6_stat_egfr_value * beta_u_il6_stat_egfr
             - u_tnf_egfr_value * beta_u_tnf_egfr

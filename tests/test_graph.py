@@ -262,6 +262,13 @@ class TestGraph(unittest.TestCase):
             graph.get_markov_blanket(x[6]),
         )
 
+    def test_disorient(self):
+        """Test disorienting a graph."""
+        graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(Y, Z)])
+        disoriented = graph.disorient()
+        self.assertTrue(disoriented.has_edge(X, Y))
+        self.assertTrue(disoriented.has_edge(Y, Z))
+
     def test_pre(self):
         """Test getting the pre-ordering for a given node or set of nodes."""
         raise NotImplementedError

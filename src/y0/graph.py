@@ -524,6 +524,14 @@ class NxMixedGraph:
                 blanket.update(self.directed.predecessors(successor))
         return blanket.difference(nodes)
 
+    def disorient(self) -> nx.Graph:
+        """Return a graph with all edges converted to a flat undirected graph."""
+        rv = nx.Graph()
+        rv.add_nodes_from(self.nodes())
+        rv.add_edges_from(self.directed.edges())
+        rv.add_edges_from(self.undirected.edges())
+        return rv
+
     def pre(
         self,
         nodes: Union[Variable, Iterable[Variable]],
