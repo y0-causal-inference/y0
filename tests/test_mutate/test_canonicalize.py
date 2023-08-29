@@ -44,7 +44,7 @@ class TestCanonicalize(unittest.TestCase):
             self.assertEqual(
                 expected,
                 actual,
-                msg=f"\nExpected: {str(expression)}\nActual:   {str(actual)}",
+                msg=f"\nExpected: {str(expected)}\nActual:   {str(actual)}",
             )
 
     def test_invalid_ordering(self):
@@ -88,15 +88,12 @@ class TestCanonicalize(unittest.TestCase):
         # self.assert_canonicalize(One(), Sum(One(), ()), ())
         self.assert_canonicalize(One(), Product((One(),)), ())
         self.assert_canonicalize(One(), Product((One(), One())), ())
-        self.assert_canonicalize(Zero(), Sum(Zero(), ()), ())
+        self.assert_canonicalize(Zero(), Sum.safe(Zero(), (A,)), [A])
         self.assert_canonicalize(Zero(), Product((Zero(),)), ())
         self.assert_canonicalize(Zero(), Product((P(A), Product((P(B), Zero())))), [A, B])
         self.assert_canonicalize(Zero(), Product((Zero(), Zero())), ())
         self.assert_canonicalize(P(A), Product((One(), P(A))), [A])
         self.assert_canonicalize(Zero(), Product((Zero(), One(), P(A))), [A])
-
-        # Sum with no range
-        self.assert_canonicalize(P(A), Sum(P(A)), [A])
 
         # Sum
         expected = expression = Sum(P(A), (R,))

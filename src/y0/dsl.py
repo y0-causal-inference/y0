@@ -1006,8 +1006,8 @@ class Sum(Expression):
     ranges: Tuple[Variable, ...] = field(default_factory=tuple)
 
     def __post_init__(self):
-        #  if not self.ranges:
-        #    raise ValueError("sum range should never be empty")
+        if not self.ranges:
+            raise ValueError("Sum must have ranges")
         for var in self.ranges:
             if isinstance(var, CounterfactualVariable):
                 raise TypeError("sum should never have counterfactual variables")
@@ -1045,7 +1045,6 @@ class Sum(Expression):
             ranges = _upgrade_ordering(ranges)
         if not ranges:
             return expression
-
         if isinstance(expression, Zero):
             return expression
 
@@ -1108,7 +1107,7 @@ class Sum(Expression):
             yield from variable._iter_variables()
 
     @classmethod
-    def __class_getitem__(cls, ranges: VariableHint) -> Callable[[Expression], Sum]:
+    def __class_getitem__(cls, ranges: VariableHint) -> Callable[[Expression], Expression]:
         """Create a partial sum object over the given ranges.
 
         :param ranges: The variables over which the partial sum will be done
