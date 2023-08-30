@@ -35,7 +35,7 @@ from y0.dsl import (
     Zero,
 )
 from y0.graph import NxMixedGraph
-from y0.mutate import canonicalize
+from y0.mutate import bayes_expand, canonicalize
 
 X1, X2 = Variable("X1"), Variable("X2")
 
@@ -609,12 +609,16 @@ class TestTransport(cases.GraphTestCase):
         )
         actual_part2 = trso(query_part2)
         expected_part2_conditional = canonicalize(
-            PP[TARGET_DOMAIN](Y1 @ X1, Z @ X1, W @ X1).conditional((Z, W))
+            PP[TARGET_DOMAIN](Y1 @ X1, Z @ X1, W @ X1).conditional((Z @ X1, W @ X1))
         )
-        expected_part2_magic_p = P[X1](Y1 | W, Z)
-        expected_part2_full = P(W @ -X1, Y1 @ -X1, Z @ -X1) / Sum[Y1](P(W @ -X1, Y1 @ -X1, Z @ -X1))
-        self.assert_expr_equal(expected_part2_full, actual_part2)
+        expected_part2_magic_p = PP[TARGET_DOMAIN][X1](Y1 | W, Z)
+        expected_part2_full = PP[TARGET_DOMAIN][X1](W, Y1, Z) / Sum[Y1](
+            PP[TARGET_DOMAIN][X1](W, Y1, Z)
+        )
 
+        self.assert_expr_equal(expected_part2_full, actual_part2)
+        self.assert_expr_equal(expected_part2_conditional, actual_part2)
+        self.assert_expr_equal(bayes_expand(expected_part2_magic_p), actual_part2)
         # The path here should be
         # line2, line6, line10, return from line7
         # The actual path is
