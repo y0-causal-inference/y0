@@ -991,7 +991,7 @@ class Sum(Expression):
     #: The expression over which the sum is done
     expression: Expression
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
-    ranges: Tuple[Variable, ...] = field(default_factory=tuple)
+    ranges: Tuple[Variable, ...]
 
     def __post_init__(self):
         if not self.ranges:
