@@ -442,8 +442,8 @@ class TestCounterfactual(unittest.TestCase):
         self.assertEqual("P[X](Y)", P[X](Y).to_y0())
         self.assertEqual("P[X](Y)", P(Y @ -X).to_y0())
         self.assertEqual("P[X](Y)", P[-X](Y).to_y0())
-        self.assertEqual("P[X](Y)", P(Y @ ~X).to_y0())
-        self.assertEqual("P[X](Y)", P[~X](Y).to_y0())
+        self.assertEqual("P[+X](Y)", P(Y @ ~X).to_y0())
+        self.assertEqual("P[+X](Y)", P[~X](Y).to_y0())
 
         self.assertEqual("P[+X](Y)", P(Y @ +X).to_y0())
         self.assertEqual("P[+X](Y)", P[+X](Y).to_y0())
@@ -453,8 +453,8 @@ class TestCounterfactual(unittest.TestCase):
         self.assertEqual("P[X](Y, Z)", P[X](Y, Z).to_y0())
         self.assertEqual("P[X](Y, Z)", P(Y @ -X, Z @ -X).to_y0())
         self.assertEqual("P[X](Y, Z)", P[-X](Y, Z).to_y0())
-        self.assertEqual("P[X](Y, Z)", P(Y @ ~X, Z @ ~X).to_y0())
-        self.assertEqual("P[X](Y, Z)", P[~X](Y, Z).to_y0())
+        self.assertEqual("P[+X](Y, Z)", P(Y @ ~X, Z @ ~X).to_y0())
+        self.assertEqual("P[+X](Y, Z)", P[~X](Y, Z).to_y0())
 
         # Two variables, mixed intervention
         self.assertEqual("P(Y @ X, Z @ A)", P(Y @ X, Z @ A).to_y0())

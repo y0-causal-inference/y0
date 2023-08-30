@@ -720,7 +720,10 @@ class Probability(Expression):
         # check that there's only one intervention set and that it's not an empty one
         if len(intervention_sets) == 1 and (interventions := intervention_sets.pop()):
             # only keep the + if necessary, otherwise show regular
-            intervention_str = _list_to_y0(i.get_base() if not i.star else i for i in interventions)
+            intervention_str = ",".join(
+                f"+{intervention.name}" if intervention.star else intervention.name
+                for intervention in interventions
+            )
             unintervened_distribution = Distribution(
                 parents=tuple(Variable(name=v.name, star=v.star) for v in self.parents),
                 children=tuple(Variable(name=v.name, star=v.star) for v in self.children),
