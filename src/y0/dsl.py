@@ -712,6 +712,20 @@ class Probability(Expression):
 
     def to_y0(self) -> str:
         """Output this probability instance as y0 internal DSL code."""
+        # if all parts of distribution have same intervention set, then put it out front
+        intervention_sets = {
+            x.interventions if isinstance(x, CounterfactualVariable) else tuple()
+            for x in itt.chain(self.children, self.parents)
+        }
+        # check that there's only one intervention set and that it's not an empty one
+        if len(intervention_sets) == 1 and (interventions := intervention_sets.pop()):
+            # only keep the + if necessary, otherwise show regular
+            intervention_str = _list_to_y0(i.get_base() if not i.star else i for i in interventions)
+            unintervened_distribution = Distribution(
+                parents=tuple(Variable(name=v.name, star=v.star) for v in self.parents),
+                children=tuple(Variable(name=v.name, star=v.star) for v in self.children),
+            )
+            return f"P[{intervention_str}]({unintervened_distribution.to_y0()})"
         return f"P({self.distribution.to_y0()})"
 
     def to_latex(self) -> str:
