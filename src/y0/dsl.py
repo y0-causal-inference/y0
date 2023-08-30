@@ -196,7 +196,12 @@ class Variable(Element):
 
     def to_y0(self) -> str:
         """Output this variable instance as y0 internal DSL code."""
-        return self.name
+        if self.star is None:
+            return self.name
+        elif self.star:
+            return f"+{self.name}"
+        else:
+            return f"-{self.name}"
 
     def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this variable with the given variable(s).

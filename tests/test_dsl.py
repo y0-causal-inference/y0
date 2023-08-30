@@ -457,8 +457,8 @@ class TestCounterfactual(unittest.TestCase):
         self.assertEqual("P[+X](Y, Z)", P[~X](Y, Z).to_y0())
 
         # Two variables, mixed intervention
-        self.assertEqual("P(Y @ X, Z @ A)", P(Y @ X, Z @ A).to_y0())
-        self.assertEqual("P(Y @ X, Z @ +Z)", P(Y @ -X, Z @ +Z).to_y0())
+        self.assertEqual("P(Y @ -X, Z @ -A)", P(Y @ X, Z @ A).to_y0())
+        self.assertEqual("P(Y @ -X, Z @ +Z)", P(Y @ -X, Z @ +Z).to_y0())
 
 
 class TestSafeConstructors(unittest.TestCase):
