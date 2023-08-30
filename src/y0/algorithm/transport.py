@@ -463,30 +463,12 @@ def trso_line10(
     :returns: An modified TRSOQuery
     """
     ordering = list(query.graphs[query.domain].topological_sort())
-    ordering_set = set(ordering)  # TODO this is just all nodes in the graph
-    my_product: Expression = One()
-    for node in district:
-        i = ordering.index(node)
-        pre, post = ordering[:i], ordering[: i + 1]
-        pre_set = ordering_set - set(post)
-        post_set = ordering_set - set(pre)
-        numerator = Sum.safe(query.expression, pre_set)
-        denominator = Sum.safe(query.expression, post_set)
-        my_product *= numerator / denominator
-    my_product = cast(Fraction, my_product).simplify()  # FIXME duplicate code?
-
     expressions = []
     for node in district:
         i = ordering.index(node)
         pre_node = set(ordering[:i])
-        # FIXME Doesn't this expression just return pre_node?
-        prob = Probability.safe(
-            node.given(pre_node.intersection(district).union(pre_node - district))
-        )
-        # or is it supposed to be this?
-        prob = Probability.safe(
-            node.given(pre_node.intersection(district).union(set(ordering[i - 1]) - district))
-        )
+        # note tikka splits this into two expressions that when taken together equal pre_node
+        prob = Probability.safe(node | pre_node)
         expressions.append(
             PopulationProbability(population=query.domain, distribution=prob.distribution)
         )
@@ -658,7 +640,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         set(target_district),
         new_surrogate_interventions,
     )
-    raise NotImplementedError
+    return trso(new_query)
 
 
 def _pillow_has_transport(graph, district) -> bool:
