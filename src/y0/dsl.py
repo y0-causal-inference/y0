@@ -661,7 +661,7 @@ class Expression(Element, ABC):
         """Return this expression, normalized by this expression marginalized by the given variables."""
         return self / self.marginalize(ranges)
 
-    def marginalize(self, ranges: VariableHint) -> Sum:
+    def marginalize(self, ranges: VariableHint) -> Expression:
         """Return this expression, marginalizing out the given variables.
 
         :param ranges: A variable or list of variables over which to marginalize this expression
@@ -671,7 +671,7 @@ class Expression(Element, ABC):
         >>> assert P(A, B).marginalize(A) == Sum[A](P(A, B))
         >>> assert P(A, B, C).marginalize([A, B]) == Sum[A, B](P(A, B, C))
         """
-        return Sum(
+        return Sum.safe(
             expression=self,
             ranges=_upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)]),
         )
@@ -930,7 +930,11 @@ class Product(Expression):
         """
         if isinstance(expressions, Expression):
             return expressions
-        expressions = tuple(expressions)
+        # Remove multiplications of one
+        expressions = tuple(expression for expression in expressions if expression != One())
+        # If any multiplications are by zero, then return zero
+        if any(expression == Zero() for expression in expressions):
+            return Zero()
         if not expressions:
             raise ValueError(
                 "Product.safe does not explicitly empty list of expressions. "
@@ -987,11 +991,14 @@ class Sum(Expression):
     #: The expression over which the sum is done
     expression: Expression
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
-    ranges: Tuple[Variable, ...] = field(default_factory=tuple)
+    ranges: Tuple[Variable, ...]
 
     def __post_init__(self):
         if not self.ranges:
             raise ValueError("Sum must have ranges")
+        for r in self.ranges:
+            if isinstance(r, (CounterfactualVariable, Intervention)):
+                raise TypeError("Ranges must not be counterfactuals nor interventions")
 
     @classmethod
     def safe(
@@ -1177,13 +1184,13 @@ class Fraction(Expression):
         new_numerator, new_denominator = cls._simplify_parts_helper(numerator, denominator)
         if new_numerator and new_denominator:
             return Fraction(
-                _expression_or_product(new_numerator),
-                _expression_or_product(new_denominator),
+                Product.safe(new_numerator),
+                Product.safe(new_denominator),
             )
         elif new_numerator:
-            return _expression_or_product(new_numerator)
+            return Product.safe(new_numerator)
         elif new_denominator:
-            return One() / _expression_or_product(new_denominator)
+            return One() / Product.safe(new_denominator)
         else:
             return One()
 
@@ -1206,14 +1213,6 @@ class Fraction(Expression):
             tuple(expr for i, expr in enumerate(numerator) if i not in numerator_cancelled),
             tuple(expr for i, expr in enumerate(denominator) if i not in denominator_cancelled),
         )
-
-
-def _expression_or_product(e: Sequence[Expression]) -> Expression:
-    if not e:
-        raise ValueError
-    if 1 == len(e):
-        return e[0]
-    return Product(tuple(e))
 
 
 class One(Expression):
