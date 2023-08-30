@@ -1184,13 +1184,13 @@ class Fraction(Expression):
         new_numerator, new_denominator = cls._simplify_parts_helper(numerator, denominator)
         if new_numerator and new_denominator:
             return Fraction(
-                _expression_or_product(new_numerator),
-                _expression_or_product(new_denominator),
+                Product.safe(new_numerator),
+                Product.safe(new_denominator),
             )
         elif new_numerator:
-            return _expression_or_product(new_numerator)
+            return Product.safe(new_numerator)
         elif new_denominator:
-            return One() / _expression_or_product(new_denominator)
+            return One() / Product.safe(new_denominator)
         else:
             return One()
 
@@ -1213,14 +1213,6 @@ class Fraction(Expression):
             tuple(expr for i, expr in enumerate(numerator) if i not in numerator_cancelled),
             tuple(expr for i, expr in enumerate(denominator) if i not in denominator_cancelled),
         )
-
-
-def _expression_or_product(e: Sequence[Expression]) -> Expression:
-    if not e:
-        raise ValueError
-    if 1 == len(e):
-        return e[0]
-    return Product(tuple(e))
 
 
 class One(Expression):
