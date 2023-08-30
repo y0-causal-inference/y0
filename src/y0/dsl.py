@@ -1049,29 +1049,36 @@ class Sum(Expression):
             return expression
         if isinstance(expression, Zero):
             return expression
-
-        # Special case when ranges cover
-        if isinstance(expression, Probability) and not expression.parents:  # i.e., no conditions
-            if set(ranges) == set(expression.children):
-                return One()
-            elif set(ranges) > set(expression.children):
-                return cls(
-                    expression=One(),
-                    ranges=_sorted_variables(set(ranges).difference(expression.children))
-                )
-            else:
-                ranges = set(ranges)
-                children = set(expression.children)
-                intersection = ranges.intersection(children)
-                return cls(
-                    expression=Probability.safe(children - intersection),
-                    ranges=_sorted_variables(ranges - intersection),
-                )
-
         return cls(
             expression=expression,
             ranges=ranges,
         )
+
+    def simplify(self) -> Expression:
+        """Simplify this sum."""
+        expression = self.expression
+        ranges = set(self.ranges)
+
+        # Special case when ranges cover
+        if isinstance(expression, Probability) and not expression.parents:  # i.e., no conditions
+            children = set(expression.children)
+            if ranges == children:
+                return One()
+            elif ranges > children:
+                return Sum(
+                    expression=One(),
+                    ranges=_sorted_variables(ranges - children),
+                )
+            elif ranges < children:
+                return Probability.safe(children - ranges)
+            else: # partial or no overlap
+                children = set(expression.children)
+                intersection = ranges.intersection(children)
+                return Sum(
+                    expression=Probability.safe(children - intersection),
+                    ranges=_sorted_variables(ranges - intersection),
+                )
+        return self
 
     def to_text(self) -> str:
         """Output this sum in the internal string format."""

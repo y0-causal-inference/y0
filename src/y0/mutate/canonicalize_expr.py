@@ -100,12 +100,13 @@ class Canonicalizer:
         if isinstance(expression, Probability):  # atomic
             return self._canonicalize_probability(expression)
         elif isinstance(expression, Sum):
-            if not expression.ranges:  # flatten unnecessary sum
-                return self.canonicalize(expression.expression)
-            return Sum.safe(
+            rv = Sum.safe(
                 expression=self.canonicalize(expression.expression),
                 ranges=self._sorted(expression.ranges),
             )
+            if not isinstance(rv, Sum):
+                return rv
+            return rv.simplify()
         elif isinstance(expression, Product):
             if 1 == len(expression.expressions):  # flatten unnecessary product
                 return self.canonicalize(expression.expressions[0])

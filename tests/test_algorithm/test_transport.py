@@ -612,7 +612,7 @@ class TestTransport(cases.GraphTestCase):
             PP[TARGET_DOMAIN](Y1 @ X1, Z @ X1, W @ X1).conditional((Z, W))
         )
         expected_part2_magic_p = P[X1](Y1 | W, Z)
-        expected_part2_full = P(W @ -X1, Y1 @ -X1, Z @ -X1) / Sum[Y1 @ -X1](
+        expected_part2_full = P(W @ -X1, Y1 @ -X1, Z @ -X1) / Sum[Y1](
             P(W @ -X1, Y1 @ -X1, Z @ -X1)
         )
         self.assert_expr_equal(expected_part2_full, actual_part2)
