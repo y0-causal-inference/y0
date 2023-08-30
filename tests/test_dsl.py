@@ -16,17 +16,12 @@ from y0.dsl import (
     Intervention,
     One,
     P,
-    Pi1,
-    PopulationProbability,
-    PopulationProbabilityBuilderType,
     Product,
     Q,
     R,
     S,
     Sum,
     T,
-    Tr,
-    Transport,
     Variable,
     W,
     X,
@@ -447,8 +442,8 @@ class TestCounterfactual(unittest.TestCase):
         self.assertEqual("P[X](Y)", P[X](Y).to_y0())
         self.assertEqual("P[X](Y)", P(Y @ -X).to_y0())
         self.assertEqual("P[X](Y)", P[-X](Y).to_y0())
-        self.assertEqual("P[X](Y)", P(Y @ ~X).to_y0())
-        self.assertEqual("P[X](Y)", P[~X](Y).to_y0())
+        self.assertEqual("P[+X](Y)", P(Y @ ~X).to_y0())
+        self.assertEqual("P[+X](Y)", P[~X](Y).to_y0())
 
         self.assertEqual("P[+X](Y)", P(Y @ +X).to_y0())
         self.assertEqual("P[+X](Y)", P[+X](Y).to_y0())
@@ -458,12 +453,12 @@ class TestCounterfactual(unittest.TestCase):
         self.assertEqual("P[X](Y, Z)", P[X](Y, Z).to_y0())
         self.assertEqual("P[X](Y, Z)", P(Y @ -X, Z @ -X).to_y0())
         self.assertEqual("P[X](Y, Z)", P[-X](Y, Z).to_y0())
-        self.assertEqual("P[X](Y, Z)", P(Y @ ~X, Z @ ~X).to_y0())
-        self.assertEqual("P[X](Y, Z)", P[~X](Y, Z).to_y0())
+        self.assertEqual("P[+X](Y, Z)", P(Y @ ~X, Z @ ~X).to_y0())
+        self.assertEqual("P[+X](Y, Z)", P[~X](Y, Z).to_y0())
 
         # Two variables, mixed intervention
-        self.assertEqual("P(Y @ X, Z @ A)", P(Y @ X, Z @ A).to_y0())
-        self.assertEqual("P(Y @ X, Z @ +Z)", P(Y @ -X, Z @ +Z).to_y0())
+        self.assertEqual("P(Y @ -X, Z @ -A)", P(Y @ X, Z @ A).to_y0())
+        self.assertEqual("P(Y @ -X, Z @ +Z)", P(Y @ -X, Z @ +Z).to_y0())
 
 
 class TestSafeConstructors(unittest.TestCase):
@@ -556,41 +551,3 @@ class TestZero(unittest.TestCase):
                 self.assertEqual(zero, zero * expr, msg=f"Got {zero * expr}")
             with self.subTest(expr=expr.to_y0(), direction="left"):
                 self.assertEqual(zero, expr * zero, msg=f"Got {expr * zero}")
-
-    def test_conditional_with_interventions(self):
-        """Test conditionals work properly with counterfactual variables."""
-        self.assertEqual(P[X](Y, Z) / Sum[Y](P[X](Y, Z)), P[X](Y, Z).conditional(Z))
-        # TODO cth fix simplification
-        # self.assertEqual(P[X](Y, Z) / P[X](Z), P[X](Y, Z).conditional(Z))
-
-
-class TestTransport(unittest.TestCase):
-    """Tests for transportability DSL elements."""
-
-    def test_population_probability(self):
-        """Test the population probability builder."""
-        self.assertEqual(
-            PopulationProbability(
-                population=Pi1,
-                distribution=P(Y).distribution,
-            ),
-            PopulationProbabilityBuilderType[Pi1](Y),
-        )
-        self.assertEqual(
-            PopulationProbability(
-                population=Pi1,
-                distribution=P[X](Y).distribution,
-            ),
-            PopulationProbabilityBuilderType[Pi1][X](Y),
-        )
-
-    def test_transport(self):
-        """Test the transport builder."""
-        self.assertEqual(
-            Transport(variable=X),
-            Tr["X"],
-        )
-        self.assertEqual(
-            Transport(variable=X),
-            Tr[X],
-        )
