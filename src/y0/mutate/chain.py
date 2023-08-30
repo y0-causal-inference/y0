@@ -2,6 +2,8 @@
 
 """Operations for mutating and simplifying expressions."""
 
+import warnings
+
 from ..dsl import (
     Distribution,
     Expression,
@@ -125,4 +127,11 @@ def bayes_expand(p: Probability) -> Expression:
     """
     if not p.parents:
         return p
+    warnings.warn(
+        "Bayes expansion is now auto-normalized to fraction expansion "
+        "since introducting new rules in Sum.safe in "
+        "https://github.com/y0-causal-inference/y0/pull/159. Simply use fraction_expand() instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return p.uncondition().normalize_marginalize(p.children)
