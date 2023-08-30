@@ -930,7 +930,11 @@ class Product(Expression):
         """
         if isinstance(expressions, Expression):
             return expressions
-        expressions = tuple(expressions)
+        # Remove multiplications of one
+        expressions = tuple(expression for expression in expressions if expression != One())
+        # If any multiplications are by zero, then return zero
+        if any(expression == Zero() for expression in expressions):
+            return Zero()
         if not expressions:
             raise ValueError(
                 "Product.safe does not explicitly empty list of expressions. "

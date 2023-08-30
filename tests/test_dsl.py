@@ -467,6 +467,22 @@ class TestSafeConstructors(unittest.TestCase):
         with self.assertRaises(ValueError):
             Product.safe([])
 
+        self.assertEqual(Product((P(X), P(Y))), Product.safe((One(), P(X), P(Y))))
+        self.assertEqual(Product((P(X), P(Y))), Product.safe((P(X), P(Y))))
+        self.assertEqual(Product((P(X), P(Y))), Product.safe((P(X), One(), P(Y))))
+        self.assertEqual(Product((P(X), P(Y))), Product.safe((P(X), P(Y), One(), One())))
+        self.assertEqual(Product((P(X), P(Y))), Product.safe((P(X), One(), P(Y), One(), One())))
+
+        self.assertEqual(P(X), Product.safe((One(), P(X))))
+        self.assertEqual(P(X), Product.safe((P(X),)))
+        self.assertEqual(P(X), Product.safe((P(X), One())))
+        self.assertEqual(P(X), Product.safe((P(X), One(), One())))
+        self.assertEqual(P(X), Product.safe((P(X), One(), One(), One())))
+
+        self.assertEqual(Zero(), Product.safe((P(X), Zero())))
+        self.assertEqual(Zero(), Product.safe((P(X), Zero(), One())))
+        self.assertEqual(Zero(), Product.safe((Zero(), One())))
+
 
 zero = Zero()
 
