@@ -118,25 +118,25 @@ class TestDSL(unittest.TestCase):
         """Tests for generalized counterfactual variables."""
         for expr, expected in [
             # Single variable
-            (P(Y @ X), "P(Y @ -X)"),
-            (P(Y @ -X), "P(Y @ -X)"),
-            (P(Y @ ~X), "P(Y @ +X)"),
-            (P(Y @ +X), "P(Y @ +X)"),
+            (P(Y @ X), "P[X](Y)"),
+            (P(Y @ -X), "P[X](Y)"),
+            (P(Y @ ~X), "P[+X](Y)"),
+            (P(Y @ +X), "P[+X](Y)"),
             #
-            (P(-Y @ X), "P(-Y @ -X)"),
-            (P(-Y @ -X), "P(-Y @ -X)"),
-            (P(-Y @ ~X), "P(-Y @ +X)"),
-            (P(-Y @ +X), "P(-Y @ +X)"),
+            (P(-Y @ X), "P[X](-Y)"),
+            (P(-Y @ -X), "P[X](-Y)"),
+            (P(-Y @ ~X), "P[+X](-Y)"),
+            (P(-Y @ +X), "P[+X](-Y)"),
             #
-            (P(~Y @ X), "P(+Y @ -X)"),
-            (P(~Y @ -X), "P(+Y @ -X)"),
-            (P(~Y @ ~X), "P(+Y @ +X)"),
-            (P(~Y @ +X), "P(+Y @ +X)"),
+            (P(~Y @ X), "P[X](+Y)"),
+            (P(~Y @ -X), "P[X](+Y)"),
+            (P(~Y @ ~X), "P[+X](+Y)"),
+            (P(~Y @ +X), "P[+X](+Y)"),
             #
-            (P(+Y @ X), "P(+Y @ -X)"),
-            (P(+Y @ -X), "P(+Y @ -X)"),
-            (P(+Y @ ~X), "P(+Y @ +X)"),
-            (P(+Y @ +X), "P(+Y @ +X)"),
+            (P(+Y @ X), "P[X](+Y)"),
+            (P(+Y @ -X), "P[X](+Y)"),
+            (P(+Y @ ~X), "P[+X](+Y)"),
+            (P(+Y @ +X), "P[+X](+Y)"),
             # Interventions can live inside the conditions
             (P(Y @ X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
             (P(Y @ -X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
@@ -435,6 +435,30 @@ class TestCounterfactual(unittest.TestCase):
                 self.assertIsInstance(expr, CounterfactualVariable)
                 self.assertTrue(expr.is_event())
                 self.assertEqual(status, expr.is_inconsistent())
+
+    def test_counterfactual_y0(self):
+        """Test compressed output."""
+        self.assertEqual("P[X](Y)", P(Y @ X).to_y0())
+        self.assertEqual("P[X](Y)", P[X](Y).to_y0())
+        self.assertEqual("P[X](Y)", P(Y @ -X).to_y0())
+        self.assertEqual("P[X](Y)", P[-X](Y).to_y0())
+        self.assertEqual("P[+X](Y)", P(Y @ ~X).to_y0())
+        self.assertEqual("P[+X](Y)", P[~X](Y).to_y0())
+
+        self.assertEqual("P[+X](Y)", P(Y @ +X).to_y0())
+        self.assertEqual("P[+X](Y)", P[+X](Y).to_y0())
+
+        # Two variables, same intervention
+        self.assertEqual("P[X](Y, Z)", P(Y @ X, Z @ X).to_y0())
+        self.assertEqual("P[X](Y, Z)", P[X](Y, Z).to_y0())
+        self.assertEqual("P[X](Y, Z)", P(Y @ -X, Z @ -X).to_y0())
+        self.assertEqual("P[X](Y, Z)", P[-X](Y, Z).to_y0())
+        self.assertEqual("P[+X](Y, Z)", P(Y @ ~X, Z @ ~X).to_y0())
+        self.assertEqual("P[+X](Y, Z)", P[~X](Y, Z).to_y0())
+
+        # Two variables, mixed intervention
+        self.assertEqual("P(Y @ -X, Z @ -A)", P(Y @ X, Z @ A).to_y0())
+        self.assertEqual("P(Y @ -X, Z @ +Z)", P(Y @ -X, Z @ +Z).to_y0())
 
 
 class TestSafeConstructors(unittest.TestCase):
