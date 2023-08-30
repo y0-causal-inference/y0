@@ -129,7 +129,7 @@ def bayes_expand(p: Probability) -> Expression:
         return p
     warnings.warn(
         "Bayes expansion is now auto-normalized to fraction expansion "
-        "since introducting new rules in Sum.safe in "
+        "since introducing new rules in Sum.safe in "
         "https://github.com/y0-causal-inference/y0/pull/159. Simply use fraction_expand() instead",
         DeprecationWarning,
         stacklevel=2,
