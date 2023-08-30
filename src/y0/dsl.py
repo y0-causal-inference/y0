@@ -998,7 +998,7 @@ class Sum(Expression):
             raise ValueError("Sum must have ranges")
         for r in self.ranges:
             if isinstance(r, (CounterfactualVariable, Intervention)):
-                raise TypeError(f"Ranges must not be counterfactuals nor interventions")
+                raise TypeError("Ranges must not be counterfactuals nor interventions")
 
     @classmethod
     def safe(
