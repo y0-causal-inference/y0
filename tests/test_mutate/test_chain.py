@@ -38,11 +38,13 @@ class TestChain(unittest.TestCase):
 
     def test_fraction_expand(self):
         """Test expanding a conditional probability with Bayes' Theorem."""
+        self.assertEqual(P(A, X), fraction_expand(P(A, X)))
         self.assertEqual(P(A, B) / P(B), fraction_expand(P(A | B)))
         self.assertEqual(P(W, X, Y, Z) / P(X, Y, Z), fraction_expand(P(W | (X, Y, Z))))
 
     def test_bayes_expand(self):
         """Test expanding a conditional using extended Bayes' Theorem."""
+        self.assertEqual(P(A, X), bayes_expand(P(A, X)))
         self.assertEqual(P(A, X) / Sum[A](P(A, X)), bayes_expand(P(A | X)))
         self.assertEqual(P(A, X, Y) / Sum[A](P(A, X, Y)), bayes_expand(P(A | (X, Y))))
         self.assertEqual(P(A, B, X, Y) / Sum[A, B](P(A, B, X, Y)), bayes_expand(P(A & B | (X, Y))))
