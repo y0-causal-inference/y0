@@ -338,7 +338,7 @@ def _line_6_helper(
 def add_active_interventions(
     expression: Expression,
     active_interventions: Set[Variable],
-    target_outcomes: Set[Variable],
+    target_outcomes: Set[Variable],  # FIXME this doesn't appear to be used
 ) -> Union[Sum, Product, Fraction, Probability]:
     """Intervene on the target variables of expression using the active interventions.
 
@@ -561,7 +561,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
             terms.append(term)
 
         product = Product.safe(terms)
-        summand = canonicalize(product) # fix sort order inside product
+        summand = canonicalize(product)  # fix sort order inside product
         return canonicalize(
             Sum.safe(
                 summand,
