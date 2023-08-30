@@ -3,7 +3,6 @@
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
-from operator import attrgetter
 from typing import Dict, FrozenSet, Iterable, List, Mapping, Optional, Set, Union, cast
 
 from y0.algorithm.conditional_independencies import are_d_separated
@@ -14,7 +13,6 @@ from y0.dsl import (
     Fraction,
     Intervention,
     One,
-    P,
     Population,
     PopulationProbability,
     Probability,
@@ -25,7 +23,6 @@ from y0.dsl import (
 )
 from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import canonicalize
-from y0.mutate.chain import chain_expand
 
 __all__ = [
     "transport",
@@ -82,6 +79,7 @@ def transport_variable(variable: Variable) -> Variable:
 
     :param variable: variable that the transport node will point to
     :returns: Variable with _TRANSPORT_PREFIX and variable name
+    :raises TypeError: If a non-standard variable is passed
     """
     if isinstance(variable, (CounterfactualVariable, Intervention)):
         raise TypeError
@@ -89,10 +87,10 @@ def transport_variable(variable: Variable) -> Variable:
 
 
 def is_transport_node(node: Variable) -> bool:
-    """Check if a Variable is a tranport node.
+    """Check if a Variable is a transport node.
 
     :param node: A node to evaluate.
-    :returns: boolean True if node is a tranport node, False otherwise.
+    :returns: boolean True if node is a transport node, False otherwise.
     """
     return not isinstance(node, (CounterfactualVariable, Intervention)) and node.name.startswith(
         _TRANSPORT_PREFIX
@@ -152,7 +150,7 @@ class TransportQuery:
     graphs: Dict[Population, NxMixedGraph]
     domains: Set[Population]
     surrogate_interventions: Dict[Population, Set[Variable]]
-    target_experiments: Set[Variable]  #
+    target_experiments: Set[Variable]
 
 
 @dataclass
@@ -161,9 +159,9 @@ class TRSOQuery:
 
     target_interventions: Set[Variable]
     target_outcomes: Set[Variable]
-    expression: Expression  #
-    active_interventions: Set[Variable]  #
-    domain: Population  #
+    expression: Expression
+    active_interventions: Set[Variable]
+    domain: Population
     domains: Set[Population]
     graphs: Dict[Population, NxMixedGraph]
     surrogate_interventions: Dict[Population, Set[Variable]]
@@ -184,6 +182,7 @@ def surrogate_to_transport(
     :param surrogate_outcomes: A dictionary of outcomes in other populations
     :param surrogate_interventions: A dictionary of interentions in other populations
     :returns: An octuple representing the query transformation of a surrogate outcome query.
+    :raises ValueError: if surrogate outcomes' and surrogate interventions' keys do not correspond
     """
     if set(surrogate_outcomes) != set(surrogate_interventions):
         raise ValueError("Inconsistent surrogate outcome and intervention domains")
@@ -339,13 +338,14 @@ def add_active_interventions(
     expression: Expression,
     active_interventions: Set[Variable],
     target_outcomes: Set[Variable],  # FIXME this doesn't appear to be used
-) -> Union[Sum, Product, Fraction, Probability]:
+) -> Expression:
     """Intervene on the target variables of expression using the active interventions.
 
     :param expression: A probability expression.
     :param active_interventions: Set of active interventions
     :param target_outcomes: Set of outcomes on which we will intervene
     :returns: boolean True if all interventions are d-separated from all outcomes, False otherwise.
+    :raises NotImplementedError: If an expression type that is not handled gets passed
     """
     if isinstance(expression, Probability):
         return expression.intervene(active_interventions)
@@ -367,11 +367,18 @@ def add_active_interventions(
         return cast(Fraction, new_numerator / new_denominator).simplify()
     if isinstance(expression, Product):
         intervened_expression = add_active_interventions(
-            expression.expression, active_interventions, target_outcomes
+            # FIXME, this should be handled in a loop over `expression.expressions`,
+            #  not expression.expression (note the plural)
+            expression.expression,
+            active_interventions,
+            target_outcomes,
         )
+        # FIXME product doesn't have ranges
         intervened_ranges = tuple(
             variable.intervene(active_interventions) for variable in expression.ranges
         )
+        # FIXME doesn't make sense to return a sum when handling product, was this
+        #  copy+pasted?
         return Sum.safe(intervened_expression, intervened_ranges)
     raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
 
@@ -406,6 +413,7 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     :param query: A TRSO query
     :param district: The C-component present in both districts_without_interventions and districts
     :returns: An Expression
+    :raises RuntimeError: If the query's expression is zero. This should never happen
     """
     logger.debug(
         "Calling trso algorithm line 9 with expression %s \n district %s",
@@ -491,11 +499,12 @@ def trso_line10(
     return new_query
 
 
-def trso(query: TRSOQuery) -> Optional[Expression]:
+def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     """Run the TRSO algorithm to evaluate a transport problem.
 
     :param query: A TRSO query, which contains 8 instance variables needed for TRSO
     :returns: An Expression evaluating the given query, or None
+    :raises NotImplementedError: when a part of the algorithm is not yet handled
     """
     # Check that domain is in query.domains
     # check that query.surrogate_interventions keys are equals to domains

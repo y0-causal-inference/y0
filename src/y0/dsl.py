@@ -723,16 +723,7 @@ class Probability(Expression):
         return f"P({self.distribution.to_text()})"
 
     def to_y0(self) -> str:
-        """Output this probability instance as y0 internal DSL code.
-
-        >>> from y0.dsl import P, X, Y
-        >>> P(Y @ X).to_y0()
-        'P[X](Y)'
-        >>> P[X](Y).to_y0()
-        'P[X](Y)'
-        >>> P[+X](Y).to_y0()
-        'P[+X](Y)'
-        """
+        """Output this probability instance as y0 internal DSL code."""
         # if all parts of distribution have same intervention set, then put it out front
         intervention_sets = {
             x.interventions if isinstance(x, CounterfactualVariable) else tuple()
