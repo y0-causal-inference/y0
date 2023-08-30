@@ -3,7 +3,7 @@
 """Implementation of the canonicalization algorithm."""
 
 from operator import attrgetter
-from typing import Iterable, Mapping, Optional, Sequence, Tuple, Union
+from typing import Collection, Iterable, Mapping, Optional, Sequence, Tuple, Union
 
 from ..dsl import (
     CounterfactualVariable,
@@ -69,7 +69,7 @@ class Canonicalizer:
             )
         )
 
-    def _sorted(self, variables: Tuple[Variable, ...]) -> Tuple[Variable, ...]:
+    def _sorted(self, variables: Collection[Variable]) -> Tuple[Variable, ...]:
         return tuple(
             sorted(
                 (self._canonicalize_variable(variable) for variable in variables),
@@ -102,7 +102,7 @@ class Canonicalizer:
         elif isinstance(expression, Sum):
             if not expression.ranges:  # flatten unnecessary sum
                 return self.canonicalize(expression.expression)
-            return Sum(
+            return Sum.safe(
                 expression=self.canonicalize(expression.expression),
                 ranges=self._sorted(expression.ranges),
             )

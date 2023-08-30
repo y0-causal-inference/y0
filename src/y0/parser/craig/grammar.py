@@ -24,8 +24,8 @@ __all__ = [
 expr = Forward()
 
 
-def _make_sum(_s, _l, tokens: ParseResults) -> Sum:
-    return Sum(
+def _make_sum(_s, _l, tokens: ParseResults) -> Expression:
+    return Sum.safe(
         ranges=tuple(tokens["ranges"].asList()) if "ranges" in tokens else tuple(),
         expression=tokens["expression"],
     )

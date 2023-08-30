@@ -946,7 +946,11 @@ class Product(Expression):
         """
         if isinstance(expressions, Expression):
             return expressions
-        expressions = tuple(expressions)
+        # Remove multiplications of one
+        expressions = tuple(expression for expression in expressions if expression != One())
+        # If any multiplications are by zero, then return zero
+        if any(expression == Zero() for expression in expressions):
+            return Zero()
         if not expressions:
             raise ValueError(
                 "Product.safe does not explicitly empty list of expressions. "
@@ -1003,16 +1007,14 @@ class Sum(Expression):
     #: The expression over which the sum is done
     expression: Expression
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
-    ranges: Tuple[Variable, ...] = field(default_factory=tuple)
+    ranges: Tuple[Variable, ...]
 
     def __post_init__(self):
         if not self.ranges:
             raise ValueError("Sum must have ranges")
-        for var in self.ranges:
-            if isinstance(var, CounterfactualVariable):
-                raise TypeError("sum should never have counterfactual variables")
-            if isinstance(var, Intervention):
-                raise TypeError("sum should never have intervention variables")
+        for r in self.ranges:
+            if isinstance(r, (CounterfactualVariable, Intervention)):
+                raise TypeError("Ranges must not be counterfactuals nor interventions")
 
     @classmethod
     def safe(
@@ -1217,13 +1219,13 @@ class Fraction(Expression):
         new_numerator, new_denominator = cls._simplify_parts_helper(numerator, denominator)
         if new_numerator and new_denominator:
             return Fraction(
-                _expression_or_product(new_numerator),
-                _expression_or_product(new_denominator),
+                Product.safe(new_numerator),
+                Product.safe(new_denominator),
             )
         elif new_numerator:
-            return _expression_or_product(new_numerator)
+            return Product.safe(new_numerator)
         elif new_denominator:
-            return One() / _expression_or_product(new_denominator)
+            return One() / Product.safe(new_denominator)
         else:
             return One()
 
@@ -1246,14 +1248,6 @@ class Fraction(Expression):
             tuple(expr for i, expr in enumerate(numerator) if i not in numerator_cancelled),
             tuple(expr for i, expr in enumerate(denominator) if i not in denominator_cancelled),
         )
-
-
-def _expression_or_product(e: Sequence[Expression]) -> Expression:
-    if not e:
-        raise ValueError
-    if 1 == len(e):
-        return e[0]
-    return Product(tuple(e))
 
 
 class One(Expression):
