@@ -266,6 +266,13 @@ class TestDSL(unittest.TestCase):
 
     def test_sum(self):
         """Test the Sum DSL object."""
+        with self.assertRaises(TypeError):
+            Sum(P(A), (~B,))
+        with self.assertRaises(TypeError):
+            Sum(P(A), (B @ C,))
+        with self.assertRaises(ValueError):
+            Sum(P(A), tuple())
+
         # Sum with one variable
         self.assert_text(
             "[ sum_{S} P(A | B) P(C | D) ]",
