@@ -557,6 +557,12 @@ class TestZero(unittest.TestCase):
             with self.subTest(expr=expr.to_y0(), direction="left"):
                 self.assertEqual(zero, expr * zero, msg=f"Got {expr * zero}")
 
+    def test_conditional_with_interventions(self):
+        """Test conditionals work properly with counterfactual variables."""
+        self.assertEqual(P[X](Y, Z) / Sum[Y](P[X](Y, Z)), P[X](Y, Z).conditional(Z))
+        # TODO cth fix simplification
+        # self.assertEqual(P[X](Y, Z) / P[X](Z), P[X](Y, Z).conditional(Z))
+
 
 class TestTransport(unittest.TestCase):
     """Tests for transportability DSL elements."""

@@ -795,6 +795,20 @@ class Probability(Expression):
         """
         return self._new(self.distribution.uncondition())
 
+    def conditional(self, ranges: VariableHint) -> Expression:
+        """Return this expression, conditioned by the given variables.
+
+        :param ranges: A variable or list of variables over which to marginalize this expression
+        :returns: A fraction in which the denominator is represents the sum over the given ranges
+
+        >>> from y0.dsl import P, A, B
+        >>> assert P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
+        >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
+        """
+        ranges = _upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)])
+        ranges_complement = set([c.get_base() for c in self._iter_variables() if not isinstance(c, Intervention)]) - set(ranges)
+        return self.normalize_marginalize(ranges_complement)
+
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in the distribution in this probability."""
         yield from self.distribution._iter_variables()
@@ -1075,12 +1089,11 @@ class Sum(Expression):
 
         # Special case when ranges cover
         if isinstance(expression, Probability) and not expression.parents:  # i.e., no conditions
-            # FIXME this needs to handle counterfactuals!!
             children = {
                 child.get_base(): child
                 for child in expression.children
                 # FIXME what happens if same name appears with multiple different counterfactual variables?
-                #  maybe switch to defaultdict
+                #  this should actually evaluate to zero since that's impossible
             }
             if ranges == set(children):
                 return One()
