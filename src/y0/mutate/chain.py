@@ -72,7 +72,7 @@ def chain_expand(p: Probability, *, reorder: bool = True, ordering: OrderingHint
     )
 
 
-def fraction_expand(p: Probability) -> Fraction:
+def fraction_expand(p: Probability) -> Expression:
     r"""Expand a probability distribution with fractions.
 
     :param p: The given probability expression
@@ -83,11 +83,22 @@ def fraction_expand(p: Probability) -> Fraction:
     .. math::
         P(A | B) = \frac{P(A,B)}{P(B)}
 
+    >>> from y0.dsl import P, A, B, Sum
+    >>> from y0.mutate.chain import fraction_expand
+    >>> assert fraction_expand(P(A | B)) == P(A, B) / P(B)
+
+    If there are no conditions (i.e., parents), then the probability
+    is returned without modification.
+
+    >>> assert fraction_expand(P(A, B)) == P(A, B)
+
     In general, with many children $Y_i$ and many parents $X_i$:
 
     .. math::
         P(Y_1,\dots,Y_n | X_1, \dots, X_m) = \frac{P(Y_1,\dots,Y_n,X_1,\dots,X_m)}{P(X_1,\dots,X_m)}
     """
+    if not p.parents:
+        return p
     return Fraction(p.uncondition(), P(p.parents))
 
 
