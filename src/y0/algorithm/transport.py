@@ -336,7 +336,7 @@ def _line_6_helper(
 
 
 def add_active_interventions(
-    expression: Union[Sum, Product, Fraction, Probability, Variable],
+    expression: Expression,
     active_interventions: Set[Variable],
     target_outcomes: Set[Variable],
 ) -> Union[Sum, Product, Fraction, Probability]:
@@ -373,6 +373,7 @@ def add_active_interventions(
             variable.intervene(active_interventions) for variable in expression.ranges
         )
         return Sum.safe(intervened_expression, intervened_ranges)
+    raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
 
 
 def all_transports_d_separated(graph, target_interventions, target_outcomes) -> bool:
@@ -464,7 +465,7 @@ def trso_line10(
         numerator = Sum.safe(query.expression, pre_set)
         denominator = Sum.safe(query.expression, post_set)
         my_product *= numerator / denominator
-    my_product = cast(Fraction, my_product).simplify()
+    my_product = cast(Fraction, my_product).simplify()  # FIXME duplicate code?
 
     expressions = []
     for node in district:
@@ -484,7 +485,7 @@ def trso_line10(
 
     new_query = deepcopy(query)
     new_query.target_interventions = query.target_interventions.intersection(district)
-    new_query.expression = Product.safe(expressions)
+    new_query.expression = canonicalize(Product.safe(expressions))
     new_query.graphs[query.domain] = query.graphs[query.domain].subgraph(district)
     new_query.surrogate_interventions = new_surrogate_interventions
     return new_query
@@ -574,6 +575,8 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
         for domain, subquery in trso_line6(query).items():
             logger.debug("Calling trso algorithm line 6 for domain %s", domain)
             expression = trso(subquery)
+            if expression is None:
+                raise NotImplementedError
             expression = add_active_interventions(
                 expression, subquery.active_interventions, subquery.target_outcomes
             )
