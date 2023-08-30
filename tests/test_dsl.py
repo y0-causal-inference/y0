@@ -123,25 +123,25 @@ class TestDSL(unittest.TestCase):
         """Tests for generalized counterfactual variables."""
         for expr, expected in [
             # Single variable
-            (P(Y @ X), "P(Y @ -X)"),
-            (P(Y @ -X), "P(Y @ -X)"),
-            (P(Y @ ~X), "P(Y @ +X)"),
-            (P(Y @ +X), "P(Y @ +X)"),
+            (P(Y @ X), "P[X](Y)"),
+            (P(Y @ -X), "P[X](Y)"),
+            (P(Y @ ~X), "P[+X](Y)"),
+            (P(Y @ +X), "P[+X](Y)"),
             #
-            (P(-Y @ X), "P(-Y @ -X)"),
-            (P(-Y @ -X), "P(-Y @ -X)"),
-            (P(-Y @ ~X), "P(-Y @ +X)"),
-            (P(-Y @ +X), "P(-Y @ +X)"),
+            (P(-Y @ X), "P[X](-Y)"),
+            (P(-Y @ -X), "P[X](-Y)"),
+            (P(-Y @ ~X), "P[+X](-Y)"),
+            (P(-Y @ +X), "P[+X](-Y)"),
             #
-            (P(~Y @ X), "P(+Y @ -X)"),
-            (P(~Y @ -X), "P(+Y @ -X)"),
-            (P(~Y @ ~X), "P(+Y @ +X)"),
-            (P(~Y @ +X), "P(+Y @ +X)"),
+            (P(~Y @ X), "P[X](+Y)"),
+            (P(~Y @ -X), "P[X](+Y)"),
+            (P(~Y @ ~X), "P[+X](+Y)"),
+            (P(~Y @ +X), "P[+X](+Y)"),
             #
-            (P(+Y @ X), "P(+Y @ -X)"),
-            (P(+Y @ -X), "P(+Y @ -X)"),
-            (P(+Y @ ~X), "P(+Y @ +X)"),
-            (P(+Y @ +X), "P(+Y @ +X)"),
+            (P(+Y @ X), "P[X](+Y)"),
+            (P(+Y @ -X), "P[X](+Y)"),
+            (P(+Y @ ~X), "P[+X](+Y)"),
+            (P(+Y @ +X), "P[+X](+Y)"),
             # Interventions can live inside the conditions
             (P(Y @ X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
             (P(Y @ -X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
