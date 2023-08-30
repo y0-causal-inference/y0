@@ -559,9 +559,11 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
                 raise NotImplementedError
             terms.append(term)
 
+        product = Product.safe(terms)
+        summand = canonicalize(product) # fix sort order inside product
         return canonicalize(
             Sum.safe(
-                Product.safe(terms),
+                summand,
                 get_regular_nodes(graph) - query.target_interventions.union(query.target_outcomes),
             )
         )
