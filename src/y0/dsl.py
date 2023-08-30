@@ -1061,6 +1061,7 @@ class Sum(Expression):
 
         # Special case when ranges cover
         if isinstance(expression, Probability) and not expression.parents:  # i.e., no conditions
+            # FIXME this needs to handle counterfactuals!!
             children = set(expression.children)
             if ranges == children:
                 return One()
