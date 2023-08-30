@@ -1062,21 +1062,28 @@ class Sum(Expression):
         # Special case when ranges cover
         if isinstance(expression, Probability) and not expression.parents:  # i.e., no conditions
             # FIXME this needs to handle counterfactuals!!
-            children = set(expression.children)
-            if ranges == children:
+            children = {
+                child.get_base(): child
+                for child in expression.children
+                # FIXME what happens if same name appears with multiple different counterfactual variables?
+                #  maybe switch to defaultdict
+            }
+            if ranges == set(children):
                 return One()
-            elif ranges > children:
+            elif ranges > set(children):
+                keep = ranges - set(children)
                 return Sum(
                     expression=One(),
-                    ranges=_sorted_variables(ranges - children),
+                    ranges=_sorted_variables(v for k, v in children.items() if k in keep),
                 )
-            elif ranges < children:
-                return Probability.safe(children - ranges)
+            elif ranges < set(children):
+                keep = set(children) - ranges
+                return Probability.safe(v for k, v in children.items() if k in keep)
             else: # partial or no overlap
-                children = set(expression.children)
                 intersection = ranges.intersection(children)
+                keep = set(children) - intersection
                 return Sum(
-                    expression=Probability.safe(children - intersection),
+                    expression=Probability.safe(v for k, v in children.items() if k in keep),
                     ranges=_sorted_variables(ranges - intersection),
                 )
         return self
