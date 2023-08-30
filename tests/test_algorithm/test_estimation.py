@@ -3,6 +3,7 @@
 import unittest
 
 import pandas as pd
+from ananke.estimation import CausalEffect
 
 from y0.algorithm.estimation import (
     _ananke_compute_effect,
@@ -91,6 +92,16 @@ class TestEstimation(unittest.TestCase):
         with self.subTest(name="Graph 6"):
             self.assert_mb_shielded(graph_7)
 
+    def assert_a_fixable(self, graph: NxMixedGraph, treatment: Variable):
+        """Assert that the graph is a-fixable."""
+        self.assertTrue(_ananke_a_fixable(graph, treatment))
+        self.assertTrue(is_a_fixable(graph, treatment))
+
+    def assert_not_a_fixable(self, graph: NxMixedGraph, treatment: Variable):
+        """Assert that the graph is not a-fixable."""
+        self.assertFalse(_ananke_a_fixable(graph, treatment))
+        self.assertFalse(is_a_fixable(graph, treatment))
+
     def test_is_a_fixable(self):
         """Test checking for a-fixability.
 
@@ -101,9 +112,9 @@ class TestEstimation(unittest.TestCase):
             directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
         )
         treatment_1 = Variable("T")
-        self.assertTrue(is_a_fixable(graph_1, treatment_1))
+        self.assert_a_fixable(graph_1, treatment_1)
 
-        self.assertFalse(is_a_fixable(napkin, X))
+        self.assert_not_a_fixable(napkin, X)
 
         graph_3 = NxMixedGraph.from_str_edges(
             directed=[
@@ -123,7 +134,7 @@ class TestEstimation(unittest.TestCase):
             ],
         )
         treatment_3 = Variable("EGFR")
-        self.assertTrue(is_a_fixable(graph_3, treatment_3))
+        self.assert_a_fixable(graph_3, treatment_3)
 
         graph_4 = NxMixedGraph.from_str_edges(
             directed=[
@@ -136,7 +147,7 @@ class TestEstimation(unittest.TestCase):
             undirected=[("SOS", "PI3K")],
         )
         treatment_4 = Variable("PI3K")
-        self.assertTrue(is_a_fixable(graph_4, treatment_4))
+        self.assert_a_fixable(graph_4, treatment_4)
 
         graph_5 = NxMixedGraph.from_str_edges(
             directed=[
@@ -150,20 +161,31 @@ class TestEstimation(unittest.TestCase):
             ],
             undirected=[("Z1", "X"), ("Z2", "M1")],
         )
-        self.assertTrue(is_a_fixable(graph_5, X))
+        self.assert_a_fixable(graph_5, X)
 
         graph_6 = NxMixedGraph.from_str_edges(
             directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")], undirected=[]
         )
-        self.assertTrue(is_a_fixable(graph_6, X))
+        self.assert_a_fixable(graph_6, X)
 
         graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")], undirected=[])
         treatment_7 = Variable("A")
-        self.assertTrue(is_a_fixable(graph_7, treatment_7))
+        self.assert_a_fixable(graph_7, treatment_7)
 
         graph_8 = graph_4
         treatment_8 = Variable("SOS")
-        self.assertFalse(is_a_fixable(graph_8, treatment_8))
+        self.assert_not_a_fixable(graph_8, treatment_8)
+
+    def assert_p_fixable(self, graph: NxMixedGraph, treatment: Variable):
+        """Assert that the graph is p-fixable."""
+        self.assertFalse(_ananke_a_fixable(graph, treatment))
+        self.assertTrue(_ananke_p_fixable(graph, treatment))
+        self.assertTrue(is_p_fixable(graph, treatment))
+
+    def assert_not_p_fixable(self, graph: NxMixedGraph, treatment: Variable):
+        """Assert that the graph is not p-fixable."""
+        self.assertFalse(_ananke_p_fixable(graph, treatment))
+        self.assertFalse(is_p_fixable(graph, treatment))
 
     def test_is_p_fixable(self):
         """Test checking for p-fixability.
@@ -176,14 +198,14 @@ class TestEstimation(unittest.TestCase):
         )
         treatment_1 = Variable("T")
         with self.subTest(name="Graph 1"):
-            self.assertTrue(is_p_fixable(graph_1, treatment_1))
+            self.assert_not_p_fixable(graph_1, treatment_1)
 
         with self.subTest(name="Napkin"):
-            self.assertFalse(is_p_fixable(napkin, X))
+            self.assert_not_p_fixable(napkin, X)
 
         treatment_3 = Variable("EGFR")
         with self.subTest(name="Graph 3"):
-            self.assertTrue(is_p_fixable(SARS_SMALL_GRAPH, treatment_3))
+            self.assert_not_p_fixable(SARS_SMALL_GRAPH, treatment_3)
 
         graph_4 = NxMixedGraph.from_str_edges(
             directed=[
@@ -197,7 +219,7 @@ class TestEstimation(unittest.TestCase):
         )
         treatment_4 = Variable("PI3K")
         with self.subTest(name="Graph 4"):
-            self.assertTrue(is_p_fixable(graph_4, treatment_4))
+            self.assert_not_p_fixable(graph_4, treatment_4)
 
         graph_5 = NxMixedGraph.from_str_edges(
             directed=[
@@ -212,23 +234,23 @@ class TestEstimation(unittest.TestCase):
             undirected=[("Z1", "X"), ("Z2", "M1")],
         )
         with self.subTest(name="Graph 5"):
-            self.assertTrue(is_p_fixable(graph_5, X))
+            self.assert_not_p_fixable(graph_5, X)
 
         graph_6 = NxMixedGraph.from_str_edges(
             directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")], undirected=[]
         )
         with self.subTest(name="Graph 6"):
-            self.assertTrue(is_p_fixable(graph_6, X))
+            self.assert_not_p_fixable(graph_6, X)
 
         graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")], undirected=[])
         treatment_7 = Variable("A")
         with self.subTest(name="Graph 7"):
-            self.assertTrue(is_p_fixable(graph_7, treatment_7))
+            self.assert_not_p_fixable(graph_7, treatment_7)
 
         graph_8 = graph_4
         treatment_8 = Variable("SOS")
         with self.subTest(name="Graph 8"):
-            self.assertTrue(is_p_fixable(graph_8, treatment_8))
+            self.assert_p_fixable(graph_8, treatment_8)
 
         graph_9 = NxMixedGraph.from_str_edges(
             directed=[
@@ -245,7 +267,7 @@ class TestEstimation(unittest.TestCase):
         )
         treatment_9 = Variable("T")
         with self.subTest(name="Graph 9"):
-            self.assertTrue(is_p_fixable(graph_9, treatment_9))
+            self.assert_p_fixable(graph_9, treatment_9)
 
         graph_10 = NxMixedGraph.from_str_edges(
             directed=[
@@ -262,7 +284,7 @@ class TestEstimation(unittest.TestCase):
         )
         treatment_10 = Variable("T")
         with self.subTest(name="Graph 10"):
-            self.assertTrue(is_p_fixable(graph_10, treatment_10))
+            self.assert_p_fixable(graph_10, treatment_10)
 
         graph_11 = NxMixedGraph.from_str_edges(
             directed=[
@@ -279,7 +301,7 @@ class TestEstimation(unittest.TestCase):
         )
         treatment_11 = Variable("T")
         with self.subTest(name="Graph 11"):
-            self.assertTrue(is_p_fixable(graph_11, treatment_11))
+            self.assert_p_fixable(graph_11, treatment_11)
 
         graph_12 = NxMixedGraph.from_str_edges(
             directed=[
@@ -298,7 +320,7 @@ class TestEstimation(unittest.TestCase):
         )
         treatment_12 = Variable("T")
         with self.subTest(name="Graph 12"):
-            self.assertTrue(is_p_fixable(graph_12, treatment_12))
+            self.assert_p_fixable(graph_12, treatment_12)
 
     def test_data_covers_graph(self):
         """Test the data coverage utility."""
@@ -337,3 +359,15 @@ class TestEstimation(unittest.TestCase):
             Variable("test3"): "continuous",
         }
         self.assertEqual(computed_state_space_map, expected_state_space_map)
+
+
+def _ananke_a_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
+    outcome = {n for n in graph.nodes() if n != treatment}.pop()
+    ce = CausalEffect(graph.to_admg(), treatment=treatment.name, outcome=outcome.name)
+    return ce.strategy == "a-fixable"
+
+
+def _ananke_p_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
+    outcome = {n for n in graph.nodes() if n != treatment}.pop()
+    ce = CausalEffect(graph.to_admg(), treatment=treatment.name, outcome=outcome.name)
+    return ce.strategy == "p-fixable"
