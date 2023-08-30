@@ -723,7 +723,30 @@ class Probability(Expression):
         return f"P({self.distribution.to_text()})"
 
     def to_y0(self) -> str:
-        """Output this probability instance as y0 internal DSL code."""
+        """Output this probability instance as y0 internal DSL code.
+
+        >>> from y0.dsl import P, X, Y
+        >>> P(Y @ X).to_y0()
+        'P[X](Y)'
+        >>> P[X](Y).to_y0()
+        'P[X](Y)'
+        >>> P[+X](Y).to_y0()
+        'P[+X](Y)'
+        """
+        # if all parts of distribution have same intervention set, then put it out front
+        intervention_sets = {
+            x.interventions if isinstance(x, CounterfactualVariable) else tuple()
+            for x in itt.chain(self.children, self.parents)
+        }
+        # check that there's only one intervention set and that it's not an empty one
+        if len(intervention_sets) == 1 and (interventions := intervention_sets.pop()):
+            # only keep the + if necessary, otherwise show regular
+            intervention_str = _list_to_y0(i.get_base() if i.star else i for i in interventions)
+            unintervened_distribution = Distribution(
+                parents=tuple(p.get_base() for p in self.parents),
+                children=tuple(p.get_base() for p in self.children),
+            )
+            return f"P[{intervention_str}]({unintervened_distribution.to_y0()})"
         return f"P({self.distribution.to_y0()})"
 
     def to_latex(self) -> str:
@@ -1079,7 +1102,7 @@ class Sum(Expression):
             elif ranges < set(children):
                 keep = set(children) - ranges
                 return Probability.safe(v for k, v in children.items() if k in keep)
-            else: # partial or no overlap
+            else:  # partial or no overlap
                 intersection = ranges.intersection(children)
                 keep = set(children) - intersection
                 return Sum(
