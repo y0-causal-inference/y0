@@ -1,10 +1,9 @@
 """Tests for estimation workflows and tools."""
-import logging
+
 import unittest
 
 import pandas as pd
 
-from tests.constants import NAPKIN_OBSERVATIONAL_PATH
 from y0.algorithm.estimation import (
     _ananke_compute_effect,
     df_covers_graph,
@@ -303,14 +302,14 @@ class TestEstimation(unittest.TestCase):
 
     def test_data_covers_graph(self):
         """Test the data coverage utility."""
-        df = pd.read_csv(NAPKIN_OBSERVATIONAL_PATH, sep="\t")
+        df = napkin_example.generate_data(1000)
         self.assertTrue(df_covers_graph(graph=napkin, df=df))
         self.assertFalse(df_covers_graph(graph=frontdoor, df=df))
 
     @unittest.skip(reason="Turn this test on before finishing the PR")
     def test_estimate_ate(self):
         """Run a simple test for ATE on the napkin graph."""
-        df = pd.read_csv(NAPKIN_OBSERVATIONAL_PATH, sep="\t")
+        df = napkin_example.generate_data(1000)
         expected_result = 0.0005
         result = estimate_ate(graph=napkin, data=df, treatment=X, outcome=Y)
         self.assertAlmostEqual(expected_result, result, delta=1e-5)

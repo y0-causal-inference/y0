@@ -513,7 +513,7 @@ class NxMixedGraph:
             nodes = {nodes}
         else:
             nodes = set(nodes)
-        blanket = set()
+        blanket: set[Variable] = set()
         for node in nodes:
             blanket.update(self.get_district(node))
         for node in blanket.copy():

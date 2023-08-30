@@ -231,10 +231,7 @@ def get_primal_ipw_point_estimate(
     treatment_value,
     outcome: Variable,
 ) -> float:
-    """Estimate the counterfactual mean E[Y(t)] with the Primal IPW estimator.
-
-    This can be applied to graphs that are not a-fixable but are p-fixable.
-    """
+    """Estimate the counterfactual mean E[Y(t)] with the Primal IPW estimator on p-fixable graphs."""
     beta_primal = get_beta_primal(
         data=data,
         graph=graph,
@@ -266,24 +263,19 @@ def fit_continuous_glm(data, formula, weights=None) -> GLM:
 
 
 def get_conditional_probability_formula_for_node(graph: NxMixedGraph, node: Variable) -> str:
-    """Generates the conditional probability formula for a given node based on its markov pillow."""
+    """Generate the conditional probability formula for a given node based on its markov pillow."""
     markov_pillow = graph.get_markov_pillow([node])
-    markov_pillow_names = [node.name for node in markov_pillow]
-    formula = node.name + "~" + "+".join(markov_pillow_names)
+    formula = node.name + "~" + "+".join(node.name for node in markov_pillow)
     return formula
 
 
 def get_state_space_map(data: pd.DataFrame) -> Dict[Variable, Literal["binary", "continuous"]]:
     """Get a dictionary from each variable to its type."""
-    from typing import Any
-    state_space_map = dict()
     binary_set = {0, 1}
-    for column_name, column_values in data.items():
-        if binary_set.issuperset(column_values.unique()):
-            state_space_map[Variable(column_name)] = "binary"
-        else:
-            state_space_map[Variable(column_name)] = "continuous"
-    return state_space_map
+    return {
+        Variable(column): "binary" if binary_set.issuperset(data[column].unique()) else "continuous"
+        for column in data.columns
+    }
 
 
 def get_beta_primal(
