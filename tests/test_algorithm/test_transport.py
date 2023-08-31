@@ -590,20 +590,13 @@ class TestTransport(cases.GraphTestCase):
             domain=Pi2,
             domains={Pi1, Pi2},
             graphs={
-                TARGET_DOMAIN: tikka_trso_figure_8.subgraph({Y2}),
-                Pi1: graph_1.subgraph({Y2}),
+                TARGET_DOMAIN: tikka_trso_figure_8.subgraph({W, X1, Y2, Z}),
+                Pi1: graph_1.subgraph({W, X1, Y2, Z}),
                 Pi2: graph_2.subgraph({Y2}),
             },
             surrogate_interventions=dict(),
         )
 
-        self.assertEqual(
-            type(canonicalize(line10_expected1.expression)), type(line10_actual1.expression)
-        )
-        self.assertEqual(type(line10_expected1.expression), type(line10_actual1.expression))
-
-        self.assertEqual(line10_expected1.expression, line10_actual1.expression)
-        self.assertEqual(line10_expected1.graphs, line10_actual1.graphs)
         self.assertEqual(line10_expected1, line10_actual1)
 
     def test_trso(self):
@@ -658,13 +651,12 @@ class TestTransport(cases.GraphTestCase):
         )
         actual_part2 = trso(query_part2)
         expected_part2_conditional = canonicalize(
-            PP[TARGET_DOMAIN](Y1 @ X1, Z @ X1, W @ X1).conditional((Z @ X1, W @ X1))
+            PP[Pi1](Y1 @ X1, Z @ X1, W @ X1).conditional((Z @ X1, W @ X1))
         )
-        expected_part2_magic_p = PP[TARGET_DOMAIN][X1](Y1 | W, Z)
-        expected_part2_full = PP[TARGET_DOMAIN][X1](W, Y1, Z) / Sum[Y1](
-            PP[TARGET_DOMAIN][X1](W, Y1, Z)
-        )
+        expected_part2_magic_p = PP[Pi1][X1](Y1 | W, Z)
+        expected_part2_full = PP[Pi1][X1](W, Y1, Z) / Sum[Y1](PP[Pi1][X1](W, Y1, Z))
 
+        self.assert_expr_equal(expected_part2_full.numerator, actual_part2.numerator)
         self.assert_expr_equal(expected_part2_full, actual_part2)
         self.assert_expr_equal(expected_part2_conditional, actual_part2)
         self.assert_expr_equal(bayes_expand(expected_part2_magic_p), actual_part2)
@@ -689,12 +681,10 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
         actual_part3 = trso(query_part3)
-        expected_part3_conditional = canonicalize(
-            PP[TARGET_DOMAIN][X2](Y2, X1, Z, W).conditional((X1, Z, W))
-        )
-        expected_part3_magic_p = PP[TARGET_DOMAIN][X2](Y2 | W, Z, X1)
-        expected_part3_full = PP[TARGET_DOMAIN](W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2) / Sum[Y2](
-            PP[TARGET_DOMAIN](W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2)
+        expected_part3_conditional = canonicalize(PP[Pi2][X2](Y2, X1, Z, W).conditional((X1, Z, W)))
+        expected_part3_magic_p = PP[Pi2][X2](Y2 | W, Z, X1)
+        expected_part3_full = PP[Pi2](W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2) / Sum[Y2](
+            PP[Pi2](W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2)
         )
         self.assert_expr_equal(expected_part3_full, actual_part3)
         self.assert_expr_equal(expected_part3_conditional, actual_part3)
