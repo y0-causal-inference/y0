@@ -245,6 +245,7 @@ def trso_line2(
     new_query.target_interventions.intersection_update(outcomes_ancestors)
     new_query.graphs[new_query.domain] = query.graphs[query.domain].subgraph(outcomes_ancestors)
     if isinstance(query.expression, PopulationProbability):
+        # If the expression is a PopulationProbability instead of Sum, Product,Fraction
         # This is true by the chain rule and marginalizing
         new_query.expression = PopulationProbability(
             population=query.domain,
