@@ -7,6 +7,7 @@ from y0.algorithm.transport import (
     TRSOQuery,
     get_nodes_to_transport,
     surrogate_to_transport,
+    transport,
     transport_variable,
     trso,
     trso_line1,
@@ -22,7 +23,6 @@ from y0.dsl import (
     Y1,
     Y2,
     Expression,
-    P,
     Pi1,
     Pi2,
     PopulationProbability,
@@ -715,5 +715,31 @@ class TestTransport(cases.GraphTestCase):
                 Product.safe([expected_part1, expected_part2, expected_part3]),
                 (W, Z),
             )
+        )
+        self.assert_expr_equal(expected, actual)
+
+    def test_transport(self):
+        """Test that transport returns the correct expression."""
+        expected_part1 = PP[TARGET_DOMAIN](W, Z)
+        expected_part2 = bayes_expand(PP[Pi1][X1](Y1 | W, Z))
+        expected_part3 = bayes_expand(PP[Pi2][X2](Y2 | W, Z, X1))
+        expected = canonicalize(
+            Sum.safe(
+                Product.safe([expected_part1, expected_part2, expected_part3]),
+                (W, Z),
+            )
+        )
+
+        target_outcomes = {Y1, Y2}
+        target_interventions = {X1, X2}
+        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
+        surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
+
+        actual = transport(
+            target_outcomes=target_outcomes,
+            target_interventions=target_interventions,
+            graph=tikka_trso_figure_8,
+            surrogate_outcomes=surrogate_outcomes,
+            surrogate_interventions=surrogate_interventions,
         )
         self.assert_expr_equal(expected, actual)

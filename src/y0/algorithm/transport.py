@@ -3,7 +3,7 @@
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, FrozenSet, Iterable, List, Mapping, Optional, Set, Union, cast
+from typing import Dict, FrozenSet, Iterable, Optional, Set, Union, cast
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
@@ -647,13 +647,34 @@ def _pillow_has_transport(graph, district) -> bool:
 
 
 def transport(
+    target_outcomes: Set[Variable],
+    target_interventions: Set[Variable],
     graph: NxMixedGraph,
-    transports: Mapping[Variable, List[Population]],
-    treatments: List[Variable],
-    outcomes: List[Variable],
-    conditions: Optional[List[Variable]] = None,
-):
-    """Transport algorithm from https://arxiv.org/abs/1806.07172."""
-    if conditions is not None:
-        raise NotImplementedError
-    raise NotImplementedError
+    surrogate_outcomes: Dict[Population, Set[Variable]],
+    surrogate_interventions: Dict[Population, Set[Variable]],
+) -> Expression | None:
+    """Transport algorithm from https://arxiv.org/abs/1806.07172.
+
+    :param target_outcomes: A set of target variables for causal effects.
+    :param target_interventions: A set of interventions for the target domain.
+    :param graph: The graph of the target domain.
+    :param surrogate_outcomes: A dictionary of outcomes in other populations
+    :param surrogate_interventions: A dictionary of interentions in other populations
+    :returns: An Expression evaluating the given query, or None
+    """
+    transport_query = surrogate_to_transport(
+        target_outcomes, target_interventions, graph, surrogate_outcomes, surrogate_interventions
+    )
+    initial_expression = PP[TARGET_DOMAIN](graph.nodes())
+    trso_query = TRSOQuery(
+        target_interventions=transport_query.target_interventions,
+        target_outcomes=transport_query.target_outcomes,
+        expression=initial_expression,
+        active_interventions=set(),
+        domain=TARGET_DOMAIN,
+        domains=transport_query.domains,
+        graphs=transport_query.graphs,
+        surrogate_interventions=transport_query.surrogate_interventions,
+    )
+
+    return trso(trso_query)
