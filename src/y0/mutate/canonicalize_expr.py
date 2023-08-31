@@ -11,6 +11,7 @@ from ..dsl import (
     Expression,
     Fraction,
     One,
+    PopulationProbability,
     Probability,
     Product,
     Sum,
@@ -155,7 +156,9 @@ class Canonicalizer:
             and the rest depends on the expression type.
         :raises TypeError: if an invalid expression type is given
         """
-        if isinstance(expression, Probability):
+        if isinstance(expression, PopulationProbability):
+            return -1, expression.population, expression.children[0].name
+        elif isinstance(expression, Probability):
             return 0, expression.children[0].name
         elif isinstance(expression, Sum):
             return 1, *self._nonatomic_key(expression.expression)
