@@ -265,7 +265,7 @@ class TestGraph(unittest.TestCase):
             ]
         )
         self.assertEqual(
-            {x[2], x[3]},
+            {x[2], x[3], x[5], x[7], x[8], x[9]},
             graph.get_markov_blanket(x[6]),
         )
 
