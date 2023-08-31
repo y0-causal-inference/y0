@@ -9,6 +9,7 @@ from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
     PP,
     CounterfactualVariable,
+    Distribution,
     Expression,
     Fraction,
     Intervention,
@@ -240,8 +241,11 @@ def trso_line2(
     new_query.graphs[new_query.domain] = query.graphs[query.domain].subgraph(outcomes_ancestors)
     if isinstance(query.expression, PopulationProbability):
         # This is true by the chain rule and marginalizing
-        new_query.expression = PP[query.domain](
-            set(query.expression.children).intersection(outcomes_ancestors)
+        new_query.expression = PopulationProbability(
+            population=query.domain,
+            distribution=Distribution.safe(
+                set(query.expression.children).intersection(outcomes_ancestors)
+            ),
         )
     else:
         logger.debug(
@@ -522,7 +526,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     if get_regular_nodes(graph) - outcome_ancestors:
         new_query = trso_line2(query, outcome_ancestors)
         logger.debug("Calling trso algorithm line 2")
-        return canonicalize(trso(new_query))
+        return trso(new_query)
 
     # line 3
     additional_interventions = graph.get_no_effect_on_outcomes(
@@ -531,7 +535,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     if additional_interventions:
         new_query = trso_line3(query, additional_interventions)
         logger.debug("Calling trso algorithm line 3")
-        return canonicalize(trso(new_query))
+        return trso(new_query)
 
     # line 4
     districts_without_interventions: set[frozenset[Variable]] = graph.remove_nodes_from(
