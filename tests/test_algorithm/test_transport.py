@@ -37,7 +37,7 @@ from y0.dsl import (
     Zero,
 )
 from y0.graph import NxMixedGraph
-from y0.mutate import bayes_expand, canonicalize
+from y0.mutate import fraction_expand, canonicalize
 
 X1, X2 = Variable("X1"), Variable("X2")
 
@@ -659,7 +659,7 @@ class TestTransport(cases.GraphTestCase):
         self.assert_expr_equal(expected_part2_full.numerator, actual_part2.numerator)
         self.assert_expr_equal(expected_part2_full, actual_part2)
         self.assert_expr_equal(expected_part2_conditional, actual_part2)
-        self.assert_expr_equal(bayes_expand(expected_part2_magic_p), actual_part2)
+        self.assert_expr_equal(fraction_expand(expected_part2_magic_p), actual_part2)
         # The path here should be
         # line2, line6, line10, return from line7
         # The actual path is
@@ -688,7 +688,7 @@ class TestTransport(cases.GraphTestCase):
         )
         self.assert_expr_equal(expected_part3_full, actual_part3)
         self.assert_expr_equal(expected_part3_conditional, actual_part3)
-        self.assert_expr_equal(bayes_expand(expected_part3_magic_p), actual_part3)
+        self.assert_expr_equal(fraction_expand(expected_part3_magic_p), actual_part3)
 
         query = TRSOQuery(
             target_interventions={X1, X2},
@@ -721,8 +721,8 @@ class TestTransport(cases.GraphTestCase):
     def test_transport(self):
         """Test that transport returns the correct expression."""
         expected_part1 = PP[TARGET_DOMAIN](W, Z)
-        expected_part2 = bayes_expand(PP[Pi1][X1](Y1 | W, Z))
-        expected_part3 = bayes_expand(PP[Pi2][X2](Y2 | W, Z, X1))
+        expected_part2 = fraction_expand(PP[Pi1][X1](Y1 | W, Z))
+        expected_part3 = fraction_expand(PP[Pi2][X2](Y2 | W, Z, X1))
         expected = canonicalize(
             Sum.safe(
                 Product.safe([expected_part1, expected_part2, expected_part3]),

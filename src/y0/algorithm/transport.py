@@ -549,7 +549,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
             if term is None:
                 raise NotImplementedError
             terms.append(term)
-
+        
         product = Product.safe(terms)
         summand = canonicalize(product)  # fix sort order inside product
         return canonicalize(
