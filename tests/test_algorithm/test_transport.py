@@ -5,6 +5,8 @@ from y0.algorithm.transport import (
     TARGET_DOMAIN,
     TransportQuery,
     TRSOQuery,
+    add_active_interventions,
+    create_transport_diagram,
     get_nodes_to_transport,
     surrogate_to_transport,
     transport,
@@ -37,7 +39,7 @@ from y0.dsl import (
     Zero,
 )
 from y0.graph import NxMixedGraph
-from y0.mutate import fraction_expand, canonicalize
+from y0.mutate import canonicalize, fraction_expand
 
 X1, X2 = Variable("X1"), Variable("X2")
 
@@ -121,6 +123,19 @@ class TestTransport(cases.GraphTestCase):
             msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
         )
 
+    def test_transport_variable(self):
+        """Test that transport nodes will not take inappropriate inputs"""
+        with self.assertRaises(TypeError):
+            transport_variable(Y1 @ -X2)
+
+    def test_create_transport_diagram(self):
+        """Test that we can create the transport diagram correctly."""
+        graph_Pi1 = create_transport_diagram(graph=tikka_trso_figure_8, nodes_to_transport={X1, Y2})
+        graph_Pi2 = create_transport_diagram(graph=tikka_trso_figure_8, nodes_to_transport={X2})
+
+        self.assertEqual(graph_1, graph_Pi1)
+        self.assertEqual(graph_2, graph_Pi2)
+
     def test_get_nodes_to_transport(self):
         """Test that we can correctly find the nodes which should have transport nodes."""
         expected = {X1, Y2}
@@ -169,6 +184,55 @@ class TestTransport(cases.GraphTestCase):
             target_experiments=set(),
         )
         self.assertEqual(actual, expected)
+        Pi3 = Variable("Pi3")
+        extra_surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}, Pi3: {Y2}}
+        missing_surrogate_interventions = {Pi1: {Y2}}
+        with self.assertRaises(ValueError):
+            surrogate_to_transport(
+                target_outcomes=target_outcomes,
+                target_interventions=target_interventions,
+                graph=tikka_trso_figure_8,
+                surrogate_outcomes=extra_surrogate_outcomes,
+                surrogate_interventions=surrogate_interventions,
+            )
+        with self.assertRaises(ValueError):
+            surrogate_to_transport(
+                target_outcomes=target_outcomes,
+                target_interventions=target_interventions,
+                graph=tikka_trso_figure_8,
+                surrogate_outcomes=surrogate_outcomes,
+                surrogate_interventions=missing_surrogate_interventions,
+            )
+
+    def test_add_active_interventions(self):
+        """Test that interventions are added correctly."""
+
+        expected_1 = fraction_expand(PP[Pi1][X1](Y1 | W, Z))
+        expected_2 = fraction_expand(PP[Pi2][X2](Y2 | W, Z, X1))
+        test_1 = fraction_expand(PP[Pi1](Y1 | W, Z))
+        test_2 = fraction_expand(PP[Pi2](Y2 | W, Z, X1))
+        # expected = canonicalize(
+        #     Sum.safe(
+        #         Product.safe([expected_part1, expected_part2, expected_part3]),
+        #         (W, Z),
+        #     )
+        # )
+        # expected = Sum[Y1](PP[Pi1][X1](W, Y1, Z)
+        actual_1 = add_active_interventions(test_1, X1)
+        self.assert_expr_equal(expected_1, actual_1)
+        actual_2 = add_active_interventions(test_2, X2)
+        self.assert_expr_equal(expected_2, actual_2)
+
+        expected_3 = Sum.safe(expected_1, (W, Z))
+        test_3 = Sum.safe(test_1, (W, Z))
+        actual_3 = add_active_interventions(test_3, X1)
+        self.assert_expr_equal(expected_3, actual_3)
+
+        expected_1b = fraction_expand(PP[Pi1][X2](Y1 | W, Z))
+        expected_4 = Product.safe((expected_1b, expected_2))
+        test_4 = Product.safe((test_1, test_2))
+        actual_4 = add_active_interventions(test_4, X2)
+        self.assert_expr_equal(expected_4, actual_4)
 
     def test_trso_line1(self):
         """Test that trso_line 1 returns the correct expression."""

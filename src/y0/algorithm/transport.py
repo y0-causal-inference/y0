@@ -341,7 +341,6 @@ def _line_6_helper(
 def add_active_interventions(
     expression: Expression,
     active_interventions: Set[Variable],
-    target_outcomes: Set[Variable],  # FIXME this doesn't appear to be used
 ) -> Expression:
     """Intervene on the target variables of expression using the active interventions.
 
@@ -355,26 +354,22 @@ def add_active_interventions(
         return expression.intervene(active_interventions)
     if isinstance(expression, Sum):
         intervened_expression = add_active_interventions(
-            expression.expression, active_interventions, target_outcomes
+            expression.expression, active_interventions
         )
-        intervened_ranges = tuple(
-            variable.intervene(active_interventions) for variable in expression.ranges
-        )
-        return Sum.safe(intervened_expression, intervened_ranges)
+        # Don't intervene the ranges because counterfactual variables shouldn't be in ranges
+        # intervened_ranges = tuple(
+        #     variable.intervene(active_interventions) for variable in expression.ranges
+        # )
+        return Sum.safe(intervened_expression, expression.ranges)
     if isinstance(expression, Fraction):
-        new_numerator = add_active_interventions(
-            expression.numerator, active_interventions, target_outcomes
-        )
-        new_denominator = add_active_interventions(
-            expression.denominator, active_interventions, target_outcomes
-        )
+        new_numerator = add_active_interventions(expression.numerator, active_interventions)
+        new_denominator = add_active_interventions(expression.denominator, active_interventions)
         return cast(Fraction, new_numerator / new_denominator).simplify()
     if isinstance(expression, Product):
         intervened_expressions = [
             add_active_interventions(
                 expr,
                 active_interventions,
-                target_outcomes,
             )
             for expr in expression.expressions
         ]
@@ -549,7 +544,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
             if term is None:
                 raise NotImplementedError
             terms.append(term)
-        
+
         product = Product.safe(terms)
         summand = canonicalize(product)  # fix sort order inside product
         return canonicalize(
@@ -567,9 +562,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
             expression = trso(subquery)
             if expression is None:
                 raise NotImplementedError
-            expression = add_active_interventions(
-                expression, subquery.active_interventions, subquery.target_outcomes
-            )
+            expression = add_active_interventions(expression, subquery.active_interventions)
             if expression is not None:  # line7
                 logger.debug(
                     "Calling trso algorithm line 7",
