@@ -526,7 +526,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     if get_regular_nodes(graph) - outcome_ancestors:
         new_query = trso_line2(query, outcome_ancestors)
         logger.debug("Calling trso algorithm line 2")
-        return trso(new_query)
+        return canonicalize(trso(new_query))
 
     # line 3
     additional_interventions = graph.get_no_effect_on_outcomes(
@@ -535,7 +535,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     if additional_interventions:
         new_query = trso_line3(query, additional_interventions)
         logger.debug("Calling trso algorithm line 3")
-        return trso(new_query)
+        return canonicalize(trso(new_query))
 
     # line 4
     districts_without_interventions: set[frozenset[Variable]] = graph.remove_nodes_from(
@@ -644,7 +644,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         set(target_district),
         new_surrogate_interventions,
     )
-    return trso(new_query)
+    return canonicalize(trso(new_query))
 
 
 def _pillow_has_transport(graph, district) -> bool:
