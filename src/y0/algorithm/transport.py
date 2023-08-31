@@ -7,7 +7,6 @@ from typing import Dict, FrozenSet, Iterable, Optional, Set, Union, cast
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
-    PP,
     CounterfactualVariable,
     Distribution,
     Expression,
@@ -114,6 +113,12 @@ def get_regular_nodes(graph: NxMixedGraph) -> Set[Variable]:
     :returns: Set containing all nodes which are not transport nodes
     """
     return {node for node in graph.nodes() if not is_transport_node(node)}
+
+
+def _c14n_safe(expression: Expression | None) -> Expression | None:
+    if expression is None:
+        return None
+    return canonicalize(expression)
 
 
 def create_transport_diagram(
@@ -516,7 +521,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     if get_regular_nodes(graph) - outcome_ancestors:
         new_query = trso_line2(query, outcome_ancestors)
         logger.debug("Calling trso algorithm line 2")
-        return canonicalize(trso(new_query))
+        return _c14n_safe(trso(new_query))
 
     # line 3
     additional_interventions = graph.get_no_effect_on_outcomes(
@@ -525,7 +530,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     if additional_interventions:
         new_query = trso_line3(query, additional_interventions)
         logger.debug("Calling trso algorithm line 3")
-        return canonicalize(trso(new_query))
+        return _c14n_safe(trso(new_query))
 
     # line 4
     districts_without_interventions: set[frozenset[Variable]] = graph.remove_nodes_from(
@@ -632,7 +637,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         set(target_district),
         new_surrogate_interventions,
     )
-    return canonicalize(trso(new_query))
+    return _c14n_safe(trso(new_query))
 
 
 def _pillow_has_transport(graph, district) -> bool:
@@ -658,7 +663,10 @@ def transport(
     transport_query = surrogate_to_transport(
         target_outcomes, target_interventions, graph, surrogate_outcomes, surrogate_interventions
     )
-    initial_expression = PP[TARGET_DOMAIN](graph.nodes())
+    initial_expression = PopulationProbability(
+        population=TARGET_DOMAIN,
+        distribution=Distribution.safe(graph.nodes()),
+    )
     trso_query = TRSOQuery(
         target_interventions=transport_query.target_interventions,
         target_outcomes=transport_query.target_outcomes,
