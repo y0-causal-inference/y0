@@ -370,20 +370,15 @@ def add_active_interventions(
         )
         return cast(Fraction, new_numerator / new_denominator).simplify()
     if isinstance(expression, Product):
-        intervened_expression = add_active_interventions(
-            # FIXME, this should be handled in a loop over `expression.expressions`,
-            #  not expression.expression (note the plural)
-            expression.expression,
-            active_interventions,
-            target_outcomes,
-        )
-        # FIXME product doesn't have ranges
-        intervened_ranges = tuple(
-            variable.intervene(active_interventions) for variable in expression.ranges
-        )
-        # FIXME doesn't make sense to return a sum when handling product, was this
-        #  copy+pasted?
-        return Sum.safe(intervened_expression, intervened_ranges)
+        intervened_expressions = [
+            add_active_interventions(
+                expr,
+                active_interventions,
+                target_outcomes,
+            )
+            for expr in expression.expressions
+        ]
+        return Product.safe(intervened_expressions)
     raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
 
 
