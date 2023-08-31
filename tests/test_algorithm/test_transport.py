@@ -25,6 +25,8 @@ from y0.dsl import (
     P,
     Pi1,
     Pi2,
+    PopulationProbability,
+    Probability,
     Product,
     Sum,
     Variable,
@@ -555,7 +557,54 @@ class TestTransport(cases.GraphTestCase):
 
     def test_trso_line10(self):
         """Test that trso_line10 correctly modifies the query."""
-        pass
+        # pass
+        line10_query1 = TRSOQuery(
+            target_interventions={W, Z, X1},
+            target_outcomes={Y2},
+            expression=PP[Pi2](W, X1, Y2, Z),
+            active_interventions={X2},
+            domain=Pi2,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8.subgraph({W, X1, Y2, Z}),
+                Pi1: graph_1.subgraph({W, X1, Y2, Z}),
+                Pi2: graph_2.subgraph({W, X1, Y2, Z}),
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
+        district1 = {Y2}
+        new_surrogate_interventions = dict()
+        line10_actual1 = trso_line10(line10_query1, district1, new_surrogate_interventions)
+
+        ordering = list(line10_query1.graphs[Pi2].topological_sort())
+        i = ordering.index(Y2)
+        pre_node = set(ordering[:i])
+        prob = Probability.safe(Y2 | pre_node)
+        new_expression = PopulationProbability(population=Pi2, distribution=prob.distribution)
+
+        line10_expected1 = TRSOQuery(
+            target_interventions=set(),
+            target_outcomes={Y2},
+            expression=new_expression,
+            active_interventions={X2},
+            domain=Pi2,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: tikka_trso_figure_8.subgraph({Y2}),
+                Pi1: graph_1.subgraph({Y2}),
+                Pi2: graph_2.subgraph({Y2}),
+            },
+            surrogate_interventions=dict(),
+        )
+
+        self.assertEqual(
+            type(canonicalize(line10_expected1.expression)), type(line10_actual1.expression)
+        )
+        self.assertEqual(type(line10_expected1.expression), type(line10_actual1.expression))
+
+        self.assertEqual(line10_expected1.expression, line10_actual1.expression)
+        self.assertEqual(line10_expected1.graphs, line10_actual1.graphs)
+        self.assertEqual(line10_expected1, line10_actual1)
 
     def test_trso(self):
         """Test that trso returns the correct expression."""
@@ -641,13 +690,15 @@ class TestTransport(cases.GraphTestCase):
         )
         actual_part3 = trso(query_part3)
         expected_part3_conditional = canonicalize(
-            PP[TARGET_DOMAIN](Y2 @ X2, X1 @ X2, Z @ X2, W @ X2).conditional((X1, Z, W))
+            PP[TARGET_DOMAIN][X2](Y2, X1, Z, W).conditional((X1, Z, W))
         )
-        expected_part3_magic_p = P[X2](Y2 | W, Z, X1)
-        expected_part3_full = P(W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2) / Sum[Y2](
-            P(W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2)
+        expected_part3_magic_p = PP[TARGET_DOMAIN][X2](Y2 | W, Z, X1)
+        expected_part3_full = PP[TARGET_DOMAIN](W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2) / Sum[Y2](
+            PP[TARGET_DOMAIN](W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2)
         )
         self.assert_expr_equal(expected_part3_full, actual_part3)
+        self.assert_expr_equal(expected_part3_conditional, actual_part3)
+        self.assert_expr_equal(bayes_expand(expected_part3_magic_p), actual_part3)
 
         query = TRSOQuery(
             target_interventions={X1, X2},
