@@ -674,8 +674,10 @@ def transport(
     # TODO are there any other checks we should add at the beginning?
     check_and_raise_missing(target_outcomes, graph, "target_outcomes")
     check_and_raise_missing(target_interventions, graph, "target_interventions")
-    check_and_raise_missing(surrogate_outcomes.values(), graph, "surrogate_outcomes")
-    check_and_raise_missing(surrogate_interventions.values(), graph, "surrogate_interventions")
+    check_and_raise_missing(set().union(*surrogate_outcomes.values()), graph, "surrogate_outcomes")
+    check_and_raise_missing(
+        set().union(*surrogate_interventions.values()), graph, "surrogate_interventions"
+    )
 
     transport_query = surrogate_to_transport(
         graph=graph,
