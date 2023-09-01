@@ -797,41 +797,6 @@ class TestTransport(cases.GraphTestCase):
         )
         self.assert_expr_equal(expected, actual)
 
-        # TODO Doing these in TRSO is a little contrived, ideally we should recreate these in test_transport.
-        # This triggers line 10.
-        # TODO it fails on the next recursive loop, would be better to find an example that doesn't fail.
-        new_transportability_diagram = NxMixedGraph.from_edges(
-            undirected=[(X1, Y1), (Y1, W), (Z, X2)],
-            directed=[
-                (X1, Y1),
-                (X1, Y2),
-                (W, Y1),
-                (W, Y2),
-                (Z, Y1),
-                (Z, X2),
-                (X2, Y2),
-                (Z, Y2),
-            ],
-        )
-
-        query_10 = TRSOQuery(
-            target_interventions={W, Z},
-            target_outcomes={Y1},
-            expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
-            active_interventions={X1},
-            domain=TARGET_DOMAIN,
-            domains={Pi1, Pi2},
-            graphs={
-                TARGET_DOMAIN: new_transportability_diagram,
-                Pi1: graph_1,
-                Pi2: graph_2,
-            },
-            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
-        )
-
-        actual_10 = trso(query_10)
-        self.assertIsNone(actual_10)
-
     def test_transport(self):
         """Test that transport returns the correct expression."""
         expected_part1 = PP[TARGET_DOMAIN](W, Z)
@@ -892,8 +857,7 @@ class TestTransport(cases.GraphTestCase):
             )
 
         # This triggers line 10.
-        # This appears to trigger line10, and then error on line 6 in the next loop.
-        # TODO track down the cause of error and solve
+        # TODO it fails on the next recursive loop, would be better to find an example that doesn't fail.
         new_graph = NxMixedGraph.from_edges(
             undirected=[(X1, Y1), (Y1, W), (Z, X2)],
             directed=[
@@ -920,3 +884,4 @@ class TestTransport(cases.GraphTestCase):
             surrogate_outcomes=surrogate_outcomes,
             surrogate_interventions=surrogate_interventions,
         )
+        self.assertIsNone(actual_10)

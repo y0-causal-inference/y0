@@ -548,7 +548,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         )
 
     # line 6
-    if not query.active_interventions:
+    if not query.active_interventions and query.surrogate_interventions:
         expressions: Dict[Population, Expression] = {}
         for domain, subquery in trso_line6(query).items():
             logger.debug("Calling trso algorithm line 6 for domain %s", domain)
