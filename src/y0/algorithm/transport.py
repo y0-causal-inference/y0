@@ -499,7 +499,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         "\t- active_interventions: %s\n"
         "\t- domain: %s\n"
         "\t- domains: %s\n"
-        # "\t- graphs: %s\n"
+        "\t- graph[domain] nodes: %s\n"
         "\t- surrogate_interventions: %s",
         query.target_interventions,
         query.target_outcomes,
@@ -507,7 +507,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         query.active_interventions,
         query.domain,
         query.domains,
-        # query.graphs,
+        query.graphs[query.domain].nodes(),
         query.surrogate_interventions,
     )
 
@@ -567,7 +567,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
             logger.debug("Calling trso algorithm line 6 for domain %s", domain)
             expression = trso(subquery)
             if expression is None:
-                raise NotImplementedError
+                continue
             expression = add_active_interventions(expression, subquery.active_interventions)
             if expression is not None:  # line7
                 logger.debug(
@@ -619,6 +619,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     #     raise NotImplementedError("multiple districts without interventions found")
 
     # line10
+    logger.debug("Calling trso algorithm line 10")
     target_districts = []
     for district in districts:
         if district_without_interventions.issubset(district):

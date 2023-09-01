@@ -819,8 +819,8 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
 
-        actual = trso(query_11)
-        self.assertEqual(None, actual)
+        actual_11 = trso(query_11)
+        self.assertEqual(None, actual_11)
 
         # This triggers triggers not implemented error on line 9
         new_transportability_diagram = tikka_trso_figure_8.subgraph(
@@ -844,6 +844,40 @@ class TestTransport(cases.GraphTestCase):
 
         with self.assertRaises(NotImplementedError):
             trso(query_9)
+
+        # This triggers line 10, TODO not there yet.
+        new_transportability_diagram = NxMixedGraph.from_edges(
+            undirected=[(X1, Y1), (Y1, W), (Z, X2)],
+            directed=[
+                (X1, Y1),
+                (X1, Y2),
+                (W, Y1),
+                (W, Y2),
+                (Z, Y1),
+                (Z, X2),
+                (X2, Y2),
+                (Z, Y2),
+            ],
+        )
+
+        query_10 = TRSOQuery(
+            target_interventions={W, Z},
+            target_outcomes={Y1},
+            expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
+            active_interventions={X1},
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: new_transportability_diagram,
+                Pi1: graph_1,
+                Pi2: graph_2,
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
+
+        actual_10 = trso(query_10)
+        # expected = what?
+        # self.assertEqual(expected, actual_10)
 
     def test_transport(self):
         """Test that transport returns the correct expression."""
