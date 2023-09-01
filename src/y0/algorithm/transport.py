@@ -618,6 +618,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
     if len(query.active_interventions) == 0:
         # FIXME is this even possible? doesn't line 6 check this and return something else?
+        # ^^ trso_line6 could return an empty list and skip over the returns, allowing this line to be reached.
         new_surrogate_interventions = dict()
     elif _pillow_has_transport(graph, target_district):
         return None
