@@ -745,11 +745,6 @@ class TestTransport(cases.GraphTestCase):
         self.assert_expr_equal(expected_part2_full, actual_part2)
         self.assert_expr_equal(expected_part2_conditional, actual_part2)
         self.assert_expr_equal(fraction_expand(expected_part2_magic_p), actual_part2)
-        # The path here should be
-        # line2, line6, line10, return from line7
-        # The actual path is
-        # line2, line6, line9, return from line7
-        # X1 appears to be getting dropped erroneuosly
 
         query_part3 = TRSOQuery(
             target_interventions={X1, X2, Z, W, Y1},
@@ -826,6 +821,29 @@ class TestTransport(cases.GraphTestCase):
 
         actual = trso(query_11)
         self.assertEqual(None, actual)
+
+        # This triggers triggers not implemented error on line 9
+        new_transportability_diagram = tikka_trso_figure_8.subgraph(
+            tikka_trso_figure_8.nodes() - {X1}
+        )
+
+        query_9 = TRSOQuery(
+            target_interventions={X2, Y2, Z, Y1, W},
+            target_outcomes={Y1},
+            expression=PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()),
+            active_interventions={},
+            domain=TARGET_DOMAIN,
+            domains={Pi1, Pi2},
+            graphs={
+                TARGET_DOMAIN: new_transportability_diagram,
+                Pi1: graph_1,
+                Pi2: graph_2,
+            },
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
+
+        with self.assertRaises(NotImplementedError):
+            trso(query_9)
 
     def test_transport(self):
         """Test that transport returns the correct expression."""

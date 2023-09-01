@@ -588,6 +588,8 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     districts = graph.districts()
     # line 11, return fail. keep explict tests for 0 and 1 to ensure adequate testing
     if len(districts) == 0:
+        # TODO. I think this will only occur if graph is empty.
+        # Does it make sense to have an empty graph? We could check this early on instead.
         logger.debug(
             "Fail on algorithm line 11 (length of districts equals 0)",
         )
@@ -612,8 +614,9 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         # FIXME ^ doesn't seem quite right since this is exact checking while line 10 is subsets
     elif len(districts_without_interventions) == 0:
         raise NotImplementedError("no districts without interventions found")
-    else:  # multiple districts
-        raise NotImplementedError("multiple districts without interventions found")
+    # TODO: double check that this is covered by if len(districts_without_interventions) > 1: on line 540
+    # else:  # multiple districts
+    #     raise NotImplementedError("multiple districts without interventions found")
 
     # line10
     target_districts = []
