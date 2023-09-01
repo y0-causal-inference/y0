@@ -797,6 +797,7 @@ class TestTransport(cases.GraphTestCase):
         )
         self.assert_expr_equal(expected, actual)
 
+        # TODO Doing these in TRSO is a little contrived, ideally we should recreate these in test_transport.
         # This triggers fail on line 11 for district length of 1
         new_transportability_diagram = tikka_trso_figure_8.subgraph(
             tikka_trso_figure_8.nodes() - {X1}
@@ -844,7 +845,8 @@ class TestTransport(cases.GraphTestCase):
         with self.assertRaises(NotImplementedError):
             trso(query_9)
 
-        # This triggers line 10, TODO not there yet.
+        # This triggers line 10.
+        # TODO it fails on the next recursive loop, would be better to find an example that doesn't fail.
         new_transportability_diagram = NxMixedGraph.from_edges(
             undirected=[(X1, Y1), (Y1, W), (Z, X2)],
             directed=[
@@ -875,9 +877,7 @@ class TestTransport(cases.GraphTestCase):
         )
 
         actual_10 = trso(query_10)
-        self.assertIsNotNone(actual_10)
-        # expected = what?
-        # self.assertEqual(expected, actual_10)
+        self.assertIsNone(actual_10)
 
     def test_transport(self):
         """Test that transport returns the correct expression."""
