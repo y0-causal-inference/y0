@@ -636,6 +636,22 @@ def _pillow_has_transport(graph, district) -> bool:
     return any(is_transport_node(node) for node in graph.get_markov_pillow(district))
 
 
+def check_and_raise_missing(nodes, graph, name):
+    """Verifies that nodes are present in the graph.
+
+    :param nodes: A set of nodes that should be in the graph.
+    :param graph: An NxMixedGraph(), the graph of the target domain.
+    :param name: Name of the set of nodes
+    :raises ValueError: If any element of nodes is not in the graph.
+    """
+    missing_nodes = nodes - graph.nodes()
+    missing_nodes_text = {node.to_text() for node in missing_nodes}
+    if missing_nodes_text:
+        raise ValueError(
+            f"The following {name} are not in the graph: {', '.join(missing_nodes_text)}"
+        )
+
+
 def transport(
     *,
     graph: NxMixedGraph,
@@ -652,7 +668,15 @@ def transport(
     :param surrogate_outcomes: A dictionary of outcomes in other populations
     :param surrogate_interventions: A dictionary of interventions in other populations
     :returns: An Expression evaluating the given query, or None
+    :raises ValueError: If a target, outcome, or intervention is not in the graph.
     """
+
+    # TODO are there any other checks we should add at the beginning?
+    check_and_raise_missing(target_outcomes, graph, "target_outcomes")
+    check_and_raise_missing(target_interventions, graph, "target_interventions")
+    check_and_raise_missing(surrogate_outcomes.values(), graph, "surrogate_outcomes")
+    check_and_raise_missing(surrogate_interventions.values(), graph, "surrogate_interventions")
+
     transport_query = surrogate_to_transport(
         graph=graph,
         target_outcomes=target_outcomes,
