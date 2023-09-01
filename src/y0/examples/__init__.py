@@ -115,6 +115,24 @@ frontdoor_example = Example(
 
 #: Treatment: X
 #: Outcome: Y
+#: Adjusted: N/A
+frontdoor_backdoor = NxMixedGraph.from_edges(
+    directed=[
+        (X, Z),
+        (Z, Y),
+        (W, X),
+        (W, Y),
+    ],
+)
+frontdoor_backdoor_example = Example(
+    name="FrontdoorBackdoor",
+    graph=frontdoor_backdoor,
+    generate_data=generate_data_for_frontdoor_backdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
+)
+
+#: Treatment: X
+#: Outcome: Y
 instrumental_variable = NxMixedGraph.from_edges(
     directed=[
         (Z, X),
