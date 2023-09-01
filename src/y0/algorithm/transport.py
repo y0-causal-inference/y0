@@ -98,7 +98,7 @@ def is_transport_node(node: Variable) -> bool:
 
 
 def get_transport_nodes(graph: NxMixedGraph) -> Set[Variable]:
-    """Find all of the transport nodes in a graph.
+    """Find all the transport nodes in a graph.
 
     :param graph: an NxMixedGraph which may have transport nodes
     :returns: Set containing all transport nodes in the graph
@@ -107,7 +107,7 @@ def get_transport_nodes(graph: NxMixedGraph) -> Set[Variable]:
 
 
 def get_regular_nodes(graph: NxMixedGraph) -> Set[Variable]:
-    """Find all of the nodes in a graph which are not transport nodes.
+    """Find all the nodes in a graph which are not transport nodes.
 
     :param graph: an NxMixedGraph
     :returns: Set containing all nodes which are not transport nodes
@@ -174,9 +174,10 @@ class TRSOQuery:
 
 
 def surrogate_to_transport(
+    *,
+    graph: NxMixedGraph,
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
-    graph: NxMixedGraph,
     surrogate_outcomes: Dict[Population, Set[Variable]],
     surrogate_interventions: Dict[Population, Set[Variable]],
 ) -> TransportQuery:
@@ -186,7 +187,7 @@ def surrogate_to_transport(
     :param target_interventions: A set of interventions for the target domain.
     :param graph: The graph of the target domain.
     :param surrogate_outcomes: A dictionary of outcomes in other populations
-    :param surrogate_interventions: A dictionary of interentions in other populations
+    :param surrogate_interventions: A dictionary of interventions in other populations
     :returns: An octuple representing the query transformation of a surrogate outcome query.
     :raises ValueError: if surrogate outcomes' and surrogate interventions' keys do not correspond
     """
@@ -267,7 +268,7 @@ def trso_line2(
 
 
 def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> TRSOQuery:
-    """Add nodes that will effect the outcome to the interventions of the TRSOQuery.
+    """Add nodes that will affect the outcome to the interventions of the query.
 
     :param query: A TRSO query
     :param additional_interventions: interventions to be added to target_interventions
@@ -344,42 +345,28 @@ def _line_6_helper(
     return new_query
 
 
-def add_active_interventions(
-    expression: Expression,
-    active_interventions: Set[Variable],
-) -> Expression:
+def intervene(expression: Expression, interventions: Set[Variable]) -> Expression:
     """Intervene on the target variables of expression using the active interventions.
 
     :param expression: A probability expression.
-    :param active_interventions: Set of active interventions
-    :param target_outcomes: Set of outcomes on which we will intervene
-    :returns: boolean True if all interventions are d-separated from all outcomes, False otherwise.
+    :param interventions: Set of active interventions
+    :returns: A new expression, intervened
     :raises NotImplementedError: If an expression type that is not handled gets passed
     """
     if isinstance(expression, Probability):
-        return expression.intervene(active_interventions)
+        return expression.intervene(interventions)
     if isinstance(expression, Sum):
-        intervened_expression = add_active_interventions(
-            expression.expression, active_interventions
-        )
         # Don't intervene the ranges because counterfactual variables shouldn't be in ranges
         # intervened_ranges = tuple(
         #     variable.intervene(active_interventions) for variable in expression.ranges
         # )
-        return Sum.safe(intervened_expression, expression.ranges)
+        return Sum.safe(intervene(expression.expression, interventions), expression.ranges)
     if isinstance(expression, Fraction):
-        new_numerator = add_active_interventions(expression.numerator, active_interventions)
-        new_denominator = add_active_interventions(expression.denominator, active_interventions)
-        return cast(Fraction, new_numerator / new_denominator).simplify()
+        numerator = intervene(expression.numerator, interventions)
+        denominator = intervene(expression.denominator, interventions)
+        return cast(Fraction, numerator / denominator).simplify()
     if isinstance(expression, Product):
-        intervened_expressions = [
-            add_active_interventions(
-                expr,
-                active_interventions,
-            )
-            for expr in expression.expressions
-        ]
-        return Product.safe(intervened_expressions)
+        return Product.safe(intervene(expr, interventions) for expr in expression.expressions)
     raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
 
 
@@ -389,7 +376,7 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
     :param graph: The graph with transport nodes in this domain.
     :param target_interventions: Set of target interventions
     :param target_outcomes: Set of target interventions
-    :returns: boolean True if all interventions are d-separated from all outcomes, False otherwise.
+    :returns: True if all interventions are d-separated from all outcomes, False otherwise.
     """
     transportability_nodes = get_transport_nodes(graph)
     graph_without_interventions = graph.remove_in_edges(target_interventions)
@@ -460,7 +447,7 @@ def trso_line10(
     :param query: A TRSO query
     :param district: The C-component of districts which contains district_without_interventions
     :param new_surrogate_interventions: Dict mapping domains to interventions performed in that domain.
-    :returns: An modified TRSOQuery
+    :returns: A modified TRSOQuery
     """
     ordering = list(query.graphs[query.domain].topological_sort())
     expressions = []
@@ -568,7 +555,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
             expression = trso(subquery)
             if expression is None:
                 continue
-            expression = add_active_interventions(expression, subquery.active_interventions)
+            expression = intervene(expression, subquery.active_interventions)
             if expression is not None:  # line7
                 logger.debug(
                     "Calling trso algorithm line 7",
@@ -650,9 +637,10 @@ def _pillow_has_transport(graph, district) -> bool:
 
 
 def transport(
+    *,
+    graph: NxMixedGraph,
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
-    graph: NxMixedGraph,
     surrogate_outcomes: Dict[Population, Set[Variable]],
     surrogate_interventions: Dict[Population, Set[Variable]],
 ) -> Expression | None:
@@ -662,11 +650,15 @@ def transport(
     :param target_interventions: A set of interventions for the target domain.
     :param graph: The graph of the target domain.
     :param surrogate_outcomes: A dictionary of outcomes in other populations
-    :param surrogate_interventions: A dictionary of interentions in other populations
+    :param surrogate_interventions: A dictionary of interventions in other populations
     :returns: An Expression evaluating the given query, or None
     """
     transport_query = surrogate_to_transport(
-        target_outcomes, target_interventions, graph, surrogate_outcomes, surrogate_interventions
+        graph=graph,
+        target_outcomes=target_outcomes,
+        target_interventions=target_interventions,
+        surrogate_outcomes=surrogate_outcomes,
+        surrogate_interventions=surrogate_interventions,
     )
     initial_expression = PopulationProbability(
         population=TARGET_DOMAIN,
@@ -682,5 +674,4 @@ def transport(
         graphs=transport_query.graphs,
         surrogate_interventions=transport_query.surrogate_interventions,
     )
-
     return trso(trso_query)

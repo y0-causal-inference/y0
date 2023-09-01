@@ -1590,7 +1590,7 @@ class PopulationProbabilityBuilderType(ProbabilityBuilderType):
 
 
 PP = PopulationProbabilityBuilderType
-Pi1, Pi2 = Variable("Pi1"), Variable("Pi2")
+Pi1, Pi2, Pi3 = Variable("Pi1"), Variable("Pi2"), Variable("Pi2")
 
 
 @dataclass(frozen=True, order=True, repr=False)

@@ -5,9 +5,9 @@ from y0.algorithm.transport import (
     TARGET_DOMAIN,
     TransportQuery,
     TRSOQuery,
-    add_active_interventions,
     create_transport_diagram,
     get_nodes_to_transport,
+    intervene,
     surrogate_to_transport,
     transport,
     transport_variable,
@@ -27,6 +27,7 @@ from y0.dsl import (
     Expression,
     Pi1,
     Pi2,
+    Pi3,
     PopulationProbability,
     Probability,
     Product,
@@ -124,17 +125,17 @@ class TestTransport(cases.GraphTestCase):
         )
 
     def test_transport_variable(self):
-        """Test that transport nodes will not take inappropriate inputs"""
+        """Test that transport nodes will not take inappropriate inputs."""
         with self.assertRaises(TypeError):
             transport_variable(Y1 @ -X2)
 
     def test_create_transport_diagram(self):
         """Test that we can create the transport diagram correctly."""
-        graph_Pi1 = create_transport_diagram(graph=tikka_trso_figure_8, nodes_to_transport={X1, Y2})
-        graph_Pi2 = create_transport_diagram(graph=tikka_trso_figure_8, nodes_to_transport={X2})
+        graph_pi1 = create_transport_diagram(graph=tikka_trso_figure_8, nodes_to_transport={X1, Y2})
+        graph_pi2 = create_transport_diagram(graph=tikka_trso_figure_8, nodes_to_transport={X2})
 
-        self.assertEqual(graph_1, graph_Pi1)
-        self.assertEqual(graph_2, graph_Pi2)
+        self.assertEqual(graph_1, graph_pi1)
+        self.assertEqual(graph_2, graph_pi2)
 
     def test_get_nodes_to_transport(self):
         """Test that we can correctly find the nodes which should have transport nodes."""
@@ -184,7 +185,6 @@ class TestTransport(cases.GraphTestCase):
             target_experiments=set(),
         )
         self.assertEqual(actual, expected)
-        Pi3 = Variable("Pi3")
         extra_surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}, Pi3: {Y2}}
         missing_surrogate_interventions = {Pi1: {Y2}}
         with self.assertRaises(ValueError):
@@ -206,7 +206,6 @@ class TestTransport(cases.GraphTestCase):
 
     def test_add_active_interventions(self):
         """Test that interventions are added correctly."""
-
         expected_1 = fraction_expand(PP[Pi1][X1](Y1 | W, Z))
         expected_2 = fraction_expand(PP[Pi2][X2](Y2 | W, Z, X1))
         test_1 = fraction_expand(PP[Pi1](Y1 | W, Z))
@@ -218,20 +217,20 @@ class TestTransport(cases.GraphTestCase):
         #     )
         # )
         # expected = Sum[Y1](PP[Pi1][X1](W, Y1, Z)
-        actual_1 = add_active_interventions(test_1, X1)
+        actual_1 = intervene(test_1, X1)
         self.assert_expr_equal(expected_1, actual_1)
-        actual_2 = add_active_interventions(test_2, X2)
+        actual_2 = intervene(test_2, X2)
         self.assert_expr_equal(expected_2, actual_2)
 
         expected_3 = Sum.safe(expected_1, (W, Z))
         test_3 = Sum.safe(test_1, (W, Z))
-        actual_3 = add_active_interventions(test_3, X1)
+        actual_3 = intervene(test_3, X1)
         self.assert_expr_equal(expected_3, actual_3)
 
         expected_1b = fraction_expand(PP[Pi1][X2](Y1 | W, Z))
         expected_4 = Product.safe((expected_1b, expected_2))
         test_4 = Product.safe((test_1, test_2))
-        actual_4 = add_active_interventions(test_4, X2)
+        actual_4 = intervene(test_4, X2)
         self.assert_expr_equal(expected_4, actual_4)
 
     def test_trso_line1(self):
@@ -820,7 +819,7 @@ class TestTransport(cases.GraphTestCase):
         )
 
         actual_11 = trso(query_11)
-        self.assertEqual(None, actual_11)
+        self.assertIsNone(actual_11)
 
         # This triggers triggers not implemented error on line 9
         new_transportability_diagram = tikka_trso_figure_8.subgraph(
@@ -876,6 +875,7 @@ class TestTransport(cases.GraphTestCase):
         )
 
         actual_10 = trso(query_10)
+        self.assertIsNotNone(actual_10)
         # expected = what?
         # self.assertEqual(expected, actual_10)
 
@@ -897,9 +897,9 @@ class TestTransport(cases.GraphTestCase):
         surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
 
         actual = transport(
+            graph=tikka_trso_figure_8,
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
-            graph=tikka_trso_figure_8,
             surrogate_outcomes=surrogate_outcomes,
             surrogate_interventions=surrogate_interventions,
         )
