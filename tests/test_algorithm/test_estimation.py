@@ -34,13 +34,20 @@ class TestEstimation(unittest.TestCase):
 
     def test_beta_primal(self):
         """Test beta primal on the Napkin graph."""
-        example = napkin_example  # FIXME need one that is p-fixable
+        from y0.examples import SARS_SMALL_GRAPH, sars
 
-        data = example.generate_data(1000)
+        data = sars.generate_data_for_covid_case_study(1000)
         ananke_results = _ananke_compute_effect(
-            graph=napkin, treatment=X, outcome=Y, data=data, estimator="p-ipw"
+            graph=SARS_SMALL_GRAPH,
+            treatment=Variable("EGFR"),
+            outcome=Variable("cytok"),
+            data=data,
+            estimator="p-ipw",
         )
-        y0_results = get_primal_ipw_ace(graph=napkin, data=data, treatment=X, outcome=Y)
+        y0_results = get_primal_ipw_ace(
+            graph=SARS_SMALL_GRAPH, data=data, treatment=Variable("EGFR"), outcome=Variable("cytok")
+        )
+        # FIXME: The results do not match
         self.assertAlmostEqual(ananke_results, y0_results, delta=0.1)
 
     def test_get_state_space_map(self):
