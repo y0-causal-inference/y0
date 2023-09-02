@@ -589,29 +589,20 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         return None
     # line 8, i.e. len(districts)>1
 
-    # line9
-    # TODO check which of the raises below should be passthroughs, annotate explicitly
-    if len(districts_without_interventions) == 1:
-        district_without_interventions = districts_without_interventions.pop()
-        if district_without_interventions in districts:
-            return canonicalize(trso_line9(query, set(district_without_interventions)))
-        # raise NotImplementedError(
-        #     "single district without interventions found, but it's not in the districts"
-        # )
-        # This case is covered by line 10.
-        # FIXME ^ doesn't seem quite right since this is exact checking while line 10 is subsets
-    elif len(districts_without_interventions) == 0:
+    # line 9
+    if len(districts_without_interventions) == 0:
         raise NotImplementedError("no districts without interventions found")
-    # TODO: double check that this is covered by if len(districts_without_interventions) > 1: on line 540
-    # else:  # multiple districts
-    #     raise NotImplementedError("multiple districts without interventions found")
+    # at this point, we already checked for cases where len > 2 and len == 0,
+    # so we can safely pop the only element
+    district_without_interventions = districts_without_interventions.pop()
+    if district_without_interventions in districts:
+        return canonicalize(trso_line9(query, set(district_without_interventions)))
 
     # line10
     logger.debug("Calling trso algorithm line 10")
-    target_districts = []
-    for district in districts:
-        if district_without_interventions.issubset(district):
-            target_districts.append(district)
+    target_districts = [
+        district for district in districts if district_without_interventions.issubset(district)
+    ]
     if len(target_districts) != 1:
         raise RuntimeError
     target_district = target_districts.pop()
