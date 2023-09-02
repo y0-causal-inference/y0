@@ -797,6 +797,50 @@ class TestTransport(cases.GraphTestCase):
         )
         self.assert_expr_equal(expected, actual)
 
+        # TODO we should find a way to accomplish this with a transport call
+        # This test triggers pillow_has_transport on line 10 and returns None
+        target_interventions = {W, Z}
+        target_outcomes = {Y1}
+        surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
+        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
+        initial_expression = PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes())
+        transport_query = surrogate_to_transport(
+            graph=tikka_trso_figure_8,
+            target_outcomes=target_outcomes,
+            target_interventions=target_interventions,
+            surrogate_outcomes=surrogate_outcomes,
+            surrogate_interventions=surrogate_interventions,
+        )
+
+        T_Z = transport_variable(Z)
+        hacked_graph = NxMixedGraph.from_edges(
+            undirected=[(X1, Y1), (Y1, W), (Z, X2), (Z, W)],
+            directed=[
+                (X1, Y1),
+                (X1, Y2),
+                (W, Y1),
+                (W, Y2),
+                (Z, Y1),
+                (Z, W),
+                (Z, X2),
+                (X2, Y2),
+                (Z, Y2),
+                (T_Z, Z),
+            ],
+        )
+        trso_query = TRSOQuery(
+            target_interventions={Z, W},
+            target_outcomes=transport_query.target_outcomes,
+            expression=initial_expression,
+            active_interventions={X1},
+            domain=TARGET_DOMAIN,
+            domains=transport_query.domains,
+            graphs=transport_query.graphs,
+            surrogate_interventions=transport_query.surrogate_interventions,
+        )
+        trso_query.graphs[trso_query.domain] = hacked_graph
+        self.assertIsNone(trso(trso_query))
+
     def test_transport(self):
         """Test that transport returns the correct expression."""
         expected_part1 = PP[TARGET_DOMAIN](W, Z)
@@ -885,3 +929,41 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions=surrogate_interventions,
         )
         self.assertIsNone(actual_10)
+
+        with self.assertRaises(ValueError):
+            actual = transport(
+                graph=tikka_trso_figure_8,
+                target_outcomes=target_outcomes,
+                target_interventions=target_interventions,
+                surrogate_outcomes=surrogate_outcomes,
+                surrogate_interventions={Pi1: {X1}, Pi2: {X2}, Pi3: {X}},
+            )
+
+        # This test triggers the if expression is None:  continue block after line 6
+        # TODO ends in NotImplementedError
+        target_outcomes = {Y1, Y2}
+        target_interventions = {X1, X2}
+        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
+        surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
+
+        new_graph = NxMixedGraph.from_edges(
+            undirected=[(X1, Y1), (Z, W), (Z, X2), (Y2, X1)],
+            directed=[
+                (X1, Y1),
+                (X1, Y2),
+                (W, Y1),
+                (W, Y2),
+                (Z, Y1),
+                (Z, X2),
+                (X2, Y2),
+                (Z, Y2),
+            ],
+        )
+        with self.assertRaises(NotImplementedError):
+            actual = transport(
+                graph=new_graph,
+                target_outcomes=target_outcomes,
+                target_interventions=target_interventions,
+                surrogate_outcomes=surrogate_outcomes,
+                surrogate_interventions=surrogate_interventions,
+            )
