@@ -812,7 +812,7 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions=surrogate_interventions,
         )
 
-        T_Z = transport_variable(Z)
+        transport_z = transport_variable(Z)
         hacked_graph = NxMixedGraph.from_edges(
             undirected=[(X1, Y1), (Y1, W), (Z, X2), (Z, W)],
             directed=[
@@ -825,7 +825,7 @@ class TestTransport(cases.GraphTestCase):
                 (Z, X2),
                 (X2, Y2),
                 (Z, Y2),
-                (T_Z, Z),
+                (transport_z, Z),
             ],
         )
         trso_query = TRSOQuery(
@@ -931,7 +931,7 @@ class TestTransport(cases.GraphTestCase):
         self.assertIsNone(actual_10)
 
         with self.assertRaises(ValueError):
-            actual = transport(
+            transport(
                 graph=tikka_trso_figure_8,
                 target_outcomes=target_outcomes,
                 target_interventions=target_interventions,
@@ -960,7 +960,7 @@ class TestTransport(cases.GraphTestCase):
             ],
         )
         with self.assertRaises(NotImplementedError):
-            actual = transport(
+            transport(
                 graph=new_graph,
                 target_outcomes=target_outcomes,
                 target_interventions=target_interventions,

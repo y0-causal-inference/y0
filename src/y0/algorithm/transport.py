@@ -3,7 +3,7 @@
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, FrozenSet, Iterable, Optional, Set, Union, cast
+from typing import Collection, Dict, FrozenSet, Iterable, Optional, Set, Union, cast
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
@@ -474,6 +474,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     :param query: A TRSO query, which contains 8 instance variables needed for TRSO
     :returns: An Expression evaluating the given query, or None
     :raises NotImplementedError: when a part of the algorithm is not yet handled
+    :raises RuntimeError: when an impossible condition is met
     """
     # Check that domain is in query.domains
     # check that query.surrogate_interventions keys are equals to domains
@@ -612,13 +613,11 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         if district_without_interventions.issubset(district):
             target_districts.append(district)
     if len(target_districts) != 1:
-        logger.warning("Incorrect number of districts found on line 10")
-        # TODO This shouldn't be possible, should we remove this check?
+        raise RuntimeError
     target_district = target_districts.pop()
     # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
     if len(query.active_interventions) == 0:
-        # FIXME is this even possible? doesn't line 6 check this and return something else?
-        # ^^ trso_line6 could return an empty list and skip over the returns, allowing this line to be reached.
+        # TRSO Line 6 could return an empty list and skip over the returns, allowing this line to be reached.
         new_surrogate_interventions = dict()
     elif _pillow_has_transport(graph, target_district):
         return None
@@ -633,12 +632,12 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     return _c14n_safe(trso(new_query))
 
 
-def _pillow_has_transport(graph, district) -> bool:
+def _pillow_has_transport(graph: NxMixedGraph, district: Collection[Variable]) -> bool:
     return any(is_transport_node(node) for node in graph.get_markov_pillow(district))
 
 
-def check_and_raise_missing(nodes, graph, name):
-    """Verifies that nodes are present in the graph.
+def check_and_raise_missing(nodes: set[Variable], graph: NxMixedGraph, name: str) -> None:
+    """Verify that nodes are present in the graph.
 
     :param nodes: A set of nodes that should be in the graph.
     :param graph: An NxMixedGraph(), the graph of the target domain.
@@ -669,9 +668,7 @@ def transport(
     :param surrogate_outcomes: A dictionary of outcomes in other populations
     :param surrogate_interventions: A dictionary of interventions in other populations
     :returns: An Expression evaluating the given query, or None
-    :raises ValueError: If a target, outcome, or intervention is not in the graph.
     """
-
     # TODO are there any other checks we should add at the beginning?
     check_and_raise_missing(target_outcomes, graph, "target_outcomes")
     check_and_raise_missing(target_interventions, graph, "target_interventions")
