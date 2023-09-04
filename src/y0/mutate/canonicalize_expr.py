@@ -38,9 +38,6 @@ def canonicalize(
     return canonicalizer.canonicalize(expression)
 
 
-def _sort_probability_key(probability: Probability) -> Tuple[str, ...]:
-    return tuple(child.name for child in probability.children)
-
 
 class Canonicalizer:
     """A data structure to support application of the canonicalize algorithm."""
@@ -109,29 +106,11 @@ class Canonicalizer:
         elif isinstance(expression, Product):
             if 1 == len(expression.expressions):  # flatten unnecessary product
                 return self.canonicalize(expression.expressions[0])
-
-            probabilities = []
-            other = []
-            for subexpr in _flatten_product(expression):
-                subexpr = self.canonicalize(subexpr)
-                if isinstance(subexpr, Probability):
-                    probabilities.append(subexpr)
-                elif isinstance(subexpr, One):
-                    continue
-                elif isinstance(subexpr, Zero):
-                    return Zero()  # If there's an explicit zero, then return zero
-                else:
-                    other.append(subexpr)
-            if not probabilities and not other:
-                return One()
-
-            probabilities = sorted(probabilities, key=_sort_probability_key)
-            # If other is empty, this is also atomic
-            other = sorted(other)
-            expressions = (*probabilities, *other)
-            if len(expressions) == 1:
-                return expressions[0]
-            return Product(expressions)
+            # note: safe already sorts
+            return Product.safe(
+                self.canonicalize(subexpr)
+                for subexpr in _flatten_product(expression)
+            )
         elif isinstance(expression, Fraction):
             numerator = self.canonicalize(expression.numerator)
             # TODO check if there's a zero in numerator, then return zero if so

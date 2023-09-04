@@ -979,7 +979,7 @@ class Product(Expression):
             )
         if len(expressions) == 1:
             return expressions[0]
-        return cls(expressions=expressions)
+        return cls(expressions=tuple(sorted(expressions)))
 
     def _get_key(self):
         inner_keys = (sexpr._get_key() for sexpr in self.expressions)
