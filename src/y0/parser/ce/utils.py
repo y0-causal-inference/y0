@@ -41,13 +41,10 @@ probability_pe = Suppress("P(") + _children_pe + _parents_pe + Suppress(")")
 
 
 def _make_probability(_s, _l, tokens: ParseResults) -> Probability:
-    children, parents = tokens["children"].asList(), tokens["parents"].asList()
-    if not children:
-        raise ValueError
     return Probability(
         Distribution(
-            children=_sorted_variables(children),
-            parents=_sorted_variables(parents),
+            children=_sorted_variables(tokens["children"].asList()),
+            parents=_sorted_variables(tokens["parents"].asList()),
         )
     )
 
