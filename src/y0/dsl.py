@@ -792,11 +792,11 @@ class Probability(Expression):
         elif isinstance(other, One):
             return self
         elif isinstance(other, Product):
-            return Product((self, *other.expressions))
+            return Product.safe((self, *other.expressions))
         elif isinstance(other, Fraction):
             return Fraction(self * other.numerator, other.denominator)
         else:
-            return Product((self, other))
+            return Product.safe((self, other))
 
     def _new(self, distribution: Distribution):
         # This is implemented this way to make overriding easier
@@ -1034,11 +1034,11 @@ class Product(Expression):
         if isinstance(other, Zero):
             return other
         if isinstance(other, Product):
-            return Product((*self.expressions, *other.expressions))
+            return Product.safe((*self.expressions, *other.expressions))
         elif isinstance(other, Fraction):
             return Fraction(self * other.numerator, other.denominator)
         else:
-            return Product((*self.expressions, other))
+            return Product.safe((*self.expressions, other))
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of the variables used in each expresison in this product."""
@@ -1173,9 +1173,9 @@ class Sum(Expression):
         if isinstance(expression, Zero):
             return expression
         elif isinstance(expression, Product):
-            return Product((self, *expression.expressions))
+            return Product.safe((self, *expression.expressions))
         else:
-            return Product((self, expression))
+            return Product.safe((self, expression))
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of the variables used in the range of this sum and variables in its summand."""
@@ -1460,7 +1460,7 @@ class QFactor(Expression):
         return functools.partial(cls.safe, codomain=codomain)
 
     def _get_key(self) -> tuple:
-        raise NotImplementedError
+        return -5, self.domain[0].name, self.codomain[0].name
 
     def to_text(self) -> str:
         """Output this Q factor in the internal string format."""
@@ -1482,11 +1482,11 @@ class QFactor(Expression):
 
     def __mul__(self, other: Expression):
         if isinstance(other, Product):
-            return Product((self, *other.expressions))
+            return Product.safe((self, *other.expressions))
         elif isinstance(other, Fraction):
             return Fraction(self * other.numerator, other.denominator)
         else:
-            return Product((self, other))
+            return Product.safe((self, other))
 
     def _iter_variables(self) -> Iterable[Variable]:
         yield from self.codomain
