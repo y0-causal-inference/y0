@@ -358,7 +358,7 @@ class TestCounterfactual(unittest.TestCase):
                 self.assertIsInstance(expr, CounterfactualVariable)
                 self.assertEqual(counterfactual_star, expr.star)
                 self.assertEqual(1, len(expr.interventions))
-                self.assertEqual(intervention_star, expr.interventions[0].star)
+                self.assertEqual(intervention_star, list(expr.interventions)[0].star)
 
     def test_event_failures(self):
         """Check for failure to determine tautology/inconsistent."""
