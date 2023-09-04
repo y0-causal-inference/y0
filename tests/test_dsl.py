@@ -495,8 +495,9 @@ class TestSafeConstructors(unittest.TestCase):
         self.assertEqual(Product((p1, p2)), Product.safe([p1, p2]))
         self.assertEqual(Product((P(X), P(Y))), Product.safe(P(v) for v in [X, Y]))
 
-        with self.assertRaises(ValueError):
-            Product.safe([])
+        self.assertEqual(One(), Product.safe([]))
+        self.assertEqual(One(), Product.safe([One()]))
+        self.assertEqual(One(), Product.safe([One(), One()]))
 
         self.assertEqual(Product((P(X), P(Y))), Product.safe((One(), P(X), P(Y))))
         self.assertEqual(Product((P(X), P(Y))), Product.safe((P(X), P(Y))))
