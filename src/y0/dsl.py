@@ -1144,9 +1144,9 @@ class Sum(Expression):
                 return One()
             elif ranges > set(children):
                 keep = ranges - set(children)
-                return Sum(
+                return Sum.safe(
                     expression=One(),
-                    ranges=_sorted_variables(v for k, v in children.items() if k in keep),
+                    ranges=frozenset(v for k, v in children.items() if k in keep),
                 )
             elif ranges < set(children):
                 keep = set(children) - ranges
@@ -1154,9 +1154,9 @@ class Sum(Expression):
             else:  # partial or no overlap
                 intersection = ranges.intersection(children)
                 keep = set(children) - intersection
-                return Sum(
+                return Sum.safe(
                     expression=Probability.safe(v for k, v in children.items() if k in keep),
-                    ranges=_sorted_variables(ranges - intersection),
+                    ranges=ranges - intersection,
                 )
         return self
 
