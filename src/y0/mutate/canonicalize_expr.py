@@ -38,7 +38,6 @@ def canonicalize(
     return canonicalizer.canonicalize(expression)
 
 
-
 class Canonicalizer:
     """A data structure to support application of the canonicalize algorithm."""
 
@@ -108,8 +107,7 @@ class Canonicalizer:
                 return self.canonicalize(expression.expressions[0])
             # note: safe already sorts
             return Product.safe(
-                self.canonicalize(subexpr)
-                for subexpr in _flatten_product(expression)
+                self.canonicalize(subexpr) for subexpr in _flatten_product(expression)
             )
         elif isinstance(expression, Fraction):
             numerator = self.canonicalize(expression.numerator)
