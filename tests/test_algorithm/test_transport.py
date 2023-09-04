@@ -22,6 +22,8 @@ from y0.algorithm.transport import (
 )
 from y0.dsl import (
     PP,
+    X1,
+    X2,
     Y1,
     Y2,
     Expression,
@@ -32,32 +34,15 @@ from y0.dsl import (
     Probability,
     Product,
     Sum,
-    Variable,
     W,
     X,
     Y,
     Z,
     Zero,
 )
+from y0.examples import tikka_trso_figure_8_graph as tikka_trso_figure_8
 from y0.graph import NxMixedGraph
 from y0.mutate import canonicalize, fraction_expand
-
-X1, X2 = Variable("X1"), Variable("X2")
-
-# Figure 8 from https://arxiv.org/abs/1806.07172
-tikka_trso_figure_8 = NxMixedGraph.from_edges(
-    undirected=[(X1, Y1), (Z, W), (Z, X2)],
-    directed=[
-        (X1, Y1),
-        (X1, Y2),
-        (W, Y1),
-        (W, Y2),
-        (Z, Y1),
-        (Z, X2),
-        (X2, Y2),
-        (Z, Y2),
-    ],
-)
 
 tikka_trso_figure_8_transport = {
     X1: [Pi1],
