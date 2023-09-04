@@ -373,7 +373,7 @@ class CounterfactualVariable(Variable):
         else:
             prefix = "-"
         if len(self.interventions) == 1:
-            return f"{prefix}{self.name} @ {self.interventions[0].to_y0()}"
+            return f"{prefix}{self.name} @ {list(self.interventions)[0].to_y0()}"
         else:
             ins = ", ".join(i.to_y0() for i in self.interventions)
             return f"{prefix}{self.name} @ ({ins})"
