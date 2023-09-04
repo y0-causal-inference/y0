@@ -29,6 +29,7 @@ from y0.dsl import (
     Sum,
     Variable,
     Zero,
+    _upgrade_variables,
 )
 from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import canonicalize
@@ -56,10 +57,8 @@ def get_nodes_to_transport(
     :param graph: The graph of the target domain.
     :returns: A set of variables representing target domain nodes where transportability nodes should be added.
     """
-    if isinstance(surrogate_interventions, Variable):
-        surrogate_interventions = {surrogate_interventions}
-    if isinstance(surrogate_outcomes, Variable):
-        surrogate_outcomes = {surrogate_outcomes}
+    surrogate_interventions = set(_upgrade_variables(surrogate_interventions))
+    surrogate_outcomes = set(_upgrade_variables(surrogate_outcomes))
 
     # Find the c_component with surrogate_outcomes
     c_component_surrogate_outcomes: Set[Variable] = set()
