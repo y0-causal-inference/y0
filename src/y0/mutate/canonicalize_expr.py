@@ -11,7 +11,6 @@ from ..dsl import (
     Expression,
     Fraction,
     One,
-    PopulationProbability,
     Probability,
     Product,
     Sum,
