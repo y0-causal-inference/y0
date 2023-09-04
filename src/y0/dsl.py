@@ -651,6 +651,18 @@ class Expression(Element, ABC):
     def __mul__(self, other):
         pass
 
+    @abstractmethod
+    def _get_key(self) -> tuple:
+        """Generate a sort key for a *canonical* expression.
+
+        :returns: A tuple in which the first element is the integer priority for the expression
+            and the rest depends on the expression type.
+        """
+        raise NotImplementedError
+
+    def __lt__(self, other: Expression):
+        return self._get_key() < other._get_key()
+
     def __truediv__(self, expression: Expression) -> Expression:
         """Divide this expression by another and create a fraction."""
         if isinstance(expression, One):
@@ -722,6 +734,10 @@ class Probability(Expression):
         if interventions is not None:
             distribution = distribution.intervene(interventions)
         return Probability(distribution)
+
+    def _get_key(self):
+        # TODO incorporate more information from children and parents
+        return 0, self.children[0].name
 
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
@@ -957,13 +973,16 @@ class Product(Expression):
 
     expressions: Tuple[Expression, ...]
 
+    def __post_init__(self):
+        if len(self.expressions) < 2:
+            raise ValueError("Product() must two or more expressions")
+
     @classmethod
     def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Expression:
         """Construct a product from any iterable of expressions.
 
         :param expressions: An expression or iterable of expressions which should be multiplied
         :returns: A :class:`Product` object
-        :raises ValueError: If an empty iterable of expressions is input
 
         Standard usage, same as the normal ``__init__``:
 
@@ -990,13 +1009,14 @@ class Product(Expression):
         if any(expression == Zero() for expression in expressions):
             return Zero()
         if not expressions:
-            raise ValueError(
-                "Product.safe does not explicitly empty list of expressions. "
-                "Should this return One()? Or Zero()? Please let us know."
-            )
+            return One()
         if len(expressions) == 1:
             return expressions[0]
-        return cls(expressions=expressions)
+        return cls(expressions=tuple(sorted(expressions)))
+
+    def _get_key(self):
+        inner_keys = (sexpr._get_key() for sexpr in self.expressions)
+        return 2, *inner_keys
 
     def to_text(self):
         """Output this product in the internal string format."""
@@ -1125,6 +1145,9 @@ class Sum(Expression):
                 )
         return self
 
+    def _get_key(self):
+        return 1, *self.expression._get_key()
+
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
         ranges = _list_to_text(self.ranges)
@@ -1192,6 +1215,13 @@ class Fraction(Expression):
     def __post_init__(self):
         if isinstance(self.denominator, Zero):
             raise ZeroDivisionError
+
+    def _get_key(self):
+        return (
+            3,
+            self.numerator._get_key(),
+            self.denominator._get_key(),
+        )
 
     def to_text(self) -> str:
         """Output this fraction in the internal string format."""
@@ -1317,6 +1347,9 @@ class One(Expression):
         """Output this identity instance as y0 internal DSL code."""
         return "One()"
 
+    def _get_key(self):
+        return 4, self.to_text()
+
     def __rmul__(self, expression: Expression) -> Expression:
         return expression
 
@@ -1345,6 +1378,9 @@ class Zero(Expression):
     def to_y0(self) -> str:
         """Output this identity instance as y0 internal DSL code."""
         return "Zero()"
+
+    def _get_key(self):
+        return 4, self.to_text()
 
     def __rmul__(self, expression: Expression) -> Expression:
         return self
@@ -1422,6 +1458,9 @@ class QFactor(Expression):
         >>> Q[C, D](A, B)
         """
         return functools.partial(cls.safe, codomain=codomain)
+
+    def _get_key(self) -> tuple:
+        raise NotImplementedError
 
     def to_text(self) -> str:
         """Output this Q factor in the internal string format."""
@@ -1550,7 +1589,7 @@ Event = Dict[Variable, Intervention]
 Population = Variable
 
 
-@dataclass(frozen=True, order=True, repr=False)
+@dataclass(frozen=True, repr=False)
 class PopulationProbability(Probability):
     """A probability that is annotated with a population.
 
@@ -1568,6 +1607,9 @@ class PopulationProbability(Probability):
 
     def _new(self, distribution) -> PopulationProbability:
         return PopulationProbability(population=self.population, distribution=distribution)
+
+    def _get_key(self):
+        return -1, self.population, self.children[0].name
 
 
 class PopulationProbabilityBuilderType(ProbabilityBuilderType):
