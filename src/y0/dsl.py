@@ -1033,9 +1033,11 @@ class Sum(Expression):
     #: The expression over which the sum is done
     expression: Expression
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
-    ranges: Tuple[Variable, ...]
+    ranges: frozenset[Variable]
 
     def __post_init__(self):
+        if not isinstance(self.ranges, frozenset):
+            raise TypeError
         if not self.ranges:
             raise ValueError("Sum must have ranges")
         for r in self.ranges:
@@ -1077,20 +1079,23 @@ class Sum(Expression):
             return expression
         return cls(
             expression=expression,
-            ranges=ranges,
+            ranges=frozenset(ranges),
         )
 
     def _get_key(self):
         return 1, *self.expression._get_key()
 
+    def _get_sorted_ranges(self) -> Sequence[Variable]:
+        return sorted(self.ranges, key=attrgetter("name"))
+
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
-        ranges = _list_to_text(self.ranges)
+        ranges = _list_to_text(self._get_sorted_ranges())
         return f"[ sum_{{{ranges}}} {self.expression.to_text()} ]"
 
     def to_latex(self) -> str:
         """Output this sum in the LaTeX string format."""
-        ranges = _list_to_latex(self.ranges)
+        ranges = _list_to_latex(self._get_sorted_ranges())
         return rf"\sum_{{{ranges}}} {self.expression.to_latex()}"
 
     def to_y0(self):
@@ -1101,7 +1106,7 @@ class Sum(Expression):
             s = self.expression.to_y0()
         if not self.ranges:
             return f"Sum({s})"
-        ranges = _list_to_y0(self.ranges)
+        ranges = _list_to_y0(self._get_sorted_ranges())
         return f"Sum[{ranges}]({s})"
 
     def __mul__(self, expression: Expression):

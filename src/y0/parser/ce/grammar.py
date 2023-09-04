@@ -30,7 +30,7 @@ expr = Forward()
 
 def _make_sum(_s, _l, tokens: ParseResults) -> Expression:
     return Sum.safe(
-        ranges=_sorted_variables(tokens["ranges"].asList() if "ranges" in tokens else []),
+        ranges=tokens["ranges"].asList() if "ranges" in tokens else [],
         expression=tokens["expression"],
     )
 
