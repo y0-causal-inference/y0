@@ -2,7 +2,7 @@
 
 """Calculate the complexity of an expression."""
 
-from typing import Sequence
+from typing import Iterable
 
 from .dsl import (
     CounterfactualVariable,
@@ -57,7 +57,7 @@ def complexity(expr: Expression) -> float:
     raise TypeError(f"Unhandled expression type: {expr.__class__.__name__}")
 
 
-def range_complexity(variables: Sequence[Variable]) -> float:
+def range_complexity(variables: Iterable[Variable]) -> float:
     """Return the complexity of a sequence of variables."""
     return sum(variable_complexity(v) for v in variables)
 
