@@ -639,6 +639,18 @@ class Expression(Element, ABC):
     def __mul__(self, other):
         pass
 
+    @abstractmethod
+    def _get_key(self) -> tuple:
+        """Generate a sort key for a *canonical* expression.
+
+        :returns: A tuple in which the first element is the integer priority for the expression
+            and the rest depends on the expression type.
+        """
+        raise NotImplementedError
+
+    def __lt__(self, other: Expression):
+        return self._get_key() < other._get_key()
+
     def __truediv__(self, expression: Expression) -> Expression:
         """Divide this expression by another and create a fraction."""
         if isinstance(expression, One):
@@ -710,6 +722,9 @@ class Probability(Expression):
         if interventions is not None:
             distribution = distribution.intervene(interventions)
         return Probability(distribution)
+
+    def _get_key(self):
+        return 0, self.children[0].name
 
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
@@ -966,6 +981,10 @@ class Product(Expression):
             return expressions[0]
         return cls(expressions=expressions)
 
+    def _get_key(self):
+        inner_keys = (sexpr._get_key() for sexpr in self.expressions)
+        return 2, *inner_keys
+
     def to_text(self):
         """Output this product in the internal string format."""
         return " ".join(expression.to_text() for expression in self.expressions)
@@ -1060,6 +1079,9 @@ class Sum(Expression):
             ranges=ranges,
         )
 
+    def _get_key(self):
+        return 1, *self.expression._get_key()
+
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
         ranges = _list_to_text(self.ranges)
@@ -1127,6 +1149,13 @@ class Fraction(Expression):
     def __post_init__(self):
         if isinstance(self.denominator, Zero):
             raise ZeroDivisionError
+
+    def _get_key(self):
+        return (
+            3,
+            self.numerator._get_key(),
+            self.denominator._get_key(),
+        )
 
     def to_text(self) -> str:
         """Output this fraction in the internal string format."""
@@ -1252,6 +1281,9 @@ class One(Expression):
         """Output this identity instance as y0 internal DSL code."""
         return "One()"
 
+    def _get_key(self):
+        return 4, self.to_text()
+
     def __rmul__(self, expression: Expression) -> Expression:
         return expression
 
@@ -1280,6 +1312,9 @@ class Zero(Expression):
     def to_y0(self) -> str:
         """Output this identity instance as y0 internal DSL code."""
         return "Zero()"
+
+    def _get_key(self):
+        return 4, self.to_text()
 
     def __rmul__(self, expression: Expression) -> Expression:
         return self
@@ -1357,6 +1392,9 @@ class QFactor(Expression):
         >>> Q[C, D](A, B)
         """
         return functools.partial(cls.safe, codomain=codomain)
+
+    def _get_key(self) -> tuple:
+        raise NotImplementedError
 
     def to_text(self) -> str:
         """Output this Q factor in the internal string format."""
