@@ -1,6 +1,7 @@
 """Unit tests for transport."""
 
-from tests.test_algorithm import cases
+import unittest
+
 from y0.algorithm.transport import (
     TARGET_DOMAIN,
     TransportQuery,
@@ -81,7 +82,20 @@ graph_2 = NxMixedGraph.from_edges(
 )
 
 
-class TestTransport(cases.GraphTestCase):
+class _TestCase(unittest.TestCase):
+    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
+        """Assert that two expressions are the same."""
+        ordering = tuple(expected.get_variables())
+        expected_canonical = canonicalize(expected, ordering)
+        actual_canonical = canonicalize(actual, ordering)
+        self.assertEqual(
+            expected_canonical,
+            actual_canonical,
+            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
+        )
+
+
+class TestTransport(_TestCase):
     """Test surrogate outcomes and transportability."""
 
     # def test_transport_figure_8(self):
@@ -97,17 +111,6 @@ class TestTransport(cases.GraphTestCase):
 
     #     # TODO probably need to canonicalize both of these
     #     self.assertEqual(expected, actual)
-
-    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
-        """Assert that two expressions are the same."""
-        ordering = tuple(expected.get_variables())
-        expected_canonical = canonicalize(expected, ordering)
-        actual_canonical = canonicalize(actual, ordering)
-        self.assertEqual(
-            expected_canonical,
-            actual_canonical,
-            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
-        )
 
     def test_transport_variable(self):
         """Test that transport nodes will not take inappropriate inputs."""
@@ -667,6 +670,10 @@ class TestTransport(cases.GraphTestCase):
         )
 
         self.assertEqual(line10_expected1, line10_actual1)
+
+
+class TestIntegration(_TestCase):
+    """Test integration over the whole workflow."""
 
     def test_trso(self):
         """Test that trso returns the correct expression."""
