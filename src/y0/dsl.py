@@ -743,8 +743,22 @@ class Probability(Expression):
                 parents=tuple(Variable(name=v.name, star=v.star) for v in self.parents),
                 children=tuple(Variable(name=v.name, star=v.star) for v in self.children),
             )
-            return f"P[{intervention_str}]({unintervened_distribution.to_y0()})"
-        return f"P({self.distribution.to_y0()})"
+            return interventions, unintervened_distribution
+        else:
+            return None, None
+
+    def to_y0(self) -> str:
+        """Output this probability instance as y0 internal DSL code."""
+        interventions, unintervened_distribution = self._help_level_2_distribution()
+        if not interventions:
+            return f"P({self.distribution.to_y0()})"
+
+        # only keep the + if necessary, otherwise show regular
+        intervention_str = ",".join(
+            f"+{intervention.name}" if intervention.star else intervention.name
+            for intervention in interventions
+        )
+        return f"P[{intervention_str}]({unintervened_distribution.to_y0()})"
 
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
