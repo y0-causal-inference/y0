@@ -1,4 +1,13 @@
-"""Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172."""
+"""Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172.
+
+.. todo::
+
+    high level documentation
+
+    1. What problem are we trying to solve here?
+    2. What's the difference between surrogate outcomes nad transportability?
+    3. Real world example
+"""
 
 import logging
 from copy import deepcopy
@@ -651,7 +660,7 @@ def transport(
     surrogate_outcomes: Dict[Population, Set[Variable]],
     surrogate_interventions: Dict[Population, Set[Variable]],
 ) -> Expression | None:
-    """Transport algorithm from https://arxiv.org/abs/1806.07172.
+    r"""Run the transport algorithm from https://arxiv.org/abs/1806.07172.
 
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
@@ -659,6 +668,26 @@ def transport(
     :param surrogate_outcomes: A dictionary of outcomes in other populations
     :param surrogate_interventions: A dictionary of interventions in other populations
     :returns: An Expression evaluating the given query, or None
+
+    The example from figure 8 of the the original paper can be executed with
+    the following code:
+
+    .. code-block:: python
+
+        from y0.example import tikka_trso_figure_8_graph
+        from y0.dsl import X1, X2, Y1, Y2, Pi1, Pi2
+        from y0.algorithm.transport import transport
+
+        estimand = transport(
+            graph=tikka_trso_figure_8_graph,
+            target_outcomes={Y1, Y2},
+            target_interventions={X1, X2},
+            surrogate_outcomes={Pi1: {Y1}, Pi2: {Y2}},
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
+
+    This returns the following estimand:
+    $\sum_{W, Z} P(W, Z) \frac{P_{X_1}(W, Y_1, Z)}{P_{X_1}(W, Z)} \frac{P_{X_2}(W, X_1, Y_2, Z)}{P_{X_2}(W, X_1, Z)}$
     """
     # TODO are there any other checks we should add at the beginning?
     check_and_raise_missing(target_outcomes, graph, "target_outcomes")
