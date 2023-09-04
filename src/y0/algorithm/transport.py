@@ -675,9 +675,9 @@ def transport(
 
     .. code-block:: python
 
-        from y0.example import tikka_trso_figure_8_graph
-        from y0.dsl import X1, X2, Y1, Y2, Pi1, Pi2
         from y0.algorithm.transport import transport
+        from y0.dsl import X1, X2, Y1, Y2, Pi1, Pi2
+        from y0.examples import tikka_trso_figure_8_graph
 
         estimand = transport(
             graph=tikka_trso_figure_8_graph,
