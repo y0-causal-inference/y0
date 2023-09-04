@@ -699,6 +699,9 @@ def transport(
         set().union(*surrogate_interventions.values()), graph, "surrogate_interventions"
     )
 
+    # TODO is it the case that target_outcomes == set(itt.chain.from_iterable(surrogate_outcomes.values()))?
+    #  if so, we don't have to pass `target_outcomes` to `transport()` and can instead just calculate it.
+    #  Same thing for calculating target_interventions from surrogate_interventions
     transport_query = surrogate_to_transport(
         graph=graph,
         target_outcomes=target_outcomes,
