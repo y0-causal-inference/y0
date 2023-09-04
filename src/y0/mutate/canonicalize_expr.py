@@ -103,8 +103,6 @@ class Canonicalizer:
                 ranges=self._sorted(expression.ranges),
             )
         elif isinstance(expression, Product):
-            if 1 == len(expression.expressions):  # flatten unnecessary product
-                return self.canonicalize(expression.expressions[0])
             # note: safe already sorts
             return Product.safe(
                 self.canonicalize(subexpr) for subexpr in _flatten_product(expression)

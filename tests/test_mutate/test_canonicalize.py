@@ -86,10 +86,12 @@ class TestCanonicalize(unittest.TestCase):
     def test_derived_atomic(self):
         """Test canonicalizing."""
         # self.assert_canonicalize(One(), Sum(One(), ()), ())
-        self.assert_canonicalize(One(), Product((One(),)), ())
+        self.assert_canonicalize(One(), Product.safe(One()), ())
+        self.assert_canonicalize(One(), Product.safe([One()]), ())
         self.assert_canonicalize(One(), Product((One(), One())), ())
         self.assert_canonicalize(Zero(), Sum.safe(Zero(), (A,)), [A])
-        self.assert_canonicalize(Zero(), Product((Zero(),)), ())
+        self.assert_canonicalize(Zero(), Product.safe(Zero()), ())
+        self.assert_canonicalize(Zero(), Product.safe([Zero()]), ())
         self.assert_canonicalize(Zero(), Product((P(A), Product((P(B), Zero())))), [A, B])
         self.assert_canonicalize(Zero(), Product((Zero(), Zero())), ())
         self.assert_canonicalize(P(A), Product((One(), P(A))), [A])
@@ -100,7 +102,8 @@ class TestCanonicalize(unittest.TestCase):
         self.assert_canonicalize(expected, expression, [A, R])
 
         # Single Product
-        self.assert_canonicalize(P(A), Product((P(A),)), [A])
+        self.assert_canonicalize(P(A), Product.safe(P(A)), [A])
+        self.assert_canonicalize(P(A), Product.safe([P(A)]), [A])
 
         # Simple product (only atomic)
         expected = P(A) * P(B) * P(C)

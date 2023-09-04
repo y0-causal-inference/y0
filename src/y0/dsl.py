@@ -940,6 +940,10 @@ class Product(Expression):
 
     expressions: Tuple[Expression, ...]
 
+    def __post_init__(self):
+        if len(self.expressions) < 2:
+            raise ValueError(f"Product() must two or more expressions")
+
     @classmethod
     def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Expression:
         """Construct a product from any iterable of expressions.
@@ -973,10 +977,7 @@ class Product(Expression):
         if any(expression == Zero() for expression in expressions):
             return Zero()
         if not expressions:
-            raise ValueError(
-                "Product.safe does not explicitly empty list of expressions. "
-                "Should this return One()? Or Zero()? Please let us know."
-            )
+            return One()
         if len(expressions) == 1:
             return expressions[0]
         return cls(expressions=tuple(sorted(expressions)))
