@@ -942,7 +942,7 @@ class Product(Expression):
 
     def __post_init__(self):
         if len(self.expressions) < 2:
-            raise ValueError(f"Product() must two or more expressions")
+            raise ValueError("Product() must two or more expressions")
 
     @classmethod
     def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Expression:
@@ -950,7 +950,6 @@ class Product(Expression):
 
         :param expressions: An expression or iterable of expressions which should be multiplied
         :returns: A :class:`Product` object
-        :raises ValueError: If an empty iterable of expressions is input
 
         Standard usage, same as the normal ``__init__``:
 
