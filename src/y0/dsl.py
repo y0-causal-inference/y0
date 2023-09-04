@@ -731,8 +731,7 @@ class Probability(Expression):
         """Output this probability in the internal string format."""
         return f"P({self.distribution.to_text()})"
 
-    def to_y0(self) -> str:
-        """Output this probability instance as y0 internal DSL code."""
+    def _help_level_2_distribution(self):
         # if all parts of distribution have same intervention set, then put it out front
         intervention_sets = {
             x.interventions if isinstance(x, CounterfactualVariable) else tuple()
@@ -740,11 +739,6 @@ class Probability(Expression):
         }
         # check that there's only one intervention set and that it's not an empty one
         if len(intervention_sets) == 1 and (interventions := intervention_sets.pop()):
-            # only keep the + if necessary, otherwise show regular
-            intervention_str = ",".join(
-                f"+{intervention.name}" if intervention.star else intervention.name
-                for intervention in interventions
-            )
             unintervened_distribution = Distribution(
                 parents=tuple(Variable(name=v.name, star=v.star) for v in self.parents),
                 children=tuple(Variable(name=v.name, star=v.star) for v in self.children),
@@ -754,7 +748,12 @@ class Probability(Expression):
 
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
-        return f"P({self.distribution.to_latex()})"
+        interventions, unintervened_distribution = self._help_level_2_distribution()
+        if not interventions:
+            return f"P({self.distribution.to_latex()})"
+
+        intervention_str = ",".join(intervention.to_latex() for intervention in interventions)
+        return f"P_{{{intervention_str}}}({unintervened_distribution.to_latex()})"
 
     @property
     def parents(self) -> Tuple[Variable, ...]:
