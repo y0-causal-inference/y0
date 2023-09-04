@@ -724,6 +724,7 @@ class Probability(Expression):
         return Probability(distribution)
 
     def _get_key(self):
+        # TODO incorporate more information from children and parents
         return 0, self.children[0].name
 
     def to_text(self) -> str:
