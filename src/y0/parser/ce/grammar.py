@@ -43,11 +43,7 @@ def _make_frac(_s, _l, tokens: ParseResults) -> Fraction:
 
 
 def _make_product(_s, _l, tokens: ParseResults) -> Expression:
-    tokens = tokens.asList()
-    if len(tokens) == 1:
-        return tokens[0]
-    else:
-        return Product(tuple(tokens))
+    return Product.safe(tokens.asList())
 
 
 # auto-product
