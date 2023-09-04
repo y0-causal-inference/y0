@@ -17,7 +17,7 @@ from pyparsing import (
 )
 
 from .utils import probability_pe, qfactor_pe, variables_pe
-from ...dsl import Expression, Fraction, Product, Sum, _sorted_variables
+from ...dsl import Expression, Fraction, Product, Sum
 
 __all__ = [
     "parse_causaleffect",
@@ -30,7 +30,7 @@ expr = Forward()
 
 def _make_sum(_s, _l, tokens: ParseResults) -> Expression:
     return Sum.safe(
-        ranges=_sorted_variables(tokens["ranges"].asList() if "ranges" in tokens else []),
+        ranges=tokens["ranges"].asList() if "ranges" in tokens else [],
         expression=tokens["expression"],
     )
 

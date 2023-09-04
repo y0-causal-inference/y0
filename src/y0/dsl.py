@@ -1046,9 +1046,11 @@ class Sum(Expression):
     #: The expression over which the sum is done
     expression: Expression
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
-    ranges: Tuple[Variable, ...]
+    ranges: frozenset[Variable]
 
     def __post_init__(self):
+        if not isinstance(self.ranges, frozenset):
+            raise TypeError
         if not self.ranges:
             raise ValueError("Sum must have ranges")
         for r in self.ranges:
@@ -1090,20 +1092,23 @@ class Sum(Expression):
             return expression
         return cls(
             expression=expression,
-            ranges=ranges,
+            ranges=frozenset(ranges),
         )
 
     def _get_key(self):
         return 1, *self.expression._get_key()
 
+    def _get_sorted_ranges(self) -> Sequence[Variable]:
+        return sorted(self.ranges, key=attrgetter("name"))
+
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
-        ranges = _list_to_text(self.ranges)
+        ranges = _list_to_text(self._get_sorted_ranges())
         return f"[ sum_{{{ranges}}} {self.expression.to_text()} ]"
 
     def to_latex(self) -> str:
         """Output this sum in the LaTeX string format."""
-        ranges = _list_to_latex(self.ranges)
+        ranges = _list_to_latex(self._get_sorted_ranges())
         return rf"\sum_{{{ranges}}} {self.expression.to_latex()}"
 
     def to_y0(self):
@@ -1114,7 +1119,7 @@ class Sum(Expression):
             s = self.expression.to_y0()
         if not self.ranges:
             return f"Sum({s})"
-        ranges = _list_to_y0(self.ranges)
+        ranges = _list_to_y0(self._get_sorted_ranges())
         return f"Sum[{ranges}]({s})"
 
     def __mul__(self, expression: Expression):
@@ -1360,8 +1365,8 @@ class QBuilder(Protocol[T_co]):
 class QFactor(Expression):
     """A function from the variables in the domain to a probability function over variables in the codomain."""
 
-    domain: Tuple[Variable, ...]
-    codomain: Tuple[Variable, ...]
+    domain: frozenset[Variable]
+    codomain: frozenset[Variable]
 
     @classmethod
     def safe(
@@ -1373,20 +1378,20 @@ class QFactor(Expression):
         """Create a Q factor with various input types."""
         return cls(
             domain=cls._prepare_domain(domain, *args),
-            codomain=_upgrade_ordering(codomain),
+            codomain=frozenset(_upgrade_variables(codomain)),
         )
 
     @staticmethod
     def _prepare_domain(
         arg: VariableHint,
         *args: Union[str, Variable],
-    ) -> Tuple[Variable, ...]:
+    ) -> frozenset[Variable]:
         """Prepare a list of variables from a potentially unruly set of args and variadic args."""
         if isinstance(arg, (str, Variable)):
-            return Variable.norm(arg), *_upgrade_ordering(args)
+            return frozenset((Variable.norm(arg), *_upgrade_ordering(args)))
         if args:
             raise ValueError("can not use variadic arguments with combination of first arg")
-        return _sorted_variables(_upgrade_ordering(arg))
+        return frozenset(_sorted_variables(_upgrade_ordering(arg)))
 
     @classmethod
     def __class_getitem__(cls, codomain: Union[Variable, Iterable[Variable]]) -> QBuilder[QFactor]:
@@ -1408,24 +1413,30 @@ class QFactor(Expression):
         return functools.partial(cls.safe, codomain=codomain)
 
     def _get_key(self) -> tuple:
-        return -5, self.domain[0].name, self.codomain[0].name
+        return -5, min(v.name for v in self.domain), min(v.name for v in self.codomain)
+
+    def _sorted_codomain(self):
+        return sorted(self.codomain, key=attrgetter("name"))
+
+    def _sorted_domain(self):
+        return sorted(self.domain, key=attrgetter("name"))
 
     def to_text(self) -> str:
         """Output this Q factor in the internal string format."""
-        codomain = _list_to_text(self.codomain)
-        domain = _list_to_text(self.domain)
+        codomain = _list_to_text(self._sorted_codomain())
+        domain = _list_to_text(self._sorted_domain())
         return f"Q[{codomain}]({domain})"
 
     def to_latex(self) -> str:
         """Output this Q factor in the LaTeX string format."""
-        codomain = _list_to_latex(self.codomain)
-        domain = _list_to_latex(self.domain)
+        codomain = _list_to_latex(self._sorted_codomain())
+        domain = _list_to_latex(self._sorted_domain())
         return rf"Q_{{{codomain}}}({{{domain}}})"
 
     def to_y0(self) -> str:
         """Output this Q factor instance as y0 internal DSL code."""
-        codomain = _list_to_y0(self.codomain)
-        domain = _list_to_y0(self.domain)
+        codomain = _list_to_y0(self._sorted_codomain())
+        domain = _list_to_y0(self._sorted_domain())
         return f"Q[{codomain}]({domain})"
 
     def __mul__(self, other: Expression):

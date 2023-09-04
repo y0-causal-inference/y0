@@ -98,7 +98,7 @@ class Canonicalizer:
         elif isinstance(expression, Sum):
             return Sum.safe(
                 expression=self.canonicalize(expression.expression),
-                ranges=self._sorted(expression.ranges),
+                ranges=expression.ranges,
             )
         elif isinstance(expression, Product):
             # note: safe already sorts
