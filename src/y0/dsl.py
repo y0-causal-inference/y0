@@ -213,11 +213,10 @@ class Variable(Element):
         .. note:: This function can be accessed with the matmult @ operator.
         """
         interventions = _to_interventions(_upgrade_variables(variables))
-        interventions = tuple(sorted(set(interventions), key=lambda i: (i.name, i.star)))
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
-            interventions=interventions,
+            interventions=frozenset(interventions),
         )
 
     def __matmul__(self, variables: VariableHint) -> CounterfactualVariable:
@@ -321,6 +320,10 @@ class Intervention(Variable):
         return f"{mark}{self.name}"
 
 
+def _sort_interventions(interventions: Iterable[Intervention]) -> Tuple[Intervention, ...]:
+    return tuple(sorted(interventions, key=lambda i: (i.name, i.star)))
+
+
 @dataclass(frozen=True, order=True, repr=False)
 class CounterfactualVariable(Variable):
     """A counterfactual variable.
@@ -331,7 +334,7 @@ class CounterfactualVariable(Variable):
     """
 
     #: The interventions on the variable. Should be non-empty
-    interventions: Tuple[Intervention, ...] = field(default_factory=tuple)
+    interventions: frozenset[Intervention] = field(default_factory=frozenset)
 
     def __post_init__(self):
         if not self.interventions:
@@ -345,7 +348,7 @@ class CounterfactualVariable(Variable):
 
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
-        intervention_latex = _list_to_text(self.interventions)
+        intervention_latex = _list_to_text(_sort_interventions(self.interventions))
         return f"{self.name}_{{{intervention_latex}}}"
 
     def to_latex(self) -> str:
@@ -360,7 +363,7 @@ class CounterfactualVariable(Variable):
         >>> (Variable('X12') @ Variable('Y')).to_latex()
         '{X_{12}}_{Y}'
         """
-        intervention_latex = _list_to_latex(self.interventions)
+        intervention_latex = _list_to_latex(_sort_interventions(self.interventions))
         prefix = "^*" if self.star else ""
         return f"{{{super().to_latex()}}}{prefix}_{{{intervention_latex}}}"
 
@@ -375,7 +378,7 @@ class CounterfactualVariable(Variable):
         if len(self.interventions) == 1:
             return f"{prefix}{self.name} @ {list(self.interventions)[0].to_y0()}"
         else:
-            ins = ", ".join(i.to_y0() for i in self.interventions)
+            ins = ", ".join(i.to_y0() for i in _sort_interventions(self.interventions))
             return f"{prefix}{self.name} @ ({ins})"
 
     def is_event(self) -> bool:
@@ -425,9 +428,7 @@ class CounterfactualVariable(Variable):
         interventions = {*self.interventions, *_interventions}
         self._raise_for_overlapping_interventions(interventions)
         return CounterfactualVariable(
-            name=self.name,
-            star=self.star,
-            interventions=tuple(sorted(interventions, key=attrgetter("name"))),
+            name=self.name, star=self.star, interventions=frozenset(interventions)
         )
 
     @staticmethod

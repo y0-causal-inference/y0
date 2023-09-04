@@ -655,6 +655,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assert_graph_equal(figure_11a.graph, cf_graph_2)
         self.assert_graph_equal(figure_11b.graph, cf_graph_6)
         self.assert_graph_equal(figure_11c.graph, cf_graph_7)
+        # FIXME
         self.assert_graph_equal(merge_pw(figure_9b.graph, W @ -x, W @ -d)[0], cf_graph_8)
         self.assert_graph_equal(merge_pw(figure_9b.graph, Z, W)[0], cf_graph_9)
         self.assertTrue(D @ -d not in merge_pw(figure_11a.graph, Z, Z @ -d)[0].nodes())
@@ -748,5 +749,6 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         )
 
         expected_event8 = {Y @ -X: -Y, Z @ +X: -Z, Z @ -X: -Z}
+        # FIXME
         self.assert_graph_equal(expected_graph8, actual_graph8)
         self.assertEqual(expected_event8, actual_event8)
