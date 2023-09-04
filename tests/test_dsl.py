@@ -311,17 +311,17 @@ class TestDSL(unittest.TestCase):
         """Test assorted complicated objects from Jeremy."""
         self.assert_text(
             "[ sum_{W} P(D) P(W_{X*}) P(X, Y_{W, Z*}) P(Z_{D}) ]",
-            Sum(P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X), (W,)),
+            Sum[W](P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X)),
         )
 
         self.assert_text(
             "[ sum_{W} P(W_{X*}) P(X, Y_{W, Z*}) ]",
-            Sum(P(X, Y @ ~Z @ W) * P(W @ ~X), (W,)),
+            Sum[W](P(X, Y @ ~Z @ W) * P(W @ ~X)),
         )
 
         self.assert_text(
             "[ sum_{D} P(D) P(W_{X*}) P(X, Y_{W, Z*}) P(Z_{D}) ]",
-            Sum(P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
+            Sum[D](P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X)),
         )
 
     def test_api(self):
