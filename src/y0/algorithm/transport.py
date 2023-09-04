@@ -688,7 +688,8 @@ def transport(
         )
 
     This returns the following estimand:
-    $\sum_{W, Z} P(W, Z) \frac{P_{X_1}(W, Y_1, Z)}{P_{X_1}(W, Z)} \frac{P_{X_2}(W, X_1, Y_2, Z)}{P_{X_2}(W, X_1, Z)}$
+    $\sum_{W, Z} P(W, Z) \frac{P_{X_1}^{π_1}(W, Y_1, Z)}{P_{X_1}(W, Z)}
+    \frac{P_{X_2}^{π_2}(W, X_1, Y_2, Z)}{P_{X_2}(W, X_1, Z)}$
     """
     # TODO are there any other checks we should add at the beginning?
     check_and_raise_missing(target_outcomes, graph, "target_outcomes")

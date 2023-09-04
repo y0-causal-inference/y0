@@ -95,6 +95,16 @@ __all__ = [
     "PP",
     "Pi1",
     "Pi2",
+    "Pi3",
+    "Pi4",
+    "Pi5",
+    "Pi6",
+    "π1",
+    "π2",
+    "π3",
+    "π4",
+    "π5",
+    "π6",
     "Tr",
     "Transport",
     "Population",
@@ -1527,6 +1537,7 @@ W0, W1, W2, W3, W4, W5, W6 = [Variable(f"W{i}") for i in range(7)]
 X1, X2, X3, X4, X5, X6 = [Variable(f"X{i}") for i in range(1, 7)]
 Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f"Y{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
+π1, π2, π3, π4, π5, π6 = Pi1, Pi2, Pi3, Pi4, Pi5, Pi6 = [Variable(f"π{i}") for i in range(1, 7)]
 
 
 def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
@@ -1636,6 +1647,30 @@ class PopulationProbability(Probability):
     def _get_key(self):
         return -1, self.population, self.children[0].name
 
+    def to_y0(self) -> str:
+        """Output this probability instance as y0 internal DSL code."""
+        interventions, unintervened_distribution = self._help_level_2_distribution()
+        if not interventions:
+            return f"P({self.distribution.to_y0()})"
+
+        # only keep the + if necessary, otherwise show regular
+        intervention_str = ",".join(
+            f"+{intervention.name}" if intervention.star else intervention.name
+            for intervention in interventions
+        )
+        return (
+            f"P[{self.population.to_y0()}][{intervention_str}]({unintervened_distribution.to_y0()})"
+        )
+
+    def to_latex(self) -> str:
+        """Output this probability in the LaTeX string format."""
+        interventions, unintervened_distribution = self._help_level_2_distribution()
+        if not interventions:
+            return f"P({self.distribution.to_latex()})"
+
+        intervention_str = ",".join(intervention.to_latex() for intervention in interventions)
+        return f"P_{{{intervention_str}}}^{{{self.population.to_latex()}}}({unintervened_distribution.to_latex()})"
+
 
 class PopulationProbabilityBuilderType(ProbabilityBuilderType):
     """A magical type for building population probabilities."""
@@ -1657,7 +1692,6 @@ class PopulationProbabilityBuilderType(ProbabilityBuilderType):
 
 
 PP = PopulationProbabilityBuilderType
-Pi1, Pi2, Pi3 = Variable("Pi1"), Variable("Pi2"), Variable("Pi3")
 
 
 @dataclass(frozen=True, order=True, repr=False)
