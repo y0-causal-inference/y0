@@ -63,8 +63,8 @@ qfactor_pe = (
 
 def _make_q(_s, _l, tokens: ParseResults) -> QFactor:
     return QFactor(
-        codomain=_sorted_variables(tokens["codomain"].asList()),
-        domain=_sorted_variables(tokens["domain"].asList()),
+        codomain=frozenset(tokens["codomain"].asList()),
+        domain=frozenset(tokens["domain"].asList()),
     )
 
 

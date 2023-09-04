@@ -270,8 +270,10 @@ class TestDSL(unittest.TestCase):
             Sum(P(A), (~B,))
         with self.assertRaises(TypeError):
             Sum(P(A), (B @ C,))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             Sum(P(A), tuple())
+        with self.assertRaises(ValueError):
+            Sum(P(A), frozenset())
 
         # Sum with one variable
         self.assert_text(
@@ -358,7 +360,7 @@ class TestCounterfactual(unittest.TestCase):
                 self.assertIsInstance(expr, CounterfactualVariable)
                 self.assertEqual(counterfactual_star, expr.star)
                 self.assertEqual(1, len(expr.interventions))
-                self.assertEqual(intervention_star, expr.interventions[0].star)
+                self.assertEqual(intervention_star, list(expr.interventions)[0].star)
 
     def test_event_failures(self):
         """Check for failure to determine tautology/inconsistent."""
@@ -478,12 +480,14 @@ class TestSafeConstructors(unittest.TestCase):
 
     def test_sum(self):
         """Test the :meth:`Sum.safe` constructor."""
-        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), (X,)))
-        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), [X]))
-        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), {X}))
-        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), X))
+        self.assertEqual(Sum(P(X, Y), frozenset([X])), Sum.safe(P(X, Y), (X,)))
+        self.assertEqual(Sum(P(X, Y), frozenset([X])), Sum.safe(P(X, Y), [X]))
+        self.assertEqual(Sum(P(X, Y), frozenset([X])), Sum.safe(P(X, Y), {X}))
+        self.assertEqual(Sum(P(X, Y), frozenset([X])), Sum.safe(P(X, Y), X))
 
-        self.assertEqual(Sum(P(X, Y, Z), (X, Y)), Sum.safe(P(X, Y, Z), (v for v in [X, Y])))
+        self.assertEqual(
+            Sum(P(X, Y, Z), frozenset([X, Y])), Sum.safe(P(X, Y, Z), (v for v in [X, Y]))
+        )
 
     def test_product(self):
         """Test the :meth:`Product.safe` constructor."""
