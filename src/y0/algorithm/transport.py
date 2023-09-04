@@ -36,6 +36,7 @@ from y0.mutate.canonicalize_expr import canonicalize
 
 __all__ = [
     "transport",
+    "trso",
     "TransportQuery",
 ]
 
@@ -263,6 +264,7 @@ def trso_line2(
             ),
         )
     else:
+        # TODO need full integration test to trso() function that covers this branch
         logger.debug(
             "Calling trso algorithm line 2 else loop",
             query.expression,
@@ -364,6 +366,7 @@ def intervene(expression: Expression, interventions: Set[Variable]) -> Expressio
     if isinstance(expression, Probability):
         return expression.intervene(interventions)
     if isinstance(expression, Sum):
+        # TODO need full integration test to trso() function that covers this branch
         # Don't intervene the ranges because counterfactual variables shouldn't be in ranges
         # intervened_ranges = tuple(
         #     variable.intervene(active_interventions) for variable in expression.ranges
@@ -374,6 +377,7 @@ def intervene(expression: Expression, interventions: Set[Variable]) -> Expressio
         denominator = intervene(expression.denominator, interventions)
         return cast(Fraction, numerator / denominator).simplify()
     if isinstance(expression, Product):
+        # TODO need full integration test to trso() function that covers this branch
         return Product.safe(intervene(expr, interventions) for expr in expression.expressions)
     raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
 
@@ -415,14 +419,9 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
         query.expression,
         district,
     )
-    # first simplify before this check
     if isinstance(query.expression, Zero):
-        # TODO is this possible to be zero, should we have a check?
-        # from charlie: no, it's not possible to be zero, since you're
-        # wrapping some expression in a sum. This comparison doesn't actually
-        # make sense, either, since this is a DSL object and not an integer.
-        # however, if you do some kind of processing/evaluation, then you
-        # might be able to find out if it's zero
+        # TODO if we can't create an integration test (i.e., a call to trso)
+        #  that triggers this line, then it can be safely removed
         raise RuntimeError
 
     ordering = list(query.graphs[query.domain].topological_sort())
@@ -573,6 +572,8 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         if len(expressions) == 1:
             return canonicalize(list(expressions.values())[0])
         elif len(expressions) > 1:
+            # TODO need full integration test to trso() function that covers this branch
+            #  or change to ``raise RuntimeError``
             logger.warning("more than one expression were non-none")
             # What if more than 1 expression doesn't fail?
             # Is it non-deterministic or can we prove it will be length 1?
@@ -591,6 +592,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         )
         return None
     if len(districts) == 1:
+        # TODO explain why this causes failure
         logger.debug(
             "Fail on trso algorithm line 11 (length of districts equals 1)",
         )
