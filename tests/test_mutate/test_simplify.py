@@ -33,7 +33,7 @@ class TestCancel(unittest.TestCase):
             ("canonical", one / P(A), one / P(A)),
             ("flipper", P(A), Fraction(one, Fraction(one, P(A)))),
             ("prob-redundant-one", P(A), Fraction(P(A), one)),
-            ("sum-redundant-one", Sum(P(A), (B,)), Fraction(Sum(P(A), (B,)), one)),
+            ("sum-redundant-one", Sum[B](P(A)), Fraction(Sum[B](P(A)), one)),
             ("frac-redundant-one", P(A) / P(B), Fraction(Fraction(P(A), P(B)), one)),
             ("prod-redundant-one", P(A) * P(B), Fraction(P(A) * P(B), one)),
         ]:

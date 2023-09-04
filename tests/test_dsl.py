@@ -276,12 +276,12 @@ class TestDSL(unittest.TestCase):
         # Sum with one variable
         self.assert_text(
             "[ sum_{S} P(A | B) P(C | D) ]",
-            Sum(P(A | B) * P(C | D), (S,)),
+            Sum[S](P(A | B) * P(C | D)),
         )
         # Sum with two variables
         self.assert_text(
             "[ sum_{S, T} P(A | B) P(C | D) ]",
-            Sum(P(A | B) * P(C | D), (S, T)),
+            Sum[S, T](P(A | B) * P(C | D)),
         )
 
         # CRAZY sum syntax! pycharm doesn't like this usage of __class_getitem__ though so idk if we'll keep this
@@ -297,7 +297,7 @@ class TestDSL(unittest.TestCase):
         # Sum with sum inside
         self.assert_text(
             "[ sum_{S, T} P(A | B) [ sum_{R} P(C | D) ] ]",
-            Sum(P(A | B) * Sum(P(C | D), (R,)), (S, T)),
+            Sum[S, T](P(A | B) * Sum[R](P(C | D))),
         )
 
     def test_q(self):
@@ -311,17 +311,17 @@ class TestDSL(unittest.TestCase):
         """Test assorted complicated objects from Jeremy."""
         self.assert_text(
             "[ sum_{W} P(X, Y_{W, Z*}) P(D) P(Z_{D}) P(W_{X*}) ]",
-            Sum(P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X), (W,)),
+            Sum[W](P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X)),
         )
 
         self.assert_text(
             "[ sum_{W} P(X, Y_{W, Z*}) P(W_{X*}) ]",
-            Sum(P(X, Y @ ~Z @ W) * P(W @ ~X), (W,)),
+            Sum[W](P(X, Y @ ~Z @ W) * P(W @ ~X)),
         )
 
         self.assert_text(
             "[ sum_{D} P(X, Y_{W, Z*}) P(D) P(Z_{D}) P(W_{X*}) ]",
-            Sum(P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
+            Sum[D](P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X)),
         )
 
     def test_api(self):
