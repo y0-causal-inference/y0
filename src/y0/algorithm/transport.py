@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Sep  5 15:27:19 2023
+
+@author: merr391
+"""
+
 """Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172.
 
 .. todo::
@@ -16,6 +23,7 @@ from typing import Collection, Dict, FrozenSet, Iterable, Optional, Set, Union, 
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
+    PP,
     CounterfactualVariable,
     Distribution,
     Expression,
@@ -253,27 +261,15 @@ def trso_line2(
     """
     new_query = deepcopy(query)
     new_query.target_interventions.intersection_update(outcomes_ancestors)
-    new_query.graphs[new_query.domain] = query.graphs[query.domain].subgraph(outcomes_ancestors)
-    if isinstance(query.expression, PopulationProbability):
-        # If the expression is a PopulationProbability instead of Sum, Product,Fraction
-        # This is true by the chain rule and marginalizing
-        new_query.expression = PopulationProbability(
-            population=query.domain,
-            distribution=Distribution.safe(
-                set(query.expression.children).intersection(outcomes_ancestors)
-            ),
-        )
-    else:
-        # TODO need full integration test to trso() function that covers this branch
-        logger.debug(
-            "Calling trso algorithm line 2 else loop",
-            query.expression,
-        )
-        new_query.expression = Sum.safe(
-            query.expression,
-            get_regular_nodes(query.graphs[query.domain]) - outcomes_ancestors,
-        )
 
+    for domain, graph in query.graphs.items():
+        outcome_ancestors2 = graph.ancestors_inclusive(query.target_outcomes)
+        new_query.graphs[domain] = graph.subgraph(outcome_ancestors2)
+
+    new_query.expression = Sum.safe(
+        query.expression,
+        get_regular_nodes(query.graphs[query.domain]) - outcomes_ancestors,
+    )
     return new_query
 
 
@@ -339,7 +335,6 @@ def _line_6_helper(
     surrogate_intersect_target = surrogate_interventions.intersection(query.target_interventions)
     if not surrogate_intersect_target:
         return None
-
     if not all_transports_d_separated(
         graph,
         target_interventions=query.target_interventions,
@@ -355,30 +350,36 @@ def _line_6_helper(
     return new_query
 
 
-def intervene(expression: Expression, interventions: Set[Variable]) -> Expression:
+# TODO domain being an input to this function is not a good solution.
+def intervene(
+    expression: Expression, interventions: Set[Variable], domain: Population
+) -> Expression:
     """Intervene on the target variables of expression using the active interventions.
 
     :param expression: A probability expression.
     :param interventions: Set of active interventions
+    :param domain: A given population
     :returns: A new expression, intervened
     :raises NotImplementedError: If an expression type that is not handled gets passed
     """
     if isinstance(expression, Probability):
-        return expression.intervene(interventions)
+        return PP[domain](set(expression.children) - interventions).intervene(interventions)
     if isinstance(expression, Sum):
         # TODO need full integration test to trso() function that covers this branch
         # Don't intervene the ranges because counterfactual variables shouldn't be in ranges
         # intervened_ranges = tuple(
         #     variable.intervene(active_interventions) for variable in expression.ranges
         # )
-        return Sum.safe(intervene(expression.expression, interventions), expression.ranges)
+        return Sum.safe(intervene(expression.expression, interventions, domain), expression.ranges)
     if isinstance(expression, Fraction):
-        numerator = intervene(expression.numerator, interventions)
-        denominator = intervene(expression.denominator, interventions)
+        numerator = intervene(expression.numerator, interventions, domain)
+        denominator = intervene(expression.denominator, interventions, domain)
         return cast(Fraction, numerator / denominator).simplify()
     if isinstance(expression, Product):
         # TODO need full integration test to trso() function that covers this branch
-        return Product.safe(intervene(expr, interventions) for expr in expression.expressions)
+        return Product.safe(
+            intervene(expr, interventions, domain) for expr in expression.expressions
+        )
     raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
 
 
@@ -563,7 +564,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
             expression = trso(subquery)
             if expression is None:
                 continue
-            expression = intervene(expression, subquery.active_interventions)
+            expression = intervene(expression, subquery.active_interventions, domain)
             if expression is not None:  # line7
                 logger.debug(
                     "Calling trso algorithm line 7",
