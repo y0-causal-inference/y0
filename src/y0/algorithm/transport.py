@@ -362,6 +362,8 @@ def intervene(
     :returns: A new expression, intervened
     :raises NotImplementedError: If an expression type that is not handled gets passed
     """
+    if isinstance(expression, PopulationProbability):
+        raise NotImplementedError
     if isinstance(expression, Probability):
         return PP[domain](set(expression.children) - interventions).intervene(interventions)
     if isinstance(expression, Sum):
