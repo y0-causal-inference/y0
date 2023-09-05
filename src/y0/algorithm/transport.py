@@ -351,9 +351,7 @@ def _line_6_helper(
 
 
 # TODO domain being an input to this function is not a good solution.
-def intervene(
-    expression: Expression, interventions: Set[Variable], domain: Population
-) -> Expression:
+def intervene(expression: Expression, interventions: Set[Variable]) -> Expression:
     """Intervene on the target variables of expression using the active interventions.
 
     :param expression: A probability expression.
@@ -363,23 +361,23 @@ def intervene(
     :raises NotImplementedError: If an expression type that is not handled gets passed
     """
     if isinstance(expression, Probability):
-        return PP[domain](set(expression.children) - interventions).intervene(interventions)
+        return PP[expression.population](set(expression.children) - interventions).intervene(
+            interventions
+        )
     if isinstance(expression, Sum):
         # TODO need full integration test to trso() function that covers this branch
         # Don't intervene the ranges because counterfactual variables shouldn't be in ranges
         # intervened_ranges = tuple(
         #     variable.intervene(active_interventions) for variable in expression.ranges
         # )
-        return Sum.safe(intervene(expression.expression, interventions, domain), expression.ranges)
+        return Sum.safe(intervene(expression.expression, interventions), expression.ranges)
     if isinstance(expression, Fraction):
-        numerator = intervene(expression.numerator, interventions, domain)
-        denominator = intervene(expression.denominator, interventions, domain)
+        numerator = intervene(expression.numerator, interventions)
+        denominator = intervene(expression.denominator, interventions)
         return cast(Fraction, numerator / denominator).simplify()
     if isinstance(expression, Product):
         # TODO need full integration test to trso() function that covers this branch
-        return Product.safe(
-            intervene(expr, interventions, domain) for expr in expression.expressions
-        )
+        return Product.safe(intervene(expr, interventions) for expr in expression.expressions)
     raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
 
 
@@ -564,7 +562,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
             expression = trso(subquery)
             if expression is None:
                 continue
-            expression = intervene(expression, subquery.active_interventions, domain)
+            expression = intervene(expression, subquery.active_interventions)
             if expression is not None:  # line7
                 logger.debug(
                     "Calling trso algorithm line 7",
