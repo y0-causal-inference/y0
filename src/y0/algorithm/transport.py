@@ -581,9 +581,10 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         else:
             pass
 
-    # line8
+    # line8 checks that len(districts)) != 1
     districts = graph.districts()
-    # line 11, return fail. keep explict tests for 0 and 1 to ensure adequate testing
+    # line 11 states return fail if len(districts)==1
+    # keep explict tests for 0 and 1 to ensure adequate testing
     if len(districts) == 0:
         # TODO. I think this will only occur if graph is empty.
         # Does it make sense to have an empty graph? We could check this early on instead.
@@ -592,7 +593,6 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
         )
         return None
     if len(districts) == 1:
-        # TODO explain why this causes failure
         logger.debug(
             "Fail on trso algorithm line 11 (length of districts equals 1)",
         )
@@ -601,7 +601,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
 
     # line 9
     if len(districts_without_interventions) == 0:
-        #TODO the way to trigger this seems to be having an intervention that is also an outcome.
+        # TODO the way to trigger this seems to be having an intervention that is also an outcome.
         raise NotImplementedError("no districts without interventions found")
     # at this point, we already checked for cases where len > 2 and len == 0,
     # so we can safely pop the only element

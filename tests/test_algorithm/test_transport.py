@@ -932,7 +932,7 @@ class TestIntegration(_TestCase):
             )
 
         # This test triggers the if expression is None:  continue block after line 6
-        # TODO Another test that fails. 
+        # TODO Another test that fails.
         target_outcomes = {Y1, Y2}
         target_interventions = {X1, X2}
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
@@ -951,7 +951,7 @@ class TestIntegration(_TestCase):
                 (Z, Y2),
             ],
         )
-        
+
         actual_6 = transport(
             graph=new_graph,
             target_outcomes=target_outcomes,
@@ -960,5 +960,3 @@ class TestIntegration(_TestCase):
             surrogate_interventions=surrogate_interventions,
         )
         self.assertIsNone(actual_6)
-            
-
