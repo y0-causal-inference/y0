@@ -877,13 +877,14 @@ class TestIntegration(_TestCase):
         self.assertIsNone(actual_11)
 
         # This triggers triggers not implemented error on line 9
+        # Now it triggers value error
         new_graph = tikka_trso_figure_8.subgraph(tikka_trso_figure_8.nodes() - {X1})
         target_interventions = {Z, Y1, W}
         target_outcomes = {Y1}
         surrogate_interventions = {Pi1: {X2}, Pi2: {X2}}
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
 
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(ValueError):
             transport(
                 graph=new_graph,
                 target_outcomes=target_outcomes,
