@@ -30,6 +30,7 @@ from y0.dsl import (
     Fraction,
     Intervention,
     One,
+    P,
     Population,
     PopulationProbability,
     Probability,
@@ -360,12 +361,14 @@ def intervene(expression: Expression, interventions: Set[Variable]) -> Expressio
     :returns: A new expression, intervened
     :raises NotImplementedError: If an expression type that is not handled gets passed
     """
+    if not isinstance(interventions, set):
+        interventions = {interventions}
     if isinstance(expression, PopulationProbability):
-        raise NotImplementedError
-    if isinstance(expression, Probability):
         return PP[expression.population](set(expression.children) - interventions).intervene(
             interventions
         )
+    if isinstance(expression, Probability):
+        return P(set(expression.children) - interventions).intervene(interventions)
     if isinstance(expression, Sum):
         # TODO need full integration test to trso() function that covers this branch
         # Don't intervene the ranges because counterfactual variables shouldn't be in ranges
