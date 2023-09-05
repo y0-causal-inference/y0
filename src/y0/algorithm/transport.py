@@ -360,6 +360,8 @@ def intervene(expression: Expression, interventions: Set[Variable]) -> Expressio
     :returns: A new expression, intervened
     :raises NotImplementedError: If an expression type that is not handled gets passed
     """
+    if isinstance(expression, PopulationProbability):
+        raise NotImplementedError
     if isinstance(expression, Probability):
         return PP[expression.population](set(expression.children) - interventions).intervene(
             interventions
