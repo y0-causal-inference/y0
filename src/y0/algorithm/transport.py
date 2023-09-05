@@ -543,7 +543,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
             logger.debug("Calling subquery %d of trso algorithm line 4", i + 1)
             term = trso(subquery)
             if term is None:
-                raise NotImplementedError
+                return None
             terms.append(term)
 
         product = Product.safe(terms)
@@ -601,6 +601,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
 
     # line 9
     if len(districts_without_interventions) == 0:
+        #TODO the way to trigger this seems to be having an intervention that is also an outcome.
         raise NotImplementedError("no districts without interventions found")
     # at this point, we already checked for cases where len > 2 and len == 0,
     # so we can safely pop the only element
@@ -698,6 +699,12 @@ def transport(
     check_and_raise_missing(
         set().union(*surrogate_interventions.values()), graph, "surrogate_interventions"
     )
+
+    outcome_is_intervention = target_outcomes.intersection(target_interventions)
+    if outcome_is_intervention:
+        raise ValueError(
+            f"The variables {outcome_is_intervention} cannot be target_outcomes and target_interventions"
+        )
 
     # TODO is it the case that target_outcomes == set(itt.chain.from_iterable(surrogate_outcomes.values()))?
     #  if so, we don't have to pass `target_outcomes` to `transport()` and can instead just calculate it.

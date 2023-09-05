@@ -878,7 +878,7 @@ class TestIntegration(_TestCase):
 
         # This triggers triggers not implemented error on line 9
         new_graph = tikka_trso_figure_8.subgraph(tikka_trso_figure_8.nodes() - {X1})
-        target_interventions = {X2, Y2, Z, Y1, W}
+        target_interventions = {Z, Y1, W}
         target_outcomes = {Y1}
         surrogate_interventions = {Pi1: {X2}, Pi2: {X2}}
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
@@ -932,7 +932,7 @@ class TestIntegration(_TestCase):
             )
 
         # This test triggers the if expression is None:  continue block after line 6
-        # TODO ends in NotImplementedError
+        # TODO Another test that fails. 
         target_outcomes = {Y1, Y2}
         target_interventions = {X1, X2}
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
@@ -951,11 +951,14 @@ class TestIntegration(_TestCase):
                 (Z, Y2),
             ],
         )
-        with self.assertRaises(NotImplementedError):
-            transport(
-                graph=new_graph,
-                target_outcomes=target_outcomes,
-                target_interventions=target_interventions,
-                surrogate_outcomes=surrogate_outcomes,
-                surrogate_interventions=surrogate_interventions,
-            )
+        
+        actual_6 = transport(
+            graph=new_graph,
+            target_outcomes=target_outcomes,
+            target_interventions=target_interventions,
+            surrogate_outcomes=surrogate_outcomes,
+            surrogate_interventions=surrogate_interventions,
+        )
+        self.assertIsNone(actual_6)
+            
+
