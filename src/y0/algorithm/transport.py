@@ -264,13 +264,15 @@ def trso_line2(
     new_query.target_interventions.intersection_update(outcomes_ancestors)
 
     for domain, graph in query.graphs.items():
-        outcome_ancestors2 = graph.ancestors_inclusive(query.target_outcomes)
-        new_query.graphs[domain] = graph.subgraph(outcome_ancestors2)
+        outcome_ancestors_domain = graph.ancestors_inclusive(query.target_outcomes)
+        new_query.graphs[domain] = graph.subgraph(outcome_ancestors_domain)
 
     new_query.expression = Sum.safe(
         query.expression,
         get_regular_nodes(query.graphs[query.domain]) - outcomes_ancestors,
-    )
+    ).simplify()
+    if isinstance(new_query.expression, Probability):
+        new_query.expression = PP[query.expression.population](new_query.expression.children)
     return new_query
 
 
@@ -351,8 +353,9 @@ def _line_6_helper(
     return new_query
 
 
-# TODO domain being an input to this function is not a good solution.
-def intervene(expression: Expression, interventions: Set[Variable]) -> Expression:
+def activate_domain_and_interventions(
+    expression: Expression, interventions: Set[Variable], domain: Population
+) -> Expression:
     """Intervene on the target variables of expression using the active interventions.
 
     :param expression: A probability expression.
@@ -364,25 +367,32 @@ def intervene(expression: Expression, interventions: Set[Variable]) -> Expressio
     if not isinstance(interventions, set):
         interventions = {interventions}
     if isinstance(expression, PopulationProbability):
-        return PP[expression.population](set(expression.children) - interventions).intervene(
-            interventions
-        )
+        return PP[domain](set(expression.children) - interventions).intervene(interventions)
     if isinstance(expression, Probability):
+        # raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
         return P(set(expression.children) - interventions).intervene(interventions)
     if isinstance(expression, Sum):
         # TODO need full integration test to trso() function that covers this branch
         # Don't intervene the ranges because counterfactual variables shouldn't be in ranges
         # intervened_ranges = tuple(
-        #     variable.intervene(active_interventions) for variable in expression.ranges
+        #     variable.activate_domain_and_interventions(active_interventions) for variable in expression.ranges
         # )
-        return Sum.safe(intervene(expression.expression, interventions), expression.ranges)
+        return Sum.safe(
+            activate_domain_and_interventions(expression.expression, interventions, domain),
+            expression.ranges,
+        )
     if isinstance(expression, Fraction):
-        numerator = intervene(expression.numerator, interventions)
-        denominator = intervene(expression.denominator, interventions)
+        numerator = activate_domain_and_interventions(expression.numerator, interventions, domain)
+        denominator = activate_domain_and_interventions(
+            expression.denominator, interventions, domain
+        )
         return cast(Fraction, numerator / denominator).simplify()
     if isinstance(expression, Product):
         # TODO need full integration test to trso() function that covers this branch
-        return Product.safe(intervene(expr, interventions) for expr in expression.expressions)
+        return Product.safe(
+            activate_domain_and_interventions(expr, interventions, domain)
+            for expr in expression.expressions
+        )
     raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
 
 
@@ -567,7 +577,9 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
             expression = trso(subquery)
             if expression is None:
                 continue
-            expression = intervene(expression, subquery.active_interventions)
+            expression = activate_domain_and_interventions(
+                expression, subquery.active_interventions, domain
+            )
             if expression is not None:  # line7
                 logger.debug(
                     "Calling trso algorithm line 7",
