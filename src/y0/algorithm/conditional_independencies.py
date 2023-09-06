@@ -103,19 +103,6 @@ def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
     return len(judgement.conditions), ",".join(c.name for c in judgement.conditions)
 
 
-def disorient(graph: NxMixedGraph) -> nx.Graph:
-    """Convert an ADMG into a undirected (networkx) graph.
-
-    :param graph: An ADMG
-    :returns: A disoriented graph
-    """
-    rv = nx.Graph()
-    rv.add_nodes_from(graph.nodes())
-    rv.add_edges_from(graph.directed.edges())
-    rv.add_edges_from(graph.undirected.edges())
-    return rv
-
-
 def iter_moral_links(graph: NxMixedGraph) -> Iterable[Tuple[Variable, Variable]]:
     """Generate links to ensure all co-parents in a graph are linked.
 
@@ -180,7 +167,7 @@ def are_d_separated(
         sg.add_undirected_edge(u, v)
 
     # disorient & remove conditions
-    evidence_graph = disorient(sg)
+    evidence_graph = sg.disorient()
 
     keep = set(evidence_graph.nodes) - set(conditions)
     evidence_graph = evidence_graph.subgraph(keep)

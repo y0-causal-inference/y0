@@ -405,6 +405,24 @@ class NxMixedGraph:
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
+    def get_intervened_ancestors(self, interventions, outcomes) -> Set[Variable]:
+        """Get the ancestors of outcomes in a graph that has been intervened on.
+
+        :param interventions: a set of interventions in the graph
+        :param outcomes: a set of outcomes in the graph
+        :returns: Set of nodes
+        """
+        return self.remove_in_edges(interventions).ancestors_inclusive(outcomes)
+
+    def get_no_effect_on_outcomes(self, interventions, outcomes) -> Set[Variable]:
+        """Find nodes in the graph which have no effect on the outcomes.
+
+        :param interventions: a set of interventions in the graph
+        :param outcomes: a set of outcomes in the graph
+        :returns: Set of nodes
+        """
+        return self.nodes() - interventions - self.get_intervened_ancestors(interventions, outcomes)
+
     def remove_nodes_from(self, vertices: Union[Variable, Iterable[Variable]]) -> NxMixedGraph:
         """Return a subgraph that does not contain any of the specified vertices.
 
@@ -492,6 +510,35 @@ class NxMixedGraph:
         for node in nodes:
             parents_of_district |= set(self.directed.predecessors(node))
         return parents_of_district - set(nodes)
+
+    def get_markov_blanket(self, nodes: Union[Variable, Iterable[Variable]]) -> Set[Variable]:
+        """Get the Markov blanket for a set of nodes.
+
+        The Markov blanket in a directed graph is the union of the parents, children,
+        and parents of children of a given node.
+
+        :param nodes: A node or nodes to get the Markov blanket from
+        :return: A set of variables comprising the Markov blanket
+        """
+        if isinstance(nodes, Variable):
+            nodes = {nodes}
+        else:
+            nodes = set(nodes)
+        blanket = set()
+        for node in nodes:
+            blanket.update(self.directed.predecessors(node))
+            for successor in self.directed.successors(node):
+                blanket.add(successor)
+                blanket.update(self.directed.predecessors(successor))
+        return blanket.difference(nodes)
+
+    def disorient(self) -> nx.Graph:
+        """Return a graph with all edges converted to a flat undirected graph."""
+        rv = nx.Graph()
+        rv.add_nodes_from(self.nodes())
+        rv.add_edges_from(self.directed.edges())
+        rv.add_edges_from(self.undirected.edges())
+        return rv
 
 
 def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:

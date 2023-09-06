@@ -3,7 +3,7 @@
 """Implementation of the canonicalization algorithm."""
 
 from operator import attrgetter
-from typing import Iterable, Mapping, Optional, Sequence, Tuple, Union
+from typing import Collection, Iterable, Mapping, Optional, Sequence, Tuple, Union
 
 from ..dsl import (
     CounterfactualVariable,
@@ -38,10 +38,6 @@ def canonicalize(
     return canonicalizer.canonicalize(expression)
 
 
-def _sort_probability_key(probability: Probability) -> Tuple[str, ...]:
-    return tuple(child.name for child in probability.children)
-
-
 class Canonicalizer:
     """A data structure to support application of the canonicalize algorithm."""
 
@@ -69,7 +65,7 @@ class Canonicalizer:
             )
         )
 
-    def _sorted(self, variables: Tuple[Variable, ...]) -> Tuple[Variable, ...]:
+    def _sorted(self, variables: Collection[Variable]) -> Tuple[Variable, ...]:
         return tuple(
             sorted(
                 (self._canonicalize_variable(variable) for variable in variables),
@@ -100,38 +96,15 @@ class Canonicalizer:
         if isinstance(expression, Probability):  # atomic
             return self._canonicalize_probability(expression)
         elif isinstance(expression, Sum):
-            if not expression.ranges:  # flatten unnecessary sum
-                return self.canonicalize(expression.expression)
-            return Sum(
+            return Sum.safe(
                 expression=self.canonicalize(expression.expression),
-                ranges=self._sorted(expression.ranges),
+                ranges=expression.ranges,
             )
         elif isinstance(expression, Product):
-            if 1 == len(expression.expressions):  # flatten unnecessary product
-                return self.canonicalize(expression.expressions[0])
-
-            probabilities = []
-            other = []
-            for subexpr in _flatten_product(expression):
-                subexpr = self.canonicalize(subexpr)
-                if isinstance(subexpr, Probability):
-                    probabilities.append(subexpr)
-                elif isinstance(subexpr, One):
-                    continue
-                elif isinstance(subexpr, Zero):
-                    return Zero()  # If there's an explicit zero, then return zero
-                else:
-                    other.append(subexpr)
-            if not probabilities and not other:
-                return One()
-
-            probabilities = sorted(probabilities, key=_sort_probability_key)
-            # If other is empty, this is also atomic
-            other = sorted(other, key=self._nonatomic_key)
-            expressions = (*probabilities, *other)
-            if len(expressions) == 1:
-                return expressions[0]
-            return Product(expressions)
+            # note: safe already sorts
+            return Product.safe(
+                self.canonicalize(subexpr) for subexpr in _flatten_product(expression)
+            )
         elif isinstance(expression, Fraction):
             numerator = self.canonicalize(expression.numerator)
             # TODO check if there's a zero in numerator, then return zero if so
@@ -143,33 +116,6 @@ class Canonicalizer:
             return numerator / denominator  # TODO
         elif isinstance(expression, (One, Zero)):
             return expression
-        else:
-            raise TypeError
-
-    def _nonatomic_key(self, expression: Expression):
-        """Generate a sort key for a *canonical* expression.
-
-        :param expression: A canonical expression
-        :returns: A tuple in which the first element is the integer priority for the expression
-            and the rest depends on the expression type.
-        :raises TypeError: if an invalid expression type is given
-        """
-        if isinstance(expression, Probability):
-            return 0, expression.children[0].name
-        elif isinstance(expression, Sum):
-            return 1, *self._nonatomic_key(expression.expression)
-        elif isinstance(expression, Product):
-            inner_keys = (self._nonatomic_key(sexpr) for sexpr in expression.expressions)
-            return 2, *inner_keys
-        elif isinstance(expression, Fraction):
-            return (
-                3,
-                self._nonatomic_key(expression.numerator),
-                self._nonatomic_key(expression.denominator),
-            )
-        elif isinstance(expression, (One, Zero)):
-            return 4, expression.to_text()
-            # TODO find an example where this happens
         else:
             raise TypeError
 

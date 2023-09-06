@@ -5,30 +5,9 @@
 import unittest
 from typing import Union
 
-from y0.dsl import Distribution, P, Probability, X, Y, Z
+from y0.dsl import Distribution, P, Probability, X, Y
 from y0.graph import NxMixedGraph
-from y0.identify import _get_to, is_identifiable
-
-
-class TestUtils(unittest.TestCase):
-    """Test utility functions for ID algorithms."""
-
-    def test_to(self):
-        """Test getting treatments and outcomes."""
-        with self.assertRaises(ValueError):
-            _get_to(P(X))
-        with self.assertRaises(ValueError):
-            _get_to(P(X, Y))
-        with self.assertRaises(ValueError):
-            _get_to(P(X @ Y, X @ Z))
-
-        for expected_t, expected_o, probability in [
-            (["X"], ["Y"], P(Y @ X)),
-            (["X"], ["Y", "Z"], P(Y @ X, Z @ X)),
-        ]:
-            t, o = _get_to(probability)
-            self.assertEqual(expected_t, t)
-            self.assertEqual(expected_o, o)
+from y0.identify import is_identifiable
 
 
 class TestNotIdentifiable(unittest.TestCase):

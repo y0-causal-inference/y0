@@ -32,8 +32,7 @@ def identify(identification: Identification) -> Expression:
         return identify(line_2(identification))
 
     # line 3
-    intervened_graph = graph.remove_in_edges(treatments)
-    no_effect_on_outcome = (vertices - treatments) - intervened_graph.ancestors_inclusive(outcomes)
+    no_effect_on_outcome = graph.get_no_effect_on_outcomes(treatments, outcomes)
     if no_effect_on_outcome:
         return identify(line_3(identification))
 
@@ -57,8 +56,6 @@ def identify(identification: Identification) -> Expression:
         parents = list(graph.topological_sort())
         expression = Product.safe(p_parents(v, parents) for v in district_without_treatment)
         ranges = district_without_treatment - outcomes
-        if not ranges:
-            return expression
         return Sum.safe(
             expression=expression,
             ranges=ranges,
@@ -144,10 +141,8 @@ def line_3(identification: Identification) -> Identification:
     outcomes = identification.outcomes
     treatments = identification.treatments
     graph = identification.graph
-    vertices = set(graph.nodes())
 
-    intervened_graph = graph.remove_in_edges(treatments)
-    no_effect_on_outcome = (vertices - treatments) - intervened_graph.ancestors_inclusive(outcomes)
+    no_effect_on_outcome = graph.get_no_effect_on_outcomes(treatments, outcomes)
     if not no_effect_on_outcome:
         raise ValueError(
             'Line 3 precondition not met. There were no variables in "no_effect_on_outcome"'
@@ -245,8 +240,6 @@ def line_6(identification: Identification) -> Expression:
     parents = list(graph.topological_sort())
     expression = Product.safe(p_parents(v, parents) for v in district_without_treatments)
     ranges = district_without_treatments - outcomes
-    if not ranges:
-        return expression
     return Sum.safe(
         expression=expression,
         ranges=ranges,

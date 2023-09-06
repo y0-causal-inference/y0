@@ -6,12 +6,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Sequence
+from typing import Callable, Optional, Sequence
 
+import numpy as np
 import pandas as pd
 
-from .algorithm.identify import Identification, Query
-from .dsl import (
+from .backdoor import generate_data_for_backdoor
+from .frontdoor import generate_data_for_frontdoor
+from .sars import generate_data_for_covid_case_study
+from ..algorithm.identify import Identification, Query
+from ..dsl import (
     AA,
     W0,
     W1,
@@ -40,9 +44,9 @@ from .dsl import (
     Y,
     Z,
 )
-from .graph import NxMixedGraph
-from .resources import ASIA_PATH
-from .struct import DSeparationJudgement, VermaConstraint
+from ..graph import NxMixedGraph
+from ..resources import ASIA_PATH
+from ..struct import DSeparationJudgement, VermaConstraint
 
 x, y, z, w = -X, -Y, -Z, -W
 
@@ -62,6 +66,7 @@ class Example:
     #: Example queries are just to give an idea to a new user
     #: what might be interesting to use in the ID algorithm
     example_queries: Optional[list[Query]] = None
+    generate_data: Optional[Callable[[int, Optional[dict[Variable, float]]], pd.DataFrame]] = None
 
 
 u_2 = Variable("u_2")
@@ -83,6 +88,8 @@ backdoor_example = Example(
     reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
     ' 2nd ed." Cambridge University Press, p. 178.',
     graph=backdoor,
+    generate_data=generate_data_for_backdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
 )
 
 #: Treatment: X
@@ -102,6 +109,8 @@ frontdoor_example = Example(
     reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
     ' 2nd ed." Cambridge University Press, p. 81.',
     graph=frontdoor,
+    generate_data=generate_data_for_frontdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
 )
 
 #: Treatment: X
@@ -135,11 +144,77 @@ napkin = NxMixedGraph.from_edges(
         (Z2, Y),
     ],
 )
+
+
+def generate_napkin_data(
+    num_samples: int, treatments: dict[Variable, float] | None = None, *, seed: int | None = None
+) -> pd.DataFrame:
+    """Generate testing data for the napkin graph.
+
+    :param num_samples: The number of samples to generate. Try 1000.
+    :param treatments: An optional dictionary of the values to fix each variable
+        to. The keys in this dictionary must correspond to variables in the
+        napkin graph as defined in :data:`y0.examples.napkin` (i.e.,
+        with :data:`y0.dsl.Z1`, :data:`y0.dsl.Z2`, :data:`y0.dsl.X`,
+        and :data:`y0.dsl.Y`).
+    :param seed: An optional random seed for reproducibility purposes
+    :returns: A pandas Dataframe with columns corresponding to the four
+        variable names in the Napkin graph (i.e., ``Z1``, ``Z2``, ``X``,
+        and ``Y``)
+
+    Generate _observational_ data with the following:
+
+    >>> from y0.examples.napkin_example
+    >>> napkin_example.generate_data(1000)
+
+    Generate interventional data on $X=1$ with the following:
+
+    >>> from y0.dsl import X
+    >>> napkin_example.generate_data(1000, treatments={X: 1})
+
+    Multiple treatments can be specified:
+
+    >>> from y0.dsl import X, Z1
+    >>> napkin_example.generate_data(1000, treatments={X: 1, Z1: 0})
+    """
+    if treatments is None:
+        treatments = {}
+    generator = np.random.default_rng(seed)
+    # U1 is the latent variable that is a common cause of W and X
+    u1 = generator.normal(loc=3, scale=1, size=num_samples)
+    # U2 is the latent variable that is a common cause of W and Y
+    u2 = generator.normal(loc=5, scale=1, size=num_samples)
+    if Z2 in treatments:
+        z2 = np.full(num_samples, treatments[Z2])
+    else:
+        u_linear_combination = 0.3 * u1 + 0.5 * u2
+        z2 = generator.gamma(
+            shape=u_linear_combination**-2,
+            scale=5 * u_linear_combination,
+            size=num_samples,
+        )
+    if Z1 in treatments:
+        z1 = np.full(num_samples, treatments[Z1])
+    else:
+        z1 = generator.normal(loc=z2 * 0.7, scale=6, size=num_samples)
+    if X in treatments:
+        x = np.full(num_samples, treatments[X])
+    else:
+        x = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * u1 - 0.1 * z1)), size=num_samples)
+    if Y in treatments:
+        y = np.full(num_samples, treatments[Y])
+    else:
+        y = generator.normal(loc=u2 * 0.5 + x * 3, scale=6)
+    return pd.DataFrame({Z2.name: z2, Z1.name: z1, X.name: x, Y.name: y})
+
+
 napkin_example = Example(
     name="Napkin",
     reference='J. Pearl and D. Mackenzie. 2018. "The Book of Why: The New Science of Cause and Effect."'
     " Basic Books, p. 240.",
     graph=napkin,
+    generate_data=generate_napkin_data,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
     verma_constraints=[
         VermaConstraint(
             lhs_cfactor=Q[X, Y](Z1, X, Y) / Sum[Y](Q[X, Y](Z1, X, Y)),
@@ -204,7 +279,7 @@ line_1_example = Example(
             id_out=[
                 Identification.from_expression(
                     query=P(Y),
-                    estimand=Sum(P(Y, Z), (Z,)),
+                    estimand=Sum[Z](P(Y, Z)),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
@@ -220,7 +295,7 @@ line_1_example = Example(
             id_out=[
                 Identification.from_expression(
                     query=P(Y, Z),
-                    estimand=Sum(P(Y, Z)),
+                    estimand=P(Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
@@ -245,7 +320,7 @@ line_2_example = Example(
             id_out=[
                 Identification.from_expression(
                     query=P(Y),
-                    estimand=Sum(P(Y, X, Z), (X,)),
+                    estimand=Sum[X](P(Y, X, Z)),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
@@ -1184,7 +1259,7 @@ complete_hierarchy_figure_3a_example = Example(
 id_sir_example = Example(
     name="Identifiable SIR",
     reference="ASKEM",
-    graph=NxMixedGraph.from_edges(
+    graph=NxMixedGraph.from_str_edges(
         directed=[
             ("Infected", "Hospitalized"),
             ("Hospitalized", "Died"),
@@ -1196,7 +1271,7 @@ id_sir_example = Example(
 nonid_sir_example = Example(
     name="Non-Identifiable SIR",
     reference="ASKEM",
-    graph=NxMixedGraph.from_edges(
+    graph=NxMixedGraph.from_str_edges(
         directed=[
             ("Infected", "Died"),
         ],
@@ -1226,7 +1301,7 @@ igf_example = Example(
     example_queries=[Query.from_str(treatments="SOS", outcomes="Erk")],
 )
 
-sars_example = Example(
+sars_large_example = Example(
     name="SARS-CoV-2 Graph",
     reference="Jeremy Zucker, Sara Mohammad-Taheri, Kaushal Paneri, Somya Bhargava, Pallavi Kolambkar"
     ", Craig Bakker, Jeremy Teuton, Charles Tapley Hoyt, Kristie Oxford, Robert Ness, and Olga Vitek. 2021."
@@ -1284,6 +1359,32 @@ sars_example = Example(
         Query.from_str(treatments="Sil6r", outcomes="cytok"),
         Query.from_str(treatments="EGFR", outcomes="cytok"),
     ],
+)
+
+SARS_SMALL_GRAPH = NxMixedGraph.from_str_edges(
+    directed=[
+        ("ADAM17", "EGFR"),
+        ("ADAM17", "TNF"),
+        ("ADAM17", "Sil6r"),
+        ("EGFR", "cytok"),
+        ("TNF", "cytok"),
+        ("Sil6r", "IL6STAT3"),
+        ("IL6STAT3", "cytok"),
+    ],
+    undirected=[
+        ("ADAM17", "cytok"),
+        ("ADAM17", "Sil6r"),
+        ("EGFR", "TNF"),
+        ("EGFR", "IL6STAT3"),
+    ],
+)
+
+sars_small_example = Example(
+    name="SARS-CoV-2 Small Graph",
+    reference="Sara!",  # FIXME
+    graph=SARS_SMALL_GRAPH,
+    generate_data=generate_data_for_covid_case_study,
+    example_queries=[Query.from_str(outcomes="cytok", treatments="EGFR")],
 )
 
 examples = [v for name, v in locals().items() if name.endswith("_example")]
