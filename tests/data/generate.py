@@ -1,4 +1,12 @@
-"""Generate example data."""
+"""Generate example data.
+
+This automatically works for all instances of :clas:`y0.examples.Example`
+appearing in :mod:`y0.examples`. If you make a new generator, make sure
+you annotate it to the correct graph and add a corresponding example
+query.
+
+This file can be run as a script directly with ``python generate.py``.
+"""
 
 import warnings
 from pathlib import Path
@@ -11,7 +19,6 @@ from tabulate import tabulate
 from tqdm import trange
 
 from y0.algorithm.estimation import estimate_ate
-from y0.dsl import X
 from y0.examples import examples
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
