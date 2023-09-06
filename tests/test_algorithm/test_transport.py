@@ -205,14 +205,14 @@ class TestTransport(_TestCase):
         #     )
         # )
         # expected = Sum[Y1](PP[Pi1][X1](W, Y1, Z)
-        actual_1 = activate_domain_and_interventions(test_1, X1, Pi1)
+        actual_1 = activate_domain_and_interventions(test_1, {X1}, Pi1)
         self.assert_expr_equal(expected_1, actual_1)
-        actual_2 = activate_domain_and_interventions(test_2, X2, Pi2)
+        actual_2 = activate_domain_and_interventions(test_2, {X2}, Pi2)
         self.assert_expr_equal(expected_2, actual_2)
 
         expected_3 = Sum.safe(expected_1, (W, Z))
         test_3 = Sum.safe(test_1, (W, Z))
-        actual_3 = activate_domain_and_interventions(test_3, X1, Pi1)
+        actual_3 = activate_domain_and_interventions(test_3, {X1}, Pi1)
         self.assert_expr_equal(expected_3, actual_3)
 
         # TODO fix this test

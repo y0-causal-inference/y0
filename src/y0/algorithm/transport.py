@@ -360,8 +360,6 @@ def activate_domain_and_interventions(
     :returns: A new expression, intervened
     :raises NotImplementedError: If an expression type that is not handled gets passed
     """
-    if not isinstance(interventions, set):
-        interventions = {interventions}
     if isinstance(expression, PopulationProbability):
         return PP[domain](set(expression.children) - interventions).intervene(interventions)
     if isinstance(expression, Probability):
