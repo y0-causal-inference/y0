@@ -37,7 +37,7 @@ from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import canonicalize
 
 __all__ = [
-    "identify_target_outcome",
+    "identify_target_outcomes",
     "trso",
     "TransportQuery",
 ]
@@ -668,7 +668,7 @@ def check_and_raise_missing(nodes: set[Variable], graph: NxMixedGraph, name: str
         )
 
 
-def identify_target_outcome(
+def identify_target_outcomes(
     graph: NxMixedGraph,
     *,
     target_outcomes: Set[Variable],
