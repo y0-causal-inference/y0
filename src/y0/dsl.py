@@ -1111,6 +1111,7 @@ class Sum(Expression):
 
         :param expression: The expression over which the sum is done
         :param ranges: The variable or list of variables over which the sum is done
+        :param simplify: Should the sum be simplified using :func:`Sum.simplify:?
         :returns: A :class:`Sum` object
 
         Standard usage, same as the normal ``__init__``:
@@ -1665,9 +1666,7 @@ class PopulationProbability(Probability):
             f"+{intervention.name}" if intervention.star else intervention.name
             for intervention in interventions
         )
-        return (
-            f"PP[{self.population.to_y0()}][{intervention_str}]({unintervened_distribution.to_y0()})"
-        )
+        return f"PP[{self.population.to_y0()}][{intervention_str}]({unintervened_distribution.to_y0()})"
 
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""

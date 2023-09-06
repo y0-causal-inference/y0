@@ -9,7 +9,6 @@ from ..dsl import (
     Expression,
     Fraction,
     OrderingHint,
-    P,
     Probability,
     Product,
     ensure_ordering,

@@ -417,8 +417,7 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
             conditions=target_interventions,
         )
         for transportability_node in transportability_nodes
-        if transportability_node
-        in graph_without_interventions  # FIXME check if this is okay to exclude
+        if transportability_node in graph_without_interventions
         for outcome in target_outcomes
     )
 
@@ -479,9 +478,9 @@ def trso_line10(
         i = ordering.index(node)
         pre_node = set(ordering[:i])
         # note tikka splits this into two expressions that when taken together equal pre_node
-        prob = Probability.safe(node | pre_node)
+        distribution = Distribution.safe(node | pre_node)
         expressions.append(
-            PopulationProbability(population=query.domain, distribution=prob.distribution)
+            PopulationProbability(population=query.domain, distribution=distribution)
         )
 
     new_query = deepcopy(query)
