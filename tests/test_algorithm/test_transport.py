@@ -9,8 +9,8 @@ from y0.algorithm.transport import (
     activate_domain_and_interventions,
     create_transport_diagram,
     get_nodes_to_transport,
+    get_surrogate_outcomes,
     surrogate_to_transport,
-    transport,
     transport_variable,
     trso,
     trso_line1,
@@ -869,7 +869,7 @@ class TestIntegration(_TestCase):
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
         surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
 
-        actual = transport(
+        actual = get_surrogate_outcomes(
             graph=tikka_trso_figure_8,
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
@@ -887,7 +887,7 @@ class TestIntegration(_TestCase):
         surrogate_interventions = {Pi1: {X2}, Pi2: {X2}}
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
 
-        actual_11 = transport(
+        actual_11 = get_surrogate_outcomes(
             graph=new_graph,
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
@@ -906,7 +906,7 @@ class TestIntegration(_TestCase):
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
 
         with self.assertRaises(ValueError):
-            transport(
+            get_surrogate_outcomes(
                 graph=new_graph,
                 target_outcomes=target_outcomes,
                 target_interventions=target_interventions,
@@ -936,7 +936,7 @@ class TestIntegration(_TestCase):
         surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
 
-        actual_10 = transport(
+        actual_10 = get_surrogate_outcomes(
             graph=new_graph,
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
@@ -951,7 +951,7 @@ class TestIntegration(_TestCase):
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
 
         with self.assertRaises(ValueError):
-            transport(
+            get_surrogate_outcomes(
                 graph=tikka_trso_figure_8,
                 target_outcomes=target_outcomes,
                 target_interventions=target_interventions,
@@ -981,7 +981,7 @@ class TestIntegration(_TestCase):
             ],
         )
 
-        actual_6 = transport(
+        actual_6 = get_surrogate_outcomes(
             graph=new_graph,
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
