@@ -16,17 +16,12 @@ from y0.dsl import (
     Intervention,
     One,
     P,
-    Pi1,
-    PopulationProbability,
-    PopulationProbabilityBuilderType,
     Product,
     Q,
     R,
     S,
     Sum,
     T,
-    Tr,
-    Transport,
     Variable,
     W,
     X,
@@ -561,35 +556,3 @@ class TestZero(unittest.TestCase):
                 self.assertEqual(zero, zero * expr, msg=f"Got {zero * expr}")
             with self.subTest(expr=expr.to_y0(), direction="left"):
                 self.assertEqual(zero, expr * zero, msg=f"Got {expr * zero}")
-
-
-class TestTransport(unittest.TestCase):
-    """Tests for transportability DSL elements."""
-
-    def test_population_probability(self):
-        """Test the population probability builder."""
-        self.assertEqual(
-            PopulationProbability(
-                population=Pi1,
-                distribution=P(Y).distribution,
-            ),
-            PopulationProbabilityBuilderType[Pi1](Y),
-        )
-        self.assertEqual(
-            PopulationProbability(
-                population=Pi1,
-                distribution=P[X](Y).distribution,
-            ),
-            PopulationProbabilityBuilderType[Pi1][X](Y),
-        )
-
-    def test_transport(self):
-        """Test the transport builder."""
-        self.assertEqual(
-            Transport(variable=X),
-            Tr["X"],
-        )
-        self.assertEqual(
-            Transport(variable=X),
-            Tr[X],
-        )

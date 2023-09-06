@@ -1,27 +1,44 @@
-"""Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172."""
+# -*- coding: utf-8 -*-
+
+"""Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172.
+
+.. todo::
+
+    high level documentation
+
+    1. What problem are we trying to solve here?
+    2. What's the difference between surrogate outcomes nad transportability?
+    3. Real world example
+"""
 
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
-from operator import attrgetter
-from typing import Dict, FrozenSet, Iterable, List, Mapping, Optional, Set, Union, cast
+from typing import Collection, Dict, FrozenSet, Iterable, Optional, Set, Union, cast
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
-    PP,
     CounterfactualVariable,
+    Distribution,
     Expression,
+    Fraction,
     Intervention,
     One,
     Population,
+    PopulationProbability,
+    Probability,
     Product,
     Sum,
     Variable,
+    Zero,
+    _upgrade_variables,
 )
 from y0.graph import NxMixedGraph
+from y0.mutate.canonicalize_expr import canonicalize
 
 __all__ = [
     "transport",
+    "trso",
     "TransportQuery",
 ]
 
@@ -43,10 +60,8 @@ def get_nodes_to_transport(
     :param graph: The graph of the target domain.
     :returns: A set of variables representing target domain nodes where transportability nodes should be added.
     """
-    if isinstance(surrogate_interventions, Variable):
-        surrogate_interventions = {surrogate_interventions}
-    if isinstance(surrogate_outcomes, Variable):
-        surrogate_outcomes = {surrogate_outcomes}
+    surrogate_interventions = set(_upgrade_variables(surrogate_interventions))
+    surrogate_outcomes = set(_upgrade_variables(surrogate_outcomes))
 
     # Find the c_component with surrogate_outcomes
     c_component_surrogate_outcomes: Set[Variable] = set()
@@ -55,16 +70,15 @@ def get_nodes_to_transport(
         if surrogate_outcomes.intersection(component):
             c_component_surrogate_outcomes.update(component)
 
-    # subgraph where interventions in edges are removed
-    interventions_overbar = graph.remove_in_edges(surrogate_interventions)
-    # Ancestors of surrogate_outcomes in interventions_overbar
-    Ancestors_surrogate_outcomes = interventions_overbar.ancestors_inclusive(surrogate_outcomes)
+    ancestors_surrogate_outcomes = graph.get_intervened_ancestors(
+        surrogate_interventions, surrogate_outcomes
+    )
 
     # Descendants of interventions in graph
-    Descendants_interventions = graph.descendants_inclusive(surrogate_interventions)
+    descendants_interventions = graph.descendants_inclusive(surrogate_interventions)
 
-    return (Descendants_interventions - surrogate_outcomes).union(
-        c_component_surrogate_outcomes - Ancestors_surrogate_outcomes
+    return (descendants_interventions - surrogate_outcomes).union(
+        c_component_surrogate_outcomes - ancestors_surrogate_outcomes
     )
 
 
@@ -72,19 +86,50 @@ _TRANSPORT_PREFIX = "T_"
 
 
 def transport_variable(variable: Variable) -> Variable:
+    """Create a transport Variable by adding the transport prefix to a variable.
+
+    :param variable: variable that the transport node will point to
+    :returns: Variable with _TRANSPORT_PREFIX and variable name
+    :raises TypeError: If a non-standard variable is passed
+    """
     if isinstance(variable, (CounterfactualVariable, Intervention)):
         raise TypeError
     return Variable(_TRANSPORT_PREFIX + variable.name)
 
 
 def is_transport_node(node: Variable) -> bool:
+    """Check if a Variable is a transport node.
+
+    :param node: A node to evaluate.
+    :returns: boolean True if node is a transport node, False otherwise.
+    """
     return not isinstance(node, (CounterfactualVariable, Intervention)) and node.name.startswith(
         _TRANSPORT_PREFIX
     )
 
 
 def get_transport_nodes(graph: NxMixedGraph) -> Set[Variable]:
+    """Find all the transport nodes in a graph.
+
+    :param graph: an NxMixedGraph which may have transport nodes
+    :returns: Set containing all transport nodes in the graph
+    """
     return {node for node in graph.nodes() if is_transport_node(node)}
+
+
+def get_regular_nodes(graph: NxMixedGraph) -> Set[Variable]:
+    """Find all the nodes in a graph which are not transport nodes.
+
+    :param graph: an NxMixedGraph
+    :returns: Set containing all nodes which are not transport nodes
+    """
+    return {node for node in graph.nodes() if not is_transport_node(node)}
+
+
+def _c14n_safe(expression: Expression | None) -> Expression | None:
+    if expression is None:
+        return None
+    return canonicalize(expression)
 
 
 def create_transport_diagram(
@@ -98,8 +143,6 @@ def create_transport_diagram(
     :param graph: The graph of the target domain.
     :returns: graph with transport nodes added
     """
-    # TODO we discussed the possibility of using a dictionary with needed nodes
-    #  instead of creating a graph for each diagram.
     rv = NxMixedGraph()
     for node in graph.nodes():
         rv.add_node(node)
@@ -115,6 +158,8 @@ def create_transport_diagram(
 
 @dataclass
 class TransportQuery:
+    """A query used as output for surrogate_to_transport."""
+
     target_interventions: Set[Variable]
     target_outcomes: Set[Variable]
     graphs: Dict[Population, NxMixedGraph]
@@ -125,7 +170,7 @@ class TransportQuery:
 
 @dataclass
 class TRSOQuery:
-    """A query used for TRSO input"""
+    """A query used for TRSO input."""
 
     target_interventions: Set[Variable]
     target_outcomes: Set[Variable]
@@ -138,9 +183,10 @@ class TRSOQuery:
 
 
 def surrogate_to_transport(
+    *,
+    graph: NxMixedGraph,
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
-    graph: NxMixedGraph,
     surrogate_outcomes: Dict[Population, Set[Variable]],
     surrogate_interventions: Dict[Population, Set[Variable]],
 ) -> TransportQuery:
@@ -150,8 +196,9 @@ def surrogate_to_transport(
     :param target_interventions: A set of interventions for the target domain.
     :param graph: The graph of the target domain.
     :param surrogate_outcomes: A dictionary of outcomes in other populations
-    :param surrogate_interventions: A dictionary of interentions in other populations
+    :param surrogate_interventions: A dictionary of interventions in other populations
     :returns: An octuple representing the query transformation of a surrogate outcome query.
+    :raises ValueError: if surrogate outcomes' and surrogate interventions' keys do not correspond
     """
     if set(surrogate_outcomes) != set(surrogate_interventions):
         raise ValueError("Inconsistent surrogate outcome and intervention domains")
@@ -191,7 +238,7 @@ def trso_line1(
     :param graph: The graph with transport nodes in this domain.
     :returns: Sum over the probabilities of nodes other than target outcomes.
     """
-    return Sum.safe(expression, graph.nodes() - target_outcomes)
+    return Sum.safe(expression, get_regular_nodes(graph) - target_outcomes)
 
 
 def trso_line2(
@@ -206,16 +253,30 @@ def trso_line2(
     """
     new_query = deepcopy(query)
     new_query.target_interventions.intersection_update(outcomes_ancestors)
-    new_query.graphs[new_query.domain] = query.graphs[query.domain].subgraph(outcomes_ancestors)
+
+    for domain, graph in query.graphs.items():
+        outcome_ancestors_domain = graph.ancestors_inclusive(query.target_outcomes)
+        new_query.graphs[domain] = graph.subgraph(outcome_ancestors_domain)
+
     new_query.expression = Sum.safe(
         query.expression,
-        query.graphs[query.domain].nodes() - outcomes_ancestors,
+        get_regular_nodes(query.graphs[query.domain]) - outcomes_ancestors,
+        simplify=True,
     )
+    if isinstance(new_query.expression, Probability):
+        assert isinstance(new_query.expression, PopulationProbability)
+        assert new_query.expression.population == new_query.domain
+        new_query.expression = PopulationProbability(
+            population=new_query.domain,
+            distribution=Distribution(
+                children=new_query.expression.children,
+            ),
+        )
     return new_query
 
 
 def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> TRSOQuery:
-    """Add nodes that will effect the outcome to the interventions of the TRSOQuery.
+    """Add nodes that will affect the outcome to the interventions of the query.
 
     :param query: A TRSO query
     :param additional_interventions: interventions to be added to target_interventions
@@ -241,7 +302,7 @@ def trso_line4(
     for component in components:
         new_query = deepcopy(query)
         new_query.target_outcomes = set(component)
-        new_query.target_interventions = graph.nodes() - component
+        new_query.target_interventions = get_regular_nodes(graph) - component
         rv[component] = new_query
     return rv
 
@@ -256,29 +317,81 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
     for domain, graph in query.graphs.items():
         if domain == TARGET_DOMAIN:
             continue
-
-        surrogate_interventions = query.surrogate_interventions[domain]
-        surrogate_intersect_target = surrogate_interventions.intersection(
-            query.target_interventions
-        )
-        if not surrogate_intersect_target:
-            continue
-
-        if not all_transports_d_separated(
-            graph,
-            target_interventions=query.target_interventions,
-            target_outcomes=query.target_outcomes,
-        ):
-            continue
-
-        new_query = deepcopy(query)
-        new_query.target_interventions = query.target_interventions - surrogate_interventions
-        new_query.domain = domain
-        new_query.graphs[new_query.domain] = graph.remove_nodes_from(surrogate_intersect_target)
-        new_query.active_interventions = surrogate_intersect_target
-        expressions[domain] = new_query
-
+        new_query = _line_6_helper(query, domain, graph)
+        if new_query is not None:
+            expressions[domain] = new_query
     return expressions
+
+
+def _line_6_helper(
+    query: TRSOQuery, domain: Population, graph: NxMixedGraph
+) -> Optional[TRSOQuery]:
+    """Perform d-separation check and then modify query active interventions.
+
+    :param query: A TRSO query
+    :param domain: A given population
+    :param graph: A NxMixedGraph
+    :returns: A TRSO query or None
+    """
+    surrogate_interventions = query.surrogate_interventions[domain]
+    surrogate_intersect_target = surrogate_interventions.intersection(query.target_interventions)
+    if not surrogate_intersect_target:
+        return None
+    if not all_transports_d_separated(
+        graph,
+        target_interventions=query.target_interventions,
+        target_outcomes=query.target_outcomes,
+    ):
+        return None
+
+    new_query = deepcopy(query)
+    new_query.target_interventions = query.target_interventions - surrogate_interventions
+    new_query.domain = domain
+    new_query.graphs[new_query.domain] = graph.remove_nodes_from(surrogate_intersect_target)
+    new_query.active_interventions = surrogate_intersect_target
+    return new_query
+
+
+def activate_domain_and_interventions(
+    expression: Expression, interventions: Set[Variable], domain: Population
+) -> Expression:
+    """Intervene on the target variables of expression using the active interventions.
+
+    :param expression: A probability expression.
+    :param interventions: Set of active interventions
+    :param domain: A given population
+    :returns: A new expression, intervened
+    :raises NotImplementedError: If an expression type that is not handled gets passed
+    """
+    if isinstance(expression, Probability):
+        assert isinstance(expression, PopulationProbability)
+        return PopulationProbability(
+            population=domain,
+            distribution=Distribution.safe(set(expression.children) - interventions),
+        ).intervene(interventions)
+    if isinstance(expression, Sum):
+        # TODO need full integration test to trso() function that covers this branch
+        # Don't intervene the ranges because counterfactual variables shouldn't be in ranges
+        # intervened_ranges = tuple(
+        #     variable.activate_domain_and_interventions(active_interventions) for variable in expression.ranges
+        # )
+        return Sum.safe(
+            activate_domain_and_interventions(expression.expression, interventions, domain),
+            expression.ranges,
+        )
+    if isinstance(expression, Fraction):
+        numerator = activate_domain_and_interventions(expression.numerator, interventions, domain)
+        denominator = activate_domain_and_interventions(
+            expression.denominator, interventions, domain
+        )
+        return cast(Fraction, numerator / denominator).simplify()
+    if isinstance(expression, Product):
+        # TODO need full integration test to trso() function that covers this branch
+        return Product.safe(
+            activate_domain_and_interventions(expr, interventions, domain)
+            for expr in expression.expressions
+        )
+    raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
 
 
 def all_transports_d_separated(graph, target_interventions, target_outcomes) -> bool:
@@ -287,9 +400,8 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
     :param graph: The graph with transport nodes in this domain.
     :param target_interventions: Set of target interventions
     :param target_outcomes: Set of target interventions
-    :returns: boolean True if all interventions are d-separated from all outcomes, False otherwise.
+    :returns: True if all interventions are d-separated from all outcomes, False otherwise.
     """
-
     transportability_nodes = get_transport_nodes(graph)
     graph_without_interventions = graph.remove_in_edges(target_interventions)
     return all(
@@ -300,8 +412,7 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
             conditions=target_interventions,
         )
         for transportability_node in transportability_nodes
-        if transportability_node
-        in graph_without_interventions  # FIXME check if this is okay to exclude
+        if transportability_node in graph_without_interventions
         for outcome in target_outcomes
     )
 
@@ -312,21 +423,35 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     :param query: A TRSO query
     :param district: The C-component present in both districts_without_interventions and districts
     :returns: An Expression
+    :raises RuntimeError: If the query's expression is zero. This should never happen
     """
+    logger.debug(
+        "Calling trso algorithm line 9 with expression %s \n district %s",
+        query.expression,
+        district,
+    )
+    if isinstance(query.expression, Zero):  # pragma: no cover
+        # TODO if we can't create an integration test (i.e., a call to trso)
+        #  that triggers this line, then it can be safely removed
+        raise RuntimeError
 
-    sorted_district_nodes = sorted(district, key=attrgetter("name"))
-    # Will this always return the same order?
+    ordering = list(query.graphs[query.domain].topological_sort())
+    ordering_set = set(ordering)
     my_product: Expression = One()
-    for i in range(len(sorted_district_nodes)):
-        # TODO I am not convinced this is correct, still trying to decipher the paper
-        subset_including_node = set(sorted_district_nodes[: i + 1])
-        subset_up_to_node = set(sorted_district_nodes[:i])
-        numerator = Sum.safe(query.expression, district - subset_including_node)
-        denominator = Sum.safe(query.expression, district - subset_up_to_node)
-        if denominator == 0:
-            pass
-            # TODO is this possible to be zero, should we have a check?
+    for node in district:
+        i = ordering.index(node)
+        pre, post = ordering[:i], ordering[: i + 1]
+        pre_set = ordering_set - set(post)
+        post_set = ordering_set - set(pre)
+        numerator = Sum.safe(query.expression, pre_set)
+        denominator = Sum.safe(query.expression, post_set)
         my_product *= numerator / denominator
+    my_product = cast(Fraction, my_product).simplify()
+
+    logger.debug(
+        "Returning trso algorithm line 9 with expression %s",
+        Sum.safe(my_product, district - query.target_outcomes),
+    )
     return Sum.safe(my_product, district - query.target_outcomes)
 
 
@@ -340,54 +465,78 @@ def trso_line10(
     :param query: A TRSO query
     :param district: The C-component of districts which contains district_without_interventions
     :param new_surrogate_interventions: Dict mapping domains to interventions performed in that domain.
-    :returns: An Expression
+    :returns: A modified TRSOQuery
     """
-    sorted_district_nodes = sorted(district, key=attrgetter("name"))
-    my_product = One()
-    for i, node in enumerate(sorted_district_nodes):
-        # TODO I am not convinced this is correct, still trying to decipher the paper
-        subset_up_to_node = set(sorted_district_nodes[:i])
-        previous_node_without_district = set([sorted_district_nodes[i - 1]]) - district
-        # FIXME calling this doesn't make sense - expression is an object, not a func
-    my_product *= PP[query.domain](
-        node.given(subset_up_to_node.intersection(district).union(previous_node_without_district))
-    )
+    ordering = list(query.graphs[query.domain].topological_sort())
+    expressions = []
+    for node in district:
+        i = ordering.index(node)
+        pre_node = set(ordering[:i])
+        # note tikka splits this into two expressions that when taken together equal pre_node
+        distribution = Distribution.safe(node | pre_node)
+        expressions.append(
+            PopulationProbability(population=query.domain, distribution=distribution)
+        )
 
     new_query = deepcopy(query)
     new_query.target_interventions = query.target_interventions.intersection(district)
-    new_query.expression = my_product
+    new_query.expression = canonicalize(Product.safe(expressions))
     new_query.graphs[query.domain] = query.graphs[query.domain].subgraph(district)
     new_query.surrogate_interventions = new_surrogate_interventions
     return new_query
 
 
-# TODO Tikka paper says that topological ordering is available globaly
-def trso(query: TRSOQuery) -> Optional[Expression]:
+def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
+    """Run the TRSO algorithm to evaluate a transport problem.
+
+    :param query: A TRSO query, which contains 8 instance variables needed for TRSO
+    :returns: An Expression evaluating the given query, or None
+    :raises RuntimeError: when an impossible condition is met
+    """
     # Check that domain is in query.domains
     # check that query.surrogate_interventions keys are equals to domains
     # check that query.graphs keys are equal to domains
+    logger.debug(
+        "Calling trso algorithm with "
+        "\t- target_interventions: %s\n"
+        "\t- target_outcomes: %s\n"
+        "\t- expression: %s\n"
+        "\t- active_interventions: %s\n"
+        "\t- domain: %s\n"
+        "\t- domains: %s\n"
+        "\t- graph[domain] nodes: %s\n"
+        "\t- surrogate_interventions: %s",
+        query.target_interventions,
+        query.target_outcomes,
+        query.expression,
+        query.active_interventions,
+        query.domain,
+        query.domains,
+        query.graphs[query.domain].nodes(),
+        query.surrogate_interventions,
+    )
+
     graph = query.graphs[query.domain]
     # line 1
     if not query.target_interventions:
-        return trso_line1(query.target_outcomes, query.expression, graph)
+        logger.debug("Calling trso algorithm line 1")
+        return canonicalize(trso_line1(query.target_outcomes, query.expression, graph))
 
     # line 2
     outcome_ancestors = graph.ancestors_inclusive(query.target_outcomes)
-    if graph.nodes() - outcome_ancestors:
+    if get_regular_nodes(graph) - outcome_ancestors:
         new_query = trso_line2(query, outcome_ancestors)
-        return trso(new_query)
+        logger.debug("Calling trso algorithm line 2")
+        return _c14n_safe(trso(new_query))
 
     # line 3
-    # TODO give meaningful name to this variable
-    target_interventions_overbar = graph.remove_in_edges(query.target_interventions)
-    additional_interventions = (
-        cast(set[Variable], graph.nodes())
-        - query.target_interventions
-        - target_interventions_overbar.ancestors_inclusive(query.target_outcomes)
+    additional_interventions = graph.get_no_effect_on_outcomes(
+        query.target_interventions, query.target_outcomes
     )
     if additional_interventions:
         new_query = trso_line3(query, additional_interventions)
-        return trso(new_query)
+        logger.debug("Calling trso algorithm line 3")
+        return _c14n_safe(trso(new_query))
 
     # line 4
     districts_without_interventions: set[frozenset[Variable]] = graph.remove_nodes_from(
@@ -399,96 +548,196 @@ def trso(query: TRSOQuery) -> Optional[Expression]:
             districts_without_interventions,
         )
         terms = []
-        for subquery in subqueries.values():
+        logger.debug("Calling trso algorithm line 4 with %d subqueries", len(subqueries))
+        for i, subquery in enumerate(subqueries.values()):
+            logger.debug("Calling subquery %d of trso algorithm line 4", i + 1)
             term = trso(subquery)
             if term is None:
-                raise NotImplementedError
+                return None
             terms.append(term)
 
-        return Sum.safe(
-            Product.safe(terms),
-            graph.nodes() - query.target_interventions.union(query.target_outcomes),
+        product = Product.safe(terms)
+        summand = canonicalize(product)  # fix sort order inside product
+        return canonicalize(
+            Sum.safe(
+                summand,
+                get_regular_nodes(graph) - query.target_interventions.union(query.target_outcomes),
+            )
         )
 
     # line 6
-    if not query.active_interventions:
+    if not query.active_interventions and query.surrogate_interventions:
         expressions: Dict[Population, Expression] = {}
         for domain, subquery in trso_line6(query).items():
+            logger.debug("Calling trso algorithm line 6 for domain %s", domain)
             expression = trso(subquery)
+            if expression is None:
+                continue
+            expression = activate_domain_and_interventions(
+                expression, subquery.active_interventions, domain
+            )
             if expression is not None:  # line7
+                logger.debug(
+                    "Calling trso algorithm line 7",
+                )
                 expressions[domain] = expression
         if len(expressions) == 1:
-            return list(expressions.values())[0]
+            return canonicalize(list(expressions.values())[0])
         elif len(expressions) > 1:
+            # TODO need full integration test to trso() function that covers this branch
+            #  or change to ``raise RuntimeError`` if it's not possible to reach in practice
             logger.warning("more than one expression were non-none")
             # What if more than 1 expression doesn't fail?
             # Is it non-deterministic or can we prove it will be length 1?
-            return list(expressions.values())[0]
+            return canonicalize(list(expressions.values())[0])
         else:
+            # if there are no expressions, then we move on to line 8
             pass
 
-    # line8
+    # line8 checks that len(districts)) != 1
     districts = graph.districts()
-    # line 11, return fail. keep explict tests for 0 and 1 to ensure adequate testing
+    # line 11 states return fail if len(districts)==1
+    # keep explict tests for 0 and 1 to ensure adequate testing
     if len(districts) == 0:
+        # TODO we need an integration test (i.e., call to trso()) that covers this.
+        #  if it's not possible to cover in a real setting, then we can change this
+        #  to raising a runtime error. Nathaniel notes that this probably only occurs
+        #  if the graph is empty, but it's not clear if it makes sense to have an empty
+        #  graph
         return None
-    if len(districts) == 1:
+    elif len(districts) == 1:
         return None
     # line 8, i.e. len(districts)>1
 
-    # line9
-    # TODO check which of the raises below should be passthroughs, annotate explicitly
-    if len(districts_without_interventions) == 1:
-        district_without_interventions = districts_without_interventions.pop()
-        if district_without_interventions in districts:
-            return trso_line9(query, set(district_without_interventions))
-        # raise NotImplementedError(
-        #     "single district without interventions found, but it's not in the districts"
-        # )
-        # This case is covered by line 10.
-        # FIXME ^ doesn't seem quite right since this is exact checking while line 10 is subsets
-    elif len(districts_without_interventions) == 0:
-        raise NotImplementedError("no districts without interventions found")
-    else:  # multiple districts
-        raise NotImplementedError("multiple districts without interventions found")
+    # line 9
+    if len(districts_without_interventions) == 0:  # pragma: no cover
+        # This would happen if there is an intervention that is also an outcome,
+        # which we ensure is not possible when calling the algorithm from its harness
+        raise RuntimeError
+
+    # at this point, we already checked for cases where len > 2 and len == 0,
+    # so we can safely pop the only element
+    district_without_interventions = districts_without_interventions.pop()
+    if district_without_interventions in districts:
+        return canonicalize(trso_line9(query, set(district_without_interventions)))
 
     # line10
-    target_districts = []
-    for district in districts:
-        if district_without_interventions.issubset(district):
-            target_districts.append(district)
-    if len(target_districts) != 1:
-        logger.warning("Incorrect number of districts found on line 10")
-        # TODO This shouldn't be possible, should we remove this check?
+    logger.debug("Calling trso algorithm line 10")
+    target_districts = [
+        district for district in districts if district_without_interventions.issubset(district)
+    ]
+    if len(target_districts) != 1:  # pragma: no cover
+        # At this point, the mathematics require this, and therfore this
+        # test should never evaluate to true
+        raise RuntimeError
     target_district = target_districts.pop()
     # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
     if len(query.active_interventions) == 0:
-        # FIXME is this even possible? doesn't line 6 check this and return something else?
+        # TRSO Line 6 could return an empty list and skip over the returns, allowing this line to be reached.
         new_surrogate_interventions = dict()
     elif _pillow_has_transport(graph, target_district):
         return None
     else:
         new_surrogate_interventions = query.surrogate_interventions
 
-    return trso_line10(
+    new_query = trso_line10(
         query,
         set(target_district),
         new_surrogate_interventions,
     )
+    return _c14n_safe(trso(new_query))
 
 
-def _pillow_has_transport(graph, district) -> bool:
+def _pillow_has_transport(graph: NxMixedGraph, district: Collection[Variable]) -> bool:
     return any(is_transport_node(node) for node in graph.get_markov_pillow(district))
 
 
+def check_and_raise_missing(nodes: set[Variable], graph: NxMixedGraph, name: str) -> None:
+    """Verify that nodes are present in the graph.
+
+    :param nodes: A set of nodes that should be in the graph.
+    :param graph: An NxMixedGraph(), the graph of the target domain.
+    :param name: Name of the set of nodes
+    :raises ValueError: If any element of nodes is not in the graph.
+    """
+    missing_nodes = nodes - graph.nodes()
+    missing_nodes_text = {node.to_text() for node in missing_nodes}
+    if missing_nodes_text:
+        raise ValueError(
+            f"The following {name} are not in the graph: {', '.join(missing_nodes_text)}"
+        )
+
+
 def transport(
+    *,
     graph: NxMixedGraph,
-    transports: Mapping[Variable, List[Population]],
-    treatments: List[Variable],
-    outcomes: List[Variable],
-    conditions: Optional[List[Variable]] = None,
-):
-    """Transport algorithm from https://arxiv.org/abs/1806.07172."""
-    if conditions is not None:
-        raise NotImplementedError
-    raise NotImplementedError
+    target_outcomes: Set[Variable],
+    target_interventions: Set[Variable],
+    surrogate_outcomes: Dict[Population, Set[Variable]],
+    surrogate_interventions: Dict[Population, Set[Variable]],
+) -> Expression | None:
+    r"""Run the transport algorithm from https://arxiv.org/abs/1806.07172.
+
+    :param target_outcomes: A set of target variables for causal effects.
+    :param target_interventions: A set of interventions for the target domain.
+    :param graph: The graph of the target domain.
+    :param surrogate_outcomes: A dictionary of outcomes in other populations
+    :param surrogate_interventions: A dictionary of interventions in other populations
+    :returns: An Expression evaluating the given query, or None
+    :raises ValueError: If the target outcomes and target interventions intersect
+
+    The example from figure 8 of the the original paper can be executed with
+    the following code:
+
+    .. code-block:: python
+
+        from y0.algorithm.transport import transport
+        from y0.dsl import X1, X2, Y1, Y2, Pi1, Pi2
+        from y0.examples import tikka_trso_figure_8_graph
+
+        estimand = transport(
+            graph=tikka_trso_figure_8_graph,
+            target_outcomes={Y1, Y2},
+            target_interventions={X1, X2},
+            surrogate_outcomes={Pi1: {Y1}, Pi2: {Y2}},
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
+        )
+
+    This returns the following estimand:
+    $\sum_{W, Z} P(W, Z) \frac{P_{X_1}^{π_1}(W, Y_1, Z)}{P_{X_1}(W, Z)}
+    \frac{P_{X_2}^{π_2}(W, X_1, Y_2, Z)}{P_{X_2}(W, X_1, Z)}$
+    """
+    check_and_raise_missing(target_outcomes, graph, "target_outcomes")
+    check_and_raise_missing(target_interventions, graph, "target_interventions")
+    check_and_raise_missing(set().union(*surrogate_outcomes.values()), graph, "surrogate_outcomes")
+    check_and_raise_missing(
+        set().union(*surrogate_interventions.values()), graph, "surrogate_interventions"
+    )
+    outcome_is_intervention = target_outcomes.intersection(target_interventions)
+    if outcome_is_intervention:
+        raise ValueError(
+            f"The variables {outcome_is_intervention} cannot be target_outcomes and target_interventions"
+        )
+
+    transport_query = surrogate_to_transport(
+        graph=graph,
+        target_outcomes=target_outcomes,
+        target_interventions=target_interventions,
+        surrogate_outcomes=surrogate_outcomes,
+        surrogate_interventions=surrogate_interventions,
+    )
+    initial_expression = PopulationProbability(
+        population=TARGET_DOMAIN,
+        distribution=Distribution.safe(graph.nodes()),
+    )
+    trso_query = TRSOQuery(
+        target_interventions=transport_query.target_interventions,
+        target_outcomes=transport_query.target_outcomes,
+        expression=initial_expression,
+        active_interventions=set(),
+        domain=TARGET_DOMAIN,
+        domains=transport_query.domains,
+        graphs=transport_query.graphs,
+        surrogate_interventions=transport_query.surrogate_interventions,
+    )
+    return trso(trso_query)
