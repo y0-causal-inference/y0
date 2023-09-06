@@ -143,8 +143,6 @@ def create_transport_diagram(
     :param graph: The graph of the target domain.
     :returns: graph with transport nodes added
     """
-    # TODO we discussed the possibility of using a dictionary with needed nodes
-    #  instead of creating a graph for each diagram.
     rv = NxMixedGraph()
     for node in graph.nodes():
         rv.add_node(node)
@@ -432,13 +430,13 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
         query.expression,
         district,
     )
-    if isinstance(query.expression, Zero):
+    if isinstance(query.expression, Zero):  # pragma: no cover
         # TODO if we can't create an integration test (i.e., a call to trso)
         #  that triggers this line, then it can be safely removed
         raise RuntimeError
 
     ordering = list(query.graphs[query.domain].topological_sort())
-    ordering_set = set(ordering)  # TODO this is just all nodes in the graph
+    ordering_set = set(ordering)
     my_product: Expression = One()
     for node in district:
         i = ordering.index(node)
@@ -493,7 +491,6 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
 
     :param query: A TRSO query, which contains 8 instance variables needed for TRSO
     :returns: An Expression evaluating the given query, or None
-    :raises NotImplementedError: when a part of the algorithm is not yet handled
     :raises RuntimeError: when an impossible condition is met
     """
     # Check that domain is in query.domains
@@ -588,12 +585,13 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
             return canonicalize(list(expressions.values())[0])
         elif len(expressions) > 1:
             # TODO need full integration test to trso() function that covers this branch
-            #  or change to ``raise RuntimeError``
+            #  or change to ``raise RuntimeError`` if it's not possible to reach in practice
             logger.warning("more than one expression were non-none")
             # What if more than 1 expression doesn't fail?
             # Is it non-deterministic or can we prove it will be length 1?
             return canonicalize(list(expressions.values())[0])
         else:
+            # if there are no expressions, then we move on to line 8
             pass
 
     # line8 checks that len(districts)) != 1
@@ -601,23 +599,22 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     # line 11 states return fail if len(districts)==1
     # keep explict tests for 0 and 1 to ensure adequate testing
     if len(districts) == 0:
-        # TODO. I think this will only occur if graph is empty.
-        # Does it make sense to have an empty graph? We could check this early on instead.
-        logger.debug(
-            "Fail on algorithm line 11 (length of districts equals 0)",
-        )
+        # TODO we need an integration test (i.e., call to trso()) that covers this.
+        #  if it's not possible to cover in a real setting, then we can change this
+        #  to raising a runtime error. Nathaniel notes that this probably only occurs
+        #  if the graph is empty, but it's not clear if it makes sense to have an empty
+        #  graph
         return None
-    if len(districts) == 1:
-        logger.debug(
-            "Fail on trso algorithm line 11 (length of districts equals 1)",
-        )
+    elif len(districts) == 1:
         return None
     # line 8, i.e. len(districts)>1
 
     # line 9
-    if len(districts_without_interventions) == 0:
-        # TODO the way to trigger this seems to be having an intervention that is also an outcome.
-        raise NotImplementedError("no districts without interventions found")
+    if len(districts_without_interventions) == 0:  # pragma: no cover
+        # This would happen if there is an intervention that is also an outcome,
+        # which we ensure is not possible when calling the algorithm from its harness
+        raise RuntimeError
+
     # at this point, we already checked for cases where len > 2 and len == 0,
     # so we can safely pop the only element
     district_without_interventions = districts_without_interventions.pop()
@@ -629,7 +626,9 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
     target_districts = [
         district for district in districts if district_without_interventions.issubset(district)
     ]
-    if len(target_districts) != 1:
+    if len(target_districts) != 1:  # pragma: no cover
+        # At this point, the mathematics require this, and therfore this
+        # test should never evaluate to true
         raise RuntimeError
     target_district = target_districts.pop()
     # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
@@ -708,23 +707,18 @@ def transport(
     $\sum_{W, Z} P(W, Z) \frac{P_{X_1}^{π_1}(W, Y_1, Z)}{P_{X_1}(W, Z)}
     \frac{P_{X_2}^{π_2}(W, X_1, Y_2, Z)}{P_{X_2}(W, X_1, Z)}$
     """
-    # TODO are there any other checks we should add at the beginning?
     check_and_raise_missing(target_outcomes, graph, "target_outcomes")
     check_and_raise_missing(target_interventions, graph, "target_interventions")
     check_and_raise_missing(set().union(*surrogate_outcomes.values()), graph, "surrogate_outcomes")
     check_and_raise_missing(
         set().union(*surrogate_interventions.values()), graph, "surrogate_interventions"
     )
-
     outcome_is_intervention = target_outcomes.intersection(target_interventions)
     if outcome_is_intervention:
         raise ValueError(
             f"The variables {outcome_is_intervention} cannot be target_outcomes and target_interventions"
         )
 
-    # TODO is it the case that target_outcomes == set(itt.chain.from_iterable(surrogate_outcomes.values()))?
-    #  if so, we don't have to pass `target_outcomes` to `transport()` and can instead just calculate it.
-    #  Same thing for calculating target_interventions from surrogate_interventions
     transport_query = surrogate_to_transport(
         graph=graph,
         target_outcomes=target_outcomes,

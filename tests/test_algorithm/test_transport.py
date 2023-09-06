@@ -113,11 +113,6 @@ class TestTransport(_TestCase):
     #     # TODO probably need to canonicalize both of these
     #     self.assertEqual(expected, actual)
 
-    def test_transport_variable(self):
-        """Test that transport nodes will not take inappropriate inputs."""
-        with self.assertRaises(TypeError):
-            transport_variable(Y1 @ -X2)
-
     def test_create_transport_diagram(self):
         """Test that we can create the transport diagram correctly."""
         graph_pi1 = create_transport_diagram(graph=tikka_trso_figure_8, nodes_to_transport={X1, Y2})
@@ -683,6 +678,11 @@ class TestTransport(_TestCase):
 
 class TestIntegration(_TestCase):
     """Test integration over the whole workflow."""
+
+    def test_transport_variable(self):
+        """Test that transport nodes will not take inappropriate inputs."""
+        with self.assertRaises(TypeError):
+            transport_variable(Y1 @ -X2)
 
     def test_trso_1(self):
         """Test that trso returns the correct expression."""
