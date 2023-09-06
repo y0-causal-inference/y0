@@ -37,7 +37,7 @@ from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import canonicalize
 
 __all__ = [
-    "transport",
+    "identify_target_outcomes",
     "trso",
     "TransportQuery",
 ]
@@ -668,15 +668,17 @@ def check_and_raise_missing(nodes: set[Variable], graph: NxMixedGraph, name: str
         )
 
 
-def transport(
-    *,
+def identify_target_outcomes(
     graph: NxMixedGraph,
+    *,
     target_outcomes: Set[Variable],
     target_interventions: Set[Variable],
     surrogate_outcomes: Dict[Population, Set[Variable]],
     surrogate_interventions: Dict[Population, Set[Variable]],
 ) -> Expression | None:
-    r"""Run the transport algorithm from https://arxiv.org/abs/1806.07172.
+    r"""Get the estimand for the target outcome givne the surrogate outcomes.
+
+    .. seealso:: Originally described in https://arxiv.org/abs/1806.07172.
 
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
@@ -686,16 +688,16 @@ def transport(
     :returns: An Expression evaluating the given query, or None
     :raises ValueError: If the target outcomes and target interventions intersect
 
-    The example from figure 8 of the the original paper can be executed with
+    The example from figure 8 of the original paper can be executed with
     the following code:
 
     .. code-block:: python
 
-        from y0.algorithm.transport import transport
+        from y0.algorithm.transport import identify_target_outcome
         from y0.dsl import X1, X2, Y1, Y2, Pi1, Pi2
         from y0.examples import tikka_trso_figure_8_graph
 
-        estimand = transport(
+        estimand = identify_target_outcome(
             graph=tikka_trso_figure_8_graph,
             target_outcomes={Y1, Y2},
             target_interventions={X1, X2},
