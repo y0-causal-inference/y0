@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Sep  5 15:27:19 2023
-
-@author: merr391
-"""
 
 """Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172.
 
