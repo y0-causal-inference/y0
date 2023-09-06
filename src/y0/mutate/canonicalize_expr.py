@@ -96,13 +96,11 @@ class Canonicalizer:
         if isinstance(expression, Probability):  # atomic
             return self._canonicalize_probability(expression)
         elif isinstance(expression, Sum):
-            rv = Sum.safe(
+            return Sum.safe(
                 expression=self.canonicalize(expression.expression),
                 ranges=expression.ranges,
+                simplify=True,
             )
-            if not isinstance(rv, Sum):
-                return rv
-            return rv.simplify()
         elif isinstance(expression, Product):
             # note: safe already sorts
             return Product.safe(

@@ -1101,7 +1101,11 @@ class Sum(Expression):
 
     @classmethod
     def safe(
-        cls, expression: Expression, ranges: Union[str, Variable, Iterable[Union[str, Variable]]]
+        cls,
+        expression: Expression,
+        ranges: Union[str, Variable, Iterable[Union[str, Variable]]],
+        *,
+        simplify: bool = False,
     ) -> Expression:
         """Construct a sum from an expression and a permissive set of things in the ranges.
 
@@ -1132,10 +1136,13 @@ class Sum(Expression):
             return expression
         if isinstance(expression, Zero):
             return expression
-        return cls(
+        rv = cls(
             expression=expression,
             ranges=frozenset(ranges),
         )
+        if simplify:
+            return rv.simplify()
+        return rv
 
     def simplify(self) -> Expression:
         """Simplify this sum."""

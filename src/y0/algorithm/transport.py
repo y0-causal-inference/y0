@@ -270,7 +270,8 @@ def trso_line2(
     new_query.expression = Sum.safe(
         query.expression,
         get_regular_nodes(query.graphs[query.domain]) - outcomes_ancestors,
-    ).simplify()
+        simplify=True,
+    )
     if isinstance(new_query.expression, Probability):
         new_query.expression = PP[query.expression.population](new_query.expression.children)
     return new_query
