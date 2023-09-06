@@ -18,6 +18,7 @@ from typing import Collection, Dict, FrozenSet, Iterable, Optional, Set, Union, 
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
+    TARGET_DOMAIN,
     CounterfactualVariable,
     Distribution,
     Expression,
@@ -43,8 +44,6 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-
-TARGET_DOMAIN = Population("pi*")
 
 
 def get_nodes_to_transport(

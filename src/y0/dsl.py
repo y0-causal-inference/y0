@@ -1676,11 +1676,16 @@ class PopulationProbability(Probability):
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
         interventions, unintervened_distribution = self._help_level_2_distribution()
+        if self.population == TARGET_DOMAIN:
+            pop_latex = r"\pi^\ast"
+        else:
+            pop_latex = self.population.to_latex()
+
         if not interventions:
-            return f"P^{{{self.population.to_latex()}}}({self.distribution.to_latex()})"
+            return f"P^{{{pop_latex}}}({self.distribution.to_latex()})"
 
         intervention_str = ",".join(intervention.to_latex() for intervention in interventions)
-        return f"P_{{{intervention_str}}}^{{{self.population.to_latex()}}}({unintervened_distribution.to_latex()})"
+        return f"P_{{{intervention_str}}}^{{{pop_latex}}}({unintervened_distribution.to_latex()})"
 
 
 class PopulationProbabilityBuilderType(ProbabilityBuilderType):
@@ -1739,3 +1744,4 @@ class _TransportBuilder:
 
 
 Tr = _TransportBuilder()
+TARGET_DOMAIN = Population("pi*")

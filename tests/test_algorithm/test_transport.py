@@ -3,7 +3,6 @@
 import unittest
 
 from y0.algorithm.transport import (
-    TARGET_DOMAIN,
     TransportQuery,
     TRSOQuery,
     activate_domain_and_interventions,
@@ -23,6 +22,7 @@ from y0.algorithm.transport import (
 )
 from y0.dsl import (
     PP,
+    TARGET_DOMAIN,
     X1,
     X2,
     Y1,
