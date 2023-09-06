@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from tabulate import tabulate
-from tqdm import trange
+from tqdm import trange, tqdm
 
 from y0.algorithm.estimation import estimate_ate
 from y0.examples import examples
@@ -82,7 +82,9 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
         fig, ax = plt.subplots(figsize=(4, 2.3))
         sns.histplot(ace_deltas, ax=ax)
         ax.set_title("Deviation from actual ACE")
-        fig.savefig(directory.joinpath("deltas.png"), dpi=300)
+        deviation_path = directory.joinpath("deltas.png")
+        fig.savefig(deviation_path, dpi=300)
+        tqdm.write(f"Wrote {example.name} deviations chart to {deviation_path}")
 
     click.echo(tabulate(aces, headers=["Name", "ACE"], tablefmt="github"))
 
