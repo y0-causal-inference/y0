@@ -18,7 +18,6 @@ from typing import Collection, Dict, FrozenSet, Iterable, Optional, Set, Union, 
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
-    PP,
     CounterfactualVariable,
     Distribution,
     Expression,
@@ -268,7 +267,14 @@ def trso_line2(
         simplify=True,
     )
     if isinstance(new_query.expression, Probability):
-        new_query.expression = PP[query.expression.population](new_query.expression.children)
+        if isinstance(new_query.expression, PopulationProbability):
+            assert new_query.expression.population == new_query.domain
+        new_query.expression = PopulationProbability(
+            population=new_query.domain,
+            distribution=Distribution(
+                children=new_query.expression.children,
+            ),
+        )
     return new_query
 
 
@@ -361,7 +367,10 @@ def activate_domain_and_interventions(
     :raises NotImplementedError: If an expression type that is not handled gets passed
     """
     if isinstance(expression, PopulationProbability):
-        return PP[domain](set(expression.children) - interventions).intervene(interventions)
+        return PopulationProbability(
+            population=domain,
+            distribution=Distribution.safe(set(expression.children) - interventions),
+        ).intervene(interventions)
     if isinstance(expression, Probability):
         # raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
         return P(set(expression.children) - interventions).intervene(interventions)
