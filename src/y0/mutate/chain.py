@@ -65,7 +65,7 @@ def chain_expand(
         ordered_children = p.children
 
     return Product.safe(
-        P(
+        p._new(
             Distribution(children=(ordered_children[i],)).given(
                 ordered_children[i + 1 :] + p.parents
             )
@@ -101,7 +101,7 @@ def fraction_expand(p: Probability) -> Expression:
     """
     if not p.parents:
         return p
-    return Fraction(p.uncondition(), P(p.parents))
+    return Fraction(p.uncondition(), p._new(Distribution.safe(p.parents)))
 
 
 def bayes_expand(p: Probability) -> Expression:
