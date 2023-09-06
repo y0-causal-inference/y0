@@ -24,7 +24,6 @@ from y0.dsl import (
     Fraction,
     Intervention,
     One,
-    P,
     Population,
     PopulationProbability,
     Probability,
@@ -267,8 +266,8 @@ def trso_line2(
         simplify=True,
     )
     if isinstance(new_query.expression, Probability):
-        if isinstance(new_query.expression, PopulationProbability):
-            assert new_query.expression.population == new_query.domain
+        assert isinstance(new_query.expression, PopulationProbability)
+        assert new_query.expression.population == new_query.domain
         new_query.expression = PopulationProbability(
             population=new_query.domain,
             distribution=Distribution(
@@ -366,14 +365,12 @@ def activate_domain_and_interventions(
     :returns: A new expression, intervened
     :raises NotImplementedError: If an expression type that is not handled gets passed
     """
-    if isinstance(expression, PopulationProbability):
+    if isinstance(expression, Probability):
+        assert isinstance(expression, PopulationProbability)
         return PopulationProbability(
             population=domain,
             distribution=Distribution.safe(set(expression.children) - interventions),
         ).intervene(interventions)
-    if isinstance(expression, Probability):
-        # raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
-        return P(set(expression.children) - interventions).intervene(interventions)
     if isinstance(expression, Sum):
         # TODO need full integration test to trso() function that covers this branch
         # Don't intervene the ranges because counterfactual variables shouldn't be in ranges
@@ -688,6 +685,7 @@ def transport(
     :param surrogate_outcomes: A dictionary of outcomes in other populations
     :param surrogate_interventions: A dictionary of interventions in other populations
     :returns: An Expression evaluating the given query, or None
+    :raises ValueError: If the target outcomes and target interventions intersect
 
     The example from figure 8 of the the original paper can be executed with
     the following code:

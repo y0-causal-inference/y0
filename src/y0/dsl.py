@@ -1168,12 +1168,17 @@ class Sum(Expression):
                 )
             elif ranges < set(children):
                 keep = set(children) - ranges
-                return Probability.safe(v for k, v in children.items() if k in keep)
+                return expression._new(
+                    Distribution.safe(v for k, v in children.items() if k in keep)
+                )
             else:  # partial or no overlap
                 intersection = ranges.intersection(children)
                 keep = set(children) - intersection
+                prob = expression._new(
+                    Distribution.safe(v for k, v in children.items() if k in keep)
+                )
                 return Sum.safe(
-                    expression=Probability.safe(v for k, v in children.items() if k in keep),
+                    expression=prob,
                     ranges=ranges - intersection,
                 )
         return self
