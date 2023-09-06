@@ -9,7 +9,7 @@ from y0.algorithm.transport import (
     activate_domain_and_interventions,
     create_transport_diagram,
     get_nodes_to_transport,
-    get_surrogate_outcomes,
+    identify_target_outcome,
     surrogate_to_transport,
     transport_variable,
     trso,
@@ -869,7 +869,7 @@ class TestIntegration(_TestCase):
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
         surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
 
-        actual = get_surrogate_outcomes(
+        actual = identify_target_outcome(
             graph=tikka_trso_figure_8,
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
@@ -887,7 +887,7 @@ class TestIntegration(_TestCase):
         surrogate_interventions = {Pi1: {X2}, Pi2: {X2}}
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
 
-        actual_11 = get_surrogate_outcomes(
+        actual_11 = identify_target_outcome(
             graph=new_graph,
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
@@ -906,7 +906,7 @@ class TestIntegration(_TestCase):
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
 
         with self.assertRaises(ValueError):
-            get_surrogate_outcomes(
+            identify_target_outcome(
                 graph=new_graph,
                 target_outcomes=target_outcomes,
                 target_interventions=target_interventions,
@@ -936,7 +936,7 @@ class TestIntegration(_TestCase):
         surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
 
-        actual_10 = get_surrogate_outcomes(
+        actual_10 = identify_target_outcome(
             graph=new_graph,
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
@@ -951,7 +951,7 @@ class TestIntegration(_TestCase):
         surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
 
         with self.assertRaises(ValueError):
-            get_surrogate_outcomes(
+            identify_target_outcome(
                 graph=tikka_trso_figure_8,
                 target_outcomes=target_outcomes,
                 target_interventions=target_interventions,
@@ -981,7 +981,7 @@ class TestIntegration(_TestCase):
             ],
         )
 
-        actual_6 = get_surrogate_outcomes(
+        actual_6 = identify_target_outcome(
             graph=new_graph,
             target_outcomes=target_outcomes,
             target_interventions=target_interventions,
