@@ -13,6 +13,7 @@ import pandas as pd
 
 from .backdoor import generate_data_for_backdoor
 from .frontdoor import generate_data_for_frontdoor
+from .frontdoor_backdoor import generate_data_for_frontdoor_backdoor
 from .sars import generate_data_for_covid_case_study
 from ..algorithm.identify import Identification, Query
 from ..dsl import (
@@ -126,6 +127,7 @@ frontdoor_backdoor = NxMixedGraph.from_edges(
 )
 frontdoor_backdoor_example = Example(
     name="FrontdoorBackdoor",
+    reference="",  # TODO: Add the reference
     graph=frontdoor_backdoor,
     generate_data=generate_data_for_frontdoor_backdoor,
     example_queries=[Query.from_str(treatments="X", outcomes="Y")],
@@ -550,7 +552,6 @@ tikka_unidentifiable_cfgraph = Example(
     ),
 )
 
-
 figure_9a = Example(
     name="Original causal diagram",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
@@ -622,7 +623,6 @@ tikka_figure_5 = Example(
         undirected=[(X, Y @ -x)],
     ),
 )
-
 
 tikka_figure_6a = Example(
     name=r"Figure 6a: Parallel worlds graph for :math:`y_x\wedge z_x\wedge x'` (the counterfactual graph)",

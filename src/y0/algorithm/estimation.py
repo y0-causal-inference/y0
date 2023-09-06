@@ -1,7 +1,7 @@
 """Estimation of probabilities generated from identification."""
 
 from contextlib import redirect_stdout
-from typing import Dict, List, Literal, Optional, Union
+from typing import Dict, Iterable, List, Literal, Optional, Sequence, Set, Union
 
 import numpy as np
 import pandas as pd
@@ -188,7 +188,7 @@ def fit_continuous_glm(data, formula, weights=None) -> GLM:
 
 def get_conditional_probability_formula_for_node(graph: NxMixedGraph, node: Variable) -> str:
     """Generate the conditional probability formula for a given node based on its markov pillow."""
-    markov_pillow = graph.get_markov_pillow([node])
+    markov_pillow = _get_district_and_predecessors(graph, [node])
     formula = node.name + "~" + "+".join(node.name for node in markov_pillow)
     return formula
 
@@ -200,6 +200,37 @@ def get_state_space_map(data: pd.DataFrame) -> Dict[Variable, Literal["binary", 
         Variable(column): "binary" if binary_set.issuperset(data[column].unique()) else "continuous"
         for column in data.columns
     }
+
+
+def _get_district_and_predecessors(
+    graph: NxMixedGraph,
+    nodes: Iterable[Variable],
+    topological_sort_order: Optional[Sequence[Variable]] = None,
+):
+    """Get the union of district, predecessors and predecessors of district for a given set of nodes.
+
+    This code was adapted from :mod:`ananke` ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L96-117
+
+    :param graph: A NxMixedGraph
+    :param nodes: List of nodes
+    :param topological_sort_order: A valid topological sort order
+
+    :return: Set corresponding to union of district, predecessors and predecessors of district of a given set of nodes
+    """
+    if not topological_sort_order:
+        topological_sort_order = list(graph.topological_sort())
+
+    # Get the subgraph corresponding to the nodes and nodes prior to them
+    pre = graph.pre(nodes, topological_sort_order)
+    sub_graph = graph.subgraph(pre + list(nodes))
+
+    result: Set[Variable] = set()
+    for node in nodes:
+        result.update(sub_graph.get_district(node))
+    for node in result.copy():
+        result.update(sub_graph.directed.predecessors(node))
+    return result - set(nodes)
 
 
 def get_beta_primal(
@@ -247,7 +278,7 @@ def get_beta_primal(
     # prob_t0: stores \prod_{li in l} p(li | mp(li)) at t=0
 
     indices_t0 = data.index[data[treatment.name] == 0]
-    mp_t = graph.get_markov_pillow([treatment])
+    mp_t = _get_district_and_predecessors(graph, [treatment])
 
     if len(mp_t) != 0:
         formula = get_conditional_probability_formula_for_node(graph=graph, node=treatment)
