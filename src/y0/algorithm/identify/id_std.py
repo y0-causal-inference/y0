@@ -4,9 +4,27 @@
 
 from typing import List, Sequence
 
-from .utils import Identification, Unidentifiable
+from .utils import Identification, Unidentifiable, Query
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
 from ...graph import NxMixedGraph
+
+__all__ = [
+    "identify_outcomes",
+    "identify",
+]
+
+
+def identify_outcomes(
+    graph: NxMixedGraph, treatments: set[Variable], outcomes: set[Variable]
+) -> Expression | None:
+    """Get the estimand for the outcomes given the treatments."""
+    try:
+        rv = identify(
+            Identification(graph=graph, query=Query(treatments=treatments, outcomes=outcomes))
+        )
+    except Unidentifiable:
+        return None
+    return rv
 
 
 def identify(identification: Identification) -> Expression:
