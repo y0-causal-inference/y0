@@ -40,6 +40,7 @@ from y0.dsl import (
     Y,
     Z,
     Zero,
+    Fraction,
 )
 from y0.examples import tikka_trso_figure_8_graph as tikka_trso_figure_8
 from y0.graph import NxMixedGraph
@@ -844,7 +845,11 @@ class TestIntegration(_TestCase):
     def test_transport(self):
         """Test that transport returns the correct expression."""
         expected_part1 = PP[TARGET_DOMAIN](W, Z)
+        self.assertIsInstance(expected_part1, PopulationProbability)
         expected_part2 = fraction_expand(PP[Pi1][X1](Y1 | W, Z))
+        self.assertIsInstance(expected_part2, Fraction)
+        self.assertIsInstance(expected_part2.numerator, PopulationProbability)
+        self.assertIsInstance(expected_part2.denominator, PopulationProbability)
         expected_part3 = fraction_expand(PP[Pi2][X2](Y2 | W, Z, X1))
         expected = canonicalize(
             Sum.safe(
