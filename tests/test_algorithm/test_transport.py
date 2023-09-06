@@ -28,6 +28,7 @@ from y0.dsl import (
     Y1,
     Y2,
     Expression,
+    Fraction,
     Pi1,
     Pi2,
     Pi3,
@@ -40,7 +41,6 @@ from y0.dsl import (
     Y,
     Z,
     Zero,
-    Fraction,
 )
 from y0.examples import tikka_trso_figure_8_graph as tikka_trso_figure_8
 from y0.graph import NxMixedGraph
@@ -684,7 +684,7 @@ class TestTransport(_TestCase):
 class TestIntegration(_TestCase):
     """Test integration over the whole workflow."""
 
-    def test_trso(self):
+    def test_trso_1(self):
         """Test that trso returns the correct expression."""
         query_part1 = TRSOQuery(
             target_interventions={X1, X2, Y1, Y2},
@@ -720,6 +720,7 @@ class TestIntegration(_TestCase):
         # actual_part1_simplified = actual_part1.simplified
         # self.assertEqual(expected3, actual_part1_simplified)
 
+    def test_trso_2(self):
         query_part2 = TRSOQuery(
             target_interventions={X1, X2, Z, W, Y2},
             target_outcomes={Y1},
@@ -746,6 +747,7 @@ class TestIntegration(_TestCase):
         self.assert_expr_equal(expected_part2_conditional, actual_part2)
         self.assert_expr_equal(fraction_expand(expected_part2_magic_p), actual_part2)
 
+    def test_trso_3(self):
         query_part3 = TRSOQuery(
             target_interventions={X1, X2, Z, W, Y1},
             target_outcomes={Y2},
@@ -770,6 +772,7 @@ class TestIntegration(_TestCase):
         self.assert_expr_equal(expected_part3_conditional, actual_part3)
         self.assert_expr_equal(fraction_expand(expected_part3_magic_p), actual_part3)
 
+    def test_trso_4(self):
         query = TRSOQuery(
             target_interventions={X1, X2},
             target_outcomes={Y1, Y2},
@@ -787,8 +790,10 @@ class TestIntegration(_TestCase):
 
         actual = trso(query)
         expected_part1 = PP[TARGET_DOMAIN](W, Z)
-        expected_part2 = expected_part2_full
-        expected_part3 = expected_part3_full
+        expected_part2 = PP[Pi1][X1](W, Y1, Z) / Sum[Y1](PP[Pi1][X1](W, Y1, Z))
+        expected_part3 = PP[Pi2](W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2) / Sum[Y2](
+            PP[Pi2](W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2)
+        )
 
         expected = canonicalize(
             Sum.safe(
@@ -798,6 +803,7 @@ class TestIntegration(_TestCase):
         )
         self.assert_expr_equal(expected, actual)
 
+    def test_trso_5(self):
         # TODO we should find a way to accomplish this with a transport call
         # This test triggers pillow_has_transport on line 10 and returns None
         target_interventions = {W, Z}
@@ -842,7 +848,7 @@ class TestIntegration(_TestCase):
         trso_query.graphs[trso_query.domain] = hacked_graph
         self.assertIsNone(trso(trso_query))
 
-    def test_transport(self):
+    def test_transport_1(self):
         """Test that transport returns the correct expression."""
         expected_part1 = PP[TARGET_DOMAIN](W, Z)
         self.assertIsInstance(expected_part1, PopulationProbability)
@@ -872,6 +878,7 @@ class TestIntegration(_TestCase):
         )
         self.assert_expr_equal(expected, actual)
 
+    def test_transport_2(self):
         # This test triggers part of line 11 in trso (district length of 1)
         new_graph = tikka_trso_figure_8.subgraph(tikka_trso_figure_8.nodes() - {X1})
         new_graph.add_undirected_edge(W, Y1)
@@ -889,6 +896,7 @@ class TestIntegration(_TestCase):
         )
         self.assertIsNone(actual_11)
 
+    def test_transport_3(self):
         # This triggers triggers not implemented error on line 9
         # Now it triggers value error
         new_graph = tikka_trso_figure_8.subgraph(tikka_trso_figure_8.nodes() - {X1})
@@ -906,6 +914,7 @@ class TestIntegration(_TestCase):
                 surrogate_interventions=surrogate_interventions,
             )
 
+    def test_transport_4(self):
         # This triggers line 10.
         # TODO it fails on the next recursive loop, would be better to find an example that doesn't fail.
         new_graph = NxMixedGraph.from_edges(
@@ -936,6 +945,11 @@ class TestIntegration(_TestCase):
         )
         self.assertIsNone(actual_10)
 
+    def test_transport_5(self):
+        target_interventions = {W, Z}
+        target_outcomes = {Y1}
+        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
+
         with self.assertRaises(ValueError):
             transport(
                 graph=tikka_trso_figure_8,
@@ -945,6 +959,7 @@ class TestIntegration(_TestCase):
                 surrogate_interventions={Pi1: {X1}, Pi2: {X2}, Pi3: {X}},
             )
 
+    def test_transport_6(self):
         # This test triggers the if expression is None:  continue block after line 6
         # TODO Another test that fails.
         target_outcomes = {Y1, Y2}
