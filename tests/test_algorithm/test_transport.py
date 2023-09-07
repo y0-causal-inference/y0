@@ -742,6 +742,7 @@ class TestIntegration(_TestCase):
         expected_part2_magic_p = PP[Pi1][X1](Y1 | W, Z)
         expected_part2_full = PP[Pi1][X1](W, Y1, Z) / Sum[Y1](PP[Pi1][X1](W, Y1, Z))
 
+        self.assertIsInstance(actual_part2, Fraction)
         self.assert_expr_equal(expected_part2_full.numerator, actual_part2.numerator)
         self.assert_expr_equal(expected_part2_full, actual_part2)
         self.assert_expr_equal(expected_part2_conditional, actual_part2)

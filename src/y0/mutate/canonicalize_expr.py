@@ -18,6 +18,7 @@ from ..dsl import (
     Zero,
     ensure_ordering,
 )
+from .contract import recursive_contract
 
 __all__ = [
     "canonicalize",
@@ -35,7 +36,7 @@ def canonicalize(
     :return: A canonical expression
     """
     canonicalizer = Canonicalizer(ensure_ordering(expression, ordering=ordering))
-    return canonicalizer.canonicalize(expression)
+    return recursive_contract(canonicalizer.canonicalize(expression))
 
 
 class Canonicalizer:
