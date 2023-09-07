@@ -17,7 +17,6 @@ from dataclasses import dataclass
 from typing import Collection, Dict, FrozenSet, Iterable, Optional, Set, Union, cast
 
 from y0.algorithm.conditional_independencies import are_d_separated
-from y0.algorithm.identify import identify_outcomes
 from y0.dsl import (
     TARGET_DOMAIN,
     CounterfactualVariable,
@@ -709,11 +708,12 @@ def identify_target_outcomes(
     $\sum_{W, Z} P(W, Z) \frac{P_{X_1}^{π_1}(W, Y_1, Z)}{P_{X_1}(W, Z)}
     \frac{P_{X_2}^{π_2}(W, X_1, Y_2, Z)}{P_{X_2}(W, X_1, Z)}$
     """
-    vanilla_estimand = identify_outcomes(
-        graph=graph, outcomes=target_outcomes, treatments=target_interventions
-    )
-    if vanilla_estimand is not None:
-        logger.warning(f"This query is identifiable without surrogates: {vanilla_estimand}")
+    # TODO add vanilla identification check?
+    # vanilla_estimand = identify_outcomes(
+    #     graph=graph, outcomes=target_outcomes, treatments=target_interventions
+    # )
+    # if vanilla_estimand is not None:
+    #     logger.warning(f"This query is identifiable without surrogates: {vanilla_estimand}")
 
     check_and_raise_missing(target_outcomes, graph, "target_outcomes")
     check_and_raise_missing(target_interventions, graph, "target_interventions")

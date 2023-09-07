@@ -857,42 +857,31 @@ class TestIntegration(_TestCase):
         self.assertIsInstance(expected_part2.numerator, PopulationProbability)
         self.assertIsInstance(expected_part2.denominator, PopulationProbability)
         expected_part3 = fraction_expand(PP[Pi2][X2](Y2 | W, Z, X1))
-        expected = canonicalize(
+        expected_estimand = canonicalize(
             Sum.safe(
                 Product.safe([expected_part1, expected_part2, expected_part3]),
                 (W, Z),
             )
         )
-
-        target_outcomes = {Y1, Y2}
-        target_interventions = {X1, X2}
-        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
-        surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
-
-        actual = identify_target_outcomes(
+        actual_estimand = identify_target_outcomes(
             graph=tikka_trso_figure_8,
-            target_outcomes=target_outcomes,
-            target_interventions=target_interventions,
-            surrogate_outcomes=surrogate_outcomes,
-            surrogate_interventions=surrogate_interventions,
+            target_outcomes={Y1, Y2},
+            target_interventions={X1, X2},
+            surrogate_outcomes={Pi1: {Y1}, Pi2: {Y2}},
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
-        self.assert_expr_equal(expected, actual)
+        self.assert_expr_equal(expected_estimand, actual_estimand)
 
     def test_transport_2(self):
         # This test triggers part of line 11 in trso (district length of 1)
         new_graph = tikka_trso_figure_8.subgraph(tikka_trso_figure_8.nodes() - {X1})
         new_graph.add_undirected_edge(W, Y1)
-        target_interventions = {Z, W}
-        target_outcomes = {Y1}
-        surrogate_interventions = {Pi1: {X2}, Pi2: {X2}}
-        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
-
         actual_11 = identify_target_outcomes(
             graph=new_graph,
-            target_outcomes=target_outcomes,
-            target_interventions=target_interventions,
-            surrogate_outcomes=surrogate_outcomes,
-            surrogate_interventions=surrogate_interventions,
+            target_outcomes={Y1},
+            target_interventions={Z, W},
+            surrogate_outcomes={Pi1: {Y1}, Pi2: {Y2}},
+            surrogate_interventions={Pi1: {X2}, Pi2: {X2}},
         )
         self.assertIsNone(actual_11)
 
@@ -900,24 +889,19 @@ class TestIntegration(_TestCase):
         # This triggers triggers not implemented error on line 9
         # Now it triggers value error
         new_graph = tikka_trso_figure_8.subgraph(tikka_trso_figure_8.nodes() - {X1})
-        target_interventions = {Z, Y1, W}
-        target_outcomes = {Y1}
-        surrogate_interventions = {Pi1: {X2}, Pi2: {X2}}
-        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
-
         with self.assertRaises(ValueError):
             identify_target_outcomes(
                 graph=new_graph,
-                target_outcomes=target_outcomes,
-                target_interventions=target_interventions,
-                surrogate_outcomes=surrogate_outcomes,
-                surrogate_interventions=surrogate_interventions,
+                target_outcomes={Z, Y1, W},
+                target_interventions={Y1},
+                surrogate_outcomes={Pi1: {Y1}, Pi2: {Y2}},
+                surrogate_interventions={Pi1: {X2}, Pi2: {X2}},
             )
 
     def test_transport_4(self):
         # This triggers line 10.
         # TODO it fails on the next recursive loop, would be better to find an example that doesn't fail.
-        new_graph = NxMixedGraph.from_edges(
+        grpah = NxMixedGraph.from_edges(
             undirected=[(X1, Y1), (Y1, W), (Z, X2)],
             directed=[
                 (X1, Y1),
@@ -930,44 +914,28 @@ class TestIntegration(_TestCase):
                 (Z, Y2),
             ],
         )
-
-        target_interventions = {W, Z}
-        target_outcomes = {Y1}
-        surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
-        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
-
-        actual_10 = identify_target_outcomes(
-            graph=new_graph,
-            target_outcomes=target_outcomes,
-            target_interventions=target_interventions,
-            surrogate_outcomes=surrogate_outcomes,
-            surrogate_interventions=surrogate_interventions,
+        estimand = identify_target_outcomes(
+            graph=grpah,
+            target_outcomes={Y1},
+            target_interventions={W, Z},
+            surrogate_outcomes={Pi1: {Y1}, Pi2: {Y2}},
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
-        self.assertIsNone(actual_10)
+        self.assertIsNone(estimand)
 
     def test_transport_5(self):
-        target_interventions = {W, Z}
-        target_outcomes = {Y1}
-        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
-
         with self.assertRaises(ValueError):
             identify_target_outcomes(
                 graph=tikka_trso_figure_8,
-                target_outcomes=target_outcomes,
-                target_interventions=target_interventions,
-                surrogate_outcomes=surrogate_outcomes,
+                target_outcomes={Y1},
+                target_interventions={W, Z},
+                surrogate_outcomes={Pi1: {Y1}, Pi2: {Y2}},
                 surrogate_interventions={Pi1: {X1}, Pi2: {X2}, Pi3: {X}},
             )
 
     def test_transport_6(self):
-        # This test triggers the if expression is None:  continue block after line 6
-        # TODO Another test that fails.
-        target_outcomes = {Y1, Y2}
-        target_interventions = {X1, X2}
-        surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}}
-        surrogate_interventions = {Pi1: {X1}, Pi2: {X2}}
-
-        new_graph = NxMixedGraph.from_edges(
+        # This test triggers if expression is None:  continue block after line 6
+        graph = NxMixedGraph.from_edges(
             undirected=[(X1, Y1), (Z, W), (Z, X2), (Y2, X1)],
             directed=[
                 (X1, Y1),
@@ -980,12 +948,11 @@ class TestIntegration(_TestCase):
                 (Z, Y2),
             ],
         )
-
-        actual_6 = identify_target_outcomes(
-            graph=new_graph,
-            target_outcomes=target_outcomes,
-            target_interventions=target_interventions,
-            surrogate_outcomes=surrogate_outcomes,
-            surrogate_interventions=surrogate_interventions,
+        estimand = identify_target_outcomes(
+            graph,
+            target_outcomes={Y1, Y2},
+            target_interventions={X1, X2},
+            surrogate_outcomes={Pi1: {Y1}, Pi2: {Y2}},
+            surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
-        self.assertIsNone(actual_6)
+        self.assertIsNone(estimand)
