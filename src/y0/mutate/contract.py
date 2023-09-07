@@ -42,6 +42,7 @@ def contract(expression: Expression) -> Expression:
 
 class _Contracter(Applier):
     def apply_fraction(self, expression: Fraction) -> Expression:
+        """Contract a fraction."""
         return contract(expression)
 
 
