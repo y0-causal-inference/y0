@@ -48,4 +48,4 @@ class _Contracter(Applier):
 
 def recursive_contract(e: Expression) -> Expression:
     """Recursively contract fractions."""
-    return _Contracter().apply(e)
+    return _Contracter().apply_expression(e)
