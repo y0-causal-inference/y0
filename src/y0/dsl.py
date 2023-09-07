@@ -1197,7 +1197,7 @@ class Sum(Expression):
     def to_latex(self) -> str:
         """Output this sum in the LaTeX string format."""
         ranges = _list_to_latex(self._get_sorted_ranges())
-        return rf"\sum_{{{ranges}}} {self.expression.to_latex()}"
+        return rf"\sum\limits_{{{ranges}}} {self.expression.to_latex()}"
 
     def to_y0(self):
         """Output this sum instance as y0 internal DSL code."""
