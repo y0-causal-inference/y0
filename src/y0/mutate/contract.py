@@ -1,9 +1,9 @@
 """Contraction functions."""
 
-from y0.dsl import Expression, Probability, Distribution, Fraction
 from operator import attrgetter
-from y0.mutate.utils import Applier
 
+from y0.dsl import Distribution, Expression, Fraction, Probability
+from y0.mutate.utils import Applier
 
 __all__ = ["contract", "recursive_contract"]
 
@@ -31,7 +31,8 @@ def contract(expression: Expression) -> Expression:
         return expression
     children = set(expression.numerator.children).difference(expression.denominator.children)
     parents = set(expression.numerator.children).intersection(expression.denominator.children)
-    return expression.numerator._new(
+    # TODO change to expression.numerator._new after introducing probability subtypes
+    return Probability(
         Distribution(
             children=tuple(sorted(children, key=attrgetter("name"))),
             parents=tuple(sorted(parents, key=attrgetter("name"))),

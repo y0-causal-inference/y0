@@ -1,8 +1,9 @@
 """Tests for contraction functions."""
 
 import unittest
+
+from y0.dsl import A, B, C, D, P, Sum
 from y0.mutate.contract import contract
-from y0.dsl import P, A, B, C, D, Sum
 
 
 class TestContract(unittest.TestCase):

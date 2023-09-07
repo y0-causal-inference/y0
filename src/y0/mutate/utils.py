@@ -1,6 +1,6 @@
 """Utilities for mutation functionality."""
 
-from y0.dsl import Expression, Sum, Product, Fraction, Probability, QFactor
+from y0.dsl import Expression, Fraction, Probability, Product, QFactor, Sum
 
 __all__ = [
     "Applier",
