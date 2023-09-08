@@ -196,7 +196,12 @@ class Variable(Element):
 
     def to_y0(self) -> str:
         """Output this variable instance as y0 internal DSL code."""
-        return self.name
+        if self.star is None:
+            return self.name
+        elif self.star:
+            return f"+{self.name}"
+        else:
+            return f"-{self.name}"
 
     def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this variable with the given variable(s).
@@ -368,7 +373,7 @@ class CounterfactualVariable(Variable):
         else:
             prefix = "-"
         if len(self.interventions) == 1:
-            return f"{prefix}{self.name} @ {self.interventions[0].to_y0()}"
+            return f"{prefix}{self.name} @ {list(self.interventions)[0].to_y0()}"
         else:
             ins = ", ".join(i.to_y0() for i in self.interventions)
             return f"{prefix}{self.name} @ ({ins})"
@@ -634,6 +639,18 @@ class Expression(Element, ABC):
     def __mul__(self, other):
         pass
 
+    @abstractmethod
+    def _get_key(self) -> tuple:
+        """Generate a sort key for a *canonical* expression.
+
+        :returns: A tuple in which the first element is the integer priority for the expression
+            and the rest depends on the expression type.
+        """
+        raise NotImplementedError
+
+    def __lt__(self, other: Expression):
+        return self._get_key() < other._get_key()
+
     def __truediv__(self, expression: Expression) -> Expression:
         """Divide this expression by another and create a fraction."""
         if isinstance(expression, One):
@@ -661,7 +678,7 @@ class Expression(Element, ABC):
         """Return this expression, normalized by this expression marginalized by the given variables."""
         return self / self.marginalize(ranges)
 
-    def marginalize(self, ranges: VariableHint) -> Sum:
+    def marginalize(self, ranges: VariableHint) -> Expression:
         """Return this expression, marginalizing out the given variables.
 
         :param ranges: A variable or list of variables over which to marginalize this expression
@@ -671,7 +688,7 @@ class Expression(Element, ABC):
         >>> assert P(A, B).marginalize(A) == Sum[A](P(A, B))
         >>> assert P(A, B, C).marginalize([A, B]) == Sum[A, B](P(A, B, C))
         """
-        return Sum(
+        return Sum.safe(
             expression=self,
             ranges=_upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)]),
         )
@@ -706,17 +723,51 @@ class Probability(Expression):
             distribution = distribution.intervene(interventions)
         return Probability(distribution)
 
+    def _get_key(self):
+        # TODO incorporate more information from children and parents
+        return 0, self.children[0].name
+
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
         return f"P({self.distribution.to_text()})"
 
+    def _help_level_2_distribution(self):
+        # if all parts of distribution have same intervention set, then put it out front
+        intervention_sets = {
+            x.interventions if isinstance(x, CounterfactualVariable) else tuple()
+            for x in itt.chain(self.children, self.parents)
+        }
+        # check that there's only one intervention set and that it's not an empty one
+        if len(intervention_sets) == 1 and (interventions := intervention_sets.pop()):
+            unintervened_distribution = Distribution(
+                parents=tuple(Variable(name=v.name, star=v.star) for v in self.parents),
+                children=tuple(Variable(name=v.name, star=v.star) for v in self.children),
+            )
+            return interventions, unintervened_distribution
+        else:
+            return None, None
+
     def to_y0(self) -> str:
         """Output this probability instance as y0 internal DSL code."""
-        return f"P({self.distribution.to_y0()})"
+        interventions, unintervened_distribution = self._help_level_2_distribution()
+        if not interventions:
+            return f"P({self.distribution.to_y0()})"
+
+        # only keep the + if necessary, otherwise show regular
+        intervention_str = ",".join(
+            f"+{intervention.name}" if intervention.star else intervention.name
+            for intervention in interventions
+        )
+        return f"P[{intervention_str}]({unintervened_distribution.to_y0()})"
 
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
-        return f"P({self.distribution.to_latex()})"
+        interventions, unintervened_distribution = self._help_level_2_distribution()
+        if not interventions:
+            return f"P({self.distribution.to_latex()})"
+
+        intervention_str = ",".join(intervention.to_latex() for intervention in interventions)
+        return f"P_{{{intervention_str}}}({unintervened_distribution.to_latex()})"
 
     @property
     def parents(self) -> Tuple[Variable, ...]:
@@ -742,11 +793,11 @@ class Probability(Expression):
         elif isinstance(other, One):
             return self
         elif isinstance(other, Product):
-            return Product((self, *other.expressions))
+            return Product.safe((self, *other.expressions))
         elif isinstance(other, Fraction):
             return Fraction(self * other.numerator, other.denominator)
         else:
-            return Product((self, other))
+            return Product.safe((self, other))
 
     def intervene(self, variables: VariableHint) -> Probability:
         """Return a new probability where the underlying distribution has been intervened by the given variables."""
@@ -903,13 +954,16 @@ class Product(Expression):
 
     expressions: Tuple[Expression, ...]
 
+    def __post_init__(self):
+        if len(self.expressions) < 2:
+            raise ValueError("Product() must two or more expressions")
+
     @classmethod
     def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Expression:
         """Construct a product from any iterable of expressions.
 
         :param expressions: An expression or iterable of expressions which should be multiplied
         :returns: A :class:`Product` object
-        :raises ValueError: If an empty iterable of expressions is input
 
         Standard usage, same as the normal ``__init__``:
 
@@ -930,15 +984,20 @@ class Product(Expression):
         """
         if isinstance(expressions, Expression):
             return expressions
-        expressions = tuple(expressions)
+        # Remove multiplications of one
+        expressions = tuple(expression for expression in expressions if expression != One())
+        # If any multiplications are by zero, then return zero
+        if any(expression == Zero() for expression in expressions):
+            return Zero()
         if not expressions:
-            raise ValueError(
-                "Product.safe does not explicitly empty list of expressions. "
-                "Should this return One()? Or Zero()? Please let us know."
-            )
+            return One()
         if len(expressions) == 1:
             return expressions[0]
-        return cls(expressions=expressions)
+        return cls(expressions=tuple(sorted(expressions)))
+
+    def _get_key(self):
+        inner_keys = (sexpr._get_key() for sexpr in self.expressions)
+        return 2, *inner_keys
 
     def to_text(self):
         """Output this product in the internal string format."""
@@ -956,11 +1015,11 @@ class Product(Expression):
         if isinstance(other, Zero):
             return other
         if isinstance(other, Product):
-            return Product((*self.expressions, *other.expressions))
+            return Product.safe((*self.expressions, *other.expressions))
         elif isinstance(other, Fraction):
             return Fraction(self * other.numerator, other.denominator)
         else:
-            return Product((*self.expressions, other))
+            return Product.safe((*self.expressions, other))
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of the variables used in each expresison in this product."""
@@ -987,7 +1046,16 @@ class Sum(Expression):
     #: The expression over which the sum is done
     expression: Expression
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
-    ranges: Tuple[Variable, ...] = field(default_factory=tuple)
+    ranges: frozenset[Variable]
+
+    def __post_init__(self):
+        if not isinstance(self.ranges, frozenset):
+            raise TypeError
+        if not self.ranges:
+            raise ValueError("Sum must have ranges")
+        for r in self.ranges:
+            if isinstance(r, (CounterfactualVariable, Intervention)):
+                raise TypeError("Ranges must not be counterfactuals nor interventions")
 
     @classmethod
     def safe(
@@ -1020,20 +1088,28 @@ class Sum(Expression):
             ranges = _upgrade_ordering(ranges)
         if not ranges:
             return expression
+        if isinstance(expression, Zero):
+            return expression
         return cls(
             expression=expression,
-            ranges=ranges,
+            ranges=frozenset(ranges),
         )
+
+    def _get_key(self):
+        return 1, *self.expression._get_key()
+
+    def _get_sorted_ranges(self) -> Sequence[Variable]:
+        return sorted(self.ranges, key=attrgetter("name"))
 
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
-        ranges = _list_to_text(self.ranges)
+        ranges = _list_to_text(self._get_sorted_ranges())
         return f"[ sum_{{{ranges}}} {self.expression.to_text()} ]"
 
     def to_latex(self) -> str:
         """Output this sum in the LaTeX string format."""
-        ranges = _list_to_latex(self.ranges)
-        return rf"\sum_{{{ranges}}} {self.expression.to_latex()}"
+        ranges = _list_to_latex(self._get_sorted_ranges())
+        return rf"\sum\limits_{{{ranges}}} {self.expression.to_latex()}"
 
     def to_y0(self):
         """Output this sum instance as y0 internal DSL code."""
@@ -1043,16 +1119,16 @@ class Sum(Expression):
             s = self.expression.to_y0()
         if not self.ranges:
             return f"Sum({s})"
-        ranges = _list_to_y0(self.ranges)
+        ranges = _list_to_y0(self._get_sorted_ranges())
         return f"Sum[{ranges}]({s})"
 
     def __mul__(self, expression: Expression):
         if isinstance(expression, Zero):
             return expression
         elif isinstance(expression, Product):
-            return Product((self, *expression.expressions))
+            return Product.safe((self, *expression.expressions))
         else:
-            return Product((self, expression))
+            return Product.safe((self, expression))
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the union of the variables used in the range of this sum and variables in its summand."""
@@ -1061,7 +1137,7 @@ class Sum(Expression):
             yield from variable._iter_variables()
 
     @classmethod
-    def __class_getitem__(cls, ranges: VariableHint) -> Callable[[Expression], Sum]:
+    def __class_getitem__(cls, ranges: VariableHint) -> Callable[[Expression], Expression]:
         """Create a partial sum object over the given ranges.
 
         :param ranges: The variables over which the partial sum will be done
@@ -1077,7 +1153,7 @@ class Sum(Expression):
         >>> from y0.dsl import Sum, P, A, B, C
         >>> Sum[B, C](P(A | B) * P(B))
         """
-        return functools.partial(Sum, ranges=_upgrade_ordering(ranges))
+        return functools.partial(Sum.safe, ranges=_upgrade_ordering(ranges))
 
 
 @dataclass(frozen=True, repr=False)
@@ -1092,6 +1168,13 @@ class Fraction(Expression):
     def __post_init__(self):
         if isinstance(self.denominator, Zero):
             raise ZeroDivisionError
+
+    def _get_key(self):
+        return (
+            3,
+            self.numerator._get_key(),
+            self.denominator._get_key(),
+        )
 
     def to_text(self) -> str:
         """Output this fraction in the internal string format."""
@@ -1171,13 +1254,13 @@ class Fraction(Expression):
         new_numerator, new_denominator = cls._simplify_parts_helper(numerator, denominator)
         if new_numerator and new_denominator:
             return Fraction(
-                _expression_or_product(new_numerator),
-                _expression_or_product(new_denominator),
+                Product.safe(new_numerator),
+                Product.safe(new_denominator),
             )
         elif new_numerator:
-            return _expression_or_product(new_numerator)
+            return Product.safe(new_numerator)
         elif new_denominator:
-            return One() / _expression_or_product(new_denominator)
+            return One() / Product.safe(new_denominator)
         else:
             return One()
 
@@ -1202,14 +1285,6 @@ class Fraction(Expression):
         )
 
 
-def _expression_or_product(e: Sequence[Expression]) -> Expression:
-    if not e:
-        raise ValueError
-    if 1 == len(e):
-        return e[0]
-    return Product(tuple(e))
-
-
 class One(Expression):
     """The multiplicative identity (1)."""
 
@@ -1224,6 +1299,9 @@ class One(Expression):
     def to_y0(self) -> str:
         """Output this identity instance as y0 internal DSL code."""
         return "One()"
+
+    def _get_key(self):
+        return 4, self.to_text()
 
     def __rmul__(self, expression: Expression) -> Expression:
         return expression
@@ -1253,6 +1331,9 @@ class Zero(Expression):
     def to_y0(self) -> str:
         """Output this identity instance as y0 internal DSL code."""
         return "Zero()"
+
+    def _get_key(self):
+        return 4, self.to_text()
 
     def __rmul__(self, expression: Expression) -> Expression:
         return self
@@ -1284,8 +1365,8 @@ class QBuilder(Protocol[T_co]):
 class QFactor(Expression):
     """A function from the variables in the domain to a probability function over variables in the codomain."""
 
-    domain: Tuple[Variable, ...]
-    codomain: Tuple[Variable, ...]
+    domain: frozenset[Variable]
+    codomain: frozenset[Variable]
 
     @classmethod
     def safe(
@@ -1297,20 +1378,20 @@ class QFactor(Expression):
         """Create a Q factor with various input types."""
         return cls(
             domain=cls._prepare_domain(domain, *args),
-            codomain=_upgrade_ordering(codomain),
+            codomain=frozenset(_upgrade_variables(codomain)),
         )
 
     @staticmethod
     def _prepare_domain(
         arg: VariableHint,
         *args: Union[str, Variable],
-    ) -> Tuple[Variable, ...]:
+    ) -> frozenset[Variable]:
         """Prepare a list of variables from a potentially unruly set of args and variadic args."""
         if isinstance(arg, (str, Variable)):
-            return Variable.norm(arg), *_upgrade_ordering(args)
+            return frozenset((Variable.norm(arg), *_upgrade_ordering(args)))
         if args:
             raise ValueError("can not use variadic arguments with combination of first arg")
-        return _sorted_variables(_upgrade_ordering(arg))
+        return frozenset(_sorted_variables(_upgrade_ordering(arg)))
 
     @classmethod
     def __class_getitem__(cls, codomain: Union[Variable, Iterable[Variable]]) -> QBuilder[QFactor]:
@@ -1331,31 +1412,40 @@ class QFactor(Expression):
         """
         return functools.partial(cls.safe, codomain=codomain)
 
+    def _get_key(self) -> tuple:
+        return -5, min(v.name for v in self.domain), min(v.name for v in self.codomain)
+
+    def _sorted_codomain(self):
+        return sorted(self.codomain, key=attrgetter("name"))
+
+    def _sorted_domain(self):
+        return sorted(self.domain, key=attrgetter("name"))
+
     def to_text(self) -> str:
         """Output this Q factor in the internal string format."""
-        codomain = _list_to_text(self.codomain)
-        domain = _list_to_text(self.domain)
+        codomain = _list_to_text(self._sorted_codomain())
+        domain = _list_to_text(self._sorted_domain())
         return f"Q[{codomain}]({domain})"
 
     def to_latex(self) -> str:
         """Output this Q factor in the LaTeX string format."""
-        codomain = _list_to_latex(self.codomain)
-        domain = _list_to_latex(self.domain)
+        codomain = _list_to_latex(self._sorted_codomain())
+        domain = _list_to_latex(self._sorted_domain())
         return rf"Q_{{{codomain}}}({{{domain}}})"
 
     def to_y0(self) -> str:
         """Output this Q factor instance as y0 internal DSL code."""
-        codomain = _list_to_y0(self.codomain)
-        domain = _list_to_y0(self.domain)
+        codomain = _list_to_y0(self._sorted_codomain())
+        domain = _list_to_y0(self._sorted_domain())
         return f"Q[{codomain}]({domain})"
 
     def __mul__(self, other: Expression):
         if isinstance(other, Product):
-            return Product((self, *other.expressions))
+            return Product.safe((self, *other.expressions))
         elif isinstance(other, Fraction):
             return Fraction(self * other.numerator, other.denominator)
         else:
-            return Product((self, other))
+            return Product.safe((self, other))
 
     def _iter_variables(self) -> Iterable[Variable]:
         yield from self.codomain
