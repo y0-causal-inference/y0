@@ -108,8 +108,8 @@ frontdoor_backdoor = NxMixedGraph.from_edges(
     ],
 )
 frontdoor_backdoor_example = Example(
-    name="FrontdoorBackdoor",
-    reference="",  # TODO: Add the reference
+    name="Frontdoor / Backdoor",
+    reference="https://github.com/y0-causal-inference/y0/pull/183",
     graph=frontdoor_backdoor,
     generate_data=generate_data_for_frontdoor_backdoor,
     example_queries=[Query.from_str(treatments="X", outcomes="Y")],
@@ -1391,9 +1391,10 @@ sars_small_example = Example(
 
 cancer_example = Example(
     name="Smoking and Cancer",
-    reference="https://github.com/y0-causal-inference/y0/pull/149",
+    reference="https://github.com/y0-causal-inference/y0/pull/183",
     graph=NxMixedGraph.from_edges(directed=[(S, T), (T, C), (S, C)], undirected=[(S, T)]),
     generate_data=generate_data_for_smoke_cancer,
+    example_queries=[Query.from_str(outcomes="C", treatments="S")],
 )
 
 
