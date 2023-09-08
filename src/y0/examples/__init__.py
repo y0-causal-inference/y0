@@ -5,9 +5,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Callable, Optional, Sequence
-
 import numpy as np
 import pandas as pd
 
@@ -15,6 +12,8 @@ from .backdoor import generate_data_for_backdoor
 from .frontdoor import generate_data_for_frontdoor
 from .frontdoor_backdoor import generate_data_for_frontdoor_backdoor
 from .sars import generate_data_for_covid_case_study
+from .smoke_cancer import generate_data_for_smoke_cancer
+from .utils import Example
 from ..algorithm.identify import Identification, Query
 from ..dsl import (
     AA,
@@ -38,7 +37,9 @@ from ..dsl import (
     M,
     P,
     Q,
+    S,
     Sum,
+    T,
     Variable,
     W,
     X,
@@ -50,25 +51,6 @@ from ..resources import ASIA_PATH
 from ..struct import DSeparationJudgement, VermaConstraint
 
 x, y, z, w = -X, -Y, -Z, -W
-
-
-@dataclass
-class Example:
-    """An example graph packaged with certain pre-calculated data structures."""
-
-    name: str
-    reference: str
-    graph: NxMixedGraph
-    description: Optional[str] = None
-    verma_constraints: Optional[Sequence[VermaConstraint]] = None
-    conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
-    data: Optional[pd.DataFrame] = None
-    identifications: Optional[list[dict[str, list[Identification]]]] = None
-    #: Example queries are just to give an idea to a new user
-    #: what might be interesting to use in the ID algorithm
-    example_queries: Optional[list[Query]] = None
-    generate_data: Optional[Callable[[int, Optional[dict[Variable, float]]], pd.DataFrame]] = None
-
 
 u_2 = Variable("u_2")
 u_3 = Variable("u_3")
@@ -126,8 +108,8 @@ frontdoor_backdoor = NxMixedGraph.from_edges(
     ],
 )
 frontdoor_backdoor_example = Example(
-    name="FrontdoorBackdoor",
-    reference="",  # TODO: Add the reference
+    name="Frontdoor / Backdoor",
+    reference="https://github.com/y0-causal-inference/y0/pull/183",
     graph=frontdoor_backdoor,
     generate_data=generate_data_for_frontdoor_backdoor,
     example_queries=[Query.from_str(treatments="X", outcomes="Y")],
@@ -552,6 +534,7 @@ tikka_unidentifiable_cfgraph = Example(
     ),
 )
 
+
 figure_9a = Example(
     name="Original causal diagram",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
@@ -623,6 +606,7 @@ tikka_figure_5 = Example(
         undirected=[(X, Y @ -x)],
     ),
 )
+
 
 tikka_figure_6a = Example(
     name=r"Figure 6a: Parallel worlds graph for :math:`y_x\wedge z_x\wedge x'` (the counterfactual graph)",
@@ -1404,5 +1388,14 @@ sars_small_example = Example(
     generate_data=generate_data_for_covid_case_study,
     example_queries=[Query.from_str(outcomes="cytok", treatments="EGFR")],
 )
+
+cancer_example = Example(
+    name="Smoking and Cancer",
+    reference="https://github.com/y0-causal-inference/y0/pull/183",
+    graph=NxMixedGraph.from_edges(directed=[(S, T), (T, C), (S, C)], undirected=[(S, T)]),
+    generate_data=generate_data_for_smoke_cancer,
+    example_queries=[Query.from_str(outcomes="C", treatments="S")],
+)
+
 
 examples = [v for name, v in locals().items() if name.endswith("_example")]

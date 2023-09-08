@@ -4,9 +4,6 @@ import numpy as np
 import pandas as pd
 
 from y0.dsl import C, S, T, U, Variable
-from y0.examples import Example
-from y0.graph import NxMixedGraph
-
 
 __all__ = [
     "generate_data_for_smoke_cancer",
@@ -62,10 +59,3 @@ def generate_data_for_smoke_cancer(
         c = generator.binomial(n=1, p=p_c, size=num_samples)
 
     return pd.DataFrame({S.name: s, T.name: t, C.name: c})
-
-
-cancer_example = Example(
-    name="Smoking and Cancer",
-    reference="https://github.com/y0-causal-inference/y0/pull/149",
-    graph=NxMixedGraph.from_edges(directed=[(S, T), (T, C), (S, C)], undirected=[(S, T)]),
-)
