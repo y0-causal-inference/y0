@@ -41,6 +41,7 @@ from y0.dsl import (
     Y,
     Z,
     Zero,
+    Variable,
 )
 from y0.examples import tikka_trso_figure_8_graph as tikka_trso_figure_8
 from y0.graph import NxMixedGraph
@@ -957,3 +958,23 @@ class TestIntegration(_TestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
         self.assertIsNone(estimand)
+
+
+class TestHighLevel(unittest.TestCase):
+    """Tests on more high-level applications."""
+
+    def test_grades(self):
+        """Test grades scenario."""
+        c, s, g, j = (Variable("C"), Variable("S"), Variable("G"), Variable("J"))
+        graph = NxMixedGraph.from_edges(
+            directed=[(c, s), (s, g), (g, j)],
+            undirected=[(s, c), (j, c)],
+        )
+        estimand = identify_target_outcomes(
+            graph=graph,
+            target_outcomes={j},
+            target_interventions={c},
+            surrogate_outcomes={Pi1: {s}, Pi2: {j}},
+            surrogate_interventions={Pi1: {c}, Pi2: {g}},
+        )
+        self.assertIsNotNone(estimand)
