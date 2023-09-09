@@ -63,6 +63,8 @@ def estimate_ate(
         raise NotImplementedError("can not yet handle multiple treatments nor outcomes")
     if isinstance(treatment, CounterfactualVariable) or isinstance(outcome, CounterfactualVariable):
         raise NotImplementedError("can not yet handle counterfactual treatments nor outcomes")
+    if not df_covers_graph(graph=graph, data=data):
+        raise ValueError
 
     # explicitly encode suggestions from Ananke
     if estimator is not None:
