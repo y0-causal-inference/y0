@@ -551,7 +551,7 @@ class NxMixedGraph:
         rv.add_edges_from(self.undirected.edges())
         return rv
 
-    def preordered(
+    def pre(
         self,
         nodes: Union[Variable, Iterable[Variable]],
         topological_sort_order: Optional[Sequence[Variable]] = None,
