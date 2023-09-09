@@ -2,11 +2,33 @@
 
 """An implementation of the identification algorithm."""
 
-from typing import List, Sequence
+from typing import List, Sequence, Union
 
-from .utils import Identification, Unidentifiable
+from .utils import Identification, Unidentifiable, Query
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
-from ...graph import NxMixedGraph
+from ...graph import NxMixedGraph, _ensure_set
+
+__all__ = [
+    "identify_outcomes",
+    "identify",
+]
+
+
+def identify_outcomes(
+    graph: NxMixedGraph,
+    treatments: Union[Variable, set[Variable]],
+    outcomes: Union[Variable, set[Variable]],
+) -> Expression | None:
+    """Get the estimand for the outcomes given the treatments."""
+    treatments = _ensure_set(treatments)
+    outcomes = _ensure_set(outcomes)
+    try:
+        rv = identify(
+            Identification(graph=graph, query=Query(treatments=treatments, outcomes=outcomes))
+        )
+    except Unidentifiable:
+        return None
+    return rv
 
 
 def identify(identification: Identification) -> Expression:
