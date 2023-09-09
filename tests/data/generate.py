@@ -18,7 +18,7 @@ import seaborn as sns
 from tabulate import tabulate
 from tqdm import tqdm, trange
 
-from y0.algorithm.estimation import estimate_ate
+from y0.algorithm.estimation import estimate_ace
 from y0.examples import examples
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -70,7 +70,7 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
         ace_deltas = []
         for _ in trange(bootstraps, desc=f"ACE {example.name}"):
             df = example.generate_data(num_samples)
-            estimated_ace = estimate_ate(
+            estimated_ace = estimate_ace(
                 graph=example.graph,
                 treatment=treatment,
                 outcome=outcome,

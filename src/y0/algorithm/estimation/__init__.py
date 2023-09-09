@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import redirect_stdout
-from typing import List, Literal, Optional, Union
+from typing import List, Optional, Union
 
 import pandas as pd
 
@@ -17,35 +17,11 @@ from y0.graph import (
 from y0.identify import is_identifiable
 
 __all__ = [
-    "estimate_causal_effect",
-    "df_covers_graph",
-    "estimate_ate",
+    "estimate_ace",
 ]
 
 
-def estimate_causal_effect(
-    graph: NxMixedGraph,
-    treatment: Variable,
-    outcome: Variable,
-    data: pd.DataFrame,
-    *,
-    query_type: Literal["ate", "expectation", "probability"],
-    conditions: Optional[List[Variable]] = None,
-) -> float:
-    """Estimate the causal effect of a treatment on an outcome."""
-    if query_type == "ate":
-        return estimate_ate(
-            graph=graph, treatment=treatment, outcome=outcome, data=data, conditions=conditions
-        )
-    elif query_type == "expectation":
-        raise NotImplementedError
-    elif query_type == "probability":
-        raise NotImplementedError
-    else:
-        raise TypeError
-
-
-def estimate_ate(
+def estimate_ace(
     graph: NxMixedGraph,
     treatment: Union[Variable, List[Variable]],
     outcome: Union[Variable, List[Variable]],
@@ -95,12 +71,12 @@ def estimate_ate(
     )
 
 
-def df_covers_graph(graph: NxMixedGraph, df: pd.DataFrame) -> bool:
+def df_covers_graph(graph: NxMixedGraph, data: pd.DataFrame) -> bool:
     """Check if all variables in the graph appear as columns in the dataframe."""
     if graph.is_counterfactual():
         raise NotImplementedError
     graph_names = {node.name for node in graph.nodes()}
-    data_names = set(df.columns)
+    data_names = set(data.columns)
     return graph_names.issubset(data_names)
 
 
