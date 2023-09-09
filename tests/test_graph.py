@@ -15,6 +15,7 @@ from y0.graph import (
     DEFULT_PREFIX,
     NxMixedGraph,
     is_a_fixable,
+    is_markov_blanket_shielded,
     is_p_fixable,
 )
 from y0.resources import VIRAL_PATHOGENESIS_PATH
@@ -297,6 +298,75 @@ class TestGraph(unittest.TestCase):
 
 class TestFixability(unittest.TestCase):
     """A test case for fixability in estimation workflows and tools."""
+
+    def assert_mb_shielded(self, graph: NxMixedGraph):
+        """Assert the graph is mb-shielded."""
+        self.assertTrue(graph.to_admg().mb_shielded())
+        self.assertTrue(is_markov_blanket_shielded(graph))
+
+    def assert_mb_unshielded(self, graph: NxMixedGraph):
+        """Assert the graph is not mb-shielded."""
+        self.assertFalse(graph.to_admg().mb_shielded())
+        self.assertFalse(is_markov_blanket_shielded(graph))
+
+    def test_is_mb_shielded(self):
+        """Test checking for markov blanket shielding."""
+        # Adapted from https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_automated_if.py#L80-92
+        graph_unshielded = NxMixedGraph.from_str_edges(
+            directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
+        )
+        with self.subTest(name="Graph 1"):
+            self.assert_mb_unshielded(graph_unshielded)
+
+        # Second test: Napkin model
+        with self.subTest(name="Napkin"):
+            self.assert_mb_unshielded(napkin)
+
+        # Third test
+        with self.subTest(name="Graph 3"):
+            self.assert_mb_unshielded(SARS_SMALL_GRAPH)
+
+        # Fourth test
+        graph_4 = NxMixedGraph.from_str_edges(
+            directed=[
+                ("SOS", "Ras"),
+                ("Ras", "PI3K"),
+                ("Ras", "Raf"),
+                ("PI3K", "AKT"),
+                ("AKT", "Raf"),
+            ],
+            undirected=[("SOS", "PI3K")],
+        )
+        with self.subTest(name="Graph 4"):
+            self.assert_mb_shielded(graph_4)
+
+        # Fifth test
+        graph_5 = NxMixedGraph.from_str_edges(
+            directed=[
+                ("Z1", "X"),
+                ("X", "M1"),
+                ("M1", "Y"),
+                ("Z1", "Z2"),
+                ("Z2", "Z3"),
+                ("Z3", "Y"),
+                ("Z2", "M1"),
+            ],
+            undirected=[("Z1", "X"), ("Z2", "M1")],
+        )
+        with self.subTest(name="Graph 5"):
+            self.assert_mb_unshielded(graph_5)
+
+        # Sixth test
+        graph_6 = NxMixedGraph.from_str_edges(
+            directed=[("Z1", "X"), ("X", "M1"), ("M1", "Y"), ("Z1", "Y")]
+        )
+        with self.subTest(name="Graph 6"):
+            self.assert_mb_shielded(graph_6)
+
+        # Seventh test
+        graph_7 = NxMixedGraph.from_str_edges(directed=[("A", "B"), ("B", "C")])
+        with self.subTest(name="Graph 6"):
+            self.assert_mb_shielded(graph_7)
 
     def assert_a_fixable(self, graph: NxMixedGraph, treatment: Variable):
         """Assert that the graph is a-fixable."""

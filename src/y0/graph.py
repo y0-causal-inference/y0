@@ -758,3 +758,70 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, Collection[Var
     children = set(graph.directed.successors(treatments))
     children_in_district = graph.get_district(treatments).intersection(children)
     return 0 == len(children_in_district)
+
+
+def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
+    """Check if the ADMG is a Markov blanket shielded.
+
+    Being Markov blanket (Mb) shielded means that two vertices are non-adjacent
+    only when they are absent from each others' Markov blankets.
+
+    This code was adapted from :mod:`ananke` ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L381-403
+
+    :param graph: A NxMixedGraph
+    :returns: bool
+    """
+    # Iterate over all pairs of vertices
+    for u, v in itt.combinations(graph.nodes(), 2):
+        # Check if the pair is not adjacent
+        if not (
+            any(
+                [
+                    graph.directed.has_edge(u, v),
+                    graph.directed.has_edge(v, u),
+                    graph.undirected.has_edge(u, v),
+                ]
+            )
+        ):
+            # If one is in the Markov blanket of the other, then it is not mb-shielded
+            if _markov_blanket_overlap(graph, u, v):
+                return False
+    return True
+
+
+def get_district_and_predecessors(
+    graph: NxMixedGraph,
+    nodes: Iterable[Variable],
+    topological_sort_order: Optional[Sequence[Variable]] = None,
+):
+    """Get the union of district, predecessors and predecessors of district for a given set of nodes.
+
+    This code was adapted from :mod:`ananke` ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L96-117
+
+    :param graph: A NxMixedGraph
+    :param nodes: List of nodes
+    :param topological_sort_order: A valid topological sort order
+
+    :return: Set corresponding to union of district, predecessors and predecessors of district of a given set of nodes
+    """
+    if not topological_sort_order:
+        topological_sort_order = list(graph.topological_sort())
+
+    # Get the subgraph corresponding to the nodes and nodes prior to them
+    pre = graph.pre(nodes, topological_sort_order)
+    sub_graph = graph.subgraph(pre + list(nodes))
+
+    result: Set[Variable] = set()
+    for node in nodes:
+        result.update(sub_graph.get_district(node))
+    for node in result.copy():
+        result.update(sub_graph.directed.predecessors(node))
+    return result - set(nodes)
+
+
+def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bool:
+    return u in get_district_and_predecessors(graph, [v]) or v in get_district_and_predecessors(
+        graph, [u]
+    )
