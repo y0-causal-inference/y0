@@ -36,12 +36,12 @@ from y0.dsl import (
     Probability,
     Product,
     Sum,
+    Variable,
     W,
     X,
     Y,
     Z,
     Zero,
-    Variable,
 )
 from y0.examples import tikka_trso_figure_8_graph as tikka_trso_figure_8
 from y0.graph import NxMixedGraph
