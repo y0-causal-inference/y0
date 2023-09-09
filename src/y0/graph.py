@@ -8,7 +8,17 @@ import itertools as itt
 import json
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    Collection,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import networkx as nx
 from networkx.classes.reportviews import NodeView
@@ -497,7 +507,7 @@ class NxMixedGraph:
         for district in self.districts():
             if node in district:
                 return district
-        raise KeyError
+        raise KeyError(f"{node} not found in graph")
 
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""
@@ -559,6 +569,28 @@ class NxMixedGraph:
         rv.add_edges_from(self.directed.edges())
         rv.add_edges_from(self.undirected.edges())
         return rv
+
+    def pre(
+        self,
+        nodes: Union[Variable, Iterable[Variable]],
+        topological_sort_order: Optional[Sequence[Variable]] = None,
+    ) -> list[Variable]:
+        """Find all nodes prior to the given set of nodes under a topological sort order.
+
+        :param nodes: iterable of nodes.
+        :param topological_sort_order: A valid topological sort order. If none given, calculates from the graph.
+        :return: list corresponding to the order up until the given nodes.
+            This does not include any of the nodes from the query.
+        """
+        if not topological_sort_order:
+            topological_sort_order = list(self.topological_sort())
+        node_set = _ensure_set(nodes)
+        pre = []
+        for node in topological_sort_order:
+            if node in node_set:
+                break
+            pre.append(node)
+        return pre
 
 
 def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
@@ -703,3 +735,113 @@ def _layout(self, prog):
     else:
         return layout
     return nx.spring_layout(joint)
+
+
+def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, Collection[Variable]]) -> bool:
+    """Check if the treatments are a-fixable.
+
+    A treatment is said to be a-fixable if it can be fixed by removing a single directed edge from the graph.
+    In other words, a treatment is a-fixable if it has exactly one descendant in its district.
+
+    This code was adapted from :mod:`ananke` ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L58-65
+
+    :param graph: A NxMixedGraph
+    :param treatments: A list of treatments
+    :raises NotImplementedError: a-fixability on multiple treatments is an open research question
+    :returns: bool
+    """
+    if not isinstance(treatments, Variable):
+        raise NotImplementedError(
+            "a-fixability on multiple treatments is an open research question"
+        )
+    descendants = graph.descendants_inclusive(treatments)
+    descendants_in_district = graph.get_district(treatments).intersection(descendants)
+    return 1 == len(descendants_in_district)
+
+
+def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, Collection[Variable]]) -> bool:
+    """Check if the treatments are p-fixable.
+
+    This code was adapted from :mod:`ananke` ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L85-92
+
+    :param graph: A NxMixedGraph
+    :param treatments: A list of treatments
+    :raises NotImplementedError: p-fixability on multiple treatments is an open research question
+    :returns: bool
+    """
+    if not isinstance(treatments, Variable):
+        raise NotImplementedError(
+            "p-fixability on multiple treatments is an open research question"
+        )
+    children = set(graph.directed.successors(treatments))
+    children_in_district = graph.get_district(treatments).intersection(children)
+    return 0 == len(children_in_district)
+
+
+def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
+    """Check if the ADMG is a Markov blanket shielded.
+
+    Being Markov blanket (Mb) shielded means that two vertices are non-adjacent
+    only when they are absent from each others' Markov blankets.
+
+    This code was adapted from :mod:`ananke` ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L381-403
+
+    :param graph: A NxMixedGraph
+    :returns: bool
+    """
+    # Iterate over all pairs of vertices
+    for u, v in itt.combinations(graph.nodes(), 2):
+        # Check if the pair is not adjacent
+        if not (
+            any(
+                [
+                    graph.directed.has_edge(u, v),
+                    graph.directed.has_edge(v, u),
+                    graph.undirected.has_edge(u, v),
+                ]
+            )
+        ):
+            # If one is in the Markov blanket of the other, then it is not mb-shielded
+            if _markov_blanket_overlap(graph, u, v):
+                return False
+    return True
+
+
+def get_district_and_predecessors(
+    graph: NxMixedGraph,
+    nodes: Iterable[Variable],
+    topological_sort_order: Optional[Sequence[Variable]] = None,
+):
+    """Get the union of district, predecessors and predecessors of district for a given set of nodes.
+
+    This code was adapted from :mod:`ananke` ananke code at:
+    https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L96-117
+
+    :param graph: A NxMixedGraph
+    :param nodes: List of nodes
+    :param topological_sort_order: A valid topological sort order
+
+    :return: Set corresponding to union of district, predecessors and predecessors of district of a given set of nodes
+    """
+    if not topological_sort_order:
+        topological_sort_order = list(graph.topological_sort())
+
+    # Get the subgraph corresponding to the nodes and nodes prior to them
+    pre = graph.pre(nodes, topological_sort_order)
+    sub_graph = graph.subgraph(pre + list(nodes))
+
+    result: Set[Variable] = set()
+    for node in nodes:
+        result.update(sub_graph.get_district(node))
+    for node in result.copy():
+        result.update(sub_graph.directed.predecessors(node))
+    return result - set(nodes)
+
+
+def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bool:
+    return u in get_district_and_predecessors(graph, [v]) or v in get_district_and_predecessors(
+        graph, [u]
+    )
