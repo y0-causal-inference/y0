@@ -56,7 +56,7 @@ def get_district_and_predecessors(
         topological_sort_order = list(graph.topological_sort())
 
     # Get the subgraph corresponding to the nodes and nodes prior to them
-    pre = graph.pre(nodes, topological_sort_order)
+    pre = graph.preordered(nodes, topological_sort_order)
     sub_graph = graph.subgraph(pre + list(nodes))
 
     result: Set[Variable] = set()

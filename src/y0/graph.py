@@ -551,7 +551,7 @@ class NxMixedGraph:
         rv.add_edges_from(self.undirected.edges())
         return rv
 
-    def pre(
+    def preordered(
         self,
         nodes: Union[Variable, Iterable[Variable]],
         topological_sort_order: Optional[Sequence[Variable]] = None,
@@ -561,6 +561,7 @@ class NxMixedGraph:
         :param nodes: iterable of nodes.
         :param topological_sort_order: A valid topological sort order. If none given, calculates from the graph.
         :return: list corresponding to the order up until the given nodes.
+            This does not include any of the nodes from the query.
         """
         if not topological_sort_order:
             topological_sort_order = list(self.topological_sort())

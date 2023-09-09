@@ -86,7 +86,7 @@ def get_beta_primal(
     y = data[outcome.name]
 
     # c := pre-treatment vars and l := post-treatment vars in district of treatment
-    pre_treatment_vars = graph.pre(treatment)
+    pre_treatment_vars = graph.preordered(treatment)
     post_treatment_vars = set(graph.nodes()).difference(pre_treatment_vars)
     post_treatment_vars_in_district = post_treatment_vars.intersection(
         graph.get_district(treatment)
