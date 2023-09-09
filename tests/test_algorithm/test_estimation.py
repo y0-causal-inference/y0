@@ -5,12 +5,12 @@ import unittest
 import pandas as pd
 
 from y0.algorithm.estimation import (
-    _ananke_compute_effect,
+    ananke_average_causal_effect,
     df_covers_graph,
     estimate_ate,
-    get_primal_ipw_ace,
     get_state_space_map,
 )
+from y0.algorithm.estimation.estimators import get_primal_ipw_ace
 from y0.dsl import Variable, X, Y
 from y0.examples import frontdoor, napkin, napkin_example
 
@@ -37,7 +37,7 @@ class TestEstimation(unittest.TestCase):
         from y0.examples import SARS_SMALL_GRAPH, sars
 
         data = sars.generate_data_for_covid_case_study(1000)
-        ananke_results = _ananke_compute_effect(
+        ananke_results = ananke_average_causal_effect(
             graph=SARS_SMALL_GRAPH,
             treatment=Variable("EGFR"),
             outcome=Variable("cytok"),

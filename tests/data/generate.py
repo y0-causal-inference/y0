@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from tabulate import tabulate
-from tqdm import trange, tqdm
+from tqdm import tqdm, trange
 
 from y0.algorithm.estimation import estimate_ate
 from y0.examples import examples

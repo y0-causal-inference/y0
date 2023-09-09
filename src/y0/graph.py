@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import itertools
 import itertools as itt
 import json
 import warnings
@@ -712,40 +711,6 @@ def _layout(self, prog):
     else:
         return layout
     return nx.spring_layout(joint)
-
-
-def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
-    """Check if the ADMG is a Markov blanket shielded.
-
-    Being Markov blanket (Mb) shielded means that two vertices are non-adjacent
-    only when they are absent from each others' Markov blankets.
-
-    This code was adapted from :mod:`ananke` ananke code at:
-    https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L381-403
-
-    :param graph: A NxMixedGraph
-    :returns: bool
-    """
-    # Iterate over all pairs of vertices
-    for u, v in itertools.combinations(graph.nodes(), 2):
-        # Check if the pair is not adjacent
-        if not (
-            any(
-                [
-                    graph.directed.has_edge(u, v),
-                    graph.directed.has_edge(v, u),
-                    graph.undirected.has_edge(u, v),
-                ]
-            )
-        ):
-            # If one is in the Markov blanket of the other, then it is not mb-shielded
-            if _markov_blanket_overlap(graph, u, v):
-                return False
-    return True
-
-
-def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bool:
-    return u in graph.get_markov_blanket(v) or v in graph.get_markov_blanket(u)
 
 
 def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]]) -> bool:
