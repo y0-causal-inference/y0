@@ -1,15 +1,19 @@
 """Estimation of probabilities generated from identification."""
 
+from __future__ import annotations
+
+from contextlib import redirect_stdout
 from typing import List, Literal, Optional, Union
 
 import pandas as pd
 
-from y0.algorithm.estimation.utils import (
-    ananke_average_causal_effect,
-    is_markov_blanket_shielded,
-)
 from y0.dsl import CounterfactualVariable, P, Variable
-from y0.graph import NxMixedGraph, is_a_fixable, is_p_fixable
+from y0.graph import (
+    NxMixedGraph,
+    is_a_fixable,
+    is_markov_blanket_shielded,
+    is_p_fixable,
+)
 from y0.identify import is_identifiable
 
 __all__ = [
@@ -96,3 +100,27 @@ def df_covers_graph(graph: NxMixedGraph, df: pd.DataFrame) -> bool:
     graph_names = {node.name for node in graph.nodes()}
     data_names = set(df.columns)
     return graph_names.issubset(data_names)
+
+
+def ananke_average_causal_effect(
+    graph: NxMixedGraph,
+    data: pd.DataFrame,
+    treatment: Variable,
+    outcome: Variable,
+    estimator: str,
+    bootstraps: int | None = None,
+    alpha: float | None = None,
+) -> float:
+    """Estimate the average causal effect using Ananke."""
+    ananke_graph = graph.to_admg()
+    from ananke.estimation import CausalEffect
+
+    with redirect_stdout(None):
+        # redirect stdout gets rid of the unnecessary printing from Ananke,
+        # e.g., when CausalEffect says what estimators can be used. We take
+        # care of that explicitly below
+        causal_effect = CausalEffect(ananke_graph, treatment.name, outcome.name)
+
+    return causal_effect.compute_effect(
+        data, estimator=estimator, n_bootstraps=bootstraps or 0, alpha=alpha or 0.05
+    )

@@ -8,7 +8,6 @@ from typing import Set, Tuple
 
 import networkx as nx
 
-from y0.algorithm.estimation import is_markov_blanket_shielded
 from y0.dsl import A, B, C, D, M, Variable, X, Y, Z
 from y0.examples import SARS_SMALL_GRAPH, Example, examples, napkin, verma_1
 from y0.graph import (
@@ -16,6 +15,7 @@ from y0.graph import (
     DEFULT_PREFIX,
     NxMixedGraph,
     is_a_fixable,
+    is_markov_blanket_shielded,
     is_p_fixable,
 )
 from y0.resources import VIRAL_PATHOGENESIS_PATH

@@ -8,9 +8,8 @@ from scipy.stats import norm
 from statsmodels.genmod.families import Binomial, Gaussian
 from statsmodels.genmod.generalized_linear_model import GLM
 
-from y0.algorithm.estimation.utils import get_district_and_predecessors
 from y0.dsl import Variable
-from y0.graph import NxMixedGraph
+from y0.graph import NxMixedGraph, get_district_and_predecessors
 
 __all__ = [
     "get_primal_ipw_ace",
