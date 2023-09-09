@@ -204,21 +204,8 @@ class NxMixedGraph:
         rv.add_edges_from(self.undirected.edges)
         return rv
 
-    def abbreviate(self) -> NxMixedGraph:
-        abbreviations = {node.name[0].upper() for node in self.nodes()}
-        if len(abbreviations) != len(self):
-            raise ValueError
-        directed = nx.relabel_nodes(self.directed, abbreviations, copy=True)
-        undirected = nx.relabel_nodes(self.undirected, abbreviations, copy=True)
-        return NxMixedGraph(directed=directed, undirected=undirected)
-
     def draw(
-        self,
-        ax=None,
-        title: Optional[str] = None,
-        prog: Optional[str] = None,
-        latex: bool = True,
-        abbreviate: bool = False,
+        self, ax=None, title: Optional[str] = None, prog: Optional[str] = None, latex: bool = True
     ) -> None:
         """Render the graph using matplotlib.
 
@@ -227,7 +214,6 @@ class NxMixedGraph:
         :param prog: The pydot program to use, like dot, neato, osage, etc.
             If none is given, uses osage for small graphs and dot for larger ones.
         :param latex: Parse string variables as y0 if possible to make pretty latex output
-        :param abbreviate: Show only first letters of node names
         """
         import matplotlib.pyplot as plt
 
@@ -239,13 +225,7 @@ class NxMixedGraph:
 
         layout = _layout(self, prog=prog)
         u_proxy = nx.DiGraph(self.undirected.edges)
-
-        if abbreviate:
-            labels = {node: node.name[0].upper() for node in self.directed}
-        elif latex:
-            labels = {node: _get_latex(node) for node in self.directed}
-        else:
-            labels = None
+        labels = None if not latex else {node: _get_latex(node) for node in self.directed}
 
         if ax is None:
             ax = plt.gca()
