@@ -22,7 +22,6 @@ from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.complexity import complexity
 from y0.dsl import Expression, P, Variable
 from y0.graph import DEFAULT_TAG, NxMixedGraph
-from y0.identify import is_identifiable
 from y0.mutate import canonicalize
 from y0.util.combinatorics import powerset
 
@@ -175,7 +174,6 @@ def _get_result(
 
     # Check if the ADMG is identifiable under the (simple) causal query
     query = P(effect @ ~cause)
-    identifiable = is_identifiable(admg, query)
     try:
         estimand: Optional[Expression] = canonicalize(
             identify(Identification.from_expression(graph=admg, query=query))
@@ -184,7 +182,7 @@ def _get_result(
         estimand = None
 
     return Result(
-        identifiable,
+        estimand is not None,
         estimand=estimand,
         pre_nodes=pre_nodes,
         pre_edges=pre_edges,
