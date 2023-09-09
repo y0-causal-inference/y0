@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import itertools
 import itertools as itt
 import json
 import warnings
@@ -774,7 +773,7 @@ def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
     :returns: bool
     """
     # Iterate over all pairs of vertices
-    for u, v in itertools.combinations(graph.nodes(), 2):
+    for u, v in itt.combinations(graph.nodes(), 2):
         # Check if the pair is not adjacent
         if not (
             any(
