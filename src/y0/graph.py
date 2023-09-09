@@ -12,7 +12,6 @@ from typing import (
     Any,
     Collection,
     Iterable,
-    List,
     Mapping,
     Optional,
     Sequence,
