@@ -7,7 +7,7 @@ import pandas as pd
 from y0.algorithm.estimation import (
     ananke_average_causal_effect,
     df_covers_graph,
-    estimate_ate,
+    estimate_ace,
 )
 from y0.algorithm.estimation.estimators import get_primal_ipw_ace, get_state_space_map
 from y0.dsl import Variable, X, Y
@@ -28,7 +28,7 @@ class TestEstimation(unittest.TestCase):
         """Run a simple test for ATE on the napkin graph."""
         df = napkin_example.generate_data(1000)
         expected_result = 0.0005
-        result = estimate_ate(graph=napkin, data=df, treatment=X, outcome=Y)
+        result = estimate_ace(graph=napkin, data=df, treatment=X, outcome=Y)
         self.assertAlmostEqual(expected_result, result, delta=1e-5)
 
     def test_beta_primal(self):

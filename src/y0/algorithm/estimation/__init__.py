@@ -19,7 +19,7 @@ from y0.identify import is_identifiable
 __all__ = [
     "estimate_causal_effect",
     "df_covers_graph",
-    "estimate_ate",
+    "estimate_ace",
 ]
 
 
@@ -34,7 +34,7 @@ def estimate_causal_effect(
 ) -> float:
     """Estimate the causal effect of a treatment on an outcome."""
     if query_type == "ate":
-        return estimate_ate(
+        return estimate_ace(
             graph=graph, treatment=treatment, outcome=outcome, data=data, conditions=conditions
         )
     elif query_type == "expectation":
@@ -45,7 +45,7 @@ def estimate_causal_effect(
         raise TypeError
 
 
-def estimate_ate(
+def estimate_ace(
     graph: NxMixedGraph,
     treatment: Union[Variable, List[Variable]],
     outcome: Union[Variable, List[Variable]],
