@@ -12,7 +12,6 @@ from typing import (
     Any,
     Collection,
     Iterable,
-    List,
     Mapping,
     Optional,
     Sequence,
@@ -718,7 +717,7 @@ def _layout(self, prog):
     return nx.spring_layout(joint)
 
 
-def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]]) -> bool:
+def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, Collection[Variable]]) -> bool:
     """Check if the treatments are a-fixable.
 
     A treatment is said to be a-fixable if it can be fixed by removing a single directed edge from the graph.
@@ -732,7 +731,7 @@ def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
     :raises NotImplementedError: a-fixability on multiple treatments is an open research question
     :returns: bool
     """
-    if isinstance(treatments, list):
+    if not isinstance(treatments, Variable):
         raise NotImplementedError(
             "a-fixability on multiple treatments is an open research question"
         )
@@ -741,7 +740,7 @@ def is_a_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
     return 1 == len(descendants_in_district)
 
 
-def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]]) -> bool:
+def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, Collection[Variable]]) -> bool:
     """Check if the treatments are p-fixable.
 
     This code was adapted from :mod:`ananke` ananke code at:
@@ -752,7 +751,7 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Union[Variable, List[Variable]
     :raises NotImplementedError: p-fixability on multiple treatments is an open research question
     :returns: bool
     """
-    if isinstance(treatments, list):
+    if not isinstance(treatments, Variable):
         raise NotImplementedError(
             "p-fixability on multiple treatments is an open research question"
         )
