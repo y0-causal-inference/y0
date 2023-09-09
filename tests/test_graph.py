@@ -293,6 +293,7 @@ class TestGraph(unittest.TestCase):
             g2_ananke.pre(vertices=["cytok"], top_order=g2_ananke.topological_sort())
         )
         g2_y0_pre = {node.name for node in g2_y0_pre}
+        self.assertEqual(g2_y0_pre, g2_ananke_pre)
 
 
 class TestFixability(unittest.TestCase):
