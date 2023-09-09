@@ -7,14 +7,14 @@ from typing import List, Optional, Union
 
 import pandas as pd
 
-from y0.dsl import CounterfactualVariable, P, Variable
+from y0.algorithm.identify import identify_outcomes
+from y0.dsl import CounterfactualVariable, Variable
 from y0.graph import (
     NxMixedGraph,
     is_a_fixable,
     is_markov_blanket_shielded,
     is_p_fixable,
 )
-from y0.identify import is_identifiable
 
 __all__ = [
     "estimate_ace",
@@ -23,8 +23,8 @@ __all__ = [
 
 def estimate_ace(
     graph: NxMixedGraph,
-    treatment: Union[Variable, List[Variable]],
-    outcome: Union[Variable, List[Variable]],
+    treatments: Union[Variable, List[Variable]],
+    outcomes: Union[Variable, List[Variable]],
     data: pd.DataFrame,
     *,
     conditions: Optional[List[Variable]] = None,
@@ -35,9 +35,11 @@ def estimate_ace(
     """Estimate the average treatment effect."""
     if conditions is not None:
         raise NotImplementedError("can not yet handle conditional queries")
-    if isinstance(treatment, list) or isinstance(outcome, list):
+    if isinstance(treatments, list) or isinstance(outcomes, list):
         raise NotImplementedError("can not yet handle multiple treatments nor outcomes")
-    if isinstance(treatment, CounterfactualVariable) or isinstance(outcome, CounterfactualVariable):
+    if isinstance(treatments, CounterfactualVariable) or isinstance(
+        outcomes, CounterfactualVariable
+    ):
         raise NotImplementedError("can not yet handle counterfactual treatments nor outcomes")
     if not df_covers_graph(graph=graph, data=data):
         raise ValueError
@@ -45,26 +47,26 @@ def estimate_ace(
     # explicitly encode suggestions from Ananke
     if estimator is not None:
         pass
-    elif is_a_fixable(graph, treatment):
+    elif is_a_fixable(graph, treatments):
         if is_markov_blanket_shielded(graph):
             estimator = "eff-aipw"
         else:
             estimator = "aipw"
-    elif is_p_fixable(graph, treatment):
+    elif is_p_fixable(graph, treatments):
         if is_markov_blanket_shielded(graph):
             estimator = "eff-apipw"
         else:
             estimator = "apipw"
-    elif is_identifiable(graph, P(outcome @ ~treatment)):
+    elif identify_outcomes(graph=graph, treatments=treatments, outcomes=outcomes) is not None:
         estimator = "anipw"
     else:
-        raise RuntimeError("Effect can not be estimated")
+        raise RuntimeError("Graph is not identifiable; effect can not be estimated")
 
     return ananke_average_causal_effect(
         graph=graph,
         data=data,
-        treatment=treatment,
-        outcome=outcome,
+        treatment=treatments,
+        outcome=outcomes,
         estimator=estimator,
         bootstraps=bootstraps,
         alpha=alpha,
