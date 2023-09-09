@@ -93,12 +93,12 @@ def estimate_ate(
     )
 
 
-def df_covers_graph(graph: NxMixedGraph, df: pd.DataFrame) -> bool:
+def df_covers_graph(graph: NxMixedGraph, data: pd.DataFrame) -> bool:
     """Check if all variables in the graph appear as columns in the dataframe."""
     if graph.is_counterfactual():
         raise NotImplementedError
     graph_names = {node.name for node in graph.nodes()}
-    data_names = set(df.columns)
+    data_names = set(data.columns)
     return graph_names.issubset(data_names)
 
 

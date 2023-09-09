@@ -20,8 +20,8 @@ class TestEstimation(unittest.TestCase):
     def test_data_covers_graph(self):
         """Test the data coverage utility."""
         df = napkin_example.generate_data(1000)
-        self.assertTrue(df_covers_graph(graph=napkin, df=df))
-        self.assertFalse(df_covers_graph(graph=frontdoor, df=df))
+        self.assertTrue(df_covers_graph(graph=napkin, data=df))
+        self.assertFalse(df_covers_graph(graph=frontdoor, data=df))
 
     @unittest.skip(reason="Turn this test on before finishing the PR")
     def test_estimate_ate(self):
