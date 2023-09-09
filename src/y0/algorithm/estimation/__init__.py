@@ -8,7 +8,7 @@ from typing import List, Optional, Union
 import pandas as pd
 
 from y0.algorithm.identify import identify_outcomes
-from y0.dsl import CounterfactualVariable, P, Variable
+from y0.dsl import CounterfactualVariable, Variable
 from y0.graph import (
     NxMixedGraph,
     is_a_fixable,
