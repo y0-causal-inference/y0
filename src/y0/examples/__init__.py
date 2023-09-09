@@ -1391,7 +1391,6 @@ sars_small_example = Example(
     example_queries=[Query.from_str(outcomes="cytok", treatments="EGFR")],
 )
 
-
 tikka_trso_figure_8_graph = NxMixedGraph.from_edges(
     undirected=[(X1, Y1), (Z, W), (Z, X2)],
     directed=[
