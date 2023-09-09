@@ -9,7 +9,7 @@ from typing import Set, Tuple
 import networkx as nx
 
 from y0.dsl import A, B, C, D, M, Variable, X, Y, Z
-from y0.examples import Example, examples, verma_1
+from y0.examples import SARS_SMALL_GRAPH, Example, examples, verma_1
 from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
 
@@ -268,3 +268,22 @@ class TestGraph(unittest.TestCase):
         disoriented = graph.disorient()
         self.assertTrue(disoriented.has_edge(X, Y))
         self.assertTrue(disoriented.has_edge(Y, Z))
+
+    def test_pre(self):
+        """Test getting the pre-ordering for a given node or set of nodes."""
+        g1 = NxMixedGraph.from_str_adj(
+            directed={"1": ["2", "3"], "2": ["4", "5"], "3": ["4"], "4": ["5"]}
+        )
+        g1_ananke = g1.to_admg()
+        g1_y0_pre = set(g1.pre(Variable("4")))
+        g1_ananke_pre = set(g1_ananke.pre(vertices=["4"], top_order=g1_ananke.topological_sort()))
+        g1_y0_pre = {node.name for node in g1_y0_pre}
+        self.assertEqual(g1_y0_pre, g1_ananke_pre)
+
+        g2_ananke = SARS_SMALL_GRAPH.to_admg()
+        g2_y0_pre = set(SARS_SMALL_GRAPH.pre(Variable("cytok")))
+        g2_ananke_pre = set(
+            g2_ananke.pre(vertices=["cytok"], top_order=g2_ananke.topological_sort())
+        )
+        g2_y0_pre = {node.name for node in g2_y0_pre}
+        self.assertEqual(g2_y0_pre, g2_ananke_pre)

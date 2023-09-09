@@ -8,7 +8,17 @@ import itertools as itt
 import json
 import warnings
 from dataclasses import dataclass, field
-from typing import Any, Collection, Iterable, Mapping, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    Collection,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import networkx as nx
 from networkx.classes.reportviews import NodeView
@@ -477,7 +487,7 @@ class NxMixedGraph:
         for district in self.districts():
             if node in district:
                 return district
-        raise KeyError
+        raise KeyError(f"{node} not found in graph")
 
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""
@@ -539,6 +549,28 @@ class NxMixedGraph:
         rv.add_edges_from(self.directed.edges())
         rv.add_edges_from(self.undirected.edges())
         return rv
+
+    def pre(
+        self,
+        nodes: Union[Variable, Iterable[Variable]],
+        topological_sort_order: Optional[Sequence[Variable]] = None,
+    ) -> list[Variable]:
+        """Find all nodes prior to the given set of nodes under a topological sort order.
+
+        :param nodes: iterable of nodes.
+        :param topological_sort_order: A valid topological sort order. If none given, calculates from the graph.
+        :return: list corresponding to the order up until the given nodes.
+            This does not include any of the nodes from the query.
+        """
+        if not topological_sort_order:
+            topological_sort_order = list(self.topological_sort())
+        node_set = _ensure_set(nodes)
+        pre = []
+        for node in topological_sort_order:
+            if node in node_set:
+                break
+            pre.append(node)
+        return pre
 
 
 def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
