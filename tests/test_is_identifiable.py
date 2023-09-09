@@ -21,12 +21,8 @@ class TestNotIdentifiable(unittest.TestCase):
         self, graph: NxMixedGraph, query: Union[Probability, Distribution]
     ) -> None:
         """Asset the graph is not identifiable under the given query."""
-        try:
+        with self.assertRaises(Unidentifiable):
             identify(Identification.from_expression(graph=graph, query=query))
-        except Unidentifiable:
-            pass
-        else:
-            self.fail(msg="Graph should not be identifiable")
 
     def test_figure_1a(self):
         """Test Figure 1A."""
