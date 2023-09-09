@@ -5,9 +5,9 @@
 import unittest
 from typing import Union
 
+from y0.algorithm.identify import Identification, identify
 from y0.dsl import Distribution, P, Probability, X, Y
 from y0.graph import NxMixedGraph
-from y0.identify import is_identifiable
 
 
 class TestNotIdentifiable(unittest.TestCase):
@@ -21,7 +21,8 @@ class TestNotIdentifiable(unittest.TestCase):
         self, graph: NxMixedGraph, query: Union[Probability, Distribution]
     ) -> None:
         """Asset the graph is not identifiable under the given query."""
-        self.assertFalse(is_identifiable(graph, query))
+        estimand = identify(Identification.from_expression(graph=graph, query=query))
+        self.assertIsNone(estimand)
 
     def test_figure_1a(self):
         """Test Figure 1A."""
@@ -108,7 +109,8 @@ class TestIdentifiable(unittest.TestCase):
         self, graph: NxMixedGraph, query: Union[Probability, Distribution]
     ) -> None:
         """Assert the graph is identifiable under the given query."""
-        self.assertTrue(is_identifiable(graph, query))
+        estimand = identify(Identification.from_expression(graph=graph, query=query))
+        self.assertIsNotNone(estimand)
 
     def test_figure_2a(self):
         """Test Figure 2a."""

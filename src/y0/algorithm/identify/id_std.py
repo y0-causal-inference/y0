@@ -4,7 +4,7 @@
 
 from typing import List, Sequence, Union
 
-from .utils import Identification, Unidentifiable, Query
+from .utils import Identification, Query, Unidentifiable
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
 from ...graph import NxMixedGraph, _ensure_set
 
