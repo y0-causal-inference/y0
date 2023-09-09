@@ -8,16 +8,9 @@ from typing import Set, Tuple
 
 import networkx as nx
 
-from y0.algorithm.estimation import is_markov_blanket_shielded
 from y0.dsl import A, B, C, D, M, Variable, X, Y, Z
-from y0.examples import SARS_SMALL_GRAPH, Example, examples, napkin, verma_1
-from y0.graph import (
-    DEFAULT_TAG,
-    DEFULT_PREFIX,
-    NxMixedGraph,
-    is_a_fixable,
-    is_p_fixable,
-)
+from y0.examples import SARS_SMALL_GRAPH, Example, examples, verma_1
+from y0.graph import DEFAULT_TAG, DEFULT_PREFIX, NxMixedGraph
 from y0.resources import VIRAL_PATHOGENESIS_PATH
 
 
@@ -283,7 +276,9 @@ class TestGraph(unittest.TestCase):
         )
         g1_ananke = g1.to_admg()
         g1_y0_pre = set(g1.preordered(Variable("4")))
-        g1_ananke_pre = set(g1_ananke.preordered(vertices=["4"], top_order=g1_ananke.topological_sort()))
+        g1_ananke_pre = set(
+            g1_ananke.preordered(vertices=["4"], top_order=g1_ananke.topological_sort())
+        )
         g1_y0_pre = set(map(lambda node: node.name, g1_y0_pre))
         self.assertEqual(g1_y0_pre, g1_ananke_pre)
 
