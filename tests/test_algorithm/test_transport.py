@@ -100,20 +100,6 @@ class _TestCase(unittest.TestCase):
 class TestTransport(_TestCase):
     """Test surrogate outcomes and transportability."""
 
-    # def test_transport_figure_8(self):
-    #     """Test transportability from figure 8."""
-    #     actual = transport(
-    #         tikka_trso_figure_8,
-    #         tikka_trso_figure_8_transport,
-    #         treatments=[X1, X2],
-    #         outcomes=[Y1, Y2],
-    #     )
-    #     # Query is also P[X1, X2](Y1, Y2)
-    #     expected = ...
-
-    #     # TODO probably need to canonicalize both of these
-    #     self.assertEqual(expected, actual)
-
     def test_create_transport_diagram(self):
         """Test that we can create the transport diagram correctly."""
         graph_pi1 = create_transport_diagram(graph=tikka_trso_figure_8, nodes_to_transport={X1, Y2})
@@ -722,6 +708,7 @@ class TestIntegration(_TestCase):
         # self.assertEqual(expected3, actual_part1_simplified)
 
     def test_trso_2(self):
+        """Test that trso returns the correct expression."""
         query_part2 = TRSOQuery(
             target_interventions={X1, X2, Z, W, Y2},
             target_outcomes={Y1},
@@ -750,6 +737,7 @@ class TestIntegration(_TestCase):
         self.assert_expr_equal(fraction_expand(expected_part2_magic_p), actual_part2)
 
     def test_trso_3(self):
+        """Test that trso returns the correct expression."""
         query_part3 = TRSOQuery(
             target_interventions={X1, X2, Z, W, Y1},
             target_outcomes={Y2},
@@ -775,6 +763,7 @@ class TestIntegration(_TestCase):
         self.assert_expr_equal(fraction_expand(expected_part3_magic_p), actual_part3)
 
     def test_trso_4(self):
+        """Test that trso returns the correct expression."""
         query = TRSOQuery(
             target_interventions={X1, X2},
             target_outcomes={Y1, Y2},
@@ -806,6 +795,7 @@ class TestIntegration(_TestCase):
         self.assert_expr_equal(expected, actual)
 
     def test_trso_5(self):
+        """Test that trso returns the correct expression."""
         # TODO we should find a way to accomplish this with a transport call
         # This test triggers pillow_has_transport on line 10 and returns None
         target_interventions = {W, Z}
@@ -875,6 +865,7 @@ class TestIntegration(_TestCase):
         self.assert_expr_equal(expected_estimand, actual_estimand)
 
     def test_transport_2(self):
+        """Test that transport returns the correct expression."""
         # This test triggers part of line 11 in trso (district length of 1)
         new_graph = tikka_trso_figure_8.subgraph(tikka_trso_figure_8.nodes() - {X1})
         new_graph.add_undirected_edge(W, Y1)
@@ -888,6 +879,7 @@ class TestIntegration(_TestCase):
         self.assertIsNone(actual_11)
 
     def test_transport_3(self):
+        """Test that transport returns the correct expression."""
         # This triggers triggers not implemented error on line 9
         # Now it triggers value error
         new_graph = tikka_trso_figure_8.subgraph(tikka_trso_figure_8.nodes() - {X1})
@@ -901,6 +893,7 @@ class TestIntegration(_TestCase):
             )
 
     def test_transport_4(self):
+        """Test that transport returns the correct expression."""
         # This triggers line 10.
         # TODO it fails on the next recursive loop, would be better to find an example that doesn't fail.
         grpah = NxMixedGraph.from_edges(
@@ -926,6 +919,7 @@ class TestIntegration(_TestCase):
         self.assertIsNone(estimand)
 
     def test_transport_5(self):
+        """Test that transport returns the correct expression."""
         with self.assertRaises(ValueError):
             identify_target_outcomes(
                 graph=tikka_trso_figure_8,
@@ -936,6 +930,7 @@ class TestIntegration(_TestCase):
             )
 
     def test_transport_6(self):
+        """Test that transport returns the correct expression."""
         # This test triggers if expression is None:  continue block after line 6
         graph = NxMixedGraph.from_edges(
             undirected=[(X1, Y1), (Z, W), (Z, X2), (Y2, X1)],
