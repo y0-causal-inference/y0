@@ -90,6 +90,22 @@ __all__ = [
     "ensure_ordering",
     "vmap_adj",
     "vmap_pairs",
+    # Transport
+    "PopulationProbability",
+    "PP",
+    "Pi1",
+    "Pi2",
+    "Pi3",
+    "Pi4",
+    "Pi5",
+    "Pi6",
+    "π1",
+    "π2",
+    "π3",
+    "π4",
+    "π5",
+    "π6",
+    "Population",
 ]
 
 T_co = TypeVar("T_co", covariant=True)
@@ -149,7 +165,7 @@ class Variable(Element):
     star: Optional[bool] = None
 
     def __post_init__(self):
-        if self.name in {"P", "Q"}:
+        if self.name in {"P", "Q", "PP"}:
             raise ValueError(f"trust me, {self.name} is a bad variable name.")
 
     @classmethod
@@ -799,9 +815,13 @@ class Probability(Expression):
         else:
             return Product.safe((self, other))
 
+    def _new(self, distribution: Distribution):
+        # This is implemented this way to make overriding easier
+        return Probability(distribution)
+
     def intervene(self, variables: VariableHint) -> Probability:
         """Return a new probability where the underlying distribution has been intervened by the given variables."""
-        return Probability(self.distribution.intervene(variables))
+        return self._new(self.distribution.intervene(variables))
 
     def __matmul__(self, variables: VariableHint) -> Probability:
         return self.intervene(variables)
@@ -814,7 +834,23 @@ class Probability(Expression):
         >>> from y0.dsl import P, A, B
         >>> P(A | B).uncondition() == P(A, B)
         """
-        return Probability(self.distribution.uncondition())
+        return self._new(self.distribution.uncondition())
+
+    def conditional(self, ranges: VariableHint) -> Expression:
+        """Return this expression, conditioned by the given variables.
+
+        :param ranges: A variable or list of variables over which to marginalize this expression
+        :returns: A fraction in which the denominator is represents the sum over the given ranges
+
+        >>> from y0.dsl import P, A, B
+        >>> assert P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
+        >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
+        """
+        ranges = _upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)])
+        ranges_complement = set(
+            [c.get_base() for c in self._iter_variables() if not isinstance(c, Intervention)]
+        ) - set(ranges)
+        return self.normalize_marginalize(ranges_complement)
 
     def _iter_variables(self) -> Iterable[Variable]:
         """Get the set of variables used in the distribution in this probability."""
@@ -1059,12 +1095,17 @@ class Sum(Expression):
 
     @classmethod
     def safe(
-        cls, expression: Expression, ranges: Union[str, Variable, Iterable[Union[str, Variable]]]
+        cls,
+        expression: Expression,
+        ranges: Union[str, Variable, Iterable[Union[str, Variable]]],
+        *,
+        simplify: bool = False,
     ) -> Expression:
         """Construct a sum from an expression and a permissive set of things in the ranges.
 
         :param expression: The expression over which the sum is done
         :param ranges: The variable or list of variables over which the sum is done
+        :param simplify: Should the sum be simplified using :func:`Sum.simplify:?
         :returns: A :class:`Sum` object
 
         Standard usage, same as the normal ``__init__``:
@@ -1090,10 +1131,51 @@ class Sum(Expression):
             return expression
         if isinstance(expression, Zero):
             return expression
-        return cls(
+        rv = cls(
             expression=expression,
             ranges=frozenset(ranges),
         )
+        if simplify:
+            return rv.simplify()
+        return rv
+
+    def simplify(self) -> Expression:
+        """Simplify this sum."""
+        expression = self.expression
+        ranges = set(self.ranges)
+
+        # Special case when ranges cover
+        if isinstance(expression, Probability) and not expression.parents:  # i.e., no conditions
+            children = {
+                child.get_base(): child
+                for child in expression.children
+                # FIXME what happens if same name appears with multiple different counterfactual variables?
+                #  this should actually evaluate to zero since that's impossible
+            }
+            if ranges == set(children):
+                return One()
+            elif ranges > set(children):
+                keep = ranges - set(children)
+                return Sum.safe(
+                    expression=One(),
+                    ranges=frozenset(v for k, v in children.items() if k in keep),
+                )
+            elif ranges < set(children):
+                keep = set(children) - ranges
+                return expression._new(
+                    Distribution.safe(v for k, v in children.items() if k in keep)
+                )
+            else:  # partial or no overlap
+                intersection = ranges.intersection(children)
+                keep = set(children) - intersection
+                prob = expression._new(
+                    Distribution.safe(v for k, v in children.items() if k in keep)
+                )
+                return Sum.safe(
+                    expression=prob,
+                    ranges=ranges - intersection,
+                )
+        return self
 
     def _get_key(self):
         return 1, *self.expression._get_key()
@@ -1459,8 +1541,10 @@ A, B, C, D, E, F, G, M, R, S, T, U, W, X, Y, Z = map(Variable, "ABCDEFGMRSTUWXYZ
 U1, U2, U3, U4, U5, U6 = [Variable(f"U{i}") for i in range(1, 7)]
 V1, V2, V3, V4, V5, V6 = [Variable(f"V{i}") for i in range(1, 7)]
 W0, W1, W2, W3, W4, W5, W6 = [Variable(f"W{i}") for i in range(7)]
+X1, X2, X3, X4, X5, X6 = [Variable(f"X{i}") for i in range(1, 7)]
 Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f"Y{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
+π1, π2, π3, π4, π5, π6 = Pi1, Pi2, Pi3, Pi4, Pi5, Pi6 = [Variable(f"π{i}") for i in range(1, 7)]
 
 
 def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
@@ -1544,3 +1628,80 @@ def vmap_adj(adjacency_dict):
 
 #: A conjunction of factual and counterfactual events
 Event = Dict[Variable, Intervention]
+
+Population = Variable
+
+
+@dataclass(frozen=True, repr=False)
+class PopulationProbability(Probability):
+    """A probability that is annotated with a population.
+
+    >>> from y0.dsl import PP, Pi1, Y, X
+    >>> # Make a population-annotated probability of Y
+    >>> PP[Pi1](Y)
+    >>> # Make a conditioned population of Y @ X
+    >>> PP[Pi1][X](Y)
+
+    Related publications:
+    - `Surrogate Outcomes and Transportability <https://arxiv.org/abs/1806.07172>`_ (Tikka and Karvanen, 2018)
+    """
+
+    population: Population
+
+    def _new(self, distribution) -> PopulationProbability:
+        return PopulationProbability(population=self.population, distribution=distribution)
+
+    def _get_key(self):
+        return -1, self.population, self.children[0].name
+
+    def to_y0(self) -> str:
+        """Output this probability instance as y0 internal DSL code."""
+        interventions, unintervened_distribution = self._help_level_2_distribution()
+        if not interventions:
+            return f"P({self.distribution.to_y0()})"
+
+        # only keep the + if necessary, otherwise show regular
+        intervention_str = ",".join(
+            f"+{intervention.name}" if intervention.star else intervention.name
+            for intervention in interventions
+        )
+        return f"PP[{self.population.to_y0()}][{intervention_str}]({unintervened_distribution.to_y0()})"
+
+    def to_latex(self) -> str:
+        """Output this probability in the LaTeX string format."""
+        interventions, unintervened_distribution = self._help_level_2_distribution()
+        if self.population == TARGET_DOMAIN:
+            pop_latex = r"\pi^\ast"
+        else:
+            pop_latex = self.population.to_latex()
+
+        if not interventions:
+            return f"P^{{{pop_latex}}}({self.distribution.to_latex()})"
+
+        intervention_str = ",".join(intervention.to_latex() for intervention in interventions)
+        return f"P_{{{intervention_str}}}^{{{pop_latex}}}({unintervened_distribution.to_latex()})"
+
+
+class PopulationProbabilityBuilderType(ProbabilityBuilderType):
+    """A magical type for building population probabilities."""
+
+    def __init__(self, population: Population):
+        """Initialize the builder with a given population."""
+        self.population = population
+
+    @classmethod
+    def __class_getitem__(cls, population: Population) -> "PopulationProbabilityBuilderType":
+        """Get a population probability builder class initialized with the given population."""
+        return cls(population)
+
+    def __call__(self, *args, **kwargs) -> PopulationProbability:  # noqa:D102
+        probability = super().__call__(*args, **kwargs)
+        return PopulationProbability(
+            population=self.population, distribution=probability.distribution
+        )
+
+
+PP = PopulationProbabilityBuilderType
+
+
+TARGET_DOMAIN = Population("pi*")
