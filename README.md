@@ -104,12 +104,13 @@ Bareinboim, and others.
 `y0` provides _actual_ implementations of many algorithms that have remained
 unimplemented for the last 15 years of publications including:
 
-| Algorithm | Reference                                                                   |
-|-----------|-----------------------------------------------------------------------------|
-| ID        | [Shpitser and Pearl, 2006](https://dl.acm.org/doi/10.5555/1597348.1597382)  |
-| IDC       | [Shpitser and Pearl, 2008](https://www.jmlr.org/papers/v9/shpitser08a.html) |
-| ID*       | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
-| IDC*      | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
+| Algorithm          | Reference                                                                   |
+|--------------------|-----------------------------------------------------------------------------|
+| ID                 | [Shpitser and Pearl, 2006](https://dl.acm.org/doi/10.5555/1597348.1597382)  |
+| IDC                | [Shpitser and Pearl, 2008](https://www.jmlr.org/papers/v9/shpitser08a.html) |
+| ID*                | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
+| IDC*               | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
+| Surrogate Outcomes | [Tikka and Karvanen, 2018](https://arxiv.org/abs/1806.07172)                |
 
 Apply an algorithm to an ADMG and a causal query to generate an estimand
 represented in the DSL like:
