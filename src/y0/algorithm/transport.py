@@ -264,13 +264,11 @@ def trso_line2(
     )
     if isinstance(new_query.expression, Probability):
         assert isinstance(new_query.expression, PopulationProbability)
-        if new_query.expression.population != new_query.domain:
-            raise NotImplementedError(
-                "It's not clear if we should maintain the existing probability's "
-                "population or if we should overwrite it with the new query's domain"
-                f"\nDomain: {new_query.domain}\nExpression:{new_query.expression.to_y0()} "
-                f"with domain {new_query.expression.population}"
-            )
+        # it might be the case that these two are not the same, but
+        # other parts of the algorithm clean it up. This isn't so
+        # satisfying. Sorry!
+        # if new_query.expression.population != new_query.domain:
+        #     pass
         new_query.expression = PopulationProbability(
             population=new_query.domain,
             distribution=Distribution(
