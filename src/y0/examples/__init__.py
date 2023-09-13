@@ -20,6 +20,8 @@ from ..dsl import (
     W0,
     W1,
     W2,
+    X1,
+    X2,
     Y1,
     Y2,
     Z1,
@@ -1388,6 +1390,26 @@ sars_small_example = Example(
     generate_data=generate_data_for_covid_case_study,
     example_queries=[Query.from_str(outcomes="cytok", treatments="EGFR")],
 )
+
+tikka_trso_figure_8_graph = NxMixedGraph.from_edges(
+    undirected=[(X1, Y1), (Z, W), (Z, X2)],
+    directed=[
+        (X1, Y1),
+        (X1, Y2),
+        (W, Y1),
+        (W, Y2),
+        (Z, Y1),
+        (Z, X2),
+        (X2, Y2),
+        (Z, Y2),
+    ],
+)
+tikka_trso_figure_8 = Example(
+    name="Tikka TRSO Figure 8",
+    reference="https://arxiv.org/abs/1806.07172",
+    graph=tikka_trso_figure_8_graph,
+)
+
 
 cancer_example = Example(
     name="Smoking and Cancer",

@@ -72,8 +72,8 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
             df = example.generate_data(num_samples)
             estimated_ace = estimate_ace(
                 graph=example.graph,
-                treatment=treatment,
-                outcome=outcome,
+                treatments=treatment,
+                outcomes=outcome,
                 data=df,
             )
             delta = estimated_ace - actual_ace

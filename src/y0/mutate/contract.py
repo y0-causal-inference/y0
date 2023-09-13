@@ -31,8 +31,7 @@ def contract(expression: Expression) -> Expression:
         return expression
     children = set(expression.numerator.children).difference(expression.denominator.children)
     parents = set(expression.numerator.children).intersection(expression.denominator.children)
-    # TODO change to expression.numerator._new after introducing probability subtypes
-    return Probability(
+    return expression.numerator._new(
         Distribution(
             children=tuple(sorted(children, key=attrgetter("name"))),
             parents=tuple(sorted(parents, key=attrgetter("name"))),

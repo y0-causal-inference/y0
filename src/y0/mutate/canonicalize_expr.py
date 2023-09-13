@@ -58,7 +58,7 @@ class Canonicalizer:
         self.ordering_level = {variable.name: level for level, variable in enumerate(self.ordering)}
 
     def _canonicalize_probability(self, expression: Probability) -> Probability:
-        return Probability(
+        return expression._new(
             Distribution(
                 children=self._sorted(expression.children),
                 parents=self._sorted(expression.parents),
@@ -99,6 +99,7 @@ class Canonicalizer:
             return Sum.safe(
                 expression=self.canonicalize(expression.expression),
                 ranges=expression.ranges,
+                simplify=True,
             )
         elif isinstance(expression, Product):
             # note: safe already sorts
