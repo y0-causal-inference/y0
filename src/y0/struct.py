@@ -88,15 +88,15 @@ class DSeparationJudgement:
             and tuple(sorted(self.conditions, key=str)) == (self.conditions)
         )
 
-    def estimate(
-        self, df: pd.DataFrame, boolean: bool = False, estimator: Optional[str] = None, **kwargs
+    def test(
+        self, df: pd.DataFrame, boolean: bool = False, method: Optional[str] = None, **kwargs
     ) -> Tuple[float, int, float]:
-        """Estimate a statistic for conditional independence given data.
+        """Test for conditional independence, given some data.
 
         :param df: A dataframe.
         :param boolean: Should results be returned as a pre-cutoff boolean?
-        :param estimator: Estimator from :mod:`pgmpy` to use. If none, defaults to
-            :func:`pgmpy.estimators.CITests.cressie_read`.
+        :param method: Conditional independence from :mod:`pgmpy` to use. If none,
+            defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
         :param kwargs: Additional kwargs to pass to the estimator function
         :returns:
             Tests the null hypothesis that X is independent of Y given Zs
@@ -136,7 +136,7 @@ class DSeparationJudgement:
                     f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
                 )
 
-        func = tests[estimator or "cressie_read"]
+        func = tests[method or "cressie_read"]
         return func(
             X=self.left.name,
             Y=self.right.name,

@@ -14,7 +14,9 @@ class TestFalsification(unittest.TestCase):
 
     def test_graph_falsifications(self):
         """Test the asia graph against data generated from it."""
-        issues = get_graph_falsifications(asia_example.graph, asia_example.data)
+        issues = get_graph_falsifications(
+            asia_example.graph, asia_example.data, method="cressie_read"
+        )
         self.assertEqual(0, len(issues.failures))
         self.assertGreater(len(issues.evidence), 0)
 
