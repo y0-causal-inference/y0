@@ -103,6 +103,7 @@ class DSeparationJudgement:
             and returns a three-tuple of chi, dof, p_value
         :raises ValueError: if any parts of the judgement aren't in the dataframe's
             columns
+        :raises ImportError: If pgmpy is not available. Install with pip.
         """
         try:
             from pgmpy.estimators import CITests
