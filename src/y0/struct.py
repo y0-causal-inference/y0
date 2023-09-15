@@ -95,7 +95,7 @@ class DSeparationJudgement:
 
         :param df: A dataframe.
         :param boolean: Should results be returned as a pre-cutoff boolean?
-        :param estimator: Estimator from :mod:`pgmpy` to use. Defaults to
+        :param estimator: Estimator from :mod:`pgmpy` to use. If none, defaults to
             :func:`pgmpy.estimators.CITests.cressie_read`.
         :param kwargs: Additional kwargs to pass to the estimator function
         :returns:
