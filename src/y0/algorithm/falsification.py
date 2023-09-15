@@ -41,9 +41,11 @@ class Falsifications:
 def get_graph_falsifications(
     graph: NxMixedGraph,
     df: pd.DataFrame,
+    *,
     significance_level: Optional[float] = None,
     max_given: Optional[int] = None,
     verbose: bool = False,
+    estimator: Optional[str] = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a graph.
 
@@ -52,6 +54,8 @@ def get_graph_falsifications(
     :param significance_level: Significance for p-value test
     :param max_given: The maximum set size in the power set of the vertices minus the d-separable pairs
     :param verbose: If true, use tqdm for status updates.
+    :param estimator: Estimator from :mod:`pgmpy` to use. If none, defaults to
+        :func:`pgmpy.estimators.CITests.cressie_read`.
     :return: Falsifications report
     """
     judgements = get_conditional_independencies(graph, max_conditions=max_given, verbose=verbose)
@@ -60,6 +64,7 @@ def get_graph_falsifications(
         df=df,
         significance_level=significance_level,
         verbose=verbose,
+        estimator=estimator,
     )
 
 
@@ -69,8 +74,10 @@ HB_LEVEL_NAME = "Holm–Bonferroni level"
 def get_falsifications(
     judgements: Union[NxMixedGraph, Iterable[DSeparationJudgement]],
     df: pd.DataFrame,
+    *,
     significance_level: Optional[float] = None,
     verbose: bool = False,
+    estimator: Optional[str] = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a list of D-separation judgements.
 
@@ -78,12 +85,14 @@ def get_falsifications(
     :param df: Data to check for consistency with a causal implications
     :param significance_level: Significance for p-value test
     :param verbose: If true, use tqdm for status updates.
+    :param estimator: Estimator from :mod:`pgmpy` to use. If none, defaults to
+        :func:`pgmpy.estimators.CITests.cressie_read`.
     :return: Falsifications report
     """
     if significance_level is None:
         significance_level = 0.05
     variances = {
-        judgement: judgement.cressie_read(df)
+        judgement: judgement.estimate(df, estimator=estimator)
         for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals")
     }
     evidence = pd.DataFrame(
