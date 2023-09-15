@@ -88,14 +88,15 @@ class DSeparationJudgement:
             and tuple(sorted(self.conditions, key=str)) == (self.conditions)
         )
 
-    def calculate_falsification(
+    def estimate(
         self, df: pd.DataFrame, boolean: bool = False, estimator: Optional[str] = None, **kwargs
     ) -> Tuple[float, int, float]:
-        """Calculate a statistic for conditional independence.
+        """Estimate a statistic for conditional independence given data.
 
         :param df: A dataframe.
         :param boolean: Should results be returned as a pre-cutoff boolean?
-        :param estimator: Estimator from :mod:`pgmpy` to use. Defaults to cressie_read
+        :param estimator: Estimator from :mod:`pgmpy` to use. Defaults to
+            :func:`pgmpy.estimators.CITests.cressie_read`.
         :param kwargs: Additional kwargs to pass to the estimator function
         :returns:
             Tests the null hypothesis that X is independent of Y given Zs
