@@ -88,21 +88,37 @@ class DSeparationJudgement:
             and tuple(sorted(self.conditions, key=str)) == (self.conditions)
         )
 
-    def cressie_read(
-        self, df: pd.DataFrame, boolean: bool = False, **kwargs
+    def calculate_falsification(
+        self, df: pd.DataFrame, boolean: bool = False, estimator: Optional[str] = None, **kwargs
     ) -> Tuple[float, int, float]:
-        """Calculate the Cressie Read statistic for conditional independence.
+        """Calculate a statistic for conditional independence.
 
         :param df: A dataframe.
         :param boolean: Should results be returned as a pre-cutoff boolean?
-        :param kwargs: Additional kwargs to pass to :func:`cressie_read`
+        :param estimator: Estimator from :mod:`pgmpy` to use. Defaults to cressie_read
+        :param kwargs: Additional kwargs to pass to the estimator function
         :returns:
             Tests the null hypothesis that X is independent of Y given Zs
             and returns a three-tuple of chi, dof, p_value
         :raises ValueError: if any parts of the judgement aren't in the dataframe's
             columns
         """
-        from .util.stat_utils import cressie_read
+        try:
+            from pgmpy.estimators import CITests
+        except ImportError as e:
+            raise ImportError("Calculating falsifications requires `pip install pgmpy`.") from e
+
+        tests = {
+            "pearson": CITests.pearsonr,
+            "chi-square": CITests.chi_square,
+            "cressie_read": CITests.cressie_read,
+            "freeman_tuckey": CITests.freeman_tuckey,
+            "g_sq": CITests.g_sq,
+            "log_likelihood": CITests.log_likelihood,
+            "modified_log_likelihood": CITests.modified_log_likelihood,
+            "power_divergence": CITests.power_divergence,
+            "neyman": CITests.neyman,
+        }
 
         if self.left.name not in df.columns:
             raise ValueError(
@@ -118,7 +134,8 @@ class DSeparationJudgement:
                     f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
                 )
 
-        return cressie_read(
+        func = tests[estimator or "cressie_read"]
+        return func(
             X=self.left.name,
             Y=self.right.name,
             Z={condition.name for condition in self.conditions},

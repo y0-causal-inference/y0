@@ -83,7 +83,7 @@ def get_falsifications(
     if significance_level is None:
         significance_level = 0.05
     variances = {
-        judgement: judgement.cressie_read(df)
+        judgement: judgement.calculate_falsification(df)
         for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals")
     }
     evidence = pd.DataFrame(
