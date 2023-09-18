@@ -227,6 +227,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "networkx": ("https://networkx.org/documentation/latest/", None),
     "ananke": ("https://ananke.readthedocs.io/en/latest", None),
+    "pgmpy": ("https://pgmpy.org/", None),
 }
 
 autoclass_content = "both"

@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, NamedTuple, Optional, Tuple
+from typing import Iterable, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -90,7 +90,7 @@ class DSeparationJudgement:
 
     def test(
         self, df: pd.DataFrame, boolean: bool = False, method: Optional[str] = None, **kwargs
-    ) -> Tuple[float, int, float]:
+    ) -> Union[Tuple[float, int, float], bool]:
         """Test for conditional independence, given some data.
 
         :param df: A dataframe.
@@ -99,8 +99,10 @@ class DSeparationJudgement:
             defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
         :param kwargs: Additional kwargs to pass to the estimator function
         :returns:
-            Tests the null hypothesis that X is independent of Y given Zs
-            and returns a three-tuple of chi, dof, p_value
+            Tests the null hypothesis that X is independent of Y given Zs.
+            If ``boolean=False``, returns a three-tuple of chi, dof, p_value.
+            If ``boolean=True``, make sure you also set ``significance_level=0.05`` or your preferred
+            value, then returns simply a boolean if the test fails.
         :raises ValueError: if any parts of the judgement aren't in the dataframe's
             columns
         :raises ImportError: If pgmpy is not available. Install with pip.
