@@ -1105,7 +1105,7 @@ class Sum(Expression):
 
         :param expression: The expression over which the sum is done
         :param ranges: The variable or list of variables over which the sum is done
-        :param simplify: Should the sum be simplified using :func:`Sum.simplify:?
+        :param simplify: Should the sum be simplified using :func:`Sum.simplify`?
         :returns: A :class:`Sum` object
 
         Standard usage, same as the normal ``__init__``:

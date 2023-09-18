@@ -59,7 +59,7 @@ def taheri_design_admg(
     tag: Optional[str] = None,
     stop: Optional[int] = None,
 ) -> List[Result]:
-    """Run the brute force implementation of the Taheri Design algorithm on an ADMG.
+    r"""Run the brute force implementation of the Taheri Design algorithm on an ADMG.
 
     :param graph: An ADMG
     :param cause: The node that gets perturbed.
@@ -67,7 +67,7 @@ def taheri_design_admg(
     :param tag: The key for node data describing whether it is latent.
         If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
     :param stop: Largest combination to get (None means length of the list and is the default)
-    :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2 - # bidirected edges)
+    :return: A list of LV-DAG identifiability results. Will be length $2^{(\|V\| - 2 - # bidirected edges)}$
     """
     if tag is None:
         tag = DEFAULT_TAG
@@ -105,7 +105,7 @@ def taheri_design_dag(
     :param tag: The key for node data describing whether it is latent.
         If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
     :param stop: Largest combination to get (None means length of the list and is the default)
-    :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2)
+    :return: A list of LV-DAG identifiability results. Will be length $2^(|V| - 2)$
     """
     cause = Variable.norm(cause)
     effect = Variable.norm(effect)

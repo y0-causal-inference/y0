@@ -51,8 +51,8 @@ jobs:
         run: tox -e doc8
       - name: Check docstring coverage
         run: tox -e docstr-coverage
-      # - name: Check documentation build with Sphinx
-      #  run: tox -e docs
+      - name: Check documentation build with Sphinx
+        run: tox -e docs-test
   tests:
     name: Tests
     runs-on: ubuntu-latest

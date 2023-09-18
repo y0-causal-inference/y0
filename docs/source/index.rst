@@ -12,8 +12,10 @@ y0 |release| Documentation
    graph
    examples
    mutation
+   conditional_independence
    identification
    transport
+   lvdags
    cli
 
 Indices and Tables
