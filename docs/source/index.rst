@@ -16,6 +16,7 @@ y0 |release| Documentation
    identification
    transport
    lvdags
+   struct
    cli
 
 Indices and Tables
