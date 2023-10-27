@@ -21,7 +21,7 @@ __all__ = [
     "remove_widow_latents",
     "transform_latents_with_parents",
     "remove_redundant_latents",
-    "remove_unidirectional_latents"
+    "remove_unidirectional_latents",
 ]
 
 logger = logging.getLogger(__name__)
