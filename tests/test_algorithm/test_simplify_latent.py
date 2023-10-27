@@ -7,16 +7,17 @@ import unittest
 import networkx as nx
 
 from y0.algorithm.simplify_latent import (
-    DEFAULT_SUFFIX,
     iter_latents,
     remove_redundant_latents,
+    remove_unidirectional_latents,
     remove_widow_latents,
+    simplify_latent_dag,
     transform_latents_with_parents,
 )
 from y0.algorithm.taheri_design import taheri_design_dag
 from y0.dsl import Y1, Y2, Y3, U, Variable, W
 from y0.examples import igf_example
-from y0.graph import set_latent
+from y0.graph import NxMixedGraph, set_latent
 
 X1, X2, X3 = map(Variable, ["X1", "X2", "X3"])
 
@@ -108,12 +109,12 @@ class TestSimplify(unittest.TestCase):
                 (X2, Y1),
                 (X2, Y2),
                 (X2, Y3),
-                (Variable(f"U{DEFAULT_SUFFIX}"), Y1),
-                (Variable(f"U{DEFAULT_SUFFIX}"), Y2),
-                (Variable(f"U{DEFAULT_SUFFIX}"), Y3),
+                (Variable("U"), Y1),
+                (Variable("U"), Y2),
+                (Variable("U"), Y3),
             ]
         )
-        set_latent(expected, Variable(f"U{DEFAULT_SUFFIX}"))
+        set_latent(expected, Variable("U"))
 
         self.assert_latent_variable_dag_equal(expected, graph)
 
@@ -144,3 +145,335 @@ class TestSimplify(unittest.TestCase):
         set_latent(expected, [U])
 
         self.assert_latent_variable_dag_equal(expected, graph)
+
+    def test_remove_unidirectional_latents(self):
+        """Test simplification 4 - remove unidirectional latents."""
+        graph = NxMixedGraph.from_str_adj(directed={"U1": ["U2"], "U3": ["U2"]})
+        set_latent(graph.directed, [Variable("U3")])
+        _, actual_unidirectional_latents = remove_unidirectional_latents(graph.directed)
+        expected_unidirectional_latents = {Variable("U3")}
+        self.assertEqual(expected_unidirectional_latents, actual_unidirectional_latents)
+
+    def test_unidirectional_latents_amidst_other_rules(self):
+        """Test remove unidirectional latents amidst other rules."""
+        # Original graph
+        actual_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "EGF": ["SOS", "PI3K"],
+                "IGF": ["SOS", "PI3K"],
+                "SOS": ["Ras"],
+                "Ras": ["PI3K", "Raf"],
+                "PI3K": ["Akt"],
+                "Akt": ["Raf"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+            }
+        )
+        # Mark the latent nodes
+        set_latent(
+            actual_graph.directed,
+            [Variable("EGF"), Variable("IGF"), Variable("Akt"), Variable("Erk")],
+        )
+        # Simplify the network
+        simplify_latent_dag(actual_graph.directed)
+        # Expected graph after simplification
+        expected_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "EGF": ["SOS", "PI3K"],
+                "SOS": ["Ras"],
+                "Ras": ["PI3K", "Raf"],
+                "PI3K": ["Raf"],
+                "Raf": ["Mek"],
+            }
+        )
+        # Expected latent nodes after simplification
+        set_latent(expected_graph.directed, [Variable("EGF")])
+        self.assertEqual(actual_graph, expected_graph)
+
+    def test_simplify_latent_dag_for_sample_graph_0(self):
+        """Test latent simplification for a simple network."""
+        # Original graph
+        actual_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "U1": ["V1", "V2", "V3"],
+                "U2": ["V2", "V3"],
+                "U3": ["V4", "V5"],
+                "U4": ["V5"],
+                "V1": ["U3", "U5"],
+                "V2": ["U3"],
+                "V3": ["U3"],
+            }
+        )
+        # Mark the latent nodes
+        set_latent(actual_graph.directed, [Variable("U" + str(num)) for num in range(1, 6)])
+        # Simplify the network
+        simplify_latent_dag(actual_graph.directed)
+        # Expected graph after simplification
+        expected_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "U1": ["V1", "V2", "V3"],
+                "U3": ["V4", "V5"],
+                "V1": ["V4", "V5"],
+                "V2": ["V4", "V5"],
+                "V3": ["V4", "V5"],
+            }
+        )
+        # Expected latent nodes after simplification
+        set_latent(expected_graph.directed, [Variable("U" + str(num)) for num in range(1, 6)])
+        self.assertEqual(actual_graph, expected_graph)
+
+    def test_simplify_latent_dag_for_sample_graph_1(self):
+        """Test latent simplification for a simple network."""
+        # Original graph
+        actual_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "EGF": ["SOS", "PI3K"],
+                "IGF": ["SOS", "PI3K"],
+                "SOS": ["Ras"],
+                "Ras": ["PI3K", "Raf"],
+                "PI3K": ["Akt"],
+                "Akt": ["Raf"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+            }
+        )
+        # Mark the latent nodes
+        set_latent(actual_graph.directed, [Variable("EGF"), Variable("IGF")])
+        # Simplify the network
+        simplify_latent_dag(actual_graph.directed)
+        # Expected graph after simplification
+        expected_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "EGF": ["SOS", "PI3K"],
+                "SOS": ["Ras"],
+                "Ras": ["PI3K", "Raf"],
+                "PI3K": ["Akt"],
+                "Akt": ["Raf"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+            }
+        )
+        # Expected latent nodes after simplification
+        set_latent(expected_graph.directed, [Variable("EGF")])
+        self.assertEqual(actual_graph, expected_graph)
+
+    def test_simplify_latent_dag_for_sample_graph_2(self):
+        """Test latent simplification for a simple network."""
+        # Original graph
+        actual_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "EGF": ["SOS", "PI3K"],
+                "IGF": ["SOS", "PI3K"],
+                "SOS": ["Ras"],
+                "Ras": ["PI3K", "Raf"],
+                "PI3K": ["Akt"],
+                "Akt": ["Raf"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+            }
+        )
+        # Mark the latent nodes
+        set_latent(actual_graph.directed, [Variable("EGF"), Variable("IGF"), Variable("PI3K")])
+        # Simplify the network
+        simplify_latent_dag(actual_graph.directed)
+        # Expected graph after simplification
+        expected_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "EGF": ["SOS", "Akt"],
+                "SOS": ["Ras"],
+                "Ras": ["Akt", "Raf"],
+                "Akt": ["Raf"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+            }
+        )
+        # Expected latent nodes after simplification
+        set_latent(expected_graph.directed, [Variable("EGF")])
+        self.assertEqual(actual_graph, expected_graph)
+
+    def test_simplify_latent_dag_for_sample_graph_3(self):
+        """Test latent simplification for a simple network."""
+        # Original graph
+        actual_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "EGF": ["SOS", "PI3K"],
+                "IGF": ["SOS", "PI3K"],
+                "SOS": ["Ras"],
+                "Ras": ["PI3K", "Raf"],
+                "PI3K": ["Akt"],
+                "Akt": ["Raf"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+            }
+        )
+        # Mark the latent nodes
+        set_latent(actual_graph.directed, [Variable("EGF"), Variable("IGF"), Variable("Ras")])
+        # Simplify the network
+        simplify_latent_dag(actual_graph.directed)
+        # Expected graph after simplification
+        expected_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "EGF": ["SOS", "PI3K"],
+                "SOS": ["PI3K", "Raf"],
+                "Ras": ["PI3K", "Raf"],
+                "PI3K": ["Akt"],
+                "Akt": ["Raf"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+            }
+        )
+        # Expected latent nodes after simplification
+        set_latent(expected_graph.directed, [Variable("EGF"), Variable("Ras")])
+        self.assertEqual(actual_graph, expected_graph)
+
+    def test_simplify_latent_dag_for_sample_graph_4(self):
+        """Test latent simplification for a simple network."""
+        # Original graph
+        actual_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "EGF": ["SOS", "PI3K"],
+                "IGF": ["SOS", "PI3K"],
+                "SOS": ["Ras"],
+                "Ras": ["PI3K", "Raf"],
+                "PI3K": ["Akt"],
+                "Akt": ["Raf"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+            }
+        )
+        # Mark the latent nodes
+        set_latent(
+            actual_graph.directed,
+            [Variable("EGF"), Variable("IGF"), Variable("Raf"), Variable("Akt")],
+        )
+        # Simplify the network
+        simplify_latent_dag(actual_graph.directed)
+        # Expected graph after simplification
+        expected_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "EGF": ["SOS", "PI3K"],
+                "SOS": ["Ras"],
+                "Ras": ["PI3K", "Mek"],
+                "PI3K": ["Mek"],
+                "Mek": ["Erk"],
+            }
+        )
+        # Expected latent nodes after simplification
+        set_latent(expected_graph.directed, [Variable("EGF")])
+        self.assertEqual(actual_graph, expected_graph)
+
+    def test_simplify_latent_dag_for_sample_graph_5(self):
+        """Test latent simplification for a simple network."""
+        # Original graph
+        actual_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "Plcg": ["PKC", "PIP2", "PIP3"],
+                "PIP3": ["PIP2", "Akt"],
+                "PIP2": ["PKC"],
+                "PKC": ["PKA", "Raf", "Mek", "Jnk", "P38"],
+                "PKA": ["Raf", "Mek", "Erk", "Akt", "Jnk", "P38"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+                "Erk": ["Akt"],
+            }
+        )
+        # Mark the latent nodes
+        set_latent(
+            actual_graph.directed,
+            [Variable("PKA"), Variable("Jnk"), Variable("P38"), Variable("Akt"), Variable("Raf")],
+        )
+        # Simplify the network
+        simplify_latent_dag(actual_graph.directed)
+        # Expected graph after simplification
+        expected_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "Plcg": ["PKC", "PIP2", "PIP3"],
+                "PIP3": ["PIP2"],
+                "PIP2": ["PKC"],
+                "PKC": ["Mek", "Erk"],
+                "PKA": ["Mek", "Erk"],
+                "Mek": ["Erk"],
+            }
+        )
+
+        # Expected latent nodes after simplification
+        set_latent(expected_graph.directed, [Variable("PKA")])
+        self.assertEqual(actual_graph, expected_graph)
+
+    def test_simplify_latent_dag_for_sample_graph_6(self):
+        """Test latent simplification for a simple network."""
+        # Original graph
+        actual_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "Plcg": ["PKC", "PIP2", "PIP3"],
+                "PIP3": ["PIP2", "Akt"],
+                "PIP2": ["PKC"],
+                "PKC": ["PKA", "Raf", "Mek", "Jnk", "P38"],
+                "PKA": ["Raf", "Mek", "Erk", "Akt", "Jnk", "P38"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+                "Erk": ["Akt"],
+            }
+        )
+        # Mark the latent nodes
+        set_latent(
+            actual_graph.directed,
+            [Variable("PKA"), Variable("PKC"), Variable("Akt")],
+        )
+        # Simplify the network
+        simplify_latent_dag(actual_graph.directed)
+        # Expected graph after simplification
+        expected_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "Plcg": ["Raf", "Mek", "Erk", "Jnk", "P38", "PIP2", "PIP3"],
+                "PIP3": ["PIP2"],
+                "PIP2": ["Raf", "Mek", "Jnk", "P38", "Erk"],
+                "PKA": ["Raf", "Mek", "Erk", "Jnk", "P38"],
+                "Mek": ["Erk"],
+                "Raf": ["Mek"],
+            }
+        )
+
+        # Expected latent nodes after simplification
+        set_latent(expected_graph.directed, [Variable("PKA"), Variable("PKC")])
+        self.assertEqual(actual_graph, expected_graph)
+
+    def test_simplify_latent_dag_for_sample_graph_7(self):
+        """Test latent simplification for a simple network."""
+        # Original graph
+        actual_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "Plcg": ["PKC", "PIP2", "PIP3"],
+                "PIP3": ["PIP2", "Akt"],
+                "PIP2": ["PKC"],
+                "PKC": ["PKA", "Raf", "Mek", "Jnk", "P38"],
+                "PKA": ["Raf", "Mek", "Erk", "Akt", "Jnk", "P38"],
+                "Raf": ["Mek"],
+                "Mek": ["Erk"],
+                "Erk": ["Akt"],
+            }
+        )
+        # Mark the latent nodes
+        set_latent(
+            actual_graph.directed,
+            [Variable("Plcg"), Variable("PKA")],
+        )
+        # Simplify the network
+        simplify_latent_dag(actual_graph.directed)
+        # Expected graph after simplification
+        expected_graph = NxMixedGraph.from_str_adj(
+            directed={
+                "Plcg": ["PKC", "PIP2", "PIP3"],
+                "PIP3": ["PIP2", "Akt"],
+                "PIP2": ["PKC"],
+                "PKC": ["Mek", "Raf", "Erk", "Jnk", "P38", "Akt"],
+                "PKA": ["Raf", "Mek", "Erk", "Jnk", "P38", "Akt"],
+                "Mek": ["Erk"],
+                "Raf": ["Mek"],
+                "Erk": ["Akt"],
+            }
+        )
+
+        # Expected latent nodes after simplification
+        set_latent(expected_graph.directed, [Variable("Plcg"), Variable("PKA")])
+        self.assertEqual(actual_graph, expected_graph)
