@@ -120,25 +120,6 @@ def transform_latents_with_parents(
     return graph
 
 
-def _add_modified_latent(
-    graph: nx.DiGraph,
-    modified_latent: Mapping[str, Iterable[str]],
-    *,
-    tag: Optional[str] = None,
-    suffix: Optional[str] = None,
-) -> None:
-    if tag is None:
-        tag = DEFAULT_TAG
-    if suffix is None:
-        suffix = DEFAULT_SUFFIX
-
-    for old_node, children in modified_latent.items():
-        new_node = f"{old_node}{suffix}"
-        graph.add_node(new_node, **{tag: True})
-        for child in children:
-            graph.add_edge(new_node, child)
-
-
 def iter_middle_latents(
     graph: nx.DiGraph, *, tag: Optional[str] = None
 ) -> Iterable[Tuple[Variable, Set[Variable], Set[Variable]]]:
