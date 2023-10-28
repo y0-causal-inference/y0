@@ -19,6 +19,7 @@ from y0.examples import igf_example
 from y0.graph import set_latent
 
 X1, X2, X3 = map(Variable, ["X1", "X2", "X3"])
+U_PRIME = Variable(f"{U.name}{DEFAULT_SUFFIX}")
 
 
 class TestDesign(unittest.TestCase):
@@ -108,12 +109,13 @@ class TestSimplify(unittest.TestCase):
                 (X2, Y1),
                 (X2, Y2),
                 (X2, Y3),
-                (Variable(f"U{DEFAULT_SUFFIX}"), Y1),
-                (Variable(f"U{DEFAULT_SUFFIX}"), Y2),
-                (Variable(f"U{DEFAULT_SUFFIX}"), Y3),
+                # U is transformed into U_prime
+                (U_PRIME, Y1),
+                (U_PRIME, Y2),
+                (U_PRIME, Y3),
             ]
         )
-        set_latent(expected, Variable(f"U{DEFAULT_SUFFIX}"))
+        set_latent(expected, U_PRIME)
 
         self.assert_latent_variable_dag_equal(expected, graph)
 
