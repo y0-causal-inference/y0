@@ -7,6 +7,7 @@ import unittest
 import networkx as nx
 
 from y0.algorithm.simplify_latent import (
+    DEFAULT_SUFFIX,
     iter_latents,
     remove_redundant_latents,
     remove_unidirectional_latents,
@@ -20,6 +21,7 @@ from y0.examples import igf_example
 from y0.graph import NxMixedGraph, set_latent
 
 X1, X2, X3 = map(Variable, ["X1", "X2", "X3"])
+U_LATENT = Variable(f"U{DEFAULT_SUFFIX}")
 
 
 class TestDesign(unittest.TestCase):
@@ -109,12 +111,12 @@ class TestSimplify(unittest.TestCase):
                 (X2, Y1),
                 (X2, Y2),
                 (X2, Y3),
-                (Variable("U"), Y1),
-                (Variable("U"), Y2),
-                (Variable("U"), Y3),
+                (Variable(f"U{DEFAULT_SUFFIX}"), Y1),
+                (Variable(f"U{DEFAULT_SUFFIX}"), Y2),
+                (Variable(f"U{DEFAULT_SUFFIX}"), Y3),
             ]
         )
-        set_latent(expected, Variable("U"))
+        set_latent(expected, Variable(f"U{DEFAULT_SUFFIX}"))
 
         self.assert_latent_variable_dag_equal(expected, graph)
 
@@ -205,7 +207,7 @@ class TestSimplify(unittest.TestCase):
             }
         )
         # Mark the latent nodes
-        set_latent(actual_graph.directed, [Variable("U" + str(num)) for num in range(1, 6)])
+        set_latent(actual_graph.directed, [Variable(f"U{num}") for num in range(1, 6)])
         # Simplify the network
         simplify_latent_dag(actual_graph.directed)
         # Expected graph after simplification
@@ -219,7 +221,7 @@ class TestSimplify(unittest.TestCase):
             }
         )
         # Expected latent nodes after simplification
-        set_latent(expected_graph.directed, [Variable("U" + str(num)) for num in range(1, 6)])
+        set_latent(expected_graph.directed, [Variable(f"U{num}") for num in range(1, 6)])
         self.assertEqual(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_1(self):

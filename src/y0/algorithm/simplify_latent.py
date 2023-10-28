@@ -2,7 +2,7 @@
 
 """Implement Robin Evans' simplification algorithms.
 
-.. see also:: https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf slides 34-43
+.. seealso:: https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf slides 34-43
 
 """
 
@@ -12,8 +12,8 @@ from typing import Iterable, Mapping, NamedTuple, Optional, Set, Tuple
 
 import networkx as nx
 
-from y0.dsl import Variable
-from y0.graph import DEFAULT_TAG
+from ..dsl import Variable
+from ..graph import DEFAULT_TAG
 
 __all__ = [
     "simplify_latent_dag",
@@ -147,7 +147,7 @@ def transform_latents_with_parents(
         graph.remove_node(latent_node)
         graph.add_edges_from(itt.product(parents, children))
 
-        new_node = Variable(f"{latent_node}")
+        new_node = Variable(f"{latent_node}{suffix}")
         graph.add_node(new_node, **{tag: True})
         for child in children:
             graph.add_edge(new_node, child)
