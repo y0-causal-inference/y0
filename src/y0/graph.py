@@ -109,7 +109,7 @@ class NxMixedGraph:
         self.undirected.add_node(u)
         self.undirected.add_node(v)
 
-    def add_undirected_edge(self, u: Variable, v: Variable, **attr) -> None:
+    def add_undirected_edge(self, u: Union[str, Variable], v: Union[str, Variable], **attr) -> None:
         """Add an undirected edge between u and v."""
         u = Variable.norm(u)
         v = Variable.norm(v)
