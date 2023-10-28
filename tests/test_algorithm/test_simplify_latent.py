@@ -16,7 +16,7 @@ from y0.algorithm.simplify_latent import (
     transform_latents_with_parents,
 )
 from y0.algorithm.taheri_design import taheri_design_dag
-from y0.dsl import Y1, Y2, Y3, U, Variable, W
+from y0.dsl import U1, U2, U3, Y1, Y2, Y3, U, Variable, W
 from y0.examples import igf_example
 from y0.graph import NxMixedGraph, set_latent
 
@@ -150,10 +150,11 @@ class TestSimplify(unittest.TestCase):
 
     def test_remove_unidirectional_latents(self):
         """Test simplification 4 - remove unidirectional latents."""
-        graph = NxMixedGraph.from_str_adj(directed={"U1": ["U2"], "U3": ["U2"]})
-        set_latent(graph.directed, [Variable("U3")])
-        _, actual_unidirectional_latents = remove_unidirectional_latents(graph.directed)
-        expected_unidirectional_latents = {Variable("U3")}
+        graph = nx.DiGraph()
+        graph.add_edges_from([(U1, U2), (U3, U2)])
+        set_latent(graph, [U3])
+        _, actual_unidirectional_latents = remove_unidirectional_latents(graph)
+        expected_unidirectional_latents = {U3}
         self.assertEqual(expected_unidirectional_latents, actual_unidirectional_latents)
 
     def test_unidirectional_latents_amidst_other_rules(self):
