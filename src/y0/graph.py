@@ -42,6 +42,7 @@ DEFAULT_TAG = "hidden"
 #: The default prefix for latent variables in a latent variable DAG represented. After the prefix,
 #: there will be a number assigned that's incremented during construction.
 DEFULT_PREFIX = "u_"
+NO_SET_LATENT_FLAG = "no_set_latent"
 
 
 @dataclass
@@ -61,6 +62,11 @@ class NxMixedGraph:
     directed: nx.DiGraph = field(default_factory=nx.DiGraph)
     #: A undirected graph
     undirected: nx.Graph = field(default_factory=nx.Graph)
+
+    def __post_init__(self):
+        """Process the graphs."""
+        self.directed.graph[NO_SET_LATENT_FLAG] = True
+        self.undirected.graph[NO_SET_LATENT_FLAG] = True
 
     def __eq__(self, other: Any) -> bool:
         """Check for equality of nodes, directed edges, and undirected edges."""
@@ -665,6 +671,12 @@ def set_latent(
     tag: Optional[str] = None,
 ) -> None:
     """Quickly set the latent variables in a graph."""
+    if graph.graph.get(NO_SET_LATENT_FLAG):
+        raise RuntimeError(
+            "Do not set latent variables on graphs inside a NxMixedGraph using set_latent().\n"
+            "This function is strictly only for nx.DiGraphs that have been constructed based on "
+            "a NxMixedGraph, but not the NxMixedGraph itself."
+        )
     if tag is None:
         tag = DEFAULT_TAG
     if isinstance(latent_nodes, Variable):
