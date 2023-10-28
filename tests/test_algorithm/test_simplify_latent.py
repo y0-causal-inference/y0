@@ -43,7 +43,7 @@ def _dag_from_adj_str(directed):
 class TestSimplify(unittest.TestCase):
     """Tests for the Robin Evans simplification algorithms."""
 
-    def assert_latent_variable_dag_equal(self, expected, actual) -> None:
+    def assert_latent_variable_dag_equal(self, expected: nx.DiGraph, actual: nx.DiGraph) -> None:
         """Check two latent variable DAGs are the same."""
         self.assertEqual(
             sorted(expected),
@@ -197,7 +197,7 @@ class TestSimplify(unittest.TestCase):
         )
         # Expected latent nodes after simplification
         set_latent(expected_graph, [Variable("EGF")])
-        self.assertEqual(actual_graph, expected_graph)
+        self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_0(self):
         """Test latent simplification for a simple network."""
@@ -229,7 +229,7 @@ class TestSimplify(unittest.TestCase):
         )
         # Expected latent nodes after simplification
         set_latent(expected_graph, [Variable(f"U{num}") for num in range(1, 6)])
-        self.assertEqual(actual_graph, expected_graph)
+        self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_1(self):
         """Test latent simplification for a simple network."""
@@ -264,7 +264,7 @@ class TestSimplify(unittest.TestCase):
         )
         # Expected latent nodes after simplification
         set_latent(expected_graph, [Variable("EGF")])
-        self.assertEqual(actual_graph, expected_graph)
+        self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_2(self):
         """Test latent simplification for a simple network."""
@@ -298,7 +298,7 @@ class TestSimplify(unittest.TestCase):
         )
         # Expected latent nodes after simplification
         set_latent(expected_graph, [Variable("EGF")])
-        self.assertEqual(actual_graph, expected_graph)
+        self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_3(self):
         """Test latent simplification for a simple network."""
@@ -333,7 +333,7 @@ class TestSimplify(unittest.TestCase):
         )
         # Expected latent nodes after simplification
         set_latent(expected_graph, [Variable("EGF"), Variable("Ras")])
-        self.assertEqual(actual_graph, expected_graph)
+        self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_4(self):
         """Test latent simplification for a simple network."""
@@ -369,7 +369,7 @@ class TestSimplify(unittest.TestCase):
         )
         # Expected latent nodes after simplification
         set_latent(expected_graph, [Variable("EGF")])
-        self.assertEqual(actual_graph, expected_graph)
+        self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_5(self):
         """Test latent simplification for a simple network."""
@@ -407,7 +407,7 @@ class TestSimplify(unittest.TestCase):
 
         # Expected latent nodes after simplification
         set_latent(expected_graph, [Variable("PKA")])
-        self.assertEqual(actual_graph, expected_graph)
+        self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_6(self):
         """Test latent simplification for a simple network."""
@@ -445,7 +445,7 @@ class TestSimplify(unittest.TestCase):
 
         # Expected latent nodes after simplification
         set_latent(expected_graph, [Variable("PKA"), Variable("PKC")])
-        self.assertEqual(actual_graph, expected_graph)
+        self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_7(self):
         """Test latent simplification for a simple network."""
@@ -485,4 +485,4 @@ class TestSimplify(unittest.TestCase):
 
         # Expected latent nodes after simplification
         set_latent(expected_graph, [Variable("Plcg"), Variable("PKA")])
-        self.assertEqual(actual_graph, expected_graph)
+        self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
