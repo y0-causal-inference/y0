@@ -36,7 +36,9 @@ class TestDesign(unittest.TestCase):
 
 def _dag_from_adj_str(directed):
     rv = nx.DiGraph()
-    rv.add_edges_from((Variable(k), Variable(value)) for k, values in directed.items() for value in values)
+    rv.add_edges_from(
+        (Variable(k), Variable(value)) for k, values in directed.items() for value in values
+    )
     return rv
 
 
@@ -168,7 +170,8 @@ class TestSimplify(unittest.TestCase):
         """Test remove unidirectional latents amidst other rules.
 
         Rules being tested are: Transform latents with parents (Akt),
-        remove widow latents (Erk), unidirectional latents (Akt) and redundant latents (IGF)."""
+        remove widow latents (Erk), unidirectional latents (Akt) and redundant latents (IGF).
+        """
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -207,7 +210,8 @@ class TestSimplify(unittest.TestCase):
         """Test latent simplification for a simple network.
 
         Rules being tested are: Transform latents with parents (U3), remove widow latents(U5),
-        unidirectional latents (U4) and redundant latents (U2)."""
+        unidirectional latents (U4) and redundant latents (U2).
+        """
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -241,7 +245,8 @@ class TestSimplify(unittest.TestCase):
     def test_simplify_latent_dag_for_sample_graph_1(self):
         """Test latent simplification for a simple network.
 
-        Rules being tested are: Remove redundant latents (IGF)."""
+        Rules being tested are: Remove redundant latents (IGF).
+        """
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -279,7 +284,8 @@ class TestSimplify(unittest.TestCase):
         """Test latent simplification for a simple network.
 
         Rules being tested are: Transform latents with parents (PI3K),
-        remove unidirectional latents (PI3K) and redundant latents (IGF)."""
+        remove unidirectional latents (PI3K) and redundant latents (IGF).
+        """
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -316,7 +322,8 @@ class TestSimplify(unittest.TestCase):
         """Test latent simplification for a simple network.
 
         Rules being tested are: Transform latents with parents (Ras),
-        remove redundant latents (IGF)."""
+        remove redundant latents (IGF).
+        """
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -354,7 +361,8 @@ class TestSimplify(unittest.TestCase):
         """Test latent simplification for a simple network.
 
         Transform latents with parents (Raf, Akt), remove unidirectional latents (Akt, Raf) and
-        redundant latents (IGF)."""
+        redundant latents (IGF).
+        """
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -393,7 +401,8 @@ class TestSimplify(unittest.TestCase):
         """Test latent simplification for a simple network.
 
         Rules being tested are: Transform latents with parents (PKA, Raf),
-        remove widow latents (P38, Jnk, Akt) and unidirectional latents (Raf)."""
+        remove widow latents (P38, Jnk, Akt) and unidirectional latents (Raf).
+        """
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -434,7 +443,8 @@ class TestSimplify(unittest.TestCase):
         """Test latent simplification for a simple network.
 
         Rules being tested are: Transform latents with parents (PKA, PKC),
-        remove widow latents (Akt) and redundant nodes (PKC)."""
+        remove widow latents (Akt) and redundant nodes (PKC).
+        """
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -474,7 +484,8 @@ class TestSimplify(unittest.TestCase):
     def test_simplify_latent_dag_for_sample_graph_7(self):
         """Test latent simplification for a simple network.
 
-        Rules being tested are: Transform latents with parents(PKA)."""
+        Rules being tested are: Transform latents with parents(PKA).
+        """
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
