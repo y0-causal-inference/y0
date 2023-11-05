@@ -36,7 +36,7 @@ class TestDesign(unittest.TestCase):
 
 def _dag_from_adj_str(directed):
     rv = nx.DiGraph()
-    rv.add_edges_from((k, value) for k, values in directed.items() for value in values)
+    rv.add_edges_from((Variable(k), Variable(value)) for k, values in directed.items() for value in values)
     return rv
 
 
@@ -165,7 +165,10 @@ class TestSimplify(unittest.TestCase):
         self.assertEqual(expected_unidirectional_latents, actual_unidirectional_latents)
 
     def test_unidirectional_latents_amidst_other_rules(self):
-        """Test remove unidirectional latents amidst other rules."""
+        """Test remove unidirectional latents amidst other rules.
+
+        Rules being tested are: Transform latents with parents (Akt),
+        remove widow latents (Erk), unidirectional latents (Akt) and redundant latents (IGF)."""
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -201,7 +204,10 @@ class TestSimplify(unittest.TestCase):
         self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_0(self):
-        """Test latent simplification for a simple network."""
+        """Test latent simplification for a simple network.
+
+        Rules being tested are: Transform latents with parents (U3), remove widow latents(U5),
+        unidirectional latents (U4) and redundant latents (U2)."""
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -222,18 +228,20 @@ class TestSimplify(unittest.TestCase):
         expected_graph = _dag_from_adj_str(
             directed={
                 "U1": ["V1", "V2", "V3"],
-                "U3": ["V4", "V5"],
+                "U3_prime": ["V4", "V5"],
                 "V1": ["V4", "V5"],
                 "V2": ["V4", "V5"],
                 "V3": ["V4", "V5"],
             }
         )
         # Expected latent nodes after simplification
-        set_latent(expected_graph, [Variable(f"U{num}") for num in range(1, 6)])
+        set_latent(expected_graph, [Variable("U1"), Variable("U3_prime")])
         self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_1(self):
-        """Test latent simplification for a simple network."""
+        """Test latent simplification for a simple network.
+
+        Rules being tested are: Remove redundant latents (IGF)."""
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -268,7 +276,10 @@ class TestSimplify(unittest.TestCase):
         self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_2(self):
-        """Test latent simplification for a simple network."""
+        """Test latent simplification for a simple network.
+
+        Rules being tested are: Transform latents with parents (PI3K),
+        remove unidirectional latents (PI3K) and redundant latents (IGF)."""
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -302,7 +313,10 @@ class TestSimplify(unittest.TestCase):
         self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_3(self):
-        """Test latent simplification for a simple network."""
+        """Test latent simplification for a simple network.
+
+        Rules being tested are: Transform latents with parents (Ras),
+        remove redundant latents (IGF)."""
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -325,7 +339,7 @@ class TestSimplify(unittest.TestCase):
             directed={
                 "EGF": ["SOS", "PI3K"],
                 "SOS": ["PI3K", "Raf"],
-                "Ras": ["PI3K", "Raf"],
+                "Ras_prime": ["PI3K", "Raf"],
                 "PI3K": ["Akt"],
                 "Akt": ["Raf"],
                 "Raf": ["Mek"],
@@ -333,11 +347,14 @@ class TestSimplify(unittest.TestCase):
             }
         )
         # Expected latent nodes after simplification
-        set_latent(expected_graph, [Variable("EGF"), Variable("Ras")])
+        set_latent(expected_graph, [Variable("EGF"), Variable("Ras_prime")])
         self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_4(self):
-        """Test latent simplification for a simple network."""
+        """Test latent simplification for a simple network.
+
+        Transform latents with parents (Raf, Akt), remove unidirectional latents (Akt, Raf) and
+        redundant latents (IGF)."""
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -373,7 +390,10 @@ class TestSimplify(unittest.TestCase):
         self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_5(self):
-        """Test latent simplification for a simple network."""
+        """Test latent simplification for a simple network.
+
+        Rules being tested are: Transform latents with parents (PKA, Raf),
+        remove widow latents (P38, Jnk, Akt) and unidirectional latents (Raf)."""
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -401,17 +421,20 @@ class TestSimplify(unittest.TestCase):
                 "PIP3": ["PIP2"],
                 "PIP2": ["PKC"],
                 "PKC": ["Mek", "Erk"],
-                "PKA": ["Mek", "Erk"],
+                "PKA_prime": ["Mek", "Erk"],
                 "Mek": ["Erk"],
             }
         )
 
         # Expected latent nodes after simplification
-        set_latent(expected_graph, [Variable("PKA")])
+        set_latent(expected_graph, [Variable("PKA_prime")])
         self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_6(self):
-        """Test latent simplification for a simple network."""
+        """Test latent simplification for a simple network.
+
+        Rules being tested are: Transform latents with parents (PKA, PKC),
+        remove widow latents (Akt) and redundant nodes (PKC)."""
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -438,18 +461,20 @@ class TestSimplify(unittest.TestCase):
                 "Plcg": ["Raf", "Mek", "Erk", "Jnk", "P38", "PIP2", "PIP3"],
                 "PIP3": ["PIP2"],
                 "PIP2": ["Raf", "Mek", "Jnk", "P38", "Erk"],
-                "PKA": ["Raf", "Mek", "Erk", "Jnk", "P38"],
+                "PKA_prime": ["Raf", "Mek", "Erk", "Jnk", "P38"],
                 "Mek": ["Erk"],
                 "Raf": ["Mek"],
             }
         )
 
         # Expected latent nodes after simplification
-        set_latent(expected_graph, [Variable("PKA"), Variable("PKC")])
+        set_latent(expected_graph, [Variable("PKA_prime")])
         self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
 
     def test_simplify_latent_dag_for_sample_graph_7(self):
-        """Test latent simplification for a simple network."""
+        """Test latent simplification for a simple network.
+
+        Rules being tested are: Transform latents with parents(PKA)."""
         # Original graph
         actual_graph = _dag_from_adj_str(
             directed={
@@ -477,7 +502,7 @@ class TestSimplify(unittest.TestCase):
                 "PIP3": ["PIP2", "Akt"],
                 "PIP2": ["PKC"],
                 "PKC": ["Mek", "Raf", "Erk", "Jnk", "P38", "Akt"],
-                "PKA": ["Raf", "Mek", "Erk", "Jnk", "P38", "Akt"],
+                "PKA_prime": ["Raf", "Mek", "Erk", "Jnk", "P38", "Akt"],
                 "Mek": ["Erk"],
                 "Raf": ["Mek"],
                 "Erk": ["Akt"],
@@ -485,5 +510,5 @@ class TestSimplify(unittest.TestCase):
         )
 
         # Expected latent nodes after simplification
-        set_latent(expected_graph, [Variable("Plcg"), Variable("PKA")])
+        set_latent(expected_graph, [Variable("Plcg"), Variable("PKA_prime")])
         self.assert_latent_variable_dag_equal(actual_graph, expected_graph)
