@@ -6,7 +6,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Iterable, NamedTuple, Optional, Tuple, Union
+from typing import (
+    Callable,
+    Iterable,
+    Literal,
+    NamedTuple,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import pandas as pd
 
@@ -48,8 +57,23 @@ class VermaConstraint(NamedTuple):
         )
 
 
+CITest = Literal[
+    "pearson",
+    "chi-square",
+    "cressie_read",
+    "freeman_tuckey",
+    "g_sq",
+    "log_likelihood",
+    "modified_log_likelihood",
+    "power_divergence",
+    "neyman",
+]
+
+CITestFunc = TypeVar("CITestFunc", bound=Callable)
+
+
 @lru_cache
-def get_conditional_independence_tests():
+def get_conditional_independence_tests() -> dict[CITest, CITestFunc]:
     """Get the conditional independence tests from :mod:`pgmpy.estimators.CITests`."""
     try:
         from pgmpy.estimators import CITests
@@ -111,7 +135,7 @@ class DSeparationJudgement:
         )
 
     def test(
-        self, df: pd.DataFrame, boolean: bool = False, method: Optional[str] = None, **kwargs
+        self, df: pd.DataFrame, boolean: bool = False, method: Optional[CITest] = None, **kwargs
     ) -> Union[Tuple[float, int, float], bool]:
         """Test for conditional independence, given some data.
 
