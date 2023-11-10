@@ -6,9 +6,6 @@ import logging
 from functools import lru_cache, wraps
 from typing import Iterable, Tuple
 
-from rpy2.robjects.packages import importr, isinstalled
-from rpy2.robjects.vectors import StrVector
-
 from .dsl import Variable
 
 __all__ = [
@@ -19,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 CAUSALEFFECT = "causaleffect"
 IGRAPH = "igraph"
+#: A list of R packages that are required
 R_REQUIREMENTS = [
     CAUSALEFFECT,
     IGRAPH,
@@ -32,6 +30,8 @@ def prepare_renv(requirements: Iterable[str]) -> None:
 
     .. seealso:: https://rpy2.github.io/doc/v3.4.x/html/introduction.html#installing-packages
     """
+    from rpy2.robjects.packages import importr, isinstalled
+
     # import R's utility package
     utils = importr("utils")
 
@@ -43,6 +43,8 @@ def prepare_renv(requirements: Iterable[str]) -> None:
     ]
     if uninstalled_requirements:
         logger.warning("installing R packages: %s", uninstalled_requirements)
+        from rpy2.robjects.vectors import StrVector
+
         utils.install_packages(StrVector(uninstalled_requirements))
 
     for requirement in requirements:
