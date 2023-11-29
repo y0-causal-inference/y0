@@ -4,7 +4,7 @@ import unittest
 
 from y0.algorithm.counterfactual_transportability import simplify, get_ancestors_of_counterfactual
 from y0.graph import NxMixedGraph
-from y0.dsl import X, Y, W, Z, Variable, CounterfactualVariable, Intervention
+from y0.dsl import X, Y, W, Z, Variable, CounterfactualVariable, Intervention, Zero
 
 
 class TestGetAncestorsOfCounterfactual(unittest.TestCase):
@@ -65,13 +65,59 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
 
 class TestSimplify(unittest.TestCase):
     """Test the simplify algorithm from counterfactual transportability."""
+    ##TODO: Incorporate a test involving counterfactual unnesting.
 
-    def test_inconsistent(self):
-        """Test simplifying an inconsistent event."""
+    def test_inconsistent_1(self):
+        """Test simplifying an inconsistent event. Correa et al. specify the output should be 0 if the 
+        counterfactual event is guaranteed to have probability 0.
+        """
         event = [
-            (Y @ -X, +Y),
             (Y @ -X, -Y),
+            (Y @ -X, +Y)
+        ]
+        result = simplify(event)
+        self.assertEquals(result, Zero())
+
+    def test_inconsistent_2(self):
+        """Second test for simplifying an inconsistent event."""
+        event = [
+            (Y @ -Y, +Y)
+        ]
+        result = simplify(event)
+        self.assertEquals(result, Zero())
+
+    def test_redundant_1(self):
+        """First test for simplifying an event with redundant subscripts."""
+        event = [
+            (Y @ -X, -Y),
+            (Y @ -X, -Y)
+        ]
+        result = simplify(event)
+        self.assertEqual(result, [(Y @ -X, -Y)])
+
+    def test_redundant_2(self):
+        """Second test for simplifying an event with redundant subscripts."""
+        event = [
+            (Y @ -X, -Y),
+            (Y @ -X, -Y),
+            (X @ -W, -X)
+        ]
+        result = simplify(event)
+        self.assertEqual(result, [(Y @ -X, -Y), (X @ -W, -X)])
+
+    def test_redundant_3(self):
+        """Third test for simplifying an event with redundant subscripts."""
+        event = [
+            (Y @ -Y, -Y),
+            (X @ -W, -X),
+        ]
+        result = simplify(event)
+        self.assertEqual(result, [(X @ -W, -X)])
+
+    def test_redundant_4(self):
+        """Fourth test for simplifying an event with redundant subscripts."""
+        event = [
+            (Y @ -Y, -Y),
         ]
         result = simplify(event)
         self.assertIsNone(result)
-    
