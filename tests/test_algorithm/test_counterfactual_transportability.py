@@ -6,6 +6,7 @@ from y0.algorithm.counterfactual_transportability import (
     get_ancestors_of_counterfactual,
     is_ctf_factor,
     make_selection_diagram,
+    minimize,
     simplify,
 )
 from y0.algorithm.transport import transport_variable
@@ -209,3 +210,40 @@ class TestMakeSelectionDiagram(unittest.TestCase):
             undirected=[(Z, X), (W, Y)],
         )
         self.assertEquals(selection_diagram, expected_selection_diagram)
+
+
+class TestMinimize(unittest.TestCase):
+    r"""Test minimizing a set of counterfactual variables.
+
+    Source: last paragraph in Section 4 of Correa, Lee, and Barenboim 2022, before Section 4.1.
+    Mathematical expression: ||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \elementof \mathbf Y_*}, and
+    ||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline{\mathbf X}}}}.
+    (The math syntax is not necessarily cannonical LaTeX.)
+    """
+
+    def test_minimize_1(self):
+        """Test the minimize function sending in a single counterfactual variable. Source: out of Richard's head."""
+        minimize_graph_1 = NxMixedGraph.from_edges(
+            directed=[
+                (X, W),
+                (W, Y),
+            ],
+            undirected=[(X, Y)],
+        )
+        minimize_test1_in = [(Y @ (-W, -X))]
+        minimize_test1_out = [(Y @ -W)]
+        self.assertEquals(minimize_test1_out, minimize(minimize_test1_in, minimize_graph_1))
+
+    def test_minimize_2(self):
+        """Test the minimize function for multiple counterfactual variables. Source: out of Richard's head."""
+        minimize_graph_2 = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (X, W),
+                (W, Y),
+            ],
+            undirected=[(X, Y)],
+        )
+        minimize_test2_in = [(Y @ (-W, -X, -Z)), (W @ (-X, -Z))]
+        minimize_test2_out = [(Y @ -W), (W @ -Z)]
+        self.assertEquals(minimize_test2_out, minimize(minimize_test2_in, minimize_graph_2))

@@ -52,6 +52,46 @@ def get_ancestors_of_counterfactual(
     return None
 
 
+def minimize(
+    event: Set[CounterfactualVariable], graph: NxMixedGraph
+) -> Set[CounterfactualVariable]:
+    r"""Minimize a set of counterfactual variables.
+
+    Source: last paragraph in Section 4 of Correa, Lee, and Barenboim 2022, before Section 4.1.
+    Mathematical expression: ||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \elementof \mathbf Y_*}.
+    (The math syntax is not necessarily cannonical LaTeX.)
+
+    :param event: A set of counterfactual variables to minimize.
+    :param graph: The graph containing them.
+    :returns: a set of minimized counterfactual variables such that each minimized variable
+              is an element of the original set.
+    """
+    return_set = set({})
+    for cv in event:
+        mini_cv = _miniminimize(cv, graph)
+        if mini_cv not in return_set:
+            return_set.add(mini_cv)
+    return return_set
+
+
+def _miniminimize(event: CounterfactualVariable, graph: NxMixedGraph):
+    r"""Minimize a single counterfactual variable which may have multiple interventions.
+
+    Source: last paragraph in Section 4 of Correa, Lee, and Barenboim 2022, before Section 4.1.
+
+    Mathematical expression:
+    ||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline(\mathbf X)}}}.
+    (The math syntax is not necessarily cannonical LaTeX.)
+
+    :param event: A counterfactual variable to minimize.
+    :param graph: The graph containing them.
+    :returns: a minimized counterfactual variable which may omit some interventions from the original one.
+    :raises NotImplementedError: not implemented yet.
+    """
+    raise NotImplementedError("Unimplemented function: _miniminimize")
+    return None
+
+
 # TODO: Add expected inputs and outputs to the below three algorithms
 def sigma_tr() -> None:
     """Implement the sigma-TR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 4 in Appendix B)."""
