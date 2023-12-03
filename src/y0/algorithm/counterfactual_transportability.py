@@ -1,10 +1,10 @@
 """Implementation of counterfactual transportability."""
 
-from typing import Optional, Union, Iterable, Dict, List
+from typing import Dict, Iterable, List, Optional, Union
 
+from y0.algorithm.transport import create_transport_diagram
 from y0.dsl import CounterfactualVariable, Intervention, Variable
 from y0.graph import NxMixedGraph
-from y0.algorithm.transport import create_transport_diagram
 
 __all__ = [
     "simplify",
@@ -14,61 +14,107 @@ __all__ = [
 def simplify(
     event: list[tuple[CounterfactualVariable, Intervention]]
 ) -> Optional[dict[CounterfactualVariable, Intervention]]:
-    """Run algorithm 1: the SIMPLIFY algorithm from Correa, Lee, and Bareinboim 2022"""
+    """Run algorithm 1, the SIMPLIFY algorithm from Correa, Lee, and Bareinboim 2022.
+
+    :param event: "Y_*, a set of counterfactual variables in V and y_* a set of
+                values for Y_*." We encode the counterfactual variables as
+                CounterfactualVariable objects, and the values as Intervention objects.
+    :returns: "Y_* = y_*". We use a dict with counterfactual variables for keys and
+              interventions for values.
+    :raises NotImplementedError: not implemented yet.
+    """
+    # TODO: Ask Jeremy:
+    # 1) Is it better to have Union[CounterfactualVariable, Variable] instead of just CounterfactualVariable?
+    # 2) Is there a better way to capture the values than with Intervention objects?
     raise NotImplementedError
+    return None
+
 
 def get_ancestors_of_counterfactual(
-    event: tuple[CounterfactualVariable, NxMixedGraph]
+    event: CounterfactualVariable, graph: NxMixedGraph
 ) -> set(Union[CounterfactualVariable, Variable]):
-    """Gets the ancestors of a counterfactual variable following Correa, Lee, and Bareinboim 2022, Definition 2.1 and Example 2.1
-       and returns them as a set of variables that may include counterfactual variables."""
-    raise NotImplementedError(f"Unimplemented function: get_ancestors_of_counterfactual")    
+    """Get the ancestors of a counterfactual variable.
 
-## TODO: Add expected inputs and outputs to the below three algorithms
-def sigmaTR() -> None:
-    """Implements the sigma-TR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 4 in Appendix B)"""
-    raise NotImplementedError(f"Unimplemented function: sigmaTR")
+    This follows Correa, Lee, and Bareinboim 2022, Definition 2.1 and Example 2.1.
 
-def ctfTR() -> None:
-    """Implements the ctfTR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 3)"""
-    raise NotImplementedError(f"Unimplemented function: ctfTR")
+    :param event: A single counterfactual variable.
+    :param graph: The graph containing it.
+    :returns: a set of counterfactual variables. Correa, Lee, and Bareinboim consider
+              a "counterfactual variable" to also include variables with no interventions.
+              In our case we allow our returned set to include the "Variable" class for
+              Y0 syntax, and should test examples including ordinary variables as
+              ancestors.
+    :raises NotImplementedError: not implemented yet.
+    """
+    raise NotImplementedError("Unimplemented function: get_ancestors_of_counterfactual")
+    return None
 
-def ctfTRu() -> None:
-    """Implements the ctfTRu algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 2)"""
-    raise NotImplementedError(f"Unimplemented function: ctfTRu")
+
+# TODO: Add expected inputs and outputs to the below three algorithms
+def sigma_tr() -> None:
+    """Implement the sigma-TR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 4 in Appendix B)."""
+    raise NotImplementedError("Unimplemented function: sigmaTR")
+
+
+def ctf_tr() -> None:
+    """Implement the ctfTR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 3)."""
+    raise NotImplementedError("Unimplemented function: ctfTR")
+
+
+def ctf_tru() -> None:
+    """Implement the ctfTRu algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 2)."""
+    raise NotImplementedError("Unimplemented function: ctfTRu")
+
 
 def is_ctf_factor(
-    *,
-    event: list[tuple[CounterfactualVariable]],
-    graph: NxMixedGraph
+    *, event: List[Union[CounterfactualVariable, Variable]], graph: NxMixedGraph
 ) -> bool:
-    """Checks whether a joint probability distribution of counterfactual variables is a counterfactual factor ("ctf factor") in a graph.
-       See Correa, Lee, and Bareinboim 2022, Defenition 3.4
+    """Check if a joint probability distribution of counterfactual variables is a counterfactual factor in a graph.
+
+    See Correa, Lee, and Bareinboim 2022, Definition 3.4. A "ctf-factor" is a counterfactual factor.
+
+    :param event: A list of counterfactual variables, some of which may have no interventions.
+    :param graph: The corresponding graph.
+    :returns: A single boolean value (True if the input event is a ctf-factor, False otherwise).
+    :raises NotImplementedError: not implemented yet.
     """
-    raise NotImplementedError(f"Unimplemented function: is_ctf_factor")
+    raise NotImplementedError("Unimplemented function: is_ctf_factor")
+    return None
+
 
 def make_selection_diagram(
-    *,
-    graph: NxMixedGraph,
-    selection_nodes: Dict[int, Iterable[Variable]]
+    *, selection_nodes: Dict[int, Iterable[Variable]], graph: NxMixedGraph
 ) -> NxMixedGraph:
-    """Correa, Lee, and Barenboim refer to transportability diagrams as "selection diagrams" and combine multiple domains into a single diagram.
-       The input dict maps an integer corresponding to each domain to the set of "selection variables" for that domain. We depart from 
-       Correa, Lee, and Barenboim's notation. They use pi to denote selection variables in a selection diagram, but because you could in theory
-       have multiple pi variables from different domains pointing to the same node in a graph, we prefer to retain the notation of transportability
-       nodes from Tikka and Karvanen 2019 ("Surrogate Outcomes and Transportability").
+    """Make a selection diagram.
+
+    Correa, Lee, and Barenboim refer to transportability diagrams as "selection diagrams" and combine
+    multiple domains into a single diagram. The input dict maps an integer corresponding to each domain
+    to the set of "selection variables" for that domain. We depart from Correa, Lee, and Barenboim's
+    notation. They use pi to denote selection variables in a selection diagram, but because you could in
+    theory have multiple pi variables from different domains pointing to the same node in a graph, we
+    prefer to retain the notation of transportability nodes from Tikka and Karvanen 2019 ("Surrogate
+    Outcomes and Transportability").
+
+    :param selection_nodes: A mapping of integers (indexes for each domain) to the selection variables for each domain.
+    :param graph: The graph containing it.
+    :returns: A new graph that is the selection diagram merging the multiple domains.
     """
     selection_diagrams = List[NxMixedGraph]
     for selection_variables in selection_nodes.values():
-        selection_diagrams.append(create_transport_diagram(
-                                    nodes_to_transport = selection_variables,
-                                    graph = graph)
+        selection_diagrams.append(
+            create_transport_diagram(nodes_to_transport=selection_variables, graph=graph)
         )
     return _merge_transport_diagrams(selection_diagrams)
 
-def _merge_transport_diagrams(
-    *,
-    graphs: List[NxMixedGraph]
-) -> NxMixedGraph:
-    """This implementation could be incorporated into make_selection_diagram()"""
-    raise NotImplementedError(f"Unimplemented function: _merge_transport_diagrams")
+
+def _merge_transport_diagrams(*, graphs: List[NxMixedGraph]) -> NxMixedGraph:
+    """Merge transport diagrams from multiple domains into one diagram.
+
+    This implementation could be incorporated into make_selection_diagram().
+
+    :param graphs: A list of graphs (transport diagrams) corresponding to each domain.
+    :returns: a new graph merging the domains.
+    :raises NotImplementedError: not implemented yet.
+    """
+    raise NotImplementedError("Unimplemented function: _merge_transport_diagrams")
+    return None
