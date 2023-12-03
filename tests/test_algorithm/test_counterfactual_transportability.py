@@ -1,10 +1,11 @@
-"""Tests for counterfactual transportability."""
+"""Tests for counterfactual transportability. See https://proceedings.mlr.press/v162/correa22a/correa22a.pdf."""
 
 import unittest
 
 from y0.algorithm.counterfactual_transportability import (
     get_ancestors_of_counterfactual,
-    is_ctf_factor,
+    get_ctf_factors,
+    is_ctf_factor_form,
     make_selection_diagram,
     minimize,
     same_district,
@@ -153,34 +154,34 @@ class TestSimplify(unittest.TestCase):
         self.assertIsNone(simplify(event))
 
 
-class TestIsCTFFactor(unittest.TestCase):
-    """Test properties of counterfactual transportability factors."""
+class TestIsCtfFactorForm(unittest.TestCase):
+    """Test whether a set of counterfactual variables are all in counterfactual factor form."""
 
     # TODO: Incorporate a test involving counterfactual unnesting.
 
-    def test_is_ctf_factor(self):
+    def test_is_ctf_factor_form(self):
         """From Example 3.3 of Correa, Lee, and Barenboim 2022."""
         event1 = [(Y @ (-Z, -W, -X)), (W @ -X)]  # (Y @ -Z @ -W @ -X)
-        self.assertTrue(is_ctf_factor(event=event1, graph=figure_2a_graph))
+        self.assertTrue(is_ctf_factor_form(event=event1, graph=figure_2a_graph))
 
         event2 = [(W @ X), (Z)]
-        self.assertTrue(is_ctf_factor(event=event2, graph=figure_2a_graph))
+        self.assertTrue(is_ctf_factor_form(event=event2, graph=figure_2a_graph))
 
         event3 = [(Y @ (-Z, -W)), (W @ -X)]
-        self.assertFalse(is_ctf_factor(event=event3, graph=figure_2a_graph))
+        self.assertFalse(is_ctf_factor_form(event=event3, graph=figure_2a_graph))
 
         # Y has parents, so they should be intervened on but are not
         event4 = [(Y)]
-        self.assertFalse(is_ctf_factor(event=event4, graph=figure_2a_graph))
+        self.assertFalse(is_ctf_factor_form(event=event4, graph=figure_2a_graph))
 
         # Z has no parents, so this variable is also a ctf-factor
         event5 = [(Z)]
-        self.assertTrue(is_ctf_factor(event=event5, graph=figure_2a_graph))
+        self.assertTrue(is_ctf_factor_form(event=event5, graph=figure_2a_graph))
 
         # Z is not a parent of W, so the second counterfactual variable is not a ctf-factor,
         # because it is not a valid counterfactual variable
         event6 = [(Y @ (-Z, -W)), (W @ (-X, Z))]
-        self.assertFalse(is_ctf_factor(event=event6, graph=figure_2a_graph))
+        self.assertFalse(is_ctf_factor_form(event=event6, graph=figure_2a_graph))
 
 
 class TestMakeSelectionDiagram(unittest.TestCase):
@@ -253,14 +254,50 @@ class TestMinimize(unittest.TestCase):
 class TestSameDistrict(unittest.TestCase):
     """Test whether a set of counterfactual variables are in the same district (c-component)."""
 
-    def test_same_district(self):
-        """Test whether a set of counterfactual variables are in the same district (c-component).
+    def test_same_district_1(self):
+        """Test #1 for whether a set of counterfactual variables are in the same district (c-component).
 
         Source: out of Richard's head.
         """
         same_district_test1_in = [(Y @ (-X, -W, -Z)), (W @ (-X))]
-        same_district_test2_in = [(Z), (X @ -Z)]
-        same_district_test3_in = [(Y @ -Y), (Z), (X @ -Z)]
         self.assertTrue(same_district(same_district_test1_in, figure_2a_graph))
+
+    def test_same_district_2(self):
+        """Test #2 for whether a set of counterfactual variables are in the same district (c-component).
+
+        Source: out of Richard's head.
+        """
+        same_district_test2_in = [(Z), (X @ -Z)]
         self.assertTrue(same_district(same_district_test2_in, figure_2a_graph))
+
+    def test_same_district_3(self):
+        """Test #3 for whether a set of counterfactual variables are in the same district (c-component).
+
+        Source: out of Richard's head.
+        """
+        same_district_test3_in = [(Y @ -Y), (Z), (X @ -Z)]
         self.assertFalse(same_district(same_district_test3_in, figure_2a_graph))
+
+
+class TestGetCtfFactors(unittest.TestCase):
+    """Test the GetCtfFactors function in counterfactual_transportability.py.
+
+    This is one step in the ctf-factor factorization process. Here we want
+    to check that we can separate a joint probability distribution of ctf-factors
+    into a set of joint probability distributions that we'll later multiply
+    together as per Equation 15 in Correa, Lee, and Barenboim 2022.
+    """
+
+    def test_get_ctf_factors(self):
+        """Test factoring a set of counterfactual variables by district (c-component).
+
+        Source: Example 4.2 of Correa, Lee, and Barenboim 2022. Note that
+                we're not testing the full example, just computing factors
+                for the query.
+        """
+        # TODO: Add more tests.
+        get_ctf_factors_test_1_in = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
+        get_ctf_factors_test_1_out = set({((Y @ (-X, -W, -Z)), (W @ -X)), ((X @ -Z), (Z))})
+        self.assertSetEqual(
+            get_ctf_factors_test_1_out, get_ctf_factors(event=get_ctf_factors_test_1_in, graph=figure_2a_graph)
+        )

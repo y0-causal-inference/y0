@@ -2,6 +2,7 @@
 
 """Implementation of counterfactual transportability from https://proceedings.mlr.press/v162/correa22a/correa22a.pdf."""
 
+import logging
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from y0.algorithm.transport import create_transport_diagram
@@ -11,6 +12,8 @@ from y0.graph import NxMixedGraph
 __all__ = [
     "simplify",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def simplify(
@@ -108,23 +111,7 @@ def same_district(event: Set[Union[CounterfactualVariable, Variable]], graph: Nx
     return None
 
 
-# TODO: Add expected inputs and outputs to the below three algorithms
-def sigma_tr() -> None:
-    """Implement the sigma-TR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 4 in Appendix B)."""
-    raise NotImplementedError("Unimplemented function: sigmaTR")
-
-
-def ctf_tr() -> None:
-    """Implement the ctfTR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 3)."""
-    raise NotImplementedError("Unimplemented function: ctfTR")
-
-
-def ctf_tru() -> None:
-    """Implement the ctfTRu algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 2)."""
-    raise NotImplementedError("Unimplemented function: ctfTRu")
-
-
-def is_ctf_factor(
+def is_ctf_factor_form(
     *, event: List[Union[CounterfactualVariable, Variable]], graph: NxMixedGraph
 ) -> bool:
     """Check if a joint probability distribution of counterfactual variables is a counterfactual factor in a graph.
@@ -138,6 +125,34 @@ def is_ctf_factor(
     """
     raise NotImplementedError("Unimplemented function: is_ctf_factor")
     return None
+
+
+def get_ctf_factors(
+    *, event: List[Union[CounterfactualVariable, Variable]], graph: NxMixedGraph
+) -> Optional[Set[List[Union[CounterfactualVariable, Variable]]]]:
+    """Decompose a joint probability distribution of counterfactual variables.
+
+    The function returns a set of smaller joint probability distributions corresponding to its counterfactual factors,
+    or "None" if any of the counterfactual variables are not in ctf-factor form.
+
+    See Correa, Lee, and Bareinboim 2022, Definition 3.4. A "ctf-factor" is a counterfactual factor.
+
+    :param event: A list of counterfactual variables, some of which may have no interventions.
+                  All must be in ctf-factor form.
+    :param graph: The corresponding graph.
+    :returns: A set of lists, each corresponding to a joint probability distribution of counterfactual variables
+              in ctf-factor form.
+    :raises NotImplementedError: not implemented yet.
+    """
+    if not is_ctf_factor_form(event=event, graph=graph):
+        logger.debug(
+            "In get_ctf_factors(): the event (%s) is not in counterfactual factor form.\n",
+            str(event),
+        )
+        return None
+    else:
+        raise NotImplementedError("Unimplemented function: get_ctf_factors")
+        return None
 
 
 def make_selection_diagram(
@@ -176,3 +191,19 @@ def _merge_transport_diagrams(*, graphs: List[NxMixedGraph]) -> NxMixedGraph:
     """
     raise NotImplementedError("Unimplemented function: _merge_transport_diagrams")
     return None
+
+
+# TODO: Add expected inputs and outputs to the below three algorithms
+def sigma_tr() -> None:
+    """Implement the sigma-TR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 4 in Appendix B)."""
+    raise NotImplementedError("Unimplemented function: sigmaTR")
+
+
+def ctf_tr() -> None:
+    """Implement the ctfTR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 3)."""
+    raise NotImplementedError("Unimplemented function: ctfTR")
+
+
+def ctf_tru() -> None:
+    """Implement the ctfTRu algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 2)."""
+    raise NotImplementedError("Unimplemented function: ctfTRu")
