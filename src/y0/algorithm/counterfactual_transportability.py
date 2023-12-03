@@ -1,6 +1,8 @@
-"""Implementation of counterfactual transportability."""
+# -*- coding: utf-8 -*-
 
-from typing import Dict, Iterable, List, Optional, Union
+"""Implementation of counterfactual transportability from https://proceedings.mlr.press/v162/correa22a/correa22a.pdf."""
+
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from y0.algorithm.transport import create_transport_diagram
 from y0.dsl import CounterfactualVariable, Intervention, Variable
@@ -12,8 +14,8 @@ __all__ = [
 
 
 def simplify(
-    event: list[tuple[CounterfactualVariable, Intervention]]
-) -> Optional[dict[CounterfactualVariable, Intervention]]:
+    event: List[Tuple[CounterfactualVariable, Intervention]]
+) -> Optional[Dict[CounterfactualVariable, Intervention]]:
     """Run algorithm 1, the SIMPLIFY algorithm from Correa, Lee, and Bareinboim 2022.
 
     :param event: "Y_*, a set of counterfactual variables in V and y_* a set of
@@ -26,13 +28,13 @@ def simplify(
     # TODO: Ask Jeremy:
     # 1) Is it better to have Union[CounterfactualVariable, Variable] instead of just CounterfactualVariable?
     # 2) Is there a better way to capture the values than with Intervention objects?
-    raise NotImplementedError
+    raise NotImplementedError("Unimplemented function: Simplify")
     return None
 
 
 def get_ancestors_of_counterfactual(
     event: CounterfactualVariable, graph: NxMixedGraph
-) -> set(Union[CounterfactualVariable, Variable]):
+) -> Set[Union[CounterfactualVariable, Variable]]:
     """Get the ancestors of a counterfactual variable.
 
     This follows Correa, Lee, and Bareinboim 2022, Definition 2.1 and Example 2.1.
@@ -99,12 +101,12 @@ def make_selection_diagram(
     :param graph: The graph containing it.
     :returns: A new graph that is the selection diagram merging the multiple domains.
     """
-    selection_diagrams = List[NxMixedGraph]
+    selection_diagrams = list()
     for selection_variables in selection_nodes.values():
         selection_diagrams.append(
             create_transport_diagram(nodes_to_transport=selection_variables, graph=graph)
         )
-    return _merge_transport_diagrams(selection_diagrams)
+    return _merge_transport_diagrams(graphs=selection_diagrams)
 
 
 def _merge_transport_diagrams(*, graphs: List[NxMixedGraph]) -> NxMixedGraph:

@@ -166,7 +166,7 @@ class DSeparationJudgement:
                     f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
                 )
 
-        tests = get_conditional_independence_tests() # type: dict
+        tests = get_conditional_independence_tests()  # type: dict
         func = tests[method or "cressie_read"]
         return func(
             X=self.left.name,
