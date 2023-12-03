@@ -7,6 +7,7 @@ from y0.algorithm.counterfactual_transportability import (
     is_ctf_factor,
     make_selection_diagram,
     minimize,
+    same_district,
     simplify,
 )
 from y0.algorithm.transport import transport_variable
@@ -247,3 +248,19 @@ class TestMinimize(unittest.TestCase):
         minimize_test2_in = [(Y @ (-W, -X, -Z)), (W @ (-X, -Z))]
         minimize_test2_out = [(Y @ -W), (W @ -Z)]
         self.assertEquals(minimize_test2_out, minimize(minimize_test2_in, minimize_graph_2))
+
+
+class TestSameDistrict(unittest.TestCase):
+    """Test whether a set of counterfactual variables are in the same district (c-component)."""
+
+    def test_same_district(self):
+        """Test whether a set of counterfactual variables are in the same district (c-component).
+
+        Source: out of Richard's head.
+        """
+        same_district_test1_in = [(Y @ (-X, -W, -Z)), (W @ (-X))]
+        same_district_test2_in = [(Z), (X @ -Z)]
+        same_district_test3_in = [(Y @ -Y), (Z), (X @ -Z)]
+        self.assertTrue(same_district(same_district_test1_in, figure_2a_graph))
+        self.assertTrue(same_district(same_district_test2_in, figure_2a_graph))
+        self.assertFalse(same_district(same_district_test3_in, figure_2a_graph))

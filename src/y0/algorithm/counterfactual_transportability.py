@@ -74,7 +74,7 @@ def minimize(
     return return_set
 
 
-def _miniminimize(event: CounterfactualVariable, graph: NxMixedGraph):
+def _miniminimize(event: CounterfactualVariable, graph: NxMixedGraph) -> CounterfactualVariable:
     r"""Minimize a single counterfactual variable which may have multiple interventions.
 
     Source: last paragraph in Section 4 of Correa, Lee, and Barenboim 2022, before Section 4.1.
@@ -89,6 +89,22 @@ def _miniminimize(event: CounterfactualVariable, graph: NxMixedGraph):
     :raises NotImplementedError: not implemented yet.
     """
     raise NotImplementedError("Unimplemented function: _miniminimize")
+    return None
+
+
+def same_district(event: Set[Union[CounterfactualVariable, Variable]], graph: NxMixedGraph) -> bool:
+    """Check if a set of counterfactual variables are in the same district (c-component) of a graph.
+
+    :param event: A set of counterfactual variables.
+    :param graph: The graph containing them.
+    :returns: A boolean.
+    :raises NotImplementedError: not implemented yet.
+    """
+    # TODO: Hint to my future self: use the graph.districts() function and just get the base of
+    #       each counterfactual variable. There's a function to get the district for a single variable.
+    #       Get the union of the output from that function applied to each variable and see if
+    #       its size is greater than one.
+    raise NotImplementedError("Unimplemented function: same_district")
     return None
 
 
