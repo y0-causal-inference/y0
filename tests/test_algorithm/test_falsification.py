@@ -43,11 +43,14 @@ class TestFalsification(unittest.TestCase):
             get_graph_falsifications(asia_example.graph, data_binary, method="pearson")
 
         # This tests what happens when there are two continuous values
-        data_sort_of_continuous = data_binary.map(lambda x: x + 32)
+        data_sort_of_continuous = data_binary.copy()
+        for c in data_sort_of_continuous.columns:
+            data_sort_of_continuous[c] = data_sort_of_continuous[c].map(lambda x: x + 32)
         with self.assertRaises(ValueError):
             get_graph_falsifications(
                 asia_example.graph, data_sort_of_continuous, method="cressie_read"
             )
+        get_graph_falsifications(asia_example.graph, data_sort_of_continuous, method="pearson")
 
     def test_continuous_graph_falsifications(self):
         """Test the frontdoor graph against continuous data generated for it."""
