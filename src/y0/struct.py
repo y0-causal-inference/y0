@@ -124,11 +124,15 @@ class DSeparationJudgement:
         return (
             self.left < self.right
             and isinstance(self.conditions, tuple)
-            and tuple(sorted(self.conditions, key=str)) == (self.conditions)
+            and tuple(sorted(self.conditions, key=str)) == self.conditions
         )
 
     def test(
-        self, df: pd.DataFrame, boolean: bool = False, method: Optional[CITest] = None, **kwargs
+        self,
+        df: pd.DataFrame,
+        boolean: bool = False,
+        method: Optional[CITest] = None,
+        significance_level: Optional[float] = None,
     ) -> Union[Tuple[float, int], Tuple[float, int, float], bool]:
         """Test for conditional independence, given some data.
 
@@ -136,7 +140,10 @@ class DSeparationJudgement:
         :param boolean: Should results be returned as a pre-cutoff boolean?
         :param method: Conditional independence from :mod:`pgmpy` to use. If none,
             defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
-        :param kwargs: Additional kwargs to pass to the estimator function
+        :param significance_level:
+            The statistical tests employ this value for
+            comparison with the p-value of the test to determine the independence of
+            the tested variables. If none, defaults to 0.01. Only applied if ``boolean=True``.
         :returns:
             Tests the null hypothesis that X is independent of Y given Zs.
             If ``boolean=False``, returns a three-tuple of chi, dof, p_value.
@@ -160,6 +167,8 @@ class DSeparationJudgement:
                 raise ValueError(
                     f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
                 )
+        if significance_level is None:
+            significance_level = 0.01
 
         method = _ensure_method(
             method, df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]]
@@ -172,7 +181,7 @@ class DSeparationJudgement:
             Z={condition.name for condition in self.conditions},
             data=df,
             boolean=boolean,
-            **kwargs,
+            significance_level=significance_level,
         )
 
 
@@ -187,11 +196,23 @@ def _ensure_method(method: Optional[CITest], df: pd.DataFrame) -> CITest:
         else:
             return DEFAULT_CONTINUOUS_CI_TEST
     elif binary and method == "pearson":
-        raise ValueError(f"using continuous data test ({method}) on binary data")
+        raise ValueError(
+            f"using continuous data test ({method}) on binary data: {_summarize_df(df)}"
+        )
     elif not binary and method != "pearson":
         raise ValueError(f"using binary data test ({method}) on continuous data")
     return method
 
 
+def _summarize_df(df: pd.DataFrame):
+    return {column: set(df[column].unique()) for column in df.columns}
+
+
 def _is_binary(df: pd.DataFrame) -> bool:
-    return all(2 == df[column].nunique() for column in df.columns)
+    column_to_type = {column: _is_two_values(df[column]) for column in df.columns}
+    return all(column_to_type.values())
+
+
+def _is_two_values(series):
+    values = set(series.unique())
+    return values == {True, False} or values == {1, 0} or values == {1, -1}
