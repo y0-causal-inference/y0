@@ -347,11 +347,20 @@ class TestEquation11(unittest.TestCase):
 
         Source: Equation 14 of Correa et al. (2022).
         """
-        test_equation_11_in = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
+        # Already in ctf-factor form
+        test_equation_11_in_1 = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
+
+        # get_ctf_factor_query() should convert this expression to ctf-factor form
+        test_equation_11_in_2 = [(Y @ (-X)), (W @ -X), (X @ -Z), (Z)]
+
         test_equation_11_expected = Sum.safe(
             P([(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]), [Z, W]
         )
         self.assert_expr_equal(
-            get_ctf_factor_query(event=test_equation_11_in, graph=figure_2a_graph),
+            get_ctf_factor_query(event=test_equation_11_in_1, graph=figure_2a_graph),
+            test_equation_11_expected,
+        )
+        self.assert_expr_equal(
+            get_ctf_factor_query(event=test_equation_11_in_2, graph=figure_2a_graph),
             test_equation_11_expected,
         )
