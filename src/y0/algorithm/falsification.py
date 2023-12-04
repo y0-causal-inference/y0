@@ -91,23 +91,32 @@ def get_falsifications(
     """
     if significance_level is None:
         significance_level = 0.05
-    variances = {
-        judgement: judgement.test(df, test=method)
-        for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals")
-    }
-    evidence = pd.DataFrame(
-        [
+    # Make this loop explicit for clarity
+    results = []
+    for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals"):
+        result = judgement.test(df, method=method)
+        # Person's correlation returns a pair with the first element being the Person's correlation
+        # and the second being the p-value. The other methods return a triple with the first element
+        # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of
+        # freedom.
+        if method == "pearson":
+            stat, p_value = result
+            dof = None
+        else:
+            stat, p_value, dof = result
+        results.append(
             (
                 judgement.left.name,
                 judgement.right.name,
                 "|".join(c.name for c in judgement.conditions),
-                chi,
-                p,
+                stat,
+                p_value,
                 dof,
             )
-            for judgement, (chi, p, dof) in variances.items()
-        ],
-        columns=["left", "right", "given", "chi^2", "p", "dof"],
+        )
+    evidence = pd.DataFrame(
+        results,
+        columns=["left", "right", "given", "stats", "p", "dof"],
     )
     evidence.sort_values("p", ascending=True, inplace=True)
     evidence = (
