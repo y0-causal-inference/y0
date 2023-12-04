@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from typing import Iterable, Optional, Union
 
 import pandas as pd
+import statsmodels
+import statsmodels.stats.multitest
 from tqdm.auto import tqdm
 
 from .conditional_independencies import get_conditional_independencies
@@ -68,9 +70,6 @@ def get_graph_falsifications(
     )
 
 
-HB_LEVEL_NAME = "Holm–Bonferroni level"
-
-
 def get_falsifications(
     judgements: Union[NxMixedGraph, Iterable[DSeparationJudgement]],
     df: pd.DataFrame,
@@ -78,19 +77,24 @@ def get_falsifications(
     significance_level: Optional[float] = None,
     verbose: bool = False,
     method: Optional[CITest] = None,
+    correction: Optional[str] = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a list of D-separation judgements.
 
     :param judgements: A list of D-separation judgements to check.
     :param df: Data to check for consistency with a causal implications
-    :param significance_level: Significance for p-value test
     :param verbose: If true, use tqdm for status updates.
     :param method: Conditional independence from :mod:`pgmpy` to use. If none,
         defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
+    :param correction: Method used for multiple hypothesis test correction. Defaults to ``holm``.
+        See :func:`statsmodels.stats.multitest.multipletests` for possible methods.
+    :param significance_level: Significance for p-value test, applied after multiple hypothesis testing correction
     :return: Falsifications report
     """
     if significance_level is None:
         significance_level = 0.05
+    if correction is None:
+        correction = "holm"
     # Make this loop explicit for clarity
     results = []
     method = _ensure_method(method, df)
@@ -115,24 +119,19 @@ def get_falsifications(
                 dof,
             )
         )
-    evidence = pd.DataFrame(
+    evidence_df = pd.DataFrame(
         results,
         columns=["left", "right", "given", "stats", "p", "dof"],
     )
-    # FIXME add better implementation of multiple hypothessis test correction
-    evidence.sort_values("p", ascending=True, inplace=True)
-    evidence = (
-        evidence.assign(
-            **{HB_LEVEL_NAME: significance_level / pd.Series(range(len(evidence.index) + 1, 0, -1))}
-        )
-        .pipe(_assign_flags)
-        .sort_values(["flagged", "dof"], ascending=False)
+    reject, p_adj, _, _ = statsmodels.stats.multitest.multipletests(
+        evidence_df["p"],
+        alpha=significance_level,
+        method=correction,
     )
-
-    failures_df = evidence.loc[evidence["flagged"], ["left", "right", "given"]]
+    evidence_df["p_adj"] = p_adj
+    evidence_df["p_adj_significant"] = reject
+    evidence_df.sort_values("p_adj", ascending=True, inplace=True)
+    evidence_df = evidence_df.sort_values("p_adj")
+    failures_df = evidence_df.loc[evidence_df["p_adj_significant"], ["left", "right", "given"]]
     failures = failures_df.apply(tuple, axis="columns")
-    return Falsifications(failures, evidence)
-
-
-def _assign_flags(df: pd.DataFrame) -> pd.DataFrame:
-    return df.assign(flagged=(df["p"] < df[HB_LEVEL_NAME]))
+    return Falsifications(failures, evidence_df)
