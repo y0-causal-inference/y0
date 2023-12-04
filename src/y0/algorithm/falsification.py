@@ -13,7 +13,7 @@ from tqdm.auto import tqdm
 
 from .conditional_independencies import get_conditional_independencies
 from ..graph import NxMixedGraph
-from ..struct import DSeparationJudgement, _ensure_method
+from ..struct import CITest, DSeparationJudgement, _ensure_method
 
 __all__ = [
     "get_graph_falsifications",
@@ -45,7 +45,7 @@ def get_graph_falsifications(
     significance_level: Optional[float] = None,
     max_given: Optional[int] = None,
     verbose: bool = False,
-    method: Optional[str] = None,
+    method: Optional[CITest] = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a graph.
 
@@ -77,7 +77,7 @@ def get_falsifications(
     *,
     significance_level: Optional[float] = None,
     verbose: bool = False,
-    method: Optional[str] = None,
+    method: Optional[CITest] = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a list of D-separation judgements.
 
