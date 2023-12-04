@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from typing import Iterable, Optional, Union
 
 import pandas as pd
-import statsmodels
 import statsmodels.stats.multitest
 from tqdm.auto import tqdm
 
