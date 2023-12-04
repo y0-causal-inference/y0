@@ -161,7 +161,8 @@ class DSeparationJudgement:
                     f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
                 )
 
-        # TODO extend to discrete but more than 2
+        # TODO extend to discrete but more than 2.
+        #  see https://stats.stackexchange.com/questions/12273/how-to-test-if-my-data-is-discrete-or-continuous
         # TODO what happens when some variables are binary but others are continous?
         binary = _is_binary(
             df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]]
