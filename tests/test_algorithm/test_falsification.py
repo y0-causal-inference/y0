@@ -4,6 +4,9 @@
 
 import unittest
 
+import numpy as np
+import pandas as pd
+
 from y0.algorithm.conditional_independencies import get_conditional_independencies
 from y0.algorithm.falsification import get_falsifications, get_graph_falsifications
 from y0.examples import asia_example, frontdoor_backdoor_example
@@ -24,6 +27,20 @@ class TestFalsification(unittest.TestCase):
                 )
                 self.assertEqual(0, len(issues.failures))
                 self.assertGreater(len(issues.evidence), 0)
+
+    def test_method_mismatch(self):
+        """Test when the wrong test is given."""
+        data_continuous = pd.DataFrame(
+            {v.name: np.random.normal(size=20) for v in asia_example.graph.nodes()}
+        )
+        with self.assertRaises(ValueError):
+            get_graph_falsifications(asia_example.graph, data_continuous, method="cressie_read")
+
+        data_binary = pd.DataFrame(
+            {v.name: np.random.binomial(1, 0.5, size=20) for v in asia_example.graph.nodes()}
+        )
+        with self.assertRaises(ValueError):
+            get_graph_falsifications(asia_example.graph, data_binary, method="pearson")
 
     def test_continuous_graph_falsifications(self):
         """Test the frontdoor graph against continuous data generated for it."""
