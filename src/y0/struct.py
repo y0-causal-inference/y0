@@ -161,22 +161,9 @@ class DSeparationJudgement:
                     f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
                 )
 
-        # TODO extend to discrete but more than 2.
-        #  see https://stats.stackexchange.com/questions/12273/how-to-test-if-my-data-is-discrete-or-continuous
-        # TODO what happens when some variables are binary but others are continous?
-        binary = _is_binary(
-            df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]]
+        method = _ensure_method(
+            method, df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]]
         )
-        if method is None:
-            if binary:
-                method = DEFAULT_DISCRETE_CI_TEST
-            else:
-                method = DEFAULT_CONTINUOUS_CI_TEST
-        elif binary and method == "pearson":
-            raise ValueError(f"using continuous data test ({method}) on binary data")
-        elif not binary and method != "pearson":
-            raise ValueError(f"using binary data test ({method}) on continuous data")
-
         tests = get_conditional_independence_tests()
         func = tests[method]
         return func(
@@ -187,6 +174,23 @@ class DSeparationJudgement:
             boolean=boolean,
             **kwargs,
         )
+
+
+def _ensure_method(method: Optional[CITest], df: pd.DataFrame) -> CITest:
+    # TODO extend to discrete but more than 2.
+    #  see https://stats.stackexchange.com/questions/12273/how-to-test-if-my-data-is-discrete-or-continuous
+    # TODO what happens when some variables are binary but others are continous?
+    binary = _is_binary(df)
+    if method is None:
+        if binary:
+            return DEFAULT_DISCRETE_CI_TEST
+        else:
+            return DEFAULT_CONTINUOUS_CI_TEST
+    elif binary and method == "pearson":
+        raise ValueError(f"using continuous data test ({method}) on binary data")
+    elif not binary and method != "pearson":
+        raise ValueError(f"using binary data test ({method}) on continuous data")
+    return method
 
 
 def _is_binary(df: pd.DataFrame) -> bool:
