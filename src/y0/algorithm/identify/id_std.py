@@ -2,41 +2,29 @@
 
 """An implementation of the identification algorithm."""
 
-from typing import List, Sequence, Union
+from typing import List, Sequence
 
-from .utils import Identification, Query, Unidentifiable
+from .utils import Identification, Unidentifiable
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
-from ...graph import NxMixedGraph, _ensure_set
+from ...graph import NxMixedGraph
 
 __all__ = [
-    "identify_outcomes",
     "identify",
 ]
 
 
-def identify_outcomes(
-    graph: NxMixedGraph,
-    treatments: Union[Variable, set[Variable]],
-    outcomes: Union[Variable, set[Variable]],
-) -> Expression | None:
-    """Get the estimand for the outcomes given the treatments."""
-    treatments = _ensure_set(treatments)
-    outcomes = _ensure_set(outcomes)
-    try:
-        rv = identify(
-            Identification(graph=graph, query=Query(treatments=treatments, outcomes=outcomes))
-        )
-    except Unidentifiable:
-        return None
-    return rv
-
-
 def identify(identification: Identification) -> Expression:
-    """Run the identification algorithm.
+    """Run the ID algorithm from [Shpitser2006]_.
 
     :param identification: The identification tuple
     :returns: the expression corresponding to the identification
     :raises Unidentifiable: If no appropriate identification can be found
+
+    See also :func:`identify_outcomes` for a more idiomatic way of running
+    the ID algorithm given a graph, treatments, and outcomes.
+
+    .. [Shpitser2006] `Identification of joint interventional distributions in recursive semi-Markovian
+       causal models <https://dl.acm.org/doi/10.5555/1597348.1597382>`_
     """
     graph = identification.graph
     treatments = identification.treatments
