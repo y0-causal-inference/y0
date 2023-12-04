@@ -14,10 +14,15 @@ __all__ = [
 
 
 def idc(identification: Identification) -> Expression:
-    """Run the IDC algorithm.
+    """Run the IDC algorithm from [Shpitser2008]_.
 
     :param identification: The identification tuple
     :returns: An expression created by the :func:`identify` algorithm after simplifying the original query
+
+    Raises "Unidentifiable" if no appropriate identification can be found.
+
+    .. [Shpitser2008] `Complete Identification Methods for the Causal
+       Hierarchy <https://www.jmlr.org/papers/v9/shpitser08a.html>`_
     """
     for condition in identification.conditions:
         if rule_2_of_do_calculus_applies(identification=identification, condition=condition):
