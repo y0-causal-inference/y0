@@ -59,6 +59,8 @@ CITest = Literal[
     "power_divergence",
     "neyman",
 ]
+DEFAULT_CONTINUOUS_CI_TEST: CITest = "pearson"
+DEFAULT_DISCRETE_CI_TEST: CITest = "cressie_read"
 
 CITestFunc = Callable
 
@@ -152,13 +154,18 @@ class DSeparationJudgement:
                 f"right variable {self.right.name} ({type(self.right.name)}) not in columns {df.columns}"
             )
         for c in self.conditions:
+            if c.name in {self.left.name, self.right.name}:
+                raise ValueError(f"conditional {c.name} repeats one of the primary arguments")
             if c.name not in df.columns:
                 raise ValueError(
                     f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
                 )
 
+        method = _ensure_method(
+            method, df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]]
+        )
         tests = get_conditional_independence_tests()
-        func = tests[method or "cressie_read"]
+        func = tests[method]
         return func(
             X=self.left.name,
             Y=self.right.name,
@@ -167,3 +174,24 @@ class DSeparationJudgement:
             boolean=boolean,
             **kwargs,
         )
+
+
+def _ensure_method(method: Optional[CITest], df: pd.DataFrame) -> CITest:
+    # TODO extend to discrete but more than 2.
+    #  see https://stats.stackexchange.com/questions/12273/how-to-test-if-my-data-is-discrete-or-continuous
+    # TODO what happens when some variables are binary but others are continous?
+    binary = _is_binary(df)
+    if method is None:
+        if binary:
+            return DEFAULT_DISCRETE_CI_TEST
+        else:
+            return DEFAULT_CONTINUOUS_CI_TEST
+    elif binary and method == "pearson":
+        raise ValueError(f"using continuous data test ({method}) on binary data")
+    elif not binary and method != "pearson":
+        raise ValueError(f"using binary data test ({method}) on continuous data")
+    return method
+
+
+def _is_binary(df: pd.DataFrame) -> bool:
+    return all(2 == df[column].nunique() for column in df.columns)
