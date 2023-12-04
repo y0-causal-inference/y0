@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-)
 from typing import Callable, Iterable, Literal, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
