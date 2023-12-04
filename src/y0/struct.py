@@ -124,7 +124,7 @@ class DSeparationJudgement:
         return (
             self.left < self.right
             and isinstance(self.conditions, tuple)
-            and tuple(sorted(self.conditions, key=str)) == (self.conditions)
+            and tuple(sorted(self.conditions, key=str)) == self.conditions
         )
 
     def test(
@@ -196,16 +196,23 @@ def _ensure_method(method: Optional[CITest], df: pd.DataFrame) -> CITest:
         else:
             return DEFAULT_CONTINUOUS_CI_TEST
     elif binary and method == "pearson":
-        raise ValueError(f"using continuous data test ({method}) on binary data")
+        raise ValueError(
+            f"using continuous data test ({method}) on binary data: {_summarize_df(df)}"
+        )
     elif not binary and method != "pearson":
         raise ValueError(f"using binary data test ({method}) on continuous data")
     return method
 
 
+def _summarize_df(df: pd.DataFrame):
+    return {column: set(df[column].unique()) for column in df.columns}
+
+
 def _is_binary(df: pd.DataFrame) -> bool:
-    return all(2 == df[column].nunique() and _is_two_values(df[column]) for column in df.columns)
+    column_to_type = {column: _is_two_values(df[column]) for column in df.columns}
+    return all(column_to_type.values())
 
 
-def _is_two_values(x):
-    x = set(x)
-    return x == {True, False} or x == {1, 0} or x == {1, -1}
+def _is_two_values(series):
+    values = set(series.unique())
+    return values == {True, False} or values == {1, 0} or values == {1, -1}

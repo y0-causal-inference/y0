@@ -123,11 +123,15 @@ def get_falsifications(
         results,
         columns=["left", "right", "given", "stats", "p", "dof"],
     )
-    reject, p_adj, _, _ = statsmodels.stats.multitest.multipletests(
-        evidence_df["p"],
-        alpha=significance_level,
-        method=correction,
-    )
+    if not results:
+        reject = []
+        p_adj = []
+    else:
+        reject, p_adj, _, _ = statsmodels.stats.multitest.multipletests(
+            evidence_df["p"],
+            alpha=significance_level,
+            method=correction,
+        )
     evidence_df["p_adj"] = p_adj
     evidence_df["p_adj_significant"] = reject
     evidence_df.sort_values("p_adj", ascending=True, inplace=True)
