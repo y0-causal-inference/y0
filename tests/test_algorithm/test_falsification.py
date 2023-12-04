@@ -7,7 +7,7 @@ import unittest
 from y0.algorithm.conditional_independencies import get_conditional_independencies
 from y0.algorithm.falsification import get_falsifications, get_graph_falsifications
 from y0.examples import asia_example, frontdoor_backdoor_example
-from y0.struct import DSeparationJudgement, get_conditional_independence_tests
+from y0.struct import get_conditional_independence_tests
 
 
 class TestFalsification(unittest.TestCase):
