@@ -6,16 +6,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import (
-    Callable,
-    Iterable,
-    Literal,
-    NamedTuple,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
 )
+from typing import Callable, Iterable, Literal, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -69,7 +61,7 @@ CITest = Literal[
     "neyman",
 ]
 
-CITestFunc = TypeVar("CITestFunc", bound=Callable)
+CITestFunc = Callable
 
 
 @lru_cache
@@ -136,7 +128,7 @@ class DSeparationJudgement:
 
     def test(
         self, df: pd.DataFrame, boolean: bool = False, method: Optional[CITest] = None, **kwargs
-    ) -> Union[Tuple[float, int, float], bool]:
+    ) -> Union[Tuple[float, int], Tuple[float, int, float], bool]:
         """Test for conditional independence, given some data.
 
         :param df: A dataframe.

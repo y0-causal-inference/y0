@@ -99,7 +99,7 @@ def get_falsifications(
         # and the second being the p-value. The other methods return a triple with the first element
         # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of
         # freedom.
-        if method == 'pearson':
+        if method == "pearson":
             stat, p_value = result
             dof = None
         else:
