@@ -13,7 +13,7 @@ from tqdm.auto import tqdm
 
 from .conditional_independencies import get_conditional_independencies
 from ..graph import NxMixedGraph
-from ..struct import DSeparationJudgement
+from ..struct import DSeparationJudgement, _ensure_method
 
 __all__ = [
     "get_graph_falsifications",
@@ -93,6 +93,7 @@ def get_falsifications(
         significance_level = 0.05
     # Make this loop explicit for clarity
     results = []
+    method = _ensure_method(method, df)
     for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals"):
         result = judgement.test(df, method=method)
         # Person's correlation returns a pair with the first element being the Person's correlation
@@ -118,6 +119,7 @@ def get_falsifications(
         results,
         columns=["left", "right", "given", "stats", "p", "dof"],
     )
+    # FIXME add better implementation of multiple hypothessis test correction
     evidence.sort_values("p", ascending=True, inplace=True)
     evidence = (
         evidence.assign(
