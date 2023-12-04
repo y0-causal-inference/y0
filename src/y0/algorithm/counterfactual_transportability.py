@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from y0.algorithm.transport import create_transport_diagram
-from y0.dsl import CounterfactualVariable, Intervention, Variable
+from y0.dsl import CounterfactualVariable, Expression, Intervention, P, Sum, Variable
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -36,7 +36,7 @@ def simplify(
 
 
 def get_ancestors_of_counterfactual(
-    event: CounterfactualVariable, graph: NxMixedGraph
+    event: Union[CounterfactualVariable, Variable], graph: NxMixedGraph
 ) -> Set[Union[CounterfactualVariable, Variable]]:
     """Get the ancestors of a counterfactual variable.
 
@@ -153,6 +153,40 @@ def get_ctf_factors(
     else:
         raise NotImplementedError("Unimplemented function: get_ctf_factors")
         return None
+
+
+def get_ctf_factor_query(
+    *, event: List[Union[CounterfactualVariable, Variable]], graph: NxMixedGraph
+) -> Expression:
+    r"""Take an arbitrary query and return the counterfactual factor form of the query.
+
+    Input: :math:P*( \mathbf y_*)
+    Output: :math:Sum_{ \mathbf d_* \\ \mathbf y_*} P*( \mathbf d_* ), where :math:\mathbf D_* = An( \mathbf Y_* )
+    :param event: A list of counterfactual variables.
+    :param graph: The corresponding graph.
+    :returns: An expression following the right side of Equation 11 in Correa et al. 2022.
+    """
+    capital_d_bold: Set[Union[CounterfactualVariable, Variable]] = set(
+        {}
+    )  # Jeremy: Flake8 requires the variable name to not be capitalized. Is this the right solution?
+    lowercase_y_variable_names: Set[Variable] = set({})
+    query_in_ctf_factor_form: Set[Union[CounterfactualVariable, Variable]] = set(
+        {}
+    )  # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.
+    query_with_just_the_variable_names: Set[Variable] = set({})
+    for cv in event:  # "counterfactual variable"
+        capital_d_bold = capital_d_bold.union(
+            get_ancestors_of_counterfactual(cv, graph)
+        )  # result is :math: \mathbf D_*
+        # The next line is basically getting V(W_*) from W_*. Is there a better way?
+        lowercase_y_variable_names = lowercase_y_variable_names.union(set({cv.get_base()}))
+    for capital_d in capital_d_bold:
+        ctf_cv = capital_d.intervene(graph.directed.predecessors(capital_d))
+        query_in_ctf_factor_form.add(ctf_cv)
+        query_with_just_the_variable_names.add(ctf_cv.get_base())
+    sum_range = capital_d_bold - lowercase_y_variable_names
+    result = Sum.safe(P(query_in_ctf_factor_form), sum_range)
+    return result
 
 
 def make_selection_diagram(

@@ -4,6 +4,7 @@ import unittest
 
 from y0.algorithm.counterfactual_transportability import (
     get_ancestors_of_counterfactual,
+    get_ctf_factor_query,
     get_ctf_factors,
     is_ctf_factor_form,
     make_selection_diagram,
@@ -12,8 +13,22 @@ from y0.algorithm.counterfactual_transportability import (
     simplify,
 )
 from y0.algorithm.transport import transport_variable
-from y0.dsl import CounterfactualVariable, Intervention, Variable, W, X, Y, Z, Zero
+from y0.dsl import (
+    CounterfactualVariable,
+    Expression,
+    Intervention,
+    P,
+    Sum,
+    Variable,
+    W,
+    X,
+    Y,
+    Z,
+    Zero,
+    get_outcomes_and_treatments,
+)
 from y0.graph import NxMixedGraph
+from y0.mutate import canonicalize
 
 # From Correa, Lee, and Bareinboim 2022.
 figure_2a_graph = NxMixedGraph.from_edges(
@@ -297,7 +312,46 @@ class TestGetCtfFactors(unittest.TestCase):
         """
         # TODO: Add more tests.
         get_ctf_factors_test_1_in = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
-        get_ctf_factors_test_1_out = set({((Y @ (-X, -W, -Z)), (W @ -X)), ((X @ -Z), (Z))})
+        get_ctf_factors_test_1_expected = set({((Y @ (-X, -W, -Z)), (W @ -X)), ((X @ -Z), (Z))})
         self.assertSetEqual(
-            get_ctf_factors_test_1_out, get_ctf_factors(event=get_ctf_factors_test_1_in, graph=figure_2a_graph)
+            get_ctf_factors_test_1_expected,
+            get_ctf_factors(event=get_ctf_factors_test_1_in, graph=figure_2a_graph),
+        )
+
+
+class TestEquation11(unittest.TestCase):
+    """Test deriving a query of ctf-factors from a counterfactual query, following Equation 11 in Correa et al. (2022).
+
+    This is one step in the ctf-factor factorization process. We get syntax inspiration from Line 1 of the ID algorithm.
+    """
+
+    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
+        """Assert that two expressions are the same. This code is from test_id_alg.py."""
+        # TODO: Check with Jeremy: we may wish to move the code into a utils file
+        #       in the tests/test_algorithm folder, and shared by test_id_alg.py and this file.
+        expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
+        actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
+        self.assertEqual(expected_treatments, actual_treatments)
+        self.assertEqual(expected_outcomes, actual_outcomes)
+        ordering = tuple(expected.get_variables())
+        expected_canonical = canonicalize(expected, ordering)
+        actual_canonical = canonicalize(actual, ordering)
+        self.assertEqual(
+            expected_canonical,
+            actual_canonical,
+            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
+        )
+
+    def test_equation_11(self):
+        """Test deriving a query of ctf factors from a counterfactual query.
+
+        Source: Equation 14 of Correa et al. (2022).
+        """
+        test_equation_11_in = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
+        test_equation_11_expected = Sum.safe(
+            P([(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]), [Z, W]
+        )
+        self.assert_expr_equal(
+            get_ctf_factor_query(event=test_equation_11_in, graph=figure_2a_graph),
+            test_equation_11_expected,
         )
