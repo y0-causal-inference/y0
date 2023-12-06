@@ -49,10 +49,31 @@ def get_ancestors_of_counterfactual(
               In our case we allow our returned set to include the "Variable" class for
               Y0 syntax, and should test examples including ordinary variables as
               ancestors.
-    :raises NotImplementedError: not implemented yet.
     """
-    raise NotImplementedError("Unimplemented function: get_ancestors_of_counterfactual")
-    return None
+    # This is the set of variables X in Correa et al. 2022, Definition 2.1.
+    intervention_variables: Set[Intervention] = set(event.interventions) if isinstance(event, CounterfactualVariable) else set({})
+    graph_intervening_on_intervention_variables: NxMixedGraph = graph.remove_in_edges(
+        intervention_variables
+    )
+    graph_removing_edges_out_of_intervention_variables: NxMixedGraph = graph.remove_out_edges(
+        intervention_variables
+    )
+    ancestor_variable_names: Set[
+        Variable
+    ] = graph_removing_edges_out_of_intervention_variables.ancestors_inclusive(event.get_base())
+    ancestors_of_counterfactual_variable: Set[Union[CounterfactualVariable, Variable]] = set({})
+    for candidate_ancestor in ancestor_variable_names:
+        candidate_interventions_z = graph_intervening_on_intervention_variables.ancestors_inclusive(
+            candidate_ancestor
+        ).intersection(intervention_variables)
+        # TODO: graph_intervening_on_intervention_variables.ancestors_inclusive(candidate_ancestor) returns variables.
+        # intervention_variables are Interventions, which are a type of Variable.
+        # Will these sets intersect without throwing errors?
+        ancestors_of_counterfactual_variable = ancestors_of_counterfactual_variable.union(
+            set(CounterfactualVariable(candidate_ancestor).intervene(candidate_interventions_z))
+        )
+    return ancestors_of_counterfactual_variable
+    # raise NotImplementedError("Unimplemented function: get_ancestors_of_counterfactual")
 
 
 def minimize(
@@ -155,38 +176,108 @@ def get_ctf_factors(
         return None
 
 
+def convert_counterfactual_variables_to_counterfactual_factor_form(
+    *, event: List[Union[CounterfactualVariable, Variable]], graph: NxMixedGraph
+) -> Set[Union[CounterfactualVariable, Variable]]:
+    r"""Convert a set of couterfactual variables and their values to counterfactual factor ("ctf-factor") form.
+
+    That requires intervening on all the parents of each counterfactual variable.
+    Input: :math:`\mathbf W`.
+    Output: :math:`w_{1[\mathbf{pa_{1}}]},w_{2[\mathbf{pa_{2}}]},\cdots,w_{l[\mathbf{pa_{l}}]}`
+            for each :math:`W_i \in \mathbf V`.
+    :param event: A list of counterfactual variables and their values (:math:`\mathbf W_\ast`).
+    :param graph: The corresponding graph.
+    :returns: The output above, represented as a set of counterfactual variables (those without interventions
+           are just variables).
+    """
+    return {
+        counterfactual_variable.intervene(graph.directed.predecessors(counterfactual_variable))
+        for counterfactual_variable in event
+    }
+
+
 def get_ctf_factor_query(
     *, event: List[Union[CounterfactualVariable, Variable]], graph: NxMixedGraph
 ) -> Expression:
-    r"""Take an arbitrary query and return the counterfactual factor form of the query.
+    r"""Take an arbitrary query and return the counterfactual factor form of the query ("ctf-factor form").
 
-    Input: :math:P*( \mathbf y_*)
-    Output: :math:Sum_{ \mathbf d_* \\ \mathbf y_*} P*( \mathbf d_* ), where :math:\mathbf D_* = An( \mathbf Y_* )
-    :param event: A list of counterfactual variables.
+    Input: :math:`P^\ast( \mathbf y_\ast)`
+    Output: :math:`\sum_{ \mathbf d_\ast \backslash \mathbf y_\ast} P^\ast( \mathbf d_\ast )`,
+            where :math:`\mathbf D_\ast = An( \mathbf Y_\ast )`.
+    :param event: A list of values of counterfactual variables ("Input").
     :param graph: The corresponding graph.
-    :returns: An expression following the right side of Equation 11 in Correa et al. 2022.
+    :returns: An expression following the right side of Equation 11 in Correa et al. 2022 ("Output").
     """
-    capital_d_bold: Set[Union[CounterfactualVariable, Variable]] = set(
-        {}
-    )  # Jeremy: Flake8 requires the variable name to not be capitalized. Is this the right solution?
-    lowercase_y_variable_names: Set[Variable] = set({})
-    query_in_ctf_factor_form: Set[Union[CounterfactualVariable, Variable]] = set(
-        {}
-    )  # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.
-    query_with_just_the_variable_names: Set[Variable] = set({})
-    for cv in event:  # "counterfactual variable"
-        capital_d_bold = capital_d_bold.union(
-            get_ancestors_of_counterfactual(cv, graph)
-        )  # result is :math: \mathbf D_*
-        # The next line is basically getting V(W_*) from W_*. Is there a better way?
-        lowercase_y_variable_names = lowercase_y_variable_names.union(set({cv.get_base()}))
-    for capital_d in capital_d_bold:
-        ctf_cv = capital_d.intervene(graph.directed.predecessors(capital_d))
-        query_in_ctf_factor_form.add(ctf_cv)
-        query_with_just_the_variable_names.add(ctf_cv.get_base())
-    sum_range = capital_d_bold - lowercase_y_variable_names
-    result = Sum.safe(P(query_in_ctf_factor_form), sum_range)
+    # We can't directly compute the ancestral set via a set comprehension because get_ancestors_of_counterfactual()
+    # returns mutable sets, so we'd get an 'unhashable type: set' error
+    # TODO: Do we need to check for consistency among the elements of the ancestral set before
+    #       applying the union operation?
+    ancestral_set: Set[Union[CounterfactualVariable, Variable]] = set({})
+    for counterfactual_variable in event:
+        ancestral_set = ancestral_set.union(
+            get_ancestors_of_counterfactual(counterfactual_variable, graph)
+        )
+        # TODO: Check that we get variables only, and not values as well, from calling
+        # get_ancestors_of_counterfactual() with these inputs. Because we want the ancestral set.
+
+    # We want the elements of the ancestral set that do not contain elements of the original query, y.
+    # This is :math:`\mathbf y_\ast`. For getting the variables to marginalize over, i.e. getting V(W_*) from W_*.
+    # variable_names_of_outcome_values: Set[Variable] = {counterfactual_variable.get_base() for
+    #     counterfactual_variable in event}
+    # variable_names_of_ancestral_set: Set[Variable] = {counterfactual_variable.get_base() for
+    #     counterfactual_variable in ancestral_set}
+
+    #  e.g., Equation 14 in Correa et al. 2022, without the summation component.
+    ancestral_set_values_in_counterfactual_factor_form: Set[
+        Union[CounterfactualVariable, Variable]
+    ] = convert_counterfactual_variables_to_counterfactual_factor_form(ancestral_set, graph)
+    # ancestral_set_query_in_counterfactual_factor_form = P(ancestral_set_values_in_counterfactual_factor_form)
+
+    # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.
+    variable_names_of_ancestral_set_in_counterfactual_factor_form: Set[Variable] = {
+        counterfactual_variable.get_base()
+        for counterfactual_variable in ancestral_set_values_in_counterfactual_factor_form
+    }
+
+    variable_names_of_outcome_values: Set[Variable] = {
+        counterfactual_variable.get_base() for counterfactual_variable in event
+    }
+
+    # For decomposing this into the factors by c-component, in another function, shortly:
+    # ancestral_set_subgraph = graph.subgraph(variable_names_of_ancestral_set_in_counterfactual_factor_form)
+    # factorized_ancestral_set_query =
+    #     factorize_query(ancestral_set_values_in_counterfactual_factor_form, ancestral_set_subgraph)
+
+    # ancestral_set_subgraph_districts = ancestral_set_subgraph.districts()
+
+    # for ancestor in ancestral_set:
+    #    ctf_cv = ancestor.intervene(graph.directed.predecessors(ancestor))
+    #    query_in_counterfactual_factor_form.add(ctf_cv)
+    #    query_with_just_the_variable_names.add(ctf_cv.get_base())
+    sum_range = (
+        variable_names_of_ancestral_set_in_counterfactual_factor_form
+        - variable_names_of_outcome_values
+    )
+    result = Sum.safe(P(ancestral_set_values_in_counterfactual_factor_form), sum_range)
     return result
+
+
+def do_ctf_factor_factorization(
+    *, event: List[Union[CounterfactualVariable, Variable]], graph: NxMixedGraph
+) -> Expression:
+    r"""Take an arbitrary query and return its counterfactual factor form, factorized according to the graph c-components.
+
+    Input: :math:P*( \mathbf y_*) (i.e., a joint probability distribution corresponding to a query).
+    Output: :math:Sum_{ \mathbf d_* \\ \mathbf y_*} P*( \mathbf d_* ), where :math:\mathbf D_* = An( \mathbf Y_* ),
+            where P*( \mathbf d_* ) has been further decomposed as per
+            :math: P*( \mathbf d_* ) = prod_{j}(P*( \mathbf c_{j*}) (Equation 15).
+    :param event: A list of counterfactual variables (the left side of Equation 11 in Correa et al. 2022).
+    :param graph: The corresponding graph.
+    :returns: An expression following the right side of Equation 15 in Correa et al. 2022 (example: Equation 16).
+    :raises NotImplementedError: not implemented yet.
+    """
+    raise NotImplementedError("Unimplemented function: get_ctf_factors")
+    return None
 
 
 def make_selection_diagram(

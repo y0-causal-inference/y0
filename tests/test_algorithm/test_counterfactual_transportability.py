@@ -3,6 +3,7 @@
 import unittest
 
 from y0.algorithm.counterfactual_transportability import (
+    do_ctf_factor_factorization,
     get_ancestors_of_counterfactual,
     get_ctf_factor_query,
     get_ctf_factors,
@@ -294,6 +295,7 @@ class TestSameDistrict(unittest.TestCase):
         self.assertFalse(same_district(same_district_test3_in, figure_2a_graph))
 
 
+# TODO: Convert all Ctfs to Counterfactual
 class TestGetCtfFactors(unittest.TestCase):
     """Test the GetCtfFactors function in counterfactual_transportability.py.
 
@@ -325,23 +327,6 @@ class TestEquation11(unittest.TestCase):
     This is one step in the ctf-factor factorization process. We get syntax inspiration from Line 1 of the ID algorithm.
     """
 
-    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
-        """Assert that two expressions are the same. This code is from test_id_alg.py."""
-        # TODO: Check with Jeremy: we may wish to move the code into a utils file
-        #       in the tests/test_algorithm folder, and shared by test_id_alg.py and this file.
-        expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
-        actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
-        self.assertEqual(expected_treatments, actual_treatments)
-        self.assertEqual(expected_outcomes, actual_outcomes)
-        ordering = tuple(expected.get_variables())
-        expected_canonical = canonicalize(expected, ordering)
-        actual_canonical = canonicalize(actual, ordering)
-        self.assertEqual(
-            expected_canonical,
-            actual_canonical,
-            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
-        )
-
     def test_equation_11(self):
         """Test deriving a query of ctf factors from a counterfactual query.
 
@@ -364,3 +349,49 @@ class TestEquation11(unittest.TestCase):
             get_ctf_factor_query(event=test_equation_11_in_2, graph=figure_2a_graph),
             test_equation_11_expected,
         )
+
+
+class TestCtfFactorFactorization(unittest.TestCase):
+    """Test factorizing the counterfactual factors corresponding to a query, as per Example 4.2 of Correa et al. (2022).
+
+    This puts together getting the ancestral set of a query, getting the ctf-factors for each element of the set,
+    and factorizing the resulting joint distribution according to the C-components of the graph.
+    """
+
+    # TODO: Go to cases.GraphTestCase for the function and inherit from there.
+    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
+        """Assert that two expressions are the same. This code is from test_id_alg.py."""
+        # TODO: Check with Jeremy: we may wish to move the code into a utils file
+        #       in the tests/test_algorithm folder, and shared by test_id_alg.py and this file.
+        expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
+        actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
+        self.assertEqual(expected_treatments, actual_treatments)
+        self.assertEqual(expected_outcomes, actual_outcomes)
+        ordering = tuple(expected.get_variables())
+        expected_canonical = canonicalize(expected, ordering)
+        actual_canonical = canonicalize(actual, ordering)
+        self.assertEqual(
+            expected_canonical,
+            actual_canonical,
+            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
+        )
+
+    def test_ctf_factor_factorization(self):
+        """Test counterfactual factor factorization as per Equation 16 in Correa et al. (2022).
+
+        Source: Equations 11, 14, and 16 of Correa et al. (2022).
+        """
+        test_equation_16_in = P(
+            [(Y @ -X), (X)]
+        )  # Question for Jeremy: should the second term be -X instead of just X?
+        # Is the multiplication syntax correct?
+        test_equation_16_expected = Sum.safe(
+            P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)]), [Z, W]
+        )
+        self.assert_expr_equal(
+            do_ctf_factor_factorization(test_equation_16_in, figure_2a_graph),
+            test_equation_16_expected,
+        )
+
+
+# Next test: convert_counterfactual_variables_to_counterfactual_factor_form
