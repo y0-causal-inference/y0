@@ -14,6 +14,7 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
+# logging.basicConfig(filename="/home/callahanr/Documents/Causality/y0/y0.log")
 
 
 def simplify(
@@ -49,31 +50,51 @@ def get_ancestors_of_counterfactual(
               In our case we allow our returned set to include the "Variable" class for
               Y0 syntax, and should test examples including ordinary variables as
               ancestors.
+    :raises TypeError: get_ancestors_of_counterfactual only accepts a single counterfactual variable
     """
     # This is the set of variables X in Correa et al. 2022, Definition 2.1.
-    intervention_variables: Set[Intervention] = set(event.interventions) if isinstance(event, CounterfactualVariable) else set({})
+    intervention_variables: Set[Variable] = set({})
+    if not isinstance(event, CounterfactualVariable):
+        raise TypeError(
+            "get_ancestors_of_counterfactual only accepts a single counterfactual variable"
+        )
+    else:
+        intervention_variables = {intervention.get_base() for intervention in event.interventions}
+
     graph_intervening_on_intervention_variables: NxMixedGraph = graph.remove_in_edges(
         intervention_variables
     )
     graph_removing_edges_out_of_intervention_variables: NxMixedGraph = graph.remove_out_edges(
         intervention_variables
     )
-    ancestor_variable_names: Set[
+    event_variable: Set[Variable] = set({event.get_base()})
+    ancestor_variables: Set[
         Variable
-    ] = graph_removing_edges_out_of_intervention_variables.ancestors_inclusive(event.get_base())
+    ] = graph_removing_edges_out_of_intervention_variables.ancestors_inclusive(event_variable)
+
     ancestors_of_counterfactual_variable: Set[Union[CounterfactualVariable, Variable]] = set({})
-    for candidate_ancestor in ancestor_variable_names:
+    for candidate_ancestor in ancestor_variables:
         candidate_interventions_z = graph_intervening_on_intervention_variables.ancestors_inclusive(
-            candidate_ancestor
+            set({candidate_ancestor})
         ).intersection(intervention_variables)
         # TODO: graph_intervening_on_intervention_variables.ancestors_inclusive(candidate_ancestor) returns variables.
         # intervention_variables are Interventions, which are a type of Variable.
         # Will these sets intersect without throwing errors?
-        ancestors_of_counterfactual_variable = ancestors_of_counterfactual_variable.union(
-            set(CounterfactualVariable(candidate_ancestor).intervene(candidate_interventions_z))
-        )
+        if len(candidate_interventions_z) > 0:
+            ancestors_of_counterfactual_variable = ancestors_of_counterfactual_variable.union(
+                set(
+                    {
+                        candidate_ancestor.intervene(
+                            candidate_interventions_z
+                        )  # Type: CounterfactualVariable
+                    }
+                )
+            )
+        else:
+            ancestors_of_counterfactual_variable = ancestors_of_counterfactual_variable.union(
+                set({candidate_ancestor})  # Type: Variable
+            )
     return ancestors_of_counterfactual_variable
-    # raise NotImplementedError("Unimplemented function: get_ancestors_of_counterfactual")
 
 
 def minimize(
@@ -177,7 +198,7 @@ def get_ctf_factors(
 
 
 def convert_counterfactual_variables_to_counterfactual_factor_form(
-    *, event: List[Union[CounterfactualVariable, Variable]], graph: NxMixedGraph
+    *, event: Set[Union[CounterfactualVariable, Variable]], graph: NxMixedGraph
 ) -> Set[Union[CounterfactualVariable, Variable]]:
     r"""Convert a set of couterfactual variables and their values to counterfactual factor ("ctf-factor") form.
 
@@ -230,7 +251,9 @@ def get_ctf_factor_query(
     #  e.g., Equation 14 in Correa et al. 2022, without the summation component.
     ancestral_set_values_in_counterfactual_factor_form: Set[
         Union[CounterfactualVariable, Variable]
-    ] = convert_counterfactual_variables_to_counterfactual_factor_form(ancestral_set, graph)
+    ] = convert_counterfactual_variables_to_counterfactual_factor_form(
+        event=ancestral_set, graph=graph
+    )
     # ancestral_set_query_in_counterfactual_factor_form = P(ancestral_set_values_in_counterfactual_factor_form)
 
     # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.
