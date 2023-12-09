@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
-"""Implementation of counterfactual transportability from https://proceedings.mlr.press/v162/correa22a/correa22a.pdf."""
+"""Implementation of counterfactual transportability from
+
+.. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
+"""
 
 import logging
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional
 
 from y0.algorithm.transport import create_transport_diagram
 from y0.dsl import CounterfactualVariable, Expression, Intervention, P, Sum, Variable
@@ -11,6 +14,20 @@ from y0.graph import NxMixedGraph
 
 __all__ = [
     "simplify",
+    "minimize",
+    "get_ancestors_of_counterfactual",
+    "same_district",
+    "is_ctf_factor_form",
+    "get_ctf_factors",
+    "convert_counterfactual_variables_to_counterfactual_factor_form",
+    "get_ctf_factor_query",
+    "do_ctf_factor_factorization",
+    "make_selection_diagram",
+    "sigma_tr",
+    "ctf_tr",
+    "ctf_tru",
+    # TODO add functions/classes/variables you want to appear in the docs and be exposed to the user in this list
+    #  Run tox -e docs then `open docs/build/html/index.html` to see docs
 ]
 
 logger = logging.getLogger(__name__)
@@ -20,7 +37,7 @@ logger = logging.getLogger(__name__)
 def simplify(
     event: list[tuple[CounterfactualVariable, Intervention]]
 ) -> Optional[dict[CounterfactualVariable, Intervention]]:
-    """Run algorithm 1, the SIMPLIFY algorithm from Correa, Lee, and Bareinboim 2022.
+    """Run algorithm 1, the SIMPLIFY algorithm from [correa22a]_.
 
     :param event:
         "Y_*, a set of counterfactual variables in V and y_* a set of
@@ -42,19 +59,21 @@ def get_ancestors_of_counterfactual(
 ) -> set[Variable]:
     """Get the ancestors of a counterfactual variable.
 
-    This follows Correa, Lee, and Bareinboim 2022, Definition 2.1 and Example 2.1.
+    This follows [correa22a]_, Definition 2.1 and Example 2.1.
 
     :param event: A single counterfactual variable.
     :param graph: The graph containing it.
     :returns:
-        A set of counterfactual variables. Correa, Lee, and Bareinboim consider
+        A set of counterfactual variables. [correa22a]_ consider
         a "counterfactual variable" to also include variables with no interventions.
-        In our case we allow our returned set to include the "Variable" class for
-        Y0 syntax, and should test examples including ordinary variables as
-        ancestors.
-    :raises TypeError: get_ancestors_of_counterfactual only accepts a single counterfactual variable
+
+        .. note::
+
+            In our case, we allow our returned set to include the "Variable" class for
+            $Y_0$ syntax, and should test examples including ordinary variables as
+            ancestors.
     """
-    # This is the set of variables X in Correa et al. 2022, Definition 2.1.
+    # This is the set of variables X in [correa22a]_, Definition 2.1.
     interventions = {intervention.get_base() for intervention in event.interventions}
 
     graph_minus_in = graph.remove_in_edges(interventions)
@@ -76,13 +95,12 @@ def get_ancestors_of_counterfactual(
 
 
 def minimize(
-    event: set[CounterfactualVariable], graph: NxMixedGraph
+    event: Iterable[CounterfactualVariable], graph: NxMixedGraph
 ) -> set[CounterfactualVariable]:
     r"""Minimize a set of counterfactual variables.
 
-    Source: last paragraph in Section 4 of Correa, Lee, and Barenboim 2022, before Section 4.1.
-    Mathematical expression: ||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \elementof \mathbf Y_*}.
-    (The math syntax is not necessarily cannonical LaTeX.)
+    Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
+    $||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \in {\mathbf Y_*}$.
 
     :param event: A set of counterfactual variables to minimize.
     :param graph: The graph containing them.
@@ -101,11 +119,9 @@ def minimize(
 def _miniminimize(event: CounterfactualVariable, graph: NxMixedGraph) -> CounterfactualVariable:
     r"""Minimize a single counterfactual variable which may have multiple interventions.
 
-    Source: last paragraph in Section 4 of Correa, Lee, and Barenboim 2022, before Section 4.1.
+    Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
 
-    Mathematical expression:
-    ||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline(\mathbf X)}}}.
-    (The math syntax is not necessarily cannonical LaTeX.)
+    $||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline(\mathbf X)}}$.
 
     :param event: A counterfactual variable to minimize.
     :param graph: The graph containing them.
@@ -131,7 +147,7 @@ def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
 def is_ctf_factor_form(*, event: list[Variable], graph: NxMixedGraph) -> bool:
     """Check if a joint probability distribution of counterfactual variables is a counterfactual factor in a graph.
 
-    See Correa, Lee, and Bareinboim 2022, Definition 3.4. A "ctf-factor" is a counterfactual factor.
+    See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
 
     :param event: A list of counterfactual variables, some of which may have no interventions.
     :param graph: The corresponding graph.
@@ -146,7 +162,7 @@ def get_ctf_factors(*, event: list[Variable], graph: NxMixedGraph) -> Optional[s
     The function returns a set of smaller joint probability distributions corresponding to its counterfactual factors,
     or "None" if any of the counterfactual variables are not in ctf-factor form.
 
-    See Correa, Lee, and Bareinboim 2022, Definition 3.4. A "ctf-factor" is a counterfactual factor.
+    See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
 
     :param event:
         A list of counterfactual variables, some of which may have no interventions.
@@ -171,15 +187,15 @@ def convert_counterfactual_variables_to_counterfactual_factor_form(
     r"""Convert a set of couterfactual variables and their values to counterfactual factor ("ctf-factor") form.
 
     That requires intervening on all the parents of each counterfactual variable.
-    Input: :math:`\mathbf W`.
-    Output: :math:`w_{1[\mathbf{pa_{1}}]},w_{2[\mathbf{pa_{2}}]},\cdots,w_{l[\mathbf{pa_{l}}]}`
-            for each :math:`W_i \in \mathbf V`.
 
     :param event: A list of counterfactual variables and their values (:math:`\mathbf W_\ast`).
     :param graph: The corresponding graph.
     :returns:
         The output above, represented as a set of counterfactual variables (those without interventions
         are just variables).
+
+        :math:`w_{1[\mathbf{pa_{1}}]},w_{2[\mathbf{pa_{2}}]},\cdots,w_{l[\mathbf{pa_{l}}]}`
+        for each :math:`W_i \in \mathbf V`.
     """
     return {
         counterfactual_variable.intervene(graph.directed.predecessors(counterfactual_variable))
@@ -190,12 +206,13 @@ def convert_counterfactual_variables_to_counterfactual_factor_form(
 def get_ctf_factor_query(*, event: list[CounterfactualVariable], graph: NxMixedGraph) -> Expression:
     r"""Take an arbitrary query and return the counterfactual factor form of the query ("ctf-factor form").
 
-    Output: :math:`\sum_{ \mathbf d_\ast \backslash \mathbf y_\ast} P^\ast( \mathbf d_\ast )`,
-            where :math:`\mathbf D_\ast = An( \mathbf Y_\ast )`.
-
     :param event: A list of values of counterfactual variables. In the paper,  :math:`P^\ast( \mathbf y_\ast)`
     :param graph: The corresponding graph.
-    :returns: An expression following the right side of Equation 11 in Correa et al. 2022 ("Output").
+    :returns:
+        An expression following the right side of Equation 11 in [correa22a]_.
+
+        :math:`\sum_{ \mathbf d_\ast \backslash \mathbf y_\ast} P^\ast( \mathbf d_\ast )`,
+            where :math:`\mathbf D_\ast = An( \mathbf Y_\ast )`
     """
     # We can't directly compute the ancestral set via a set comprehension because get_ancestors_of_counterfactual()
     # returns mutable sets, so we'd get an 'unhashable type: set' error
@@ -215,7 +232,7 @@ def get_ctf_factor_query(*, event: list[CounterfactualVariable], graph: NxMixedG
     # variable_names_of_ancestral_set: set[Variable] = {counterfactual_variable.get_base() for
     #     counterfactual_variable in ancestral_set}
 
-    #  e.g., Equation 14 in Correa et al. 2022, without the summation component.
+    #  e.g., Equation 14 in [correa22a]_, without the summation component.
     ancestral_set_values_in_counterfactual_factor_form: set[
         Variable
     ] = convert_counterfactual_variables_to_counterfactual_factor_form(
@@ -255,15 +272,17 @@ def get_ctf_factor_query(*, event: list[CounterfactualVariable], graph: NxMixedG
 def do_ctf_factor_factorization(*, event: list[Variable], graph: NxMixedGraph) -> Expression:
     r"""Take an arbitrary query and return its counterfactual factor form, factorized according to the graph c-components.
 
-    Input: :math:P*( \mathbf y_*) (i.e., a joint probability distribution corresponding to a query).
-    Output: :math:Sum_{ \mathbf d_* \\ \mathbf y_*} P*( \mathbf d_* ), where :math:\mathbf D_* = An( \mathbf Y_* ),
-            where P*( \mathbf d_* ) has been further decomposed as per
-            :math: P*( \mathbf d_* ) = prod_{j}(P*( \mathbf c_{j*}) (Equation 15).
+    :param event:
+        A list of counterfactual variables (the left side of Equation 11 in [correa22a]_).
 
-    :param event: A list of counterfactual variables (the left side of Equation 11 in Correa et al. 2022).
+        :math:P*( \mathbf y_*) (i.e., a joint probability distribution corresponding to a query).
     :param graph: The corresponding graph.
-    :returns: An expression following the right side of Equation 15 in Correa et al. 2022 (example: Equation 16).
-    :raises NotImplementedError: not implemented yet.
+    :returns:
+        An expression following the right side of Equation 15 in [correa22a]_ (example: Equation 16).
+
+        :math:Sum_{ \mathbf d_* \\ \mathbf y_*} P*( \mathbf d_* ), where :math:\mathbf D_* = An( \mathbf Y_* ),
+        where P*( \mathbf d_* ) has been further decomposed as per
+        :math: P*( \mathbf d_* ) = prod_{j}(P*( \mathbf c_{j*}) (Equation 15).
     """
     raise NotImplementedError("Unimplemented function: get_ctf_factors")
 
@@ -271,13 +290,13 @@ def do_ctf_factor_factorization(*, event: list[Variable], graph: NxMixedGraph) -
 def make_selection_diagram(
     *, selection_nodes: dict[int, Iterable[Variable]], graph: NxMixedGraph
 ) -> NxMixedGraph:
-    """Make a selection diagram.
+    r"""Make a selection diagram.
 
-    Correa, Lee, and Barenboim refer to transportability diagrams as "selection diagrams" and combine
+    [correa22a]_ refer to transportability diagrams as "selection diagrams" and combine
     multiple domains into a single diagram. The input dict maps an integer corresponding to each domain
-    to the set of "selection variables" for that domain. We depart from Correa, Lee, and Barenboim's
-    notation. They use pi to denote selection variables in a selection diagram, but because you could in
-    theory have multiple pi variables from different domains pointing to the same node in a graph, we
+    to the set of "selection variables" for that domain. We depart from the notation in [correa22a]_
+    They use $\pi$ to denote selection variables in a selection diagram, but because you could in
+    theory have multiple $\pi$ variables from different domains pointing to the same node in a graph, we
     prefer to retain the notation of transportability nodes from Tikka and Karvanen 2019 ("Surrogate
     Outcomes and Transportability").
 
@@ -305,15 +324,15 @@ def _merge_transport_diagrams(*, graphs: list[NxMixedGraph]) -> NxMixedGraph:
 
 # TODO: Add expected inputs and outputs to the below three algorithms
 def sigma_tr() -> None:
-    """Implement the sigma-TR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 4 in Appendix B)."""
+    """Implement the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B)."""
     raise NotImplementedError("Unimplemented function: sigmaTR")
 
 
 def ctf_tr() -> None:
-    """Implement the ctfTR algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 3)."""
+    """Implement the ctfTR algorithm from [correa22a]_ (Algorithm 3)."""
     raise NotImplementedError("Unimplemented function: ctfTR")
 
 
 def ctf_tru() -> None:
-    """Implement the ctfTRu algorithm from Correa, Lee, and Bareinboim 2022 (Algorithm 2)."""
+    """Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2)."""
     raise NotImplementedError("Unimplemented function: ctfTRu")
