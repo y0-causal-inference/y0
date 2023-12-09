@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Implementation of counterfactual transportability from
+"""Implementation of counterfactual transportability.
 
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
 """
