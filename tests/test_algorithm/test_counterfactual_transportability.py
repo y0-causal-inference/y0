@@ -67,17 +67,15 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
             name="Y", star=None, interventions=(Intervention(name="X", star=False),)
         )  # Y @ -X
         # test1_in = (Y @ -X)
-        test1_out = set(
-            {
-                CounterfactualVariable(
-                    name="Y", star=None, interventions=(Intervention(name="X", star=False),)
-                ),  # Y @ -X)
-                CounterfactualVariable(
-                    name="W", star=None, interventions=(Intervention(name="X", star=False),)
-                ),  # W @ -Z
-                Variable(name="Z"),  # Z
-            }
-        )
+        test1_out = {
+            CounterfactualVariable(
+                name="Y", star=None, interventions=(Intervention(name="X", star=False),)
+            ),
+            CounterfactualVariable(
+                name="W", star=None, interventions=(Intervention(name="X", star=False),)
+            ),
+            Variable(name="Z"),
+        }
         result = get_ancestors_of_counterfactual(event=test1_in, graph=figure_2a_graph)
         # logger.warning("In test_example_2_1_1: result = " + str(result))
         # logger.warning("    And test1_in = " + str(test1_in))
@@ -92,16 +90,14 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
             star=None,
             interventions=(Intervention(name="Y", star=False), Intervention(name="Z", star=False)),
         )  # W @ -Y @ -Z
-        test2_out = set(
-            {
-                CounterfactualVariable(
-                    name="W", star=None, interventions=(Intervention(name="Z", star=False),)
-                ),  # W @ -Z
-                CounterfactualVariable(
-                    name="X", star=None, interventions=(Intervention(name="Z", star=False),)
-                ),  # X @ -Z
-            }
-        )
+        test2_out = {
+            CounterfactualVariable(
+                name="W", star=None, interventions=(Intervention(name="Z", star=False),)
+            ),
+            CounterfactualVariable(
+                name="X", star=None, interventions=(Intervention(name="Z", star=False),)
+            ),
+        }
         result = get_ancestors_of_counterfactual(event=test2_in, graph=figure_2a_graph)
         self.assertTrue(variable in test2_out for variable in result)
         self.assertTrue((W @ -Z) in result)  # The outcome, (W @ -Y @ -Z), simplifies to this
@@ -112,15 +108,13 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
         test3_in = CounterfactualVariable(
             name="Y", star=None, interventions=(Intervention(name="W", star=False),)
         )  # Y @ -W
-        test3_out = set(
-            {
-                CounterfactualVariable(
-                    name="Y", star=None, interventions=(Intervention(name="W", star=False),)
-                ),  # Y @ -W
-                Variable(name="X"),  # X
-                Variable(name="Z"),  # Z
-            }
-        )
+        test3_out = {
+            CounterfactualVariable(
+                name="Y", star=None, interventions=(Intervention(name="W", star=False),)
+            ),
+            Variable(name="X"),
+            Variable(name="Z"),
+        }
         result = get_ancestors_of_counterfactual(event=test3_in, graph=figure_2a_graph)
         self.assertTrue(variable in test3_out for variable in result)
         self.assertTrue(test3_in in result)  # Every outcome is its own ancestor
@@ -322,7 +316,7 @@ class TestGetCtfFactors(unittest.TestCase):
         """
         # TODO: Add more tests.
         get_ctf_factors_test_1_in = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
-        get_ctf_factors_test_1_expected = set({((Y @ (-X, -W, -Z)), (W @ -X)), ((X @ -Z), (Z))})
+        get_ctf_factors_test_1_expected = {((Y @ (-X, -W, -Z)), (W @ -X)), ((X @ -Z), (Z))}
         self.assertSetEqual(
             get_ctf_factors_test_1_expected,
             get_ctf_factors(event=get_ctf_factors_test_1_in, graph=figure_2a_graph),
