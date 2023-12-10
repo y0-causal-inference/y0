@@ -19,7 +19,7 @@ __all__ = [
     "same_district",
     "is_ctf_factor_form",
     "get_ctf_factors",
-    "convert_counterfactual_variables_to_counterfactual_factor_form",
+    "convert_to_counterfactual_factor_form",
     "get_ctf_factor_query",
     "do_ctf_factor_factorization",
     "make_selection_diagram",
@@ -74,8 +74,8 @@ def get_ancestors_of_counterfactual(
             In our case, we allow our returned set to include the "Variable" class for
             $Y_0$ syntax, and should test examples including ordinary variables as
             ancestors.
-    raises TypeError:
-           get_ancestors_of_counterfactual only accepts a single Variable or CounterfactualVariable
+    :raises TypeError:
+        get_ancestors_of_counterfactual only accepts a single Variable or CounterfactualVariable
     """
     # This is the set of variables X in [correa22a]_, Definition 2.1.
     if isinstance(event, CounterfactualVariable):
@@ -196,14 +196,14 @@ def get_ctf_factors(*, event: list[Variable], graph: NxMixedGraph) -> Optional[s
     raise NotImplementedError("Unimplemented function: get_ctf_factors")
 
 
-def convert_counterfactual_variables_to_counterfactual_factor_form(
+def convert_to_counterfactual_factor_form(
     *, event: set[Variable], graph: NxMixedGraph
 ) -> set[Variable]:
-    r"""Convert a set of couterfactual variables and their values to counterfactual factor ("ctf-factor") form.
+    r"""Convert a set of variables (which may be counterfactual variables) to counterfactual factor ("ctf-factor") form.
 
     That requires intervening on all the parents of each counterfactual variable.
 
-    :param event: A list of counterfactual variables and their values (:math:`\mathbf W_\ast`).
+    :param event: A list of variables (which may have interventions) and their values (:math:`\mathbf W_\ast`).
     :param graph: The corresponding graph.
     :returns:
         The output above, represented as a set of counterfactual variables (those without interventions
@@ -212,9 +212,20 @@ def convert_counterfactual_variables_to_counterfactual_factor_form(
         :math:`w_{1[\mathbf{pa_{1}}]},w_{2[\mathbf{pa_{2}}]},\cdots,w_{l[\mathbf{pa_{l}}]}`
         for each :math:`W_i \in \mathbf V`.
     """
+    # result: set[Variable] = set()
+    # for variable in event:
+    #    parents = list(graph.directed.predecessors(variable.get_base()))
+    #    if len(parents) > 0:
+    #        result.update({variable.intervene(parents)})
+    #    else:
+    #        result.update({variable})
+    # return result
+    # (Here's the more efficient set comprehension with harder-to-read code)
     return {
-        counterfactual_variable.intervene(graph.directed.predecessors(counterfactual_variable))
-        for counterfactual_variable in event
+        variable.intervene(graph.directed.predecessors(variable.get_base()))
+        if len(list(graph.directed.predecessors(variable.get_base()))) > 0
+        else variable
+        for variable in event
     }
 
 
@@ -250,9 +261,7 @@ def get_ctf_factor_query(*, event: list[CounterfactualVariable], graph: NxMixedG
     #  e.g., Equation 14 in [correa22a]_, without the summation component.
     ancestral_set_values_in_counterfactual_factor_form: set[
         Variable
-    ] = convert_counterfactual_variables_to_counterfactual_factor_form(
-        event=ancestral_set, graph=graph
-    )
+    ] = convert_to_counterfactual_factor_form(event=ancestral_set, graph=graph)
     # ancestral_set_query_in_counterfactual_factor_form = P(ancestral_set_values_in_counterfactual_factor_form)
 
     # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.

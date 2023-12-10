@@ -1,9 +1,16 @@
-"""Tests for counterfactual transportability. See https://proceedings.mlr.press/v162/correa22a/correa22a.pdf."""
+# -*- coding: utf-8 -*-
+
+"""Tests for counterfactual transportability.
+
+.. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
+"""
 
 import logging
 import unittest
 
+from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
+    convert_to_counterfactual_factor_form,
     do_ctf_factor_factorization,
     get_ancestors_of_counterfactual,
     get_ctf_factor_query,
@@ -17,7 +24,6 @@ from y0.algorithm.counterfactual_transportability import (
 from y0.algorithm.transport import transport_variable
 from y0.dsl import (
     CounterfactualVariable,
-    Expression,
     Intervention,
     P,
     Sum,
@@ -27,12 +33,12 @@ from y0.dsl import (
     Y,
     Z,
     Zero,
-    get_outcomes_and_treatments,
 )
 from y0.graph import NxMixedGraph
-from y0.mutate import canonicalize
 
-# From Correa, Lee, and Bareinboim 2022.
+# from y0.tests.test_algorithm.cases import GraphTestCase
+
+# From [correa22a]_.
 figure_2a_graph = NxMixedGraph.from_edges(
     directed=[
         (Z, X),
@@ -50,7 +56,7 @@ logger = logging.getLogger(__name__)
 class TestGetAncestorsOfCounterfactual(unittest.TestCase):
     """Test getting the ancestors of a counterfactual.
 
-    This test follows Correa, Lee, and Bareinboim 2022, Definition 2.1 and Example 2.1.
+    This test follows [correa22a]_, Definition 2.1 and Example 2.1.
     """
 
     # TODO: It seems important to be able to represent Y_{x_0}, not just Y_{X}.
@@ -119,7 +125,7 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
     def test_4(self):
         """Test passing in a variable with no interventions.
 
-        The problem reduces to just getting ancestors. Source: out of Richard's head.
+        The problem reduces to just getting ancestors. Source: out of RJC's head.
         """
         test4_in = Variable(name="Z", star=None)
         test4_out = {Variable(name="Z")}
@@ -130,7 +136,7 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
     def test_5(self):
         """Test passing in a variable intervening on itself.
 
-        The problem reduces to just getting ancestors. Source: out of Richard's head.
+        The problem reduces to just getting ancestors. Source: out of RJC's head.
         """
         test5_in = CounterfactualVariable(
             name="Y", star=None, interventions=(Intervention(name="Y", star=False),)
@@ -154,24 +160,24 @@ class TestSimplify(unittest.TestCase):
         """Test simplifying an inconsistent event.
 
         Correa et al. specify the output should be 0 if the counterfactual event
-        is guaranteed to have probability 0. Source: Richard's mind.
+        is guaranteed to have probability 0. Source: RJC's mind.
         """
         event = [(Y @ -X, -Y), (Y @ -X, +Y)]
         self.assertEquals(simplify(event), Zero())
 
     def test_inconsistent_2(self):
-        """Second test for simplifying an inconsistent event. Source: Richard's mind."""
+        """Second test for simplifying an inconsistent event. Source: RJC's mind."""
         event = [(Y @ -Y, +Y)]
         self.assertEquals(simplify(event), Zero())
 
     def test_redundant_1(self):
-        """First test for simplifying an event with redundant subscripts. Source: Richard's mind."""
+        """First test for simplifying an event with redundant subscripts. Source: RJC's mind."""
         event = [(Y @ -X, -Y), (Y @ -X, -Y)]
         result = simplify(event)
         self.assertEqual(result, [(Y @ -X, -Y)])
 
     def test_redundant_2(self):
-        """Second test for simplifying an event with redundant subscripts. Source: Richard's mind."""
+        """Second test for simplifying an event with redundant subscripts. Source: RJC's mind."""
         event = [(Y @ -X, -Y), (Y @ -X, -Y), (X @ -W, -X)]
         self.assertEqual(simplify(event), [(Y @ -X, -Y), (X @ -W, -X)])
 
@@ -179,7 +185,7 @@ class TestSimplify(unittest.TestCase):
         """Third test for simplifying an event with redundant subscripts.
 
         (Y @ (-Y,-X), -Y) reduces to (Y @ -Y, -Y) via line 1 of the SIMPLIFY algorithm.
-        Source: Jeremy's mind.
+        Source: JZ's mind.
         """
         event = [
             (Y @ (-Y, -X), -Y),
@@ -189,7 +195,7 @@ class TestSimplify(unittest.TestCase):
         self.assertEqual(simplify(event), [(Y @ -Y, -Y), (X @ -W, -X)])
 
     def test_redundant_4(self):
-        """Fourth test for simplifying an event with redundant subscripts. Source: Richard's mind."""
+        """Fourth test for simplifying an event with redundant subscripts. Source: RJC's mind."""
         event = [
             (Y @ -Y, -Y),
             (Y @ -Y, -Y),
@@ -203,7 +209,7 @@ class TestIsCtfFactorForm(unittest.TestCase):
     # TODO: Incorporate a test involving counterfactual unnesting.
 
     def test_is_ctf_factor_form(self):
-        """From Example 3.3 of Correa, Lee, and Barenboim 2022."""
+        """From Example 3.3 of [correa22a]_."""
         event1 = [(Y @ (-Z, -W, -X)), (W @ -X)]  # (Y @ -Z @ -W @ -X)
         self.assertTrue(is_ctf_factor_form(event=event1, graph=figure_2a_graph))
 
@@ -231,7 +237,7 @@ class TestMakeSelectionDiagram(unittest.TestCase):
     """Test the results of creating a selection diagram that is an amalgamation of domain selection diagrams."""
 
     def test_make_selection_diagram(self):
-        """Create Figure 2(b) of Correa, Lee, and Barenboim 2022 from Figures 3(a) and 3(b)."""
+        """Create Figure 2(b) of [correa22a]_ from Figures 3(a) and 3(b)."""
         selection_nodes = dict({1: set({Z}), 2: set({W})})
         selection_diagram = make_selection_diagram(
             selection_nodes=selection_nodes, graph=figure_2a_graph
@@ -260,14 +266,14 @@ class TestMakeSelectionDiagram(unittest.TestCase):
 class TestMinimize(unittest.TestCase):
     r"""Test minimizing a set of counterfactual variables.
 
-    Source: last paragraph in Section 4 of Correa, Lee, and Barenboim 2022, before Section 4.1.
+    Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
     Mathematical expression: ||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \elementof \mathbf Y_*}, and
     ||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline{\mathbf X}}}}.
     (The math syntax is not necessarily cannonical LaTeX.)
     """
 
     def test_minimize_1(self):
-        """Test the minimize function sending in a single counterfactual variable. Source: out of Richard's head."""
+        """Test the minimize function sending in a single counterfactual variable. Source: out of RJC's head."""
         minimize_graph_1 = NxMixedGraph.from_edges(
             directed=[
                 (X, W),
@@ -280,7 +286,7 @@ class TestMinimize(unittest.TestCase):
         self.assertEquals(minimize_test1_out, minimize(minimize_test1_in, minimize_graph_1))
 
     def test_minimize_2(self):
-        """Test the minimize function for multiple counterfactual variables. Source: out of Richard's head."""
+        """Test the minimize function for multiple counterfactual variables. Source: out of RJC's head."""
         minimize_graph_2 = NxMixedGraph.from_edges(
             directed=[
                 (Z, X),
@@ -300,7 +306,7 @@ class TestSameDistrict(unittest.TestCase):
     def test_same_district_1(self):
         """Test #1 for whether a set of counterfactual variables are in the same district (c-component).
 
-        Source: out of Richard's head.
+        Source: out of RJC's head.
         """
         same_district_test1_in = [(Y @ (-X, -W, -Z)), (W @ (-X))]
         self.assertTrue(same_district(same_district_test1_in, figure_2a_graph))
@@ -308,7 +314,7 @@ class TestSameDistrict(unittest.TestCase):
     def test_same_district_2(self):
         """Test #2 for whether a set of counterfactual variables are in the same district (c-component).
 
-        Source: out of Richard's head.
+        Source: out of RJC's head.
         """
         same_district_test2_in = [(Z), (X @ -Z)]
         self.assertTrue(same_district(same_district_test2_in, figure_2a_graph))
@@ -316,7 +322,7 @@ class TestSameDistrict(unittest.TestCase):
     def test_same_district_3(self):
         """Test #3 for whether a set of counterfactual variables are in the same district (c-component).
 
-        Source: out of Richard's head.
+        Source: out of RJC's head.
         """
         same_district_test3_in = [(Y @ -Y), (Z), (X @ -Z)]
         self.assertFalse(same_district(same_district_test3_in, figure_2a_graph))
@@ -329,13 +335,13 @@ class TestGetCtfFactors(unittest.TestCase):
     This is one step in the ctf-factor factorization process. Here we want
     to check that we can separate a joint probability distribution of ctf-factors
     into a set of joint probability distributions that we'll later multiply
-    together as per Equation 15 in Correa, Lee, and Barenboim 2022.
+    together as per Equation 15 in [correa22a]_.
     """
 
     def test_get_ctf_factors(self):
         """Test factoring a set of counterfactual variables by district (c-component).
 
-        Source: Example 4.2 of Correa, Lee, and Barenboim 2022. Note that
+        Source: Example 4.2 of [correa22a]_. Note that
                 we're not testing the full example, just computing factors
                 for the query.
         """
@@ -348,8 +354,8 @@ class TestGetCtfFactors(unittest.TestCase):
         )
 
 
-class TestEquation11(unittest.TestCase):
-    """Test deriving a query of ctf-factors from a counterfactual query, following Equation 11 in Correa et al. (2022).
+class TestEquation11(cases.GraphTestCase):
+    """Test deriving a query of ctf-factors from a counterfactual query, following Equation 11 in [correa22a]_.
 
     This is one step in the ctf-factor factorization process. We get syntax inspiration from Line 1 of the ID algorithm.
     """
@@ -357,7 +363,7 @@ class TestEquation11(unittest.TestCase):
     def test_equation_11(self):
         """Test deriving a query of ctf factors from a counterfactual query.
 
-        Source: Equation 14 of Correa et al. (2022).
+        Source: Equation 14 of [correa22a]_.
         """
         # Already in ctf-factor form
         test_equation_11_in_1 = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
@@ -378,35 +384,17 @@ class TestEquation11(unittest.TestCase):
         )
 
 
-class TestCtfFactorFactorization(unittest.TestCase):
-    """Test factorizing the counterfactual factors corresponding to a query, as per Example 4.2 of Correa et al. (2022).
+class TestCtfFactorFactorization(cases.GraphTestCase):
+    """Test factorizing the counterfactual factors corresponding to a query, as per Example 4.2 of [correa22a]_.
 
     This puts together getting the ancestral set of a query, getting the ctf-factors for each element of the set,
     and factorizing the resulting joint distribution according to the C-components of the graph.
     """
 
-    # TODO: Go to cases.GraphTestCase for the function and inherit from there.
-    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
-        """Assert that two expressions are the same. This code is from test_id_alg.py."""
-        # TODO: Check with Jeremy: we may wish to move the code into a utils file
-        #       in the tests/test_algorithm folder, and shared by test_id_alg.py and this file.
-        expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
-        actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
-        self.assertEqual(expected_treatments, actual_treatments)
-        self.assertEqual(expected_outcomes, actual_outcomes)
-        ordering = tuple(expected.get_variables())
-        expected_canonical = canonicalize(expected, ordering)
-        actual_canonical = canonicalize(actual, ordering)
-        self.assertEqual(
-            expected_canonical,
-            actual_canonical,
-            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
-        )
-
     def test_ctf_factor_factorization(self):
-        """Test counterfactual factor factorization as per Equation 16 in Correa et al. (2022).
+        """Test counterfactual factor factorization as per Equation 16 in [correa22a]_.
 
-        Source: Equations 11, 14, and 16 of Correa et al. (2022).
+        Source: Equations 11, 14, and 16 of [correa22a]_.
         """
         test_equation_16_in = P(
             [(Y @ -X), (X)]
@@ -416,9 +404,41 @@ class TestCtfFactorFactorization(unittest.TestCase):
             P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)]), [Z, W]
         )
         self.assert_expr_equal(
-            do_ctf_factor_factorization(test_equation_16_in, figure_2a_graph),
+            do_ctf_factor_factorization(event=test_equation_16_in, graph=figure_2a_graph),
             test_equation_16_expected,
         )
 
 
 # Next test: convert_counterfactual_variables_to_counterfactual_factor_form
+# TODO: Convert all Ctfs to Counterfactual
+class TestConvertToCounterfactualFactorForm(unittest.TestCase):
+    """Test converting a set of variables to counterfactual factor form.
+
+    Source: Example 4.2 of [correa22a]_.
+    """
+
+    def test_convert_to_counterfactual_factor_form_1(self):
+        """Test conversion of a set of variables to counterfactual factor form.
+
+        Source: Equation 12 of [correa22a]_.
+        """
+        test_1_in = {(Y @ -X), (W)}
+        test_1_expected = {(Y @ (-X, -W, -Z)), (W @ -X)}
+        self.assertSetEqual(
+            convert_to_counterfactual_factor_form(event=test_1_in, graph=figure_2a_graph),
+            test_1_expected,
+        )
+
+    def test_convert_to_counterfactual_factor_form_2(self):
+        """Test conversion of a set of variables to counterfactual factor form.
+
+        Source: Equation 12 of [correa22a]_.
+
+        Here we pass in a simple variable with no parents, and should get it back.
+        """
+        test_2_in = {(Z)}
+        test_2_expected = {(Z)}
+        self.assertSetEqual(
+            convert_to_counterfactual_factor_form(event=test_2_in, graph=figure_2a_graph),
+            test_2_expected,
+        )
