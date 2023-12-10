@@ -77,9 +77,6 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
             Variable(name="Z"),
         }
         result = get_ancestors_of_counterfactual(event=test1_in, graph=figure_2a_graph)
-        # logger.warning("In test_example_2_1_1: result = " + str(result))
-        # logger.warning("    And test1_in = " + str(test1_in))
-        # logger.warning("    And test1_out = " + str(test1_out))
         self.assertTrue(variable in test1_out for variable in result)
         self.assertTrue(test1_in in result)  # Every outcome is its own ancestor
 
@@ -118,6 +115,34 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
         result = get_ancestors_of_counterfactual(event=test3_in, graph=figure_2a_graph)
         self.assertTrue(variable in test3_out for variable in result)
         self.assertTrue(test3_in in result)  # Every outcome is its own ancestor
+
+    def test_4(self):
+        """Test passing in a variable with no interventions.
+
+        The problem reduces to just getting ancestors. Source: out of Richard's head.
+        """
+        test4_in = Variable(name="Z", star=None)
+        test4_out = {Variable(name="Z")}
+        result = get_ancestors_of_counterfactual(event=test4_in, graph=figure_2a_graph)
+        self.assertTrue(variable in test4_out for variable in result)
+        self.assertTrue(test4_in in result)  # Every outcome is its own ancestor
+
+    def test_5(self):
+        """Test passing in a variable intervening on itself.
+
+        The problem reduces to just getting ancestors. Source: out of Richard's head.
+        """
+        test5_in = CounterfactualVariable(
+            name="Y", star=None, interventions=(Intervention(name="Y", star=False),)
+        )
+        test5_out = {
+            CounterfactualVariable(
+                name="Y", star=None, interventions=(Intervention(name="Y", star=False),)
+            )
+        }
+        result = get_ancestors_of_counterfactual(event=test5_in, graph=figure_2a_graph)
+        self.assertTrue(variable in test5_out for variable in result)
+        self.assertTrue(test5_in in result)  # Every outcome is its own ancestor
 
 
 class TestSimplify(unittest.TestCase):

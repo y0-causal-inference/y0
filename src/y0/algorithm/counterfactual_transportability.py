@@ -60,6 +60,8 @@ def get_ancestors_of_counterfactual(
     """Get the ancestors of a counterfactual variable.
 
     This follows [correa22a]_, Definition 2.1 and Example 2.1.
+    If the input variable has no interventions, the problem reduces to getting
+    ancestors in a graph.
 
     :param event: A single counterfactual variable.
     :param graph: The graph containing it.
@@ -72,26 +74,39 @@ def get_ancestors_of_counterfactual(
             In our case, we allow our returned set to include the "Variable" class for
             $Y_0$ syntax, and should test examples including ordinary variables as
             ancestors.
+    raises TypeError:
+           get_ancestors_of_counterfactual only accepts a single Variable or CounterfactualVariable
     """
     # This is the set of variables X in [correa22a]_, Definition 2.1.
-    interventions = {intervention.get_base() for intervention in event.interventions}
+    if isinstance(event, CounterfactualVariable):
+        interventions = {intervention.get_base() for intervention in event.interventions}
 
-    graph_minus_in = graph.remove_in_edges(interventions)
-    ancestors = graph.remove_out_edges(interventions).ancestors_inclusive(event.get_base())
+        graph_minus_in = graph.remove_in_edges(interventions)
+        ancestors = graph.remove_out_edges(interventions).ancestors_inclusive(event.get_base())
 
-    ancestors_of_counterfactual_variable: set[Variable] = set()
-    for ancestor in ancestors:
-        candidate_interventions_z = graph_minus_in.ancestors_inclusive(ancestor).intersection(
-            interventions
-        )
-        # TODO: graph_intervening_on_intervention_variables.ancestors_inclusive(candidate_ancestor) returns variables.
-        # intervention_variables are Interventions, which are a type of Variable.
-        # Will these sets intersect without throwing errors?
-        if candidate_interventions_z:
-            ancestors_of_counterfactual_variable.add(ancestor.intervene(candidate_interventions_z))
-        else:
-            ancestors_of_counterfactual_variable.add(ancestor)
-    return ancestors_of_counterfactual_variable
+        ancestors_of_counterfactual_variable: set[Variable] = set()
+        for ancestor in ancestors:
+            candidate_interventions_z = graph_minus_in.ancestors_inclusive(ancestor).intersection(
+                interventions
+            )
+            # TODO: graph_minus_in.ancestors_inclusive(candidate_ancestor) returns variables.
+            # intervention_variables are Interventions, which are a type of Variable.
+            # Will these sets intersect without throwing errors?
+            if candidate_interventions_z:
+                ancestors_of_counterfactual_variable.add(
+                    ancestor.intervene(candidate_interventions_z)
+                )
+            else:
+                ancestors_of_counterfactual_variable.add(ancestor)
+        return ancestors_of_counterfactual_variable
+    else:
+        # There's a TypeError check here because it is easy for a user to pass a set of variables in, instead of
+        # a single variable.
+        if not isinstance(event, Variable):
+            raise TypeError(
+                "This function requires a variable, usually a counterfactual variable, as input."
+            )
+        return graph.ancestors_inclusive(event)
 
 
 def minimize(
