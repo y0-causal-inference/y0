@@ -11,6 +11,7 @@ import unittest
 from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
     convert_to_counterfactual_factor_form,
+    counterfactual_factors_are_transportable,
     do_ctf_factor_factorization,
     get_ancestors_of_counterfactual,
     get_ctf_factor_query,
@@ -38,7 +39,7 @@ from y0.graph import NxMixedGraph
 
 # from y0.tests.test_algorithm.cases import GraphTestCase
 
-# From [correa22a]_.
+# From [correa22a]_, Figure 2a.
 figure_2a_graph = NxMixedGraph.from_edges(
     directed=[
         (Z, X),
@@ -46,6 +47,32 @@ figure_2a_graph = NxMixedGraph.from_edges(
         (X, Y),
         (X, W),
         (W, Y),
+    ],
+    undirected=[(Z, X), (W, Y)],
+)
+
+# From [correa22a]_, Figure 3a.
+figure_2_graph_domain_1 = NxMixedGraph.from_edges(
+    directed=[
+        (Z, X),
+        (Z, Y),
+        (X, Y),
+        (X, W),
+        (W, Y),
+        (transport_variable(Z), Z),
+    ],
+    undirected=[(Z, X), (W, Y)],
+)
+
+# From [correa22a]_, Figure 3b.
+figure_2_graph_domain_2 = NxMixedGraph.from_edges(
+    directed=[
+        (Z, X),
+        (Z, Y),
+        (X, Y),
+        (X, W),
+        (W, Y),
+        (transport_variable(W), W),
     ],
     undirected=[(Z, X), (W, Y)],
 )
@@ -441,4 +468,84 @@ class TestConvertToCounterfactualFactorForm(unittest.TestCase):
         self.assertSetEqual(
             convert_to_counterfactual_factor_form(event=test_2_in, graph=figure_2a_graph),
             test_2_expected,
+        )
+
+
+class TestCounterfactualFactorTransportability(unittest.TestCase):
+    """Test whether a counterfactual factor can be transported from a domain to the target domain.
+
+    Source: Lemma 3.1 and Example 3.4 of [correa22a]_.
+    """
+
+    def test_counterfactual_factor_transportability_1(self):
+        """Test equation 9 of [correa22a]_."""
+        test_1_in = {(-Y @ -X @ -Z @ -W), (-W @ -X)}
+        self.assertTrue(
+            counterfactual_factors_are_transportable(
+                factors=test_1_in, domain_graph=figure_2_graph_domain_1
+            )
+        )
+        self.assertFalse(
+            counterfactual_factors_are_transportable(
+                factors=test_1_in, domain_graph=figure_2_graph_domain_2
+            )
+        )
+
+    def test_counterfactual_factor_transportability_2(self):
+        """Test equation 10 of [correa22a]_."""
+        test_2_in = {(-Y @ -X @ -Z @ -W)}
+        self.assertTrue(
+            counterfactual_factors_are_transportable(
+                factors=test_2_in, domain_graph=figure_2_graph_domain_1
+            )
+        )
+        self.assertTrue(
+            counterfactual_factors_are_transportable(
+                factors=test_2_in, domain_graph=figure_2_graph_domain_2
+            )
+        )
+
+    def test_counterfactual_factor_transportability_3(self):
+        """Test Example 3.4 of [correa22a]_."""
+        test_3_in = {(-W @ -X), (-Z)}
+        self.assertFalse(
+            counterfactual_factors_are_transportable(
+                factors=test_3_in, domain_graph=figure_2_graph_domain_1
+            )
+        )
+        self.assertFalse(
+            counterfactual_factors_are_transportable(
+                factors=test_3_in, domain_graph=figure_2_graph_domain_2
+            )
+        )
+
+    def test_counterfactual_factor_transportability_4(self):
+        """Another test related to Example 3.4 of [correa22a]_."""
+        test_4_in = {(-X @ -Z), (-Z)}
+        self.assertFalse(
+            counterfactual_factors_are_transportable(
+                factors=test_4_in, domain_graph=figure_2_graph_domain_1
+            )
+        )
+        self.assertTrue(
+            counterfactual_factors_are_transportable(
+                factors=test_4_in, domain_graph=figure_2_graph_domain_2
+            )
+        )
+
+    def test_counterfactual_factor_transportability_5(self):
+        """Another test related to Example 3.4 of [correa22a]_.
+
+        Checking that a child of a transported node in the same c-component is still tranportable.
+        """
+        test_5_in = {(-X @ -Z)}
+        self.assertTrue(
+            counterfactual_factors_are_transportable(
+                factors=test_5_in, domain_graph=figure_2_graph_domain_1
+            )
+        )
+        self.assertTrue(
+            counterfactual_factors_are_transportable(
+                factors=test_5_in, domain_graph=figure_2_graph_domain_2
+            )
         )

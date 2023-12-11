@@ -8,7 +8,7 @@
 import logging
 from typing import Iterable, Optional
 
-from y0.algorithm.transport import create_transport_diagram
+from y0.algorithm.transport import create_transport_diagram, transport_variable
 from y0.dsl import CounterfactualVariable, Expression, Intervention, P, Sum, Variable
 from y0.graph import NxMixedGraph
 
@@ -23,6 +23,7 @@ __all__ = [
     "get_ctf_factor_query",
     "do_ctf_factor_factorization",
     "make_selection_diagram",
+    "counterfactual_factors_are_transportable",
     "sigma_tr",
     "ctf_tr",
     "ctf_tru",
@@ -341,9 +342,23 @@ def _merge_transport_diagrams(*, graphs: list[NxMixedGraph]) -> NxMixedGraph:
     This implementation could be incorporated into make_selection_diagram().
 
     :param graphs: A list of graphs (transport diagrams) corresponding to each domain.
-    :returns: a new graph merging the domains.
+    :returns: A new graph merging the domains.
     """
     raise NotImplementedError("Unimplemented function: _merge_transport_diagrams")
+
+
+def counterfactual_factors_are_transportable(
+    *, factors: set[Variable], domain_graph: NxMixedGraph
+) -> bool:
+    """Determine if a set of counterfactual factors can be transported from a domain to the target.
+
+    :param domain_graph: Corresponds to the domain from which we're doing the transporting.
+    :param factors: The counterfactual factors in question.
+    :returns: Whether the query is transportable.
+    """
+    return not any(
+        [transport_variable(factor.get_base()) in domain_graph.nodes() for factor in factors]
+    )
 
 
 # TODO: Add expected inputs and outputs to the below three algorithms
