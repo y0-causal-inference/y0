@@ -17,11 +17,11 @@ __all__ = [
     "minimize",
     "get_ancestors_of_counterfactual",
     "same_district",
-    "is_ctf_factor_form",
-    "get_ctf_factors",
+    "is_counterfactual_factor_form",
+    "get_counterfactual_factors",
     "convert_to_counterfactual_factor_form",
-    "get_ctf_factor_query",
-    "do_ctf_factor_factorization",
+    "get_counterfactual_factor_query",
+    "do_counterfactual_factor_factorization",
     "make_selection_diagram",
     "counterfactual_factors_are_transportable",
     "sigma_tr",
@@ -160,7 +160,7 @@ def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
     raise NotImplementedError("Unimplemented function: same_district")
 
 
-def is_ctf_factor_form(*, event: list[Variable], graph: NxMixedGraph) -> bool:
+def is_counterfactual_factor_form(*, event: list[Variable], graph: NxMixedGraph) -> bool:
     """Check if a joint probability distribution of counterfactual variables is a counterfactual factor in a graph.
 
     See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
@@ -169,10 +169,12 @@ def is_ctf_factor_form(*, event: list[Variable], graph: NxMixedGraph) -> bool:
     :param graph: The corresponding graph.
     :returns: A single boolean value (True if the input event is a ctf-factor, False otherwise).
     """
-    raise NotImplementedError("Unimplemented function: is_ctf_factor")
+    raise NotImplementedError("Unimplemented function: is_counterfactual_factor")
 
 
-def get_ctf_factors(*, event: list[Variable], graph: NxMixedGraph) -> Optional[set[list[Variable]]]:
+def get_counterfactual_factors(
+    *, event: list[Variable], graph: NxMixedGraph
+) -> Optional[set[list[Variable]]]:
     """Decompose a joint probability distribution of counterfactual variables.
 
     The function returns a set of smaller joint probability distributions corresponding to its counterfactual factors,
@@ -188,13 +190,13 @@ def get_ctf_factors(*, event: list[Variable], graph: NxMixedGraph) -> Optional[s
         A set of lists, each corresponding to a joint probability distribution of counterfactual variables
         in ctf-factor form.
     """
-    if not is_ctf_factor_form(event=event, graph=graph):
+    if not is_counterfactual_factor_form(event=event, graph=graph):
         logger.debug(
-            "In get_ctf_factors(): the event (%s) is not in counterfactual factor form.\n",
+            "In get_counterfactual_factors(): the event (%s) is not in counterfactual factor form.\n",
             str(event),
         )
         return None
-    raise NotImplementedError("Unimplemented function: get_ctf_factors")
+    raise NotImplementedError("Unimplemented function: get_counterfactual_factors")
 
 
 def convert_to_counterfactual_factor_form(
@@ -230,7 +232,9 @@ def convert_to_counterfactual_factor_form(
     }
 
 
-def get_ctf_factor_query(*, event: list[CounterfactualVariable], graph: NxMixedGraph) -> Expression:
+def get_counterfactual_factor_query(
+    *, event: list[CounterfactualVariable], graph: NxMixedGraph
+) -> Expression:
     r"""Take an arbitrary query and return the counterfactual factor form of the query ("ctf-factor form").
 
     :param event: A list of values of counterfactual variables. In the paper,  :math:`P^\ast( \mathbf y_\ast)`
@@ -294,7 +298,9 @@ def get_ctf_factor_query(*, event: list[CounterfactualVariable], graph: NxMixedG
     return result
 
 
-def do_ctf_factor_factorization(*, event: list[Variable], graph: NxMixedGraph) -> Expression:
+def do_counterfactual_factor_factorization(
+    *, event: list[Variable], graph: NxMixedGraph
+) -> Expression:
     r"""Take an arbitrary query and return its counterfactual factor form, factorized according to the graph c-components.
 
     :param event:
@@ -309,7 +315,7 @@ def do_ctf_factor_factorization(*, event: list[Variable], graph: NxMixedGraph) -
         where P*( \mathbf d_* ) has been further decomposed as per
         :math: P*( \mathbf d_* ) = prod_{j}(P*( \mathbf c_{j*}) (Equation 15).
     """
-    raise NotImplementedError("Unimplemented function: get_ctf_factors")
+    raise NotImplementedError("Unimplemented function: get_counterfactual_factors")
 
 
 def make_selection_diagram(

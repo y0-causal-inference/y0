@@ -12,11 +12,11 @@ from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
-    do_ctf_factor_factorization,
+    do_counterfactual_factor_factorization,
     get_ancestors_of_counterfactual,
-    get_ctf_factor_query,
-    get_ctf_factors,
-    is_ctf_factor_form,
+    get_counterfactual_factor_query,
+    get_counterfactual_factors,
+    is_counterfactual_factor_form,
     make_selection_diagram,
     minimize,
     same_district,
@@ -230,34 +230,34 @@ class TestSimplify(unittest.TestCase):
         self.assertIsNone(simplify(event))
 
 
-class TestIsCtfFactorForm(unittest.TestCase):
+class TestIsCounterfactualFactorForm(unittest.TestCase):
     """Test whether a set of counterfactual variables are all in counterfactual factor form."""
 
     # TODO: Incorporate a test involving counterfactual unnesting.
 
-    def test_is_ctf_factor_form(self):
+    def test_is_counterfactual_factor_form(self):
         """From Example 3.3 of [correa22a]_."""
         event1 = [(Y @ (-Z, -W, -X)), (W @ -X)]  # (Y @ -Z @ -W @ -X)
-        self.assertTrue(is_ctf_factor_form(event=event1, graph=figure_2a_graph))
+        self.assertTrue(is_counterfactual_factor_form(event=event1, graph=figure_2a_graph))
 
         event2 = [(W @ X), (Z)]
-        self.assertTrue(is_ctf_factor_form(event=event2, graph=figure_2a_graph))
+        self.assertTrue(is_counterfactual_factor_form(event=event2, graph=figure_2a_graph))
 
         event3 = [(Y @ (-Z, -W)), (W @ -X)]
-        self.assertFalse(is_ctf_factor_form(event=event3, graph=figure_2a_graph))
+        self.assertFalse(is_counterfactual_factor_form(event=event3, graph=figure_2a_graph))
 
         # Y has parents, so they should be intervened on but are not
         event4 = [(Y)]
-        self.assertFalse(is_ctf_factor_form(event=event4, graph=figure_2a_graph))
+        self.assertFalse(is_counterfactual_factor_form(event=event4, graph=figure_2a_graph))
 
         # Z has no parents, so this variable is also a ctf-factor
         event5 = [(Z)]
-        self.assertTrue(is_ctf_factor_form(event=event5, graph=figure_2a_graph))
+        self.assertTrue(is_counterfactual_factor_form(event=event5, graph=figure_2a_graph))
 
         # Z is not a parent of W, so the second counterfactual variable is not a ctf-factor,
         # because it is not a valid counterfactual variable
         event6 = [(Y @ (-Z, -W)), (W @ (-X, Z))]
-        self.assertFalse(is_ctf_factor_form(event=event6, graph=figure_2a_graph))
+        self.assertFalse(is_counterfactual_factor_form(event=event6, graph=figure_2a_graph))
 
 
 class TestMakeSelectionDiagram(unittest.TestCase):
@@ -355,9 +355,8 @@ class TestSameDistrict(unittest.TestCase):
         self.assertFalse(same_district(same_district_test3_in, figure_2a_graph))
 
 
-# TODO: Convert all Ctfs to Counterfactual
-class TestGetCtfFactors(unittest.TestCase):
-    """Test the GetCtfFactors function in counterfactual_transportability.py.
+class TestGetCounterfactualFactors(unittest.TestCase):
+    """Test the GetCounterfactualFactors function in counterfactual_transportability.py.
 
     This is one step in the ctf-factor factorization process. Here we want
     to check that we can separate a joint probability distribution of ctf-factors
@@ -365,7 +364,7 @@ class TestGetCtfFactors(unittest.TestCase):
     together as per Equation 15 in [correa22a]_.
     """
 
-    def test_get_ctf_factors(self):
+    def test_get_counterfactual_factors(self):
         """Test factoring a set of counterfactual variables by district (c-component).
 
         Source: Example 4.2 of [correa22a]_. Note that
@@ -373,11 +372,16 @@ class TestGetCtfFactors(unittest.TestCase):
                 for the query.
         """
         # TODO: Add more tests.
-        get_ctf_factors_test_1_in = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
-        get_ctf_factors_test_1_expected = {((Y @ (-X, -W, -Z)), (W @ -X)), ((X @ -Z), (Z))}
+        get_counterfactual_factors_test_1_in = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
+        get_counterfactual_factors_test_1_expected = {
+            ((Y @ (-X, -W, -Z)), (W @ -X)),
+            ((X @ -Z), (Z)),
+        }
         self.assertSetEqual(
-            get_ctf_factors_test_1_expected,
-            get_ctf_factors(event=get_ctf_factors_test_1_in, graph=figure_2a_graph),
+            get_counterfactual_factors_test_1_expected,
+            get_counterfactual_factors(
+                event=get_counterfactual_factors_test_1_in, graph=figure_2a_graph
+            ),
         )
 
 
@@ -395,30 +399,30 @@ class TestEquation11(cases.GraphTestCase):
         # Already in ctf-factor form
         test_equation_11_in_1 = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
 
-        # get_ctf_factor_query() should convert this expression to ctf-factor form
+        # get_counterfactual_factor_query() should convert this expression to ctf-factor form
         test_equation_11_in_2 = [(Y @ (-X)), (W @ -X), (X @ -Z), (Z)]
 
         test_equation_11_expected = Sum.safe(
             P([(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]), [Z, W]
         )
         self.assert_expr_equal(
-            get_ctf_factor_query(event=test_equation_11_in_1, graph=figure_2a_graph),
+            get_counterfactual_factor_query(event=test_equation_11_in_1, graph=figure_2a_graph),
             test_equation_11_expected,
         )
         self.assert_expr_equal(
-            get_ctf_factor_query(event=test_equation_11_in_2, graph=figure_2a_graph),
+            get_counterfactual_factor_query(event=test_equation_11_in_2, graph=figure_2a_graph),
             test_equation_11_expected,
         )
 
 
-class TestCtfFactorFactorization(cases.GraphTestCase):
+class TestCounterfactualFactorFactorization(cases.GraphTestCase):
     """Test factorizing the counterfactual factors corresponding to a query, as per Example 4.2 of [correa22a]_.
 
     This puts together getting the ancestral set of a query, getting the ctf-factors for each element of the set,
     and factorizing the resulting joint distribution according to the C-components of the graph.
     """
 
-    def test_ctf_factor_factorization(self):
+    def test_counterfactual_factor_factorization(self):
         """Test counterfactual factor factorization as per Equation 16 in [correa22a]_.
 
         Source: Equations 11, 14, and 16 of [correa22a]_.
@@ -431,7 +435,9 @@ class TestCtfFactorFactorization(cases.GraphTestCase):
             P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)]), [Z, W]
         )
         self.assert_expr_equal(
-            do_ctf_factor_factorization(event=test_equation_16_in, graph=figure_2a_graph),
+            do_counterfactual_factor_factorization(
+                event=test_equation_16_in, graph=figure_2a_graph
+            ),
             test_equation_16_expected,
         )
 
