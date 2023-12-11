@@ -160,35 +160,53 @@ def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
     raise NotImplementedError("Unimplemented function: same_district")
 
 
-def is_counterfactual_factor_form(*, event: list[Variable], graph: NxMixedGraph) -> bool:
-    """Check if a joint probability distribution of counterfactual variables is a counterfactual factor in a graph.
+def is_counterfactual_factor_form(*, event: set[Variable], graph: NxMixedGraph) -> bool:
+    """Check if a set of counterfactual variables is a counterfactual factor in a graph.
 
     See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
 
-    :param event: A list of counterfactual variables, some of which may have no interventions.
+    For a counterfactual variable to be a counterfactual factor, all of its parents must
+    be in the intervention set. If the variable is not a counterfactual variable, then
+    it must have no parents to be in counterfactual factor form.
+
+    :param event: A set of counterfactual variables, some of which may have no interventions.
     :param graph: The corresponding graph.
     :returns: A single boolean value (True if the input event is a ctf-factor, False otherwise).
     """
-    raise NotImplementedError("Unimplemented function: is_counterfactual_factor")
+    for variable in event:
+        parents = list(graph.directed.predecessors(variable.get_base()))
+        if isinstance(variable, CounterfactualVariable):
+            for parent in parents:
+                if not any(
+                    [parent.name == intervention.name for intervention in variable.interventions]
+                ):
+                    return False
+        else:
+            if len(parents) > 0:
+                return False
+    return True
 
 
 def get_counterfactual_factors(
-    *, event: list[Variable], graph: NxMixedGraph
+    *, event: set[Variable], graph: NxMixedGraph
 ) -> Optional[set[list[Variable]]]:
     """Decompose a joint probability distribution of counterfactual variables.
 
-    The function returns a set of smaller joint probability distributions corresponding to its counterfactual factors,
-    or "None" if any of the counterfactual variables are not in ctf-factor form.
+    Rather than work with probability distributions directly, the function
+    takes in a set of counterfactual variables and returns a set of
+    sets that correspond to factors associated with individual districts
+    (c-components) in the graph. The function returns "None" if any of the
+    counterfactual variables are not in counterfactual factor form.
 
     See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
 
     :param event:
-        A list of counterfactual variables, some of which may have no interventions.
-        All must be in ctf-factor form.
+        A set of counterfactual variables, some of which may have no interventions.
+        All must be in counterfactual factor form.
     :param graph: The corresponding graph.
     :returns:
-        A set of lists, each corresponding to a joint probability distribution of counterfactual variables
-        in ctf-factor form.
+        A set of sets, each corresponding to a joint probability distribution of counterfactual variables
+        in counterfactual factor form.
     """
     if not is_counterfactual_factor_form(event=event, graph=graph):
         logger.debug(
