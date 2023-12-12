@@ -7,10 +7,18 @@
 
 import logging
 from collections import defaultdict
-from typing import Iterable, Optional, DefaultDict
+from typing import DefaultDict, Iterable, Optional
 
 from y0.algorithm.transport import create_transport_diagram, transport_variable
-from y0.dsl import CounterfactualVariable, Expression, Intervention, P, Sum, Variable, Product
+from y0.dsl import (
+    CounterfactualVariable,
+    Expression,
+    Intervention,
+    P,
+    Product,
+    Sum,
+    Variable,
+)
 from y0.graph import NxMixedGraph
 
 __all__ = [
