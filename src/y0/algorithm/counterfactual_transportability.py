@@ -338,30 +338,12 @@ def do_counterfactual_factor_factorization(
         for factor in factorized_ancestral_set[1:]:
             result_expression *= P(factor)
 
-    logger.warn(
-        "In do_counterfactual_factor_factorization: class of result_expression is "
-        + str(result_expression.__class__)
-    )
-    logger.warn("   The product is " + str(result_expression))
-
     # The summation portion of Equation 11 in [correa22a]_
     sum_range = ancestral_set_variable_names - outcome_variable_names
-
-    logger.warn(
-        "In do_counterfactual_factor_factorization: class of sum_range is "
-        + str(sum_range.__class__)
-    )
-    logger.warn("   And the sum_range is " + str(sum_range))
 
     if len(sum_range) > 0:
         if result_expression is not None:  # Always true, but here to satisfy mypy
             result_expression = Sum.safe(result_expression, sum_range)
-
-    logger.warn(
-        "In do_counterfactual_factor_factorization: class of result_expression is "
-        + str(result_expression.__class__)
-    )
-    logger.warn("   The result is " + str(result_expression))
 
     return result_expression
 

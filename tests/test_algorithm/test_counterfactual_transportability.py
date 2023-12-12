@@ -538,8 +538,6 @@ class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
         )
 
 
-# Next test: convert_counterfactual_variables_to_counterfactual_factor_form
-# TODO: Convert all Ctfs to Counterfactual
 class TestConvertToCounterfactualFactorForm(unittest.TestCase):
     """Test converting a set of variables to counterfactual factor form.
 
