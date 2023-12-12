@@ -173,8 +173,8 @@ class DSeparationJudgement:
         method = _ensure_method(
             method, df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]]
         )
-        tests = get_conditional_independence_tests()
-        func = tests[method]
+        tests: dict[CITest, CITestFunc] = get_conditional_independence_tests()
+        func: CITestFunc = tests[method]
         return func(
             X=self.left.name,
             Y=self.right.name,
