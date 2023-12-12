@@ -55,9 +55,7 @@ def simplify(
     raise NotImplementedError("Unimplemented function: Simplify")
 
 
-def get_ancestors_of_counterfactual(
-    event: CounterfactualVariable, graph: NxMixedGraph
-) -> set[Variable]:
+def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set[Variable]:
     """Get the ancestors of a counterfactual variable.
 
     This follows [correa22a]_, Definition 2.1 and Example 2.1.
@@ -198,9 +196,7 @@ def is_counterfactual_factor_form(*, event: set[Variable], graph: NxMixedGraph) 
     return True
 
 
-def get_counterfactual_factors(
-    *, event: set[Variable], graph: NxMixedGraph
-) -> Optional[list[set[Variable]]]:
+def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> list[set[Variable]]:
     """Decompose a joint probability distribution of counterfactual variables.
 
     Rather than work with probability distributions directly, the function
@@ -217,7 +213,7 @@ def get_counterfactual_factors(
         have no interventions. All counterfactual variable must be in counterfactual
         factor form.
     :param graph: The corresponding graph.
-    :raises KeyError: If an event is not in counterfactual factor form.
+    :raises KeyError: An event is not in counterfactual factor form.
     :returns:
         A set of sorted lists of counterfactual variables in counterfactual factor
         form, with each list associated with a district of the graph. The lists
@@ -298,13 +294,6 @@ def get_counterfactual_factor_query(
         # TODO: Check that we get variables only, and not values as well, from calling
         # get_ancestors_of_counterfactual() with these inputs. Because we want the ancestral set.
 
-    # We want the elements of the ancestral set that do not contain elements of the original query, y.
-    # This is :math:`\mathbf y_\ast`. For getting the variables to marginalize over, i.e. getting V(W_*) from W_*.
-    # variable_names_of_outcome_values: set[Variable] = {counterfactual_variable.get_base() for
-    #     counterfactual_variable in event}
-    # variable_names_of_ancestral_set: set[Variable] = {counterfactual_variable.get_base() for
-    #     counterfactual_variable in ancestral_set}
-
     #  e.g., Equation 14 in [correa22a]_, without the summation component.
     ancestral_set_values_in_counterfactual_factor_form: set[
         Variable
@@ -341,7 +330,7 @@ def get_counterfactual_factor_query(
 
 
 def do_counterfactual_factor_factorization(
-    *, event: list[Variable], graph: NxMixedGraph
+    *, event: set[Variable], graph: NxMixedGraph
 ) -> Expression:
     r"""Take an arbitrary query and return its counterfactual factor form, factorized according to the graph c-components.
 
@@ -350,14 +339,91 @@ def do_counterfactual_factor_factorization(
 
         :math:P*( \mathbf y_*) (i.e., a joint probability distribution corresponding to a query).
     :param graph: The corresponding graph.
+    :raises TypeError: do_counterfactual_factorization() requires at least one variable in the query variable set.
     :returns:
         An expression following the right side of Equation 15 in [correa22a]_ (example: Equation 16).
 
-        :math:Sum_{ \mathbf d_* \\ \mathbf y_*} P*( \mathbf d_* ), where :math:\mathbf D_* = An( \mathbf Y_* ),
-        where P*( \mathbf d_* ) has been further decomposed as per
+        :math:Sum_{ \mathbf d_* \backslash \mathbf y_*} P*( \mathbf d_* ), where :math:\mathbf D_* = An( \mathbf Y_* ),
+        and where P*( \mathbf d_* ) has been further decomposed as per
         :math: P*( \mathbf d_* ) = prod_{j}(P*( \mathbf c_{j*}) (Equation 15).
     """
-    raise NotImplementedError("Unimplemented function: get_counterfactual_factors")
+    # We can't directly compute the ancestral set via a set comprehension because get_ancestors_of_counterfactual()
+    # returns mutable sets, so we'd get an 'unhashable type: set' error
+    # note from @cthoyt - use frozenset if you want immutable/hashable sets
+    #
+    # TODO: Do we need to check for consistency among the elements of the ancestral set before
+    #       applying the union operation?
+    #
+    # TODO: Check that we get variables only, and not values as well, from calling
+    # get_ancestors_of_counterfactual() with these inputs. Because we want the ancestral set.
+    if len(event) == 0:
+        raise TypeError(
+            "do_counterfactual_factorization() requires at least one variable in the query."
+        )
+
+    ancestral_set: set[Variable] = set()
+    for counterfactual_variable in event:
+        ancestral_set.update(get_ancestors_of_counterfactual(counterfactual_variable, graph))
+
+    #  e.g., Equation 14 in [correa22a]_, without the summation component.
+    ancestral_set_in_counterfactual_factor_form: set[
+        Variable
+    ] = convert_to_counterfactual_factor_form(event=ancestral_set, graph=graph)
+
+    # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.
+    ancestral_set_variable_names: set[Variable] = {
+        counterfactual_variable.get_base()
+        for counterfactual_variable in ancestral_set_in_counterfactual_factor_form
+    }
+
+    outcome_variable_names: set[Variable] = {
+        counterfactual_variable.get_base() for counterfactual_variable in event
+    }
+
+    # Decompose the query by c-component (e.g., Equation 16 in [correa22a]_)
+    ancestral_set_subgraph = graph.subgraph(ancestral_set_variable_names)
+    factorized_ancestral_set: list[set[Variable]] = get_counterfactual_factors(
+        event=ancestral_set_in_counterfactual_factor_form, graph=ancestral_set_subgraph
+    )
+
+    # Question for JZ / @cthoyt: The below works, but is ugly. Mypy won't allow me to
+    #           initialize result_expression to 'None' because that messes with
+    #           result_expression's expected type later in the function. I tried initializing
+    #           the expression to 1 with 'result_expression = One()'. That returned
+    #           'error: Incompatible types in assignment (expression has type "Expression",
+    #           variable has type "One")' from mypy. (One() is a subclass of Expression.)
+    #           What's a better way to initialize an 'empty' expression?
+    result_expression: Expression = P(factorized_ancestral_set[0])
+    if len(factorized_ancestral_set) > 1:
+        for factor in factorized_ancestral_set[1:]:
+            result_expression *= P(factor)
+
+    logger.warn(
+        "In do_counterfactual_factor_factorization: class of result_expression is "
+        + str(result_expression.__class__)
+    )
+    logger.warn("   The product is " + str(result_expression))
+
+    # The summation portion of Equation 11 in [correa22a]_
+    sum_range = ancestral_set_variable_names - outcome_variable_names
+
+    logger.warn(
+        "In do_counterfactual_factor_factorization: class of sum_range is "
+        + str(sum_range.__class__)
+    )
+    logger.warn("   And the sum_range is " + str(sum_range))
+
+    if len(sum_range) > 0:
+        if result_expression is not None:  # Always true, but here to satisfy mypy
+            result_expression = Sum.safe(result_expression, sum_range)
+
+    logger.warn(
+        "In do_counterfactual_factor_factorization: class of result_expression is "
+        + str(result_expression.__class__)
+    )
+    logger.warn("   The result is " + str(result_expression))
+
+    return result_expression
 
 
 def make_selection_diagram(

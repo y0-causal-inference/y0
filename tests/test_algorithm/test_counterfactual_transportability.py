@@ -11,12 +11,11 @@ import unittest
 from networkx import NetworkXError
 
 from tests.test_algorithm import cases
-from y0.algorithm.counterfactual_transportability import (
+from y0.algorithm.counterfactual_transportability import (  # get_counterfactual_factor_query,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
     get_ancestors_of_counterfactual,
-    get_counterfactual_factor_query,
     get_counterfactual_factors,
     is_counterfactual_factor_form,
     make_selection_diagram,
@@ -338,7 +337,7 @@ class TestSameDistrict(unittest.TestCase):
 
         Source: out of RJC's head.
         """
-        same_district_test1_in: set[Variable] = {(Y @ (-X, -W, -Z)), (W @ (-X))}
+        same_district_test1_in = {(Y @ (-X, -W, -Z)), (W @ (-X))}
         self.assertTrue(same_district(same_district_test1_in, figure_2a_graph))
 
     def test_same_district_2(self):
@@ -346,7 +345,7 @@ class TestSameDistrict(unittest.TestCase):
 
         Source: out of RJC's head.
         """
-        same_district_test2_in: set[Variable] = {(Z), (X @ -Z)}
+        same_district_test2_in = {(Z), (X @ -Z)}
         self.assertTrue(same_district(same_district_test2_in, figure_2a_graph))
 
     def test_same_district_3(self):
@@ -354,7 +353,7 @@ class TestSameDistrict(unittest.TestCase):
 
         Source: out of RJC's head.
         """
-        same_district_test3_in: set[Variable] = {(Y @ -Y), (Z), (X @ -Z)}
+        same_district_test3_in = {(Y @ -Y), (Z), (X @ -Z)}
         self.assertFalse(same_district(same_district_test3_in, figure_2a_graph))
 
     def test_same_district_4(self):
@@ -362,7 +361,7 @@ class TestSameDistrict(unittest.TestCase):
 
         Source: out of RJC's head.
         """
-        same_district_test4_in: set[Variable] = {(Y @ -Y)}
+        same_district_test4_in = {(Y @ -Y)}
         self.assertTrue(same_district(same_district_test4_in, figure_2a_graph))
 
     def test_same_district_5(self):
@@ -370,7 +369,7 @@ class TestSameDistrict(unittest.TestCase):
 
         Source: out of RJC's head. This test is meant to raise a key error.
         """
-        same_district_test5_in: set[Variable] = {(R @ -Y)}
+        same_district_test5_in = {(R @ -Y)}
         self.assertRaises(KeyError, same_district, same_district_test5_in, figure_2a_graph)
 
     def test_same_district_6(self):
@@ -378,7 +377,7 @@ class TestSameDistrict(unittest.TestCase):
 
         Source: out of RJC's head. Edge case where we pass in no variables.
         """
-        same_district_test6_in: set[Variable] = set()
+        same_district_test6_in = set()
         self.assertTrue(KeyError, same_district(same_district_test6_in, figure_2a_graph))
 
 
@@ -476,60 +475,96 @@ class TestGetCounterfactualFactors(unittest.TestCase):
         )
 
 
-class TestEquation11(cases.GraphTestCase):
-    """Test deriving a query of ctf-factors from a counterfactual query, following Equation 11 in [correa22a]_.
+# class TestEquation11(cases.GraphTestCase):
+#    """Test deriving a query of ctf-factors from a counterfactual query, following Equation 11 in [correa22a]_.
+#
+#    This is one step in the ctf-factor factorization process. We get syntax inspiration from the ID algorithm, Line 1.
+#    """
+#
+#    def test_equation_11(self):
+#        """Test deriving a query of ctf factors from a counterfactual query.
+#
+#        Source: Equation 14 of [correa22a]_.
+#        """
+#        # Already in ctf-factor form
+#        test_equation_11_in_1 = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
+#
+#        # get_counterfactual_factor_query() should convert this expression to ctf-factor form
+#        test_equation_11_in_2 = [(Y @ (-X)), (W @ -X), (X @ -Z), (Z)]
+#
+#        test_equation_11_expected = Sum.safe(
+#            P([(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]), [Z, W]
+#        )
+#        self.assert_expr_equal(
+#            get_counterfactual_factor_query(event=test_equation_11_in_1, graph=figure_2a_graph),
+#            test_equation_11_expected,
+#        )
+#        self.assert_expr_equal(
+#            get_counterfactual_factor_query(event=test_equation_11_in_2, graph=figure_2a_graph),
+#            test_equation_11_expected,
+#        )
 
-    This is one step in the ctf-factor factorization process. We get syntax inspiration from Line 1 of the ID algorithm.
-    """
 
-    def test_equation_11(self):
-        """Test deriving a query of ctf factors from a counterfactual query.
-
-        Source: Equation 14 of [correa22a]_.
-        """
-        # Already in ctf-factor form
-        test_equation_11_in_1 = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
-
-        # get_counterfactual_factor_query() should convert this expression to ctf-factor form
-        test_equation_11_in_2 = [(Y @ (-X)), (W @ -X), (X @ -Z), (Z)]
-
-        test_equation_11_expected = Sum.safe(
-            P([(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]), [Z, W]
-        )
-        self.assert_expr_equal(
-            get_counterfactual_factor_query(event=test_equation_11_in_1, graph=figure_2a_graph),
-            test_equation_11_expected,
-        )
-        self.assert_expr_equal(
-            get_counterfactual_factor_query(event=test_equation_11_in_2, graph=figure_2a_graph),
-            test_equation_11_expected,
-        )
-
-
-class TestCounterfactualFactorFactorization(cases.GraphTestCase):
+class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
     """Test factorizing the counterfactual factors corresponding to a query, as per Example 4.2 of [correa22a]_.
 
     This puts together getting the ancestral set of a query, getting the ctf-factors for each element of the set,
     and factorizing the resulting joint distribution according to the C-components of the graph.
     """
 
-    def test_counterfactual_factor_factorization(self):
+    # TODO: Add more tests, looking at edge cases: empty set, One(),
+    # maybe check that a graph with distinct ancestral components just treats
+    # everything as having one ancestral set here, etc.
+    def test_do_counterfactual_factor_factorization_1(self):
         """Test counterfactual factor factorization as per Equation 16 in [correa22a]_.
 
         Source: Equations 11, 14, and 16 of [correa22a]_.
         """
-        test_equation_16_in = P(
-            [(Y @ -X), (X)]
-        )  # Question for Jeremy: should the second term be -X instead of just X?
+        # First test is already in counterfactual factor form
+        equation_16_test_1_in = {(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)}
+        # Question for Jeremy: should the second term be -X instead of just X?
         # Is the multiplication syntax correct?
-        test_equation_16_expected = Sum.safe(
-            P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)]), [Z, W]
+        # equation_16_test_1_expected = Sum.safe(
+        #    P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)]), [Z, W]
+        # )
+        equation_16_test_1_expected = P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)])
+        self.assert_expr_equal(
+            do_counterfactual_factor_factorization(
+                event=equation_16_test_1_in, graph=figure_2a_graph
+            ),
+            equation_16_test_1_expected,
+        )
+
+    def test_do_counterfactual_factor_factorization_2(self):
+        """Test counterfactual factor factorization as per Equation 16 in [correa22a]_.
+
+        Source: Equations 11, 14, and 16 of [correa22a]_.
+        """
+        # Second test is not in counterfactual factor form
+        equation_16_test_2_in = {(Y @ (-X)), (W @ -X), (X @ -Z), (Z)}
+        equation_16_test_2_expected = P((Y @ (-X, -W, -Z)), (W @ -X)) * P((X @ -Z), (Z))
+        self.assert_expr_equal(
+            do_counterfactual_factor_factorization(
+                event=equation_16_test_2_in, graph=figure_2a_graph
+            ),
+            equation_16_test_2_expected,
+        )
+
+    def test_do_counterfactual_factor_factorization_3(self):
+        """Test counterfactual factor factorization as per Equation 16 in [correa22a]_.
+
+        Source: Equations 11, 14, and 16 of [correa22a]_.
+        """
+        # This is the actual equation 16 content in [correa22a]_
+        equation_16_test_3_in = {(Y @ -X), (X)}
+        equation_16_test_3_expected = Sum.safe(
+            P((Y @ (-X, -W, -Z)), (W @ -X)) * P((X @ -Z), (Z)), [Z, W]
         )
         self.assert_expr_equal(
             do_counterfactual_factor_factorization(
-                event=test_equation_16_in, graph=figure_2a_graph
+                event=equation_16_test_3_in, graph=figure_2a_graph
             ),
-            test_equation_16_expected,
+            equation_16_test_3_expected,
         )
 
 
