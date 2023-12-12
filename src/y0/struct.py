@@ -6,16 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import (
-    Callable,
-    Iterable,
-    Literal,
-    NamedTuple,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Callable, Iterable, Literal, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -68,8 +59,10 @@ CITest = Literal[
     "power_divergence",
     "neyman",
 ]
+DEFAULT_CONTINUOUS_CI_TEST: CITest = "pearson"
+DEFAULT_DISCRETE_CI_TEST: CITest = "cressie_read"
 
-CITestFunc = TypeVar("CITestFunc", bound=Callable)
+CITestFunc = Callable
 
 
 @lru_cache
@@ -131,19 +124,26 @@ class DSeparationJudgement:
         return (
             self.left < self.right
             and isinstance(self.conditions, tuple)
-            and tuple(sorted(self.conditions, key=str)) == (self.conditions)
+            and tuple(sorted(self.conditions, key=str)) == self.conditions
         )
 
     def test(
-        self, df: pd.DataFrame, boolean: bool = False, method: Optional[CITest] = None, **kwargs
-    ) -> Union[Tuple[float, int, float], bool]:
+        self,
+        df: pd.DataFrame,
+        boolean: bool = False,
+        method: Optional[CITest] = None,
+        significance_level: Optional[float] = None,
+    ) -> Union[Tuple[float, int], Tuple[float, int, float], bool]:
         """Test for conditional independence, given some data.
 
         :param df: A dataframe.
         :param boolean: Should results be returned as a pre-cutoff boolean?
         :param method: Conditional independence from :mod:`pgmpy` to use. If none,
             defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
-        :param kwargs: Additional kwargs to pass to the estimator function
+        :param significance_level:
+            The statistical tests employ this value for
+            comparison with the p-value of the test to determine the independence of
+            the tested variables. If none, defaults to 0.01. Only applied if ``boolean=True``.
         :returns:
             Tests the null hypothesis that X is independent of Y given Zs.
             If ``boolean=False``, returns a three-tuple of chi, dof, p_value.
@@ -161,18 +161,58 @@ class DSeparationJudgement:
                 f"right variable {self.right.name} ({type(self.right.name)}) not in columns {df.columns}"
             )
         for c in self.conditions:
+            if c.name in {self.left.name, self.right.name}:
+                raise ValueError(f"conditional {c.name} repeats one of the primary arguments")
             if c.name not in df.columns:
                 raise ValueError(
                     f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
                 )
+        if significance_level is None:
+            significance_level = 0.01
 
-        tests = get_conditional_independence_tests()  # type: dict
-        func = tests[method or "cressie_read"]
+        method = _ensure_method(
+            method, df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]]
+        )
+        tests: dict[CITest, CITestFunc] = get_conditional_independence_tests()
+        func: CITestFunc = tests[method]
         return func(
             X=self.left.name,
             Y=self.right.name,
             Z={condition.name for condition in self.conditions},
             data=df,
             boolean=boolean,
-            **kwargs,
+            significance_level=significance_level,
         )
+
+
+def _ensure_method(method: Optional[CITest], df: pd.DataFrame) -> CITest:
+    # TODO extend to discrete but more than 2.
+    #  see https://stats.stackexchange.com/questions/12273/how-to-test-if-my-data-is-discrete-or-continuous
+    # TODO what happens when some variables are binary but others are continous?
+    binary = _is_binary(df)
+    if method is None:
+        if binary:
+            return DEFAULT_DISCRETE_CI_TEST
+        else:
+            return DEFAULT_CONTINUOUS_CI_TEST
+    elif binary and method == "pearson":
+        raise ValueError(
+            f"using continuous data test ({method}) on binary data: {_summarize_df(df)}"
+        )
+    elif not binary and method != "pearson":
+        raise ValueError(f"using binary data test ({method}) on continuous data")
+    return method
+
+
+def _summarize_df(df: pd.DataFrame):
+    return {column: set(df[column].unique()) for column in df.columns}
+
+
+def _is_binary(df: pd.DataFrame) -> bool:
+    column_to_type = {column: _is_two_values(df[column]) for column in df.columns}
+    return all(column_to_type.values())
+
+
+def _is_two_values(series):
+    values = set(series.unique())
+    return values == {True, False} or values == {1, 0} or values == {1, -1}

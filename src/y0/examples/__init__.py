@@ -1169,6 +1169,10 @@ d_separation_example = Example(
     ],
 )
 
+
+asia_df = pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1})
+del asia_df[asia_df.columns[0]]
+
 asia_example = Example(
     name="Asia dataset",
     reference="https://www.bnlearn.com/documentation/man/asia.html",
@@ -1187,7 +1191,7 @@ asia_example = Example(
             ]
         ],
     ),
-    data=pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1}),
+    data=asia_df,
 )
 
 figure_2a_example = Example(
