@@ -333,18 +333,12 @@ def do_counterfactual_factor_factorization(
     #           'error: Incompatible types in assignment (expression has type "Expression",
     #           variable has type "One")' from mypy. (One() is a subclass of Expression.)
     #           What's a better way to initialize an 'empty' expression?
-    result_expression: Expression = P(factorized_ancestral_set[0])
-    if len(factorized_ancestral_set) > 1:
-        for factor in factorized_ancestral_set[1:]:
-            result_expression *= P(factor)
+    result_expression = Product.safe(P(factor) for factor in factorized_ancestral_set)
 
     # The summation portion of Equation 11 in [correa22a]_
     sum_range = ancestral_set_variable_names - outcome_variable_names
 
-    if len(sum_range) > 0:
-        if result_expression is not None:  # Always true, but here to satisfy mypy
-            result_expression = Sum.safe(result_expression, sum_range)
-
+    result_expression = Sum.safe(result_expression, sum_range)
     return result_expression
 
 
