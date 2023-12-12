@@ -475,36 +475,6 @@ class TestGetCounterfactualFactors(unittest.TestCase):
         )
 
 
-# class TestEquation11(cases.GraphTestCase):
-#    """Test deriving a query of ctf-factors from a counterfactual query, following Equation 11 in [correa22a]_.
-#
-#    This is one step in the ctf-factor factorization process. We get syntax inspiration from the ID algorithm, Line 1.
-#    """
-#
-#    def test_equation_11(self):
-#        """Test deriving a query of ctf factors from a counterfactual query.
-#
-#        Source: Equation 14 of [correa22a]_.
-#        """
-#        # Already in ctf-factor form
-#        test_equation_11_in_1 = [(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]
-#
-#        # get_counterfactual_factor_query() should convert this expression to ctf-factor form
-#        test_equation_11_in_2 = [(Y @ (-X)), (W @ -X), (X @ -Z), (Z)]
-#
-#        test_equation_11_expected = Sum.safe(
-#            P([(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)]), [Z, W]
-#        )
-#        self.assert_expr_equal(
-#            get_counterfactual_factor_query(event=test_equation_11_in_1, graph=figure_2a_graph),
-#            test_equation_11_expected,
-#        )
-#        self.assert_expr_equal(
-#            get_counterfactual_factor_query(event=test_equation_11_in_2, graph=figure_2a_graph),
-#            test_equation_11_expected,
-#        )
-
-
 class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
     """Test factorizing the counterfactual factors corresponding to a query, as per Example 4.2 of [correa22a]_.
 

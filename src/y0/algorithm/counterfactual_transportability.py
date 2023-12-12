@@ -20,7 +20,6 @@ __all__ = [
     "is_counterfactual_factor_form",
     "get_counterfactual_factors",
     "convert_to_counterfactual_factor_form",
-    "get_counterfactual_factor_query",
     "do_counterfactual_factor_factorization",
     "make_selection_diagram",
     "counterfactual_factors_are_transportable",
@@ -268,65 +267,6 @@ def convert_to_counterfactual_factor_form(
         else variable
         for variable in event
     }
-
-
-def get_counterfactual_factor_query(
-    *, event: list[CounterfactualVariable], graph: NxMixedGraph
-) -> Expression:
-    r"""Take an arbitrary query and return the counterfactual factor form of the query ("ctf-factor form").
-
-    :param event: A list of values of counterfactual variables. In the paper,  :math:`P^\ast( \mathbf y_\ast)`
-    :param graph: The corresponding graph.
-    :returns:
-        An expression following the right side of Equation 11 in [correa22a]_.
-
-        :math:`\sum_{ \mathbf d_\ast \backslash \mathbf y_\ast} P^\ast( \mathbf d_\ast )`,
-            where :math:`\mathbf D_\ast = An( \mathbf Y_\ast )`
-    """
-    # We can't directly compute the ancestral set via a set comprehension because get_ancestors_of_counterfactual()
-    # returns mutable sets, so we'd get an 'unhashable type: set' error
-    # note from @cthoyt - use frozenset if you want immutable/hashable sets
-    # TODO: Do we need to check for consistency among the elements of the ancestral set before
-    #       applying the union operation?
-    ancestral_set: set[Variable] = set()
-    for counterfactual_variable in event:
-        ancestral_set.update(get_ancestors_of_counterfactual(counterfactual_variable, graph))
-        # TODO: Check that we get variables only, and not values as well, from calling
-        # get_ancestors_of_counterfactual() with these inputs. Because we want the ancestral set.
-
-    #  e.g., Equation 14 in [correa22a]_, without the summation component.
-    ancestral_set_values_in_counterfactual_factor_form: set[
-        Variable
-    ] = convert_to_counterfactual_factor_form(event=ancestral_set, graph=graph)
-    # ancestral_set_query_in_counterfactual_factor_form = P(ancestral_set_values_in_counterfactual_factor_form)
-
-    # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.
-    variable_names_of_ancestral_set_in_counterfactual_factor_form: set[Variable] = {
-        counterfactual_variable.get_base()
-        for counterfactual_variable in ancestral_set_values_in_counterfactual_factor_form
-    }
-
-    variable_names_of_outcome_values: set[Variable] = {
-        counterfactual_variable.get_base() for counterfactual_variable in event
-    }
-
-    # For decomposing this into the factors by c-component, in another function, shortly:
-    # ancestral_set_subgraph = graph.subgraph(variable_names_of_ancestral_set_in_counterfactual_factor_form)
-    # factorized_ancestral_set_query =
-    #     factorize_query(ancestral_set_values_in_counterfactual_factor_form, ancestral_set_subgraph)
-
-    # ancestral_set_subgraph_districts = ancestral_set_subgraph.districts()
-
-    # for ancestor in ancestral_set:
-    #    ctf_cv = ancestor.intervene(graph.directed.predecessors(ancestor))
-    #    query_in_counterfactual_factor_form.add(ctf_cv)
-    #    query_with_just_the_variable_names.add(ctf_cv.get_base())
-    sum_range = (
-        variable_names_of_ancestral_set_in_counterfactual_factor_form
-        - variable_names_of_outcome_values
-    )
-    result = Sum.safe(P(ancestral_set_values_in_counterfactual_factor_form), sum_range)
-    return result
 
 
 def do_counterfactual_factor_factorization(
