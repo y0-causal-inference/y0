@@ -202,7 +202,7 @@ class Identification:
     ) -> None:
         """Instantiate an identification.
 
-        :param query: The generalizd identification query (outcomes/treatments/conditions)
+        :param query: The generalized identification query (outcomes/treatments/conditions)
         :param graph: The graph
         :param estimand: If none is given, will use the joint distribution over all variables in the graph.
         """
