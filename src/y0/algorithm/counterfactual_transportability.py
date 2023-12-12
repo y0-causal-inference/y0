@@ -189,32 +189,54 @@ def is_counterfactual_factor_form(*, event: set[Variable], graph: NxMixedGraph) 
 
 def get_counterfactual_factors(
     *, event: set[Variable], graph: NxMixedGraph
-) -> Optional[set[list[Variable]]]:
+) -> Optional[list[set[Variable]]]:
     """Decompose a joint probability distribution of counterfactual variables.
 
     Rather than work with probability distributions directly, the function
     takes in a set of counterfactual variables and returns a set of
     sets that correspond to factors associated with individual districts
     (c-components) in the graph. The function returns "None" if any of the
-    counterfactual variables are not in counterfactual factor form.
+    counterfactual variables are not in counterfactual factor form, or
+    if an event variable is not in any district (i.e., not in the graph).
 
     See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
 
     :param event:
-        A set of counterfactual variables, some of which may have no interventions.
-        All must be in counterfactual factor form.
+        A set of counterfactual variables, some of which may
+        have no interventions. All counterfactual variable must be in counterfactual
+        factor form.
     :param graph: The corresponding graph.
     :returns:
-        A set of sets, each corresponding to a joint probability distribution of counterfactual variables
-        in counterfactual factor form.
+        A set of sorted lists of counterfactual variables in counterfactual factor
+        form, with each list associated with a district of the graph. The lists
+        need not contain every variable in the district, but they can't contain
+        variables missing from the graph.
     """
+    districts = list(graph.districts())
+    district_mappings: dict[frozenset, set[Variable]] = {district: set() for district in districts}
+
+    if any(
+        [not any([variable.get_base() in district for district in districts]) for variable in event]
+    ):
+        logger.warn(
+            "In get_counterfactual_factors(): a variable in the input event is missing from the graph.\n"
+        )
+        return None
+
     if not is_counterfactual_factor_form(event=event, graph=graph):
-        logger.debug(
+        logger.warn(
             "In get_counterfactual_factors(): the event (%s) is not in counterfactual factor form.\n",
             str(event),
         )
         return None
-    raise NotImplementedError("Unimplemented function: get_counterfactual_factors")
+
+    for variable in event:
+        for district in districts:
+            if variable.get_base() in district:
+                district_mappings[district].update({variable})
+                break
+    return_value = [set(value) for value in district_mappings.values()]
+    return return_value
 
 
 def convert_to_counterfactual_factor_form(
