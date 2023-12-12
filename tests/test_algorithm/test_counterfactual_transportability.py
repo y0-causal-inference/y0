@@ -390,24 +390,13 @@ class TestGetCounterfactualFactors(unittest.TestCase):
     together as per Equation 15 in [correa22a]_.
     """
 
-    def _equal_sets(self, set1: set[Variable], set2: set[Variable]) -> bool:
-        """Check that two sets of variables contain the same elements.
-
-        :param set1: The first set.
-        :param set2: The second set.
-        :returns: True or false.
-        """
-        return all([s1 in set2 for s1 in set1]) and all([s2 in set1 for s2 in set2])
-
-    def _equal_lists_of_sets(self, list1: list[set[Variable]], list2: list[set[Variable]]) -> bool:
-        """Check that two lists containing sets of variables as elements have the same elements.
-
-        Allow the sets to appear in the lists in any order.
-        :param list1: The first list.
-        :param list2: The second list.
-        :returns: True or false.
-        """
-        return all([any([self._equal_sets(set1, set2) for set1 in list1]) for set2 in list2])
+    def assert_collection_of_set_equal(
+        self, left: Collection[set[Variable]], right: Collection[set[Variable]]
+    ) -> None:
+        """Check that two collections contain sets with the same elements."""
+        c1 = Counter(frozenset(element) for element in left)
+        c2 = Counter(frozenset(el) for el in right)
+        self.assertEqual(c1, c2)
 
     def test_get_counterfactual_factors_1(self):
         """Test factoring a set of counterfactual variables by district (c-component).
@@ -427,7 +416,7 @@ class TestGetCounterfactualFactors(unittest.TestCase):
             {(Y @ (-X, -W, -Z)), (W @ -X)},
             {(X @ -Z), (-Z), (Z @ -Z)},
         ]
-        assert self._equal_lists_of_sets(
+        self.assert_collection_of_set_equal(
             get_counterfactual_factors_test_1_expected,
             get_counterfactual_factors(
                 event=get_counterfactual_factors_test_1_in, graph=figure_2a_graph
