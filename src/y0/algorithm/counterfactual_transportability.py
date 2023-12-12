@@ -219,9 +219,6 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
         need not contain every variable in the district, but they can't contain
         variables missing from the graph.
     """
-    districts = list(graph.districts())
-    district_mappings: dict[frozenset, set[Variable]] = {district: set() for district in districts}
-
     if not is_counterfactual_factor_form(event=event, graph=graph):
         logger.warn("Supposed to trigger KeyError in get_counterfactual_factors().")
         raise KeyError(
@@ -229,9 +226,11 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
             str(event),
         )
 
+    district_mappings: DefaultDict[frozenset[Variable], set[Variable]] = defaultdict(set)
     for variable in event:
-        district_mappings[graph.get_district(variable.get_base())].update({variable})
+        district_mappings[graph.get_district(variable.get_base())].add(variable)
 
+    # TODO if there aren't duplicates, this can be a set of frozensets
     return_value = [set(value) for value in district_mappings.values()]
     return return_value
 
