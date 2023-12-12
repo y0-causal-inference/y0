@@ -269,7 +269,7 @@ class TestMakeSelectionDiagram(unittest.TestCase):
 
     def test_make_selection_diagram(self):
         """Create Figure 2(b) of [correa22a]_ from Figures 3(a) and 3(b)."""
-        selection_nodes = dict({1: set({Z}), 2: set({W})})
+        selection_nodes = {1: {Z}, 2: {W}}
         selection_diagram = make_selection_diagram(
             selection_nodes=selection_nodes, graph=figure_2a_graph
         )
@@ -283,7 +283,9 @@ class TestMakeSelectionDiagram(unittest.TestCase):
                 (
                     transport_variable(Z),
                     Z,
-                ),  # How do we indicate with a superscript that this is from domain 1?
+                ),
+                # How do we indicate with a superscript that this is from domain 1?
+                # cthoyt:The domain-variable association explicitly does not live in the graph.
                 (
                     transport_variable(W),
                     W,
@@ -491,7 +493,7 @@ class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
         equation_16_test_1_expected = P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)])
         self.assert_expr_equal(
             do_counterfactual_factor_factorization(
-                event=equation_16_test_1_in, graph=figure_2a_graph
+                variables=equation_16_test_1_in, graph=figure_2a_graph
             ),
             equation_16_test_1_expected,
         )
@@ -506,7 +508,7 @@ class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
         equation_16_test_2_expected = P((Y @ (-X, -W, -Z)), (W @ -X)) * P((X @ -Z), (Z))
         self.assert_expr_equal(
             do_counterfactual_factor_factorization(
-                event=equation_16_test_2_in, graph=figure_2a_graph
+                variables=equation_16_test_2_in, graph=figure_2a_graph
             ),
             equation_16_test_2_expected,
         )
@@ -523,7 +525,7 @@ class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
         )
         self.assert_expr_equal(
             do_counterfactual_factor_factorization(
-                event=equation_16_test_3_in, graph=figure_2a_graph
+                variables=equation_16_test_3_in, graph=figure_2a_graph
             ),
             equation_16_test_3_expected,
         )

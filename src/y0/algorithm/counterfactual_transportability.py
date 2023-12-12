@@ -6,10 +6,11 @@
 """
 
 import logging
-from typing import Iterable, Optional
+from collections import defaultdict
+from typing import Iterable, Optional, DefaultDict
 
 from y0.algorithm.transport import create_transport_diagram, transport_variable
-from y0.dsl import CounterfactualVariable, Expression, Intervention, P, Sum, Variable
+from y0.dsl import CounterfactualVariable, Expression, Intervention, P, Sum, Variable, Product
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -186,7 +187,7 @@ def is_counterfactual_factor_form(*, event: set[Variable], graph: NxMixedGraph) 
         if isinstance(variable, CounterfactualVariable):
             for parent in parents:
                 if not any(
-                    [parent.name == intervention.name for intervention in variable.interventions]
+                    parent.name == intervention.name for intervention in variable.interventions
                 ):
                     return False
         else:
@@ -269,11 +270,11 @@ def convert_to_counterfactual_factor_form(
 
 
 def do_counterfactual_factor_factorization(
-    *, event: set[Variable], graph: NxMixedGraph
+    *, variables: set[Variable], graph: NxMixedGraph
 ) -> Expression:
     r"""Take an arbitrary query and return its counterfactual factor form, factorized according to the graph c-components.
 
-    :param event:
+    :param variables:
         A list of counterfactual variables (the left side of Equation 11 in [correa22a]_).
 
         :math:P*( \mathbf y_*) (i.e., a joint probability distribution corresponding to a query).
@@ -295,13 +296,13 @@ def do_counterfactual_factor_factorization(
     #
     # TODO: Check that we get variables only, and not values as well, from calling
     # get_ancestors_of_counterfactual() with these inputs. Because we want the ancestral set.
-    if len(event) == 0:
+    if not variables:
         raise TypeError(
             "do_counterfactual_factorization() requires at least one variable in the query."
         )
 
     ancestral_set: set[Variable] = set()
-    for counterfactual_variable in event:
+    for counterfactual_variable in variables:
         ancestral_set.update(get_ancestors_of_counterfactual(counterfactual_variable, graph))
 
     #  e.g., Equation 14 in [correa22a]_, without the summation component.
@@ -311,13 +312,10 @@ def do_counterfactual_factor_factorization(
 
     # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.
     ancestral_set_variable_names: set[Variable] = {
-        counterfactual_variable.get_base()
-        for counterfactual_variable in ancestral_set_in_counterfactual_factor_form
+        variable.get_base() for variable in ancestral_set_in_counterfactual_factor_form
     }
 
-    outcome_variable_names: set[Variable] = {
-        counterfactual_variable.get_base() for counterfactual_variable in event
-    }
+    outcome_variable_names: set[Variable] = {variable.get_base() for variable in variables}
 
     # Decompose the query by c-component (e.g., Equation 16 in [correa22a]_)
     ancestral_set_subgraph = graph.subgraph(ancestral_set_variable_names)
@@ -386,7 +384,7 @@ def counterfactual_factors_are_transportable(
     :returns: Whether the query is transportable.
     """
     return not any(
-        [transport_variable(factor.get_base()) in domain_graph.nodes() for factor in factors]
+        transport_variable(factor.get_base()) in domain_graph.nodes() for factor in factors
     )
 
 
