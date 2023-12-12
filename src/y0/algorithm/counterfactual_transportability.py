@@ -149,6 +149,8 @@ def _miniminimize(event: CounterfactualVariable, graph: NxMixedGraph) -> Counter
 def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
     """Check if a set of counterfactual variables are in the same district (c-component) of a graph.
 
+    Edge cases: return True if the event contains one or no events.
+
     :param event: A set of counterfactual variables.
     :param graph: The graph containing them.
     :returns: A boolean.
@@ -157,7 +159,16 @@ def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
     #       each counterfactual variable. There's a function to get the district for a single variable.
     #       Get the union of the output from that function applied to each variable and see if
     #       its size is greater than one.
-    raise NotImplementedError("Unimplemented function: same_district")
+    if len(event) < 1:
+        return True
+
+    visited_districts: set[frozenset] = {
+        graph.get_district(variable.get_base()) for variable in event
+    }
+    logger.warn("In same_district(): event = " + str(event))
+    logger.warn("Visited districts: " + str(visited_districts))
+    # raise NotImplementedError("Unimplemented function: same_district")
+    return len(visited_districts) == 1
 
 
 def is_counterfactual_factor_form(*, event: set[Variable], graph: NxMixedGraph) -> bool:
@@ -206,6 +217,7 @@ def get_counterfactual_factors(
         have no interventions. All counterfactual variable must be in counterfactual
         factor form.
     :param graph: The corresponding graph.
+    :raises KeyError: If an event is not in counterfactual factor form.
     :returns:
         A set of sorted lists of counterfactual variables in counterfactual factor
         form, with each list associated with a district of the graph. The lists
@@ -215,26 +227,16 @@ def get_counterfactual_factors(
     districts = list(graph.districts())
     district_mappings: dict[frozenset, set[Variable]] = {district: set() for district in districts}
 
-    if any(
-        [not any([variable.get_base() in district for district in districts]) for variable in event]
-    ):
-        logger.warn(
-            "In get_counterfactual_factors(): a variable in the input event is missing from the graph.\n"
-        )
-        return None
-
     if not is_counterfactual_factor_form(event=event, graph=graph):
-        logger.warn(
-            "In get_counterfactual_factors(): the event (%s) is not in counterfactual factor form.\n",
+        logger.warn("Supposed to trigger KeyError in get_counterfactual_factors().")
+        raise KeyError(
+            "In get_counterfactual_factors(): the event %s is not in counterfactual factor form.",
             str(event),
         )
-        return None
 
     for variable in event:
-        for district in districts:
-            if variable.get_base() in district:
-                district_mappings[district].update({variable})
-                break
+        district_mappings[graph.get_district(variable.get_base())].update({variable})
+
     return_value = [set(value) for value in district_mappings.values()]
     return return_value
 

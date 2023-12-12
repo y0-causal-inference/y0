@@ -8,6 +8,8 @@
 import logging
 import unittest
 
+from networkx import NetworkXError
+
 from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
     convert_to_counterfactual_factor_form,
@@ -336,7 +338,7 @@ class TestSameDistrict(unittest.TestCase):
 
         Source: out of RJC's head.
         """
-        same_district_test1_in = [(Y @ (-X, -W, -Z)), (W @ (-X))]
+        same_district_test1_in: set[Variable] = {(Y @ (-X, -W, -Z)), (W @ (-X))}
         self.assertTrue(same_district(same_district_test1_in, figure_2a_graph))
 
     def test_same_district_2(self):
@@ -344,7 +346,7 @@ class TestSameDistrict(unittest.TestCase):
 
         Source: out of RJC's head.
         """
-        same_district_test2_in = [(Z), (X @ -Z)]
+        same_district_test2_in: set[Variable] = {(Z), (X @ -Z)}
         self.assertTrue(same_district(same_district_test2_in, figure_2a_graph))
 
     def test_same_district_3(self):
@@ -352,8 +354,32 @@ class TestSameDistrict(unittest.TestCase):
 
         Source: out of RJC's head.
         """
-        same_district_test3_in = [(Y @ -Y), (Z), (X @ -Z)]
+        same_district_test3_in: set[Variable] = {(Y @ -Y), (Z), (X @ -Z)}
         self.assertFalse(same_district(same_district_test3_in, figure_2a_graph))
+
+    def test_same_district_4(self):
+        """Test #4 for whether a set of counterfactual variables are in the same district (c-component).
+
+        Source: out of RJC's head.
+        """
+        same_district_test4_in: set[Variable] = {(Y @ -Y)}
+        self.assertTrue(same_district(same_district_test4_in, figure_2a_graph))
+
+    def test_same_district_5(self):
+        """Test #5 for whether a set of counterfactual variables are in the same district (c-component).
+
+        Source: out of RJC's head. This test is meant to raise a key error.
+        """
+        same_district_test5_in: set[Variable] = {(R @ -Y)}
+        self.assertRaises(KeyError, same_district, same_district_test5_in, figure_2a_graph)
+
+    def test_same_district_6(self):
+        """Test #6 for whether a set of counterfactual variables are in the same district (c-component).
+
+        Source: out of RJC's head. Edge case where we pass in no variables.
+        """
+        same_district_test6_in: set[Variable] = set()
+        self.assertTrue(KeyError, same_district(same_district_test6_in, figure_2a_graph))
 
 
 class TestGetCounterfactualFactors(unittest.TestCase):
@@ -412,7 +438,8 @@ class TestGetCounterfactualFactors(unittest.TestCase):
     def test_get_counterfactual_factors_2(self):
         """Test factoring a set of counterfactual variables by district (c-component).
 
-        Source: RJC. We send in a variable not in the graph.
+        Source: RJC. We send in a variable not in the graph. Throws a NetworkXError
+           when we try to get that node's parents.
         """
         get_counterfactual_factors_test_2_in = {
             (Y @ (-X, -W, -Z)),
@@ -422,10 +449,11 @@ class TestGetCounterfactualFactors(unittest.TestCase):
             (-Z),
             (R @ -Y),
         }
-        self.assertIsNone(
-            get_counterfactual_factors(
-                event=get_counterfactual_factors_test_2_in, graph=figure_2a_graph
-            ),
+        self.assertRaises(
+            NetworkXError,
+            get_counterfactual_factors,
+            event=get_counterfactual_factors_test_2_in,
+            graph=figure_2a_graph,
         )
 
     def test_get_counterfactual_factors_3(self):
@@ -440,10 +468,11 @@ class TestGetCounterfactualFactors(unittest.TestCase):
             (Z @ -Z),
             (-Z),
         }
-        self.assertIsNone(
-            get_counterfactual_factors(
-                event=get_counterfactual_factors_test_3_in, graph=figure_2a_graph
-            ),
+        self.assertRaises(
+            KeyError,
+            get_counterfactual_factors,
+            event=get_counterfactual_factors_test_3_in,
+            graph=figure_2a_graph,
         )
 
 
