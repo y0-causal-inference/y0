@@ -41,6 +41,17 @@ from y0.graph import NxMixedGraph
 
 # from y0.tests.test_algorithm.cases import GraphTestCase
 
+# From [correa22a]_, Figure 1.
+figure_1_graph = NxMixedGraph.from_edges(
+    directed=[
+        (X, Z),
+        (Z, Y),
+        (X, Y),
+        (transport_variable(Y),Y),
+    ],
+    undirected=[(Z, X)],
+)
+
 # From [correa22a]_, Figure 2a.
 figure_2a_graph = NxMixedGraph.from_edges(
     directed=[
@@ -392,6 +403,18 @@ class TestMinimize(cases.GraphTestCase):
         self.assertSetEqual(
             frozenset(minimize_test6_out),
             frozenset(minimize(variables=minimize_test6_in, graph=self.minimize_graph_1)),
+        )
+
+    def test_minimize_7(self):
+        """Test the application of the minimize function from [correa22a], Example 4.5.
+
+        Source: out of RJC's head.
+        """
+        minimize_test7_in = {(Y @ -X)}
+        minimize_test7_out = {(Y @ -X)}
+        self.assertSetEqual(
+            frozenset(minimize_test7_out),
+            frozenset(minimize(variables=minimize_test7_in, graph=self.minimize_graph_1)),
         )
 
 
