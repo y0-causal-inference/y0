@@ -7,8 +7,6 @@
 
 import logging
 import unittest
-from collections import Counter
-from typing import Collection
 
 from networkx import NetworkXError
 
@@ -296,7 +294,7 @@ class TestMakeSelectionDiagram(unittest.TestCase):
         self.assertEquals(selection_diagram, expected_selection_diagram)
 
 
-class TestMinimize(unittest.TestCase):
+class TestMinimize(cases.GraphTestCase):
     r"""Test minimizing a set of counterfactual variables.
 
     Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
@@ -305,32 +303,96 @@ class TestMinimize(unittest.TestCase):
     (The math syntax is not necessarily cannonical LaTeX.)
     """
 
+    minimize_graph_1 = NxMixedGraph.from_edges(
+        directed=[
+            (X, W),
+            (W, Y),
+        ],
+        undirected=[(X, Y)],
+    )
+
+    minimize_graph_2 = NxMixedGraph.from_edges(
+        directed=[
+            (Z, X),
+            (X, W),
+            (W, Y),
+        ],
+        undirected=[(X, Y)],
+    )
+
     def test_minimize_1(self):
-        """Test the minimize function sending in a single counterfactual variable. Source: out of RJC's head."""
-        minimize_graph_1 = NxMixedGraph.from_edges(
-            directed=[
-                (X, W),
-                (W, Y),
-            ],
-            undirected=[(X, Y)],
+        """Test the minimize function sending in a single counterfactual variable.
+
+        Source: out of RJC's head.
+        """
+        minimize_test1_in = {(Y @ -W @ -X)}
+        minimize_test1_out = {(Y @ -W)}
+        self.assertSetEqual(
+            frozenset(minimize_test1_out),
+            frozenset(minimize(variables=minimize_test1_in, graph=self.minimize_graph_1)),
         )
-        minimize_test1_in = [(Y @ (-W, -X))]
-        minimize_test1_out = [(Y @ -W)]
-        self.assertEquals(minimize_test1_out, minimize(minimize_test1_in, minimize_graph_1))
 
     def test_minimize_2(self):
-        """Test the minimize function for multiple counterfactual variables. Source: out of RJC's head."""
-        minimize_graph_2 = NxMixedGraph.from_edges(
-            directed=[
-                (Z, X),
-                (X, W),
-                (W, Y),
-            ],
-            undirected=[(X, Y)],
+        """Test the minimize function for multiple counterfactual variables.
+
+        Source: out of RJC's head.
+        """
+        minimize_test2_in = {(Y @ (-W, -X, -Z)), (W @ (-X, -Z))}
+        minimize_test2_out = {(Y @ -W), (W @ -X)}
+        self.assertSetEqual(
+            frozenset(minimize_test2_out),
+            frozenset(minimize(variables=minimize_test2_in, graph=self.minimize_graph_2)),
         )
-        minimize_test2_in = [(Y @ (-W, -X, -Z)), (W @ (-X, -Z))]
-        minimize_test2_out = [(Y @ -W), (W @ -Z)]
-        self.assertEquals(minimize_test2_out, minimize(minimize_test2_in, minimize_graph_2))
+
+    def test_minimize_3(self):
+        """Test the minimize function for multiple counterfactual variables and a different graph.
+
+        Source: out of RJC's head.
+        """
+        minimize_test3_in = {(Y @ (-W, -X))}
+        minimize_test3_out = {(Y @ (-X, -W))}
+        # self.assertSetEqual(minimize_test3_out, minimize(variables = minimize_test3_in, graph = figure_2a_graph))
+        # The intentional reverse order of the interventions means we have to use P() to sort it out (no pun intended).
+        self.assertSetEqual(
+            frozenset(minimize_test3_out),
+            frozenset(minimize(variables=minimize_test3_in, graph=figure_2a_graph)),
+        )
+
+    def test_minimize_4(self):
+        """Test the minimize function sending in a single variable with no interventions.
+
+        Source: out of RJC's head.
+        """
+        minimize_test4_in = {(Y)}
+        minimize_test4_out = {(Y)}
+        self.assertSetEqual(
+            frozenset(minimize_test4_out),
+            frozenset(minimize(variables=minimize_test4_in, graph=self.minimize_graph_1)),
+        )
+
+    def test_minimize_5(self):
+        """Test the minimize function sending in a single variable with no interventions.
+
+        Source: out of RJC's head.
+        """
+        minimize_test5_in = {(Y @ -X)}
+        minimize_test5_out = {(Y @ -X)}
+        self.assertSetEqual(
+            frozenset(minimize_test5_out),
+            frozenset(minimize(variables=minimize_test5_in, graph=self.minimize_graph_1)),
+        )
+
+    def test_minimize_6(self):
+        """Test the minimize function sending in a single variable with no interventions.
+
+        Source: out of RJC's head.
+        """
+        minimize_test6_in = {(Y @ -X @ -Y)}
+        minimize_test6_out = {(Y @ -Y)}
+        self.assertSetEqual(
+            frozenset(minimize_test6_out),
+            frozenset(minimize(variables=minimize_test6_in, graph=self.minimize_graph_1)),
+        )
 
 
 class TestSameDistrict(unittest.TestCase):
@@ -385,7 +447,7 @@ class TestSameDistrict(unittest.TestCase):
         self.assertTrue(KeyError, same_district(same_district_test6_in, figure_2a_graph))
 
 
-class TestGetCounterfactualFactors(unittest.TestCase):
+class TestGetCounterfactualFactors(cases.GraphTestCase):
     """Test the GetCounterfactualFactors function in counterfactual_transportability.py.
 
     This is one step in the ctf-factor factorization process. Here we want
@@ -394,13 +456,13 @@ class TestGetCounterfactualFactors(unittest.TestCase):
     together as per Equation 15 in [correa22a]_.
     """
 
-    def assert_collection_of_set_equal(
-        self, left: Collection[set[Variable]], right: Collection[set[Variable]]
-    ) -> None:
-        """Check that two collections contain sets with the same elements."""
-        c1 = Counter(frozenset(element) for element in left)
-        c2 = Counter(frozenset(el) for el in right)
-        self.assertEqual(c1, c2)
+    # def assert_collection_of_set_equal(
+    #    self, left: Collection[set[Variable]], right: Collection[set[Variable]]
+    # ) -> None:
+    #    """Check that two collections contain sets with the same elements."""
+    #    c1 = Counter(frozenset(element) for element in left)
+    #    c2 = Counter(frozenset(el) for el in right)
+    #    self.assertEqual(c1, c2)
 
     def test_get_counterfactual_factors_1(self):
         """Test factoring a set of counterfactual variables by district (c-component).
@@ -485,11 +547,6 @@ class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
         """
         # First test is already in counterfactual factor form
         equation_16_test_1_in = {(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)}
-        # Question for Jeremy: should the second term be -X instead of just X?
-        # Is the multiplication syntax correct?
-        # equation_16_test_1_expected = Sum.safe(
-        #    P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)]), [Z, W]
-        # )
         equation_16_test_1_expected = P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)])
         self.assert_expr_equal(
             do_counterfactual_factor_factorization(

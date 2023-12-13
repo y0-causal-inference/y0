@@ -40,7 +40,6 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-# logging.basicConfig(filename="/home/callahanr/Documents/Causality/y0/y0.log")
 
 
 def simplify(
@@ -116,40 +115,66 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
         return graph.ancestors_inclusive(event)
 
 
-def minimize(
-    event: Iterable[CounterfactualVariable], graph: NxMixedGraph
-) -> set[CounterfactualVariable]:
+def minimize(*, variables: Iterable[Variable], graph: NxMixedGraph) -> set[Variable]:
     r"""Minimize a set of counterfactual variables.
 
     Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
     $||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \in {\mathbf Y_*}$.
 
-    :param event: A set of counterfactual variables to minimize.
+    :param variables: A set of counterfactual variables to minimize (some may have no interventions).
     :param graph: The graph containing them.
     :returns:
-        a set of minimized counterfactual variables such that each minimized variable
+        A set of minimized counterfactual variables such that each minimized variable
         is an element of the original set.
     """
-    return_set = set()
-    for cv in event:
-        mini_cv = _miniminimize(cv, graph)
-        if mini_cv not in return_set:
-            return_set.add(mini_cv)
-    return return_set
+    return {_do_minimize(variable, graph) for variable in variables}
 
 
-def _miniminimize(event: CounterfactualVariable, graph: NxMixedGraph) -> CounterfactualVariable:
-    r"""Minimize a single counterfactual variable which may have multiple interventions.
+def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
+    r"""Minimize a single variable which is usually counterfactual and may have multiple interventions.
 
     Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
 
-    $||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline(\mathbf X)}}$.
+    $||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline(\mathbf X)}}$
+    and $\mathbf t = \mathbf x \intersect \mathbf T$.
 
-    :param event: A counterfactual variable to minimize.
+    :param variable: A counterfactual variable to minimize (which may have no interventions).
     :param graph: The graph containing them.
     :returns: a minimized counterfactual variable which may omit some interventions from the original one.
     """
-    raise NotImplementedError("Unimplemented function: _miniminimize")
+    if isinstance(variable, CounterfactualVariable):
+        # :math: $\mathbf x$
+        interventions: tuple = variable.interventions
+        # :math: $\mathbf X$
+        intervention_variables: set[Variable] = {
+            intervention.get_base() for intervention in interventions
+        }
+        # :math: $\mathbf T$
+        treatment_variables = (
+            graph.remove_in_edges(intervention_variables)
+            .ancestors_inclusive(variable.get_base())
+            .intersection(intervention_variables)
+        )
+        # :math: $\mathbf t$
+        treatment_interventions: tuple[Intervention] = tuple(
+            {
+                intervention
+                for intervention in interventions
+                if intervention.get_base() in treatment_variables
+            }
+        )
+        # RJC: [correa22a]_ isn't clear about whether the value of a minimized variable shoudl get preserved.
+        #      But they write: "Given a counterfactual variable Y_x some values in $\mathbf x$ may be causally
+        #      irrelevant to Y once the rest of $\mathbf x$ is fixed." There's nothing in there to suggest that
+        #      minimization of $Y_{\mathbf x}$ wouldn't preserve the counterfactual variable's value.  So
+        #      we keep the star value.
+        return CounterfactualVariable(
+            name=variable.name,
+            star=variable.star,
+            interventions=treatment_interventions,
+        )
+    else:
+        return variable
 
 
 def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
