@@ -47,7 +47,7 @@ figure_1_graph = NxMixedGraph.from_edges(
         (X, Z),
         (Z, Y),
         (X, Y),
-        (transport_variable(Y),Y),
+        (transport_variable(Y), Y),
     ],
     undirected=[(Z, X)],
 )
@@ -191,7 +191,7 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
         self.assertTrue(test5_in in result)  # Every outcome is its own ancestor
 
 
-class TestSimplify(unittest.TestCase):
+class TestSimplify(cases.GraphTestCase):
     """Test the simplify algorithm from counterfactual transportability."""
 
     # TODO: Incorporate a test involving counterfactual unnesting.
@@ -203,36 +203,43 @@ class TestSimplify(unittest.TestCase):
         is guaranteed to have probability 0. Source: RJC's mind.
         """
         event = [(Y @ -X, -Y), (Y @ -X, +Y)]
-        self.assertEquals(simplify(event), Zero())
+        result = simplify(event=event, graph=figure_2a_graph)
+        logger.warn("Result for test_inconsistent_1 is " + str(result))
+        self.assertIsNone(simplify(event=event, graph=figure_2a_graph))
 
     def test_inconsistent_2(self):
         """Second test for simplifying an inconsistent event. Source: RJC's mind."""
         event = [(Y @ -Y, +Y)]
-        self.assertEquals(simplify(event), Zero())
+        self.assertIsNone(simplify(event=event, graph=figure_2a_graph))
 
     def test_redundant_1(self):
         """First test for simplifying an event with redundant subscripts. Source: RJC's mind."""
         event = [(Y @ -X, -Y), (Y @ -X, -Y)]
-        result = simplify(event)
+        result = simplify(event=event, graph=figure_2a_graph)
         self.assertEqual(result, [(Y @ -X, -Y)])
 
     def test_redundant_2(self):
         """Second test for simplifying an event with redundant subscripts. Source: RJC's mind."""
-        event = [(Y @ -X, -Y), (Y @ -X, -Y), (X @ -W, -X)]
-        self.assertEqual(simplify(event), [(Y @ -X, -Y), (X @ -W, -X)])
+        event = [(Y @ -X, -Y), (Y @ -X, -Y), (X @ -Z, -X)]
+        # Kind of misleading assertion name, but checks that two lists are the same regardless of order
+        test_result = simplify(event=event, graph=figure_2a_graph)
+        self.assertCountEqual(test_result, [(Y @ -X, -Y), (X @ -Z, -X)])
+        self.assertCountEqual(test_result, [(X @ -Z, -X), (Y @ -X, -Y)])
 
     def test_redundant_3(self):
         """Third test for simplifying an event with redundant subscripts.
 
         (Y @ (-Y,-X), -Y) reduces to (Y @ -Y, -Y) via line 1 of the SIMPLIFY algorithm.
+        And then we want to further simplify (Y @ -Y, -Y) to 
         Source: JZ's mind.
         """
         event = [
             (Y @ (-Y, -X), -Y),
             (Y @ -Y, -Y),
-            (X @ -W, -X),
+            (X @ -Z, -X),
         ]
-        self.assertEqual(simplify(event), [(Y @ -Y, -Y), (X @ -W, -X)])
+        #result = simplify(event=event, graph=figure_2a_graph)
+        self.assertCountEqual(simplify(event=event, graph=figure_2a_graph), [(Y @ -Y, -Y), (X @ -Z, -X)])
 
     def test_redundant_4(self):
         """Fourth test for simplifying an event with redundant subscripts. Source: RJC's mind."""
@@ -240,7 +247,15 @@ class TestSimplify(unittest.TestCase):
             (Y @ -Y, -Y),
             (Y @ -Y, -Y),
         ]
-        self.assertIsNone(simplify(event))
+        self.assertCountEqual(simplify(event=event, graph=figure_2a_graph),[(Y @ -Y, -Y)])
+
+    def test_simplified_1(self):
+        """Fourth test for simplifying an event with redundant subscripts. Source: RJC's mind."""
+        event = [
+            (Y @ -X, -Y),
+            (Y @ -Z, -Y),
+        ]
+        self.assertEqual(simplify(event=event, graph=figure_2a_graph), [(Y @ (-X, -Z), -Y)])
 
 
 class TestIsCounterfactualFactorForm(unittest.TestCase):
