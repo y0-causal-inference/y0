@@ -45,13 +45,13 @@ logger = logging.getLogger(__name__)
 def simplify(
     *, event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
 ) -> Optional[list[tuple[Variable, Intervention]]]:
-    """Run algorithm 1, the SIMPLIFY algorithm from [correa22a]_.
+    r"""Run algorithm 1, the SIMPLIFY algorithm from [correa22a]_.
 
     Correa, Lee, and Bareinboim [correa22a]_ state that this algorithm should return "an interventionally
     minimal event :math:$\mathbf Y_* = \mathbf y_*$ without redundant subscripts or 0 if the counterfactual
-    event is guaranteed to have probability 0." In Y0, Zero() is an expression object. Here, we return 
+    event is guaranteed to have probability 0." In Y0, Zero() is an expression object. Here, we return
     None instead of 0 to denote an event that is impossible, and rely on the calling function to translate either
-    the returned event or a None object into an appropriate probabilistic expression. 
+    the returned event or a None object into an appropriate probabilistic expression.
 
     :param event:
         "Y_*, a set of counterfactual variables in V and y_* a set of
@@ -72,9 +72,16 @@ def simplify(
         if (
             len(element) != 2
             or not isinstance(element[0], Variable)
+            or (
+                isinstance(element[0], Variable)
+                and not isinstance(element[0], CounterfactualVariable)
+                and element[0].star is not None
+            )
             or not isinstance(element[1], Intervention)
         ):
-            raise TypeError("Improperly formatted inputs for simplify()")
+            raise TypeError(
+                "Improperly formatted inputs for simplify(): check element {%s}", element
+            )
 
     outcome_variables = {element[0] for element in event}
 
@@ -97,7 +104,10 @@ def simplify(
     ):
         return None
 
-    logger.warn("Before looking at repeated variables in Y: dict is " + str(minimized_outcome_variable_to_value_mappings))
+    logger.warn(
+        "Before looking at repeated variables in Y: dict is "
+        + str(minimized_outcome_variable_to_value_mappings)
+    )
     logger.warn("   And minimized outcome variables are " + str(minimized_outcome_variables))
 
     # Repeated variables in Y. To test: See what happens when I try Y_{yx} as an input. We want x to go away
@@ -115,7 +125,7 @@ def simplify(
                             + str(minimized_outcome_variable_to_value_mappings[variable])
                         )
                         return None
-                    #else:  # This case must be Y_y with :math:$\mathbf y_* \intersect Y_y = y$
+                    # else:  # This case must be Y_y with :math:$\mathbf y_* \intersect Y_y = y$
                     #    logger.warn(
                     #        "In simplify: found an intervention "
                     #        + str(intervention)
@@ -135,13 +145,19 @@ def simplify(
     )
     if any(len(values) != 1 for values in minimized_outcome_variable_to_value_mappings.values()):
         logger.warn(
-            "In simplify before return: one of the variables in the event has more than one value, and we didn't catch it! "
-            + str(minimized_outcome_variable_to_value_mappings.values())
+            "In simplify before return: one of the variables in the event has more than one value, "
+            "and we didn't catch it! " + str(minimized_outcome_variable_to_value_mappings.values())
         )
-        assert(len(values) != 1 for values in minimized_outcome_variable_to_value_mappings.values())
-        #raise AssertionError("Simplify: a variable in the event has more than one value and the function is not returning None.")
+        assert (
+            len(values) != 1 for values in minimized_outcome_variable_to_value_mappings.values()
+        )
+        # raise AssertionError("Simplify: a variable in the event has
+        # more than one value and the function is not returning None.")
 
-    result = [(key, minimized_outcome_variable_to_value_mappings[key].pop()) for key in minimized_outcome_variable_to_value_mappings]
+    result = [
+        (key, minimized_outcome_variable_to_value_mappings[key].pop())
+        for key in minimized_outcome_variable_to_value_mappings
+    ]
     return result
 
 
