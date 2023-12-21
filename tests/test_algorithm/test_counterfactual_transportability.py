@@ -178,23 +178,6 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
         self.assertTrue(variable in test5_out for variable in result)
         self.assertTrue(test5_in in result)  # Every outcome is its own ancestor
 
-    def test_6(self):
-        """Test passing in a variable already set to a specific value. Equivalent to Test 5.
-
-        The problem should reduce to just getting ancestors. Source: out of RJC's head.
-        """
-        test6_in = Variable(
-            name="Y", star=None, interventions=(Intervention(name="Y", star=False),)
-        )
-        test5_out = {
-            CounterfactualVariable(
-                name="Y", star=None, interventions=(Intervention(name="Y", star=False),)
-            )
-        }
-        result = get_ancestors_of_counterfactual(event=test5_in, graph=figure_2a_graph)
-        self.assertTrue(variable in test5_out for variable in result)
-        self.assertTrue(test5_in in result)  # Every outcome is its own ancestor
-
 
 class TestSimplify(cases.GraphTestCase):
     """Test the simplify algorithm from counterfactual transportability."""
@@ -256,8 +239,12 @@ class TestSimplify(cases.GraphTestCase):
         ]
         self.assertCountEqual(simplify(event=event, graph=figure_2a_graph), [(Y @ -Y, -Y)])
 
-    def test_misspecified_variable(self):
-        """Make sure users don't pass in variables with star values that are not counterfactual variables.
+    def test_misspecified_input(self):
+        """Make sure users don't pass improper input into SIMPLIFY.
+
+        That includes variables with star values that are not counterfactual variables,
+        as well as events with tuples that are the wrong length or elements that
+        are not pairs of variables and interventions.
 
         Source: JZ and RJC
         """
@@ -281,8 +268,19 @@ class TestSimplify(cases.GraphTestCase):
                 -Y,
             ),
         ]
+        event_3 = [
+            (Y @ -Y, -Y, -Y),
+            (
+                Variable(
+                    name="Y",
+                    star=None,
+                ),
+                -Y,
+            ),
+        ]
         self.assertRaises(TypeError, simplify, event=event_1, graph=figure_2a_graph)
-        self.assertRaises(TypeError, simplify, event=event_1, graph=figure_2a_graph)
+        self.assertRaises(TypeError, simplify, event=event_2, graph=figure_2a_graph)
+        self.assertRaises(TypeError, simplify, event=event_3, graph=figure_2a_graph)
 
     def test_simplified_1(self):
         """Fourth test for simplifying an event with redundant subscripts. Source: RJC's mind."""

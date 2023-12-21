@@ -68,19 +68,35 @@ def simplify(
     # 1) Is it better to have Union[CounterfactualVariable, Variable] instead of just CounterfactualVariable?
     #  answer: no, variable is the superclass so just annotate with Variable
     # 2) Is there a better way to capture the values than with Intervention objects?
+    #
+    #  answer(JZ): "Hmm...things are a little broken, because what we would like to express is
+    #  `P(Y @ -y == -y)`, but instead, all we have is `P(Y @ -y)`, or `P(-y)`."
+    #  If we want to know the value of a counterfactual variable, then we should use Intervention.
+    #  Variable(name="Y", star="False") shouldn't exist. Variables should set star to None, so that
+    #  it is only interpreted as a Variable.  If you want to talk about the value of a variable, then you
+    #  can make a tuple: (Variable(name="Y", star=None), Intervention(name="Y", star=False))
+    #
+    #  RJC: That's why below we test that a Variable that is not a CounterfactualVariable has
+    #       set star to None. Putting the check here means that we don't need separate checks
+    #       in functions such as get_counterfactual_ancestors(), because the ctfTRu and ctfTR
+    #       algorithms all call SIMPLIFY early in their processing.
     for element in event:
         if (
             len(element) != 2
             or not isinstance(element[0], Variable)
-            or (
-                isinstance(element[0], Variable)
-                and not isinstance(element[0], CounterfactualVariable)
-                and element[0].star is not None
-            )
             or not isinstance(element[1], Intervention)
         ):
             raise TypeError(
-                "Improperly formatted inputs for simplify(): check element {%s}", element
+                f"Improperly formatted inputs for simplify(): check input event element {element}"
+            )
+        if (
+            isinstance(element[0], Variable)
+            and not isinstance(element[0], CounterfactualVariable)
+            and element[0].star is not None
+        ):
+            raise TypeError(
+                f"Improperly formatted inputs for simplify(): {element[0]} should have "
+                "a star value of None because it is a Variable"
             )
 
     outcome_variables = {element[0] for element in event}
