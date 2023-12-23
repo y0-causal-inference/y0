@@ -271,8 +271,6 @@ def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
             .intersection(intervention_variables)
         )
         # :math: $\mathbf t$
-        logger.warn("In _do_minimize: interventions are " + str(interventions))
-        logger.warn("   and sorted interventions are " + str(sorted(interventions)))
         treatment_interventions: tuple[Intervention] = tuple(
             {
                 intervention
@@ -281,8 +279,6 @@ def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
                 if intervention.get_base() in treatment_variables
             }
         )
-        logger.warn("   and new treatment interventions are " + str(treatment_interventions))
-        logger.warn("   and sorted version of that is " + str(tuple(sorted(treatment_interventions))))
         # RJC: [correa22a]_ isn't clear about whether the value of a minimized variable shoudl get preserved.
         #      But they write: "Given a counterfactual variable Y_x some values in $\mathbf x$ may be causally
         #      irrelevant to Y once the rest of $\mathbf x$ is fixed." There's nothing in there to suggest that
