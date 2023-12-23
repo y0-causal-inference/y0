@@ -298,27 +298,31 @@ class TestIsCounterfactualFactorForm(unittest.TestCase):
 
     def test_is_counterfactual_factor_form(self):
         """From Example 3.3 of [correa22a]_."""
-        event1 = {(-Y @ (-Z, -W, -X)), (-W @ -X)}  # (Y @ -Z @ -W @ -X)
+        event1 = {(Y @ (-Z, -W, -X)), (W @ -X)}  # (Y @ -Z @ -W @ -X)
         self.assertTrue(is_counterfactual_factor_form(event=event1, graph=figure_2a_graph))
 
-        event2 = {(-W @ -X), (-Z)}
+        event2 = {(W @ -X), (-Z)}
         self.assertTrue(is_counterfactual_factor_form(event=event2, graph=figure_2a_graph))
 
-        event3 = {(-Y @ (-Z, -W)), (-W @ -X)}
+        event3 = {(Y @ (-Z, -W)), (W @ -X)}
         self.assertFalse(is_counterfactual_factor_form(event=event3, graph=figure_2a_graph))
 
         # Y has parents, so they should be intervened on but are not
-        event4 = {(-Y)}
+        event4 = {(Y)}
         self.assertFalse(is_counterfactual_factor_form(event=event4, graph=figure_2a_graph))
 
         # Z has no parents, so this variable is also a ctf-factor
-        event5 = {(-Z)}
+        event5 = {(Z)}
         self.assertTrue(is_counterfactual_factor_form(event=event5, graph=figure_2a_graph))
 
         # Z is not a parent of W, so the second counterfactual variable is not a ctf-factor,
         # because it is not a valid counterfactual variable
-        event6 = {(-Y @ (-Z, -W)), (-W @ (-X, Z))}
+        event6 = {(Y @ (-Z, -W)), (W @ (-X, Z))}
         self.assertFalse(is_counterfactual_factor_form(event=event6, graph=figure_2a_graph))
+
+        # Check that P(Y_y) is not in counterfactual factor form
+        event7 = {(Y @ (-Z, -W, -X, -Y)), (W @ -X)}  # (Y @ -Z @ -W @ -X)
+        self.assertFalse(is_counterfactual_factor_form(event=event7, graph=figure_2a_graph))
 
 
 class TestMakeSelectionDiagram(unittest.TestCase):

@@ -271,22 +271,28 @@ def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
             .intersection(intervention_variables)
         )
         # :math: $\mathbf t$
+        logger.warn("In _do_minimize: interventions are " + str(interventions))
+        logger.warn("   and sorted interventions are " + str(sorted(interventions)))
         treatment_interventions: tuple[Intervention] = tuple(
             {
                 intervention
-                for intervention in interventions
+                for intervention in sorted(interventions)
+                #for intervention in interventions
                 if intervention.get_base() in treatment_variables
             }
         )
+        logger.warn("   and new treatment interventions are " + str(treatment_interventions))
+        logger.warn("   and sorted version of that is " + str(tuple(sorted(treatment_interventions))))
         # RJC: [correa22a]_ isn't clear about whether the value of a minimized variable shoudl get preserved.
         #      But they write: "Given a counterfactual variable Y_x some values in $\mathbf x$ may be causally
         #      irrelevant to Y once the rest of $\mathbf x$ is fixed." There's nothing in there to suggest that
         #      minimization of $Y_{\mathbf x}$ wouldn't preserve the counterfactual variable's value.  So
         #      we keep the star value.
+        # RJC: Sorting the interventions makes the output more predictable and testing is therefore more robust.
         return CounterfactualVariable(
             name=variable.name,
             star=variable.star,
-            interventions=treatment_interventions,
+            interventions=tuple(sorted(treatment_interventions)),
         )
     else:
         return variable
@@ -322,9 +328,11 @@ def is_counterfactual_factor_form(*, event: set[Variable], graph: NxMixedGraph) 
 
     See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
 
-    For a counterfactual variable to be a counterfactual factor, all of its parents must
-    be in the intervention set. If the variable is not a counterfactual variable, then
-    it must have no parents to be in counterfactual factor form.
+    For a counterfactual variable to be in counterfactual factor form, all of its parents
+    must be in the intervention set and the variable itself cannot be (because Y_y = y,
+    so we want to apply the counterfactual factor form of y by itself). If the variable
+    is not a counterfactual variable, then it must have no parents to be in counterfactual
+    factor form.
 
     :param event: A set of counterfactual variables, some of which may have no interventions.
     :param graph: The corresponding graph.
@@ -333,6 +341,8 @@ def is_counterfactual_factor_form(*, event: set[Variable], graph: NxMixedGraph) 
     for variable in event:
         parents = list(graph.directed.predecessors(variable.get_base()))
         if isinstance(variable, CounterfactualVariable):
+            if any(variable.get_base().name == intervention.name for intervention in variable.interventions):
+                return False
             for parent in parents:
                 if not any(
                     parent.name == intervention.name for intervention in variable.interventions
