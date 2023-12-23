@@ -7,11 +7,13 @@
 
 import logging
 import unittest
+from collections import defaultdict
 
 from networkx import NetworkXError
 
 from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
+    _any_variables_with_inconsistent_values,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
@@ -199,6 +201,66 @@ class TestSimplify(cases.GraphTestCase):
         """Second test for simplifying an inconsistent event. Source: RJC's mind."""
         event = [(Y @ -Y, +Y)]
         self.assertIsNone(simplify(event=event, graph=figure_2a_graph))
+
+    def test_inconsistent_3(self):
+        """Directly test the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
+        event = [(Y @ -X, -Y), (Y @ -X, +Y)]
+        outcome_variables = {element[0] for element in event}
+
+        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
+
+        minimized_outcome_variable_to_value_mappings = defaultdict(set)
+        for element in event:
+            if element[0] in minimized_outcome_variables:
+                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        self.assertTrue(
+            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+        )
+
+    def test_inconsistent_4(self):
+        """Second test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
+        event = [(Y @ -X, -Y), (Y @ -X, -Y)]
+        outcome_variables = {element[0] for element in event}
+
+        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
+
+        minimized_outcome_variable_to_value_mappings = defaultdict(set)
+        for element in event:
+            if element[0] in minimized_outcome_variables:
+                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        self.assertFalse(
+            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+        )
+
+    def test_inconsistent_5(self):
+        """Third test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
+        event = [(Y @ -Y, +Y)]
+        outcome_variables = {element[0] for element in event}
+
+        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
+
+        minimized_outcome_variable_to_value_mappings = defaultdict(set)
+        for element in event:
+            if element[0] in minimized_outcome_variables:
+                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        self.assertTrue(
+            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+        )
+
+    def test_inconsistent_6(self):
+        """Fourth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
+        event = [(Y @ -Y, -Y)]
+        outcome_variables = {element[0] for element in event}
+
+        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
+
+        minimized_outcome_variable_to_value_mappings = defaultdict(set)
+        for element in event:
+            if element[0] in minimized_outcome_variables:
+                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        self.assertFalse(
+            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+        )
 
     def test_redundant_1(self):
         """First test for simplifying an event with redundant subscripts. Source: RJC's mind."""

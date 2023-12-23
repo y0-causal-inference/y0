@@ -42,6 +42,29 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
+def _any_variables_with_inconsistent_values(
+    variable_to_value_mappings: DefaultDict[Variable, set[Intervention]]
+) -> bool:
+    r"""Check for variables with inconsistent values following Line 2 of Algorithm 1 in [correa_22a]_."""
+    # Part 1 of Line 2:
+    # :math: **if** there exists $Y_{\mathbf{x}}\in \mathbf{Y}_\ast$ with
+    # two or more different values in  $\mathbf{y_\ast}$ **then return** 0.
+    # Note this definition has to do with counterfactual values, and is different than
+    # the "inconsistent counterfactual factor" definition in Definition 4.1 of [correa22a]_.
+    if any(len(value_set) > 1 for value_set in variable_to_value_mappings.values()):
+        return True
+
+    # Part 2 of Line 2:
+    # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$ **then return** 0.
+    for variable in variable_to_value_mappings.keys():
+        if isinstance(variable, CounterfactualVariable):
+            for intervention in variable.interventions:
+                if intervention.get_base() == variable.get_base():  # Y_Y
+                    if {intervention} != variable_to_value_mappings[variable]:
+                        return True
+    return False
+
+
 def simplify(
     *, event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
 ) -> Optional[list[tuple[Variable, Intervention]]]:
@@ -113,43 +136,34 @@ def simplify(
         if element[0] in minimized_outcome_variables:
             minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
 
-    # Inconsistent counterfactual values, type 1. Note this is different than the "inconsistent counterfactual factor"
-    # definition in Definition 4.1 of [correa22a]_
-    if any(
-        len(value_set) > 1 for value_set in minimized_outcome_variable_to_value_mappings.values()
-    ):
+    # Line 2 of SIMPLIFY.
+    if _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings):
         return None
-
-    logger.warn(
-        "Before looking at repeated variables in Y: dict is "
-        + str(minimized_outcome_variable_to_value_mappings)
-    )
-    logger.warn("   And minimized outcome variables are " + str(minimized_outcome_variables))
 
     # Repeated variables in Y. To test: See what happens when I try Y_{yx} as an input. We want x to go away
     # during minimization.
-    for variable in list(minimized_outcome_variables):
-        if isinstance(variable, CounterfactualVariable):
-            for intervention in variable.interventions:
-                if intervention.get_base() == variable.get_base():  # Y_Y
-                    if {intervention} != minimized_outcome_variable_to_value_mappings[variable]:
-                        # Inconsistent counterfactual values, type 2
-                        logger.warn(
-                            "In simplify: found an intervention "
-                            + str({intervention})
-                            + " that's different than the outcome value "
-                            + str(minimized_outcome_variable_to_value_mappings[variable])
-                        )
-                        return None
-                    # else:  # This case must be Y_y with :math:$\mathbf y_* \intersect Y_y = y$
-                    #    logger.warn(
-                    #        "In simplify: found an intervention "
-                    #        + str(intervention)
-                    #        + " that's the same as the outcome value "
-                    #        + str(minimized_outcome_variable_to_value_mappings[variable])
-                    #    )
-                    #    minimized_outcome_variables.remove(variable)
-                    #    del minimized_outcome_variable_to_value_mappings[variable]
+    # for variable in list(minimized_outcome_variables):
+    #    if isinstance(variable, CounterfactualVariable):
+    #        for intervention in variable.interventions:
+    #            if intervention.get_base() == variable.get_base():  # Y_Y
+    #                if {intervention} != minimized_outcome_variable_to_value_mappings[variable]:
+    #                    # Inconsistent counterfactual values, type 2
+    #                    logger.warn(
+    #                        "In simplify: found an intervention "
+    #                        + str({intervention})
+    #                        + " that's different than the outcome value "
+    #                        + str(minimized_outcome_variable_to_value_mappings[variable])
+    #                    )
+    #                    return None
+    #                # else:  # This case must be Y_y with :math:$\mathbf y_* \intersect Y_y = y$
+    #                #    logger.warn(
+    #                #        "In simplify: found an intervention "
+    #                #        + str(intervention)
+    #                #        + " that's the same as the outcome value "
+    #                #        + str(minimized_outcome_variable_to_value_mappings[variable])
+    #                #    )
+    #                #    minimized_outcome_variables.remove(variable)
+    #                #    del minimized_outcome_variable_to_value_mappings[variable]
 
     logger.warn(
         "In simplify before return: minimized_outcome_variables = "
@@ -159,17 +173,6 @@ def simplify(
         "In simplify before return: minimized_outcome_variable_to_value_mappings = "
         + str(minimized_outcome_variable_to_value_mappings)
     )
-    if any(len(values) != 1 for values in minimized_outcome_variable_to_value_mappings.values()):
-        logger.warn(
-            "In simplify before return: one of the variables in the event has more than one value, "
-            "and we didn't catch it! " + str(minimized_outcome_variable_to_value_mappings.values())
-        )
-        assert (
-            len(values) != 1 for values in minimized_outcome_variable_to_value_mappings.values()
-        )
-        # raise AssertionError("Simplify: a variable in the event has
-        # more than one value and the function is not returning None.")
-
     result = [
         (key, minimized_outcome_variable_to_value_mappings[key].pop())
         for key in minimized_outcome_variable_to_value_mappings
