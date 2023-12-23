@@ -275,7 +275,7 @@ def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
             {
                 intervention
                 for intervention in sorted(interventions)
-                #for intervention in interventions
+                # for intervention in interventions
                 if intervention.get_base() in treatment_variables
             }
         )
@@ -337,7 +337,10 @@ def is_counterfactual_factor_form(*, event: set[Variable], graph: NxMixedGraph) 
     for variable in event:
         parents = list(graph.directed.predecessors(variable.get_base()))
         if isinstance(variable, CounterfactualVariable):
-            if any(variable.get_base().name == intervention.name for intervention in variable.interventions):
+            if any(
+                variable.get_base().name == intervention.name
+                for intervention in variable.interventions
+            ):
                 return False
             for parent in parents:
                 if not any(

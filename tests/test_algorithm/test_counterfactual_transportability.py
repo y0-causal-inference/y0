@@ -550,12 +550,11 @@ class TestGetCounterfactualFactors(cases.GraphTestCase):
             (Y @ (-X, -W, -Z)),
             (W @ -X),
             (X @ -Z),
-            (Z @ -Z),
             (-Z),
         }
         get_counterfactual_factors_test_1_expected = [
             {(Y @ (-X, -W, -Z)), (W @ -X)},
-            {(X @ -Z), (-Z), (Z @ -Z)},
+            {(X @ -Z), (-Z)},
         ]
         self.assert_collection_of_set_equal(
             get_counterfactual_factors_test_1_expected,
@@ -574,7 +573,6 @@ class TestGetCounterfactualFactors(cases.GraphTestCase):
             (Y @ (-X, -W, -Z)),
             (W @ -X),
             (X @ -Z),
-            (Z @ -Z),
             (-Z),
             (R @ -Y),
         }
