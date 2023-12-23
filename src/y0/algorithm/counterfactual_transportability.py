@@ -65,6 +65,77 @@ def _any_variables_with_inconsistent_values(
     return False
 
 
+def _simplify_outcomes_with_consistent_values(
+    outcome_variable_to_value_mappings: DefaultDict[Variable, set[Intervention]],
+    outcome_variables: set[Variable],
+) -> tuple[DefaultDict[Variable, set[Intervention]], set[Variable]]:
+    r"""Address Part 2 of Line 3 of SIMPLIFY from [correa22a]_.
+
+    # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
+    # remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
+
+    :param outcome_variable_to_value_mappings:
+        A dictionary mapping Variable objects to their values, represented as Intervention objects.
+    :param outcome_variables:
+        A set of outcome variables (really just the keys for outcome_variable_to_value_mappings, the
+        code could be further optimized).
+    :returns:
+        These same two inputs with any redundant outcome variables removed.
+    """
+    for variable in list(outcome_variables):
+        if isinstance(variable, CounterfactualVariable):
+            for intervention in variable.interventions:
+                logger.warn(
+                    "In simplify: looking at intervention "
+                    + str(intervention)
+                    + " and counterfactual variable "
+                    + str(variable)
+                )
+                if intervention.get_base() == variable.get_base():  # Y_Y
+                    logger.warn(
+                        "In simplify: looking at intervention "
+                        + str(intervention)
+                        + " and counterfactual variable "
+                        + str(variable)
+                        + ". Bases are equal."
+                    )
+                    logger.warn("Minimized outcome variables: " + str(outcome_variables))
+                    logger.warn("Variable(name=variable.get_base()): " + str(variable.get_base()))
+                    logger.warn(
+                        "Is it in minimized_outcome_variables: "
+                        + str(variable.get_base() in outcome_variables)
+                    )
+                    if variable.get_base() in outcome_variables:
+                        logger.warn(
+                            "list(minimized_outcome_variable_to_value_mappings[variable.get_base()])[0]: "
+                            + str(list(outcome_variable_to_value_mappings[variable.get_base()])[0])
+                        )
+                        logger.warn(
+                            "   which is of class "
+                            + str(
+                                list(outcome_variable_to_value_mappings[variable.get_base()])[
+                                    0
+                                ].__class__
+                            )
+                        )
+                        # This case must be Y_y with :math:$\mathbf y_* \intersect Y_y = y$
+                        if (
+                            list(outcome_variable_to_value_mappings[variable.get_base()])[0].to_y0()
+                            == intervention.to_y0()
+                        ):
+                            logger.warn(
+                                "In simplify: found an intervention "
+                                + str({intervention})
+                                + " that's the same as the counterfactual variable "
+                                + str(variable)
+                                + " with value "
+                                + str(outcome_variable_to_value_mappings[variable])
+                            )
+                            del outcome_variable_to_value_mappings[variable]
+                            outcome_variables.remove(variable)
+    return (outcome_variable_to_value_mappings, outcome_variables)
+
+
 def simplify(
     *, event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
 ) -> Optional[list[tuple[Variable, Intervention]]]:
@@ -126,9 +197,13 @@ def simplify(
 
     # Some of the entries in our dict won't be necessary.
     logger.warn("In simplify: outcome_variables = " + str(outcome_variables))
+    minimized_outcome_variables: set[Variable] = minimize(variables=outcome_variables, graph=graph)
+    logger.warn("In simplify: minimized_outcome_variables = " + str(minimized_outcome_variables))
 
-    minimized_outcome_variables = minimize(variables=outcome_variables, graph=graph)
-
+    # Creating this dict addresses part 1 of Line 3:
+    # :math: **if** there exists $Y_{\mathbf{x}}\in \mathbf{Y}_\ast$ with
+    # two consistent values in  $\mathbf{y_\ast} \cap Y_x$ **then**
+    # remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
     minimized_outcome_variable_to_value_mappings: DefaultDict[
         Variable, set[Intervention]
     ] = defaultdict(set)
@@ -140,30 +215,15 @@ def simplify(
     if _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings):
         return None
 
-    # Repeated variables in Y. To test: See what happens when I try Y_{yx} as an input. We want x to go away
-    # during minimization.
-    # for variable in list(minimized_outcome_variables):
-    #    if isinstance(variable, CounterfactualVariable):
-    #        for intervention in variable.interventions:
-    #            if intervention.get_base() == variable.get_base():  # Y_Y
-    #                if {intervention} != minimized_outcome_variable_to_value_mappings[variable]:
-    #                    # Inconsistent counterfactual values, type 2
-    #                    logger.warn(
-    #                        "In simplify: found an intervention "
-    #                        + str({intervention})
-    #                        + " that's different than the outcome value "
-    #                        + str(minimized_outcome_variable_to_value_mappings[variable])
-    #                    )
-    #                    return None
-    #                # else:  # This case must be Y_y with :math:$\mathbf y_* \intersect Y_y = y$
-    #                #    logger.warn(
-    #                #        "In simplify: found an intervention "
-    #                #        + str(intervention)
-    #                #        + " that's the same as the outcome value "
-    #                #        + str(minimized_outcome_variable_to_value_mappings[variable])
-    #                #    )
-    #                #    minimized_outcome_variables.remove(variable)
-    #                #    del minimized_outcome_variable_to_value_mappings[variable]
+    # Address part 2 of Line 3:
+    # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
+    # remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
+    (
+        minimized_outcome_variable_to_value_mappings,
+        minimized_outcome_variables,
+    ) = _simplify_outcomes_with_consistent_values(
+        minimized_outcome_variable_to_value_mappings, minimized_outcome_variables
+    )
 
     logger.warn(
         "In simplify before return: minimized_outcome_variables = "
@@ -177,6 +237,7 @@ def simplify(
         (key, minimized_outcome_variable_to_value_mappings[key].pop())
         for key in minimized_outcome_variable_to_value_mappings
     ]
+    logger.warn("In simplify before return: return value = " + str(result))
     return result
 
 
