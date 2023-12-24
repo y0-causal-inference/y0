@@ -776,9 +776,9 @@ class TestConvertToCounterfactualFactorForm(unittest.TestCase):
 
         Source: Equation 12 of [correa22a]_.
         """
-        test_1_in = {(Y @ -X), (W)}
-        test_1_expected = {(Y @ (-X, -W, -Z)), (W @ -X)}
-        self.assertSetEqual(
+        test_1_in = [(Y @ -X, -Y), (W, -W)]
+        test_1_expected = [(Y @ (-X, -W, -Z), -Y), (W @ -X, -W)]
+        self.assertCountEqual(
             convert_to_counterfactual_factor_form(event=test_1_in, graph=figure_2a_graph),
             test_1_expected,
         )
@@ -790,9 +790,9 @@ class TestConvertToCounterfactualFactorForm(unittest.TestCase):
 
         Here we pass in a simple variable with no parents, and should get it back.
         """
-        test_2_in = {(Z)}
-        test_2_expected = {(Z)}
-        self.assertSetEqual(
+        test_2_in = [(Z, -Z)]
+        test_2_expected = [(Z, -Z)]
+        self.assertCountEqual(
             convert_to_counterfactual_factor_form(event=test_2_in, graph=figure_2a_graph),
             test_2_expected,
         )

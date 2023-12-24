@@ -215,7 +215,7 @@ def simplify(
     if _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings):
         return None
 
-    # Address part 2 of Line 3:
+    # Part 2 of Line 3:
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
     # remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
     (
@@ -458,9 +458,9 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
 
 
 def convert_to_counterfactual_factor_form(
-    *, event: set[Variable], graph: NxMixedGraph
-) -> set[Variable]:
-    r"""Convert a set of variables (which may be counterfactual variables) to counterfactual factor ("ctf-factor") form.
+    *, event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
+) -> list[tuple[Variable, Intervention]]:
+    r"""Convert a list of (possibly counterfactual) variables and their values to counterfactual factor ("ctf-factor") form.
 
     That requires intervening on all the parents of each counterfactual variable.
 
@@ -482,16 +482,16 @@ def convert_to_counterfactual_factor_form(
     #        result.update({variable})
     # return result
     # (Here's the more efficient set comprehension with harder-to-read code)
-    return {
-        variable.intervene(graph.directed.predecessors(variable.get_base()))
+    return [
+        (variable.intervene(graph.directed.predecessors(variable.get_base())), value)
         if len(list(graph.directed.predecessors(variable.get_base()))) > 0
-        else variable
-        for variable in event
-    }
+        else (variable, value)
+        for (variable, value) in event
+    ]
 
 
 def do_counterfactual_factor_factorization(
-    *, variables: set[Variable], graph: NxMixedGraph
+    *, variables: list[tuple[Variable, Intervention]], graph: NxMixedGraph
 ) -> Expression:
     r"""Take an arbitrary query and return its counterfactual factor form, factorized according to the graph c-components.
 
@@ -527,8 +527,8 @@ def do_counterfactual_factor_factorization(
         ancestral_set.update(get_ancestors_of_counterfactual(counterfactual_variable, graph))
 
     #  e.g., Equation 14 in [correa22a]_, without the summation component.
-    ancestral_set_in_counterfactual_factor_form: set[
-        Variable
+    ancestral_set_in_counterfactual_factor_form: list[tuple[
+        Variable, Intervention]
     ] = convert_to_counterfactual_factor_form(event=ancestral_set, graph=graph)
 
     # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.
