@@ -184,7 +184,10 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
 class TestSimplify(cases.GraphTestCase):
     """Test the simplify algorithm from counterfactual transportability."""
 
-    # TODO: Incorporate a test involving counterfactual unnesting.
+    # TODO: 1. Incorporate a test involving counterfactual unnesting.
+    #       2. Take the line 2 and line 3 tests and run them through the
+    #           simplify() function in addition to the separate functions
+    #           for lines 2 and 3.
 
     def test_inconsistent_1(self):
         """Test simplifying an inconsistent event.
@@ -202,7 +205,7 @@ class TestSimplify(cases.GraphTestCase):
         event = [(Y @ -Y, +Y)]
         self.assertIsNone(simplify(event=event, graph=figure_2a_graph))
 
-    def test_inconsistent_3(self):
+    def test_line_2_1(self):
         """Directly test the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
         event = [(Y @ -X, -Y), (Y @ -X, +Y)]
         outcome_variables = {element[0] for element in event}
@@ -217,7 +220,7 @@ class TestSimplify(cases.GraphTestCase):
             _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
         )
 
-    def test_inconsistent_4(self):
+    def test_line_2_2(self):
         """Second test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
         event = [(Y @ -X, -Y), (Y @ -X, -Y)]
         outcome_variables = {element[0] for element in event}
@@ -232,7 +235,7 @@ class TestSimplify(cases.GraphTestCase):
             _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
         )
 
-    def test_inconsistent_5(self):
+    def test_line_2_3(self):
         """Third test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
         event = [(Y @ -Y, +Y)]
         outcome_variables = {element[0] for element in event}
@@ -247,7 +250,7 @@ class TestSimplify(cases.GraphTestCase):
             _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
         )
 
-    def test_inconsistent_6(self):
+    def test_line_2_4(self):
         """Fourth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
         event = [(Y @ -Y, -Y)]
         outcome_variables = {element[0] for element in event}
@@ -262,7 +265,7 @@ class TestSimplify(cases.GraphTestCase):
             _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
         )
 
-    def test_inconsistent_7(self):
+    def test_line_2_5(self):
         """Fifth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
         event = [(Y @ +Y, -Y)]
         outcome_variables = {element[0] for element in event}
@@ -274,6 +277,21 @@ class TestSimplify(cases.GraphTestCase):
             if element[0] in minimized_outcome_variables:
                 minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
         self.assertTrue(
+            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+        )
+
+    def test_line_2_6(self):
+        """Sixth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
+        event = [(Y @ -X, -Y), (Y @ -Z, +Y)]
+        outcome_variables = {element[0] for element in event}
+
+        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
+
+        minimized_outcome_variable_to_value_mappings = defaultdict(set)
+        for element in event:
+            if element[0] in minimized_outcome_variables:
+                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        self.assertFalse(
             _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
         )
 
@@ -315,6 +333,13 @@ class TestSimplify(cases.GraphTestCase):
             (Y @ -Y, -Y),
         ]
         self.assertCountEqual(simplify(event=event, graph=figure_2a_graph), [(Y @ -Y, -Y)])
+
+    def test_redundant_5(self):
+        """Test that Y@-Y and -Y are treated as redundant and properly minimized to -Y. Source: out of RJC's mind."""
+        event1 = [(Y @ -Y, -Y), (Y, -Y)]
+        event2 = [(Y, -Y), (Y @ -Y, -Y), (Y, -Y)]
+        self.assertEqual(simplify(event=event1, graph=figure_2a_graph), [(Y, -Y)])
+        self.assertEqual(simplify(event=event2, graph=figure_2a_graph), [(Y, -Y)])
 
     def test_misspecified_input(self):
         """Make sure users don't pass improper input into SIMPLIFY.
@@ -365,14 +390,9 @@ class TestSimplify(cases.GraphTestCase):
             (Y @ -X, -Y),
             (Y @ -Z, -Y),
         ]
-        self.assertEqual(simplify(event=event, graph=figure_2a_graph), [(Y @ (-X, -Z), -Y)])
-
-    def test_simplified_2(self):
-        """Test that Y@-Y and -Y are treated as redundant and properly minimized to -Y. Source: out of RJC's mind."""
-        event1 = [(Y @ -Y, -Y), (Y, -Y)]
-        event2 = [(Y, -Y), (Y @ -Y, -Y), (Y, -Y)]
-        self.assertEqual(simplify(event=event1, graph=figure_2a_graph), [(Y, -Y)])
-        self.assertEqual(simplify(event=event2, graph=figure_2a_graph), [(Y, -Y)])
+        self.assertCountEqual(
+            simplify(event=event, graph=figure_2a_graph), [(Y @ -Z, -Y), (Y @ -X, -Y)]
+        )
 
 
 class TestIsCounterfactualFactorForm(unittest.TestCase):
