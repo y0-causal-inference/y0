@@ -860,6 +860,7 @@ class TestConvertToCounterfactualFactorForm(unittest.TestCase):
         """
         test_3_1_in = [(Y, -Y)]
         test_3_2_in = [(Y @ -Y, -Y)]
+        test_3_3_in = [(Y @ -Y, -Y), (Y, -Y)]
         test_3_expected = [(Y @ (-X, -W, -Z), -Y)]
         self.assertCountEqual(
             convert_to_counterfactual_factor_form(event=test_3_1_in, graph=figure_2a_graph),
@@ -871,6 +872,11 @@ class TestConvertToCounterfactualFactorForm(unittest.TestCase):
             ),
             test_3_expected,
         )
+        self.assertCountEqual(
+            convert_to_counterfactual_factor_form(event=simplify(event=test_3_3_in, graph=figure_2a_graph),graph=figure_2a_graph),
+            test_3_expected,
+        )
+
 
 
 class TestCounterfactualFactorTransportability(unittest.TestCase):
