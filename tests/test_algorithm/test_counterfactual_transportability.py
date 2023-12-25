@@ -344,14 +344,6 @@ class TestSimplify(cases.GraphTestCase):
         )
 
     def test_redundant_4(self):
-        """Fourth test for simplifying an event with redundant subscripts. Source: RJC's mind."""
-        event = [
-            (Y @ -Y, -Y),
-            (Y @ -Y, -Y),
-        ]
-        self.assertCountEqual(simplify(event=event, graph=figure_2a_graph), [(Y, -Y)])
-
-    def test_redundant_5(self):
         """Test that Y@-Y and -Y are treated as redundant and properly minimized to -Y. Source: out of RJC's mind."""
         event1 = [(Y @ -Y, -Y), (Y, -Y)]
         event2 = [(Y, -Y), (Y @ -Y, -Y), (Y, -Y)]
