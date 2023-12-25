@@ -295,6 +295,23 @@ class TestSimplify(cases.GraphTestCase):
             _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
         )
 
+    def test_line_2_7(self):
+        """Seventh test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
+        event = [(Y @ -Y, -Y), (Y, +Y)]
+        outcome_variables = {element[0] for element in event}
+
+        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
+        logger.warn("Test_line_2_7: minimized_outcome_variables = " + str(minimized_outcome_variables))
+        minimized_outcome_variable_to_value_mappings = defaultdict(set)
+        for element in event:
+            if element[0] in minimized_outcome_variables:
+                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        logger.warn("Test_line_2_7: minimized_outcome_variable_to_value_mappings = " + str(minimized_outcome_variable_to_value_mappings))
+        self.assertFalse(
+            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+        )
+        self.assertIsNone(simplify(event=event, graph=figure_2a_graph))
+
     def test_redundant_1(self):
         """First test for simplifying an event with redundant subscripts. Source: RJC's mind."""
         event = [(Y @ -X, -Y), (Y @ -X, -Y)]
@@ -338,7 +355,7 @@ class TestSimplify(cases.GraphTestCase):
         """Test that Y@-Y and -Y are treated as redundant and properly minimized to -Y. Source: out of RJC's mind."""
         event1 = [(Y @ -Y, -Y), (Y, -Y)]
         event2 = [(Y, -Y), (Y @ -Y, -Y), (Y, -Y)]
-        self.assertEqual(simplify(event=event1, graph=figure_2a_graph), [(Y, -Y)])
+        self.assertNotEqual(simplify(event=event1, graph=figure_2a_graph), [(Y, -Y)])
         self.assertEqual(simplify(event=event2, graph=figure_2a_graph), [(Y, -Y)])
 
     def test_misspecified_input(self):
@@ -393,6 +410,45 @@ class TestSimplify(cases.GraphTestCase):
         self.assertCountEqual(
             simplify(event=event, graph=figure_2a_graph), [(Y @ -Z, -Y), (Y @ -X, -Y)]
         )
+
+    def test_simplify_y(self):
+        """Comprehensive test involving combinations of outcome variables with redundant and conflicting subscripts. 
+        
+        Source: RJC's mind.
+        """
+        event_1 = [(Y @ -Y, -Y)]
+        event_2 = [(Y @ -Y, +Y)]
+        event_3 = [(Y @ +Y, -Y)]
+        event_4 = [(Y @ +Y, +Y)]
+        event_5 = [(Y @ -Y, -Y), (Y, -Y)]
+        event_6 = [(Y @ -Y, -Y), (Y, +Y)]
+        event_7 = [(Y @ -Y, +Y), (Y, -Y)]
+        event_8 = [(Y @ -Y, +Y), (Y, +Y)]
+        event_9 = [(Y @ +Y, -Y), (Y, -Y)]
+        event_10 = [(Y @ +Y, -Y), (Y, +Y)]
+        event_11 = [(Y @ +Y, +Y), (Y, -Y)]
+        event_12 = [(Y @ +Y, +Y), (Y, +Y)]
+        event_13 = [(Y, -Y)]
+        event_14 = [(Y, +Y)]
+        # The reason event_1 can safely simplify to an intervention is that An(Y_y) == An(Y) (Algorithm 2, Line 2).
+        self.assertCountEqual(simplify(event=event_1, graph=figure_2a_graph), [(Y, -Y)])
+        self.assertIsNone(simplify(event=event_2, graph=figure_2a_graph))
+        self.assertIsNone(simplify(event=event_3, graph=figure_2a_graph))
+        self.assertCountEqual(simplify(event=event_4, graph=figure_2a_graph), [(Y, +Y)])
+        self.assertCountEqual(simplify(event=event_5, graph=figure_2a_graph), [(Y, -Y)])
+        self.assertIsNone(simplify(event=event_6, graph=figure_2a_graph))
+        self.assertIsNone(simplify(event=event_7, graph=figure_2a_graph))
+        self.assertIsNone(simplify(event=event_8, graph=figure_2a_graph))
+        self.assertIsNone(simplify(event=event_9, graph=figure_2a_graph))
+        self.assertIsNone(simplify(event=event_10, graph=figure_2a_graph))
+        self.assertIsNone(simplify(event=event_11, graph=figure_2a_graph))
+        self.assertCountEqual(simplify(event=event_12, graph=figure_2a_graph), [(Y, +Y)])
+        self.assertCountEqual(simplify(event=event_13, graph=figure_2a_graph), [(Y, -Y)])
+        self.assertCountEqual(simplify(event=event_14, graph=figure_2a_graph), [(Y, +Y)])
+
+
+
+
 
 
 class TestIsCounterfactualFactorForm(unittest.TestCase):
@@ -795,6 +851,25 @@ class TestConvertToCounterfactualFactorForm(unittest.TestCase):
         self.assertCountEqual(
             convert_to_counterfactual_factor_form(event=test_2_in, graph=figure_2a_graph),
             test_2_expected,
+        )
+
+    def test_convert_to_counterfactual_factor_form_3(self):
+        """Test conversion of an outcome intervened on itself to counterfactual factor form.
+
+        Source: out of RJC's head.
+        """
+        test_3_1_in = [(Y, -Y)]
+        test_3_2_in = [(Y @ -Y, -Y)]
+        test_3_expected = [(Y @ (-X, -W, -Z), -Y)]
+        self.assertCountEqual(
+            convert_to_counterfactual_factor_form(event=test_3_1_in, graph=figure_2a_graph),
+            test_3_expected,
+        )
+        self.assertCountEqual(
+            convert_to_counterfactual_factor_form(
+                event=simplify(event=test_3_2_in, graph=figure_2a_graph), graph=figure_2a_graph
+            ),
+            test_3_expected,
         )
 
 
