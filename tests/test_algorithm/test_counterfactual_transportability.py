@@ -340,7 +340,7 @@ class TestSimplify(cases.GraphTestCase):
         ]
         # result = simplify(event=event, graph=figure_2a_graph)
         self.assertCountEqual(
-            simplify(event=event, graph=figure_2a_graph), [(Y @ -Y, -Y), (X @ -Z, -X)]
+            simplify(event=event, graph=figure_2a_graph), [(Y, -Y), (X @ -Z, -X)]
         )
 
     def test_redundant_4(self):
@@ -349,13 +349,13 @@ class TestSimplify(cases.GraphTestCase):
             (Y @ -Y, -Y),
             (Y @ -Y, -Y),
         ]
-        self.assertCountEqual(simplify(event=event, graph=figure_2a_graph), [(Y @ -Y, -Y)])
+        self.assertCountEqual(simplify(event=event, graph=figure_2a_graph), [(Y, -Y)])
 
     def test_redundant_5(self):
         """Test that Y@-Y and -Y are treated as redundant and properly minimized to -Y. Source: out of RJC's mind."""
         event1 = [(Y @ -Y, -Y), (Y, -Y)]
         event2 = [(Y, -Y), (Y @ -Y, -Y), (Y, -Y)]
-        self.assertNotEqual(simplify(event=event1, graph=figure_2a_graph), [(Y, -Y)])
+        self.assertEqual(simplify(event=event1, graph=figure_2a_graph), [(Y, -Y)])
         self.assertEqual(simplify(event=event2, graph=figure_2a_graph), [(Y, -Y)])
 
     def test_misspecified_input(self):
