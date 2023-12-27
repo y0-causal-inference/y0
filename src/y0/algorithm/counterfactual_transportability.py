@@ -98,95 +98,22 @@ def _simplify_outcomes_with_consistent_values(
         These same two inputs with any redundant outcome variables removed.
     """
     for variable in list(outcome_variables):
-        # logger.warn("Looking at variable " + str(variable))
-        # logger.warn(
-        #    "Is it a counterfactual variable: " + str(isinstance(variable, CounterfactualVariable))
-        # )
         if isinstance(variable, CounterfactualVariable):
             for intervention in variable.interventions:
-                # logger.warn(
-                #    "In _simplify_outcomes_with_consistent_values: looking at intervention "
-                #    + str(intervention)
-                #    + " and counterfactual variable "
-                #    + str(variable)
-                # )
                 if intervention.get_base() == variable.get_base():  # Y_Y
-                    # logger.warn(
-                    #    "In _simplify_outcomes_with_consistent_values:: looking at intervention "
-                    #    + str(intervention)
-                    #    + " and counterfactual variable "
-                    #    + str(variable)
-                    #    + ". Bases are equal."
-                    # )
-                    # logger.warn("Minimized outcome variables: " + str(outcome_variables))
-                    # logger.warn("variable.get_base(): " + str(variable.get_base()))
-                    # logger.warn(
-                    #    "Is it in minimized_outcome_variables: "
-                    #    + str(variable.get_base() in outcome_variables)
-                    # )
                     if variable.get_base() in outcome_variables:
-                        # logger.warn(
-                        #    "list(minimized_outcome_variable_to_value_mappings[variable.get_base()])[0]: "
-                        #    + str(list(outcome_variable_to_value_mappings[variable.get_base()])[0])
-                        # )
-                        # logger.warn(
-                        #    "   which is of class "
-                        #    + str(
-                        #        list(outcome_variable_to_value_mappings[variable.get_base()])[
-                        #            0
-                        #        ].__class__
-                        #    )
-                        # )
-                        # This case must be Y_y with :math:$\mathbf y_\ast \intersect Y_y = y$
-                        # if (
-                        #    list(outcome_variable_to_value_mappings[variable.get_base()])[0].to_y0()
-                        #    == intervention.to_y0()
-                        # ):
-                        #    logger.warn(
-                        #        "In _simplify_outcomes_with_consistent_values: found an intervention "
-                        #        + str({intervention})
-                        #        + " that's the same as the counterfactual variable "
-                        #        + str(variable)
-                        #        + " with value "
-                        #        + str(outcome_variable_to_value_mappings[variable])
-                        #    )
-                        # else:
-                        #    logger.warn(
-                        #        "In _simplify_outcomes_with_consistent_values: found an intervention "
-                        #        + str({intervention})
-                        #        + " with the same base but value " + str(list(outcome_variable_to_value_mappings[variable.get_base()])[0])
-                        #        + " which is different than the counterfactual variable "
-                        #        + str(variable)
-                        #        + " with value "
-                        #        + str(outcome_variable_to_value_mappings[variable])
-                        #    )
-                        #    # We want to return None, but we'll do so by calling Line 2 again from simplify() after returning from here.
                         outcome_variable_to_value_mappings[variable.get_base()].update(
                             {intervention}
                         )
                         del outcome_variable_to_value_mappings[variable]
                         outcome_variables.remove(variable)
                     else:
-                        # Convert the counterfactual variable to an intervention, add the intervention and its value to the
-                        # mappings, and delete the counterfactual variable.
-                        # logger.warn(
-                        #    "In _simplify_outcomes_with_consistent_values: replacing counterfactual variable "
-                        #    + str(variable)
-                        #    + " with a pure variable: "
-                        #    + str(variable.get_base())
-                        #    + " with value "
-                        #    + str(outcome_variable_to_value_mappings[variable])
-                        #    + " and original outcome_variable_to_value_mappings = " + str(outcome_variable_to_value_mappings)
-                        #    + " and outcome_variables = " + str(outcome_variables)
-                        # )
                         outcome_variable_to_value_mappings[variable.get_base()].update(
                             outcome_variable_to_value_mappings[variable]
                         )
                         outcome_variables.add(variable.get_base())
                         del outcome_variable_to_value_mappings[variable]
                         outcome_variables.remove(variable)
-                        # logger.warn("New outcome_variable_to_value_mappings = " + str(outcome_variable_to_value_mappings)
-                        #            + " and outcome_variables = " + str(outcome_variables))
     return (outcome_variable_to_value_mappings, outcome_variables)
 
 
