@@ -301,12 +301,17 @@ class TestSimplify(cases.GraphTestCase):
         outcome_variables = {element[0] for element in event}
 
         minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
-        logger.warn("Test_line_2_7: minimized_outcome_variables = " + str(minimized_outcome_variables))
+        logger.warn(
+            "Test_line_2_7: minimized_outcome_variables = " + str(minimized_outcome_variables)
+        )
         minimized_outcome_variable_to_value_mappings = defaultdict(set)
         for element in event:
             if element[0] in minimized_outcome_variables:
                 minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
-        logger.warn("Test_line_2_7: minimized_outcome_variable_to_value_mappings = " + str(minimized_outcome_variable_to_value_mappings))
+        logger.warn(
+            "Test_line_2_7: minimized_outcome_variable_to_value_mappings = "
+            + str(minimized_outcome_variable_to_value_mappings)
+        )
         self.assertFalse(
             _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
         )
@@ -339,9 +344,7 @@ class TestSimplify(cases.GraphTestCase):
             (X @ -Z, -X),
         ]
         # result = simplify(event=event, graph=figure_2a_graph)
-        self.assertCountEqual(
-            simplify(event=event, graph=figure_2a_graph), [(Y, -Y), (X @ -Z, -X)]
-        )
+        self.assertCountEqual(simplify(event=event, graph=figure_2a_graph), [(Y, -Y), (X @ -Z, -X)])
 
     def test_redundant_4(self):
         """Test that Y@-Y and -Y are treated as redundant and properly minimized to -Y. Source: out of RJC's mind."""
@@ -404,8 +407,8 @@ class TestSimplify(cases.GraphTestCase):
         )
 
     def test_simplify_y(self):
-        """Comprehensive test involving combinations of outcome variables with redundant and conflicting subscripts. 
-        
+        """Comprehensive test involving combinations of outcome variables with redundant and conflicting subscripts.
+
         Source: RJC's mind.
         """
         event_1 = [(Y @ -Y, -Y)]
@@ -437,10 +440,6 @@ class TestSimplify(cases.GraphTestCase):
         self.assertCountEqual(simplify(event=event_12, graph=figure_2a_graph), [(Y, +Y)])
         self.assertCountEqual(simplify(event=event_13, graph=figure_2a_graph), [(Y, -Y)])
         self.assertCountEqual(simplify(event=event_14, graph=figure_2a_graph), [(Y, +Y)])
-
-
-
-
 
 
 class TestIsCounterfactualFactorForm(unittest.TestCase):
@@ -764,21 +763,27 @@ class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
 
     # TODO: Add more tests, looking at edge cases: empty set, One(),
     # maybe check that a graph with distinct ancestral components just treats
-    # everything as having one ancestral set here, etc.
+    # everything as having one ancestral set here, and check that every variable
+    # that's in the returned event is also somewhere in the returned expression.
     def test_do_counterfactual_factor_factorization_1(self):
         """Test counterfactual factor factorization as per Equation 16 in [correa22a]_.
 
         Source: Equations 11, 14, and 16 of [correa22a]_.
         """
         # First test is already in counterfactual factor form
-        equation_16_test_1_in = {(Y @ (-X, -W, -Z)), (W @ -X), (X @ -Z), (Z)}
-        equation_16_test_1_expected = P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)])
-        self.assert_expr_equal(
-            do_counterfactual_factor_factorization(
-                variables=equation_16_test_1_in, graph=figure_2a_graph
-            ),
-            equation_16_test_1_expected,
+        equation_16_test_1_in = [(Y @ (-X, -W, -Z), -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)]
+        equation_16_test_1_expected = (
+            P([(Y @ (-X, -W, -Z)), (W @ -X)]) * P([(X @ -Z), (Z)]),
+            [(Y @ (-X, -W, -Z), -Y), (X @ -Z, -X), (W @ -X, -W), (Z, -Z)],
         )
+        equation_16_test_1_out = do_counterfactual_factor_factorization(
+            variables=equation_16_test_1_in, graph=figure_2a_graph
+        )
+        self.assert_expr_equal(
+            equation_16_test_1_out[0],
+            equation_16_test_1_expected[0],
+        )
+        self.assertCountEqual(equation_16_test_1_out[1], equation_16_test_1_expected[1])
 
     def test_do_counterfactual_factor_factorization_2(self):
         """Test counterfactual factor factorization as per Equation 16 in [correa22a]_.
@@ -786,14 +791,19 @@ class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
         Source: Equations 11, 14, and 16 of [correa22a]_.
         """
         # Second test is not in counterfactual factor form
-        equation_16_test_2_in = {(Y @ (-X)), (W @ -X), (X @ -Z), (Z)}
-        equation_16_test_2_expected = P((Y @ (-X, -W, -Z)), (W @ -X)) * P((X @ -Z), (Z))
-        self.assert_expr_equal(
-            do_counterfactual_factor_factorization(
-                variables=equation_16_test_2_in, graph=figure_2a_graph
-            ),
-            equation_16_test_2_expected,
+        equation_16_test_2_in = [(Y @ -X, -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)]
+        equation_16_test_2_expected = (
+            P((Y @ (-X, -W, -Z)), (W @ -X)) * P((X @ -Z), (Z)),
+            [(Y @ (-X, -W, -Z), -Y), (X @ -Z, -X), (W @ -X, -W), (Z, -Z)],
         )
+        equation_16_test_2_out = do_counterfactual_factor_factorization(
+            variables=equation_16_test_2_in, graph=figure_2a_graph
+        )
+        self.assert_expr_equal(
+            equation_16_test_2_out[0],
+            equation_16_test_2_expected[0],
+        )
+        self.assertCountEqual(equation_16_test_2_out[1], equation_16_test_2_expected[1])
 
     def test_do_counterfactual_factor_factorization_3(self):
         """Test counterfactual factor factorization as per Equation 16 in [correa22a]_.
@@ -801,16 +811,19 @@ class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
         Source: Equations 11, 14, and 16 of [correa22a]_.
         """
         # This is the actual equation 16 content in [correa22a]_
-        equation_16_test_3_in = {(Y @ -X), (X)}
-        equation_16_test_3_expected = Sum.safe(
-            P((Y @ (-X, -W, -Z)), (W @ -X)) * P((X @ -Z), (Z)), [Z, W]
+        equation_16_test_3_in = [(Y @ -X, -Y), (X, -X)]
+        equation_16_test_3_expected = (
+            Sum.safe(P((Y @ (-X, -W, -Z)), (W @ -X)) * P((X @ -Z), (Z)), [Z, W]),
+            [(Y @ (-X, -W, -Z), -Y), (X @ -Z, -X)],
+        )
+        equation_16_test_3_out = do_counterfactual_factor_factorization(
+            variables=equation_16_test_3_in, graph=figure_2a_graph
         )
         self.assert_expr_equal(
-            do_counterfactual_factor_factorization(
-                variables=equation_16_test_3_in, graph=figure_2a_graph
-            ),
-            equation_16_test_3_expected,
+            equation_16_test_3_out[0],
+            equation_16_test_3_expected[0],
         )
+        self.assertCountEqual(equation_16_test_3_out[1], equation_16_test_3_expected[1])
 
 
 class TestConvertToCounterfactualFactorForm(unittest.TestCase):
@@ -865,10 +878,25 @@ class TestConvertToCounterfactualFactorForm(unittest.TestCase):
             test_3_expected,
         )
         self.assertCountEqual(
-            convert_to_counterfactual_factor_form(event=simplify(event=test_3_3_in, graph=figure_2a_graph),graph=figure_2a_graph),
+            convert_to_counterfactual_factor_form(
+                event=simplify(event=test_3_3_in, graph=figure_2a_graph), graph=figure_2a_graph
+            ),
             test_3_expected,
         )
 
+    def test_convert_to_counterfactual_factor_form_4(self):
+        """Convert a variable with no value to counterfactual factor form.
+
+        Source: Equation 12 of [correa22a]_.
+
+        Here we pass in a simple variable with no parents, and should get it back.
+        """
+        test_4_in = [(Z, None)]
+        test_4_expected = [(Z, None)]
+        self.assertCountEqual(
+            convert_to_counterfactual_factor_form(event=test_4_in, graph=figure_2a_graph),
+            test_4_expected,
+        )
 
 
 class TestCounterfactualFactorTransportability(unittest.TestCase):

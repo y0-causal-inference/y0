@@ -61,7 +61,12 @@ def _any_variables_with_inconsistent_values(
             for intervention in variable.interventions:
                 if intervention.get_base() == variable.get_base():  # Y_Y
                     if {intervention} != variable_to_value_mappings[variable]:
-                        logger.warn("Part 2 of Line 2 fails: {{intervention}} = " + str({intervention}) + "and variable_to_value_mappings[variable] = " + str(variable_to_value_mappings[variable]))
+                        logger.warn(
+                            "Part 2 of Line 2 fails: {{intervention}} = "
+                            + str({intervention})
+                            + "and variable_to_value_mappings[variable] = "
+                            + str(variable_to_value_mappings[variable])
+                        )
                         return True
     return False
 
@@ -75,13 +80,13 @@ def _simplify_outcomes_with_consistent_values(
     :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
     remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
 
-    Note that Y_y and Y are repeated variables. So, when the counterfactual variable Y_y and the 
-    intervention Y are both in the set of outcome variables, we want to remove one of them and 
+    Note that Y_y and Y are repeated variables. So, when the counterfactual variable Y_y and the
+    intervention Y are both in the set of outcome variables, we want to remove one of them and
     the obvious one to remove is the more complex Y_y. What [correa22a]_ does not specify is,
-    in the case where Y_y is in the set of events but Y is not, should Y_y get reduced to Y? 
-    The question is analogous to asking, in the case where Y is in the set of events but Y_y is 
-    not, should Y be replaced by Y_y? The latter answer is "no" because the notation becomes 
-    more complex. So, our answer to the former question is "yes" because the notation 
+    in the case where Y_y is in the set of events but Y is not, should Y_y get reduced to Y?
+    The question is analogous to asking, in the case where Y is in the set of events but Y_y is
+    not, should Y be replaced by Y_y? The latter answer is "no" because the notation becomes
+    more complex. So, our answer to the former question is "yes" because the notation
     becomes simpler without changing the results of Algorithms 2 or 3 in [correa22a]_.
 
     :param outcome_variable_to_value_mappings:
@@ -93,50 +98,50 @@ def _simplify_outcomes_with_consistent_values(
         These same two inputs with any redundant outcome variables removed.
     """
     for variable in list(outcome_variables):
-        #logger.warn("Looking at variable " + str(variable))
-        #logger.warn(
+        # logger.warn("Looking at variable " + str(variable))
+        # logger.warn(
         #    "Is it a counterfactual variable: " + str(isinstance(variable, CounterfactualVariable))
-        #)
+        # )
         if isinstance(variable, CounterfactualVariable):
             for intervention in variable.interventions:
-                #logger.warn(
+                # logger.warn(
                 #    "In _simplify_outcomes_with_consistent_values: looking at intervention "
                 #    + str(intervention)
                 #    + " and counterfactual variable "
                 #    + str(variable)
-                #)
+                # )
                 if intervention.get_base() == variable.get_base():  # Y_Y
-                    #logger.warn(
+                    # logger.warn(
                     #    "In _simplify_outcomes_with_consistent_values:: looking at intervention "
                     #    + str(intervention)
                     #    + " and counterfactual variable "
                     #    + str(variable)
                     #    + ". Bases are equal."
-                    #)
-                    #logger.warn("Minimized outcome variables: " + str(outcome_variables))
-                    #logger.warn("variable.get_base(): " + str(variable.get_base()))
-                    #logger.warn(
+                    # )
+                    # logger.warn("Minimized outcome variables: " + str(outcome_variables))
+                    # logger.warn("variable.get_base(): " + str(variable.get_base()))
+                    # logger.warn(
                     #    "Is it in minimized_outcome_variables: "
                     #    + str(variable.get_base() in outcome_variables)
-                    #)
+                    # )
                     if variable.get_base() in outcome_variables:
-                        #logger.warn(
+                        # logger.warn(
                         #    "list(minimized_outcome_variable_to_value_mappings[variable.get_base()])[0]: "
                         #    + str(list(outcome_variable_to_value_mappings[variable.get_base()])[0])
-                        #)
-                        #logger.warn(
+                        # )
+                        # logger.warn(
                         #    "   which is of class "
                         #    + str(
                         #        list(outcome_variable_to_value_mappings[variable.get_base()])[
                         #            0
                         #        ].__class__
                         #    )
-                        #)
+                        # )
                         # This case must be Y_y with :math:$\mathbf y_\ast \intersect Y_y = y$
-                        #if (
+                        # if (
                         #    list(outcome_variable_to_value_mappings[variable.get_base()])[0].to_y0()
                         #    == intervention.to_y0()
-                        #):
+                        # ):
                         #    logger.warn(
                         #        "In _simplify_outcomes_with_consistent_values: found an intervention "
                         #        + str({intervention})
@@ -145,7 +150,7 @@ def _simplify_outcomes_with_consistent_values(
                         #        + " with value "
                         #        + str(outcome_variable_to_value_mappings[variable])
                         #    )
-                        #else: 
+                        # else:
                         #    logger.warn(
                         #        "In _simplify_outcomes_with_consistent_values: found an intervention "
                         #        + str({intervention})
@@ -155,14 +160,16 @@ def _simplify_outcomes_with_consistent_values(
                         #        + " with value "
                         #        + str(outcome_variable_to_value_mappings[variable])
                         #    )
-                        #    # We want to return None, but we'll do so by calling Line 2 again from simplify() after returning from here. 
-                        outcome_variable_to_value_mappings[variable.get_base()].update({intervention})
+                        #    # We want to return None, but we'll do so by calling Line 2 again from simplify() after returning from here.
+                        outcome_variable_to_value_mappings[variable.get_base()].update(
+                            {intervention}
+                        )
                         del outcome_variable_to_value_mappings[variable]
                         outcome_variables.remove(variable)
-                    else: 
-                        # Convert the counterfactual variable to an intervention, add the intervention and its value to the 
+                    else:
+                        # Convert the counterfactual variable to an intervention, add the intervention and its value to the
                         # mappings, and delete the counterfactual variable.
-                        #logger.warn(
+                        # logger.warn(
                         #    "In _simplify_outcomes_with_consistent_values: replacing counterfactual variable "
                         #    + str(variable)
                         #    + " with a pure variable: "
@@ -171,12 +178,14 @@ def _simplify_outcomes_with_consistent_values(
                         #    + str(outcome_variable_to_value_mappings[variable])
                         #    + " and original outcome_variable_to_value_mappings = " + str(outcome_variable_to_value_mappings)
                         #    + " and outcome_variables = " + str(outcome_variables)
-                        #)
-                        outcome_variable_to_value_mappings[variable.get_base()].update(outcome_variable_to_value_mappings[variable])
+                        # )
+                        outcome_variable_to_value_mappings[variable.get_base()].update(
+                            outcome_variable_to_value_mappings[variable]
+                        )
                         outcome_variables.add(variable.get_base())
                         del outcome_variable_to_value_mappings[variable]
                         outcome_variables.remove(variable)
-                        #logger.warn("New outcome_variable_to_value_mappings = " + str(outcome_variable_to_value_mappings)
+                        # logger.warn("New outcome_variable_to_value_mappings = " + str(outcome_variable_to_value_mappings)
                         #            + " and outcome_variables = " + str(outcome_variables))
     return (outcome_variable_to_value_mappings, outcome_variables)
 
@@ -260,15 +269,24 @@ def simplify(
         if element[0] in minimized_outcome_variables:
             minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
 
-    logger.warn("In simplify after part 1 of line 3: outcome_variables = " + str(minimized_outcome_variables))
-    logger.warn("                                    minimize_outcome_variable_to_value_mappings = " + str(minimized_outcome_variable_to_value_mappings))
+    logger.warn(
+        "In simplify after part 1 of line 3: outcome_variables = "
+        + str(minimized_outcome_variables)
+    )
+    logger.warn(
+        "                                    minimize_outcome_variable_to_value_mappings = "
+        + str(minimized_outcome_variable_to_value_mappings)
+    )
 
     # Line 2 of SIMPLIFY.
     if _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings):
         return None
 
     logger.warn("In simplify after line 2: outcome_variables = " + str(minimized_outcome_variables))
-    logger.warn("                          minimize_outcome_variable_to_value_mappings = " + str(minimized_outcome_variable_to_value_mappings))
+    logger.warn(
+        "                          minimize_outcome_variable_to_value_mappings = "
+        + str(minimized_outcome_variable_to_value_mappings)
+    )
 
     # Part 2 of Line 3:
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
@@ -280,7 +298,7 @@ def simplify(
         minimized_outcome_variable_to_value_mappings, minimized_outcome_variables
     )
 
-    # Call line 2 of SIMPLIFY again to handle counterfactual variables such as (Y @ -Y, -Y) that Line 3 reduces to 
+    # Call line 2 of SIMPLIFY again to handle counterfactual variables such as (Y @ -Y, -Y) that Line 3 reduces to
     # interventions inconsistent with existing variables such as (Y, +Y)
     if _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings):
         return None
@@ -518,8 +536,8 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
 
 
 def convert_to_counterfactual_factor_form(
-    *, event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
-) -> list[tuple[Variable, Intervention]]:
+    *, event: list[tuple[Variable, Intervention | None]], graph: NxMixedGraph
+) -> list[tuple[Variable, Intervention | None]]:
     r"""Convert a list of (possibly counterfactual) variables and their values to counterfactual factor ("ctf-factor") form.
 
     That requires intervening on all the parents of each counterfactual variable.
@@ -552,7 +570,7 @@ def convert_to_counterfactual_factor_form(
 
 def do_counterfactual_factor_factorization(
     *, variables: list[tuple[Variable, Intervention]], graph: NxMixedGraph
-) -> Expression:
+) -> tuple[Expression, list[tuple[Variable, Intervention]]]:
     r"""Take an arbitrary query and return its counterfactual factor form, factorized according to the graph c-components.
 
     :param variables:
@@ -563,6 +581,9 @@ def do_counterfactual_factor_factorization(
     :raises TypeError: do_counterfactual_factorization() requires at least one variable in the query variable set.
     :returns:
         An expression following the right side of Equation 15 in [correa22a]_ (example: Equation 16).
+        Additionally, the function returns a tuple matching variables to interventions, in order to specify
+        the values of those variables in the returned expression that are not indexes of the summation term
+        (i.e. the expression doesn't marginalize over those variables).
 
         :math:Sum_{ \mathbf d_* \backslash \mathbf y_*} P*( \mathbf d_* ), where :math:\mathbf D_* = An( \mathbf Y_* ),
         and where P*( \mathbf d_* ) has been further decomposed as per
@@ -571,6 +592,7 @@ def do_counterfactual_factor_factorization(
     # We can't directly compute the ancestral set via a set comprehension because get_ancestors_of_counterfactual()
     # returns mutable sets, so we'd get an 'unhashable type: set' error
     # note from @cthoyt - use frozenset if you want immutable/hashable sets
+    #                     (Thanks!)
     #
     # TODO: Do we need to check for consistency among the elements of the ancestral set before
     #       applying the union operation?
@@ -582,21 +604,31 @@ def do_counterfactual_factor_factorization(
             "do_counterfactual_factorization() requires at least one variable in the query."
         )
 
+    result_event: list[tuple[Variable, Intervention]] = [
+        (convert_to_counterfactual_factor_form(event=[(variable, value)], graph=graph)[0][0], value)
+        for variable, value in variables
+    ]
+
     ancestral_set: set[Variable] = set()
-    for counterfactual_variable, value in variables:
+    for counterfactual_variable, _value in variables:
         ancestral_set.update(get_ancestors_of_counterfactual(counterfactual_variable, graph))
 
     #  e.g., Equation 14 in [correa22a]_, without the summation component.
-    ancestral_set_in_counterfactual_factor_form: list[
-        tuple[Variable, Intervention]
-    ] = convert_to_counterfactual_factor_form(event=ancestral_set, graph=graph)
+    ancestral_set_in_counterfactual_factor_form: set[Variable] = set(
+        [
+            convert_to_counterfactual_factor_form(event=[(variable, None)], graph=graph)[0][0]
+            for variable in ancestral_set
+        ]
+    )
 
     # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.
     ancestral_set_variable_names: set[Variable] = {
         variable.get_base() for variable in ancestral_set_in_counterfactual_factor_form
     }
 
-    outcome_variable_names: set[Variable] = {variable.get_base() for variable in variables}
+    outcome_variable_bases: set[Variable] = {
+        variable.get_base() for (variable, _intervention) in variables
+    }
 
     # Decompose the query by c-component (e.g., Equation 16 in [correa22a]_)
     ancestral_set_subgraph = graph.subgraph(ancestral_set_variable_names)
@@ -614,10 +646,10 @@ def do_counterfactual_factor_factorization(
     result_expression = Product.safe(P(factor) for factor in factorized_ancestral_set)
 
     # The summation portion of Equation 11 in [correa22a]_
-    sum_range = ancestral_set_variable_names - outcome_variable_names
+    sum_range = ancestral_set_variable_names - outcome_variable_bases
 
     result_expression = Sum.safe(result_expression, sum_range)
-    return result_expression
+    return (result_expression, result_event)
 
 
 def make_selection_diagram(
