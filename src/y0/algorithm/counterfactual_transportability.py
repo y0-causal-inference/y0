@@ -2,7 +2,10 @@
 
 """Implementation of counterfactual transportability.
 
+.. [huang08a] https://link.springer.com/article/10.1007/s10472-008-9101-x.
+.. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
+.. [tian03a] https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf
 """
 
 import logging
@@ -23,6 +26,7 @@ from y0.graph import NxMixedGraph
 
 __all__ = [
     "simplify",
+    "tian_pearl_identify",
     "minimize",
     "get_ancestors_of_counterfactual",
     "same_district",
@@ -642,3 +646,21 @@ def ctf_tr() -> None:
 def ctf_tru() -> None:
     """Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2)."""
     raise NotImplementedError("Unimplemented function: ctfTRu")
+
+
+def tian_pearl_identify(
+    *,
+    input_variables: set[Variable],
+    input_district: set[Variable],
+    q_expression: Expression,
+    graph: NxMixedGraph,
+) -> Expression | None:
+    """Implement the IDENTIFY algorithm as presented in [tian03a]_ and encoded in [correa22a]_ (Algorithm 5).
+
+    :param input_variables: The set of variables, C, for which we're checking if causal identification is possible.
+    :param input_district: The C-component, T, containing C.
+    :param q_expression: The expression Q[T] as per [tian2003]_, Equation 35.
+    :param graph: The relevant graph.
+    :returns: An expression for Q[C] in terms of Q, or Fail.
+    """
+    raise NotImplementedError("Unimplemented function: identify")

@@ -2,7 +2,10 @@
 
 """Tests for counterfactual transportability.
 
+.. [huang08a] https://link.springer.com/article/10.1007/s10472-008-9101-x.
+.. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
+.. [tian02a] https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf.
 """
 
 import logging
@@ -24,9 +27,25 @@ from y0.algorithm.counterfactual_transportability import (
     minimize,
     same_district,
     simplify,
+    tian_pearl_identify,
 )
 from y0.algorithm.transport import transport_variable
-from y0.dsl import CounterfactualVariable, Intervention, P, R, Sum, Variable, W, X, Y, Z
+from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
+    PP,
+    X1,
+    X2,
+    CounterfactualVariable,
+    Intervention,
+    P,
+    Population,
+    R,
+    Sum,
+    Variable,
+    W,
+    X,
+    Y,
+    Z,
+)
 from y0.graph import NxMixedGraph
 
 # from y0.tests.test_algorithm.cases import GraphTestCase
@@ -79,6 +98,151 @@ figure_2_graph_domain_2 = NxMixedGraph.from_edges(
     ],
     undirected=[(Z, X), (W, Y)],
 )
+
+# From [correa20a]_, Figure 1a.
+soft_interventions_figure_1a_graph = NxMixedGraph.from_edges(
+    directed=[(X1, Z), (X1, X2), (Z, X2), (X1, Y), (X2, Y)],
+    undirected=[(X1, Z), (X2, Y)],
+)
+
+# From [correa20a]_, Figure 1b.
+soft_interventions_figure_1b_graph = NxMixedGraph.from_edges(
+    directed=[
+        (X1, Z),
+        (X1, X2),
+        (X1, Y),
+        (X2, Y),
+        (transport_variable(Y), Y),
+    ],
+    undirected=[],
+)
+
+# From [correa20a]_, Figure 1c.
+soft_interventions_figure_1c_graph = NxMixedGraph.from_edges(
+    directed=[
+        (X1, Z),
+        (X1, X2),
+        (X1, Y),
+        (Z, X2),
+        (X2, Y),
+        (transport_variable(Z), Z),
+    ],
+    undirected=[(X1, Z)],
+)
+
+# From [correa20a]_, Figure 1d.
+soft_interventions_figure_1d_graph = NxMixedGraph.from_edges(
+    directed=[
+        (X1, Z),
+        (X1, X2),
+        (X1, Y),
+        (Z, X2),
+        (X2, Y),
+    ],
+    undirected=[],
+)
+
+# From [correa20a]_, Figure 2a.
+soft_interventions_figure_2a_graph = NxMixedGraph.from_edges(
+    directed=[
+        (R, Z),
+        (W, X),
+        (X, Z),
+        (Z, Y),
+    ],
+    undirected=[
+        (R, Y),
+        (W, R),
+        (W, X),
+        (W, Z),
+        (X, Y),
+    ],
+)
+
+# From [correa20a]_, Figure 2b.
+soft_interventions_figure_2b_graph = NxMixedGraph.from_edges(
+    directed=[
+        (R, Z),
+        (R, X),
+        (X, Z),
+        (Z, Y),
+    ],
+    undirected=[
+        (R, Y),
+        (W, R),
+        (W, Z),
+    ],
+)
+
+# From [correa20a]_, Figure 2c.
+soft_interventions_figure_2c_graph = NxMixedGraph.from_edges(
+    directed=[
+        (R, Z),
+        (X, Z),
+        (W, X),
+        (Z, Y),
+        (transport_variable(R), R),
+        (transport_variable(W), W),
+    ],
+    undirected=[
+        (R, Y),
+        (W, R),
+        (W, X),
+        (W, Z),
+        (X, Y),
+    ],
+)
+
+# From [correa20a]_, Figure 2d.
+soft_interventions_figure_2d_graph = NxMixedGraph.from_edges(
+    directed=[
+        (R, Z),
+        (X, Z),
+        (W, X),
+        (Z, Y),
+        (transport_variable(W), W),
+    ],
+    undirected=[
+        (R, Y),
+        (W, R),
+        (W, X),
+        (X, Y),
+    ],
+)
+
+# From [correa20a]_, Figure 2e.
+soft_interventions_figure_2e_graph = NxMixedGraph.from_edges(
+    directed=[
+        (R, Z),
+        (X, Z),
+        (W, X),
+        (Z, Y),
+        (transport_variable(R), R),
+    ],
+    undirected=[
+        (R, Y),
+        (X, Y),
+    ],
+)
+
+# From [correa20a]_, Figure 3.
+soft_interventions_figure_3_graph = NxMixedGraph.from_edges(
+    directed=[
+        (R, W),
+        (R, X),
+        (W, X),
+        (X, Z),
+        (Z, Y),
+        (X, Y),
+        (transport_variable(R), R),
+        (transport_variable(Z), Z),
+    ],
+    undirected=[
+        (R, Z),
+        (W, Y),
+    ],
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -977,3 +1141,68 @@ class TestCounterfactualFactorTransportability(unittest.TestCase):
                 factors=test_5_in, domain_graph=figure_2_graph_domain_2
             )
         )
+
+
+class TestIdentify(cases.GraphTestCase):
+    """Test the IDENTIFY algorithm (Algorithm 5 of [correa22a]_).
+
+    Source: The example on page 7 of [correa20a]_ (using Figure 1d).
+    Note that [correa20a]_ and [correa22a]_ use the same specification of the IDENTIFY
+    algorithm. Both papers have a typo on Line 4. See [huang08a]_ for the correct
+    version of Line 4.
+    """
+
+    def test_identify_1(self):
+        """Test Line 2 of Algorithm 5 of [correa22a]_."""
+        # π_star = Pi_star = Variable(f"π*")
+        test_1_identify_input_variables = {Z}  # A
+        test_1_identify_input_district = {Z}  # B
+        # TODO: In identify(), during pre-processing make sure that A is contained in B, and
+        # that B is a district of G. Raise a TypeError if not.
+
+        # @cthoyt @JZ The next two commented-out lines produce a mypy error:
+        # pi1 = Population("pi1")
+        # test_1_q_expression = PP[Population("pi1")](Z | X1)
+        # error: Type application targets a non-generic function or class  [misc]
+        # test_transport.py uses a similar syntax and does not trigger the error,
+        #   so I'm probably missing something simple.
+        test_1_q_expression = PP[Population("pi1")](Z | X1)  # Q
+        result = tian_pearl_identify(
+            input_variables=test_1_identify_input_variables,
+            input_district=test_1_identify_input_district,
+            q_expression=test_1_q_expression,
+            graph=soft_interventions_figure_1b_graph,
+        )
+        logger.warning("Result of identify() call for test_identify_1 is " + str(result))
+        self.assert_expr_equal(result, PP[Population("pi1")](Z | X1))
+
+    def test_identify_2(self):
+        """Test Line 3 of Algorithm 5 of [correa22a]_."""
+        test_2_identify_input_variables = {R, Y}
+        test_2_identify_input_district = {W, R, X, Z, Y}
+        test_2_q_expression = PP[Population("pi*")](
+            W, R, X, Z, Y
+        )  # This is a c-factor if the input variables comprise a c-component
+        result = tian_pearl_identify(
+            input_variables=test_2_identify_input_variables,
+            input_district=test_2_identify_input_district,
+            q_expression=test_2_q_expression,
+            graph=soft_interventions_figure_2a_graph,
+        )
+        logger.warning("Result of identify() call for test_identify_2 is " + str(result))
+        self.assertIsNone(result)
+
+    def test_identify_3(self):
+        """Test Lines 4-7 of Algorithm 5 of [correa22a]_."""
+        test_3_identify_input_variables = {Z, R}
+        test_3_identify_input_district = {R, X, W, Z}
+        test_3_q_expression = PP[Population("pi*")](R, W, X, Y, Z)
+        result = tian_pearl_identify(
+            input_variables=test_3_identify_input_variables,
+            input_district=test_3_identify_input_district,
+            q_expression=test_3_q_expression,
+            graph=soft_interventions_figure_3_graph,
+        )
+        # TODO: Be sure to throw some logging warnings in Lines 4-7 to see what happens when identify() is called.
+        logger.warning("Result of identify() call for test_identify_3 is " + str(result))
+        self.assertIsNone(result)
