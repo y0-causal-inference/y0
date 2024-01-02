@@ -165,26 +165,22 @@ def simplify(
     #       set star to None. Putting the check here means that we don't need separate checks
     #       in functions such as get_counterfactual_ancestors(), because the ctfTRu and ctfTR
     #       algorithms all call SIMPLIFY early in their processing.
-    for element in event:
-        if (
-            len(element) != 2
-            or not isinstance(element[0], Variable)
-            or not isinstance(element[1], Intervention)
-        ):
+    for variable, intervention in event:
+        if not isinstance(variable, Variable) or not isinstance(intervention, Intervention):
             raise TypeError(
                 f"Improperly formatted inputs for simplify(): check input event element {element}"
             )
         if (
-            isinstance(element[0], Variable)
-            and not isinstance(element[0], CounterfactualVariable)
-            and element[0].star is not None
+            isinstance(variable, Variable)
+            and not isinstance(variable, CounterfactualVariable)
+            and variable.star is not None
         ):
             raise TypeError(
-                f"Improperly formatted inputs for simplify(): {element[0]} should have "
+                f"Improperly formatted inputs for simplify(): {variable} should have "
                 "a star value of None because it is a Variable"
             )
 
-    outcome_variables = {element[0] for element in event}
+    outcome_variables = {variable for variable, _ in event}
 
     # Some of the entries in our dict won't be necessary.
     logger.warning("In simplify: outcome_variables = " + str(outcome_variables))
@@ -198,9 +194,9 @@ def simplify(
     minimized_outcome_variable_to_value_mappings: DefaultDict[
         Variable, set[Intervention]
     ] = defaultdict(set)
-    for element in event:
-        if element[0] in minimized_outcome_variables:
-            minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+    for variable, intervention in event:
+        if variable in minimized_outcome_variables:
+            minimized_outcome_variable_to_value_mappings[variable].add(intervention)
 
     logger.warning(
         "In simplify after part 1 of line 3: outcome_variables = "
