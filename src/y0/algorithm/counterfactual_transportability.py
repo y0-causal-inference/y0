@@ -187,9 +187,9 @@ def simplify(
     outcome_variables = {element[0] for element in event}
 
     # Some of the entries in our dict won't be necessary.
-    logger.warn("In simplify: outcome_variables = " + str(outcome_variables))
+    logger.warning("In simplify: outcome_variables = " + str(outcome_variables))
     minimized_outcome_variables: set[Variable] = minimize(variables=outcome_variables, graph=graph)
-    logger.warn("In simplify: minimized_outcome_variables = " + str(minimized_outcome_variables))
+    logger.warning("In simplify: minimized_outcome_variables = " + str(minimized_outcome_variables))
 
     # Creating this dict addresses part 1 of Line 3:
     # :math: **if** there exists $Y_{\mathbf{x}}\in \mathbf{Y}_\ast$ with
@@ -202,11 +202,11 @@ def simplify(
         if element[0] in minimized_outcome_variables:
             minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
 
-    logger.warn(
+    logger.warning(
         "In simplify after part 1 of line 3: outcome_variables = "
         + str(minimized_outcome_variables)
     )
-    logger.warn(
+    logger.warning(
         "                                    minimize_outcome_variable_to_value_mappings = "
         + str(minimized_outcome_variable_to_value_mappings)
     )
@@ -215,8 +215,10 @@ def simplify(
     if _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings):
         return None
 
-    logger.warn("In simplify after line 2: outcome_variables = " + str(minimized_outcome_variables))
-    logger.warn(
+    logger.warning(
+        "In simplify after line 2: outcome_variables = " + str(minimized_outcome_variables)
+    )
+    logger.warning(
         "                          minimize_outcome_variable_to_value_mappings = "
         + str(minimized_outcome_variable_to_value_mappings)
     )
@@ -236,11 +238,11 @@ def simplify(
     if _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings):
         return None
 
-    logger.warn(
+    logger.warning(
         "In simplify before return: minimized_outcome_variables = "
         + str(minimized_outcome_variables)
     )
-    logger.warn(
+    logger.warning(
         "In simplify before return: minimized_outcome_variable_to_value_mappings = "
         + str(minimized_outcome_variable_to_value_mappings)
     )
@@ -248,7 +250,7 @@ def simplify(
         (key, minimized_outcome_variable_to_value_mappings[key].pop())
         for key in minimized_outcome_variable_to_value_mappings
     ]
-    logger.warn("In simplify before return: return value = " + str(result))
+    logger.warning("In simplify before return: return value = " + str(result))
     return result
 
 
@@ -387,8 +389,8 @@ def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
     visited_districts: set[frozenset] = {
         graph.get_district(variable.get_base()) for variable in event
     }
-    logger.warn("In same_district(): event = " + str(event))
-    logger.warn("Visited districts: " + str(visited_districts))
+    logger.warning("In same_district(): event = " + str(event))
+    logger.warning("Visited districts: " + str(visited_districts))
     # raise NotImplementedError("Unimplemented function: same_district")
     return len(visited_districts) == 1
 
@@ -452,7 +454,7 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
         variables missing from the graph.
     """
     if not is_counterfactual_factor_form(event=event, graph=graph):
-        logger.warn("Supposed to trigger KeyError in get_counterfactual_factors().")
+        logger.warning("Supposed to trigger KeyError in get_counterfactual_factors().")
         raise KeyError(
             "In get_counterfactual_factors(): the event %s is not in counterfactual factor form.",
             str(event),
