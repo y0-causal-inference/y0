@@ -545,12 +545,10 @@ def do_counterfactual_factor_factorization(
         ancestral_set.update(get_ancestors_of_counterfactual(counterfactual_variable, graph))
 
     #  e.g., Equation 14 in [correa22a]_, without the summation component.
-    ancestral_set_in_counterfactual_factor_form: set[Variable] = set(
-        [
-            convert_to_counterfactual_factor_form(event=[(variable, None)], graph=graph)[0][0]
-            for variable in ancestral_set
-        ]
-    )
+    ancestral_set_in_counterfactual_factor_form: set[Variable] = {
+        convert_to_counterfactual_factor_form(event=[(variable, None)], graph=graph)[0][0]
+        for variable in ancestral_set
+    }
 
     # P*(d_*). It's a counterfactual variable hint, so a distribution can be constructed from it.
     ancestral_set_variable_names: set[Variable] = {
