@@ -118,7 +118,7 @@ def _simplify_outcomes_with_consistent_values(
                         outcome_variables.add(variable.get_base())
                         del outcome_variable_to_value_mappings[variable]
                         outcome_variables.remove(variable)
-    return (outcome_variable_to_value_mappings, outcome_variables)
+    return outcome_variable_to_value_mappings, outcome_variables
 
 
 def simplify(
@@ -578,7 +578,7 @@ def do_counterfactual_factor_factorization(
     sum_range = ancestral_set_variable_names - outcome_variable_bases
 
     result_expression = Sum.safe(result_expression, sum_range)
-    return (result_expression, result_event)
+    return result_expression, result_event
 
 
 def make_selection_diagram(
