@@ -61,17 +61,19 @@ def _any_variables_with_inconsistent_values(
     # Part 2 of Line 2:
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$ **then return** 0.
     for variable in variable_to_value_mappings.keys():
-        if isinstance(variable, CounterfactualVariable):
-            for intervention in variable.interventions:
-                if intervention.get_base() == variable.get_base():  # Y_Y
-                    if {intervention} != variable_to_value_mappings[variable]:
-                        logger.warn(
-                            "Part 2 of Line 2 fails: {{intervention}} = "
-                            + str({intervention})
-                            + "and variable_to_value_mappings[variable] = "
-                            + str(variable_to_value_mappings[variable])
-                        )
-                        return True
+        if not isinstance(variable, CounterfactualVariable):
+            continue
+        for intervention in variable.interventions:
+            if intervention.get_base() != variable.get_base():  # Y_Y
+                continue
+            if {intervention} != variable_to_value_mappings[variable]:
+                logger.warning(
+                    "Part 2 of Line 2 fails: {{intervention}} = "
+                    + str({intervention})
+                    + "and variable_to_value_mappings[variable] = "
+                    + str(variable_to_value_mappings[variable])
+                )
+                return True
     return False
 
 
@@ -102,22 +104,22 @@ def _simplify_outcomes_with_consistent_values(
         These same two inputs with any redundant outcome variables removed.
     """
     for variable in list(outcome_variables):
-        if isinstance(variable, CounterfactualVariable):
-            for intervention in variable.interventions:
-                if intervention.get_base() == variable.get_base():  # Y_Y
-                    if variable.get_base() in outcome_variables:
-                        outcome_variable_to_value_mappings[variable.get_base()].update(
-                            {intervention}
-                        )
-                        del outcome_variable_to_value_mappings[variable]
-                        outcome_variables.remove(variable)
-                    else:
-                        outcome_variable_to_value_mappings[variable.get_base()].update(
-                            outcome_variable_to_value_mappings[variable]
-                        )
-                        outcome_variables.add(variable.get_base())
-                        del outcome_variable_to_value_mappings[variable]
-                        outcome_variables.remove(variable)
+        if not isinstance(variable, CounterfactualVariable):
+            continue
+        for intervention in variable.interventions:
+            if intervention.get_base() != variable.get_base():  # Y_Y
+                continue
+            if variable.get_base() in outcome_variables:
+                outcome_variable_to_value_mappings[variable.get_base()].update({intervention})
+                del outcome_variable_to_value_mappings[variable]
+                outcome_variables.remove(variable)
+            else:
+                outcome_variable_to_value_mappings[variable.get_base()].update(
+                    outcome_variable_to_value_mappings[variable]
+                )
+                outcome_variables.add(variable.get_base())
+                del outcome_variable_to_value_mappings[variable]
+                outcome_variables.remove(variable)
     return outcome_variable_to_value_mappings, outcome_variables
 
 
@@ -271,36 +273,35 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
     :raises TypeError:
         get_ancestors_of_counterfactual only accepts a single Variable or CounterfactualVariable
     """
-    # This is the set of variables X in [correa22a]_, Definition 2.1.
-    if isinstance(event, CounterfactualVariable):
-        interventions = {intervention.get_base() for intervention in event.interventions}
+    # There's a TypeError check here because it is easy for a user to pass a set of variables in, instead of
+    # a single variable.
+    if not isinstance(event, Variable):
+        raise TypeError(
+            "This function requires a variable, usually a counterfactual variable, as input."
+        )
 
-        graph_minus_in = graph.remove_in_edges(interventions)
-        ancestors = graph.remove_out_edges(interventions).ancestors_inclusive(event.get_base())
-
-        ancestors_of_counterfactual_variable: set[Variable] = set()
-        for ancestor in ancestors:
-            candidate_interventions_z = graph_minus_in.ancestors_inclusive(ancestor).intersection(
-                interventions
-            )
-            # TODO: graph_minus_in.ancestors_inclusive(candidate_ancestor) returns variables.
-            # intervention_variables are Interventions, which are a type of Variable.
-            # Will these sets intersect without throwing errors?
-            if candidate_interventions_z:
-                ancestors_of_counterfactual_variable.add(
-                    ancestor.intervene(candidate_interventions_z)
-                )
-            else:
-                ancestors_of_counterfactual_variable.add(ancestor)
-        return ancestors_of_counterfactual_variable
-    else:
-        # There's a TypeError check here because it is easy for a user to pass a set of variables in, instead of
-        # a single variable.
-        if not isinstance(event, Variable):
-            raise TypeError(
-                "This function requires a variable, usually a counterfactual variable, as input."
-            )
+    if not isinstance(event, CounterfactualVariable):
         return graph.ancestors_inclusive(event)
+
+    # This is the set of variables X in [correa22a]_, Definition 2.1.
+    interventions = {intervention.get_base() for intervention in event.interventions}
+
+    graph_minus_in = graph.remove_in_edges(interventions)
+    ancestors = graph.remove_out_edges(interventions).ancestors_inclusive(event.get_base())
+
+    ancestors_of_counterfactual_variable: set[Variable] = set()
+    for ancestor in ancestors:
+        candidate_interventions_z = graph_minus_in.ancestors_inclusive(ancestor).intersection(
+            interventions
+        )
+        # TODO: graph_minus_in.ancestors_inclusive(candidate_ancestor) returns variables.
+        # intervention_variables are Interventions, which are a type of Variable.
+        # Will these sets intersect without throwing errors?
+        if candidate_interventions_z:
+            ancestors_of_counterfactual_variable.add(ancestor.intervene(candidate_interventions_z))
+        else:
+            ancestors_of_counterfactual_variable.add(ancestor)
+    return ancestors_of_counterfactual_variable
 
 
 def minimize(*, variables: Iterable[Variable], graph: NxMixedGraph) -> set[Variable]:
@@ -330,41 +331,41 @@ def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
     :param graph: The graph containing them.
     :returns: a minimized counterfactual variable which may omit some interventions from the original one.
     """
-    if isinstance(variable, CounterfactualVariable):
-        # :math: $\mathbf x$
-        interventions: tuple = variable.interventions
-        # :math: $\mathbf X$
-        intervention_variables: set[Variable] = {
-            intervention.get_base() for intervention in interventions
-        }
-        # :math: $\mathbf T$
-        treatment_variables = (
-            graph.remove_in_edges(intervention_variables)
-            .ancestors_inclusive(variable.get_base())
-            .intersection(intervention_variables)
-        )
-        # :math: $\mathbf t$
-        treatment_interventions: tuple[Intervention] = tuple(
-            {
-                intervention
-                for intervention in sorted(interventions)
-                # for intervention in interventions
-                if intervention.get_base() in treatment_variables
-            }
-        )
-        # RJC: [correa22a]_ isn't clear about whether the value of a minimized variable shoudl get preserved.
-        #      But they write: "Given a counterfactual variable Y_x some values in $\mathbf x$ may be causally
-        #      irrelevant to Y once the rest of $\mathbf x$ is fixed." There's nothing in there to suggest that
-        #      minimization of $Y_{\mathbf x}$ wouldn't preserve the counterfactual variable's value.  So
-        #      we keep the star value.
-        # RJC: Sorting the interventions makes the output more predictable and testing is therefore more robust.
-        return CounterfactualVariable(
-            name=variable.name,
-            star=variable.star,
-            interventions=tuple(sorted(treatment_interventions)),
-        )
-    else:
+    if not isinstance(variable, CounterfactualVariable):
         return variable
+
+    # :math: $\mathbf x$
+    interventions: tuple = variable.interventions
+    # :math: $\mathbf X$
+    intervention_variables: set[Variable] = {
+        intervention.get_base() for intervention in interventions
+    }
+    # :math: $\mathbf T$
+    treatment_variables = (
+        graph.remove_in_edges(intervention_variables)
+        .ancestors_inclusive(variable.get_base())
+        .intersection(intervention_variables)
+    )
+    # :math: $\mathbf t$
+    treatment_interventions: tuple[Intervention] = tuple(
+        {
+            intervention
+            for intervention in sorted(interventions)
+            # for intervention in interventions
+            if intervention.get_base() in treatment_variables
+        }
+    )
+    # RJC: [correa22a]_ isn't clear about whether the value of a minimized variable shoudl get preserved.
+    #      But they write: "Given a counterfactual variable Y_x some values in $\mathbf x$ may be causally
+    #      irrelevant to Y once the rest of $\mathbf x$ is fixed." There's nothing in there to suggest that
+    #      minimization of $Y_{\mathbf x}$ wouldn't preserve the counterfactual variable's value.  So
+    #      we keep the star value.
+    # RJC: Sorting the interventions makes the output more predictable and testing is therefore more robust.
+    return CounterfactualVariable(
+        name=variable.name,
+        star=variable.star,
+        interventions=tuple(sorted(treatment_interventions)),
+    )
 
 
 def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
