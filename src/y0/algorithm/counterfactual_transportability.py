@@ -28,6 +28,7 @@ __all__ = [
     "simplify",
     "tian_pearl_identify",
     "minimize",
+    "minimize_event",
     "get_ancestors_of_counterfactual",
     "same_district",
     "is_counterfactual_factor_form",
@@ -47,7 +48,10 @@ logger = logging.getLogger(__name__)
 
 
 def _any_variables_with_inconsistent_values(
-    variable_to_value_mappings: DefaultDict[Variable, set[Intervention]]
+    # variable_to_value_mappings: DefaultDict[Variable, set[Intervention]]
+    *,
+    nonreflexive_variable_to_value_mappings: DefaultDict[Variable, set[Intervention]],
+    reflexive_variable_to_value_mappings: DefaultDict[Variable, set[Intervention]],
 ) -> bool:
     r"""Check for variables with inconsistent values following Line 2 of Algorithm 1 in [correa_22a]_."""
     # Part 1 of Line 2:
@@ -55,72 +59,325 @@ def _any_variables_with_inconsistent_values(
     # two or more different values in  $\mathbf{y_\ast}$ **then return** 0.
     # Note this definition has to do with counterfactual values, and is different than
     # the "inconsistent counterfactual factor" definition in Definition 4.1 of [correa22a]_.
-    if any(len(value_set) > 1 for value_set in variable_to_value_mappings.values()):
+    if any(len(value_set) > 1 for value_set in nonreflexive_variable_to_value_mappings.values()):
         return True
 
     # Part 2 of Line 2:
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$ **then return** 0.
-    for variable in variable_to_value_mappings.keys():
-        if not isinstance(variable, CounterfactualVariable):
-            continue
-        for intervention in variable.interventions:
-            if intervention.get_base() != variable.get_base():  # Y_Y
-                continue
-            if {intervention} != variable_to_value_mappings[variable]:
+    # TODO: Come back and clean this up.
+    for variable in reflexive_variable_to_value_mappings.keys():  # Y_y, Y
+        if not isinstance(variable, CounterfactualVariable):  # Y
+            # TODO: Check with JZ that it's intended that $Y_y$ and $Y$ are the same.
+            #       I infer that is so because of Equation 4 in [correa22a]_.
+            # If Y takes on at least two values as part of the same query, then there exists
+            # $Y_{y}\in \mathbf{Y}_\ast$ with two or more different values in  $\mathbf{y_\ast}$.
+            # That implies that there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$,
+            # so we return 0.
+            if len(reflexive_variable_to_value_mappings[variable]) > 1:
+                logger.warning("Part 2 of Line 2 fails for (non-counterfactual) variables: ")
                 logger.warning(
-                    "Part 2 of Line 2 fails: {{intervention}} = "
-                    + str({intervention})
-                    + "and variable_to_value_mappings[variable] = "
-                    + str(variable_to_value_mappings[variable])
+                    "    Variable = "
+                    + str(variable)
+                    + ", values are "
+                    + str(reflexive_variable_to_value_mappings[variable])
                 )
                 return True
+        else:  # Y_y
+            for intervention in variable.interventions:
+                logger.warning(
+                    "Testing part 2 of line 2 in _any_variables_with_inconsistent_values: "
+                )
+                logger.warning("   {{intervention}} = " + str({intervention}))
+                logger.warning("   and variable = " + str(variable))
+                logger.warning(
+                    "    and reflexive_variable_to_value_mappings[variable] = "
+                    + str(reflexive_variable_to_value_mappings[variable])
+                )
+                if intervention.get_base() != variable.get_base():
+                    logger.warning(
+                        "In _any_variables_with_inconsistent_values: reflexive variable "
+                        + str(variable)
+                        + " has an intervention that is not itself: "
+                        + str(intervention)
+                    )
+                    continue
+                # reflexive_variable_to_value_mappings[variable] = $\mathbf{y_*} \cap Y_y
+                # {intervention} = y
+                if {intervention} != reflexive_variable_to_value_mappings[variable]:
+                    logger.warning(
+                        "Part 2 of Line 2 fails: {{intervention}} = "
+                        + str({intervention})
+                        + " and reflexive_variable_to_value_mappings[variable] = "
+                        + str(reflexive_variable_to_value_mappings[variable])
+                    )
+                    return True
     return False
 
 
-def _simplify_outcomes_with_consistent_values(
-    outcome_variable_to_value_mappings: DefaultDict[Variable, set[Intervention]],
-    outcome_variables: set[Variable],
-) -> tuple[DefaultDict[Variable, set[Intervention]], set[Variable]]:
-    r"""Address Part 2 of Line 3 of SIMPLIFY from [correa22a]_.
+# Deprecated.
+# def _simplify_self_interventions_with_consistent_values(
+#    outcome_variable_to_value_mappings: DefaultDict[Variable, set[Intervention]],
+#    outcome_variables: set[Variable],
+# ) -> tuple[DefaultDict[Variable, set[Intervention]], set[Variable]]:
+#    r"""Address Part 2 of Line 3 of SIMPLIFY from [correa22a]_.
+#
+#    :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
+#    remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
+#
+#    Note that Y_y and Y are repeated variables. So, when the counterfactual variable Y_y and the
+#    intervention Y are both in the set of outcome variables, we want to remove one of them and
+#    the obvious one to remove is the more complex Y_y. What [correa22a]_ does not specify is,
+#    in the case where Y_y is in the set of events but Y is not, should Y_y get reduced to Y?
+#    The question is analogous to asking, in the case where Y is in the set of events but Y_y is
+#    not, should Y be replaced by Y_y? The latter answer is "no" because the notation becomes
+#    more complex. So, our answer to the former question is "yes" because the notation
+#    becomes simpler without changing the results of Algorithms 2 or 3 in [correa22a]_.
+#
+#    :param outcome_variable_to_value_mappings:
+#        A dictionary mapping Variable objects to their values, represented as Intervention objects.
+#    :param outcome_variables:
+#        A set of outcome variables (really just the keys for outcome_variable_to_value_mappings, the
+#        code could be further optimized).
+#    :returns:
+#        These same two inputs with any redundant outcome variables removed.
+#    """
+#    for variable in list(outcome_variables):  # if isinstance(variable, CounterfactualVariable):
+#        if not isinstance(variable, CounterfactualVariable):
+#            continue
+#        for intervention in variable.interventions:
+#            if intervention.get_base() != variable.get_base():
+#                continue
+#            # Y_Y
+#            if variable.get_base() in outcome_variables:
+#                outcome_variable_to_value_mappings[variable.get_base()].update({intervention})
+#                del outcome_variable_to_value_mappings[variable]
+#                outcome_variables.remove(variable)
+#            else:
+#                outcome_variable_to_value_mappings[variable.get_base()].update(
+#                    outcome_variable_to_value_mappings[variable]
+#                )
+#                outcome_variables.add(variable.get_base())
+#                del outcome_variable_to_value_mappings[variable]
+#                outcome_variables.remove(variable)
+#    return outcome_variable_to_value_mappings, outcome_variables
 
-    :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
+
+def get_event_subset_for_designated_variables(
+    event: list[tuple[Variable, Intervention]], constraint_variables: set[Variable]
+) -> list[tuple[Variable, Intervention]]:
+    r"""Select a subset of a set of values that correspond to designated variables.
+
+    Note that we could more elegantly represent the values as sets of interventions, but we use
+    (variable, intervention) tuples to represent values instead. Because values are often
+    associated with counterfactual variables for our purposes, in practice we need these tuples
+    to associate a value with its corresponding counterfactual variable without losing track of the
+    interventions associated with that counterfactual variable.
+
+    :math: We denote by $\mathbf{x} \cup \mathbf{Z}$ the subset of $\mathbf{x}$ corresponding
+    to variables in $\mathbf{Z}$. We assume the domain of every variable is finite.
+
+    :param event:
+        A tuple associating $\mathbf{X}$, a set of counterfactual variables (or regular variables)
+        in $\mathbf{V}$ with $\mathbf{x}$, a set of values for $\mathbf{X}$. We encode the
+        counterfactual variables as Variable objects, and the values as Intervention objects.
+    :param constraint_variables: $\mathbf{Z}$, the set of variables in $\mathbf{V} used to constrain the
+        values $\mathbf{x}$.
+    :returns:
+        An event containing tuples associating variables in $\mathbf{X} \cup \mathbf{Z}$
+        with values in $\mathbf{x} \cup \mathbf{Z}$.
+    """
+    return [(variable, value) for variable, value in event if variable in constraint_variables]
+
+
+def get_event_subset_excluding_designated_variables(
+    event: list[tuple[Variable, Intervention]], constraint_variables: set[Variable]
+) -> list[tuple[Variable, Intervention]]:
+    r"""Select a subset of a set of values that do not correspond to a set of designated variables.
+
+    Note that we could more elegantly represent the values as sets of interventions, but we use
+    (variable, intervention) tuples to represent values instead. Because values are often
+    associated with counterfactual variables for our purposes, in practice we need these tuples
+    to associate a value with its corresponding counterfactual variable without losing track of the
+    interventions associated with that counterfactual variable.
+
+    :math: We also denote by $\mathbf{x} \backslash \mathbf{Z} the value of \mathbf{X} \backslash \mathbf{Z}
+    consistent with \mathbf{x}. We assume the domain of every variable is finite.
+
+    :param event:
+        A tuple associating $\mathbf{X}$, a set of counterfactual variables (or regular variables)
+        in $\mathbf{V}$ with $\mathbf{x}$, a set of values for $\mathbf{X}$. We encode the
+        counterfactual variables as Variable objects, and the values as Intervention objects.
+    :param constraint_variables: $\mathbf{Z}$, the set of variables in $\mathbf{V} used to constrain the
+        values $\mathbf{x}$.
+    :returns:
+        An event containing tuples associating variables in $\mathbf{X} \backslash \mathbf{Z}$
+        with values in $\mathbf{x} \backslash \mathbf{Z}$.
+    """
+    return [(variable, value) for variable, value in event if variable not in constraint_variables]
+
+
+# def is_consistent(list_1: dict[Variable,Intervention], list_2: dict[Variable,Intervention]):
+def is_consistent(
+    event_1: list[tuple[Variable, Intervention]], event_2: list[tuple[Variable, Intervention]]
+) -> bool:
+    r"""Check whether two lists of values are consistent.
+
+    Note that we could more elegantly represent the values as sets of interventions, but we use
+    (variable, intervention) tuples to represent values instead. Because values are often
+    associated with counterfactual variables for our purposes, in practice we need these tuples
+    to associate a value with its corresponding counterfactual variable without losing track of the
+    interventions associated with that counterfactual variable.
+
+    :math: Two values $\mathbf{x} and \mathbf{z}$ are said to be consistent if they share the common values
+    for $\mathbf{X} \cap \mathbf{Z}$.
+    We assume the domain of every variable is finite.
+
+    :param event_1:
+        A tuple associating $\mathbf{X}$, a set of counterfactual variables (or regular variables)
+        in $\mathbf{V}$ with $\mathbf{x}$, a set of values for $\mathbf{X}$. We encode the
+        counterfactual variables as Variable objects, and the values as Intervention objects.
+    :param event_2:
+        A tuple associating $\mathbf{Z}$, a set of counterfactual variables (or regular variables)
+        in $\mathbf{V}$ with $\mathbf{z}$, a set of values for $\mathbf{Z}$. We encode the
+        counterfactual variables as Variable objects, and the values as Intervention objects.
+    :returns:
+        A boolean indicating whether the values in $\mathbf{x}$ (event_1) and $\mathbf{z}$ (event_2) are consistent.
+    """
+    # Key the input variables by their domain. Create a dictionary such that the key is variable.get_base() and
+    # the value is a set of interventions.
+
+    # We don't use variable.get_base() because even though [correa22a]_ do not include counterfactual
+    # variables in their definition for consistent values and merely use the regular notation for variables,
+    # that is because the definition for consistency shows up in section 1.1, before they describe a notation
+    # for counterfactual variables. They operationalize their definition of consistency in the simplify
+    # algorithm, where they speak of consistent values for counterfactual variables such as $Y_\mathbf{X}$.
+    # Clearly in that section they do not mean for the reader to compare the values of $Y_\mathbf{X}$ to
+    # $Y_\mathbf{X'}$.
+    event_1_variables = {variable for variable, _ in event_1}
+    event_2_variables = {variable for variable, _ in event_1}
+    common_variables = event_1_variables.intersection(event_2_variables)
+    common_value_dict = defaultdict(set)
+    for variable, value in event_1:
+        if variable in common_variables:
+            common_value_dict[variable].add(value)
+    for variable, value in event_2:
+        if variable.get_base() in common_variables:
+            common_value_dict[variable].add(value)
+
+    return all(value in common_value_dict[variable] for variable, value in event_1) and all(
+        value in common_value_dict[variable] for variable, value in event_2
+    )
+    # return all([list_1[v].star == list_2[v].star for v in list_1 if v in list_2])
+
+
+def _remove_repeated_variables_and_values(
+    *, event: list[tuple[Variable, Intervention]]
+) -> defaultdict[Variable, set[Intervention]]:
+    r"""Implement the first half of Line 3 of the SIMPLIFY algorithm from [correa22a]_.
+
+    The implementation is as simple as creating a dictionary. Adding variables to
+    the dictionary removes repeated variables in the input event, and adding values to
+    the dictionary using the variables as keys removes repeated values.
+
+    :math: **if** there exists $Y_{\mathbf{x}}\in \mathbf{Y}_\ast$ with
+    two consistent values in  $\mathbf{y_\ast} \cap Y_x$ **then**
     remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
 
-    Note that Y_y and Y are repeated variables. So, when the counterfactual variable Y_y and the
-    intervention Y are both in the set of outcome variables, we want to remove one of them and
-    the obvious one to remove is the more complex Y_y. What [correa22a]_ does not specify is,
-    in the case where Y_y is in the set of events but Y is not, should Y_y get reduced to Y?
-    The question is analogous to asking, in the case where Y is in the set of events but Y_y is
-    not, should Y be replaced by Y_y? The latter answer is "no" because the notation becomes
-    more complex. So, our answer to the former question is "yes" because the notation
-    becomes simpler without changing the results of Algorithms 2 or 3 in [correa22a]_.
-
-    :param outcome_variable_to_value_mappings:
-        A dictionary mapping Variable objects to their values, represented as Intervention objects.
-    :param outcome_variables:
-        A set of outcome variables (really just the keys for outcome_variable_to_value_mappings, the
-        code could be further optimized).
+    :param event:
+        A tuple associating $\mathbf{Y_\ast}$, a set of counterfactual variables (or regular variables)
+        in $\mathbf{V}$ with $\mathbf{y_\ast}$, a set of values for $\mathbf{Y_\ast}$. We encode the
+        counterfactual variables as Variable objects, and the values as Intervention objects.
     :returns:
-        These same two inputs with any redundant outcome variables removed.
+        A dictionary mapping the event variables to all values associated with each variable in the event.
     """
-    for variable in list(outcome_variables):
-        if not isinstance(variable, CounterfactualVariable):
-            continue
-        for intervention in variable.interventions:
-            if intervention.get_base() != variable.get_base():  # Y_Y
-                continue
-            if variable.get_base() in outcome_variables:
-                outcome_variable_to_value_mappings[variable.get_base()].update({intervention})
-                del outcome_variable_to_value_mappings[variable]
-                outcome_variables.remove(variable)
+    variable_to_value_mappings: DefaultDict[Variable, set[Intervention]] = defaultdict(set)
+    for variable, intervention in event:
+        variable_to_value_mappings[variable].add(intervention)
+    return variable_to_value_mappings
+
+
+def _split_event_by_reflexivity(
+    event: list[tuple[Variable, Intervention]]
+) -> tuple[list[tuple[Variable, Intervention]], list[tuple[Variable, Intervention]]]:
+    r"""Categorize variables in an event by reflexivity (i.e., whether they intervene on themselves).
+
+    :param event:
+        "Y_*, a set of counterfactual variables in V and y_* a set of
+        values for Y_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :returns:
+        Two events, one containing variables in :math: $Y_{\mathbf{x}} \in \mathbf{Y}_\ast$}
+        and one containing variables in :math: $Y_{y} \in \mathbf{Y}_\ast$.
+        Note that only if minimization has already taken place (which is the case here),
+        variables that are not counterfactual variables are considered the equivalent
+        of :math: $Y_{\mathbf{y} \in \mathbf{Y}_\ast$ and fall into the latter category.
+    """
+    self_interventions_event: list[tuple[Variable, Intervention]] = []  # Y_y
+    interventions_on_other_variables_event: list[tuple[Variable, Intervention]] = []  # Y_x
+    for variable, value in event:
+        if isinstance(variable, CounterfactualVariable):
+            logger.warning("In _separate_event_by_reflexivity: ")
+            logger.warning("   Counterfactual variable = " + str(variable))
+            logger.warning("   Its base is " + str(variable.get_base()))
+            for intervention in variable.interventions:
+                logger.warning("   Intervention: " + str(intervention))
+                logger.warning("       Its base: " + str(intervention.get_base()))
+            if any(
+                [
+                    intervention.get_base() == variable.get_base()
+                    for intervention in variable.interventions
+                ]
+            ):
+                self_interventions_event.append((variable, value))
             else:
-                outcome_variable_to_value_mappings[variable.get_base()].update(
-                    outcome_variable_to_value_mappings[variable]
+                interventions_on_other_variables_event.append((variable, value))
+        else:
+            # A variable with no intervention, Y, is the same thing as Y_y in the event that
+            # minimization has already taken place (which is the case here)
+            self_interventions_event.append((variable, value))
+    return self_interventions_event, interventions_on_other_variables_event
+
+
+def _reduce_reflexive_counterfactual_variables_to_interventions(
+    variables: defaultdict[Variable, set[Intervention]]
+) -> defaultdict[Variable, set[Intervention]]:
+    r"""Simplify counterfactual variables intervening on themselves to Intervention objects with the same base.
+
+    :param variables: A defaultdict mapping :math: $\mathbf{Y_\ast}$, a set of counterfactual variables in
+        $\mathbf{V}$, to $\mathbf{y_\ast}$, a set of values for $\mathbf{Y_\ast}$. Each variable in
+        $\mathbf{Y_\ast}$ is assumed to be either $Y_{y}$ \in $\mathbf{Y_\ast}$ or just $Y$ in $\mathbf{Y_\ast}$,
+        where $Y$ is considered a special case of $Y_{y}$ because minimization has already taken place.
+        The $\mathbf{Y_\ast}$ variables are CounterfactualVariable objects, and the values as Intervention objects.
+    :returns:
+        A defaultdict mapping simple variables :math: $\mathbf{Y}$ to $\mathbf{y}$, a set of corresponding values.
+    """
+    return_dict: DefaultDict[Variable, set[Intervention]] = defaultdict(set)
+    for variable in variables:
+        logger.warning(
+            "In _reduce_reflexive_counterfactual_variables_to_interventions: considering variable "
+            + str(variable)
+        )
+        logger.warning("   Values of input variable: " + str(variables[variable]))
+        # A couple of sanity checks, probably not necessary
+        if not isinstance(variable, CounterfactualVariable):
+            return_dict[variable].update(variables[variable])
+        else:
+            if len(variable.interventions) != 1:
+                logger.warning(
+                    "In _reduce_reflexive_counterfactual_variables_to_interventions: all variables in the \
+                            input dictionary should have exactly one intervention, but this one has more than one: "
+                    + str(variable)
                 )
-                outcome_variables.add(variable.get_base())
-                del outcome_variable_to_value_mappings[variable]
-                outcome_variables.remove(variable)
-    return outcome_variable_to_value_mappings, outcome_variables
+            for intervention in variable.interventions:
+                if intervention.get_base() != variable.get_base():
+                    logger.warning(
+                        "In _reduce_reflexive_counterfactual_variables_to_interventions: variable "
+                        + str(variable)
+                        + " has an intervention that is not itself: "
+                        + str(intervention)
+                    )
+            return_dict[variable.get_base()].update(variables[variable])
+    return return_dict
 
 
 def simplify(
@@ -165,10 +422,20 @@ def simplify(
     #       set star to None. Putting the check here means that we don't need separate checks
     #       in functions such as get_counterfactual_ancestors(), because the ctfTRu and ctfTR
     #       algorithms all call SIMPLIFY early in their processing.
+
+    # TODO: Create a list out of Y_x and another one out of Y_y.
+    if any([len(tup) != 2 for tup in event]):
+        raise TypeError(
+            "Improperly formatted inputs for simplify(): an event element is a tuple with length not equal to 2."
+        )
     for variable, intervention in event:
         if not isinstance(variable, Variable) or not isinstance(intervention, Intervention):
             raise TypeError(
-                f"Improperly formatted inputs for simplify(): check input event element {element}"
+                "Improperly formatted inputs for simplify(): check input event element ("
+                + str(variable)
+                + ", "
+                + str(intervention)
+                + ")"
             )
         if (
             isinstance(variable, Variable)
@@ -180,74 +447,116 @@ def simplify(
                 "a star value of None because it is a Variable"
             )
 
-    outcome_variables = {variable for variable, _ in event}
+    # It's not enough to minimize the variables, we need to keep track of what values are associated with
+    # the minimized variables. So we minimize the event.
+    # minimized_variables: set[Variable] = minimize(variables={variable for variable, _ in event}, graph=graph)
+    minimized_event: list[tuple[Variable, Intervention]] = minimize_event(event=event, graph=graph)
+    logger.warning("In simplify: minimized_event = " + str(minimized_event))
 
-    # Some of the entries in our dict won't be necessary.
-    logger.warning("In simplify: outcome_variables = " + str(outcome_variables))
-    minimized_outcome_variables: set[Variable] = minimize(variables=outcome_variables, graph=graph)
-    logger.warning("In simplify: minimized_outcome_variables = " + str(minimized_outcome_variables))
+    # Split the query into Y_x variables and Y_y ("reflexive") variables
+    (
+        reflexive_interventions_event,
+        nonreflexive_interventions_event,
+    ) = _split_event_by_reflexivity(minimized_event)
 
     # Creating this dict addresses part 1 of Line 3:
-    # :math: **if** there exists $Y_{\mathbf{x}}\in \mathbf{Y}_\ast$ with
-    # two consistent values in  $\mathbf{y_\ast} \cap Y_x$ **then**
-    # remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
-    minimized_outcome_variable_to_value_mappings: DefaultDict[
-        Variable, set[Intervention]
-    ] = defaultdict(set)
-    for variable, intervention in event:
-        if variable in minimized_outcome_variables:
-            minimized_outcome_variable_to_value_mappings[variable].add(intervention)
+    # :math: If there exists $Y_{\mathbf{X}} \in \mathbf{Y_\ast}$ with two consistent values in
+    # $\mathbf{y_\ast} \cap Y_{\mathbf{X}}$ then remove repeated variables from
+    # $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
+    minimized_nonreflexive_variable_to_value_mappings = _remove_repeated_variables_and_values(
+        event=nonreflexive_interventions_event
+    )
+    # Creating this dict partly addresses part 2 of Line 3:
+    # :math: If there exists $Y_{y} \in \mathbf{Y_\ast}$ with
+    # $\mathbf{y_\ast} \cap Y_{y} = y$ then remove repeated variables from
+    # $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
+    #
+    # There is an exception: we don't yet handle the edge case that the CounterfactualVariable Y_y
+    # and the Intervention Y, when observed as part of the same event, are considered repeated
+    # variables after minimization has taken place.
+    minimized_reflexive_variable_to_value_mappings = _remove_repeated_variables_and_values(
+        event=reflexive_interventions_event
+    )
 
     logger.warning(
-        "In simplify after part 1 of line 3: outcome_variables = "
-        + str(minimized_outcome_variables)
+        "In simplify after part 1 of line 3: minimized_nonreflexive_variable_to_value_mappings = "
+        + str(minimized_nonreflexive_variable_to_value_mappings)
     )
     logger.warning(
-        "                                    minimize_outcome_variable_to_value_mappings = "
-        + str(minimized_outcome_variable_to_value_mappings)
+        "                                    minimized_reflexive_variable_to_value_mappings = "
+        + str(minimized_reflexive_variable_to_value_mappings)
     )
 
     # Line 2 of SIMPLIFY.
-    if _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings):
+    if _any_variables_with_inconsistent_values(
+        nonreflexive_variable_to_value_mappings=minimized_nonreflexive_variable_to_value_mappings,
+        reflexive_variable_to_value_mappings=minimized_reflexive_variable_to_value_mappings,
+    ):
         return None
 
     logger.warning(
-        "In simplify after line 2: outcome_variables = " + str(minimized_outcome_variables)
+        "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
+        + str(minimized_nonreflexive_variable_to_value_mappings)
     )
     logger.warning(
-        "                          minimize_outcome_variable_to_value_mappings = "
-        + str(minimized_outcome_variable_to_value_mappings)
+        "                                    minimized_reflexive_variable_to_value_mappings = "
+        + str(minimized_reflexive_variable_to_value_mappings)
+    )
+
+    # Now we're able to reduce the reflexive counterfactual variables to interventions.
+    # This simultaneously addresses Part 2 of Line 3:
+    # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
+    # remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
+    minimized_reflexive_variable_to_value_mappings = (
+        _reduce_reflexive_counterfactual_variables_to_interventions(
+            minimized_reflexive_variable_to_value_mappings
+        )
+    )
+
+    logger.warning(
+        "In simplify after part 2 of line 3: minimized_reflexive_variable_to_value_mappings = "
+        + str(minimized_reflexive_variable_to_value_mappings)
     )
 
     # Part 2 of Line 3:
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
     # remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
-    (
-        minimized_outcome_variable_to_value_mappings,
-        minimized_outcome_variables,
-    ) = _simplify_outcomes_with_consistent_values(
-        minimized_outcome_variable_to_value_mappings, minimized_outcome_variables
-    )
+    # (
+    #    minimized_variable_to_value_mappings,
+    #    minimized_variables,
+    # ) = _simplify_self_interventions_with_consistent_values(
+    #    minimized_variable_to_value_mappings, minimized_variables
+    # )
 
     # Call line 2 of SIMPLIFY again to handle counterfactual variables such as (Y @ -Y, -Y) that Line 3 reduces to
-    # interventions inconsistent with existing variables such as (Y, +Y)
-    if _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings):
+    # interventions inconsistent with existing variables such as (Y, +Y). This handles an
+    # edge case for part 2 of Line 3:
+    # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
+    # remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
+    if _any_variables_with_inconsistent_values(
+        nonreflexive_variable_to_value_mappings=minimized_nonreflexive_variable_to_value_mappings,
+        reflexive_variable_to_value_mappings=minimized_reflexive_variable_to_value_mappings,
+    ):
         return None
 
     logger.warning(
-        "In simplify before return: minimized_outcome_variables = "
-        + str(minimized_outcome_variables)
+        "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
+        + str(minimized_nonreflexive_variable_to_value_mappings)
     )
     logger.warning(
-        "In simplify before return: minimized_outcome_variable_to_value_mappings = "
-        + str(minimized_outcome_variable_to_value_mappings)
+        "                                    minimized_reflexive_variable_to_value_mappings = "
+        + str(minimized_reflexive_variable_to_value_mappings)
     )
-    result = [
-        (key, minimized_outcome_variable_to_value_mappings[key].pop())
-        for key in minimized_outcome_variable_to_value_mappings
+
+    simplified_event = [
+        (key, minimized_nonreflexive_variable_to_value_mappings[key].pop())
+        for key in minimized_nonreflexive_variable_to_value_mappings
+    ] + [
+        (key, minimized_reflexive_variable_to_value_mappings[key].pop())
+        for key in minimized_reflexive_variable_to_value_mappings
     ]
-    logger.warning("In simplify before return: return value = " + str(result))
-    return result
+    logger.warning("In simplify before return: return value = " + str(simplified_event))
+    return simplified_event
 
 
 def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set[Variable]:
@@ -302,6 +611,7 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
     return ancestors_of_counterfactual_variable
 
 
+# Deprecated.
 def minimize(*, variables: Iterable[Variable], graph: NxMixedGraph) -> set[Variable]:
     r"""Minimize a set of counterfactual variables.
 
@@ -315,6 +625,24 @@ def minimize(*, variables: Iterable[Variable], graph: NxMixedGraph) -> set[Varia
         is an element of the original set.
     """
     return {_do_minimize(variable, graph) for variable in variables}
+
+
+def minimize_event(
+    *, event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
+) -> list[tuple[Variable, Intervention]]:
+    r"""Minimize a set of counterfactual variables wrapped into an event.
+
+    Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
+    $||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \in {\mathbf Y_*}$.
+
+    :param event: A set of counterfactual variables to minimize (some may have no interventions),
+                  along with their associated values.
+    :param graph: The graph containing them.
+    :returns:
+        An event comprised of a set of minimized counterfactual variables such that each minimized variable
+        is an element of the original set, and the values associated with those variables.
+    """
+    return [(_do_minimize(variable, graph), value) for variable, value in event]
 
 
 def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
@@ -375,10 +703,6 @@ def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
     :param graph: The graph containing them.
     :returns: A boolean.
     """
-    # TODO: Hint to my future self: use the graph.districts() function and just get the base of
-    #       each counterfactual variable. There's a function to get the district for a single variable.
-    #       Get the union of the output from that function applied to each variable and see if
-    #       its size is greater than one.
     if len(event) < 1:
         return True
 
@@ -645,6 +969,16 @@ def ctf_tru() -> None:
     raise NotImplementedError("Unimplemented function: ctfTRu")
 
 
+def _do_tian_pearl_identify_line_1(
+    input_variables: set[Variable],
+    input_district: set[Variable],
+    graph: NxMixedGraph,
+) -> set[Variable] | None:
+    """Implement line 1 of the IDENTIFY algorithm in [tian03a]_ and [correa22a]_ (Algorithm 5)."""
+    raise NotImplementedError("Unimplemented function: ctfTRu")
+    return None
+
+
 def tian_pearl_identify(
     *,
     input_variables: set[Variable],
@@ -652,12 +986,21 @@ def tian_pearl_identify(
     q_expression: Expression,
     graph: NxMixedGraph,
 ) -> Expression | None:
-    """Implement the IDENTIFY algorithm as presented in [tian03a]_ and encoded in [correa22a]_ (Algorithm 5).
+    """Implement the IDENTIFY algorithm as presented in [tian03a]_ with pseudocode in [correa22a]_ (Algorithm 5).
 
     :param input_variables: The set of variables, C, for which we're checking if causal identification is possible.
     :param input_district: The C-component, T, containing C.
     :param q_expression: The expression Q[T] as per [tian2003]_, Equation 35.
     :param graph: The relevant graph.
+    :raises TypeError: at least one input variable is not in the input district.
     :returns: An expression for Q[C] in terms of Q, or Fail.
     """
+    # TODO: Verify that the input_variables are all in the input_district
+    if not all([v in input_district for v in input_variables]):
+        raise TypeError(
+            "In tian_pearl_identify: at least one of the input variables C is not in the input district T."
+        )
+
+    # TODO: Verify that the input_district is a c-component of the graph.
+
     raise NotImplementedError("Unimplemented function: identify")

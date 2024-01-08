@@ -17,6 +17,9 @@ from networkx import NetworkXError
 from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
     _any_variables_with_inconsistent_values,
+    _reduce_reflexive_counterfactual_variables_to_interventions,
+    _remove_repeated_variables_and_values,
+    _split_event_by_reflexivity,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
@@ -25,6 +28,7 @@ from y0.algorithm.counterfactual_transportability import (
     is_counterfactual_factor_form,
     make_selection_diagram,
     minimize,
+    minimize_event,
     same_district,
     simplify,
     tian_pearl_identify,
@@ -225,21 +229,20 @@ soft_interventions_figure_2e_graph = NxMixedGraph.from_edges(
     ],
 )
 
-# From [correa20a]_, Figure 3.
+# From [correa20a]_, Figure 3, and corresponding to pi* with the intervention sigma* not applied.
 soft_interventions_figure_3_graph = NxMixedGraph.from_edges(
     directed=[
         (R, W),
-        (R, X),
         (W, X),
         (X, Z),
         (Z, Y),
         (X, Y),
-        (transport_variable(R), R),
-        (transport_variable(Z), Z),
     ],
     undirected=[
         (R, Z),
         (W, Y),
+        (W, X),
+        (R, X),
     ],
 )
 
@@ -346,7 +349,13 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
 
 
 class TestSimplify(cases.GraphTestCase):
-    """Test the simplify algorithm from counterfactual transportability."""
+    """Test the simplify algorithm from counterfactual transportability.
+
+    We also test the subroutines that only simplify calls:
+    1. _bifurcate_event_by_reflexivity
+    2. _reduce_reflexive_counterfactual_variables_to_interventions
+    3. _remove_repeated_values
+    """
 
     # TODO: 1. Incorporate a test involving counterfactual unnesting.
     #       2. Take the line 2 and line 3 tests and run them through the
@@ -369,115 +378,218 @@ class TestSimplify(cases.GraphTestCase):
         event = [(Y @ -Y, +Y)]
         self.assertIsNone(simplify(event=event, graph=figure_2a_graph))
 
+    def test_split_event_by_reflexivity(self):
+        """Test splitting event variables that intervene on themselves from those that do not.
+
+        Source: RJC's mind.
+        """
+        # TODO: test queries like (Y @ -Y @ -X, -Y), a low priority because we
+        # call this function after calling minimize_event().
+        reflexive_event_1, nonreflexive_event_1 = _split_event_by_reflexivity(
+            event=[(Y @ -X, -Y), (Y @ -X, +Y), (Y @ -Y, -Y)]
+        )
+        self.assertCountEqual(reflexive_event_1, [(Y @ -Y, -Y)])
+        self.assertCountEqual(nonreflexive_event_1, [(Y @ -X, -Y), (Y @ -X, +Y)])
+        reflexive_event_2, nonreflexive_event_2 = _split_event_by_reflexivity(
+            event=[(Y @ -X, -Y), (Y @ -X, +Y)]
+        )
+        self.assertCountEqual(reflexive_event_2, [])
+        self.assertCountEqual(nonreflexive_event_2, [(Y @ -X, -Y), (Y @ -X, +Y)])
+        reflexive_event_3, nonreflexive_event_3 = _split_event_by_reflexivity(event=[(Y @ -Y, -Y)])
+        self.assertCountEqual(reflexive_event_3, [(Y @ -Y, -Y)])
+        self.assertCountEqual(nonreflexive_event_3, [])
+
+    def test_reduce_reflexive_counterfactual_variables_to_interventions(self):
+        """Test reducing counterfactual variables that intervene on themselves to simpler Intervention objects.
+
+        Source: RJC's mind.
+        """
+        reflexive_variable_to_value_mappings = defaultdict(set)
+        reflexive_variable_to_value_mappings[Y @ -Y].add(+Y)
+        reflexive_variable_to_value_mappings[Y].add(-Y)
+        logger.warning(
+            "test_reduce_reflexive_counterfactual_variables_to_interventions: input dict = "
+            + str(reflexive_variable_to_value_mappings)
+        )
+        result_dict = _reduce_reflexive_counterfactual_variables_to_interventions(
+            reflexive_variable_to_value_mappings
+        )
+        assert Y in result_dict
+        self.assertSetEqual(result_dict[Y], {+Y, -Y})
+
+    def test_remove_repeated_variables_and_values(self):
+        """Test removing repeated occurrences of variables and associated values in an event.
+
+        Source: RJC's mind.
+        """
+        event_1 = [(Y @ -Y, -Y), (Y @ -Y, -Y)]
+        event_2 = [(X, -X), (X, -X)]
+        result_1 = _remove_repeated_variables_and_values(event=event_1)
+        result_2 = _remove_repeated_variables_and_values(event=event_2)
+        # @cthoyt: Just curious: is there a one-liner to assert that two dictionaries are equal?
+        self.assertCountEqual([Y @ -Y], result_1.keys())
+        self.assertEquals(len(result_1[Y @ -Y]), 1)
+        self.assertSetEqual(result_1[Y @ -Y], {-Y})
+        self.assertCountEqual([X], result_2.keys())
+        self.assertEquals(len(result_2[X]), 1)
+        self.assertSetEqual(result_2[X], {-X})
+
     def test_line_2_1(self):
         """Directly test the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
-        event = [(Y @ -X, -Y), (Y @ -X, +Y)]
-        outcome_variables = {element[0] for element in event}
+        reflexive_variable_to_value_mappings = defaultdict(set)
+        reflexive_variable_to_value_mappings[Y @ -Y].add(-Y)
 
-        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
+        nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
+        nonreflexive_variable_to_value_mappings[Y @ -X].add(+Y)
 
-        minimized_outcome_variable_to_value_mappings = defaultdict(set)
-        for element in event:
-            if element[0] in minimized_outcome_variables:
-                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        logger.warning(
+            "In test_line_2_1: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
+        )
+        logger.warning(
+            "In test_line_2_1: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
+        )
         self.assertTrue(
-            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+            _any_variables_with_inconsistent_values(
+                nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+                reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
+            )
         )
 
     def test_line_2_2(self):
         """Second test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
-        event = [(Y @ -X, -Y), (Y @ -X, -Y)]
-        outcome_variables = {element[0] for element in event}
+        reflexive_variable_to_value_mappings = defaultdict(set)
 
-        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
-
-        minimized_outcome_variable_to_value_mappings = defaultdict(set)
-        for element in event:
-            if element[0] in minimized_outcome_variables:
-                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
+        nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
+        nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
+        logger.warning(
+            "In test_line_2_2: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
+        )
+        logger.warning(
+            "In test_line_2_2: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
+        )
         self.assertFalse(
-            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+            _any_variables_with_inconsistent_values(
+                nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+                reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
+            )
         )
 
     def test_line_2_3(self):
         """Third test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
-        event = [(Y @ -Y, +Y)]
-        outcome_variables = {element[0] for element in event}
+        reflexive_variable_to_value_mappings = defaultdict(set)
+        reflexive_variable_to_value_mappings[Y @ -Y].add(+Y)
 
-        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
-
-        minimized_outcome_variable_to_value_mappings = defaultdict(set)
-        for element in event:
-            if element[0] in minimized_outcome_variables:
-                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
+        logger.warning(
+            "In test_line_2_3: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
+        )
+        logger.warning(
+            "In test_line_2_3: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
+        )
         self.assertTrue(
-            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+            _any_variables_with_inconsistent_values(
+                nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+                reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
+            )
         )
 
     def test_line_2_4(self):
         """Fourth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
-        event = [(Y @ -Y, -Y)]
-        outcome_variables = {element[0] for element in event}
+        reflexive_variable_to_value_mappings = defaultdict(set)
+        reflexive_variable_to_value_mappings[Y @ -Y].add(-Y)
 
-        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
 
-        minimized_outcome_variable_to_value_mappings = defaultdict(set)
-        for element in event:
-            if element[0] in minimized_outcome_variables:
-                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        logger.warning(
+            "In test_line_2_4: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
+        )
+        logger.warning(
+            "In test_line_2_4: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
+        )
         self.assertFalse(
-            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+            _any_variables_with_inconsistent_values(
+                nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+                reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
+            )
         )
 
     def test_line_2_5(self):
         """Fifth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
-        event = [(Y @ +Y, -Y)]
-        outcome_variables = {element[0] for element in event}
+        reflexive_variable_to_value_mappings = defaultdict(set)
+        reflexive_variable_to_value_mappings[Y @ +Y].add(-Y)
 
-        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
-
-        minimized_outcome_variable_to_value_mappings = defaultdict(set)
-        for element in event:
-            if element[0] in minimized_outcome_variables:
-                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
+        logger.warning(
+            "In test_line_2_5: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
+        )
+        logger.warning(
+            "In test_line_2_5: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
+        )
         self.assertTrue(
-            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+            _any_variables_with_inconsistent_values(
+                nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+                reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
+            )
         )
 
     def test_line_2_6(self):
         """Sixth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
-        event = [(Y @ -X, -Y), (Y @ -Z, +Y)]
-        outcome_variables = {element[0] for element in event}
+        reflexive_variable_to_value_mappings = defaultdict(set)
 
-        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
-
-        minimized_outcome_variable_to_value_mappings = defaultdict(set)
-        for element in event:
-            if element[0] in minimized_outcome_variables:
-                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
+        nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
+        nonreflexive_variable_to_value_mappings[Y @ -Z].add(+Y)
+        logger.warning(
+            "In test_line_2_6: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
+        )
+        logger.warning(
+            "In test_line_2_6: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
+        )
         self.assertFalse(
-            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+            _any_variables_with_inconsistent_values(
+                nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+                reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
+            )
         )
 
     def test_line_2_7(self):
         """Seventh test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
         event = [(Y @ -Y, -Y), (Y, +Y)]
-        outcome_variables = {element[0] for element in event}
+        reflexive_variable_to_value_mappings = defaultdict(set)
+        reflexive_variable_to_value_mappings[Y @ -Y].add(-Y)
+        reflexive_variable_to_value_mappings[Y].add(+Y)
 
-        minimized_outcome_variables = minimize(variables=outcome_variables, graph=figure_2a_graph)
-        logger.warn(
-            "Test_line_2_7: minimized_outcome_variables = " + str(minimized_outcome_variables)
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
+
+        logger.warning(
+            "In test_line_2_7: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
         )
-        minimized_outcome_variable_to_value_mappings = defaultdict(set)
-        for element in event:
-            if element[0] in minimized_outcome_variables:
-                minimized_outcome_variable_to_value_mappings[element[0]].add(element[1])
-        logger.warn(
-            "Test_line_2_7: minimized_outcome_variable_to_value_mappings = "
-            + str(minimized_outcome_variable_to_value_mappings)
+        logger.warning(
+            "In test_line_2_7: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
         )
+        # Should be false because by calling _any_variables_with_inconsistent_values
+        # directly, we never reduce Y@-Y to an intervention.
         self.assertFalse(
-            _any_variables_with_inconsistent_values(minimized_outcome_variable_to_value_mappings)
+            _any_variables_with_inconsistent_values(
+                nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+                reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
+            )
         )
         self.assertIsNone(simplify(event=event, graph=figure_2a_graph))
 
@@ -507,7 +619,6 @@ class TestSimplify(cases.GraphTestCase):
             (Y @ -Y, -Y),
             (X @ -Z, -X),
         ]
-        # result = simplify(event=event, graph=figure_2a_graph)
         self.assertCountEqual(simplify(event=event, graph=figure_2a_graph), [(Y, -Y), (X @ -Z, -X)])
 
     def test_redundant_4(self):
@@ -589,6 +700,7 @@ class TestSimplify(cases.GraphTestCase):
         event_12 = [(Y @ +Y, +Y), (Y, +Y)]
         event_13 = [(Y, -Y)]
         event_14 = [(Y, +Y)]
+        # event_15 = [(Y, -Y),(Y, +Y)]
         # The reason event_1 can safely simplify to an intervention is that An(Y_y) == An(Y) (Algorithm 2, Line 2).
         self.assertCountEqual(simplify(event=event_1, graph=figure_2a_graph), [(Y, -Y)])
         self.assertIsNone(simplify(event=event_2, graph=figure_2a_graph))
@@ -670,6 +782,119 @@ class TestMakeSelectionDiagram(unittest.TestCase):
             undirected=[(Z, X), (W, Y)],
         )
         self.assertEquals(selection_diagram, expected_selection_diagram)
+
+
+class TestMinimizeEvent(cases.GraphTestCase):
+    r"""Test minimizing a set of counterfactual variables.
+
+    Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
+    Mathematical expression: ||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \elementof \mathbf Y_*}, and
+    ||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline{\mathbf X}}}}.
+    (The math syntax is not necessarily cannonical LaTeX.)
+    """
+
+    minimize_graph_1 = NxMixedGraph.from_edges(
+        directed=[
+            (X, W),
+            (W, Y),
+        ],
+        undirected=[(X, Y)],
+    )
+
+    minimize_graph_2 = NxMixedGraph.from_edges(
+        directed=[
+            (Z, X),
+            (X, W),
+            (W, Y),
+        ],
+        undirected=[(X, Y)],
+    )
+
+    def test_minimize_event_1(self):
+        """Test the minimize_event function sending in a single counterfactual variable.
+
+        Source: out of RJC's head.
+        """
+        minimize_event_test1_in = [(Y @ -W @ -X, -Y)]
+        minimize_event_test1_out = [(Y @ -W, -Y)]
+        self.assertCountEqual(
+            minimize_event_test1_out,
+            minimize_event(event=minimize_event_test1_in, graph=self.minimize_graph_1),
+        )
+
+    def test_minimize_event_2(self):
+        """Test the minimize_event function for multiple counterfactual variables.
+
+        Source: out of RJC's head.
+        """
+        minimize_event_test2_in = [(Y @ (-W, -X, -Z), -Y), (W @ (-X, -Z), -W)]
+        minimize_event_test2_out = [(Y @ -W, -Y), (W @ -X, -W)]
+        self.assertCountEqual(
+            minimize_event_test2_out,
+            frozenset(minimize_event(event=minimize_event_test2_in, graph=self.minimize_graph_2)),
+        )
+
+    def test_minimize_event_3(self):
+        """Test the minimize_event function for multiple counterfactual variables and a different graph.
+
+        Source: out of RJC's head.
+        """
+        minimize_event_test3_in = [(Y @ (-W, -X), -Y)]
+        minimize_event_test3_out = [(Y @ (-X, -W), -Y)]
+        # self.assertSetEqual(minimize_test3_out, minimize(variables = minimize_test3_in, graph = figure_2a_graph))
+        # The intentional reverse order of the interventions means we have to use P() to sort it out (no pun intended).
+        self.assertCountEqual(
+            minimize_event_test3_out,
+            minimize_event(event=minimize_event_test3_in, graph=figure_2a_graph),
+        )
+
+    def test_minimize_event_4(self):
+        """Test the minimize_event function sending in a single variable with no interventions.
+
+        Source: out of RJC's head.
+        """
+        minimize_event_test4_in = [(Y, -Y)]
+        minimize_event_test4_out = [(Y, -Y)]
+        self.assertCountEqual(
+            minimize_event_test4_out,
+            minimize_event(event=minimize_event_test4_in, graph=self.minimize_graph_1),
+        )
+
+    def test_minimize_event_5(self):
+        """Test the minimize_event function sending in a single variable with no interventions.
+
+        Source: out of RJC's head.
+        """
+        minimize_event_test5_in = [(Y @ -X, -Y)]
+        minimize_event_test5_out = [(Y @ -X, -Y)]
+        self.assertCountEqual(
+            minimize_event_test5_out,
+            minimize_event(event=minimize_event_test5_in, graph=self.minimize_graph_1),
+        )
+
+    def test_minimize_event_6(self):
+        """Test the minimize_event function sending in a single variable with no interventions.
+
+        Source: out of RJC's head.
+        """
+        minimize_event_test6_in = [(Y @ -X @ -Y, -Y)]
+        minimize_event_test6_out = [(Y @ -Y, -Y)]
+        self.assertCountEqual(
+            minimize_event_test6_out,
+            minimize_event(event=minimize_event_test6_in, graph=self.minimize_graph_1),
+        )
+
+    def test_minimize_event_7(self):
+        """Test the application of the minimize_event function from [correa22a], Example 4.5.
+
+        Source: out of RJC's head.
+        """
+        minimize_event_test7_in = [(Y @ -X, -Y)]
+        minimize_event_test7_out = [(Y @ -X, -Y)]
+        self.assertCountEqual(
+            minimize_event_test7_out,
+            minimize_event(event=minimize_event_test7_in, graph=self.minimize_graph_1),
+        )
 
 
 class TestMinimize(cases.GraphTestCase):
@@ -1177,32 +1402,76 @@ class TestIdentify(cases.GraphTestCase):
         self.assert_expr_equal(result, PP[Population("pi1")](Z | X1))
 
     def test_identify_2(self):
-        """Test Line 3 of Algorithm 5 of [correa22a]_."""
-        test_2_identify_input_variables = {R, Y}
-        test_2_identify_input_district = {W, R, X, Z, Y}
-        test_2_q_expression = PP[Population("pi*")](
-            W, R, X, Z, Y
-        )  # This is a c-factor if the input variables comprise a c-component
-        result = tian_pearl_identify(
-            input_variables=test_2_identify_input_variables,
-            input_district=test_2_identify_input_district,
-            q_expression=test_2_q_expression,
+        """Test Line 3 of Algorithm 5 of [correa22a]_.
+
+        Sources: a modification of the example following Theorem 2 in [correa20a]_
+        and the paragraph at the end of section 4 in [correa20a]_.
+        """
+        result1 = tian_pearl_identify(
+            input_variables={R, Y},
+            input_district={W, R, X, Z, Y},
+            q_expression=PP[Population("pi*")](
+                W, R, X, Z, Y
+            ),  # This is a c-factor if the input variables comprise a c-component
             graph=soft_interventions_figure_2a_graph,
         )
-        logger.warning("Result of identify() call for test_identify_2 is " + str(result))
-        self.assertIsNone(result)
+        logger.warning("Result of identify() call for test_identify_2 part 1 is " + str(result1))
+        self.assertIsNone(result1)
+        result2 = tian_pearl_identify(
+            input_variables={Z, R},
+            input_district={R, X, W, Z},
+            q_expression=PP[Population("pi*")](R, W, X, Z),
+            graph=soft_interventions_figure_3_graph.subgraph(vertices={R, Z, X, W}),
+        )
+        self.assertIsNone(result2)
 
     def test_identify_3(self):
         """Test Lines 4-7 of Algorithm 5 of [correa22a]_."""
-        test_3_identify_input_variables = {Z, R}
-        test_3_identify_input_district = {R, X, W, Z}
-        test_3_q_expression = PP[Population("pi*")](R, W, X, Y, Z)
-        result = tian_pearl_identify(
+        # TODO: Come up with a test that uses lines 4-7 and doesn't fail.
+        # TODO: Update this next example: should throw an error because G_{[C]} doesn't have one c-component.
+        test_3_identify_input_variables = {R, X}
+        test_3_identify_input_district = {R, X, W, Y}
+        test_3_q_expression = PP[Population("pi1")]((Y, W)).conditional([R, X, Z]) * PP[
+            Population("pi1")
+        ](R, X)
+        result1 = tian_pearl_identify(
             input_variables=test_3_identify_input_variables,
             input_district=test_3_identify_input_district,
             q_expression=test_3_q_expression,
+            graph=soft_interventions_figure_2d_graph,
+        )
+        # TODO: Be sure to throw some logging warnings in Lines 4-7 to see what happens when identify() is called.
+        logger.warning("Result of identify() call for test_identify_3 is " + str(result1))
+        self.assertIsNone(result1)
+        result2 = tian_pearl_identify(
+            input_variables={Z, R},
+            input_district={R, X, W, Y, Z},
+            q_expression=PP[Population("pi*")](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
         )
         # TODO: Be sure to throw some logging warnings in Lines 4-7 to see what happens when identify() is called.
-        logger.warning("Result of identify() call for test_identify_3 is " + str(result))
-        self.assertIsNone(result)
+        logger.warning("Result of identify() call for test_identify_3 is " + str(result2))
+        self.assertIsNone(result2)
+
+    def test_identify_preprocessing(self):
+        """Test the preprocessing checks in this implementation of IDENTIFY."""
+        # Raises a TypeError because the graph has only one C-component: {R,X,W,Z,Y} and our input district T
+        # is a subset and therefore not a C-component.
+        self.assertRaises(
+            TypeError,
+            tian_pearl_identify,
+            input_variables={Z, R},
+            input_district={R, X, W, Z},
+            q_expression=PP[Population("pi*")](R, W, X, Y, Z),
+            graph=soft_interventions_figure_3_graph,
+        )
+        # Raises a TypeError because
+        self.assertRaises(
+            TypeError,
+            tian_pearl_identify,
+            input_variables={R, Y},
+            input_district={R, W, X, Z},
+            q_expression=PP[Population("pi1")]((Y, W)).conditional([R, X, Z])
+            * PP[Population("pi1")](R, X),
+            graph=soft_interventions_figure_2d_graph,
+        )
