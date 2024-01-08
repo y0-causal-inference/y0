@@ -64,54 +64,56 @@ def _any_variables_with_inconsistent_values(
 
     # Part 2 of Line 2:
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$ **then return** 0.
-    # TODO: Come back and clean this up.
-    for variable in reflexive_variable_to_value_mappings.keys():  # Y_y, Y
-        if not isinstance(variable, CounterfactualVariable):  # Y
-            # TODO: Check with JZ that it's intended that $Y_y$ and $Y$ are the same.
-            #       I infer that is so because of Equation 4 in [correa22a]_.
-            # If Y takes on at least two values as part of the same query, then there exists
-            # $Y_{y}\in \mathbf{Y}_\ast$ with two or more different values in  $\mathbf{y_\ast}$.
-            # That implies that there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$,
-            # so we return 0.
-            if len(reflexive_variable_to_value_mappings[variable]) > 1:
-                logger.warning("Part 2 of Line 2 fails for (non-counterfactual) variables: ")
-                logger.warning(
-                    "    Variable = "
-                    + str(variable)
-                    + ", values are "
-                    + str(reflexive_variable_to_value_mappings[variable])
-                )
-                return True
-        else:  # Y_y
-            for intervention in variable.interventions:
-                logger.warning(
-                    "Testing part 2 of line 2 in _any_variables_with_inconsistent_values: "
-                )
-                logger.warning("   {{intervention}} = " + str({intervention}))
-                logger.warning("   and variable = " + str(variable))
-                logger.warning(
-                    "    and reflexive_variable_to_value_mappings[variable] = "
-                    + str(reflexive_variable_to_value_mappings[variable])
-                )
-                if intervention.get_base() != variable.get_base():
-                    logger.warning(
-                        "In _any_variables_with_inconsistent_values: reflexive variable "
-                        + str(variable)
-                        + " has an intervention that is not itself: "
-                        + str(intervention)
-                    )
-                    continue
-                # reflexive_variable_to_value_mappings[variable] = $\mathbf{y_*} \cap Y_y
-                # {intervention} = y
-                if {intervention} != reflexive_variable_to_value_mappings[variable]:
-                    logger.warning(
-                        "Part 2 of Line 2 fails: {{intervention}} = "
-                        + str({intervention})
-                        + " and reflexive_variable_to_value_mappings[variable] = "
-                        + str(reflexive_variable_to_value_mappings[variable])
-                    )
-                    return True
-    return False
+    return any(
+        (
+            not isinstance(variable, CounterfactualVariable)
+            and len(reflexive_variable_to_value_mappings[variable]) > 1
+        )
+        or (
+            isinstance(variable, CounterfactualVariable)
+            and any(
+                {intervention} != reflexive_variable_to_value_mappings[variable]
+                for intervention in variable.interventions
+            )
+        )
+        for variable in reflexive_variable_to_value_mappings.keys()
+    )
+    # Longer version of the above.
+    # for variable in reflexive_variable_to_value_mappings.keys():  # Y_y, Y
+    #    if not isinstance(variable, CounterfactualVariable):  # Y
+    #        # TODO: Check with JZ that it's intended that $Y_y$ and $Y$ are the same.
+    #        #       I infer that is so because of Equation 4 in [correa22a]_.
+    #        # If Y takes on at least two values as part of the same query, then there exists
+    #        # $Y_{y}\in \mathbf{Y}_\ast$ with two or more different values in  $\mathbf{y_\ast}$.
+    #        # That implies that there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$,
+    #        # so we return 0.
+    #        if len(reflexive_variable_to_value_mappings[variable]) > 1:
+    #            logger.warning("Part 2 of Line 2 fails for (non-counterfactual) variables: ")
+    #            logger.warning(
+    #                "    Variable = "
+    #                + str(variable)
+    #                + ", values are "
+    #                + str(reflexive_variable_to_value_mappings[variable])
+    #            )
+    #            return True
+    #    else:  # Y_y
+    #        for intervention in variable.interventions:
+    #            if intervention.get_base() != variable.get_base():
+    #                raise TypeError(
+    #                    f"In _any_variables_with_inconsistent_values: reflexive variable {str(variable)} \
+    #                      has an intervention that is not itself: {str(intervention)}."
+    #                )
+    #            # reflexive_variable_to_value_mappings[variable] = $\mathbf{y_*} \cap Y_y
+    #            # {intervention} = y
+    #            if {intervention} != reflexive_variable_to_value_mappings[variable]:
+    #                logger.warning(
+    #                    "Part 2 of Line 2 fails: {{intervention}} = "
+    #                    + str({intervention})
+    #                    + " and reflexive_variable_to_value_mappings[variable] = "
+    #                    + str(reflexive_variable_to_value_mappings[variable])
+    #                )
+    #                return True
+    # return False
 
 
 # Deprecated.
@@ -312,30 +314,49 @@ def _split_event_by_reflexivity(
         variables that are not counterfactual variables are considered the equivalent
         of :math: $Y_{\mathbf{y} \in \mathbf{Y}_\ast$ and fall into the latter category.
     """
-    self_interventions_event: list[tuple[Variable, Intervention]] = []  # Y_y
-    interventions_on_other_variables_event: list[tuple[Variable, Intervention]] = []  # Y_x
-    for variable, value in event:
-        if isinstance(variable, CounterfactualVariable):
-            logger.warning("In _separate_event_by_reflexivity: ")
-            logger.warning("   Counterfactual variable = " + str(variable))
-            logger.warning("   Its base is " + str(variable.get_base()))
-            for intervention in variable.interventions:
-                logger.warning("   Intervention: " + str(intervention))
-                logger.warning("       Its base: " + str(intervention.get_base()))
-            if any(
+    # Y_y
+    reflexive_interventions_event: list[tuple[Variable, Intervention]] = [
+        (variable, value)
+        for variable, value in event
+        if (
+            isinstance(variable, CounterfactualVariable)
+            and any(
                 [
                     intervention.get_base() == variable.get_base()
                     for intervention in variable.interventions
                 ]
-            ):
-                self_interventions_event.append((variable, value))
-            else:
-                interventions_on_other_variables_event.append((variable, value))
-        else:
-            # A variable with no intervention, Y, is the same thing as Y_y in the event that
-            # minimization has already taken place (which is the case here)
-            self_interventions_event.append((variable, value))
-    return self_interventions_event, interventions_on_other_variables_event
+            )
+        )
+        or not (isinstance(variable, CounterfactualVariable))
+    ]
+    # Y_x
+    nonreflexive_interventions_event: list[tuple[Variable, Intervention]] = [
+        (variable, value)
+        for variable, value in event
+        if isinstance(variable, CounterfactualVariable)
+        and not any(
+            [
+                intervention.get_base() == variable.get_base()
+                for intervention in variable.interventions
+            ]
+        )
+    ]
+    # for variable, value in event:
+    #    if isinstance(variable, CounterfactualVariable):
+    #        if any(
+    #            [
+    #                intervention.get_base() == variable.get_base()
+    #                for intervention in variable.interventions
+    #            ]
+    #        ):
+    #            reflexive_interventions_event.append((variable, value))
+    #        else:
+    #            nonreflexive_interventions_event.append((variable, value))
+    #    else:
+    #        # A variable with no intervention, Y, is the same thing as Y_y in the event that
+    #        # minimization has already taken place (which is the case here)
+    #        reflexive_interventions_event.append((variable, value))
+    return reflexive_interventions_event, nonreflexive_interventions_event
 
 
 def _reduce_reflexive_counterfactual_variables_to_interventions(
@@ -348,36 +369,34 @@ def _reduce_reflexive_counterfactual_variables_to_interventions(
         $\mathbf{Y_\ast}$ is assumed to be either $Y_{y}$ \in $\mathbf{Y_\ast}$ or just $Y$ in $\mathbf{Y_\ast}$,
         where $Y$ is considered a special case of $Y_{y}$ because minimization has already taken place.
         The $\mathbf{Y_\ast}$ variables are CounterfactualVariable objects, and the values as Intervention objects.
+    :raises TypeError: a variable in the input dictionary has more than one intervention or its intervention is
+        not itself.
     :returns:
         A defaultdict mapping simple variables :math: $\mathbf{Y}$ to $\mathbf{y}$, a set of corresponding values.
     """
-    return_dict: DefaultDict[Variable, set[Intervention]] = defaultdict(set)
+    result_dict: DefaultDict[Variable, set[Intervention]] = defaultdict(set)
     for variable in variables:
-        logger.warning(
-            "In _reduce_reflexive_counterfactual_variables_to_interventions: considering variable "
-            + str(variable)
-        )
-        logger.warning("   Values of input variable: " + str(variables[variable]))
-        # A couple of sanity checks, probably not necessary
         if not isinstance(variable, CounterfactualVariable):
-            return_dict[variable].update(variables[variable])
+            result_dict[variable].update(variables[variable])
         else:
             if len(variable.interventions) != 1:
-                logger.warning(
+                raise TypeError(
                     "In _reduce_reflexive_counterfactual_variables_to_interventions: all variables in the \
                             input dictionary should have exactly one intervention, but this one has more than one: "
                     + str(variable)
                 )
-            for intervention in variable.interventions:
-                if intervention.get_base() != variable.get_base():
-                    logger.warning(
-                        "In _reduce_reflexive_counterfactual_variables_to_interventions: variable "
-                        + str(variable)
-                        + " has an intervention that is not itself: "
-                        + str(intervention)
-                    )
-            return_dict[variable.get_base()].update(variables[variable])
-    return return_dict
+            if any(
+                intervention.get_base() != variable.get_base()
+                for intervention in variable.interventions
+            ):
+                raise TypeError(
+                    "In _reduce_reflexive_counterfactual_variables_to_interventions: variable "
+                    + str(variable)
+                    + " has an intervention that is not itself: "
+                    + str(variable.interventions)
+                )
+            result_dict[variable.get_base()].update(variables[variable])
+    return result_dict
 
 
 def simplify(
@@ -422,8 +441,6 @@ def simplify(
     #       set star to None. Putting the check here means that we don't need separate checks
     #       in functions such as get_counterfactual_ancestors(), because the ctfTRu and ctfTR
     #       algorithms all call SIMPLIFY early in their processing.
-
-    # TODO: Create a list out of Y_x and another one out of Y_y.
     if any([len(tup) != 2 for tup in event]):
         raise TypeError(
             "Improperly formatted inputs for simplify(): an event element is a tuple with length not equal to 2."
