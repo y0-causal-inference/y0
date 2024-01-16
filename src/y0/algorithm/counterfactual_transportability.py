@@ -1037,7 +1037,7 @@ def _compute_c_factor(
 ) -> Expression:
     """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_ and [santikka20a]_.
 
-    This algorithm uses both Lemma 1 of Tian03a (Equation 17) and Lemma 4 of Tian 03a (Equations 71 and 72).
+    This algorithm uses both Lemma 1, part (i) of Tian03a (Equation 37) and Lemma 4 of Tian 03a (Equations 71 and 72).
 
     :param district: A list of variables comprising the district for which we're computing a C factor.
     :param variables: The variables in the graph under analysis.
@@ -1046,6 +1046,24 @@ def _compute_c_factor(
     :param topo: A list of variables in topological order that includes all variables in v and may contain more
               (as this function is often called from recursive calls to tian_pearl_identify, so v often represents a
               subgraph of topo).
-    :returns: An expression for Q[cc] in terms of Q.
+    :returns: An expression for Q[district].
+    """
+    raise NotImplementedError("Unimplemented function: _compute_c_factor")
+
+
+def _tian_lemma_1_i(
+    *,
+    district: list[Variable],
+    variables: list[Variable],
+    topo: list[Variable],
+) -> Expression:
+    """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equation 37.
+
+    This algorithm uses part (i) of Lemma 1 of Tian03a.
+
+    :param district: A list of variables comprising the district for which we're computing a C factor.
+    :param variables: The variables in the graph under analysis.
+    :param topo: A list of variables in topological order that includes at least all variables in v.
+    :returns: An expression for Q[district].
     """
     raise NotImplementedError("Unimplemented function: compute_c_factor")

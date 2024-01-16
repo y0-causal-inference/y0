@@ -23,6 +23,7 @@ from y0.algorithm.counterfactual_transportability import (
     _reduce_reflexive_counterfactual_variables_to_interventions,
     _remove_repeated_variables_and_values,
     _split_event_by_reflexivity,
+    _tian_lemma_1_i,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
@@ -1592,3 +1593,27 @@ class TestComputeCFactor(cases.GraphTestCase):
         expected_result_3_den = Sum.safe(self.expected_result_2, [W1, Y])
         expected_result_3 = Fraction(expected_result_3_num, expected_result_3_den)
         self.assert_expr_equal(result_3, expected_result_3)
+
+
+class TestTianLemma1i(cases.GraphTestCase):
+    """Test the use of Lemma 1, part (i), of [tian03a]_ to compute a C factor."""
+
+    def test_tian_lemma_1_i_part_1(self):
+        """First test of Lemma 1, part (i) (Equation 37 in [tian03a]_."""
+        result_1 = _tian_lemma_1_i(
+            district=[Y, W1, W3, W2, X],
+            variables=[X, W4, W2, W3, W1, Y],
+            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+        )
+        self.assert_expr_equal(
+            result_1,
+            Product.safe(
+                [
+                    P(W1),
+                    P(W3 | W1),
+                    P(W2 | (W3, W1)),
+                    P(X | (W1, W3, W2, W4)),
+                    P(Y | (W1, W3, W2, W4, X)),
+                ]
+            ),
+        )
