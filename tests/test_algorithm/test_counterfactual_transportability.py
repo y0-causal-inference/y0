@@ -36,12 +36,19 @@ from y0.algorithm.counterfactual_transportability import (
 from y0.algorithm.transport import transport_variable
 from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
     PP,
+    W1,
+    W2,
+    W3,
+    W4,
+    W5,
     X1,
     X2,
     CounterfactualVariable,
+    Fraction,
     Intervention,
     P,
     Population,
+    Product,
     R,
     Sum,
     Variable,
@@ -243,6 +250,24 @@ soft_interventions_figure_3_graph = NxMixedGraph.from_edges(
         (W, Y),
         (W, X),
         (R, X),
+    ],
+)
+
+tian_pearl_figure_9a_graph = NxMixedGraph.from_edges(
+    directed=[
+        (W1, W2),
+        (W2, X),
+        (W3, W4),
+        (W4, X),
+        (X, Y),
+    ],
+    undirected=[
+        (W1, W3),
+        (W3, W5),
+        (W4, W5),
+        (W2, W3),
+        (W1, X),
+        (W1, Y),
     ],
 )
 
@@ -1397,6 +1422,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=test_1_identify_input_district,
             q_expression=test_1_q_expression,
             graph=soft_interventions_figure_1b_graph,
+            topo=[variable for variable in soft_interventions_figure_1b_graph.topological_sort()],
         )
         logger.warning("Result of identify() call for test_identify_1 is " + str(result))
         self.assert_expr_equal(result, PP[Population("pi1")](Z | X1))
@@ -1414,6 +1440,7 @@ class TestIdentify(cases.GraphTestCase):
                 W, R, X, Z, Y
             ),  # This is a c-factor if the input variables comprise a c-component
             graph=soft_interventions_figure_2a_graph,
+            topo=[variable for variable in soft_interventions_figure_2a_graph.topological_sort()],
         )
         logger.warning("Result of identify() call for test_identify_2 part 1 is " + str(result1))
         self.assertIsNone(result1)
@@ -1422,6 +1449,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district={R, X, W, Z},
             q_expression=PP[Population("pi*")](R, W, X, Z),
             graph=soft_interventions_figure_3_graph.subgraph(vertices={R, Z, X, W}),
+            topo=[variable for variable in soft_interventions_figure_3_graph.topological_sort()],
         )
         self.assertIsNone(result2)
 
@@ -1439,6 +1467,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=test_3_identify_input_district,
             q_expression=test_3_q_expression,
             graph=soft_interventions_figure_2d_graph,
+            topo=[variable for variable in soft_interventions_figure_2d_graph.topological_sort()],
         )
         # TODO: Be sure to throw some logging warnings in Lines 4-7 to see what happens when identify() is called.
         logger.warning("Result of identify() call for test_identify_3 is " + str(result1))
@@ -1448,6 +1477,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district={R, X, W, Y, Z},
             q_expression=PP[Population("pi*")](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
+            topo=[variable for variable in soft_interventions_figure_3_graph.topological_sort()],
         )
         # TODO: Be sure to throw some logging warnings in Lines 4-7 to see what happens when identify() is called.
         logger.warning("Result of identify() call for test_identify_3 is " + str(result2))
@@ -1464,6 +1494,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district={R, X, W, Z},
             q_expression=PP[Population("pi*")](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
+            topo=[variable for variable in soft_interventions_figure_3_graph.topological_sort()],
         )
         # Raises a TypeError because
         self.assertRaises(
@@ -1474,4 +1505,22 @@ class TestIdentify(cases.GraphTestCase):
             q_expression=PP[Population("pi1")]((Y, W)).conditional([R, X, Z])
             * PP[Population("pi1")](R, X),
             graph=soft_interventions_figure_2d_graph,
+            topo=[variable for variable in soft_interventions_figure_2d_graph.topological_sort()],
         )
+
+    def test_identify_4(self):
+        """Test the example from page 29 of [tian02a]_."""
+        base_p = Product([P(W1, W2, W3), P(X, Y | (W1, W2, W3, W4))])
+        numnum = Product([Sum[W2, X, Y, W3](base_p), Sum[W3](base_p)])
+        numden = Product([Sum[W3, X, Y, W3](base_p), Sum[W1, W2, W3, X, Y](base_p)])
+        num = Sum[W1](Fraction(numnum, numden))
+        den = Sum[W1, Y](Fraction(numnum, numden))
+        expected_result = Fraction(num, den)
+        result_4 = tian_pearl_identify(
+            input_variables={Y},
+            input_district={X, Y, W1, W2, W3, W4, W5},
+            q_expression=P(W1, W2, W3, W4, W5, X, Y),
+            graph=tian_pearl_figure_9a_graph,
+            topo=[variable for variable in soft_interventions_figure_2d_graph.topological_sort()],
+        )
+        self.assert_expr_equal(result_4, expected_result)

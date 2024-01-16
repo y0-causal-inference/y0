@@ -535,7 +535,7 @@ def simplify(
         + str(minimized_reflexive_variable_to_value_mappings)
     )
 
-    # Part 2 of Line 3:
+    # (Original part 2 of Line 3):
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
     # remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
     # (
@@ -1002,6 +1002,7 @@ def tian_pearl_identify(
     input_district: set[Variable],
     q_expression: Expression,
     graph: NxMixedGraph,
+    topo: list[Variable],
 ) -> Expression | None:
     """Implement the IDENTIFY algorithm as presented in [tian03a]_ with pseudocode in [correa22a]_ (Algorithm 5).
 
@@ -1009,6 +1010,7 @@ def tian_pearl_identify(
     :param input_district: The C-component, T, containing C.
     :param q_expression: The expression Q[T] as per [tian2003]_, Equation 35.
     :param graph: The relevant graph.
+    :param topo: A list of variables in topological order that includes all variables in the graph and may contain more.
     :raises TypeError: at least one input variable is not in the input district.
     :returns: An expression for Q[C] in terms of Q, or Fail.
     """
@@ -1017,7 +1019,5 @@ def tian_pearl_identify(
         raise TypeError(
             "In tian_pearl_identify: at least one of the input variables C is not in the input district T."
         )
-
     # TODO: Verify that the input_district is a c-component of the graph.
-
     raise NotImplementedError("Unimplemented function: identify")
