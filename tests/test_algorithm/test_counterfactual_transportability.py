@@ -5,8 +5,9 @@
 .. [huang08a] https://link.springer.com/article/10.1007/s10472-008-9101-x.
 .. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
-.. [santikka20a] https://github.com/santikka/causaleffect/blob/master/R/identify.R.
-.. [tian02a] https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf.
+.. [santikka20a] https://github.com/santikka/causaleffect/blob/master/R/compute.c.factor.R.
+.. [santikka20b] https://github.com/santikka/causaleffect/blob/master/R/identify.R.
+.. [tian03a] https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf.
 """
 
 import logging
@@ -18,6 +19,7 @@ from networkx import NetworkXError
 from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
     _any_variables_with_inconsistent_values,
+    _compute_c_factor,
     _reduce_reflexive_counterfactual_variables_to_interventions,
     _remove_repeated_variables_and_values,
     _split_event_by_reflexivity,
@@ -1510,11 +1512,11 @@ class TestIdentify(cases.GraphTestCase):
         )
 
     def test_identify_4(self):
-        """Test the example from page 29 of [tian02a]_.
+        """Test the example from page 29 of [tian03a]_.
 
         Note: Tian and Pearl provide a simpler result that is due to using probabilistic
         axioms to simplify the formula. This result is what we get when running Santikka's
-        implementation of identify in their R package, Causal Effect ([Santikka20a]_), and is more
+        implementation of identify in their R package, Causal Effect ([santikka20b]_), and is more
         complex in its structure but easier to code for an initial Python implementation.
         """
         base_p = Product([P(W1, W2, W3), P(X, Y | (W1, W2, W3, W4))])
@@ -1528,6 +1530,65 @@ class TestIdentify(cases.GraphTestCase):
             input_district={X, Y, W1, W2, W3, W4, W5},
             q_expression=P(W1, W2, W3, W4, W5, X, Y),
             graph=tian_pearl_figure_9a_graph,
-            topo=[variable for variable in soft_interventions_figure_2d_graph.topological_sort()],
+            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
         )
         self.assert_expr_equal(result_4, expected_result)
+
+
+class TestComputeCFactor(cases.GraphTestCase):
+    """Test the "compute_c_factor" subroutine of Tian and Pearl's identify algorithm as implemented by [santikka20a].
+
+    This subroutine applies Lemma 1 and Lemma 4 of [tian03a]_.
+    """
+
+    expected_result_1 = Product.safe(
+        [P(W1), P(W3 | W1), P(W2 | (W3, W1)), P(X | (W1, W3, W2, W4)), P(Y | (W1, W3, W2, W4, X))]
+    )
+    expected_result_2_num = Product.safe(
+        [
+            Sum.safe(expected_result_1, [W2, X, Y, W3]),
+            Sum.safe(expected_result_1, [W3]),
+            Sum.safe(expected_result_1, [Y, W3]),
+        ]
+    )
+    expected_result_2_den = Product.safe(
+        [
+            Sum.safe(expected_result_1, [W1, W2, W3, X, Y]),
+            Sum.safe(expected_result_1, [W3, X, Y]),
+            Sum.safe(expected_result_1, [Y, W3]),
+        ]
+    )
+    expected_result_2 = Fraction(expected_result_2_num, expected_result_2_den)
+
+    def test_compute_c_factor_1(self):
+        """First test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
+        result_1 = _compute_c_factor(
+            district=[Y, W1, W3, W2, X],
+            variables=[X, W4, W2, W3, W1, Y],
+            graph_probability=P(W1, W2, W3, W4, X, Y),
+            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+        )
+        self.assert_expr_equal(result_1, self.expected_result_1)
+
+    def test_compute_c_factor_2(self):
+        """Second test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
+        result_2 = _compute_c_factor(
+            district=[W1, X, Y],
+            variables=[W1, W2, X, Y],
+            graph_probability=Sum.safe(self.expected_result_1, [W3]),
+            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+        )
+        self.assert_expr_equal(result_2, self.expected_result_2)
+
+    def test_compute_c_factor_3(self):
+        """Third test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
+        result_3 = _compute_c_factor(
+            district=[Y],
+            variables=[X, Y],
+            graph_probability=Sum.safe(self.expected_result_2, [W1]),
+            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+        )
+        expected_result_3_num = Sum.safe(self.expected_result_2, [W1])
+        expected_result_3_den = Sum.safe(self.expected_result_2, [W1, Y])
+        expected_result_3 = Fraction(expected_result_3_num, expected_result_3_den)
+        self.assert_expr_equal(result_3, expected_result_3)

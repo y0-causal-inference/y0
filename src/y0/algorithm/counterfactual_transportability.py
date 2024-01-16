@@ -5,6 +5,8 @@
 .. [huang08a] https://link.springer.com/article/10.1007/s10472-008-9101-x.
 .. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
+.. [santikka20a] https://github.com/santikka/causaleffect/blob/master/R/compute.c.factor.R.
+.. [santikka20b] https://github.com/santikka/causaleffect/blob/master/R/identify.R.
 .. [tian03a] https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf
 """
 
@@ -1006,6 +1008,8 @@ def tian_pearl_identify(
 ) -> Expression | None:
     """Implement the IDENTIFY algorithm as presented in [tian03a]_ with pseudocode in [correa22a]_ (Algorithm 5).
 
+    Santikka has implemented this algorithm in the R package Causal Effect ([santikka20b]_). We draw from that
+    implementation. Their version also keeps track of the structure of calls
     :param input_variables: The set of variables, C, for which we're checking if causal identification is possible.
     :param input_district: The C-component, T, containing C.
     :param q_expression: The expression Q[T] as per [tian2003]_, Equation 35.
@@ -1020,4 +1024,28 @@ def tian_pearl_identify(
             "In tian_pearl_identify: at least one of the input variables C is not in the input district T."
         )
     # TODO: Verify that the input_district is a c-component of the graph.
+    # TODO: Santikka's version ([santikka20b]_)
     raise NotImplementedError("Unimplemented function: identify")
+
+
+def _compute_c_factor(
+    *,
+    district: list[Variable],
+    variables: list[Variable],
+    graph_probability: Expression,
+    topo: list[Variable],
+) -> Expression:
+    """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_ and [santikka20a]_.
+
+    This algorithm uses both Lemma 1 of Tian03a (Equation 17) and Lemma 4 of Tian 03a (Equations 71 and 72).
+
+    :param district: A list of variables comprising the district for which we're computing a C factor.
+    :param variables: The variables in the graph under analysis.
+    :param graph_probability: The expression Q corresponding to the set of variables in v. As an example, this quantity
+              would be Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
+    :param topo: A list of variables in topological order that includes all variables in v and may contain more
+              (as this function is often called from recursive calls to tian_pearl_identify, so v often represents a
+              subgraph of topo).
+    :returns: An expression for Q[cc] in terms of Q.
+    """
+    raise NotImplementedError("Unimplemented function: compute_c_factor")
