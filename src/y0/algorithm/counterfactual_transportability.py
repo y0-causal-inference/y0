@@ -1066,4 +1066,25 @@ def _tian_lemma_1_i(
     :param topo: A list of variables in topological order that includes at least all variables in v.
     :returns: An expression for Q[district].
     """
-    raise NotImplementedError("Unimplemented function: compute_c_factor")
+    raise NotImplementedError("Unimplemented function: _tian_lemma_1_i")
+
+
+def _tian_lemma_4_ii(
+    *,
+    district: list[Variable],
+    variables: list[Variable],
+    graph_probability: Expression,
+    topo: list[Variable],
+) -> Expression:
+    """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equations 71 and 72.
+
+    This algorithm uses part (ii) of Lemma 4 of Tian03a.
+
+    :param district: A list of variables comprising the district for which we're computing a C factor.
+    :param variables: The variables in the graph under analysis.
+    :param graph_probability: The expression Q corresponding to the set of variables in v. It's
+        Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
+    :param topo: A list of variables in topological order that includes at least all variables in v.
+    :returns: An expression for Q[district].
+    """
+    raise NotImplementedError("Unimplemented function: _tian_lemma_4_ii")

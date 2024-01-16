@@ -24,6 +24,7 @@ from y0.algorithm.counterfactual_transportability import (
     _remove_repeated_variables_and_values,
     _split_event_by_reflexivity,
     _tian_lemma_1_i,
+    _tian_lemma_4_ii,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
@@ -1599,7 +1600,10 @@ class TestTianLemma1i(cases.GraphTestCase):
     """Test the use of Lemma 1, part (i), of [tian03a]_ to compute a C factor."""
 
     def test_tian_lemma_1_i_part_1(self):
-        """First test of Lemma 1, part (i) (Equation 37 in [tian03a]_."""
+        """First test of Lemma 1, part (i) (Equation 37 in [tian03a]_.
+
+        Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
+        """
         result_1 = _tian_lemma_1_i(
             district=[Y, W1, W3, W2, X],
             variables=[X, W4, W2, W3, W1, Y],
@@ -1617,3 +1621,61 @@ class TestTianLemma1i(cases.GraphTestCase):
                 ]
             ),
         )
+
+
+class TestTianLemma4ii(cases.GraphTestCase):
+    """Test the use of Lemma 4, part (ii), of [tian03a]_ to compute a C factor."""
+
+    result_piece = Product.safe(
+        [
+            P(W1),
+            P(W3 | W1),
+            P(W2 | (W3, W1)),
+            P(X | (W1, W3, W2, W4)),
+            P(Y | (W1, W3, W2, W4, X)),
+        ]
+    )
+    expected_result_1_num = Product.safe(
+        [
+            Sum.safe(result_piece, [W2, X, Y, W3]),
+            Sum.safe(result_piece, [W3]),
+            Sum.safe(result_piece, [Y, W3]),
+        ]
+    )
+    expected_result_1_den = Product.safe(
+        [
+            Sum.safe(result_piece, [W1, W2, W3, X, Y]),
+            Sum.safe(result_piece, [W3, X, Y]),
+            Sum.safe(result_piece, [Y, W3]),
+        ]
+    )
+    expected_result_1 = Fraction(expected_result_1_num, expected_result_1_den)
+    expected_result_2_num = Sum.safe(expected_result_1, [W1])
+    expected_result_2_den = Sum.safe(expected_result_1, [W1, Y])
+    expected_result_2 = Fraction(expected_result_2_num, expected_result_2_den)
+
+    def test_tian_lemma_4_ii_part_1(self):
+        """First test of Lemma 4, part (ii) (Equations 71 and 72 in [tian03a]_.
+
+        Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
+        """
+        result = _tian_lemma_4_ii(
+            district=[W1, X, Y],
+            variables=[W1, W2, X, Y],
+            graph_probability=Sum.safe(self.result_piece, [W3]),
+            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+        )
+        self.assert_expr_equal(result, self.expected_result_1)
+
+    def test_tian_lemma_4_ii_part_2(self):
+        """First test of Lemma 4, part (ii) (Equations 71 and 72 in [tian03a]_.
+
+        Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
+        """
+        result = _tian_lemma_4_ii(
+            district=[Y],
+            variables=[X, Y],
+            graph_probability=Sum.safe(self.expected_result_1, [W1]),
+            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+        )
+        self.assert_expr_equal(result, self.expected_result_2)
