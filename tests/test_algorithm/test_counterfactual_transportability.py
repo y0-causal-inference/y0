@@ -5,6 +5,7 @@
 .. [huang08a] https://link.springer.com/article/10.1007/s10472-008-9101-x.
 .. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
+.. [santikka20a] https://github.com/santikka/causaleffect/blob/master/R/identify.R.
 .. [tian02a] https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf.
 """
 
@@ -1509,7 +1510,13 @@ class TestIdentify(cases.GraphTestCase):
         )
 
     def test_identify_4(self):
-        """Test the example from page 29 of [tian02a]_."""
+        """Test the example from page 29 of [tian02a]_.
+
+        Note: Tian and Pearl provide a simpler result that is due to using probabilistic
+        axioms to simplify the formula. This result is what we get when running Santikka's
+        implementation of identify in their R package, Causal Effect ([Santikka20a]_), and is more
+        complex in its structure but easier to code for an initial Python implementation.
+        """
         base_p = Product([P(W1, W2, W3), P(X, Y | (W1, W2, W3, W4))])
         numnum = Product([Sum[W2, X, Y, W3](base_p), Sum[W3](base_p)])
         numden = Product([Sum[W3, X, Y, W3](base_p), Sum[W1, W2, W3, X, Y](base_p)])
