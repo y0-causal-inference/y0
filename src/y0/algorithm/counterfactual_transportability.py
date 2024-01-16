@@ -1066,9 +1066,25 @@ def _tian_lemma_1_i(
     :param variables: The variables in the graph under analysis, which may be a subgraph of the variables
                       included with the 'topo' paramter.
     :param topo: A list of variables in topological order that includes at least all variables in v.
+    :raises TypeError: the district or variable set from which it is drawn contained no variables.
+    :raises KeyError: a variable in the district is not in the variable set passed in as a parameter.
     :returns: An expression for Q[district].
     """
+    # TODO: Design question: is it faster to have the nested for loops here, or to only take in the district and
+    #       a graph, and run a topological sort on the graph with every call to this lemma? I.e., what is the
+    #       running time of topological sort on a graph?
+    # (It's O(V+E): https://stackoverflow.com/questions/31010922/
+    # how-do-i-make-my-topological-sort-to-be-linear-time-code-is-well-annotated)
+    # So when we're doing code integration at the end, we can come back and optimize this code.
     result = None
+    if len(district) == 0 or len(variables) == 0:
+        raise TypeError(
+            "Error in _tian_lemma_1_i: the district or variable set from which it is drawn contained no variables."
+        )
+    if any(v not in variables for v in district):
+        raise KeyError(
+            "Error in _tian_lemma_1_i: a variable in the district is not in the variable set passed in as a parameter."
+        )
     for variable in district:
         preceding_variables = topo[: topo.index(variable)]
         conditioned_variables = [
