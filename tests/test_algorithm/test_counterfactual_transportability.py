@@ -1609,6 +1609,7 @@ class TestTianLemma1i(cases.GraphTestCase):
             variables=[X, W4, W2, W3, W1, Y],
             topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
         )
+        logger.warn("In test tian lemma 1(i): result = " + str(result_1))
         self.assert_expr_equal(
             result_1,
             Product.safe(

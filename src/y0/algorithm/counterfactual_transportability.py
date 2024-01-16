@@ -20,6 +20,7 @@ from y0.dsl import (
     Expression,
     Intervention,
     P,
+    Probability,
     Product,
     Sum,
     Variable,
@@ -1053,20 +1054,32 @@ def _compute_c_factor(
 
 def _tian_lemma_1_i(
     *,
-    district: list[Variable],
-    variables: list[Variable],
+    district: set[Variable],
+    variables: set[Variable],
     topo: list[Variable],
-) -> Expression:
+) -> Probability | None:
     """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equation 37.
 
     This algorithm uses part (i) of Lemma 1 of Tian03a.
 
     :param district: A list of variables comprising the district for which we're computing a C factor.
-    :param variables: The variables in the graph under analysis.
+    :param variables: The variables in the graph under analysis, which may be a subgraph of the variables
+                      included with the 'topo' paramter.
     :param topo: A list of variables in topological order that includes at least all variables in v.
     :returns: An expression for Q[district].
     """
-    raise NotImplementedError("Unimplemented function: _tian_lemma_1_i")
+    result = None
+    for variable in district:
+        preceding_variables = topo[: topo.index(variable)]
+        conditioned_variables = [
+            variable for variable in preceding_variables if variable in variables
+        ]  # V^(i-1)
+        tmp = P(variable | conditioned_variables)  # v_i
+        if result is None:
+            result = tmp
+        else:
+            result *= tmp
+    return result
 
 
 def _tian_lemma_4_ii(
