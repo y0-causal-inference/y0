@@ -20,7 +20,6 @@ from y0.dsl import (
     Expression,
     Intervention,
     P,
-    Probability,
     Product,
     Sum,
     Variable,
@@ -1057,7 +1056,7 @@ def _tian_lemma_1_i(
     district: set[Variable],
     variables: set[Variable],
     topo: list[Variable],
-) -> Probability | None:
+) -> Expression | None:
     """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equation 37.
 
     This algorithm uses part (i) of Lemma 1 of Tian03a.
@@ -1096,6 +1095,47 @@ def _tian_lemma_1_i(
         else:
             result *= tmp
     return result
+
+
+def _tian_equation_72(
+    *,
+    vertex: Variable,
+    variables: set[Variable],
+    graph_probability: Expression,  # Q[H]
+    topo: list[Variable],
+) -> Expression:
+    r"""Compute the probability of a set of variables according to [tian03a]_, Equation 72.
+
+    This algorithm uses part (ii) of Lemma 4 of Tian03a. The context for Equations 71 and 72 follow:
+
+    :math: Let $H \subseteq V$, and assume that $H$ is partitioned into c-components $H_{1}, \dots, V_{h_{l}}$
+        in the subgraph $G_{H}$. Then we have...
+
+        (ii) Let $k$ be the number of variables in $H$, and let a topological order of
+        the variables in $H$ be $V_{h_{1}} < \cdots < V_{h_{k}}$ be the set of
+        variables in $G_{H}$. Let $H^{(i)} = {V_{h_{1}},\dots,V_{h_{i}}$ be the set of variables in $H$ ordered
+        before $V_{h_{i}}$ (including $V_{h_{i}}$), $i=1,\dots,k$, and $H^{(0)} = \emptyset$. Then each
+        $Q[H_{j}]$, $j = 1,\dots,l$, is computable from $Q[H]$ and is given by
+
+        \begin{equation}
+        $Q[H_{j} = \prod_{\{i|V_{h_{i}}\in H_{j}\}}{\frac{Q[H^{(i)}]}{Q[H^{(i-1)}]},$
+        \end{equation}
+
+        where each $Q[H^{(i)}], i = 0, 1, \dots\, k$, is given by
+
+        \begin{equation}
+        $Q[H^{(i)}] = \sum_{h \backslash h^{(i)}}{Q[H]}$.
+        \end{equation}
+
+    (The second equation above is Equation 72.)
+
+    :param vertex: The $i^{th}$ variable in topological order
+    :param variables: The variables in the graph under analysis, namely the set $H$.
+    :param graph_probability: The probability of $H$ corresponding to $Q[H]$ in Equation 72.
+    :param topo: A list of variables in topological order that includes at least all variables in v.
+    :returns: An expression for $Q[H^{(i)}]$.
+    """
+    raise NotImplementedError("Unimplemented function: _tian_lemma_4_ii")
 
 
 def _tian_lemma_4_ii(
