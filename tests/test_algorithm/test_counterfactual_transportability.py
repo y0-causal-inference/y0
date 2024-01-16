@@ -23,6 +23,7 @@ from y0.algorithm.counterfactual_transportability import (
     _reduce_reflexive_counterfactual_variables_to_interventions,
     _remove_repeated_variables_and_values,
     _split_event_by_reflexivity,
+    _tian_equation_72,
     _tian_lemma_1_i,
     _tian_lemma_4_ii,
     convert_to_counterfactual_factor_form,
@@ -1680,3 +1681,22 @@ class TestTianLemma4ii(cases.GraphTestCase):
             topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
         )
         self.assert_expr_equal(result, self.expected_result_2)
+
+
+class TestTianEquation72(cases.GraphTestCase):
+    """Test the use of Equation 72 in Lemma 1, part (ii), of [tian03a]_."""
+
+    def test_tian_equation_72(self):
+        """First test of Equation 72 in [tian03a]_.
+
+        Source: RJC's mind.
+        """
+        result = _tian_equation_72(
+            vertex=W,
+            variables={Z, X, Y, W},
+            graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
+            topo=figure_2a_graph.topological_sort(),
+        )
+        self.assert_expr_equal(
+            result, Sum.safe(P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z), [Y])
+        )

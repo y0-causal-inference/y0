@@ -1135,7 +1135,7 @@ def _tian_equation_72(
     :param topo: A list of variables in topological order that includes at least all variables in v.
     :returns: An expression for $Q[H^{(i)}]$.
     """
-    raise NotImplementedError("Unimplemented function: _tian_lemma_4_ii")
+    raise NotImplementedError("Unimplemented function: _tian_equation_72")
 
 
 def _tian_lemma_4_ii(
