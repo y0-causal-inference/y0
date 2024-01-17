@@ -5,7 +5,6 @@
 from typing import Collection, Iterable, Mapping, Optional, Sequence, Tuple, Union
 
 from ..dsl import (
-    CounterfactualVariable,
     Distribution,
     Expression,
     Fraction,
@@ -66,22 +65,10 @@ class Canonicalizer:
         )
 
     def _sorted(self, variables: Collection[Variable]) -> Tuple[Variable, ...]:
-        return tuple(
-            sorted(
-                (self._canonicalize_variable(variable) for variable in variables),
-                key=self._sorted_key,
-            )
-        )
+        return tuple(sorted(variables, key=self._sorted_key))
 
     def _canonicalize_variable(self, variable: Variable) -> Variable:
-        if isinstance(variable, CounterfactualVariable):
-            return CounterfactualVariable(
-                name=variable.name,
-                star=variable.star,
-                interventions=tuple(sorted(variable.interventions)),
-            )
-        else:
-            return variable
+        return variable
 
     def _sorted_key(self, variable: Variable) -> int:
         return self.ordering_level[variable.name]
