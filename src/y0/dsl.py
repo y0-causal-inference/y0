@@ -336,10 +336,6 @@ class Intervention(Variable):
         return f"{mark}{self.name}"
 
 
-def _sort_interventions(interventions: Iterable[Intervention]) -> Tuple[Intervention, ...]:
-    return tuple(sorted(interventions, key=lambda i: (i.name, i.star)))
-
-
 @dataclass(frozen=True, order=True, repr=False)
 class CounterfactualVariable(Variable):
     """A counterfactual variable.
