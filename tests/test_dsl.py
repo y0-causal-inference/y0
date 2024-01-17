@@ -28,6 +28,7 @@ from y0.dsl import (
     Y,
     Z,
     Zero,
+    _variable_sort_key,
 )
 from y0.parser import parse_y0
 
@@ -472,6 +473,15 @@ class TestCounterfactual(unittest.TestCase):
         # Two variables, mixed intervention
         self.assertEqual("P(Y @ -X, Z @ -A)", P(Y @ X, Z @ A).to_y0())
         self.assertEqual("P(Y @ -X, Z @ +Z)", P(Y @ -X, Z @ +Z).to_y0())
+
+    def test_counterfactual_sort(self):
+        """Test sorting counterfactual variables."""
+        left = W @ -D
+        right = W @ -X
+        self.assertEqual(
+            sorted([left, right], key=_variable_sort_key),
+            sorted([right, left], key=_variable_sort_key),
+        )
 
 
 class TestSafeConstructors(unittest.TestCase):

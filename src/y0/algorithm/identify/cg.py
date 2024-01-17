@@ -5,7 +5,13 @@
 from itertools import combinations
 from typing import FrozenSet, Iterable, Optional, Set, Tuple, cast
 
-from y0.dsl import CounterfactualVariable, Event, Intervention, Variable
+from y0.dsl import (
+    CounterfactualVariable,
+    Event,
+    Intervention,
+    Variable,
+    _variable_sort_key,
+)
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -207,7 +213,7 @@ def merge_pw(
     Complete Identification Methods for the Causal Hierarchy.
     Journal of Machine Learning Research (2008).
     """
-    # If a we are going to merge two nodes, we want to keep the factual variable.
+    # If we are going to merge two nodes, we want to keep the factual variable.
     if isinstance(node1, CounterfactualVariable) and not isinstance(node2, CounterfactualVariable):
         node1, node2 = node2, node1
     elif not isinstance(node1, CounterfactualVariable) and isinstance(
@@ -215,7 +221,7 @@ def merge_pw(
     ):
         pass
     else:  # both are counterfactual or both are factual, so keep the variable with the lower name
-        node1, node2 = sorted([node1, node2])
+        node1, node2 = sorted([node1, node2], key=_variable_sort_key)
     directed = [(u, v) for u, v in graph.directed.edges() if node2 not in (u, v)]
     directed += [(node1, v) for u, v in graph.directed.edges() if node2 == u]
     # directed += [(u, node1) for u, v in graph.directed.edges() if node2 == v]

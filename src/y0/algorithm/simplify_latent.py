@@ -20,6 +20,7 @@ __all__ = [
     "remove_widow_latents",
     "transform_latents_with_parents",
     "remove_redundant_latents",
+    "remove_unidirectional_latents",
 ]
 
 logger = logging.getLogger(__name__)
@@ -33,20 +34,23 @@ class SimplifyResults(NamedTuple):
     graph: nx.DiGraph
     widows: Set[Variable]
     redundant: Set[Variable]
+    unidirectional_latents: Set[Variable]
 
 
 def simplify_latent_dag(graph: nx.DiGraph, tag: Optional[str] = None):
-    """Apply Robin Evans' three algorithms in succession."""
+    """Apply Robin Evans' four rules in succession."""
     if tag is None:
         tag = DEFAULT_TAG
 
     _ = transform_latents_with_parents(graph, tag=tag)
     _, widows = remove_widow_latents(graph, tag=tag)
+    _, unidirectional_latents = remove_unidirectional_latents(graph, tag=tag)
     _, redundant = remove_redundant_latents(graph, tag=tag)
 
     return SimplifyResults(
         graph=graph,
         widows=widows,
+        unidirectional_latents=unidirectional_latents,
         redundant=redundant,
     )
 
@@ -80,6 +84,20 @@ def remove_widow_latents(
     return graph, remove
 
 
+def remove_unidirectional_latents(
+    graph: nx.DiGraph, tag: Optional[str] = None
+) -> Tuple[nx.DiGraph, Set[Variable]]:
+    """Remove latents with one child (in-place).
+
+    :param graph: A latent variable DAG
+    :param tag: The tag for which variables are latent
+    :returns: The graph, modified in place
+    """
+    remove = set(iter_unidirectional_latents(graph, tag=tag))
+    graph.remove_nodes_from(remove)
+    return graph, remove
+
+
 def iter_widow_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Iterable[Variable]:
     """Iterate over latent variables with no children.
 
@@ -92,12 +110,28 @@ def iter_widow_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Itera
             yield node
 
 
+def iter_unidirectional_latents(
+    graph: nx.DiGraph, *, tag: Optional[str] = None
+) -> Iterable[Variable]:
+    """Iterate over latent variables with one child.
+
+    :param graph: A latent variable DAG
+    :param tag: The tag for which variables are latent
+    :yields: Nodes with one child
+    """
+    for node in iter_latents(graph, tag=tag):
+        if graph.out_degree(node) == 1:
+            yield node
+
+
 def transform_latents_with_parents(
     graph: nx.DiGraph,
     tag: Optional[str] = None,
     suffix: Optional[str] = None,
 ) -> nx.DiGraph:
-    """Transform latent variables with parents into latent variables with no parents.
+    """Transform latent variables with parents into exogenous latent variables.
+
+     An exogenous latent variable is a node with no parents.
 
     :param graph: A latent variable DAG
     :param tag: The tag for which variables are latent
@@ -118,25 +152,6 @@ def transform_latents_with_parents(
             graph.add_edge(new_node, child)
 
     return graph
-
-
-def _add_modified_latent(
-    graph: nx.DiGraph,
-    modified_latent: Mapping[str, Iterable[str]],
-    *,
-    tag: Optional[str] = None,
-    suffix: Optional[str] = None,
-) -> None:
-    if tag is None:
-        tag = DEFAULT_TAG
-    if suffix is None:
-        suffix = DEFAULT_SUFFIX
-
-    for old_node, children in modified_latent.items():
-        new_node = f"{old_node}{suffix}"
-        graph.add_node(new_node, **{tag: True})
-        for child in children:
-            graph.add_edge(new_node, child)
 
 
 def iter_middle_latents(
@@ -162,6 +177,9 @@ def remove_redundant_latents(
     graph: nx.DiGraph, tag: Optional[str] = None
 ) -> Tuple[nx.DiGraph, Set[Variable]]:
     """Remove redundant latent variables.
+
+    W is a redundant latent variable if children of W are
+    a subset of another latent variable.
 
     :param graph: A latent variable DAG
     :param tag: The tag for which variables are latent

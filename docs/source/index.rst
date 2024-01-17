@@ -12,7 +12,11 @@ y0 |release| Documentation
    graph
    examples
    mutation
+   conditional_independence
    identification
+   transport
+   lvdags
+   struct
    cli
 
 Indices and Tables

@@ -49,9 +49,9 @@ def get_conditional_independencies(
 
 
 def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSeparationJudgement]:
-    """Given some d-separations, reduces to a 'minimal' collection.
+    r"""Given some d-separations, reduces to a 'minimal' collection.
 
-    For independencies of the form A _||_ B | {C1, C2, ...} the minimal collection will::
+    For independencies of the form $A \perp B | {C_1, C_2, ...}$, the minimal collection will
 
     - Have only one independency with the same A/B nodes.
     - If there are multiples sets of C-nodes, the kept d-separation will be the first/minimal
@@ -74,7 +74,7 @@ def get_topological_policy(
 ) -> Callable[[DSeparationJudgement], Tuple[int, int]]:
     """Sort d-separations by condition length and topological order.
 
-    This policy will prefers small collections, and collections with variables earlier
+    This policy prefers small collections, and collections with variables earlier
     in topological order for collections of the same size.
 
     :param graph: a mixed graph

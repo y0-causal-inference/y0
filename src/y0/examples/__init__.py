@@ -5,21 +5,23 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Callable, Optional, Sequence
-
 import numpy as np
 import pandas as pd
 
 from .backdoor import generate_data_for_backdoor
 from .frontdoor import generate_data_for_frontdoor
+from .frontdoor_backdoor import generate_data_for_frontdoor_backdoor
 from .sars import generate_data_for_covid_case_study
+from .smoke_cancer import generate_data_for_smoke_cancer
+from .utils import Example
 from ..algorithm.identify import Identification, Query
 from ..dsl import (
     AA,
     W0,
     W1,
     W2,
+    X1,
+    X2,
     Y1,
     Y2,
     Z1,
@@ -37,7 +39,9 @@ from ..dsl import (
     M,
     P,
     Q,
+    S,
     Sum,
+    T,
     Variable,
     W,
     X,
@@ -49,25 +53,6 @@ from ..resources import ASIA_PATH
 from ..struct import DSeparationJudgement, VermaConstraint
 
 x, y, z, w = -X, -Y, -Z, -W
-
-
-@dataclass
-class Example:
-    """An example graph packaged with certain pre-calculated data structures."""
-
-    name: str
-    reference: str
-    graph: NxMixedGraph
-    description: Optional[str] = None
-    verma_constraints: Optional[Sequence[VermaConstraint]] = None
-    conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
-    data: Optional[pd.DataFrame] = None
-    identifications: Optional[list[dict[str, list[Identification]]]] = None
-    #: Example queries are just to give an idea to a new user
-    #: what might be interesting to use in the ID algorithm
-    example_queries: Optional[list[Query]] = None
-    generate_data: Optional[Callable[[int, Optional[dict[Variable, float]]], pd.DataFrame]] = None
-
 
 u_2 = Variable("u_2")
 u_3 = Variable("u_3")
@@ -110,6 +95,25 @@ frontdoor_example = Example(
     ' 2nd ed." Cambridge University Press, p. 81.',
     graph=frontdoor,
     generate_data=generate_data_for_frontdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
+)
+
+#: Treatment: X
+#: Outcome: Y
+#: Adjusted: N/A
+frontdoor_backdoor = NxMixedGraph.from_edges(
+    directed=[
+        (X, Z),
+        (Z, Y),
+        (W, X),
+        (W, Y),
+    ],
+)
+frontdoor_backdoor_example = Example(
+    name="Frontdoor / Backdoor",
+    reference="https://github.com/y0-causal-inference/y0/pull/183",
+    graph=frontdoor_backdoor,
+    generate_data=generate_data_for_frontdoor_backdoor,
     example_queries=[Query.from_str(treatments="X", outcomes="Y")],
 )
 
@@ -1165,6 +1169,10 @@ d_separation_example = Example(
     ],
 )
 
+
+asia_df = pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1})
+del asia_df[asia_df.columns[0]]
+
 asia_example = Example(
     name="Asia dataset",
     reference="https://www.bnlearn.com/documentation/man/asia.html",
@@ -1183,7 +1191,7 @@ asia_example = Example(
             ]
         ],
     ),
-    data=pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1}),
+    data=asia_df,
 )
 
 figure_2a_example = Example(
@@ -1386,5 +1394,34 @@ sars_small_example = Example(
     generate_data=generate_data_for_covid_case_study,
     example_queries=[Query.from_str(outcomes="cytok", treatments="EGFR")],
 )
+
+tikka_trso_figure_8_graph = NxMixedGraph.from_edges(
+    undirected=[(X1, Y1), (Z, W), (Z, X2)],
+    directed=[
+        (X1, Y1),
+        (X1, Y2),
+        (W, Y1),
+        (W, Y2),
+        (Z, Y1),
+        (Z, X2),
+        (X2, Y2),
+        (Z, Y2),
+    ],
+)
+tikka_trso_figure_8 = Example(
+    name="Tikka TRSO Figure 8",
+    reference="https://arxiv.org/abs/1806.07172",
+    graph=tikka_trso_figure_8_graph,
+)
+
+
+cancer_example = Example(
+    name="Smoking and Cancer",
+    reference="https://github.com/y0-causal-inference/y0/pull/183",
+    graph=NxMixedGraph.from_edges(directed=[(S, T), (T, C), (S, C)], undirected=[(S, T)]),
+    generate_data=generate_data_for_smoke_cancer,
+    example_queries=[Query.from_str(outcomes="C", treatments="S")],
+)
+
 
 examples = [v for name, v in locals().items() if name.endswith("_example")]

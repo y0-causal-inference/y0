@@ -22,7 +22,6 @@ from y0.algorithm.simplify_latent import simplify_latent_dag
 from y0.complexity import complexity
 from y0.dsl import Expression, P, Variable
 from y0.graph import DEFAULT_TAG, NxMixedGraph
-from y0.identify import is_identifiable
 from y0.mutate import canonicalize
 from y0.util.combinatorics import powerset
 
@@ -60,7 +59,7 @@ def taheri_design_admg(
     tag: Optional[str] = None,
     stop: Optional[int] = None,
 ) -> List[Result]:
-    """Run the brute force implementation of the Taheri Design algorithm on an ADMG.
+    r"""Run the brute force implementation of the Taheri Design algorithm on an ADMG.
 
     :param graph: An ADMG
     :param cause: The node that gets perturbed.
@@ -68,7 +67,7 @@ def taheri_design_admg(
     :param tag: The key for node data describing whether it is latent.
         If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
     :param stop: Largest combination to get (None means length of the list and is the default)
-    :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2 - # bidirected edges)
+    :return: A list of LV-DAG identifiability results. Will be length $2^{(\|V\| - 2 - # bidirected edges)}$
     """
     if tag is None:
         tag = DEFAULT_TAG
@@ -106,7 +105,7 @@ def taheri_design_dag(
     :param tag: The key for node data describing whether it is latent.
         If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
     :param stop: Largest combination to get (None means length of the list and is the default)
-    :return: A list of LV-DAG identifiability results. Will be length 2^(|V| - 2)
+    :return: A list of LV-DAG identifiability results. Will be length $2^(|V| - 2)$
     """
     cause = Variable.norm(cause)
     effect = Variable.norm(effect)
@@ -175,7 +174,6 @@ def _get_result(
 
     # Check if the ADMG is identifiable under the (simple) causal query
     query = P(effect @ ~cause)
-    identifiable = is_identifiable(admg, query)
     try:
         estimand: Optional[Expression] = canonicalize(
             identify(Identification.from_expression(graph=admg, query=query))
@@ -184,7 +182,7 @@ def _get_result(
         estimand = None
 
     return Result(
-        identifiable,
+        estimand is not None,
         estimand=estimand,
         pre_nodes=pre_nodes,
         pre_edges=pre_edges,
