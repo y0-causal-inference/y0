@@ -19,6 +19,7 @@ from y0.dsl import (
     CounterfactualVariable,
     Expression,
     Intervention,
+    One,
     P,
     Product,
     Sum,
@@ -1099,14 +1100,14 @@ def _tian_lemma_1_i(
 
 def _tian_equation_72(
     *,
-    vertex: Variable,
+    vertex: Variable | None,
     variables: set[Variable],
     graph_probability: Expression,  # Q[H]
     topo: list[Variable],
 ) -> Expression:
     r"""Compute the probability of a set of variables according to [tian03a]_, Equation 72.
 
-    This algorithm uses part (ii) of Lemma 4 of Tian03a. The context for Equations 71 and 72 follow:
+    This algorithm uses part (ii) of Lemma 4 of [tian03a]_. The context for Equations 71 and 72 follow:
 
     :math: Let $H \subseteq V$, and assume that $H$ is partitioned into c-components $H_{1}, \dots, V_{h_{l}}$
         in the subgraph $G_{H}$. Then we have...
@@ -1136,6 +1137,9 @@ def _tian_equation_72(
     :raises KeyError: the input vertex is not in the variable set or not in the topological ordering of graph vertices.
     :returns: An expression for $Q[H^{(i)}]$.
     """
+    # $Q[H^{(0)}] = Q[\emptyset] = 1
+    if vertex is None:
+        return One()
     if vertex not in variables or vertex not in topo:
         raise KeyError(
             "In _tian_equation_72: input vertex is not in the variable set or topological ordering of graph vertices."
@@ -1152,15 +1156,38 @@ def _tian_lemma_4_ii(
     graph_probability: Expression,
     topo: list[Variable],
 ) -> Expression:
-    """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equations 71 and 72.
+    r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equations 71 and 72.
 
-    This algorithm uses part (ii) of Lemma 4 of Tian03a.
+    This algorithm uses part (ii) of Lemma 4 of [tian03a]_. The context for Equations 71 and 72 follow:
+
+    :math: Let $H \subseteq V$, and assume that $H$ is partitioned into c-components $H_{1}, \dots, V_{h_{l}}$
+        in the subgraph $G_{H}$. Then we have...
+
+        (ii) Let $k$ be the number of variables in $H$, and let a topological order of
+        the variables in $H$ be $V_{h_{1}} < \cdots < V_{h_{k}}$ be the set of
+        variables in $G_{H}$. Let $H^{(i)} = {V_{h_{1}},\dots,V_{h_{i}}$ be the set of variables in $H$ ordered
+        before $V_{h_{i}}$ (including $V_{h_{i}}$), $i=1,\dots,k$, and $H^{(0)} = \emptyset$. Then each
+        $Q[H_{j}]$, $j = 1,\dots,l$, is computable from $Q[H]$ and is given by
+
+        \begin{equation}
+        $Q[H_{j} = \prod_{\{i|V_{h_{i}}\in H_{j}\}}{\frac{Q[H^{(i)}]}{Q[H^{(i-1)}]},$
+        \end{equation}
+
+        where each $Q[H^{(i)}], i = 0, 1, \dots\, k$, is given by
+
+        \begin{equation}
+        $Q[H^{(i)}] = \sum_{h \backslash h^{(i)}}{Q[H]}$.
+        \end{equation}
+
+    (The second equation above is Equation 72.)
 
     :param district: A list of variables comprising the district for which we're computing a C factor.
     :param variables: The variables in the graph under analysis.
-    :param graph_probability: The expression Q corresponding to the set of variables in v. It's
+    :param graph_probability: The expression Q corresponding to the set of variables in v. It is
         Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
     :param topo: A list of variables in topological order that includes at least all variables in v.
     :returns: An expression for Q[district].
     """
+    # return_value = None
+    # return Product.safe([Fraction(_tian_equation_72(topo[topo.index(v)],))])
     raise NotImplementedError("Unimplemented function: _tian_lemma_4_ii")

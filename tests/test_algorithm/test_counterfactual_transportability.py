@@ -52,6 +52,7 @@ from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
     CounterfactualVariable,
     Fraction,
     Intervention,
+    One,
     P,
     Population,
     Product,
@@ -1686,7 +1687,7 @@ class TestTianLemma4ii(cases.GraphTestCase):
 class TestTianEquation72(cases.GraphTestCase):
     """Test the use of Equation 72 in Lemma 1, part (ii), of [tian03a]_."""
 
-    def test_tian_equation_72(self):
+    def test_tian_equation_72_part_1(self):
         """First test of Equation 72 in [tian03a]_.
 
         Source: RJC's mind.
@@ -1718,3 +1719,16 @@ class TestTianEquation72(cases.GraphTestCase):
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             topo=[variable for variable in figure_2a_graph.topological_sort()],
         )
+
+    def test_tian_equation_72_part_2(self):
+        r"""Second test of Equation 72 in [tian03a]_, checking $Q[H^{(0)}]=Q[\emptyset]$.
+
+        Source: RJC's mind.
+        """
+        result = _tian_equation_72(
+            vertex=None,
+            variables={Z, X, Y, W},
+            graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
+            topo=[variable for variable in figure_2a_graph.topological_sort()],
+        )
+        self.assert_expr_equal(result, One())
