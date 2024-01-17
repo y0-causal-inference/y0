@@ -751,24 +751,15 @@ class TestMakeCounterfactualGraph(cases.GraphTestCase):
         )
         self.assert_graph_equal(expected_cf_graph, actual_cf_graph)
 
-    # def test_8(self):
-    #     """Check JZ scenario 8."""
-    #     actual_cf_graph, new_event = make_counterfactual_graph(
-    #         graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)]),
-    #         event={Y @ -x: -y, Y @ +x: -y, Z @ +x: -z, Z @ -x: -z},
-    #     )
-    #     expected_cf_graph = NxMixedGraph.from_edges(
-    #         directed=[(X @ -x, Z @ -x), (Z @ -x, Y @ -x), (X @ +x, Z @ +x)],
-    #         undirected=[(Z @ -x, Z @ +x)],
-    #     )
-    #
-    #     # FIXME this fails non-deterministically (i.e., passes sometimes, fails others)
-    #     #  Expected Nodes :{X @ -X, Z @ -X, Y @ -X, Z @ +X, X @ +X}
-    #     #  Actual Nodes   :{X @ -X, Z @ -X, Y @ +X, Z @ +X, X @ +X}
-    #     self.assert_graph_equal(expected_cf_graph, actual_cf_graph, sort=True)
-    #
-    #     # FIXME
-    #     #  AssertionError: {Y @ -X: -Y, Z @ +X: -Z, Z @ -X: -Z} != {Y @ +X: -Y, Z @ +X: -Z, Z @ -X: -Z}
-    #     #  - {Y @ -X: -Y, Z @ +X: -Z, Z @ -X: -Z}
-    #     #  + {Y @ +X: -Y, Z @ +X: -Z, Z @ -X: -Z}
-    #     self.assertEqual({Y @ -X: -Y, Z @ +X: -Z, Z @ -X: -Z}, new_event)
+    def test_8(self):
+        """Check JZ scenario 8."""
+        actual_cf_graph, new_event = make_counterfactual_graph(
+            graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)]),
+            event={Y @ -x: -y, Y @ +x: -y, Z @ +x: -z, Z @ -x: -z},
+        )
+        expected_cf_graph = NxMixedGraph.from_edges(
+            directed=[(X @ -x, Z @ -x), (Z @ -x, Y @ -x), (X @ +x, Z @ +x)],
+            undirected=[(Z @ -x, Z @ +x)],
+        )
+        self.assert_graph_equal(expected_cf_graph, actual_cf_graph, sort=True)
+        self.assertEqual({Y @ -X: -Y, Z @ +X: -Z, Z @ -X: -Z}, new_event)
