@@ -677,7 +677,7 @@ def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
         return variable
 
     # :math: $\mathbf x$
-    interventions: tuple = variable.interventions
+    interventions = variable.interventions
     # :math: $\mathbf X$
     intervention_variables: set[Variable] = {
         intervention.get_base() for intervention in interventions
@@ -689,10 +689,10 @@ def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
         .intersection(intervention_variables)
     )
     # :math: $\mathbf t$
-    treatment_interventions: tuple[Intervention] = tuple(
+    treatment_interventions: frozenset[Intervention] = frozenset(
         {
             intervention
-            for intervention in sorted(interventions)
+            for intervention in interventions
             # for intervention in interventions
             if intervention.get_base() in treatment_variables
         }
@@ -706,7 +706,7 @@ def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
     return CounterfactualVariable(
         name=variable.name,
         star=variable.star,
-        interventions=tuple(sorted(treatment_interventions)),
+        interventions=treatment_interventions,
     )
 
 
