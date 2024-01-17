@@ -23,9 +23,6 @@ from y0.algorithm.counterfactual_transportability import (
     _reduce_reflexive_counterfactual_variables_to_interventions,
     _remove_repeated_variables_and_values,
     _split_event_by_reflexivity,
-    _tian_equation_72,
-    _tian_lemma_1_i,
-    _tian_lemma_4_ii,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
@@ -37,6 +34,11 @@ from y0.algorithm.counterfactual_transportability import (
     minimize_event,
     same_district,
     simplify,
+)
+from y0.algorithm.tian_id import (
+    _tian_equation_72,
+    _tian_lemma_1_i,
+    _tian_lemma_4_ii,
     tian_pearl_identify,
 )
 from y0.algorithm.transport import transport_variable
