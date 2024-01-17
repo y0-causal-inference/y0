@@ -1695,8 +1695,26 @@ class TestTianEquation72(cases.GraphTestCase):
             vertex=W,
             variables={Z, X, Y, W},
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            topo=figure_2a_graph.topological_sort(),
+            topo=[variable for variable in figure_2a_graph.topological_sort()],
         )
         self.assert_expr_equal(
             result, Sum.safe(P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z), [Y])
+        )
+        # Variable not in the graph, i.e., topo
+        self.assertRaises(
+            KeyError,
+            _tian_equation_72,
+            vertex={R},
+            variables={R, X, Y, W},
+            graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
+            topo=[variable for variable in figure_2a_graph.topological_sort()],
+        )
+        # Variable not in the variables set
+        self.assertRaises(
+            KeyError,
+            _tian_equation_72,
+            vertex={W},
+            variables={Z, X, Y},
+            graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
+            topo=[variable for variable in figure_2a_graph.topological_sort()],
         )

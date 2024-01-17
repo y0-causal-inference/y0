@@ -1133,9 +1133,16 @@ def _tian_equation_72(
     :param variables: The variables in the graph under analysis, namely the set $H$.
     :param graph_probability: The probability of $H$ corresponding to $Q[H]$ in Equation 72.
     :param topo: A list of variables in topological order that includes at least all variables in v.
+    :raises KeyError: the input vertex is not in the variable set or not in the topological ordering of graph vertices.
     :returns: An expression for $Q[H^{(i)}]$.
     """
-    raise NotImplementedError("Unimplemented function: _tian_equation_72")
+    if vertex not in variables or vertex not in topo:
+        raise KeyError(
+            "In _tian_equation_72: input vertex is not in the variable set or topological ordering of graph vertices."
+        )
+    return Sum.safe(
+        graph_probability, [v for v in topo[topo.index(vertex) + 1 :] if v in variables]
+    )
 
 
 def _tian_lemma_4_ii(
