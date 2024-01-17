@@ -28,6 +28,7 @@ from y0.dsl import (
     Y,
     Z,
     Zero,
+    _variable_sort_key,
 )
 from y0.parser import parse_y0
 
@@ -84,11 +85,17 @@ class TestDSL(unittest.TestCase):
         self.assert_text("W*", ~Intervention("W", star=False))
         self.assert_text("W*", ~W)
 
+        self.assertEqual(
+            2,
+            len({Intervention("W", star=True), Intervention("W", star=False)}),
+            msg="Interventions' stars aren't hashed correctly",
+        )
+
     def test_counterfactual_variable(self):
         """Test the Counterfactual Variable DSL object."""
         # Normal instantiation
-        self.assert_text("Y_{W}", CounterfactualVariable("Y", interventions=(-W,)))
-        self.assert_text("Y_{W*}", CounterfactualVariable("Y", interventions=(~W,)))
+        self.assert_text("Y_{W}", CounterfactualVariable("Y", interventions=frozenset([-W])))
+        self.assert_text("Y_{W*}", CounterfactualVariable("Y", interventions=frozenset([~W])))
 
         # Instantiation with list-based operand to matmul @ operator
         self.assert_text("Y_{W}", Variable("Y") @ [W])
@@ -100,7 +107,10 @@ class TestDSL(unittest.TestCase):
         self.assert_text(
             "Y_{W*, X}",
             CounterfactualVariable(
-                "Y", interventions=(~Intervention("W", star=False), Intervention("X", star=False))
+                "Y",
+                interventions=frozenset(
+                    (~Intervention("W", star=False), Intervention("X", star=False))
+                ),
             ),
         )
 
@@ -113,6 +123,8 @@ class TestDSL(unittest.TestCase):
 
         # Instantiation with matmul @ operator (chained)
         self.assert_text("Y_{W*, X}", Y @ X @ ~W)
+
+        self.assertEqual(2, len({Y @ -X, Y @ +X}))
 
     def test_star_counterfactual(self):
         """Tests for generalized counterfactual variables."""
@@ -461,6 +473,15 @@ class TestCounterfactual(unittest.TestCase):
         # Two variables, mixed intervention
         self.assertEqual("P(Y @ -X, Z @ -A)", P(Y @ X, Z @ A).to_y0())
         self.assertEqual("P(Y @ -X, Z @ +Z)", P(Y @ -X, Z @ +Z).to_y0())
+
+    def test_counterfactual_sort(self):
+        """Test sorting counterfactual variables."""
+        left = W @ -D
+        right = W @ -X
+        self.assertEqual(
+            sorted([left, right], key=_variable_sort_key),
+            sorted([right, left], key=_variable_sort_key),
+        )
 
 
 class TestSafeConstructors(unittest.TestCase):
