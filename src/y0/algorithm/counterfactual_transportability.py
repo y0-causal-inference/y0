@@ -324,10 +324,8 @@ def _split_event_by_reflexivity(
         if (
             isinstance(variable, CounterfactualVariable)
             and any(
-                [
-                    intervention.get_base() == variable.get_base()
-                    for intervention in variable.interventions
-                ]
+                intervention.get_base() == variable.get_base()
+                for intervention in variable.interventions
             )
         )
         or not (isinstance(variable, CounterfactualVariable))
@@ -338,10 +336,8 @@ def _split_event_by_reflexivity(
         for variable, value in event
         if isinstance(variable, CounterfactualVariable)
         and not any(
-            [
-                intervention.get_base() == variable.get_base()
-                for intervention in variable.interventions
-            ]
+            intervention.get_base() == variable.get_base()
+            for intervention in variable.interventions
         )
     ]
     # for variable, value in event:
