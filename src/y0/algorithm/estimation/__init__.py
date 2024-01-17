@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import redirect_stdout
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 import pandas as pd
 
@@ -17,8 +17,32 @@ from y0.graph import (
 )
 
 __all__ = [
+    "estimate_causal_effect",
+    "df_covers_graph",
     "estimate_ace",
 ]
+
+
+def estimate_causal_effect(
+    graph: NxMixedGraph,
+    treatment: Variable,
+    outcome: Variable,
+    data: pd.DataFrame,
+    *,
+    query_type: Literal["ate", "expectation", "probability"],
+    conditions: Optional[List[Variable]] = None,
+) -> float:
+    """Estimate the causal effect of a treatment on an outcome."""
+    if query_type == "ate":
+        return estimate_ace(
+            graph=graph, treatment=treatment, outcome=outcome, data=data, conditions=conditions
+        )
+    elif query_type == "expectation":
+        raise NotImplementedError
+    elif query_type == "probability":
+        raise NotImplementedError
+    else:
+        raise TypeError
 
 
 def estimate_ace(
