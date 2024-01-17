@@ -14,9 +14,18 @@ __all__ = ["GraphTestCase"]
 class GraphTestCase(unittest.TestCase):
     """Tests parallel worlds and counterfactual graphs."""
 
-    def assert_graph_equal(self, expected: NxMixedGraph, actual: NxMixedGraph, msg=None) -> None:
+    def assert_graph_equal(
+        self, expected: NxMixedGraph, actual: NxMixedGraph, msg=None, *, sort: bool = False
+    ) -> None:
         """Check the graphs are equal (more nice than the builtin :meth:`NxMixedGraph.__eq__` for testing)."""
-        self.assertEqual(set(expected.directed.nodes()), set(actual.directed.nodes()), msg=msg)
+        if sort:
+            self.assertEqual(
+                sorted(set(expected.directed.nodes())),
+                sorted(set(actual.directed.nodes())),
+                msg=msg,
+            )
+        else:
+            self.assertEqual(set(expected.directed.nodes()), set(actual.directed.nodes()), msg=msg)
         self.assertEqual(set(expected.undirected.nodes()), set(actual.undirected.nodes()), msg=msg)
         self.assertEqual(set(expected.directed.edges()), set(actual.directed.edges()), msg=msg)
         self.assertEqual(

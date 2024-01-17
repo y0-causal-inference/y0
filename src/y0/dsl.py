@@ -1547,8 +1547,21 @@ Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
 π1, π2, π3, π4, π5, π6 = Pi1, Pi2, Pi3, Pi4, Pi5, Pi6 = [Variable(f"π{i}") for i in range(1, 7)]
 
 
+def _sort_interventions(interventions: Iterable[Intervention]) -> Tuple[Intervention, ...]:
+    return tuple(sorted(interventions, key=lambda i: (i.name, i.star)))
+
+
+def _variable_sort_key(variable: Variable) -> tuple[str, str]:
+    if isinstance(variable, CounterfactualVariable):
+        return variable.name, ",".join(
+            i.to_y0() for i in _sort_interventions(variable.interventions)
+        )
+    else:
+        return variable.name, ""
+
+
 def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
-    return tuple(sorted(variables, key=attrgetter("name")))
+    return tuple(sorted(variables, key=_variable_sort_key))
 
 
 def _upgrade_variables(variables: VariableHint) -> Tuple[Variable, ...]:
