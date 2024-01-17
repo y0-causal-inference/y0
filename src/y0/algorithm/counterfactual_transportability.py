@@ -691,7 +691,6 @@ def _do_minimize(variable: Variable, graph: NxMixedGraph) -> Variable:
         {
             intervention
             for intervention in interventions
-            # for intervention in interventions
             if intervention.get_base() in treatment_variables
         }
     )
