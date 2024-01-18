@@ -1,13 +1,15 @@
-"""
-An implementation of Tian and Pearl's identification algorithm from [tian03a]_.
-"""
+"""An implementation of Tian and Pearl's identification algorithm from [tian03a]_."""
 
-from y0.dsl import Expression, One, P, Sum, Variable
+import logging
+
+from y0.dsl import Expression, Fraction, One, P, Product, Sum, Variable
 from y0.graph import NxMixedGraph
 
 __all__ = [
     "tian_pearl_identify",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def tian_pearl_identify(
@@ -98,9 +100,8 @@ def _tian_lemma_1_i(
 def _tian_equation_72(
     *,
     vertex: Variable | None,
-    variables: set[Variable],
     graph_probability: Expression,  # Q[H]
-    topo: list[Variable],
+    graph: NxMixedGraph,
 ) -> Expression:
     r"""Compute the probability of a set of variables according to [tian03a]_, Equation 72.
 
@@ -128,19 +129,22 @@ def _tian_equation_72(
     (The second equation above is Equation 72.)
 
     :param vertex: The $i^{th}$ variable in topological order
-    :param variables: The variables in the graph under analysis, namely the set $H$.
     :param graph_probability: The probability of $H$ corresponding to $Q[H]$ in Equation 72.
-    :param topo: A list of variables in topological order that includes at least all variables in v.
+    :param graph: The subgraph under analysis, $G_{H}$.
     :raises KeyError: the input vertex is not in the variable set or not in the topological ordering of graph vertices.
     :returns: An expression for $Q[H^{(i)}]$.
     """
-    # $Q[H^{(0)}] = Q[\emptyset] = 1
+    # $Q[H^{(0)}] = Q[\emptyset] = 1$
     if vertex is None:
         return One()
-    if vertex not in variables or vertex not in topo:
-        raise KeyError(
-            "In _tian_equation_72: input vertex is not in the variable set or topological ordering of graph vertices."
-        )
+    # We need to compute a topological order for the subgraph H each time we call this function.
+    variables = {node for node in graph.nodes()}
+    topo = [variable for variable in graph.topological_sort()]
+    logger.warning("In _tian_equation_72: input vertex is " + str(vertex))
+    logger.warning("   and variables are " + str(variables))
+    logger.warning("   and topo is " + str(topo))
+    if vertex not in variables:
+        raise KeyError("In _tian_equation_72: input vertex is not in the input graph.")
     return Sum.safe(
         graph_probability, [v for v in topo[topo.index(vertex) + 1 :] if v in variables]
     )
@@ -148,11 +152,10 @@ def _tian_equation_72(
 
 def _tian_lemma_4_ii(
     *,
-    district: list[Variable],
-    variables: list[Variable],
+    district: set[Variable],
     graph_probability: Expression,
-    topo: list[Variable],
-) -> Expression:
+    graph: NxMixedGraph,
+) -> Expression | None:
     r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equations 71 and 72.
 
     This algorithm uses part (ii) of Lemma 4 of [tian03a]_. The context for Equations 71 and 72 follow:
@@ -179,12 +182,71 @@ def _tian_lemma_4_ii(
     (The second equation above is Equation 72.)
 
     :param district: A list of variables comprising the district for which we're computing a C factor.
-    :param variables: The variables in the graph under analysis.
     :param graph_probability: The expression Q corresponding to the set of variables in v. It is
         Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
-    :param topo: A list of variables in topological order that includes at least all variables in v.
+    :param graph: The subgraph $G_{H}$ in question.
     :returns: An expression for Q[district].
     """
-    # return_value = None
-    # return Product.safe([Fraction(_tian_equation_72(topo[topo.index(v)],))])
-    raise NotImplementedError("Unimplemented function: _tian_lemma_4_ii")
+    # subgraph = graph.subgraph(district)
+    topo = [variable for variable in graph.topological_sort()]
+
+    def _one_round(index: int) -> Expression:
+        if index == 0:
+            logger.warning("In _one_round: index = 0.")
+            return_value = _tian_equation_72(
+                vertex=topo[index],
+                graph_probability=graph_probability,
+                graph=graph,
+            )
+            logger.warning("Returning: " + str(return_value))
+            return _tian_equation_72(
+                vertex=topo[index],
+                graph_probability=graph_probability,
+                graph=graph,
+            )
+        else:
+            return_num = _tian_equation_72(
+                vertex=topo[index],
+                graph_probability=graph_probability,
+                graph=graph,
+            )
+            return_den = _tian_equation_72(
+                vertex=topo[index - 1],
+                graph_probability=graph_probability,
+                graph=graph,
+            )
+            logger.warning("In _one_round: topo = " + str(topo))
+            logger.warning("In one_round with index > 1: return_num = " + str(return_num))
+            logger.warning("In one_round with index > 1: return_den = " + str(return_den))
+            logger.warning(
+                "In one_round with index > 1: returning = " + str(Fraction(return_num, return_den))
+            )
+            return Fraction(
+                _tian_equation_72(
+                    vertex=topo[index],
+                    graph_probability=graph_probability,
+                    graph=graph,
+                ),
+                _tian_equation_72(
+                    vertex=topo[index - 1],
+                    graph_probability=graph_probability,
+                    graph=graph,
+                ),
+            )
+
+    product = None
+    for vertex in district:
+        logger.warning("In Lemma 4(ii): vertex = " + str(vertex))
+        index = topo.index(vertex)
+        if product is None:
+            product = _one_round(index)
+            logger.warning("Result of first round is " + str(product))
+        else:
+            tmp = _one_round(index)
+            logger.warning("Result of next round is " + str(tmp))
+            product = Product.safe([product, tmp])
+        logger.warning("\n")
+        logger.warning("Index = " + str(index))
+        logger.warning("Product = " + str(product))
+    logger.warning("Returning product: " + str(product))
+    return product

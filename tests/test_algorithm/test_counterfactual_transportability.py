@@ -301,15 +301,15 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
         it's a test of the Union in the return value for the tested function.
         """
         test1_in = CounterfactualVariable(
-            name="Y", star=None, interventions=(Intervention(name="X", star=False),)
+            name="Y", star=None, interventions=frozenset({Intervention(name="X", star=False)})
         )  # Y @ -X
         # test1_in = (Y @ -X)
         test1_out = {
             CounterfactualVariable(
-                name="Y", star=None, interventions=(Intervention(name="X", star=False),)
+                name="Y", star=None, interventions=frozenset({Intervention(name="X", star=False)})
             ),
             CounterfactualVariable(
-                name="W", star=None, interventions=(Intervention(name="X", star=False),)
+                name="W", star=None, interventions=frozenset({Intervention(name="X", star=False)})
             ),
             Variable(name="Z"),
         }
@@ -322,14 +322,16 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
         test2_in = CounterfactualVariable(
             name="W",
             star=None,
-            interventions=(Intervention(name="Y", star=False), Intervention(name="Z", star=False)),
+            interventions=frozenset(
+                {Intervention(name="Y", star=False), Intervention(name="Z", star=False)}
+            ),
         )  # W @ -Y @ -Z
         test2_out = {
             CounterfactualVariable(
-                name="W", star=None, interventions=(Intervention(name="Z", star=False),)
+                name="W", star=None, interventions=frozenset({Intervention(name="Z", star=False)})
             ),
             CounterfactualVariable(
-                name="X", star=None, interventions=(Intervention(name="Z", star=False),)
+                name="X", star=None, interventions=frozenset({Intervention(name="Z", star=False)})
             ),
         }
         result = get_ancestors_of_counterfactual(event=test2_in, graph=figure_2a_graph)
@@ -340,11 +342,11 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
     def test_example_2_1_3(self):
         """Test the third result of Example 2.1."""
         test3_in = CounterfactualVariable(
-            name="Y", star=None, interventions=(Intervention(name="W", star=False),)
+            name="Y", star=None, interventions=frozenset({Intervention(name="W", star=False)})
         )  # Y @ -W
         test3_out = {
             CounterfactualVariable(
-                name="Y", star=None, interventions=(Intervention(name="W", star=False),)
+                name="Y", star=None, interventions=frozenset({Intervention(name="W", star=False)})
             ),
             Variable(name="X"),
             Variable(name="Z"),
@@ -370,11 +372,11 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
         The problem reduces to just getting ancestors. Source: out of RJC's head.
         """
         test5_in = CounterfactualVariable(
-            name="Y", star=None, interventions=(Intervention(name="Y", star=False),)
+            name="Y", star=None, interventions=frozenset({Intervention(name="Y", star=False)})
         )
         test5_out = {
             CounterfactualVariable(
-                name="Y", star=None, interventions=(Intervention(name="Y", star=False),)
+                name="Y", star=None, interventions=frozenset({Intervention(name="Y", star=False)})
             )
         }
         result = get_ancestors_of_counterfactual(event=test5_in, graph=figure_2a_graph)
@@ -1640,23 +1642,39 @@ class TestTianLemma4ii(cases.GraphTestCase):
             P(Y | (W1, W3, W2, W4, X)),
         ]
     )
-    expected_result_1_num = Product.safe(
-        [
-            Sum.safe(result_piece, [W2, X, Y, W3]),
-            Sum.safe(result_piece, [W3]),
-            Sum.safe(result_piece, [Y, W3]),
-        ]
+    expected_result_1_part_1 = Fraction(
+        Sum.safe(Sum.safe(result_piece, [W3]), [W2, X, Y]), One()
+    )  # Q[W1]/Q[\emptyset]
+    expected_result_1_part_2 = Fraction(
+        Sum.safe(Sum.safe(result_piece, [W3]), [Y]), Sum.safe(Sum.safe(result_piece, [W3]), [X, Y])
+    )  # Q[X]/Q[W2]
+    expected_result_1_part_3 = Fraction(
+        Sum.safe(result_piece, [W3]), Sum.safe(Sum.safe(result_piece, [W3]), [Y])
+    )  # Q[Y]/Q[X]
+    #
+    # A future version of Y0 could improve simplification of mathematical expressions so that
+    # a test using the version of "expected_result_1" commented out below would also pass.
+    # expected_result_1_num = Product.safe(
+    #    [
+    #        Sum.safe(Sum.safe(result_piece, [W3]), [W2, X, Y]),
+    #        Sum.safe(result_piece, [W3]),
+    #        Sum.safe(Sum.safe(result_piece, [W3]), [Y]),
+    #    ]
+    # )
+    # expected_result_1_den = Product.safe(
+    #    [
+    #        # Sum.safe(Sum.safe(result_piece, [W3]),[W1, W2, X, Y]),
+    #        One(),
+    #        Sum.safe(Sum.safe(result_piece, [W3]), [X, Y]),
+    #        Sum.safe(Sum.safe(result_piece, [W3]), [Y]),
+    #    ]
+    # )
+    # expected_result_1 = Fraction(expected_result_1_num, expected_result_1_den)
+    expected_result_1 = Product.safe(
+        [expected_result_1_part_1, expected_result_1_part_2, expected_result_1_part_3]
     )
-    expected_result_1_den = Product.safe(
-        [
-            Sum.safe(result_piece, [W1, W2, W3, X, Y]),
-            Sum.safe(result_piece, [W3, X, Y]),
-            Sum.safe(result_piece, [Y, W3]),
-        ]
-    )
-    expected_result_1 = Fraction(expected_result_1_num, expected_result_1_den)
     expected_result_2_num = Sum.safe(expected_result_1, [W1])
-    expected_result_2_den = Sum.safe(expected_result_1, [W1, Y])
+    expected_result_2_den = Sum.safe(Sum.safe(expected_result_1, [W1]), [Y])
     expected_result_2 = Fraction(expected_result_2_num, expected_result_2_den)
 
     def test_tian_lemma_4_ii_part_1(self):
@@ -1665,10 +1683,12 @@ class TestTianLemma4ii(cases.GraphTestCase):
         Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
         """
         result = _tian_lemma_4_ii(
-            district=[W1, X, Y],
-            variables=[W1, W2, X, Y],
+            district={W1, X, Y},
             graph_probability=Sum.safe(self.result_piece, [W3]),
-            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+            graph=tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}),
+        )
+        logger.warn(
+            "In first test of Lemma 4(ii): expecting this result: " + str(self.expected_result_1)
         )
         self.assert_expr_equal(result, self.expected_result_1)
 
@@ -1677,11 +1697,14 @@ class TestTianLemma4ii(cases.GraphTestCase):
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
         """
+        logger.warn(
+            "In second test of Lemma 4(ii): expecting this result: " + str(self.expected_result_2)
+        )
+        logger.warn("Expected_result_1 = " + str(self.expected_result_1))
         result = _tian_lemma_4_ii(
-            district=[Y],
-            variables=[X, Y],
+            district={Y},
             graph_probability=Sum.safe(self.expected_result_1, [W1]),
-            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+            graph=tian_pearl_figure_9a_graph.subgraph({X, Y}),
         )
         self.assert_expr_equal(result, self.expected_result_2)
 
@@ -1696,30 +1719,19 @@ class TestTianEquation72(cases.GraphTestCase):
         """
         result = _tian_equation_72(
             vertex=W,
-            variables={Z, X, Y, W},
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            topo=[variable for variable in figure_2a_graph.topological_sort()],
+            graph=figure_2a_graph.subgraph({Z, X, Y, W}),
         )
         self.assert_expr_equal(
             result, Sum.safe(P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z), [Y])
         )
-        # Variable not in the graph, i.e., topo
+        # Variable not in the graph
         self.assertRaises(
             KeyError,
             _tian_equation_72,
             vertex={R},
-            variables={R, X, Y, W},
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            topo=[variable for variable in figure_2a_graph.topological_sort()],
-        )
-        # Variable not in the variables set
-        self.assertRaises(
-            KeyError,
-            _tian_equation_72,
-            vertex={W},
-            variables={Z, X, Y},
-            graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            topo=[variable for variable in figure_2a_graph.topological_sort()],
+            graph=figure_2a_graph.subgraph({Z, X, Y, W}),
         )
 
     def test_tian_equation_72_part_2(self):
@@ -1729,8 +1741,7 @@ class TestTianEquation72(cases.GraphTestCase):
         """
         result = _tian_equation_72(
             vertex=None,
-            variables={Z, X, Y, W},
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            topo=[variable for variable in figure_2a_graph.topological_sort()],
+            graph=figure_2a_graph.subgraph({Z, X, Y, W}),
         )
         self.assert_expr_equal(result, One())
