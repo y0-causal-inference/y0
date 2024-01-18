@@ -152,11 +152,11 @@ class NxMixedGraph:
 
         ananke_admg = self.to_admg()
         ananke_dag: DAG = ananke_admg.canonical_dag()
-        ananke_nodes = set(ananke_dag.vertices)
-        latents = {l for l in ananke_nodes if l.startswith("U_")}
+        verticies = set(ananke_dag.vertices)
+        latents = {vertex for vertex in verticies if vertex.startswith("U_")}
         for latent in latents:
-            if latent not in ananke_nodes:
-                raise ValueError(f'Latent "{latent}" is not in nodes: {ananke_nodes}')
+            if latent not in verticies:
+                raise ValueError(f'Latent "{latent}" is not in nodes: {verticies}')
         model = BayesianNetwork(ebunch=ananke_dag.di_edges, latents=latents)
         return model
 
