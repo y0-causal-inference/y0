@@ -9,6 +9,7 @@ import json
 import warnings
 from dataclasses import dataclass, field
 from typing import (
+    TYPE_CHECKING,
     Any,
     Collection,
     Iterable,
@@ -25,6 +26,10 @@ from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
 from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
+
+if TYPE_CHECKING:
+    import ananke.graphs
+    import pgmpy.models
 
 __all__ = [
     "NxMixedGraph",
@@ -127,7 +132,7 @@ class NxMixedGraph:
         """Get the nodes in the graph."""
         return self.directed.nodes()
 
-    def to_admg(self):
+    def to_admg(self) -> "ananke.graphs.ADMG":
         """Get an ananke ADMG."""
         self.raise_on_counterfactual()
         from ananke.graphs import ADMG
@@ -139,6 +144,27 @@ class NxMixedGraph:
             di_edges=[(u.name, v.name) for u, v in self.directed.edges()],
             bi_edges=[(u.name, v.name) for u, v in self.undirected.edges()],
         )
+
+    def to_pgmpy_bayesian_network(self) -> "pgmpy.models.BayesianNetwork":
+        """Convert a mixed graph to an equivalent :class:`pgmpy.BayesianNetwork`."""
+        from ananke.graphs import DAG
+        from pgmpy.models import BayesianNetwork
+
+        ananke_admg = self.to_admg()
+        ananke_dag: DAG = ananke_admg.canonical_dag()
+        ananke_nodes = set(ananke_dag.vertices)
+        latents = {l for l in ananke_nodes if l.startswith("U_")}
+        for latent in latents:
+            if latent not in ananke_nodes:
+                raise ValueError(f'Latent "{latent}" is not in nodes: {ananke_nodes}')
+        model = BayesianNetwork(ebunch=ananke_dag.di_edges, latents=latents)
+        return model
+
+    def to_pgmpy_causal_inference(self):
+        """Get a pgmpy causal inference object."""
+        from pgmpy.inference.CausalInference import CausalInference
+
+        return CausalInference(self.to_pgmpy_bayesian_network())
 
     @classmethod
     def from_admg(cls, admg) -> NxMixedGraph:
@@ -638,7 +664,7 @@ def _latent_dag(
     """Create a labeled DAG where bi-directed edges are assigned as nodes upstream of their two incident nodes.
 
     :param di_edges: A list of directional edges
-    :param bi_edges: A list of bi-directional edges
+    :param bi_edges: A list of bidirectional edges
     :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
     :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
     :param tag: The key for node data describing whether it is latent.
