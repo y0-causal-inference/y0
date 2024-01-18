@@ -646,7 +646,7 @@ class TestToBayesianNetwork(unittest.TestCase):
         """Tests converting a mixed graph with latents to an equivalent :class:`pgmpy.BayesianNetwork`."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)])
         expected = BayesianNetwork(
-            ebunch=[("X", "Y"), ("U_XY", "X"), ("U_XY", "Y")], latents=["U_XY"]
+            ebunch=[("X", "Y"), ("U_X_Y", "X"), ("U_X_Y", "Y")], latents=["U_X_Y"]
         )
         actual = graph.to_pgmpy_bayesian_network()
         self.assert_bayesian_equal(expected, actual)

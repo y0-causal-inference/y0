@@ -147,17 +147,16 @@ class NxMixedGraph:
 
     def to_pgmpy_bayesian_network(self) -> "pgmpy.models.BayesianNetwork":
         """Convert a mixed graph to an equivalent :class:`pgmpy.BayesianNetwork`."""
-        from ananke.graphs import DAG
         from pgmpy.models import BayesianNetwork
 
-        ananke_admg = self.to_admg()
-        ananke_dag: DAG = ananke_admg.canonical_dag()
-        verticies = set(ananke_dag.vertices)
-        latents = {vertex for vertex in verticies if vertex.startswith("U_")}
-        for latent in latents:
-            if latent not in verticies:
-                raise ValueError(f'Latent "{latent}" is not in nodes: {verticies}')
-        model = BayesianNetwork(ebunch=ananke_dag.di_edges, latents=latents)
+        edges = [(u.name, v.name) for u, v in self.directed.edges()]
+        latents = set()
+        for u, v in self.undirected.edges():
+            latent = f"U_{u.name}_{v.name}"
+            latents.add(latent)
+            edges.append((latent, u.name))
+            edges.append((latent, v.name))
+        model = BayesianNetwork(ebunch=edges, latents=latents)
         return model
 
     def to_pgmpy_causal_inference(self):
