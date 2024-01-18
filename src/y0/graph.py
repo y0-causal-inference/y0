@@ -29,6 +29,7 @@ from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_
 
 if TYPE_CHECKING:
     import ananke.graphs
+    import pgmpy.inference.CausalInference
     import pgmpy.models
 
 __all__ = [
@@ -159,7 +160,7 @@ class NxMixedGraph:
         model = BayesianNetwork(ebunch=edges, latents=latents)
         return model
 
-    def to_pgmpy_causal_inference(self):
+    def to_pgmpy_causal_inference(self) -> "pgmpy.inference.CausalInference.CausalInference":
         """Get a pgmpy causal inference object."""
         from pgmpy.inference.CausalInference import CausalInference
 
