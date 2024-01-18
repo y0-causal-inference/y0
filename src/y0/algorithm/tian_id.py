@@ -2,7 +2,7 @@
 
 import logging
 
-from y0.dsl import Expression, Fraction, One, P, Product, Sum, Variable
+from y0.dsl import Expression, Fraction, One, P, Probability, Product, Sum, Variable
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -54,7 +54,7 @@ def _do_tian_pearl_identify_line_1(
 def _tian_lemma_1_i(
     *,
     district: set[Variable],
-    variables: set[Variable],
+    graph_probability: Probability,
     topo: list[Variable],
 ) -> Expression | None:
     """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equation 37.
@@ -62,19 +62,17 @@ def _tian_lemma_1_i(
     This algorithm uses part (i) of Lemma 1 of Tian03a.
 
     :param district: A list of variables comprising the district for which we're computing a C factor.
-    :param variables: The variables in the graph under analysis, which may be a subgraph of the variables
-                      included with the 'topo' paramter.
-    :param topo: A list of variables in topological order that includes at least all variables in v.
+    :param graph_probability: the Q value for the full graph.
+
+    :param topo: a topological sort of the vertexes in the graph.
     :raises TypeError: the district or variable set from which it is drawn contained no variables.
-    :raises KeyError: a variable in the district is not in the variable set passed in as a parameter.
+    :raises KeyError: a variable in the district is not in the topological sort of the graph vertexes.
     :returns: An expression for Q[district].
     """
-    # TODO: Design question: is it faster to have the nested for loops here, or to only take in the district and
-    #       a graph, and run a topological sort on the graph with every call to this lemma? I.e., what is the
-    #       running time of topological sort on a graph?
-    # (It's O(V+E): https://stackoverflow.com/questions/31010922/
-    # how-do-i-make-my-topological-sort-to-be-linear-time-code-is-well-annotated)
-    # So when we're doing code integration at the end, we can come back and optimize this code.
+    # (Topological sort is O(V+E): https://stackoverflow.com/questions/31010922/)
+
+    variables = set(topo)
+    logger.warning("In _tian_lemma_1_i: topo = " + str(topo))
     result = None
     if len(district) == 0 or len(variables) == 0:
         raise TypeError(
@@ -82,18 +80,20 @@ def _tian_lemma_1_i(
         )
     if any(v not in variables for v in district):
         raise KeyError(
-            "Error in _tian_lemma_1_i: a variable in the district is not in the variable set passed in as a parameter."
+            "Error in _tian_lemma_1_i: a variable in the district is not in the topological sort of the graph vertexes."
         )
     for variable in district:
         preceding_variables = topo[: topo.index(variable)]
-        conditioned_variables = [
-            variable for variable in preceding_variables if variable in variables
-        ]  # V^(i-1)
+        conditioned_variables = list(
+            set(graph_probability.parents).union(
+                {variable for variable in preceding_variables if variable in variables}
+            )
+        )  # V^(i-1)
         tmp = P(variable | conditioned_variables)  # v_i
         if result is None:
             result = tmp
         else:
-            result *= tmp
+            result = Product.safe([result, tmp])
     return result
 
 

@@ -1507,7 +1507,7 @@ class TestIdentify(cases.GraphTestCase):
             graph=soft_interventions_figure_3_graph,
             topo=[variable for variable in soft_interventions_figure_3_graph.topological_sort()],
         )
-        # Raises a TypeError because
+        # Raises a TypeError
         self.assertRaises(
             TypeError,
             tian_pearl_identify,
@@ -1610,12 +1610,13 @@ class TestTianLemma1i(cases.GraphTestCase):
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
         """
+        topo = [W1, W3, W2, W4, X, Y]
+        part_1_graph = tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
         result_1 = _tian_lemma_1_i(
             district=[Y, W1, W3, W2, X],
-            variables=[X, W4, W2, W3, W1, Y],
-            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+            topo=topo,
+            graph_probability=P([vertex for vertex in part_1_graph.nodes()]),
         )
-        logger.warn("In test tian lemma 1(i): result = " + str(result_1))
         self.assert_expr_equal(
             result_1,
             Product.safe(
@@ -1625,6 +1626,48 @@ class TestTianLemma1i(cases.GraphTestCase):
                     P(W2 | (W3, W1)),
                     P(X | (W1, W3, W2, W4)),
                     P(Y | (W1, W3, W2, W4, X)),
+                ]
+            ),
+        )
+        # District contains no variables
+        self.assertRaises(
+            TypeError,
+            _tian_lemma_1_i,
+            district=[],
+            topo=topo,
+            graph_probability=P([vertex for vertex in part_1_graph.nodes()]),
+        )
+        # District variable not in topo set
+        self.assertRaises(
+            KeyError,
+            _tian_lemma_1_i,
+            district=[Y, W1, W3, W2, X, Z],
+            topo=topo,
+            graph_probability=P([vertex for vertex in part_1_graph.nodes()]),
+        )
+
+    def test_tian_lemma_1_i_part_2(self):
+        """Second test of Lemma 1, part (i) (Equation 37 in [tian03a]_.
+
+        This one handles a graph_probability conditioning on variables.
+        Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
+        """
+        # working with tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
+        topo = [W1, W3, W2, W4, X, Y]
+        result_1 = _tian_lemma_1_i(
+            district=[Y, W1, W3, W2, X],
+            topo=topo,
+            graph_probability=P(Y, X, W1, W2, W3, W4 | W5),
+        )
+        self.assert_expr_equal(
+            result_1,
+            Product.safe(
+                [
+                    P(W1 | W5),
+                    P(W3 | (W1, W5)),
+                    P(W2 | (W3, W1, W5)),
+                    P(X | (W1, W3, W2, W4, W5)),
+                    P(Y | (W1, W3, W2, W4, X, W5)),
                 ]
             ),
         )
