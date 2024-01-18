@@ -95,7 +95,7 @@ def _tian_equation_72(
     *,
     vertex: Variable | None,
     graph_probability: Expression,  # Q[H]
-    graph: NxMixedGraph,
+    topo: list[Variable],
 ) -> Expression:
     r"""Compute the probability of a set of variables according to [tian03a]_, Equation 72.
 
@@ -124,19 +124,17 @@ def _tian_equation_72(
 
     :param vertex: The $i^{th}$ variable in topological order
     :param graph_probability: The probability of $H$ corresponding to $Q[H]$ in Equation 72.
-    :param graph: The subgraph under analysis, $G_{H}$.
+    :param topo: a topological sorting of the subgraph under analysis, $G_{H}$.
     :raises KeyError: the input vertex is not in the variable set or not in the topological ordering of graph vertices.
     :returns: An expression for $Q[H^{(i)}]$.
     """
     # $Q[H^{(0)}] = Q[\emptyset] = 1$
     if vertex is None:
         return One()
-    # We need to compute a topological order for the subgraph H each time we call this function.
-    variables = set(graph.nodes())
-    topo = list(graph.topological_sort())
-    logger.warning("In _tian_equation_72: input vertex is %s", vertex)
-    logger.warning("   and variables are %s", variables)
-    logger.warning("   and topo is %s", topo)
+    variables = set(topo)
+    logger.warning("In _tian_equation_72: input vertex is " + str(vertex))
+    logger.warning("   and variables are " + str(variables))
+    logger.warning("   and topo is " + str(topo))
     if vertex not in variables:
         raise KeyError("In _tian_equation_72: input vertex %s is not in the input graph.", vertex)
 
@@ -181,7 +179,7 @@ def _tian_lemma_4_ii(
     :param district: A list of variables comprising the district for which we're computing a C factor.
     :param graph_probability: The expression Q corresponding to the set of variables in v. It is
         Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
-    :param graph: The subgraph $G_{H}$ in question.
+    :param graph: the subgraph $G_{H}$ in question.
     :returns: An expression for Q[district].
     """
     # subgraph = graph.subgraph(district)
@@ -222,4 +220,4 @@ def _tian_lemma_4_ii(
 
     rv = Product.safe(expressions)
     logger.warning("Returning product: %s", rv)
-    return product
+    return rv

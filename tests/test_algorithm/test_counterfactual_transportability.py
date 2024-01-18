@@ -1760,10 +1760,11 @@ class TestTianEquation72(cases.GraphTestCase):
 
         Source: RJC's mind.
         """
+        topo = [variable for variable in figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()]
         result = _tian_equation_72(
             vertex=W,
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            graph=figure_2a_graph.subgraph({Z, X, Y, W}),
+            topo=topo,
         )
         self.assert_expr_equal(
             result, Sum.safe(P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z), [Y])
@@ -1774,7 +1775,7 @@ class TestTianEquation72(cases.GraphTestCase):
             _tian_equation_72,
             vertex={R},
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            graph=figure_2a_graph.subgraph({Z, X, Y, W}),
+            topo=topo,
         )
 
     def test_tian_equation_72_part_2(self):
@@ -1782,9 +1783,10 @@ class TestTianEquation72(cases.GraphTestCase):
 
         Source: RJC's mind.
         """
+        topo = [variable for variable in figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()]
         result = _tian_equation_72(
             vertex=None,
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            graph=figure_2a_graph.subgraph({Z, X, Y, W}),
+            topo=topo,
         )
         self.assert_expr_equal(result, One())
