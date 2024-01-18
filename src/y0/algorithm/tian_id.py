@@ -139,9 +139,14 @@ def _tian_equation_72(
     logger.warning("   and topo is %s", topo)
     if vertex not in variables:
         raise KeyError("In _tian_equation_72: input vertex %s is not in the input graph.", vertex)
-    # FIXME since topological sort comes from graph and so does variable list,
-    #  if v in variables will always be true
-    ranges = [v for v in topo[topo.index(vertex) + 1 :] if v in variables]
+
+    ranges = [
+        v
+        for v in topo[topo.index(vertex) + 1 :]
+        # FIXME since topological sort comes from graph and so does variable list,
+        #  if v in variables will always be true
+        # if v in variables
+    ]
     return Sum.safe(graph_probability, ranges)
 
 
