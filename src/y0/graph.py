@@ -24,7 +24,15 @@ import networkx as nx
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
+from .dsl import (
+    CounterfactualVariable,
+    Intervention,
+    P,
+    Probability,
+    Variable,
+    vmap_adj,
+    vmap_pairs,
+)
 
 __all__ = [
     "NxMixedGraph",
