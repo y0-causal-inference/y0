@@ -1,6 +1,7 @@
 """An implementation of Tian and Pearl's identification algorithm from [tian03a]_."""
 
 import logging
+from typing import Collection
 
 from y0.dsl import Expression, Fraction, One, P, Probability, Product, Sum, Variable
 from y0.graph import NxMixedGraph
@@ -53,10 +54,10 @@ def _do_tian_pearl_identify_line_1(
 
 def _tian_lemma_1_i(
     *,
-    district: set[Variable],
+    district: Collection[Variable],
     graph_probability: Probability,
     topo: list[Variable],
-) -> Expression | None:
+) -> Expression:
     """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equation 37.
 
     This algorithm uses part (i) of Lemma 1 of Tian03a.
@@ -70,10 +71,9 @@ def _tian_lemma_1_i(
     :returns: An expression for Q[district].
     """
     # (Topological sort is O(V+E): https://stackoverflow.com/questions/31010922/)
-
     variables = set(topo)
     logger.warning("In _tian_lemma_1_i: topo = " + str(topo))
-    result = None
+    probabilities = []
     if len(district) == 0 or len(variables) == 0:
         raise TypeError(
             "Error in _tian_lemma_1_i: the district or variable set from which it is drawn contained no variables."
@@ -82,19 +82,13 @@ def _tian_lemma_1_i(
         raise KeyError(
             "Error in _tian_lemma_1_i: a variable in the district is not in the topological sort of the graph vertexes."
         )
+    graph_probability_parents = set(graph_probability.parents)
     for variable in district:
         preceding_variables = topo[: topo.index(variable)]
-        conditioned_variables = list(
-            set(graph_probability.parents).union(
-                {variable for variable in preceding_variables if variable in variables}
-            )
-        )  # V^(i-1)
-        tmp = P(variable | conditioned_variables)  # v_i
-        if result is None:
-            result = tmp
-        else:
-            result = Product.safe([result, tmp])
-    return result
+        conditioned_variables = graph_probability_parents.union(preceding_variables)  # V^(i-1)
+        probability = P(variable | conditioned_variables)  # v_i
+        probabilities.append(probability)
+    return Product.safe(probabilities)
 
 
 def _tian_equation_72(
@@ -138,24 +132,22 @@ def _tian_equation_72(
     if vertex is None:
         return One()
     # We need to compute a topological order for the subgraph H each time we call this function.
-    variables = {node for node in graph.nodes()}
-    topo = [variable for variable in graph.topological_sort()]
-    logger.warning("In _tian_equation_72: input vertex is " + str(vertex))
-    logger.warning("   and variables are " + str(variables))
-    logger.warning("   and topo is " + str(topo))
+    variables = set(graph.nodes())
+    topo = list(graph.topological_sort())
+    logger.warning("In _tian_equation_72: input vertex is %s", vertex)
+    logger.warning("   and variables are %s", variables)
+    logger.warning("   and topo is %s", topo)
     if vertex not in variables:
-        raise KeyError("In _tian_equation_72: input vertex is not in the input graph.")
-    return Sum.safe(
-        graph_probability, [v for v in topo[topo.index(vertex) + 1 :] if v in variables]
-    )
+        raise KeyError("In _tian_equation_72: input vertex %s is not in the input graph.", vertex)
+    # FIXME since topological sort comes from graph and so does variable list,
+    #  if v in variables will always be true
+    ranges = [v for v in topo[topo.index(vertex) + 1 :] if v in variables]
+    return Sum.safe(graph_probability, ranges)
 
 
 def _tian_lemma_4_ii(
-    *,
-    district: set[Variable],
-    graph_probability: Expression,
-    graph: NxMixedGraph,
-) -> Expression | None:
+    *, district: set[Variable], graph_probability: Expression, graph: NxMixedGraph
+) -> Expression:
     r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equations 71 and 72.
 
     This algorithm uses part (ii) of Lemma 4 of [tian03a]_. The context for Equations 71 and 72 follow:
@@ -188,65 +180,41 @@ def _tian_lemma_4_ii(
     :returns: An expression for Q[district].
     """
     # subgraph = graph.subgraph(district)
-    topo = [variable for variable in graph.topological_sort()]
+    topo = list(graph.topological_sort())
 
-    def _one_round(index: int) -> Expression:
+    def _get_expression_from_index(index: int) -> Expression:
+        current_index_expr = _tian_equation_72(
+            vertex=topo[index], graph_probability=graph_probability, graph=graph
+        )
         if index == 0:
-            logger.warning("In _one_round: index = 0.")
-            return_value = _tian_equation_72(
-                vertex=topo[index],
-                graph_probability=graph_probability,
-                graph=graph,
-            )
-            logger.warning("Returning: " + str(return_value))
-            return _tian_equation_72(
-                vertex=topo[index],
-                graph_probability=graph_probability,
-                graph=graph,
-            )
-        else:
-            return_num = _tian_equation_72(
-                vertex=topo[index],
-                graph_probability=graph_probability,
-                graph=graph,
-            )
-            return_den = _tian_equation_72(
-                vertex=topo[index - 1],
-                graph_probability=graph_probability,
-                graph=graph,
-            )
-            logger.warning("In _one_round: topo = " + str(topo))
-            logger.warning("In one_round with index > 1: return_num = " + str(return_num))
-            logger.warning("In one_round with index > 1: return_den = " + str(return_den))
-            logger.warning(
-                "In one_round with index > 1: returning = " + str(Fraction(return_num, return_den))
-            )
-            return Fraction(
-                _tian_equation_72(
-                    vertex=topo[index],
-                    graph_probability=graph_probability,
-                    graph=graph,
-                ),
-                _tian_equation_72(
-                    vertex=topo[index - 1],
-                    graph_probability=graph_probability,
-                    graph=graph,
-                ),
-            )
+            logger.warning("In _one_round: index = 0\n  returning %s", current_index_expr)
+            return current_index_expr
+        previous_index_expr = _tian_equation_72(
+            vertex=topo[index - 1], graph_probability=graph_probability, graph=graph
+        )
+        rv = Fraction(current_index_expr, previous_index_expr)
+        logger.warning(
+            "In one_round with index > 1:\n\ttopo: %s\n\treturn_num: %s\n\treturn_den: %s\n\treturning: %s",
+            topo,
+            current_index_expr,
+            previous_index_expr,
+            rv,
+        )
+        return rv
 
-    product = None
-    for vertex in district:
+    expressions = []
+    for i, vertex in enumerate(district):
         logger.warning("In Lemma 4(ii): vertex = " + str(vertex))
         index = topo.index(vertex)
-        if product is None:
-            product = _one_round(index)
+        if i == 0:
             logger.warning("Result of first round is " + str(product))
         else:
-            tmp = _one_round(index)
             logger.warning("Result of next round is " + str(tmp))
-            product = Product.safe([product, tmp])
-        logger.warning("\n")
-        logger.warning("Index = " + str(index))
-        logger.warning("Product = " + str(product))
-    logger.warning("Returning product: " + str(product))
+        expression = _get_expression_from_index(index)
+        expressions.append(expression)
+
+        logger.warning("\nIndex = %d, Expression = %s", index, expression)
+
+    rv = Product.safe(expressions)
+    logger.warning("Returning product: %s", rv)
     return product
