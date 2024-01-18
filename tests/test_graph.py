@@ -7,6 +7,7 @@ from textwrap import dedent
 from typing import Set, Tuple
 
 import networkx as nx
+from pgmpy.models import BayesianNetwork
 
 from y0.dsl import A, B, C, D, M, Variable, X, Y, Z
 from y0.examples import SARS_SMALL_GRAPH, Example, examples, napkin, verma_1
@@ -631,3 +632,28 @@ def _ananke_a_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
 def _ananke_p_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
     admg = graph.to_admg()
     return 0 == len(admg.district(treatment.name).intersection(admg.children([treatment.name])))
+
+
+class TestToBayesianNetwork(unittest.TestCase):
+    """Tests converting a mixed graph to an equivalent :class:`pgmpy.BayesianNetwork`."""
+
+    def assert_bayesian_equal(self, expected: BayesianNetwork, actual: BayesianNetwork) -> None:
+        """Compare two instances of :class:`pgmpy.BayesianNetwork`."""
+        self.assertEqual(set(expected.edges), set(actual.edges))
+        self.assertEqual(expected.latents, actual.latents)
+
+    def test_graph_with_latents(self):
+        """Tests converting a mixed graph with latents to an equivalent :class:`pgmpy.BayesianNetwork`."""
+        graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)])
+        expected = BayesianNetwork(
+            ebunch=[("X", "Y"), ("U_XY", "X"), ("U_XY", "Y")], latents=["U_XY"]
+        )
+        actual = graph.to_pgmpy_bayesian_network()
+        self.assert_bayesian_equal(expected, actual)
+
+    def test_graph_without_latents(self):
+        """Tests converting a mixed graph without latents to an equivalent :class:`pgmpy.BayesianNetwork`."""
+        graph = NxMixedGraph.from_edges(directed=[(X, Y)])
+        expected = BayesianNetwork(ebunch=[("X", "Y")])
+        actual = graph.to_pgmpy_bayesian_network()
+        self.assert_bayesian_equal(expected, actual)
