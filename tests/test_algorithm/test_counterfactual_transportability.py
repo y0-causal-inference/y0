@@ -1615,7 +1615,7 @@ class TestTianLemma1i(cases.GraphTestCase):
         result_1 = _tian_lemma_1_i(
             district=[Y, W1, W3, W2, X],
             topo=topo,
-            graph_probability=P([vertex for vertex in part_1_graph.nodes()]),
+            graph_probability=part_1_graph.joint_probability(),
         )
         self.assert_expr_equal(
             result_1,
@@ -1635,7 +1635,7 @@ class TestTianLemma1i(cases.GraphTestCase):
             _tian_lemma_1_i,
             district=[],
             topo=topo,
-            graph_probability=P([vertex for vertex in part_1_graph.nodes()]),
+            graph_probability=part_1_graph.joint_probability(),
         )
         # District variable not in topo set
         self.assertRaises(
@@ -1643,7 +1643,7 @@ class TestTianLemma1i(cases.GraphTestCase):
             _tian_lemma_1_i,
             district=[Y, W1, W3, W2, X, Z],
             topo=topo,
-            graph_probability=P([vertex for vertex in part_1_graph.nodes()]),
+            graph_probability=part_1_graph.joint_probability(),
         )
 
     def test_tian_lemma_1_i_part_2(self):

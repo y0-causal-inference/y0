@@ -127,6 +127,10 @@ class NxMixedGraph:
         """Get the nodes in the graph."""
         return self.directed.nodes()
 
+    def joint_probability(self) -> Probability:
+        """Get the joint probability over all nodes."""
+        return P(self.nodes())
+
     def to_admg(self):
         """Get an ananke ADMG."""
         self.raise_on_counterfactual()
