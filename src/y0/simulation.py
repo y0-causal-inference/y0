@@ -26,6 +26,7 @@ from sklearn.linear_model import LinearRegression
 from tqdm.auto import trange
 
 from .algorithm.conditional_independencies import get_conditional_independencies
+from .algorithm.estimation.linear_scm import get_single_door
 from .dsl import V1, V2, V3, V4, V5, V6, Variable
 from .graph import NxMixedGraph
 from .struct import DSeparationJudgement
@@ -140,7 +141,9 @@ class LinearSCM:
     def __init__(
         self,
         graph: NxMixedGraph,
+        *,
         generators: Optional[Mapping[Variable, Generator]] = None,
+        data: Optional[pd.DataFrame] = None,
         weights: Optional[Mapping[Tuple[Variable, Variable], float]] = None,
     ) -> None:
         """Prepare a simulation.
@@ -148,13 +151,16 @@ class LinearSCM:
         :param graph: The ADMG
         :param generators: Generator functions for each node. If none given, defaults to uniformly
             distributed between -1.0 and 1.0.
+        :param data: If given, estimates weights.
         :param weights: Weights for each directed edge. If none given, defaults to uniformly distributed
             weights between -1.0 and 1.0.
         :raises ValueError: if the generators or weights are given and don't match the graph
         """
         self.graph = graph
 
-        if weights is None:
+        if data is not None:
+            self.weights = get_single_door(graph, data)
+        elif weights is None:
             self.weights = {edge: uniform(low=0.0, high=1.0) for edge in graph.directed.edges()}
         elif set(weights) != set(self.graph.directed.edges()):
             raise ValueError("given weights do not exactly match directed edges in the graph")
