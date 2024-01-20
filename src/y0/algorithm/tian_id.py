@@ -65,9 +65,9 @@ def _tian_lemma_1_i(
     :param district: A list of variables comprising the district for which we're computing a C factor.
     :param graph_probability: the Q value for the full graph.
 
-    :param topo: a topological sort of the vertexes in the graph.
+    :param topo: a topological sort of the vertices in the graph.
     :raises TypeError: the district or variable set from which it is drawn contained no variables.
-    :raises KeyError: a variable in the district is not in the topological sort of the graph vertexes.
+    :raises KeyError: a variable in the district is not in the topological sort of the graph vertices.
     :returns: An expression for Q[district].
     """
     # (Topological sort is O(V+E): https://stackoverflow.com/questions/31010922/)
@@ -80,8 +80,11 @@ def _tian_lemma_1_i(
         )
     if any(v not in variables for v in district):
         raise KeyError(
-            "Error in _tian_lemma_1_i: a variable in the district is not in the topological sort of the graph vertexes."
+            "Error in _tian_lemma_1_i: a variable in the district is not in the topological sort of the graph vertices."
         )
+    # A little subtle so it deserves a comment: the Q value passed into Tian's Identify function may
+    # already be conditioned on some variables that are in G but not in the subgraph H. In applying Lemma 1
+    # (but not Lemma 4), we have to make sure we're also conditioning on those variables.
     graph_probability_parents = set(graph_probability.parents)
     for variable in district:
         preceding_variables = topo[: topo.index(variable)]
@@ -138,13 +141,7 @@ def _tian_equation_72(
     if vertex not in variables:
         raise KeyError("In _tian_equation_72: input vertex %s is not in the input graph.", vertex)
 
-    ranges = [
-        v
-        for v in topo[topo.index(vertex) + 1 :]
-        # FIXME since topological sort comes from graph and so does variable list,
-        #  if v in variables will always be true
-        # if v in variables
-    ]
+    ranges = [v for v in topo[topo.index(vertex) + 1 :]]
     return Sum.safe(graph_probability, ranges)
 
 
@@ -182,18 +179,18 @@ def _tian_lemma_4_ii(
     :param graph: the subgraph $G_{H}$ in question.
     :returns: An expression for Q[district].
     """
-    # subgraph = graph.subgraph(district)
     topo = list(graph.topological_sort())
 
+    # Compute $Q[H^{i}]$ given i
     def _get_expression_from_index(index: int) -> Expression:
         current_index_expr = _tian_equation_72(
-            vertex=topo[index], graph_probability=graph_probability, graph=graph
+            vertex=topo[index], graph_probability=graph_probability, topo=topo
         )
         if index == 0:
             logger.warning("In _one_round: index = 0\n  returning %s", current_index_expr)
             return current_index_expr
         previous_index_expr = _tian_equation_72(
-            vertex=topo[index - 1], graph_probability=graph_probability, graph=graph
+            vertex=topo[index - 1], graph_probability=graph_probability, topo=topo
         )
         rv = Fraction(current_index_expr, previous_index_expr)
         logger.warning(
@@ -206,18 +203,37 @@ def _tian_lemma_4_ii(
         return rv
 
     expressions = []
-    for i, vertex in enumerate(district):
+    for _, vertex in enumerate(district):
         logger.warning("In Lemma 4(ii): vertex = " + str(vertex))
         index = topo.index(vertex)
-        if i == 0:
-            logger.warning("Result of first round is " + str(product))
-        else:
-            logger.warning("Result of next round is " + str(tmp))
         expression = _get_expression_from_index(index)
         expressions.append(expression)
-
-        logger.warning("\nIndex = %d, Expression = %s", index, expression)
+        logger.warning("\nIndex = %d, Q[H^(i)] = %s", index, expression)
 
     rv = Product.safe(expressions)
     logger.warning("Returning product: %s", rv)
     return rv
+
+
+def _compute_c_factor(
+    *,
+    district: list[Variable],
+    subgraph_variables: list[Variable],
+    subgraph_probability: Expression,
+    graph_topo: list[Variable],
+) -> Expression:
+    """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_ and [santikka20a]_.
+
+    This algorithm uses both Lemma 1, part (i) of Tian03a (Equation 37) and Lemma 4 of Tian 03a (Equations 71 and 72).
+
+    :param district: A list of variables comprising the district C for which we're computing a C factor.
+    :param subgraph_variables: The variables in the subgraph T under analysis.
+    :param subgraph_probability: The expression Q corresponding to the set of variables in T. As an example, this
+              quantity would be Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
+    :param graph_topo: A list of variables in topological order that includes all variables in G, where T is contained
+              in G.
+    :returns: An expression for Q[district].
+    """
+    # Start by getting a new topo based on the subgraph
+
+    raise NotImplementedError("Unimplemented function: _compute_c_factor")

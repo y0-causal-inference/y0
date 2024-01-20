@@ -980,26 +980,3 @@ def ctf_tr() -> None:
 def ctf_tru() -> None:
     """Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2)."""
     raise NotImplementedError("Unimplemented function: ctfTRu")
-
-
-def _compute_c_factor(
-    *,
-    district: list[Variable],
-    variables: list[Variable],
-    graph_probability: Expression,
-    topo: list[Variable],
-) -> Expression:
-    """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_ and [santikka20a]_.
-
-    This algorithm uses both Lemma 1, part (i) of Tian03a (Equation 37) and Lemma 4 of Tian 03a (Equations 71 and 72).
-
-    :param district: A list of variables comprising the district for which we're computing a C factor.
-    :param variables: The variables in the graph under analysis.
-    :param graph_probability: The expression Q corresponding to the set of variables in v. As an example, this quantity
-              would be Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
-    :param topo: A list of variables in topological order that includes all variables in v and may contain more
-              (as this function is often called from recursive calls to tian_pearl_identify, so v often represents a
-              subgraph of topo).
-    :returns: An expression for Q[district].
-    """
-    raise NotImplementedError("Unimplemented function: _compute_c_factor")

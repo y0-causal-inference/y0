@@ -19,7 +19,6 @@ from networkx import NetworkXError
 from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
     _any_variables_with_inconsistent_values,
-    _compute_c_factor,
     _reduce_reflexive_counterfactual_variables_to_interventions,
     _remove_repeated_variables_and_values,
     _split_event_by_reflexivity,
@@ -36,6 +35,7 @@ from y0.algorithm.counterfactual_transportability import (
     simplify,
 )
 from y0.algorithm.tian_id import (
+    _compute_c_factor,
     _tian_equation_72,
     _tian_lemma_1_i,
     _tian_lemma_4_ii,
@@ -1572,9 +1572,9 @@ class TestComputeCFactor(cases.GraphTestCase):
         """First test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
         result_1 = _compute_c_factor(
             district=[Y, W1, W3, W2, X],
-            variables=[X, W4, W2, W3, W1, Y],
-            graph_probability=P(W1, W2, W3, W4, X, Y),
-            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+            subgraph_variables=[X, W4, W2, W3, W1, Y],
+            subgraph_probability=P(W1, W2, W3, W4, X, Y),
+            graph_topo=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
         self.assert_expr_equal(result_1, self.expected_result_1)
 
@@ -1582,9 +1582,9 @@ class TestComputeCFactor(cases.GraphTestCase):
         """Second test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
         result_2 = _compute_c_factor(
             district=[W1, X, Y],
-            variables=[W1, W2, X, Y],
-            graph_probability=Sum.safe(self.expected_result_1, [W3]),
-            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+            subgraph_variables=[W1, W2, X, Y],
+            subgraph_probability=Sum.safe(self.expected_result_1, [W3]),
+            graph_topo=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
         self.assert_expr_equal(result_2, self.expected_result_2)
 
@@ -1592,14 +1592,32 @@ class TestComputeCFactor(cases.GraphTestCase):
         """Third test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
         result_3 = _compute_c_factor(
             district=[Y],
-            variables=[X, Y],
-            graph_probability=Sum.safe(self.expected_result_2, [W1]),
-            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+            subgraph_variables=[X, Y],
+            subgraph_probability=Sum.safe(self.expected_result_2, [W1]),
+            graph_topo=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
         expected_result_3_num = Sum.safe(self.expected_result_2, [W1])
         expected_result_3_den = Sum.safe(self.expected_result_2, [W1, Y])
         expected_result_3 = Fraction(expected_result_3_num, expected_result_3_den)
         self.assert_expr_equal(result_3, expected_result_3)
+
+    def test_compute_c_factor_4(self):
+        """Fourth test of the Compute C Factor function.
+
+        Source: [tian03a], the example in section 4.6.
+        """
+        topo = list(tian_pearl_figure_9a_graph.topological_sort())
+        district = [W1, W3, W2, X, Y]
+        subgraph_variables = [W1, W3, W2, W4, X, Y]
+        subgraph_probability = P(W1, W3, W2, W4, X, Y)
+        expected_result_4 = P(X, Y | [W1, W2, W3, W4]) * P(W1, W2, W3)
+        result_4 = _compute_c_factor(
+            district=district,
+            subgraph_variables=subgraph_variables,
+            subgraph_probability=subgraph_probability,
+            graph_topo=topo,
+        )
+        self.assert_expr_equal(result_4, expected_result_4)
 
 
 class TestTianLemma1i(cases.GraphTestCase):
