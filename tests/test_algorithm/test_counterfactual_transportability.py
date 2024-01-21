@@ -1552,21 +1552,19 @@ class TestComputeCFactor(cases.GraphTestCase):
     expected_result_1 = Product.safe(
         [P(W1), P(W3 | W1), P(W2 | (W3, W1)), P(X | (W1, W3, W2, W4)), P(Y | (W1, W3, W2, W4, X))]
     )
-    expected_result_2_num = Product.safe(
-        [
-            Sum.safe(expected_result_1, [W2, X, Y, W3]),
-            Sum.safe(expected_result_1, [W3]),
-            Sum.safe(expected_result_1, [Y, W3]),
-        ]
+    expected_result_2_part_1 = Fraction(
+        Sum.safe(Sum.safe(expected_result_1, [W3]), [W2, X, Y]), One()
+    )  # Q[W1]/Q[\emptyset]
+    expected_result_2_part_2 = Fraction(
+        Sum.safe(Sum.safe(expected_result_1, [W3]), [Y]),
+        Sum.safe(Sum.safe(expected_result_1, [W3]), [X, Y]),
+    )  # Q[X]/Q[W2]
+    expected_result_2_part_3 = Fraction(
+        Sum.safe(expected_result_1, [W3]), Sum.safe(Sum.safe(expected_result_1, [W3]), [Y])
+    )  # Q[Y]/Q[X]
+    expected_result_2 = Product.safe(
+        [expected_result_2_part_1, expected_result_2_part_2, expected_result_2_part_3]
     )
-    expected_result_2_den = Product.safe(
-        [
-            Sum.safe(expected_result_1, [W1, W2, W3, X, Y]),
-            Sum.safe(expected_result_1, [W3, X, Y]),
-            Sum.safe(expected_result_1, [Y, W3]),
-        ]
-    )
-    expected_result_2 = Fraction(expected_result_2_num, expected_result_2_den)
 
     def test_compute_c_factor_1(self):
         """First test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
@@ -1596,9 +1594,10 @@ class TestComputeCFactor(cases.GraphTestCase):
             subgraph_probability=Sum.safe(self.expected_result_2, [W1]),
             graph_topo=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
-        expected_result_3_num = Sum.safe(self.expected_result_2, [W1])
-        expected_result_3_den = Sum.safe(self.expected_result_2, [W1, Y])
-        expected_result_3 = Fraction(expected_result_3_num, expected_result_3_den)
+        expected_result_3 = Fraction(
+            Sum.safe(self.expected_result_2, [W1]),
+            Sum.safe(Sum.safe(self.expected_result_2, [W1]), [Y]),
+        )  # Q[X,Y]/Q[X]
         self.assert_expr_equal(result_3, expected_result_3)
 
     def test_compute_c_factor_4(self):
@@ -1610,7 +1609,13 @@ class TestComputeCFactor(cases.GraphTestCase):
         district = [W1, W3, W2, X, Y]
         subgraph_variables = [W1, W3, W2, W4, X, Y]
         subgraph_probability = P(W1, W3, W2, W4, X, Y)
-        expected_result_4 = P(X, Y | [W1, W2, W3, W4]) * P(W1, W2, W3)
+        expected_result_4 = (
+            P(Y | [W1, W2, W3, W4, X])
+            * P(X | [W1, W2, W3, W4])
+            * P(W2 | [W1, W3])
+            * P(W3 | W1)
+            * P(W1)
+        )
         result_4 = _compute_c_factor(
             district=district,
             subgraph_variables=subgraph_variables,
@@ -1618,6 +1623,12 @@ class TestComputeCFactor(cases.GraphTestCase):
             graph_topo=topo,
         )
         self.assert_expr_equal(result_4, expected_result_4)
+        # TODO: As a test, have Q condition on variables in the C factor and see what happens
+        #       when you apply Lemma 4(ii) but especially Lemma 1.
+        # TODO: Currently when the input Q is an instance of Sum, we immediately
+        #       apply Lemma 4(ii). And that's because in theory we should never
+        #       have a sum applied to a simple probability. Make sure we can't
+        #       have Q set to something like $Sum_{W3}{W4 | W3}$.
 
 
 class TestTianLemma1i(cases.GraphTestCase):
@@ -1746,7 +1757,7 @@ class TestTianLemma4ii(cases.GraphTestCase):
         result = _tian_lemma_4_ii(
             district={W1, X, Y},
             graph_probability=Sum.safe(self.result_piece, [W3]),
-            graph=tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}),
+            topo=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
         )
         logger.warn(
             "In first test of Lemma 4(ii): expecting this result: " + str(self.expected_result_1)
@@ -1765,7 +1776,7 @@ class TestTianLemma4ii(cases.GraphTestCase):
         result = _tian_lemma_4_ii(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1, [W1]),
-            graph=tian_pearl_figure_9a_graph.subgraph({X, Y}),
+            topo=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
         )
         self.assert_expr_equal(result, self.expected_result_2)
 

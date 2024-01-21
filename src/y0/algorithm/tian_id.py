@@ -146,7 +146,7 @@ def _tian_equation_72(
 
 
 def _tian_lemma_4_ii(
-    *, district: set[Variable], graph_probability: Expression, graph: NxMixedGraph
+    *, district: Collection[Variable], graph_probability: Expression, topo: list[Variable]
 ) -> Expression:
     r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equations 71 and 72.
 
@@ -176,13 +176,11 @@ def _tian_lemma_4_ii(
     :param district: A list of variables comprising the district for which we're computing a C factor.
     :param graph_probability: The expression Q corresponding to the set of variables in v. It is
         Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
-    :param graph: the subgraph $G_{H}$ in question.
+    :param topo: a topological ordering of the vertices in the subgraph $G_{H}$ in question.
     :returns: An expression for Q[district].
     """
-    topo = list(graph.topological_sort())
 
-    # Compute $Q[H^{i}]$ given i
-    def _get_expression_from_index(index: int) -> Expression:
+    def _get_expression_from_index(index: int) -> Expression:  # Compute $Q[H^{i}]$ given i
         current_index_expr = _tian_equation_72(
             vertex=topo[index], graph_probability=graph_probability, topo=topo
         )
@@ -211,14 +209,15 @@ def _tian_lemma_4_ii(
         logger.warning("\nIndex = %d, Q[H^(i)] = %s", index, expression)
 
     rv = Product.safe(expressions)
+    # TODO: We can simplify this product by cancelling terms in the numerator and denominator.
     logger.warning("Returning product: %s", rv)
     return rv
 
 
 def _compute_c_factor(
     *,
-    district: list[Variable],
-    subgraph_variables: list[Variable],
+    district: Collection[Variable],
+    subgraph_variables: Collection[Variable],
     subgraph_probability: Expression,
     graph_topo: list[Variable],
 ) -> Expression:
@@ -232,8 +231,38 @@ def _compute_c_factor(
               quantity would be Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
     :param graph_topo: A list of variables in topological order that includes all variables in G, where T is contained
               in G.
+    :raises TypeError: In _compute_c_factor: expected the subgraph_probability parameter to be a simple probability.
     :returns: An expression for Q[district].
     """
-    # Start by getting a new topo based on the subgraph
-
-    raise NotImplementedError("Unimplemented function: _compute_c_factor")
+    # The graph_topo is the ordering of vertices in G, but the lemmas use the topological sorting in a subgraph H of G.
+    # We take in the topological ordering of G to make testing easier, as there could be multiple ways to
+    # sort the vertices in H topologically. It is also faster as topological sort is O(V+E) and getting
+    # subgraph_topo below is O(V).
+    subgraph_topo = [v for v in graph_topo if v in subgraph_variables]
+    logger.warning("In _compute_c_factor: graph_topo = " + str(graph_topo))
+    logger.warning("In _compute_c_factor: subgraph_topo = " + str(subgraph_topo))
+    if (
+        isinstance(subgraph_probability, Fraction)
+        or isinstance(subgraph_probability, Product)
+        or isinstance(subgraph_probability, Sum)
+    ):
+        logger.warning("In _compute_c_factor: calling _tian_lemma_4_ii")
+        rv = _tian_lemma_4_ii(
+            district=district, graph_probability=subgraph_probability, topo=subgraph_topo
+        )
+        logger.warning("Returning from _compute_c_factor: " + str(rv))
+        return rv
+        # return _tian_lemma_4_ii(
+        #    district=district, graph_probability=subgraph_probability, topo=subgraph_topo
+        # )
+    else:
+        if not isinstance(subgraph_probability, Probability):
+            raise TypeError(
+                "In _compute_c_factor: expected the subgraph_probability "
+                + str(subgraph_probability)
+                + " to be a simple probability."
+            )
+        else:
+            return _tian_lemma_1_i(
+                district=district, graph_probability=subgraph_probability, topo=subgraph_topo
+            )
