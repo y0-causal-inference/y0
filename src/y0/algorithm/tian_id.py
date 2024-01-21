@@ -267,3 +267,28 @@ def _compute_c_factor(
             return _tian_lemma_1_i(
                 district=district, graph_probability=subgraph_probability, topo=subgraph_topo
             )
+
+
+def _tian_equation_69(
+    *,
+    ancestral_set: set[Variable],  # A
+    subgraph_variables: set[Variable],  # T
+    subgraph_probability: Expression,
+    graph_topo: list[Variable],  # topological ordering of
+) -> Expression:
+    """Compute the Q value associated with a subgraph as per Equation 69 of [tian03a]_.
+
+    This algorithm uses both Lemma 3 of Tian 03a (Equation 69).
+
+    :param ancestral_set: A set of variables (W in Equation 69, A in Figure 7 of [tian03a]_) that comprise the
+           ancestral set of some other variables (unspecified in Equation 69, and C in Figure 7 of [tian03a]_).
+    :param subgraph_variables: The variables in the subgraph under analysis (C in Equation 69, and T in Figure 7).
+    :param subgraph_probability: The expression Q corresponding to Q[C] in Equation 69 and Q[T] in Figure 7.
+    :param graph_topo: A list of variables in topological order that includes all variables in the graph
+           (i.e., V in Equation 69 and G in Figure 7).
+    :returns: An expression for Q[ancestral_set].
+    """
+    # A is W, I want Q[A] = Q[W]
+    # T is C, I know Q[C] = the input Q for identify
+    # T\A is W', so Sum_{T\A}{Q[T]} = Sum_{W'}{Q[C]} = Q[W] = Q[A]
+    raise NotImplementedError("Unimplemented function: _tian_equation_69")

@@ -36,6 +36,7 @@ from y0.algorithm.counterfactual_transportability import (
 )
 from y0.algorithm.tian_id import (
     _compute_c_factor,
+    _tian_equation_69,
     _tian_equation_72,
     _tian_lemma_1_i,
     _tian_lemma_4_ii,
@@ -1633,7 +1634,7 @@ class TestComputeCFactor(cases.GraphTestCase):
     def test_compute_c_factor_5(self):
         """Fourth test of the Compute C Factor function.
 
-        Testing Lemma 1 as called from _compute_c_factor, 
+        Testing Lemma 1 as called from _compute_c_factor,
         conditioning on a variable as part of the input Q value for the graph.
         Source: [tian03a], the example in section 4.6.
         """
@@ -1647,7 +1648,6 @@ class TestComputeCFactor(cases.GraphTestCase):
             * P(W2 | [W1, W3, W5])
             * P(W3 | [W1, W5])
             * P(W1 | W5)
-            * P(Y)
         )
         result_5 = _compute_c_factor(
             district=district,
@@ -1846,3 +1846,35 @@ class TestTianEquation72(cases.GraphTestCase):
             topo=topo,
         )
         self.assert_expr_equal(result, One())
+
+
+class TestTianLemma3(cases.GraphTestCase):
+    """Test the use of Lemma 3 (i.e., Equation 69) of [tian03a]_ to compute a C factor."""
+
+    def test_tian_lemma_3_part_1(self):
+        """First test of Lemma 3 in [tian03a]_ (Equation 69).
+
+        Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
+        """
+        topo = [W1, W3, W5, W2, W4, X, Y]
+        # Q_T = Q[{W1, W2, W3, X, Y}]
+        subgraph_probability = Product.safe(
+            [
+                P(W1),
+                P(W3 | W1),
+                P(W2 | (W3, W1)),
+                P(X | (W1, W3, W2, W4)),
+                P(Y | (W1, W3, W2, W4, X)),
+            ]
+        )
+        # The ancestors of {Y} in Figure 9(c) of [tian03a]_
+        ancestral_set = {W1, W2, X, Y}
+        subgraph_variables = {W1, W2, W3, X, Y}  # T in Figure 9(c) of [tian03a]_
+        result_1 = _tian_equation_69(
+            ancestral_set=ancestral_set,
+            subgraph_variables=subgraph_variables,
+            subgraph_probability=subgraph_probability,
+            graph_topo=topo,
+        )
+        expected_result_1 = Sum.safe(subgraph_probability, [W3])
+        self.assert_expr_equal(expected_result_1, result_1)
