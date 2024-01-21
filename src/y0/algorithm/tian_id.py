@@ -291,4 +291,7 @@ def _tian_equation_69(
     # A is W, I want Q[A] = Q[W]
     # T is C, I know Q[C] = the input Q for identify
     # T\A is W', so Sum_{T\A}{Q[T]} = Sum_{W'}{Q[C]} = Q[W] = Q[A]
-    raise NotImplementedError("Unimplemented function: _tian_equation_69")
+    # The next two lines are included so the summation shows the marginalization variables in topological order
+    marginalization_set = subgraph_variables - ancestral_set
+    marginalization_variables = [v for v in graph_topo if v in marginalization_set]
+    return Sum.safe(subgraph_probability, marginalization_variables)
