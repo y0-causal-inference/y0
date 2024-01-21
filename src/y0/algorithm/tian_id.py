@@ -91,6 +91,7 @@ def _tian_lemma_1_i(
         conditioned_variables = graph_probability_parents.union(preceding_variables)  # V^(i-1)
         probability = P(variable | conditioned_variables)  # v_i
         probabilities.append(probability)
+    logger.warning("In _tian_lemma_1_i: returning " + str(Product.safe(probabilities)))
     return Product.safe(probabilities)
 
 

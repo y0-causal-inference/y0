@@ -1630,6 +1630,33 @@ class TestComputeCFactor(cases.GraphTestCase):
         #       have a sum applied to a simple probability. Make sure we can't
         #       have Q set to something like $Sum_{W3}{W4 | W3}$.
 
+    def test_compute_c_factor_5(self):
+        """Fourth test of the Compute C Factor function.
+
+        Testing Lemma 1 as called from _compute_c_factor, 
+        conditioning on a variable as part of the input Q value for the graph.
+        Source: [tian03a], the example in section 4.6.
+        """
+        topo = list(tian_pearl_figure_9a_graph.topological_sort())
+        district = [W1, W3, W2, X, Y]
+        subgraph_variables = [W1, W3, W2, W4, X, Y]
+        subgraph_probability = P(W1, W3, W2, W4, X, Y | W5)
+        expected_result_5 = (
+            P(Y | [W1, W2, W3, W4, X, W5])
+            * P(X | [W1, W2, W3, W4, W5])
+            * P(W2 | [W1, W3, W5])
+            * P(W3 | [W1, W5])
+            * P(W1 | W5)
+            * P(Y)
+        )
+        result_5 = _compute_c_factor(
+            district=district,
+            subgraph_variables=subgraph_variables,
+            subgraph_probability=subgraph_probability,
+            graph_topo=topo,
+        )
+        self.assert_expr_equal(result_5, expected_result_5)
+
 
 class TestTianLemma1i(cases.GraphTestCase):
     """Test the use of Lemma 1, part (i), of [tian03a]_ to compute a C factor."""
