@@ -407,7 +407,7 @@ class TestSimplify(cases.GraphTestCase):
         """
         event = [(Y @ -X, -Y), (Y @ -X, +Y)]
         result = simplify(event=event, graph=figure_2a_graph)
-        logger.warn("Result for test_inconsistent_1 is " + str(result))
+        logger.warning("Result for test_inconsistent_1 is " + str(result))
         self.assertIsNone(simplify(event=event, graph=figure_2a_graph))
 
     def test_inconsistent_2(self):
@@ -465,10 +465,10 @@ class TestSimplify(cases.GraphTestCase):
         result_2 = _remove_repeated_variables_and_values(event=event_2)
         # @cthoyt: Just curious: is there a one-liner to assert that two dictionaries are equal?
         self.assertCountEqual([Y @ -Y], result_1.keys())
-        self.assertEquals(len(result_1[Y @ -Y]), 1)
+        self.assertEqual(len(result_1[Y @ -Y]), 1)
         self.assertSetEqual(result_1[Y @ -Y], {-Y})
         self.assertCountEqual([X], result_2.keys())
-        self.assertEquals(len(result_2[X]), 1)
+        self.assertEqual(len(result_2[X]), 1)
         self.assertSetEqual(result_2[X], {-X})
 
     def test_line_2_1(self):
@@ -1414,8 +1414,57 @@ class TestIdentify(cases.GraphTestCase):
     version of Line 4.
     """
 
+    def test_identify_preprocessing(self):
+        """Test the preprocessing checks in this implementation of IDENTIFY."""
+        # Raises a TypeError because the graph has only one C-component: {R,X,W,Z,Y} and our input district T
+        # is a subset and therefore not a C-component.
+        self.assertRaises(
+            KeyError,
+            tian_pearl_identify,
+            input_variables=frozenset({Y, R}),
+            input_district=frozenset({R, X, W, Z}),
+            district_probability=PP[Population("pi*")](R, W, X, Y, Z),
+            graph=soft_interventions_figure_3_graph,
+            topo=list(soft_interventions_figure_3_graph.topological_sort()),
+        )
+        # Raises a KeyError because a variable in T is not in the topo.
+        self.assertRaises(
+            KeyError,
+            tian_pearl_identify,
+            input_variables=frozenset({X, Z}),
+            input_district=frozenset({R, X, W, Z}),
+            district_probability=PP[Population("pi*")](R, W, X, Y, Z),
+            graph=soft_interventions_figure_3_graph,
+            topo=[W, X, Z, Y],
+        )
+        # Raises a TypeError because G_{X,Y,Z} has two districts and there should be at most one.
+        # {X,Y} happen to be in two different districts of G_{X,Y,Z}.
+        self.assertRaises(
+            TypeError,
+            tian_pearl_identify,
+            input_variables=frozenset({X, Y}),
+            input_district=frozenset({X, Y, Z}),
+            district_probability=PP[Population("pi*")](R, W, X, Y, Z),
+            graph=soft_interventions_figure_3_graph,
+            topo=list(soft_interventions_figure_3_graph.topological_sort()),
+        )
+        # Raises a TypeError because G_{X,Y,Z} has two districts and there should be at most one.
+        # {W,Y} happen to be in the same district of G_{X,Y,Z}.
+        self.assertRaises(
+            TypeError,
+            tian_pearl_identify,
+            input_variables=frozenset({W, Y}),
+            input_district=frozenset({W, Y, Z}),
+            district_probability=PP[Population("pi*")](R, W, X, Y, Z),
+            graph=soft_interventions_figure_3_graph,
+            topo=list(soft_interventions_figure_3_graph.topological_sort()),
+        )
+
     def test_identify_1(self):
-        """Test Line 2 of Algorithm 5 of [correa22a]_."""
+        """Test Line 2 of Algorithm 5 of [correa22a]_.
+
+        This tests the case where A == C.
+        """
         # π_star = Pi_star = Variable(f"π*")
         test_1_identify_input_variables = {Z}  # A
         test_1_identify_input_district = {Z}  # B
@@ -1424,17 +1473,17 @@ class TestIdentify(cases.GraphTestCase):
 
         # @cthoyt @JZ The next two commented-out lines produce a mypy error:
         # pi1 = Population("pi1")
-        # test_1_q_expression = PP[Population("pi1")](Z | X1)
+        # test_1_district_probability = PP[Population("pi1")](Z | X1)
         # error: Type application targets a non-generic function or class  [misc]
         # test_transport.py uses a similar syntax and does not trigger the error,
         #   so I'm probably missing something simple.
-        test_1_q_expression = PP[Population("pi1")](Z | X1)  # Q
+        test_1_district_probability = PP[Population("pi1")](Z | X1)  # Q
         result = tian_pearl_identify(
-            input_variables=test_1_identify_input_variables,
-            input_district=test_1_identify_input_district,
-            q_expression=test_1_q_expression,
+            input_variables=frozenset(test_1_identify_input_variables),
+            input_district=frozenset(test_1_identify_input_district),
+            district_probability=test_1_district_probability,
             graph=soft_interventions_figure_1b_graph,
-            topo=[variable for variable in soft_interventions_figure_1b_graph.topological_sort()],
+            topo=list(soft_interventions_figure_1b_graph.topological_sort()),
         )
         logger.warning("Result of identify() call for test_identify_1 is " + str(result))
         self.assert_expr_equal(result, PP[Population("pi1")](Z | X1))
@@ -1442,104 +1491,101 @@ class TestIdentify(cases.GraphTestCase):
     def test_identify_2(self):
         """Test Line 3 of Algorithm 5 of [correa22a]_.
 
+        This tests the case where A == T.
         Sources: a modification of the example following Theorem 2 in [correa20a]_
         and the paragraph at the end of section 4 in [correa20a]_.
         """
         result1 = tian_pearl_identify(
-            input_variables={R, Y},
-            input_district={W, R, X, Z, Y},
-            q_expression=PP[Population("pi*")](
+            input_variables=frozenset({R, Y}),
+            input_district=frozenset({W, R, X, Z, Y}),
+            district_probability=PP[Population("pi*")](
                 W, R, X, Z, Y
             ),  # This is a c-factor if the input variables comprise a c-component
             graph=soft_interventions_figure_2a_graph,
-            topo=[variable for variable in soft_interventions_figure_2a_graph.topological_sort()],
+            topo=list(soft_interventions_figure_2a_graph.topological_sort()),
         )
         logger.warning("Result of identify() call for test_identify_2 part 1 is " + str(result1))
         self.assertIsNone(result1)
         result2 = tian_pearl_identify(
-            input_variables={Z, R},
-            input_district={R, X, W, Z},
-            q_expression=PP[Population("pi*")](R, W, X, Z),
+            input_variables=frozenset({Z, R}),
+            input_district=frozenset({R, X, W, Z}),
+            district_probability=PP[Population("pi*")](R, W, X, Z),
             graph=soft_interventions_figure_3_graph.subgraph(vertices={R, Z, X, W}),
-            topo=[variable for variable in soft_interventions_figure_3_graph.topological_sort()],
+            topo=list(soft_interventions_figure_3_graph.topological_sort()),
         )
         self.assertIsNone(result2)
 
     def test_identify_3(self):
-        """Test Lines 4-7 of Algorithm 5 of [correa22a]_."""
-        # TODO: Come up with a test that uses lines 4-7 and doesn't fail.
-        # TODO: Update this next example: should throw an error because G_{[C]} doesn't have one c-component.
+        """Test Lines 4-7 of Algorithm 5 of [correa22a]_.
+
+        Source: the example in section 4 of [correa20a]_, which returns FAIL (i.e., None).
+        """
         test_3_identify_input_variables = {R, X}
         test_3_identify_input_district = {R, X, W, Y}
-        test_3_q_expression = PP[Population("pi1")]((Y, W)).conditional([R, X, Z]) * PP[
+        test_3_district_probability = PP[Population("pi1")]((Y, W)).conditional([R, X, Z]) * PP[
             Population("pi1")
         ](R, X)
         result1 = tian_pearl_identify(
-            input_variables=test_3_identify_input_variables,
-            input_district=test_3_identify_input_district,
-            q_expression=test_3_q_expression,
+            input_variables=frozenset(test_3_identify_input_variables),
+            input_district=frozenset(test_3_identify_input_district),
+            district_probability=test_3_district_probability,
             graph=soft_interventions_figure_2d_graph,
-            topo=[variable for variable in soft_interventions_figure_2d_graph.topological_sort()],
+            topo=list(soft_interventions_figure_2d_graph.topological_sort()),
         )
-        # TODO: Be sure to throw some logging warnings in Lines 4-7 to see what happens when identify() is called.
         logger.warning("Result of identify() call for test_identify_3 is " + str(result1))
         self.assertIsNone(result1)
         result2 = tian_pearl_identify(
-            input_variables={Z, R},
-            input_district={R, X, W, Y, Z},
-            q_expression=PP[Population("pi*")](R, W, X, Y, Z),
+            input_variables=frozenset({Z, R}),
+            input_district=frozenset({R, X, W, Y, Z}),
+            district_probability=PP[Population("pi*")](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
-            topo=[variable for variable in soft_interventions_figure_3_graph.topological_sort()],
+            topo=list(soft_interventions_figure_3_graph.topological_sort()),
         )
-        # TODO: Be sure to throw some logging warnings in Lines 4-7 to see what happens when identify() is called.
         logger.warning("Result of identify() call for test_identify_3 is " + str(result2))
         self.assertIsNone(result2)
 
-    def test_identify_preprocessing(self):
-        """Test the preprocessing checks in this implementation of IDENTIFY."""
-        # Raises a TypeError because the graph has only one C-component: {R,X,W,Z,Y} and our input district T
-        # is a subset and therefore not a C-component.
-        self.assertRaises(
-            TypeError,
-            tian_pearl_identify,
-            input_variables={Z, R},
-            input_district={R, X, W, Z},
-            q_expression=PP[Population("pi*")](R, W, X, Y, Z),
-            graph=soft_interventions_figure_3_graph,
-            topo=[variable for variable in soft_interventions_figure_3_graph.topological_sort()],
-        )
-        # Raises a TypeError
-        self.assertRaises(
-            TypeError,
-            tian_pearl_identify,
-            input_variables={R, Y},
-            input_district={R, W, X, Z},
-            q_expression=PP[Population("pi1")]((Y, W)).conditional([R, X, Z])
-            * PP[Population("pi1")](R, X),
-            graph=soft_interventions_figure_2d_graph,
-            topo=[variable for variable in soft_interventions_figure_2d_graph.topological_sort()],
-        )
-
     def test_identify_4(self):
-        """Test the example from page 29 of [tian03a]_.
+        """Further test Lines 4-7 of Algorithm 5 of [correa22a]_.
+
+        Source: the example from page 29 of [tian03a]_.
 
         Note: Tian and Pearl provide a simpler result that is due to using probabilistic
         axioms to simplify the formula. This result is what we get when running Santikka's
         implementation of identify in their R package, Causal Effect ([santikka20b]_), and is more
         complex in its structure but easier to code for an initial Python implementation.
         """
-        base_p = Product([P(W1, W2, W3), P(X, Y | (W1, W2, W3, W4))])
-        numnum = Product([Sum[W2, X, Y, W3](base_p), Sum[W3](base_p)])
-        numden = Product([Sum[W3, X, Y, W3](base_p), Sum[W1, W2, W3, X, Y](base_p)])
-        num = Sum[W1](Fraction(numnum, numden))
-        den = Sum[W1, Y](Fraction(numnum, numden))
-        expected_result = Fraction(num, den)
+        result_piece_1 = Product.safe(
+            [
+                P(W1),
+                P(W3 | W1),
+                P(W2 | (W3, W1)),
+                P(X | (W1, W3, W2, W4)),
+                P(Y | (W1, W3, W2, W4, X)),
+            ]
+        )
+        result_piece_2_part_1 = Fraction(
+            Sum.safe(Sum.safe(result_piece_1, [W3]), [W2, X, Y]), One()
+        )  # Q[W1]/Q[\emptyset]
+        result_piece_2_part_2 = Fraction(
+            Sum.safe(Sum.safe(result_piece_1, [W3]), [Y]),
+            Sum.safe(Sum.safe(result_piece_1, [W3]), [X, Y]),
+        )  # Q[X]/Q[W2]
+        result_piece_2_part_3 = Fraction(
+            Sum.safe(result_piece_1, [W3]), Sum.safe(Sum.safe(result_piece_1, [W3]), [Y])
+        )  # Q[Y]/Q[X]
+        result_piece_2 = Product.safe(
+            [result_piece_2_part_1, result_piece_2_part_2, result_piece_2_part_3]
+        )
+        expected_result = Fraction(
+            Sum.safe(result_piece_2, [W1]),
+            Sum.safe(Sum.safe(result_piece_2, [W1]), [Y]),
+        )  # Q[X,Y]/Q[X]
         result_4 = tian_pearl_identify(
-            input_variables={Y},
-            input_district={X, Y, W1, W2, W3, W4, W5},
-            q_expression=P(W1, W2, W3, W4, W5, X, Y),
+            input_variables=frozenset({Y}),
+            input_district=frozenset({X, Y, W1, W2, W3, W4, W5}),
+            district_probability=P(W1, W2, W3, W4, W5, X, Y),
             graph=tian_pearl_figure_9a_graph,
-            topo=[variable for variable in tian_pearl_figure_9a_graph.topological_sort()],
+            topo=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
         self.assert_expr_equal(result_4, expected_result)
 
@@ -1786,7 +1832,7 @@ class TestTianLemma4ii(cases.GraphTestCase):
             graph_probability=Sum.safe(self.result_piece, [W3]),
             topo=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
         )
-        logger.warn(
+        logger.warning(
             "In first test of Lemma 4(ii): expecting this result: " + str(self.expected_result_1)
         )
         self.assert_expr_equal(result, self.expected_result_1)
@@ -1796,10 +1842,10 @@ class TestTianLemma4ii(cases.GraphTestCase):
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
         """
-        logger.warn(
+        logger.warning(
             "In second test of Lemma 4(ii): expecting this result: " + str(self.expected_result_2)
         )
-        logger.warn("Expected_result_1 = " + str(self.expected_result_1))
+        logger.warning("Expected_result_1 = " + str(self.expected_result_1))
         result = _tian_lemma_4_ii(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1, [W1]),

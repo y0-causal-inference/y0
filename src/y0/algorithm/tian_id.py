@@ -15,32 +15,123 @@ logger = logging.getLogger(__name__)
 
 def tian_pearl_identify(
     *,
-    input_variables: set[Variable],
-    input_district: set[Variable],
-    q_expression: Expression,
+    input_variables: frozenset[Variable],
+    input_district: frozenset[Variable],
+    district_probability: Expression,
     graph: NxMixedGraph,
     topo: list[Variable],
 ) -> Expression | None:
     """Implement the IDENTIFY algorithm as presented in [tian03a]_ with pseudocode in [correa22a]_ (Algorithm 5).
 
-    Santikka has implemented this algorithm in the R package Causal Effect ([santikka20b]_). We draw from that
+    Tikka and colleagues implemented this algorithm in the R package Causal Effect ([santikka20b]_). We draw from that
     implementation. Their version also keeps track of the structure of calls
     :param input_variables: The set of variables, C, for which we're checking if causal identification is possible.
     :param input_district: The C-component, T, containing C.
-    :param q_expression: The expression Q[T] as per [tian2003]_, Equation 35.
+    :param district_probability: The expression Q[T] as per [tian2003]_, Equation 35.
     :param graph: The relevant graph.
     :param topo: A list of variables in topological order that includes all variables in the graph and may contain more.
-    :raises TypeError: at least one input variable is not in the input district.
+    :raises KeyError: at least one input variable is not in the input district or at least one input district variable
+                      is not in the topologically sorted list of graph variables.
+    :raises TypeError: the subgraph of the input graph G comprised of thevertices in the input vertex set T should
+                      should have only district and has more.
     :returns: An expression for Q[C] in terms of Q, or Fail.
     """
-    # TODO: Verify that the input_variables are all in the input_district
-    if not all([v in input_district for v in input_variables]):
-        raise TypeError(
+    if not input_variables.intersection(input_district) == input_variables:
+        # if not all(v in input_district for v in input_variables):
+        raise KeyError(
             "In tian_pearl_identify: at least one of the input variables C is not in the input district T."
         )
-    # TODO: Verify that the input_district is a c-component of the graph.
-    # TODO: Santikka's version ([santikka20b]_)
-    raise NotImplementedError("Unimplemented function: identify")
+    if not input_district.intersection(set(topo)) == input_district:
+        raise KeyError(
+            "In tian_pearl_identify: at least one input district variable is not in the "
+            + "topologically sorted variable list."
+        )
+    district_subgraph = graph.subgraph(vertices=input_district)  # $G_{T}$
+    if len(district_subgraph.districts()) > 1:
+        raise TypeError(
+            "In tian_pearl_identify: the subgraph of the input graph G comprised of the"
+            + " vertices in the input vertex set T should have only district and has more."
+        )
+    # ordered_graph_vertices = [v for v in topo if v in graph.nodes()]  # This is V
+
+    ancestral_set = frozenset(
+        district_subgraph.ancestors_inclusive(input_variables)
+    )  # A = Ancestors of C in $G_{T}$
+
+    # Next, Tikka has an additional line intersecting the ancestral set with the set T in case any C was not in T,
+    # but we raise an error in that case as a pre-processing step, so we omit that line.
+
+    ordered_ancestral_set = [a for a in topo if a in ancestral_set]
+    if ancestral_set == input_variables:
+        logger.warning("In tian_pearl_identify: A = C. Applying Lemma 3.")
+        rv = _tian_equation_69(
+            ancestral_set=ancestral_set,
+            subgraph_variables=input_district,
+            subgraph_probability=district_probability,
+            graph_topo=topo,
+        )
+        logger.warning("   Returning Q value: " + str(rv))
+    elif ancestral_set == input_district:
+        logger.warning("In tian_pearl_identify: A = T. Returning None (i.e., FAIL).")
+        rv = None
+    elif input_variables.issubset(ancestral_set) and ancestral_set.issubset(input_district):
+        ancestral_set_subgraph = graph.subgraph(vertices=ordered_ancestral_set)
+        ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
+        targeted_ancestral_set_subgraph_district = ancestral_set_subgraph_districts[
+            [
+                input_variables.issubset(district) for district in ancestral_set_subgraph_districts
+            ].index(True)
+        ]
+        # t_prime = [district for district in ancestral_set_subgraph_districts if
+        #             input_variables.intersect(district)==input_variables][0]
+        # ordered_t_prime_vertices = [v for v in topo if v in t_prime]
+        # t_one = t_prime.intersection(ancestral_set) # RC: This line is in Tikka, but cc came from
+
+        if (
+            isinstance(district_probability, Fraction)
+            or isinstance(district_probability, Product)
+            or isinstance(district_probability, Sum)
+        ):  # Compute Q[A] from Lemma 3
+            ancestral_set_probability = _tian_equation_69(
+                ancestral_set=ancestral_set,
+                subgraph_variables=input_district,
+                subgraph_probability=district_probability,  # Q[T]
+                graph_topo=topo,
+            )
+        elif isinstance(district_probability, Probability):
+            ancestral_set_probability = P(
+                ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
+                | district_probability.parents
+            )
+        else:
+            raise TypeError(
+                "In tian_pearl_identify: the input district probability has an unrecognized format."
+            )
+        # Get Q[T'] by Lemma 4 or Lemma 1
+        targeted_ancestral_set_subgraph_district_probability = _compute_c_factor(
+            district=targeted_ancestral_set_subgraph_district,
+            subgraph_variables=ancestral_set,
+            subgraph_probability=ancestral_set_probability,
+            graph_topo=topo,
+        )
+        logger.warning("In tian_pearl_identify: about to recursively call tian_pearl_identify.")
+        logger.warning("    C = " + str(input_variables))
+        logger.warning("    T' = " + str(targeted_ancestral_set_subgraph_district))
+        logger.warning("    Q[T'] =" + str(targeted_ancestral_set_subgraph_district_probability))
+        logger.warning("    graph nodes = " + str(list(graph.nodes())))
+        logger.warning("    topo = " + str(topo))
+        rv = tian_pearl_identify(
+            input_variables=input_variables,
+            input_district=targeted_ancestral_set_subgraph_district,
+            district_probability=targeted_ancestral_set_subgraph_district_probability,
+            graph=graph,
+            topo=topo,
+        )
+        logger.warning(
+            "In tian_pearl_identify: returned from recursive call to tian_pearl_identify."
+        )
+        logger.warning("    Return value = " + str(rv))
+    return rv
 
 
 def _do_tian_pearl_identify_line_1(
@@ -271,8 +362,8 @@ def _compute_c_factor(
 
 def _tian_equation_69(
     *,
-    ancestral_set: set[Variable],  # A
-    subgraph_variables: set[Variable],  # T
+    ancestral_set: frozenset[Variable],  # A
+    subgraph_variables: frozenset[Variable],  # T
     subgraph_probability: Expression,
     graph_topo: list[Variable],  # topological ordering of
 ) -> Expression:
