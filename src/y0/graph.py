@@ -238,6 +238,13 @@ class NxMixedGraph:
         return rv
 
     def moralize(self):
+        """Moralize the graph.
+
+        :returns: A moralized ADMG in which all nodes $U$ and $v$ that are parents of some
+            node $N$ are connected with an undirected edge.
+
+        .. seealso:: https://en.wikipedia.org/wiki/Moral_graph
+        """
         rv = NxMixedGraph(directed=self.directed.copy(), undirected=self.undirected.copy())
         # Moralize (link parents of mentioned nodes)
         for u, v in iter_moral_links(self):

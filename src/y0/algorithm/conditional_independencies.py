@@ -2,7 +2,6 @@
 
 """An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
-import copy
 from functools import partial
 from itertools import combinations, groupby
 from typing import Callable, Iterable, Optional, Sequence, Set, Tuple
@@ -11,7 +10,7 @@ import networkx as nx
 from tqdm.auto import tqdm
 
 from ..dsl import Variable
-from ..graph import NxMixedGraph, iter_moral_links
+from ..graph import NxMixedGraph
 from ..struct import DSeparationJudgement
 from ..util.combinatorics import powerset
 
