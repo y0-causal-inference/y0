@@ -239,11 +239,11 @@ class DSeparationJudgement:
         # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of
         # freedom.
         if method == "pearson":
-            stat, p_value = result
+            statistic, p_value = result
             dof = None
         else:
-            stat, p_value, dof = result
-        return CITestTuple(stat=stat, p_value=p_value, dof=dof)
+            statistic, p_value, dof = result
+        return CITestTuple(statistic=statistic, p_value=p_value, dof=dof)
 
 
 def _ensure_method(method: Optional[CITest], df: pd.DataFrame) -> CITest:
