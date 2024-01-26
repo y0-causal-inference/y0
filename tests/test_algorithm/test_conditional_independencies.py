@@ -11,7 +11,6 @@ from pgmpy.estimators import CITests
 from y0.algorithm.conditional_independencies import (
     are_d_separated,
     get_conditional_independencies,
-    iter_moral_links,
 )
 from y0.dsl import AA, B, C, D, E, F, G, Variable, X, Y
 from y0.examples import (
@@ -21,7 +20,7 @@ from y0.examples import (
     frontdoor_backdoor_example,
     frontdoor_example,
 )
-from y0.graph import NxMixedGraph
+from y0.graph import NxMixedGraph, iter_moral_links
 from y0.struct import CITestTuple, DSeparationJudgement
 
 
