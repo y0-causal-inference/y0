@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 def id_star(graph: NxMixedGraph, event: Event, *, _number_recursions: int = 0) -> Expression:
-    """Apply the ``ID*`` algorithm to the graph."""
+    """Apply the ``ID*`` algorithm to the graph from [shpitser2012]_."""
     logger.debug(
         "[%d]: Calling ID* algorithm with graph G with\n\t nodes: %s\n"
         "\t directed: %s\n\t undirected %s\n"

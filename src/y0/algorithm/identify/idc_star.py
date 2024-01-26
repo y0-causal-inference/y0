@@ -58,7 +58,7 @@ def get_remaining_and_missing_events(new_event: Event, old_event: Event) -> Tupl
 def idc_star(
     graph: NxMixedGraph, outcomes: Event, conditions: Event, *, _number_recursions: int = 0
 ) -> Expression:
-    r"""Run the IDC* algorithm.
+    r"""Run the IDC* algorithm from [shpitser2012]_.
 
     :param graph: The causal graph
     :param outcomes: The outcome events corresponds to :math:`\gamma`

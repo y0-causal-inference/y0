@@ -14,7 +14,7 @@ __all__ = [
 
 
 def identify(identification: Identification) -> Expression:
-    """Run the ID algorithm from [Shpitser2006]_.
+    """Run the ID algorithm from [shpitser2006]_.
 
     :param identification: The identification tuple
     :returns: the expression corresponding to the identification
@@ -22,9 +22,6 @@ def identify(identification: Identification) -> Expression:
 
     See also :func:`identify_outcomes` for a more idiomatic way of running
     the ID algorithm given a graph, treatments, and outcomes.
-
-    .. [Shpitser2006] `Identification of joint interventional distributions in recursive semi-Markovian
-       causal models <https://dl.acm.org/doi/10.5555/1597348.1597382>`_
     """
     graph = identification.graph
     treatments = identification.treatments

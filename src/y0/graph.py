@@ -8,6 +8,7 @@ import itertools as itt
 import json
 import warnings
 from dataclasses import dataclass, field
+from itertools import chain, combinations
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -234,6 +235,20 @@ class NxMixedGraph:
         rv.add_nodes_from(self.directed)
         rv.add_edges_from(self.directed.edges)
         rv.add_edges_from(self.undirected.edges)
+        return rv
+
+    def moralize(self):
+        """Moralize the graph.
+
+        :returns: A moralized ADMG in which all nodes $U$ and $v$ that are parents of some
+            node $N$ are connected with an undirected edge.
+
+        .. seealso:: https://en.wikipedia.org/wiki/Moral_graph
+        """
+        rv = NxMixedGraph(directed=self.directed.copy(), undirected=self.undirected.copy())
+        # Moralize (link parents of mentioned nodes)
+        for u, v in iter_moral_links(self):
+            rv.add_undirected_edge(u, v)
         return rv
 
     def draw(
@@ -862,4 +877,18 @@ def get_district_and_predecessors(
 def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bool:
     return u in get_district_and_predecessors(graph, [v]) or v in get_district_and_predecessors(
         graph, [u]
+    )
+
+
+def iter_moral_links(graph: NxMixedGraph) -> Iterable[Tuple[Variable, Variable]]:
+    """Generate links to ensure all co-parents in a graph are linked.
+
+    May generate links that already exist as we assume we are not working on a multi-graph.
+
+    :param graph: Graph to process
+    :yields: An collection of edges to add.
+    """
+    #  note that combinations(x, 2) returns an empty list when len(x) == 1
+    yield from chain.from_iterable(
+        combinations(graph.directed.predecessors(node), 2) for node in graph.nodes()
     )
