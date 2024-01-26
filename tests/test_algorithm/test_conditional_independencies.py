@@ -2,8 +2,11 @@
 
 """Test getting conditional independencies (and related)."""
 
+import typing
 import unittest
 from typing import Iterable, Set
+
+from pgmpy.estimators import CITests
 
 from y0.algorithm.conditional_independencies import (
     are_d_separated,
@@ -251,9 +254,10 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             separated=...,
             conditions=(),
         )
-        test_result_bool = judgement.test(data, method="chi-square", boolean=True)
-        self.assertIsInstance(test_result_bool, bool)
+        for method in typing.get_args(CITests):
+            test_result_bool = judgement.test(data, method=method, boolean=True)
+            self.assertIsInstance(test_result_bool, bool)
 
-        test_result_tuple = judgement.test(data, method="chi-square", boolean=False)
-        self.assertIsInstance(test_result_tuple, CITestTuple)
-        self.assertIsNotNone(test_result_tuple.dof)
+            test_result_tuple = judgement.test(data, method=method, boolean=False)
+            self.assertIsInstance(test_result_tuple, CITestTuple)
+            self.assertIsNotNone(test_result_tuple.dof)

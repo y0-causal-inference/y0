@@ -98,24 +98,15 @@ def get_falsifications(
     results = []
     method = _ensure_method(method, df)
     for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals"):
-        result = judgement.test(df, method=method)
-        # Person's correlation returns a pair with the first element being the Person's correlation
-        # and the second being the p-value. The other methods return a triple with the first element
-        # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of
-        # freedom.
-        if method == "pearson":
-            stat, p_value = result
-            dof = None
-        else:
-            stat, p_value, dof = result
+        result = judgement.test(df, method=method, boolean=False)
         results.append(
             (
                 judgement.left.name,
                 judgement.right.name,
                 "|".join(c.name for c in judgement.conditions),
-                stat,
-                p_value,
-                dof,
+                result.statistic,
+                result.p_value,
+                result.dof,
             )
         )
     evidence_df = pd.DataFrame(
