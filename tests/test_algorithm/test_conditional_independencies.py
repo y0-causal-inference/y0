@@ -245,6 +245,10 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         self.assertIsInstance(test_result_tuple, CITestTuple)
         self.assertIsNone(test_result_tuple.dof)
 
+        # Test that an error is thrown if using a discrete test on continuous data
+        with self.assertRaises(ValueError):
+            judgement.test(data, method="chi-square", boolean=True)
+
     def test_ci_test_discrete(self):
         """Test conditional independency test on discrete data."""
         data = frontdoor_backdoor_example.generate_data(500)  # discrete
@@ -261,3 +265,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             test_result_tuple = judgement.test(data, method=method, boolean=False)
             self.assertIsInstance(test_result_tuple, CITestTuple)
             self.assertIsNotNone(test_result_tuple.dof)
+
+        # Test that an error is thrown if using a continous test on discrete data
+        with self.assertRaises(ValueError):
+            judgement.test(data, method="pearson", boolean=True)

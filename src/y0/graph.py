@@ -95,6 +95,13 @@ class NxMixedGraph:
         """Check if the given item is a node in the graph."""
         return item in self.directed
 
+    def copy(self):
+        """Get a copy of the graph."""
+        return self.__class__(
+            directed=self.directed.copy(),
+            undirected=self.undirected.copy(),
+        )
+
     def is_counterfactual(self) -> bool:
         """Check if this is a counterfactual graph."""
         return any(isinstance(n, CounterfactualVariable) for n in self.nodes())

@@ -5,21 +5,96 @@
 import copy
 from functools import partial
 from itertools import chain, combinations, groupby
-from typing import Callable, Iterable, Optional, Sequence, Set, Tuple
+from typing import Callable, Iterable, List, Optional, Sequence, Set, Tuple, Union
 
 import networkx as nx
+import pandas as pd
 from tqdm.auto import tqdm
 
 from ..dsl import Variable
 from ..graph import NxMixedGraph
-from ..struct import DSeparationJudgement
+from ..struct import CITest, CITestTuple, DSeparationJudgement, _ensure_method, DEFAULT_SIGNIFICANCE
 from ..util.combinatorics import powerset
 
 __all__ = [
     "are_d_separated",
     "minimal",
     "get_conditional_independencies",
+    "test_conditional_independencies",
+    "add_ci_undirected_edges",
 ]
+
+
+def add_ci_undirected_edges(
+    graph: NxMixedGraph,
+    data: pd.DataFrame,
+    *,
+    method: Optional[CITest] = None,
+    significance_level: Optional[float] = None,
+) -> NxMixedGraph:
+    """Add undirected edges between d-separated nodes that fail a data-driven conditional independency test.
+
+    :param graph: An acyclic directed mixed graph
+    :param data: observational data corresponding to the graph
+    :param method:
+        The conditional independency test to use. If None, defaults to
+        :data:`y0.struct.DEFAULT_CONTINUOUS_CI_TEST` for continuous data
+        or :data:`y0.struct.DEFAULT_DISCRETE_CI_TEST` for discrete data.
+    :param significance_level: The statistical tests employ this value for
+        comparison with the p-value of the test to determine the independence of
+        the tested variables. If none, defaults to 0.05.
+    :returns: A copy of the input graph potentially with new undirected edges added
+    """
+    rv = graph.copy()
+    for judgement, result in test_conditional_independencies(
+        graph=graph, data=data, method=method, boolean=True, significance_level=significance_level
+    ):
+        if not result:
+            rv.add_undirected_edge(judgement.left, judgement.right)
+    return rv
+
+
+def test_conditional_independencies(
+    graph: NxMixedGraph,
+    data: pd.DataFrame,
+    *,
+    method: Optional[CITest] = None,
+    boolean: bool = False,
+    significance_level: Optional[float] = None,
+    _method_checked: bool = False,
+) -> Union[List[Tuple[DSeparationJudgement, CITestTuple]], List[Tuple[DSeparationJudgement, bool]]]:
+    """Gets CIs with :func:`get_conditional_independencies` then tests them against data.
+
+    :param graph: An acyclic directed mixed graph
+    :param data: observational data corresponding to the graph
+    :param method:
+        The conditional independency test to use. If None, defaults to
+        :data:`y0.struct.DEFAULT_CONTINUOUS_CI_TEST` for continuous data
+        or :data:`y0.struct.DEFAULT_DISCRETE_CI_TEST` for discrete data.
+    :param boolean:
+        If set to true, switches the test return type to be a pre-computed
+        boolean based on the significance level (see parameter below)
+    :param significance_level: The statistical tests employ this value for
+        comparison with the p-value of the test to determine the independence of
+        the tested variables. If none, defaults to 0.05.
+    :returns: A copy of the input graph potentially with new undirected edges added
+    """
+    if significance_level is None:
+        significance_level = DEFAULT_SIGNIFICANCE
+    method = _ensure_method(method, data, skip=_method_checked)
+    return [
+        (
+            judgement,
+            judgement.test(
+                data,
+                boolean=boolean,
+                method=method,
+                significance_level=significance_level,
+                _method_checked=True,
+            ),
+        )
+        for judgement in get_conditional_independencies(graph)
+    ]
 
 
 def get_conditional_independencies(

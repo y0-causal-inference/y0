@@ -27,6 +27,8 @@ __all__ = [
     "DSeparationJudgement",
 ]
 
+DEFAULT_SIGNIFICANCE = 0.01
+
 
 class VermaConstraint(NamedTuple):
     """Represent a Verma constraint."""
@@ -182,6 +184,7 @@ class DSeparationJudgement:
         boolean: bool = False,
         method: Optional[CITest] = None,
         significance_level: Optional[float] = None,
+        _method_checked: bool = False,
     ) -> Union[bool, CITestTuple]:
         """Test for conditional independence, given some data.
 
@@ -217,10 +220,10 @@ class DSeparationJudgement:
                     f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
                 )
         if significance_level is None:
-            significance_level = 0.01
+            significance_level = DEFAULT_SIGNIFICANCE
 
         method = _ensure_method(
-            method, df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]]
+            method, df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]], skip=_method_checked
         )
         tests: dict[CITest, CITestFunc] = get_conditional_independence_tests()
         func: CITestFunc = tests[method]
@@ -246,7 +249,11 @@ class DSeparationJudgement:
         return CITestTuple(statistic=statistic, p_value=p_value, dof=dof)
 
 
-def _ensure_method(method: Optional[CITest], df: pd.DataFrame) -> CITest:
+def _ensure_method(method: Optional[CITest], df: pd.DataFrame, skip: bool = False) -> CITest:
+    if skip:
+        if method is None:
+            raise RuntimeError
+        return method
     # TODO extend to discrete but more than 2.
     #  see https://stats.stackexchange.com/questions/12273/how-to-test-if-my-data-is-discrete-or-continuous
     # TODO what happens when some variables are binary but others are continous?
