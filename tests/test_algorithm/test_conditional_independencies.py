@@ -15,8 +15,8 @@ from y0.examples import (
     Example,
     d_separation_example,
     examples,
-    frontdoor_example,
     frontdoor_backdoor_example,
+    frontdoor_example,
 )
 from y0.graph import NxMixedGraph
 from y0.struct import CITestTuple, DSeparationJudgement
