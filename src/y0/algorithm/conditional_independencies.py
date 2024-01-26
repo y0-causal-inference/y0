@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
-"""An implementation to get conditional independencies of an ADMG."""
+"""An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
 import copy
 from functools import partial
-from itertools import chain, combinations, groupby
+from itertools import combinations, groupby
 from typing import Callable, Iterable, Optional, Sequence, Set, Tuple
 
 import networkx as nx
 from tqdm.auto import tqdm
 
 from ..dsl import Variable
-from ..graph import NxMixedGraph
+from ..graph import NxMixedGraph, iter_moral_links
 from ..struct import DSeparationJudgement
 from ..util.combinatorics import powerset
 
@@ -103,20 +103,6 @@ def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
     return len(judgement.conditions), ",".join(c.name for c in judgement.conditions)
 
 
-def iter_moral_links(graph: NxMixedGraph) -> Iterable[Tuple[Variable, Variable]]:
-    """Generate links to ensure all co-parents in a graph are linked.
-
-    May generate links that already exist as we assume we are not working on a multi-graph.
-
-    :param graph: Graph to process
-    :yields: An collection of edges to add.
-    """
-    #  note that combinations(x, 2) returns an empty list when len(x) == 1
-    yield from chain.from_iterable(
-        combinations(graph.directed.predecessors(node), 2) for node in graph.nodes()
-    )
-
-
 def are_d_separated(
     graph: NxMixedGraph,
     a: Variable,
@@ -124,10 +110,10 @@ def are_d_separated(
     *,
     conditions: Optional[Iterable[Variable]] = None,
 ) -> DSeparationJudgement:
-    """Test if nodes named by a & b are d-separated in G.
+    """Test if nodes named by a & b are d-separated in G as described in [pearl2009]_.
 
     a & b can be provided in either order and the order of conditions does not matter.
-    However DSeparationJudgement may put things in canonical order.
+    However, DSeparationJudgement may put things in canonical order.
 
     :param graph: Graph to test
     :param a: A node in the graph
@@ -138,6 +124,8 @@ def are_d_separated(
         not Variable instances
     :raises KeyError: if the left/right arguments or any conditions are
         not in the graph
+
+    .. seealso:: NetworkX implementation :func:`nx.d_separated`
     """
     if conditions is None:
         conditions = set()
@@ -160,14 +148,7 @@ def are_d_separated(
 
     # Filter to ancestors
     keep = graph.ancestors_inclusive(named)
-    sg = copy.deepcopy(graph.subgraph(keep))
-
-    # Moralize (link parents of mentioned nodes)
-    for u, v in iter_moral_links(sg):
-        sg.add_undirected_edge(u, v)
-
-    # disorient & remove conditions
-    evidence_graph = sg.disorient()
+    evidence_graph = graph.subgraph(keep).moralize().disorient()
 
     keep = set(evidence_graph.nodes) - set(conditions)
     evidence_graph = evidence_graph.subgraph(keep)
