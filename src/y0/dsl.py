@@ -1,6 +1,30 @@
 # -*- coding: utf-8 -*-
 
-"""An internal domain-specific language for probability expressions."""
+r"""An internal domain-specific language for probability expressions.
+
+=======================  ====================================================================
+Expression               Description
+=======================  ====================================================================
+:math:`P(A)`             The probability of A occurring
+:math:`P(A^*)`           The probability of A not occurring
+:math:`P(A, B)`          The joint probability of A and B occurring
+:math:`P(A \mid B)`      The conditional probability of A given B occurring
+:math:`P(A \mid B^*)`    The conditional probability of A occurring given B not occurring
+:math:`P(A^* \mid B)`    The conditional probability of A not occurring given B occurring
+:math:`P(A^* \mid B^*)`  The conditional probability of A not occurring given B not occurring
+:math:`\sum_A P(A, B)`   The marginal probability of B
+=======================  ====================================================================
+
+Level 3 of Pearl's Causal Hierarchy.
+
+==============================  =================================================
+Expression                      Description
+==============================  =================================================
+:math:`P(Y_X \mid X^*, Y^*)`    Probability of sufficient causation
+:math:`P(Y^*_{X^*} \mid X, Y)`  Probability of necessary causation
+:math:`P(Y_X, Y^*_{X^*})`       Probability of necessary and sufficient causation
+==============================  =================================================
+"""
 
 from __future__ import annotations
 
