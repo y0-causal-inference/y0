@@ -125,9 +125,11 @@ def idc_star(
                 f"""is D-separated from {condition} in G{"'"*(_number_recursions + 1)} ({condition}_bar)"""
             )
             new_outcomes = {
-                outcome.intervene(condition)
-                if condition in cf_graph.ancestors_inclusive(outcome)
-                else outcome: value
+                (
+                    outcome.intervene(condition)
+                    if condition in cf_graph.ancestors_inclusive(outcome)
+                    else outcome
+                ): value
                 for outcome, value in new_outcomes.items()
             }
             new_conditions = {k: v for k, v in new_conditions.items() if k != condition}
