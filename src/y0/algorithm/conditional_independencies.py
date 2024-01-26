@@ -13,7 +13,13 @@ from tqdm.auto import tqdm
 
 from ..dsl import Variable
 from ..graph import NxMixedGraph
-from ..struct import CITest, CITestTuple, DSeparationJudgement, _ensure_method, DEFAULT_SIGNIFICANCE
+from ..struct import (
+    DEFAULT_SIGNIFICANCE,
+    CITest,
+    CITestTuple,
+    DSeparationJudgement,
+    _ensure_method,
+)
 from ..util.combinatorics import powerset
 
 __all__ = [

@@ -223,7 +223,9 @@ class DSeparationJudgement:
             significance_level = DEFAULT_SIGNIFICANCE
 
         method = _ensure_method(
-            method, df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]], skip=_method_checked
+            method,
+            df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]],
+            skip=_method_checked,
         )
         tests: dict[CITest, CITestFunc] = get_conditional_independence_tests()
         func: CITestFunc = tests[method]
