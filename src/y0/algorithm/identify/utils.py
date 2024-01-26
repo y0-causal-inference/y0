@@ -73,12 +73,16 @@ class Query:
     ) -> Query:
         """Construct a query from text variable names."""
         return cls(
-            outcomes={Variable(outcomes)}
-            if isinstance(outcomes, str)
-            else {Variable(n) for n in outcomes},
-            treatments={Variable(treatments)}
-            if isinstance(treatments, str)
-            else {Variable(n) for n in treatments},
+            outcomes=(
+                {Variable(outcomes)}
+                if isinstance(outcomes, str)
+                else {Variable(n) for n in outcomes}
+            ),
+            treatments=(
+                {Variable(treatments)}
+                if isinstance(treatments, str)
+                else {Variable(n) for n in treatments}
+            ),
             conditions=None if conditions is None else {Variable(n) for n in conditions},
         )
 
