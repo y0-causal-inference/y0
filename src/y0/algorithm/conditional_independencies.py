@@ -3,7 +3,7 @@
 """An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
 from functools import partial
-from itertools import chain, combinations, groupby
+from itertools import combinations, groupby
 from typing import Callable, Iterable, List, Optional, Sequence, Set, Tuple, Union
 
 import networkx as nx
@@ -67,7 +67,7 @@ def test_conditional_independencies(
     boolean: bool = False,
     significance_level: Optional[float] = None,
     _method_checked: bool = False,
-) -> Union[List[Tuple[DSeparationJudgement, CITestTuple]], List[Tuple[DSeparationJudgement, bool]]]:
+) -> List[Tuple[DSeparationJudgement, Union[bool, CITestTuple]]]:
     """Gets CIs with :func:`get_conditional_independencies` then tests them against data.
 
     :param graph: An acyclic directed mixed graph

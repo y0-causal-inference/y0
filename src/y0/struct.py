@@ -6,17 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import (
-    Callable,
-    Iterable,
-    Literal,
-    NamedTuple,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-    overload,
-)
+from typing import Callable, Iterable, Literal, NamedTuple, Optional, Tuple, Union, cast
 
 import pandas as pd
 
@@ -154,28 +144,6 @@ class DSeparationJudgement:
             and isinstance(self.conditions, tuple)
             and tuple(sorted(self.conditions, key=str)) == self.conditions
         )
-
-    # docstr-coverage:excused `overload`
-    @overload
-    def test(
-        self,
-        df: pd.DataFrame,
-        *,
-        boolean: Literal[False],
-        method: Optional[CITest],
-        significance_level: Optional[float],
-    ) -> CITestTuple: ...
-
-    # docstr-coverage:excused `overload`
-    @overload
-    def test(
-        self,
-        df: pd.DataFrame,
-        *,
-        boolean: Literal[True],
-        method: Optional[CITest],
-        significance_level: Optional[float],
-    ) -> bool: ...
 
     def test(
         self,
