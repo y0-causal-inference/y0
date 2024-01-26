@@ -14,6 +14,7 @@ from typing import (
     Optional,
     Tuple,
     Union,
+    cast,
     overload,
 )
 
@@ -95,10 +96,20 @@ def get_conditional_independence_tests() -> dict[CITest, CITestFunc]:
     }
 
 
-TestType1 = Tuple[float, int]
-TestType2 = Tuple[float, int, float]
-TestType3 = Union[TestType1, TestType2]
-TestRV = Union[TestType3, bool]
+class CITestTuple(NamedTuple):
+    """A tuple containing the results from a PGMPy conditional independency test.
+
+    Note that continuous tests such as :func:`pgmpy.estimators.CITests.pearsonr`
+    do not have an associated _degrees of freedom_ (dof), so this field is set
+    to none in those cases.
+    """
+
+    statistic: float
+    p_value: float
+    dof: Optional[float] = None
+
+
+CITestResult = Union[CITestTuple, bool]
 
 
 @dataclass(frozen=True)
@@ -150,7 +161,7 @@ class DSeparationJudgement:
         boolean: Literal[False],
         method: Optional[CITest],
         significance_level: Optional[float],
-    ) -> TestType3:
+    ) -> CITestTuple:
         ...
 
     @overload
@@ -171,7 +182,7 @@ class DSeparationJudgement:
         boolean: bool = False,
         method: Optional[CITest] = None,
         significance_level: Optional[float] = None,
-    ) -> Union[bool, TestType3]:
+    ) -> Union[bool, CITestTuple]:
         """Test for conditional independence, given some data.
 
         :param df: A dataframe.
@@ -213,7 +224,7 @@ class DSeparationJudgement:
         )
         tests: dict[CITest, CITestFunc] = get_conditional_independence_tests()
         func: CITestFunc = tests[method]
-        return func(
+        result = func(
             X=self.left.name,
             Y=self.right.name,
             Z={condition.name for condition in self.conditions},
@@ -221,6 +232,18 @@ class DSeparationJudgement:
             boolean=boolean,
             significance_level=significance_level,
         )
+        if boolean:
+            return cast(bool, result)
+        # Person's correlation returns a pair with the first element being the Person's correlation
+        # and the second being the p-value. The other methods return a triple with the first element
+        # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of
+        # freedom.
+        if method == "pearson":
+            stat, p_value = result
+            dof = None
+        else:
+            stat, p_value, dof = result
+        return CITestTuple(stat=stat, p_value=p_value, dof=dof)
 
 
 def _ensure_method(method: Optional[CITest], df: pd.DataFrame) -> CITest:
