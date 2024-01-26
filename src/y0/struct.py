@@ -153,6 +153,7 @@ class DSeparationJudgement:
             and tuple(sorted(self.conditions, key=str)) == self.conditions
         )
 
+    # docstr-coverage:excused `overload`
     @overload
     def test(
         self,
@@ -161,9 +162,9 @@ class DSeparationJudgement:
         boolean: Literal[False],
         method: Optional[CITest],
         significance_level: Optional[float],
-    ) -> CITestTuple:
-        ...
+    ) -> CITestTuple: ...
 
+    # docstr-coverage:excused `overload`
     @overload
     def test(
         self,
@@ -172,8 +173,7 @@ class DSeparationJudgement:
         boolean: Literal[True],
         method: Optional[CITest],
         significance_level: Optional[float],
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
     def test(
         self,
