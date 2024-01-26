@@ -6,7 +6,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Callable, Iterable, Literal, NamedTuple, Optional, Tuple, Union
+from typing import (
+    Callable,
+    Iterable,
+    Literal,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+    overload,
+)
 
 import pandas as pd
 
@@ -86,6 +95,12 @@ def get_conditional_independence_tests() -> dict[CITest, CITestFunc]:
     }
 
 
+TestType1 = Tuple[float, int]
+TestType2 = Tuple[float, int, float]
+TestType3 = Union[TestType1, TestType2]
+TestRV = Union[TestType3, bool]
+
+
 @dataclass(frozen=True)
 class DSeparationJudgement:
     """
@@ -127,13 +142,36 @@ class DSeparationJudgement:
             and tuple(sorted(self.conditions, key=str)) == self.conditions
         )
 
+    @overload
     def test(
         self,
         df: pd.DataFrame,
+        *,
+        boolean: Literal[False],
+        method: Optional[CITest],
+        significance_level: Optional[float],
+    ) -> TestType3:
+        ...
+
+    @overload
+    def test(
+        self,
+        df: pd.DataFrame,
+        *,
+        boolean: Literal[True],
+        method: Optional[CITest],
+        significance_level: Optional[float],
+    ) -> bool:
+        ...
+
+    def test(
+        self,
+        df: pd.DataFrame,
+        *,
         boolean: bool = False,
         method: Optional[CITest] = None,
         significance_level: Optional[float] = None,
-    ) -> Union[Tuple[float, int], Tuple[float, int, float], bool]:
+    ) -> Union[bool, TestType3]:
         """Test for conditional independence, given some data.
 
         :param df: A dataframe.
