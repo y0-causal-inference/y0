@@ -899,3 +899,49 @@ def iter_moral_links(graph: NxMixedGraph) -> Iterable[Tuple[Variable, Variable]]
     yield from chain.from_iterable(
         combinations(graph.directed.predecessors(node), 2) for node in graph.nodes()
     )
+
+
+def get_nodes_in_directed_paths(
+    graph: NxMixedGraph,
+    sources: Union[Variable, Set[Variable]],
+    outcomes: Union[Variable, Set[Variable]],
+) -> Set[Variable]:
+    """Get all nodes appearing in directed paths from sources to targets.
+
+    :param graph: an NxMixedGraph
+    :param sources: source nodes
+    :param outcomes: target nodes
+    :return: the nodes on all causal paths from sources to targets,
+        union'd with sources and targets
+
+    A simpler implementation can use :func:`nx.all_simple_paths`, but this is
+    less efficient since it requires calculating the same paths over and over
+    again.
+
+        .. code-block::
+
+            {
+                node
+                for treatment, outcome in itertools.product(treatments, outcomes)
+                for causal_path in nx.all_simple_paths(graph.directed, treatment, outcome)
+                for node in causal_path
+            }
+    """
+    if isinstance(sources, Variable):
+        sources = {sources}
+    if isinstance(outcomes, Variable):
+        outcomes = {outcomes}
+    tc: nx.DiGraph = nx.transitive_closure(graph.directed, reflexive=False)
+    intermediaries = {
+        node
+        for node in graph.nodes()
+        if any(
+            tc.has_edge(source, node) and tc.has_edge(node, target)
+            for source, target in itt.product(sources, outcomes)
+        )
+    }
+    for source, target in itt.product(sources, outcomes):
+        if tc.has_edge(source, target):
+            intermediaries.add(source)
+            intermediaries.add(target)
+    return intermediaries
