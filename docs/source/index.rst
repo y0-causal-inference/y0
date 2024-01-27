@@ -10,6 +10,7 @@ y0 |release| Documentation
    dsl
    parser
    graph
+   graph_mutation
    examples
    mutation
    conditional_independence

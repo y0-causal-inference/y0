@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
-"""An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
+"""An implementation to get conditional independencies of an ADMG from [pearl2009]_.
+
+.. [taheri2024] Eliater: a workflow and open source implementation for estimation of
+   outcomes of perturbations from observational measurements in biomolecular networks
+"""
 
 from functools import partial
 from itertools import combinations, groupby
@@ -38,6 +42,8 @@ def add_ci_undirected_edges(
     significance_level: Optional[float] = None,
 ) -> NxMixedGraph:
     """Add undirected edges between d-separated nodes that fail a data-driven conditional independency test.
+
+    Inspired by [taheri2024]_.
 
     :param graph: An acyclic directed mixed graph
     :param data: observational data corresponding to the graph
