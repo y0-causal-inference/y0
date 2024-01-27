@@ -15,7 +15,7 @@ from ..dsl import Variable
 from ..graph import DEFAULT_TAG, NxMixedGraph, _ensure_set
 
 __all__ = [
-    "evens_simplify",
+    "evans_simplify",
     "simplify_latent_dag",
     "SimplifyResults",
     "remove_widow_latents",
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SUFFIX = "_prime"
 
 
-def evens_simplify(
+def evans_simplify(
     graph: NxMixedGraph,
     *,
     latents: Union[None, Variable, Iterable[Variable]] = None,
