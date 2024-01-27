@@ -15,6 +15,7 @@ from y0.graph import (
     DEFAULT_TAG,
     DEFULT_PREFIX,
     NxMixedGraph,
+    get_nodes_in_directed_paths,
     is_a_fixable,
     is_markov_blanket_shielded,
     is_p_fixable,
@@ -657,3 +658,17 @@ class TestToBayesianNetwork(unittest.TestCase):
         expected = BayesianNetwork(ebunch=[("X", "Y")])
         actual = graph.to_pgmpy_bayesian_network()
         self.assert_bayesian_equal(expected, actual)
+
+
+class TestUtilities(unittest.TestCase):
+    """Test utility functions."""
+
+    def test_nodes_in_paths(self):
+        """Test getting nodes in paths."""
+        graph = NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)])
+        self.assertEqual({X, Y, Z}, get_nodes_in_directed_paths(graph, X, Y))
+        self.assertEqual({X, Z}, get_nodes_in_directed_paths(graph, X, Z))
+        self.assertEqual({Z, Y}, get_nodes_in_directed_paths(graph, Z, Y))
+        self.assertEqual(set(), get_nodes_in_directed_paths(graph, Z, X))
+        self.assertEqual(set(), get_nodes_in_directed_paths(graph, Y, Z))
+        self.assertEqual(set(), get_nodes_in_directed_paths(graph, Y, X))

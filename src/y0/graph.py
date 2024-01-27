@@ -899,3 +899,56 @@ def iter_moral_links(graph: NxMixedGraph) -> Iterable[Tuple[Variable, Variable]]
     yield from chain.from_iterable(
         combinations(graph.directed.predecessors(node), 2) for node in graph.nodes()
     )
+
+
+def get_nodes_in_directed_paths(
+    graph: NxMixedGraph,
+    sources: Union[Variable, Set[Variable]],
+    targets: Union[Variable, Set[Variable]],
+) -> Set[Variable]:
+    """Get all nodes appearing in directed paths from sources to targets.
+
+    :param graph: an NxMixedGraph
+    :param sources: source nodes
+    :param targets: target nodes
+    :return: the nodes on all causal paths from sources to targets
+    """
+    sources = _ensure_set(sources)
+    targets = _ensure_set(targets)
+    if nx.is_directed_acyclic_graph(graph.directed):
+        return _get_nodes_in_directed_paths_dag(graph.directed, sources, targets)
+    else:
+        # note, this is a simpler implementation can use :func:`nx.all_simple_paths`,
+        # but it is less efficient since it requires potentially calculating the same
+        # paths over and over again.
+        return _get_nodes_in_directed_paths_cyclic(graph.directed, sources, targets)
+
+
+def _get_nodes_in_directed_paths_dag(
+    graph: nx.DiGraph, sources: set[Variable], targets: set[Variable]
+) -> set[Variable]:
+    tc: nx.DiGraph = nx.transitive_closure_dag(graph)
+    rv = {
+        node
+        for node in graph.nodes()
+        if any(
+            tc.has_edge(source, node) and tc.has_edge(node, target)
+            for source, target in itt.product(sources, targets)
+        )
+    }
+    for source, target in itt.product(sources, targets):
+        if tc.has_edge(source, target):
+            rv.add(source)
+            rv.add(target)
+    return rv
+
+
+def _get_nodes_in_directed_paths_cyclic(
+    graph: nx.DiGraph, sources: set[Variable], targets: set[Variable]
+) -> set[Variable]:
+    return {
+        node
+        for source, target in itt.product(sources, targets)
+        for causal_path in nx.all_simple_paths(graph, source, target)
+        for node in causal_path
+    }
