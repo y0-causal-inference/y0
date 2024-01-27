@@ -931,7 +931,7 @@ def get_nodes_in_directed_paths(
         sources = {sources}
     if isinstance(outcomes, Variable):
         outcomes = {outcomes}
-    tc: nx.DiGraph = nx.transitive_closure(graph.directed, reflexive=False)
+    tc: nx.DiGraph = nx.transitive_closure_dag(graph.directed)
     intermediaries = {
         node
         for node in graph.nodes()
