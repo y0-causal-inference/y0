@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
-"""Implement Robin Evans' simplification algorithms.
+"""Implement Robin Evans' simplification algorithms from [evans2012]_ and [evans2016]_.
 
-.. seealso:: https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf slides 34-43
+.. [evans2016] `Graphs for margins of Bayesian networks <https://arxiv.org/abs/1408.1809>`_
+.. [evans2012] `Constraints on marginalised DAGs
+      <https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf>`_
 """
 
 import itertools as itt
@@ -35,7 +37,7 @@ def evans_simplify(
     latents: Union[None, Variable, Iterable[Variable]] = None,
     tag: Optional[str] = None,
 ) -> NxMixedGraph:
-    """Reduce the ADMG based on Evans' simplification rules.
+    """Reduce the ADMG based on Evans' simplification rules in [evans2012]_ and [evans2016]_.
 
     :param graph: an NxMixedGraph
     :param latents: Additional variables to mark as latent, in addition to the
@@ -51,8 +53,8 @@ def evans_simplify(
         for node, data in lv_dag.nodes(data=True):
             if Variable(node) in latents:
                 data[tag] = True
-    simplifiy_results = simplify_latent_dag(lv_dag, tag=tag)
-    return NxMixedGraph.from_latent_variable_dag(simplifiy_results.graph, tag=tag)
+    simplify_results = simplify_latent_dag(lv_dag, tag=tag)
+    return NxMixedGraph.from_latent_variable_dag(simplify_results.graph, tag=tag)
 
 
 class SimplifyResults(NamedTuple):
@@ -65,7 +67,7 @@ class SimplifyResults(NamedTuple):
 
 
 def simplify_latent_dag(graph: nx.DiGraph, *, tag: Optional[str] = None) -> SimplifyResults:
-    """Apply Robin Evans' four rules in succession, in place."""
+    """Apply Robin Evans' four rules in succession, in place from [evans2012]_ and [evans2016]_."""
     if tag is None:
         tag = DEFAULT_TAG
 
