@@ -7,14 +7,15 @@
 
 import itertools as itt
 import logging
-from typing import Iterable, Mapping, NamedTuple, Optional, Set, Tuple
+from typing import Iterable, Mapping, NamedTuple, Optional, Set, Tuple, Union
 
 import networkx as nx
 
 from ..dsl import Variable
-from ..graph import DEFAULT_TAG
+from ..graph import DEFAULT_TAG, NxMixedGraph, _ensure_set
 
 __all__ = [
+    "evens_simplify",
     "simplify_latent_dag",
     "SimplifyResults",
     "remove_widow_latents",
@@ -28,6 +29,32 @@ logger = logging.getLogger(__name__)
 DEFAULT_SUFFIX = "_prime"
 
 
+def evens_simplify(
+    graph: NxMixedGraph,
+    *,
+    latents: Union[None, Variable, Iterable[Variable]] = None,
+    tag: Optional[str] = None,
+) -> NxMixedGraph:
+    """Reduce the ADMG based on Evans' simplification rules.
+
+    :param graph: an NxMixedGraph
+    :param latents: Additional variables to mark as latent, in addition to the
+        ones created by undirected edges
+    :param tag: The tag for which variables are latent
+    :return: the new graph after simplification
+    """
+    if tag is None:
+        tag = DEFAULT_TAG
+    lv_dag = NxMixedGraph.to_latent_variable_dag(graph, tag=tag)
+    if latents is not None:
+        latents = _ensure_set(latents)
+        for node, data in lv_dag.nodes(data=True):
+            if Variable(node) in latents:
+                data[tag] = True
+    simplifiy_results = simplify_latent_dag(lv_dag, tag=tag)
+    return NxMixedGraph.from_latent_variable_dag(simplifiy_results.graph, tag=tag)
+
+
 class SimplifyResults(NamedTuple):
     """Results from the simplification of a LV-DAG."""
 
@@ -37,8 +64,8 @@ class SimplifyResults(NamedTuple):
     unidirectional_latents: Set[Variable]
 
 
-def simplify_latent_dag(graph: nx.DiGraph, tag: Optional[str] = None):
-    """Apply Robin Evans' four rules in succession."""
+def simplify_latent_dag(graph: nx.DiGraph, *, tag: Optional[str] = None) -> SimplifyResults:
+    """Apply Robin Evans' four rules in succession, in place."""
     if tag is None:
         tag = DEFAULT_TAG
 
