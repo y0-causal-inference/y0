@@ -384,6 +384,33 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
         self.assertTrue(variable in test5_out for variable in result)
         self.assertTrue(test5_in in result)  # Every outcome is its own ancestor
 
+    def test_6(self):
+        """Test the pre-processing check for get_ancestors_of_counterfactual().
+
+        Send in anything that's not a variable.
+        Source: out of RJC's head.
+        """
+        test6_in = [
+            CounterfactualVariable(
+                name="Y", star=None, interventions=frozenset({Intervention(name="Y", star=False)})
+            ),
+            CounterfactualVariable(
+                name="X", star=None, interventions=frozenset({Intervention(name="Y", star=False)})
+            ),
+        ]
+        self.assertRaises(
+            TypeError,
+            get_ancestors_of_counterfactual,
+            event=test6_in,
+            graph=figure_2a_graph,
+        )
+        self.assertRaises(
+            TypeError,
+            get_ancestors_of_counterfactual,
+            event=[],
+            graph=figure_2a_graph,
+        )
+
 
 class TestSimplify(cases.GraphTestCase):
     """Test the simplify algorithm from counterfactual transportability.
@@ -436,23 +463,41 @@ class TestSimplify(cases.GraphTestCase):
         self.assertCountEqual(reflexive_event_3, [(Y @ -Y, -Y)])
         self.assertCountEqual(nonreflexive_event_3, [])
 
-    def test_reduce_reflexive_counterfactual_variables_to_interventions(self):
+    def test_reduce_reflexive_counterfactual_variables_to_interventions_part_1(self):
         """Test reducing counterfactual variables that intervene on themselves to simpler Intervention objects.
 
+        We test both TypeError tests and normal functioning of the function.
         Source: RJC's mind.
         """
         reflexive_variable_to_value_mappings = defaultdict(set)
         reflexive_variable_to_value_mappings[Y @ -Y].add(+Y)
         reflexive_variable_to_value_mappings[Y].add(-Y)
-        logger.warning(
-            "test_reduce_reflexive_counterfactual_variables_to_interventions: input dict = "
-            + str(reflexive_variable_to_value_mappings)
-        )
         result_dict = _reduce_reflexive_counterfactual_variables_to_interventions(
             reflexive_variable_to_value_mappings
         )
         assert Y in result_dict
         self.assertSetEqual(result_dict[Y], {+Y, -Y})
+        # The next test sends in a counterfactual variable intervening on itself and something else.
+        # The minimize() algorithm should always get rid of the intervention that is not the
+        # self-intervention, but here we're testing a pre-processing check in this algorithm
+        # that looks for input variables with multiple interventions.
+        reflexive_variable_to_value_mappings_2 = defaultdict(set)
+        reflexive_variable_to_value_mappings_2[Y @ [-Y, -X]].add(+Y)
+        reflexive_variable_to_value_mappings_2[Y].add(-Y)
+        self.assertRaises(
+            TypeError,
+            _reduce_reflexive_counterfactual_variables_to_interventions,
+            variables=reflexive_variable_to_value_mappings_2,
+        )
+        # Here we're testing a check that all input interventions are self-interventions.
+        reflexive_variable_to_value_mappings_3 = defaultdict(set)
+        reflexive_variable_to_value_mappings_3[Y @ -X].add(+Y)
+        reflexive_variable_to_value_mappings_3[Y].add(-Y)
+        self.assertRaises(
+            TypeError,
+            _reduce_reflexive_counterfactual_variables_to_interventions,
+            variables=reflexive_variable_to_value_mappings_3,
+        )
 
     def test_remove_repeated_variables_and_values(self):
         """Test removing repeated occurrences of variables and associated values in an event.
@@ -707,6 +752,13 @@ class TestSimplify(cases.GraphTestCase):
         self.assertRaises(TypeError, simplify, event=event_1, graph=figure_2a_graph)
         self.assertRaises(TypeError, simplify, event=event_2, graph=figure_2a_graph)
         self.assertRaises(TypeError, simplify, event=event_3, graph=figure_2a_graph)
+        # First variable in the tuple must be a variable, second must be an intervention.
+        # Pass in a list of variables for the first and a list of interventions for the
+        # second test below
+        event_4 = [([Y @ -Y, Y @ -X], -Y)]
+        event_5 = [(Y @ -Y, [-Y, -X])]
+        self.assertRaises(TypeError, simplify, event=event_4, graph=figure_2a_graph)
+        self.assertRaises(TypeError, simplify, event=event_5, graph=figure_2a_graph)
 
     def test_simplified_1(self):
         """Fourth test for simplifying an event with redundant subscripts. Source: RJC's mind."""
@@ -1250,6 +1302,18 @@ class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
             equation_16_test_3_expected[0],
         )
         self.assertCountEqual(equation_16_test_3_out[1], equation_16_test_3_expected[1])
+
+    def test_do_counterfactual_factor_factorization_4(self):
+        """Test counterfactual factor factorization with an empty query.
+
+        Source: RJC's head (inspired by a code coverage report).
+        """
+        self.assertRaises(
+            TypeError,
+            do_counterfactual_factor_factorization,
+            variables=[],
+            graph=figure_2a_graph,
+        )
 
 
 class TestConvertToCounterfactualFactorForm(unittest.TestCase):
