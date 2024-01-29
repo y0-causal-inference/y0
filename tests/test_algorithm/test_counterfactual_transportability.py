@@ -1523,6 +1523,8 @@ class TestIdentify(cases.GraphTestCase):
             graph=soft_interventions_figure_3_graph,
             topo=list(soft_interventions_figure_3_graph.topological_sort()),
         )
+        # Raises a TypeError because the input district probability has an unrecognized format.
+        # We need tests for A=C, A=T and $C \subset A \subset T$.
 
     def test_identify_1(self):
         """Test Line 2 of Algorithm 5 of [correa22a]_.
@@ -1532,8 +1534,6 @@ class TestIdentify(cases.GraphTestCase):
         # π_star = Pi_star = Variable(f"π*")
         test_1_identify_input_variables = {Z}  # A
         test_1_identify_input_district = {Z}  # B
-        # TODO: In identify(), during pre-processing make sure that A is contained in B, and
-        # that B is a district of G. Raise a TypeError if not.
 
         # @cthoyt @JZ The next two commented-out lines produce a mypy error:
         # pi1 = Population("pi1")
