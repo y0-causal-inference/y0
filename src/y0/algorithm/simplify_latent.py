@@ -2,7 +2,6 @@
 
 """Implement Robin Evans' simplification algorithms from [evans2012]_ and [evans2016]_.
 
-.. [evans2016] `Graphs for margins of Bayesian networks <https://arxiv.org/abs/1408.1809>`_
 .. [evans2012] `Constraints on marginalised DAGs
       <https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf>`_
 """

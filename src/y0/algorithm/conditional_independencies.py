@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""An implementation to get conditional independencies of an ADMG from [pearl2009]_.
-
-.. [taheri2024] Eliater: a workflow and open source implementation for estimation of
-   outcomes of perturbations from observational measurements in biomolecular networks
-"""
+"""An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
 from functools import partial
 from itertools import combinations, groupby
