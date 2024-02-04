@@ -17,6 +17,9 @@ gID* [correa2021]_      `Issue #121 <https://github.com/y0-causal-inference/y0/i
 Data ID [nabi2020]_     `Issue #73 <https://github.com/y0-causal-inference/y0/issues/73>`_
 ======================  ====================================================================
 
+This table partially draws from [tikka2021]_, which made a nice review of non-counterfactual
+identification methods.
+
 Transport
 ---------
 =============================================  ======================================
@@ -43,6 +46,8 @@ Counterfactual Transportability [correa2022]_  `PR #197 <https://github.com/y0-c
 .. [correa2019] `General Identifiability with Arbitrary Surrogate Experiments <https://causalai.net/r46.pdf>`_
 .. [correa2021] `Nested Counterfactual Identification from Arbitrary Surrogate Experiments
     <https://causalai.net/r79.pdf>`_
+.. [tikka2021] `Causal Effect Identification from Multiple Incomplete Data Sources:
+    A General Search-based Approach <https://arxiv.org/pdf/1902.01073.pdf>`_
 
 """
 
