@@ -52,6 +52,18 @@ def tian_pearl_identify(
             "In tian_pearl_identify: the subgraph of the input graph G comprised of the"
             + " vertices in the input vertex set T should have only district and has more."
         )
+    if (not isinstance(district_probability, Expression)) | isinstance(
+        district_probability, Expression
+    ) and not (
+        isinstance(district_probability, Sum)
+        | isinstance(district_probability, Product)
+        | isinstance(district_probability, Fraction)
+        | isinstance(district_probability, Probability)
+    ):
+        raise TypeError(
+            "In tian_pearl_identify: the district probability must be an expression that is a "
+            + "Sum, Product, Fraction, or Probability."
+        )
     # ordered_graph_vertices = [v for v in topo if v in graph.nodes()]  # This is V
 
     ancestral_set = frozenset(
@@ -85,8 +97,7 @@ def tian_pearl_identify(
         # t_prime = [district for district in ancestral_set_subgraph_districts if
         #             input_variables.intersect(district)==input_variables][0]
         # ordered_t_prime_vertices = [v for v in topo if v in t_prime]
-        # t_one = t_prime.intersection(ancestral_set) # RC: This line is in Tikka, but cc came from
-
+        # t_one = t_prime.intersection(ancestral_set) # RC: This line is in Tikka
         if (
             isinstance(district_probability, Fraction)
             or isinstance(district_probability, Product)
@@ -105,7 +116,7 @@ def tian_pearl_identify(
             )
         else:
             raise TypeError(
-                "In tian_pearl_identify: the input district probability has an unrecognized format."
+                "In tian_pearl_identify: the district probability is an expression of an unknown type."
             )
         # Get Q[T'] by Lemma 4 or Lemma 1
         targeted_ancestral_set_subgraph_district_probability = _compute_c_factor(

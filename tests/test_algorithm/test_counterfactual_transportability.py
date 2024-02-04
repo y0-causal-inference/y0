@@ -66,6 +66,7 @@ from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
     X,
     Y,
     Z,
+    Zero,
 )
 from y0.graph import NxMixedGraph
 
@@ -1512,19 +1513,37 @@ class TestIdentify(cases.GraphTestCase):
             graph=soft_interventions_figure_3_graph,
             topo=list(soft_interventions_figure_3_graph.topological_sort()),
         )
-        # Raises a TypeError because G_{X,Y,Z} has two districts and there should be at most one.
-        # {W,Y} happen to be in the same district of G_{X,Y,Z}.
+        # Raises a TypeError because the input district probability has an unrecognized format.
+        test_4_identify_input_variables = {Z}  # A
+        test_4_identify_input_district = {Z}  # B
+        # test_4_district_probability = PP[Population("pi1")](Z | X1)  # Q
         self.assertRaises(
             TypeError,
             tian_pearl_identify,
-            input_variables=frozenset({W, Y}),
-            input_district=frozenset({W, Y, Z}),
-            district_probability=PP[Population("pi*")](R, W, X, Y, Z),
-            graph=soft_interventions_figure_3_graph,
-            topo=list(soft_interventions_figure_3_graph.topological_sort()),
+            input_variables=frozenset(test_4_identify_input_variables),
+            input_district=frozenset(test_4_identify_input_district),
+            district_probability=[],
+            graph=soft_interventions_figure_1b_graph,
+            topo=list(soft_interventions_figure_1b_graph.topological_sort()),
         )
-        # Raises a TypeError because the input district probability has an unrecognized format.
-        # We need tests for A=C, A=T and $C \subset A \subset T$.
+        self.assertRaises(
+            TypeError,
+            tian_pearl_identify,
+            input_variables=frozenset(test_4_identify_input_variables),
+            input_district=frozenset(test_4_identify_input_district),
+            district_probability=One(),
+            graph=soft_interventions_figure_1b_graph,
+            topo=list(soft_interventions_figure_1b_graph.topological_sort()),
+        )
+        self.assertRaises(
+            TypeError,
+            tian_pearl_identify,
+            input_variables=frozenset(test_4_identify_input_variables),
+            input_district=frozenset(test_4_identify_input_district),
+            district_probability=Zero(),
+            graph=soft_interventions_figure_1b_graph,
+            topo=list(soft_interventions_figure_1b_graph.topological_sort()),
+        )
 
     def test_identify_1(self):
         """Test Line 2 of Algorithm 5 of [correa22a]_.
@@ -1542,6 +1561,8 @@ class TestIdentify(cases.GraphTestCase):
         # test_transport.py uses a similar syntax and does not trigger the error,
         #   so I'm probably missing something simple.
         test_1_district_probability = PP[Population("pi1")](Z | X1)  # Q
+        # pi1 = Population("pi1")
+        # test_1_district_probability = PP[pi1](Z | X1)
         result = tian_pearl_identify(
             input_variables=frozenset(test_1_identify_input_variables),
             input_district=frozenset(test_1_identify_input_district),
@@ -1742,7 +1763,7 @@ class TestComputeCFactor(cases.GraphTestCase):
         #       have Q set to something like $Sum_{W3}{W4 | W3}$.
 
     def test_compute_c_factor_5(self):
-        """Fourth test of the Compute C Factor function.
+        """Fifth test of the Compute C Factor function.
 
         Testing Lemma 1 as called from _compute_c_factor,
         conditioning on a variable as part of the input Q value for the graph.
@@ -1766,6 +1787,28 @@ class TestComputeCFactor(cases.GraphTestCase):
             graph_topo=topo,
         )
         self.assert_expr_equal(result_5, expected_result_5)
+
+    def test_compute_c_factor_6(self):
+        """Sixth test of the Compute C Factor function.
+
+        Here we test a case in which the input probability is neither a product, sum, fraction,
+        nor a simple probability.
+        Source: derivative from [tian03a], the example in section 4.6.
+        """
+        # TODO: Discuss whether we want tian_pearl_identify() and _compute_c_factor()
+        # to handle expressions of type One, Zero, or QFactor.
+        topo = list(tian_pearl_figure_9a_graph.topological_sort())
+        district = [W1, W3, W2, X, Y]
+        subgraph_variables = [W1, W3, W2, W4, X, Y]
+        subgraph_probability = One()
+        self.assertRaises(
+            TypeError,
+            _compute_c_factor,
+            district=district,
+            subgraph_variables=subgraph_variables,
+            subgraph_probability=subgraph_probability,
+            graph_topo=topo,
+        )
 
 
 class TestTianLemma1i(cases.GraphTestCase):
@@ -1902,7 +1945,7 @@ class TestTianLemma4ii(cases.GraphTestCase):
         self.assert_expr_equal(result, self.expected_result_1)
 
     def test_tian_lemma_4_ii_part_2(self):
-        """First test of Lemma 4, part (ii) (Equations 71 and 72 in [tian03a]_.
+        """Second test of Lemma 4, part (ii) (Equations 71 and 72 in [tian03a]_.
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
         """
