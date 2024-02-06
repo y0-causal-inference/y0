@@ -78,9 +78,11 @@ def evaluate_lscm(
     """given an LSCM, assign values to the parameters (i.e. beta, epsilon, gamma terms), and return variable assignments dictionary"""
     # solve set of simulateous linear equations in sympy
 
-    xx = {variable.to_sympy(): expression for variable, expression in linear_scm.items()}
-    eqns = [sympy.Eq(lhs.subs(params), rhs.subs(params)) for lhs, rhs in xx.items()]
-    return sympy.solve(eqns, list(xx))
+    expressions: dict[sympy.Symbol, sympy.Expr] = {
+        variable.to_sympy(): expression for variable, expression in linear_scm.items()
+    }
+    eqns = [sympy.Eq(lhs.subs(params), rhs.subs(params)) for lhs, rhs in expressions.items()]
+    return sympy.solve(eqns, list(expressions))
 
 
 def _main():
