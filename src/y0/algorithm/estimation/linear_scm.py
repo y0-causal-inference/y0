@@ -1,17 +1,16 @@
 """Utilities for structural causal models (SCMs)."""
 
 from statistics import fmean
+from typing import cast
 
 import pandas as pd
+import pyro
+import sympy
+import sympytorch
 from sklearn.linear_model import LinearRegression
 
 from y0.dsl import Variable
-from y0.graph import NxMixedGraph
-import sympy
-import pyro
-
-import sympytorch
-
+from y0.graph import NxMixedGraph, sympy_nested
 
 __all__ = [
     "get_single_door",
@@ -69,47 +68,22 @@ def get_single_door_learnable(
 
 
 def evaluate_admg(graph, data: pd.DataFrame):
-    params = {_get_beta(l, r): v for (l, r), v in get_single_door(graph, data).items()}
-    lscm = generate_lscm_from_mixed_graph(graph)
+    params = {sympy_nested("\\beta", l, r): v for (l, r), v in get_single_door(graph, data).items()}
+    lscm = graph.to_linear_scm_sympy()
     return evaluate_lscm(lscm, params)
 
 
 def evaluate_lscm(
-    LSCM: dict[sympy.Symbol, sympy.Expr], params: dict[sympy.Symbol, float]
+    linear_scm: dict[Variable, sympy.Expr], params: dict[sympy.Symbol, float]
 ) -> dict[sympy.Symbol, sympy.core.numbers.Rational]:
     """given an LSCM, assign values to the parameters (i.e. beta, epsilon, gamma terms), and return variable assignments dictionary"""
     # solve set of simulateous linear equations in sympy
-    eqns = [sympy.Eq(lhs.subs(params), rhs.subs(params)) for lhs, rhs in LSCM.items()]
+    eqns = [
+        sympy.Eq(variable.to_sympy().subs(params), expression.subs(params))
+        for variable, expression in linear_scm.items()
+    ]
     print(eqns)
-    return sympy.solve(eqns, list(LSCM))
-
-
-def _get_beta(left: Variable, right: Variable) -> sympy.Symbol:
-    return sympy.Symbol(f"beta_{left.name}_->{right.name}")
-
-
-def generate_lscm_from_mixed_graph(graph: NxMixedGraph) -> dict:
-    equations = {}
-    for node in graph.topological_sort():
-        node_sym = sympy.Symbol(node.name)  # fix name prop
-        expression_terms = []
-
-        # Add parent edges
-        for parent in graph.directed.predecessors(node):
-            expression_terms.append(_get_beta(parent, node) * sympy.Symbol(f"{parent.name}"))
-
-        # Add noise term
-        epsilon_sym = sympy.Symbol(f"epsilon_{node.name}")
-        expression_terms.append(epsilon_sym)
-
-        # get bidirected edges
-        for u, v in graph.undirected.edges(node):
-            u, v = sorted([u, v])
-            temp_gamma_sym = sympy.Symbol(f"gamma_{u}_<->{v}")
-            expression_terms.append(temp_gamma_sym)
-
-        equations[node_sym] = sum(expression_terms)
-    return equations
+    return sympy.solve(eqns, list(linear_scm))
 
 
 def _main():

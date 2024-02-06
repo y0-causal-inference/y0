@@ -20,6 +20,7 @@ from typing import (
     Set,
     Tuple,
     Union,
+    cast,
 )
 
 import networkx as nx
@@ -173,6 +174,43 @@ class NxMixedGraph:
         from pgmpy.inference.CausalInference import CausalInference
 
         return CausalInference(self.to_pgmpy_bayesian_network())
+
+    def to_linear_scm_sympy(self) -> dict[Variable, "sympy.Expr"]:
+        """Generate a Sympy system of equations."""
+        import sympy
+
+        variable_to_equation = {}
+        for node in self.topological_sort():
+            terms = []
+
+            # Add parent edges
+            for parent in self.directed.predecessors(node):
+                beta = sympy_nested(r"\beta", parent, node)
+                terms.append(beta * parent.to_sympy())
+
+            # Add noise term
+            epsilon_symbol = sympy_nested(r"\epsilon", node)
+            terms.append(epsilon_symbol)
+
+            # get bidirected edges
+            for u, v in self.undirected.edges(node):
+                u, v = sorted([u, v])
+                gamma_symbol = sympy_nested(r"\gamma", u, v)
+                terms.append(gamma_symbol)
+
+            variable_to_equation[node] = cast(sympy.Expr, sum(terms))
+        return variable_to_equation
+
+    def to_linear_scm_latex(self) -> str:
+        """Generate a Sympy system of equations."""
+        import sympy
+
+        equations_dict = self.to_linear_scm_sympy()
+        latex_equations = [
+            rf"{variable.to_latex()} &= {sympy.latex(expression)} \\"
+            for variable, expression in equations_dict.items()
+        ]
+        return _LatexStr(r"\begin{align*}" + "\n ".join(latex_equations) + r"\end{align*}")
 
     @classmethod
     def from_admg(cls, admg) -> NxMixedGraph:
@@ -627,6 +665,11 @@ class NxMixedGraph:
         return pre
 
 
+class _LatexStr(str):
+    def _repr_latex_(self):
+        return self
+
+
 def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
     """Confirm that node is not an intervention."""
     if isinstance(node, (Intervention, CounterfactualVariable)):
@@ -952,3 +995,11 @@ def _get_nodes_in_directed_paths_cyclic(
         for causal_path in nx.all_simple_paths(graph, source, target)
         for node in causal_path
     }
+
+
+def sympy_nested(glyph: str, *variables: Variable) -> "sympy.Symbol":
+    """Create a sympy nested symbol."""
+    import sympy
+
+    inner_latex = ",".join(variable.to_latex() for variable in variables)
+    return sympy.Symbol(rf"{glyph}_{{{inner_latex}}}")
