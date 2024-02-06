@@ -1,7 +1,6 @@
 """Utilities for structural causal models (SCMs)."""
 
 from statistics import fmean
-from typing import cast
 
 import pandas as pd
 import pyro
@@ -78,16 +77,18 @@ def evaluate_lscm(
 ) -> dict[sympy.Symbol, sympy.core.numbers.Rational]:
     """given an LSCM, assign values to the parameters (i.e. beta, epsilon, gamma terms), and return variable assignments dictionary"""
     # solve set of simulateous linear equations in sympy
-    eqns = [
-        sympy.Eq(variable.to_sympy().subs(params), expression.subs(params))
-        for variable, expression in linear_scm.items()
-    ]
-    print(eqns)
-    return sympy.solve(eqns, list(linear_scm))
+
+    xx = {variable.to_sympy(): expression for variable, expression in linear_scm.items()}
+    eqns = [sympy.Eq(lhs.subs(params), rhs.subs(params)) for lhs, rhs in xx.items()]
+    return sympy.solve(eqns, list(xx))
 
 
 def _main():
+    import warnings
+
     from y0.examples import examples
+
+    warnings.filterwarnings("ignore")
 
     for example in examples:
         if example.generate_data is None:
@@ -95,6 +96,10 @@ def _main():
         data = example.generate_data(500)
         rv = get_single_door(example.graph, data)
         print(example.name, rv)  # noqa:T201
+
+        s = evaluate_admg(example.graph, data)
+        print(s)
+        print()
 
 
 if __name__ == "__main__":
