@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     import ananke.graphs
     import pgmpy.inference.CausalInference
     import pgmpy.models
+    import sympy
 
 __all__ = [
     "NxMixedGraph",
