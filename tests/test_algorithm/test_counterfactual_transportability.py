@@ -35,11 +35,11 @@ from y0.algorithm.counterfactual_transportability import (
     simplify,
 )
 from y0.algorithm.tian_id import (
+    _compute_ancestral_set_q_value,
     _compute_c_factor,
-    _tian_equation_69,
-    _tian_equation_72,
-    _tian_lemma_1_i,
-    _tian_lemma_4_ii,
+    _compute_c_factor_conditioning_on_topological_predecessors,
+    _compute_c_factor_marginalizing_over_topological_successors,
+    _compute_q_value_of_variables_with_low_topological_ordering_indices,
     tian_pearl_identify,
 )
 from y0.algorithm.transport import transport_variable
@@ -1811,17 +1811,17 @@ class TestComputeCFactor(cases.GraphTestCase):
         )
 
 
-class TestTianLemma1i(cases.GraphTestCase):
+class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCase):
     """Test the use of Lemma 1, part (i), of [tian03a]_ to compute a C factor."""
 
-    def test_tian_lemma_1_i_part_1(self):
+    def test_compute_c_factor_conditioning_on_topological_predecessors_part_1(self):
         """First test of Lemma 1, part (i) (Equation 37 in [tian03a]_.
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
         """
         topo = [W1, W3, W2, W4, X, Y]
         part_1_graph = tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
-        result_1 = _tian_lemma_1_i(
+        result_1 = _compute_c_factor_conditioning_on_topological_predecessors(
             district=[Y, W1, W3, W2, X],
             topo=topo,
             graph_probability=part_1_graph.joint_probability(),
@@ -1841,7 +1841,7 @@ class TestTianLemma1i(cases.GraphTestCase):
         # District contains no variables
         self.assertRaises(
             TypeError,
-            _tian_lemma_1_i,
+            _compute_c_factor_conditioning_on_topological_predecessors,
             district=[],
             topo=topo,
             graph_probability=part_1_graph.joint_probability(),
@@ -1849,13 +1849,13 @@ class TestTianLemma1i(cases.GraphTestCase):
         # District variable not in topo set
         self.assertRaises(
             KeyError,
-            _tian_lemma_1_i,
+            _compute_c_factor_conditioning_on_topological_predecessors,
             district=[Y, W1, W3, W2, X, Z],
             topo=topo,
             graph_probability=part_1_graph.joint_probability(),
         )
 
-    def test_tian_lemma_1_i_part_2(self):
+    def test_compute_c_factor_conditioning_on_topological_predecessors_part_2(self):
         """Second test of Lemma 1, part (i) (Equation 37 in [tian03a]_.
 
         This one handles a graph_probability conditioning on variables.
@@ -1863,7 +1863,7 @@ class TestTianLemma1i(cases.GraphTestCase):
         """
         # working with tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
         topo = [W1, W3, W2, W4, X, Y]
-        result_1 = _tian_lemma_1_i(
+        result_1 = _compute_c_factor_conditioning_on_topological_predecessors(
             district=[Y, W1, W3, W2, X],
             topo=topo,
             graph_probability=P(Y, X, W1, W2, W3, W4 | W5),
@@ -1882,7 +1882,7 @@ class TestTianLemma1i(cases.GraphTestCase):
         )
 
 
-class TestTianLemma4ii(cases.GraphTestCase):
+class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCase):
     """Test the use of Lemma 4, part (ii), of [tian03a]_ to compute a C factor."""
 
     result_piece = Product.safe(
@@ -1929,12 +1929,12 @@ class TestTianLemma4ii(cases.GraphTestCase):
     expected_result_2_den = Sum.safe(Sum.safe(expected_result_1, [W1]), [Y])
     expected_result_2 = Fraction(expected_result_2_num, expected_result_2_den)
 
-    def test_tian_lemma_4_ii_part_1(self):
+    def test_compute_c_factor_marginalizing_over_topological_successors_part_1(self):
         """First test of Lemma 4, part (ii) (Equations 71 and 72 in [tian03a]_.
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
         """
-        result = _tian_lemma_4_ii(
+        result = _compute_c_factor_marginalizing_over_topological_successors(
             district={W1, X, Y},
             graph_probability=Sum.safe(self.result_piece, [W3]),
             topo=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
@@ -1944,7 +1944,7 @@ class TestTianLemma4ii(cases.GraphTestCase):
         )
         self.assert_expr_equal(result, self.expected_result_1)
 
-    def test_tian_lemma_4_ii_part_2(self):
+    def test_compute_c_factor_marginalizing_over_topological_successors_part_2(self):
         """Second test of Lemma 4, part (ii) (Equations 71 and 72 in [tian03a]_.
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
@@ -1953,7 +1953,7 @@ class TestTianLemma4ii(cases.GraphTestCase):
             "In second test of Lemma 4(ii): expecting this result: " + str(self.expected_result_2)
         )
         logger.warning("Expected_result_1 = " + str(self.expected_result_1))
-        result = _tian_lemma_4_ii(
+        result = _compute_c_factor_marginalizing_over_topological_successors(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1, [W1]),
             topo=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
@@ -1961,16 +1961,16 @@ class TestTianLemma4ii(cases.GraphTestCase):
         self.assert_expr_equal(result, self.expected_result_2)
 
 
-class TestTianEquation72(cases.GraphTestCase):
+class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphTestCase):
     """Test the use of Equation 72 in Lemma 1, part (ii), of [tian03a]_."""
 
-    def test_tian_equation_72_part_1(self):
+    def test_compute_q_value_of_variables_with_low_topological_ordering_indices_part_1(self):
         """First test of Equation 72 in [tian03a]_.
 
         Source: RJC's mind.
         """
         topo = [variable for variable in figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()]
-        result = _tian_equation_72(
+        result = _compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=W,
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             topo=topo,
@@ -1981,19 +1981,19 @@ class TestTianEquation72(cases.GraphTestCase):
         # Variable not in the graph
         self.assertRaises(
             KeyError,
-            _tian_equation_72,
+            _compute_q_value_of_variables_with_low_topological_ordering_indices,
             vertex={R},
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             topo=topo,
         )
 
-    def test_tian_equation_72_part_2(self):
+    def test_compute_q_value_of_variables_with_low_topological_ordering_indices_part_2(self):
         r"""Second test of Equation 72 in [tian03a]_, checking $Q[H^{(0)}]=Q[\emptyset]$.
 
         Source: RJC's mind.
         """
         topo = [variable for variable in figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()]
-        result = _tian_equation_72(
+        result = _compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=None,
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             topo=topo,
@@ -2001,10 +2001,10 @@ class TestTianEquation72(cases.GraphTestCase):
         self.assert_expr_equal(result, One())
 
 
-class TestTianLemma3(cases.GraphTestCase):
+class TestComputeAncestralSetQValue(cases.GraphTestCase):
     """Test the use of Lemma 3 (i.e., Equation 69) of [tian03a]_ to compute a C factor."""
 
-    def test_tian_lemma_3_part_1(self):
+    def test_compute_ancestral_set_q_value_part_1(self):
         """First test of Lemma 3 in [tian03a]_ (Equation 69).
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [santikka20a]_.
@@ -2023,7 +2023,7 @@ class TestTianLemma3(cases.GraphTestCase):
         # The ancestors of {Y} in Figure 9(c) of [tian03a]_
         ancestral_set = {W1, W2, X, Y}
         subgraph_variables = {W1, W2, W3, X, Y}  # T in Figure 9(c) of [tian03a]_
-        result_1 = _tian_equation_69(
+        result_1 = _compute_ancestral_set_q_value(
             ancestral_set=ancestral_set,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,

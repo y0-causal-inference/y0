@@ -27,7 +27,9 @@ def tian_pearl_identify(
     implementation. Their version also keeps track of the structure of calls
     :param input_variables: The set of variables, C, for which we're checking if causal identification is possible.
     :param input_district: The C-component, T, containing C.
-    :param district_probability: The expression Q[T] as per [tian2003]_, Equation 35.
+    :param district_probability: The expression Q[T] as per [tian2003]_, Equation 34. Because T is a single district,
+           Q[T] is the "post-intervention distribution of the variables in T, under an intervention that sets all
+           other variables to constants" (see Equation 36 of [tian2003]_).
     :param graph: The relevant graph.
     :param topo: A list of variables in topological order that includes all variables in the graph and may contain more.
     :raises KeyError: at least one input variable is not in the input district or at least one input district variable
@@ -76,7 +78,7 @@ def tian_pearl_identify(
     ordered_ancestral_set = [a for a in topo if a in ancestral_set]
     if ancestral_set == input_variables:
         logger.warning("In tian_pearl_identify: A = C. Applying Lemma 3.")
-        rv = _tian_equation_69(
+        rv = _compute_ancestral_set_q_value(
             ancestral_set=ancestral_set,
             subgraph_variables=input_district,
             subgraph_probability=district_probability,
@@ -103,7 +105,7 @@ def tian_pearl_identify(
             or isinstance(district_probability, Product)
             or isinstance(district_probability, Sum)
         ):  # Compute Q[A] from Lemma 3
-            ancestral_set_probability = _tian_equation_69(
+            ancestral_set_probability = _compute_ancestral_set_q_value(
                 ancestral_set=ancestral_set,
                 subgraph_variables=input_district,
                 subgraph_probability=district_probability,  # Q[T]
@@ -154,7 +156,7 @@ def _do_tian_pearl_identify_line_1(
     raise NotImplementedError("Unimplemented function: ctfTRu")
 
 
-def _tian_lemma_1_i(
+def _compute_c_factor_conditioning_on_topological_predecessors(
     *,
     district: Collection[Variable],
     graph_probability: Probability,
@@ -162,7 +164,7 @@ def _tian_lemma_1_i(
 ) -> Expression:
     """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equation 37.
 
-    This algorithm uses part (i) of Lemma 1 of Tian03a.
+    This algorithm uses part (i) of Lemma 1 of [tian03a]_.
 
     :param district: A list of variables comprising the district for which we're computing a C factor.
     :param graph_probability: the Q value for the full graph.
@@ -174,15 +176,19 @@ def _tian_lemma_1_i(
     """
     # (Topological sort is O(V+E): https://stackoverflow.com/questions/31010922/)
     variables = set(topo)
-    logger.warning("In _tian_lemma_1_i: topo = " + str(topo))
+    logger.warning(
+        "In _compute_c_factor_conditioning_on_topological_predecessors: topo = " + str(topo)
+    )
     probabilities = []
     if len(district) == 0 or len(variables) == 0:
         raise TypeError(
-            "Error in _tian_lemma_1_i: the district or variable set from which it is drawn contained no variables."
+            "Error in _compute_c_factor_conditioning_on_topological_predecessors: the district or variable "
+            + "set from which it is drawn contained no variables."
         )
     if any(v not in variables for v in district):
         raise KeyError(
-            "Error in _tian_lemma_1_i: a variable in the district is not in the topological sort of the graph vertices."
+            "Error in _compute_c_factor_conditioning_on_topological_predecessors: a variable in the district"
+            + " is not in the topological sort of the graph vertices."
         )
     # A little subtle so it deserves a comment: the Q value passed into Tian's Identify function may
     # already be conditioned on some variables that are in G but not in the subgraph H. In applying Lemma 1
@@ -193,17 +199,20 @@ def _tian_lemma_1_i(
         conditioned_variables = graph_probability_parents.union(preceding_variables)  # V^(i-1)
         probability = P(variable | conditioned_variables)  # v_i
         probabilities.append(probability)
-    logger.warning("In _tian_lemma_1_i: returning " + str(Product.safe(probabilities)))
+    logger.warning(
+        "In _compute_c_factor_conditioning_on_topological_predecessors: returning "
+        + str(Product.safe(probabilities))
+    )
     return Product.safe(probabilities)
 
 
-def _tian_equation_72(
+def _compute_q_value_of_variables_with_low_topological_ordering_indices(
     *,
     vertex: Variable | None,
     graph_probability: Expression,  # Q[H]
     topo: list[Variable],
 ) -> Expression:
-    r"""Compute the probability of a set of variables according to [tian03a]_, Equation 72.
+    r"""Compute the Q value of a set of variables according to [tian03a]_, Equation 72.
 
     This algorithm uses part (ii) of Lemma 4 of [tian03a]_. The context for Equations 71 and 72 follow:
 
@@ -238,17 +247,24 @@ def _tian_equation_72(
     if vertex is None:
         return One()
     variables = set(topo)
-    logger.warning("In _tian_equation_72: input vertex is " + str(vertex))
+    logger.warning(
+        "In _compute_q_value_of_variables_with_low_topological_ordering_indices: input vertex is "
+        + str(vertex)
+    )
     logger.warning("   and variables are " + str(variables))
     logger.warning("   and topo is " + str(topo))
     if vertex not in variables:
-        raise KeyError("In _tian_equation_72: input vertex %s is not in the input graph.", vertex)
+        raise KeyError(
+            "In _compute_q_value_of_variables_with_low_topological_ordering_indices: input vertex "
+            + "%s is not in the input graph.",
+            vertex,
+        )
 
     ranges = [v for v in topo[topo.index(vertex) + 1 :]]
     return Sum.safe(graph_probability, ranges)
 
 
-def _tian_lemma_4_ii(
+def _compute_c_factor_marginalizing_over_topological_successors(
     *, district: Collection[Variable], graph_probability: Expression, topo: list[Variable]
 ) -> Expression:
     r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equations 71 and 72.
@@ -284,13 +300,13 @@ def _tian_lemma_4_ii(
     """
 
     def _get_expression_from_index(index: int) -> Expression:  # Compute $Q[H^{i}]$ given i
-        current_index_expr = _tian_equation_72(
+        current_index_expr = _compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=topo[index], graph_probability=graph_probability, topo=topo
         )
         if index == 0:
             logger.warning("In _one_round: index = 0\n  returning %s", current_index_expr)
             return current_index_expr
-        previous_index_expr = _tian_equation_72(
+        previous_index_expr = _compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=topo[index - 1], graph_probability=graph_probability, topo=topo
         )
         rv = Fraction(current_index_expr, previous_index_expr)
@@ -349,13 +365,15 @@ def _compute_c_factor(
         or isinstance(subgraph_probability, Product)
         or isinstance(subgraph_probability, Sum)
     ):
-        logger.warning("In _compute_c_factor: calling _tian_lemma_4_ii")
-        rv = _tian_lemma_4_ii(
+        logger.warning(
+            "In _compute_c_factor: calling _compute_c_factor_marginalizing_over_topological_successors"
+        )
+        rv = _compute_c_factor_marginalizing_over_topological_successors(
             district=district, graph_probability=subgraph_probability, topo=subgraph_topo
         )
         logger.warning("Returning from _compute_c_factor: " + str(rv))
         return rv
-        # return _tian_lemma_4_ii(
+        # return _compute_c_factor_marginalizing_over_topological_successors(
         #    district=district, graph_probability=subgraph_probability, topo=subgraph_topo
         # )
     else:
@@ -366,12 +384,12 @@ def _compute_c_factor(
                 + " to be a simple probability."
             )
         else:
-            return _tian_lemma_1_i(
+            return _compute_c_factor_conditioning_on_topological_predecessors(
                 district=district, graph_probability=subgraph_probability, topo=subgraph_topo
             )
 
 
-def _tian_equation_69(
+def _compute_ancestral_set_q_value(
     *,
     ancestral_set: frozenset[Variable],  # A
     subgraph_variables: frozenset[Variable],  # T
