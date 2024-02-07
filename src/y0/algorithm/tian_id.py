@@ -162,9 +162,18 @@ def _compute_c_factor_conditioning_on_topological_predecessors(
     graph_probability: Probability,
     topo: list[Variable],
 ) -> Expression:
-    """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equation 37.
+    r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equation 37.
 
     This algorithm uses part (i) of Lemma 1 of [tian03a]_.
+
+    :math: Let a topological order over $V$ be $V_{1} < \ldots < V_{n}$, and let
+    $V^{(i)}=\{V_{1},\ldots,V_{i}\}$, $i = 1,\ldots,n$, and $V^{(0)} = \emptyset$.
+    For any set $C$, let $G_{C}$ denote the subgraph of $G$ composed only of variables in $C$.
+    Then each c-factor $Q_{j}$, $j=1,\ldots,k$, is identifiable and is given by
+
+    \begin{equation}
+    Q_{j} = \prod_\limit{\{i|V_{i}\in S_{j}\}}{P(v_i}|v^{(i-1}))}.
+    \end{equation}
 
     :param district: A list of variables comprising the district for which we're computing a C factor.
     :param graph_probability: the Q value for the full graph.
@@ -213,8 +222,6 @@ def _compute_q_value_of_variables_with_low_topological_ordering_indices(
     topo: list[Variable],
 ) -> Expression:
     r"""Compute the Q value of a set of variables according to [tian03a]_, Equation 72.
-
-    This algorithm uses part (ii) of Lemma 4 of [tian03a]_. The context for Equations 71 and 72 follow:
 
     :math: Let $H \subseteq V$, and assume that $H$ is partitioned into c-components $H_{1}, \dots, V_{h_{l}}$
         in the subgraph $G_{H}$. Then we have...
@@ -289,8 +296,6 @@ def _compute_c_factor_marginalizing_over_topological_successors(
         \begin{equation}
         $Q[H^{(i)}] = \sum_{h \backslash h^{(i)}}{Q[H]}$.
         \end{equation}
-
-    (The second equation above is Equation 72.)
 
     :param district: A list of variables comprising the district for which we're computing a C factor.
     :param graph_probability: The expression Q corresponding to the set of variables in v. It is
@@ -368,14 +373,12 @@ def _compute_c_factor(
         logger.warning(
             "In _compute_c_factor: calling _compute_c_factor_marginalizing_over_topological_successors"
         )
+        # Lemma 4
         rv = _compute_c_factor_marginalizing_over_topological_successors(
             district=district, graph_probability=subgraph_probability, topo=subgraph_topo
         )
         logger.warning("Returning from _compute_c_factor: " + str(rv))
         return rv
-        # return _compute_c_factor_marginalizing_over_topological_successors(
-        #    district=district, graph_probability=subgraph_probability, topo=subgraph_topo
-        # )
     else:
         if not isinstance(subgraph_probability, Probability):
             raise TypeError(
@@ -384,6 +387,7 @@ def _compute_c_factor(
                 + " to be a simple probability."
             )
         else:
+            # Lemma 1
             return _compute_c_factor_conditioning_on_topological_predecessors(
                 district=district, graph_probability=subgraph_probability, topo=subgraph_topo
             )
@@ -394,11 +398,19 @@ def _compute_ancestral_set_q_value(
     ancestral_set: frozenset[Variable],  # A
     subgraph_variables: frozenset[Variable],  # T
     subgraph_probability: Expression,
-    graph_topo: list[Variable],  # topological ordering of
+    graph_topo: list[Variable],  # topological ordering of variables in a graph containing T
 ) -> Expression:
-    """Compute the Q value associated with a subgraph as per Equation 69 of [tian03a]_.
+    r"""Compute the Q value associated with a subgraph as per Equation 69 of [tian03a]_.
 
-    This algorithm uses both Lemma 3 of Tian 03a (Equation 69).
+    This algorithm uses Lemma 3 of [tian03a]_ (Equation 69).
+
+    :math: Let $W \subseteq C \subseteq V$, and $W' = C \backslash W$. If $W$ is an ancestral set in the subgraph
+    $G_{C}$ $(An(W)_{G_{C}} = W)$, or equivalently, if none of the parents of $W$ is in
+    $W'$ $(Pa(W) \cap W' = \emptyset)$, then
+
+    \begin{equation}
+    \sum\limits_{W'}{Q[C]=Q[W]}
+    \end{equation}
 
     :param ancestral_set: A set of variables (W in Equation 69, A in Figure 7 of [tian03a]_) that comprise the
            ancestral set of some other variables (unspecified in Equation 69, and C in Figure 7 of [tian03a]_).
@@ -408,9 +420,7 @@ def _compute_ancestral_set_q_value(
            (i.e., V in Equation 69 and G in Figure 7).
     :returns: An expression for Q[ancestral_set].
     """
-    # A is W, I want Q[A] = Q[W]
-    # T is C, I know Q[C] = the input Q for identify
-    # T\A is W', so Sum_{T\A}{Q[T]} = Sum_{W'}{Q[C]} = Q[W] = Q[A]
+    # T\A is W', so Sum_{T\A}{Q[T]} = Q[A], corresponding to Sum_{W'}{Q[C]} = Q[W] in Equation 69
     # The next two lines are included so the summation shows the marginalization variables in topological order
     marginalization_set = subgraph_variables - ancestral_set
     marginalization_variables = [v for v in graph_topo if v in marginalization_set]
