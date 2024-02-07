@@ -23,7 +23,7 @@ def tian_pearl_identify(
 ) -> Expression | None:
     """Implement the IDENTIFY algorithm as presented in [tian03a]_ with pseudocode in [correa22a]_ (Algorithm 5).
 
-    Tikka and colleagues implemented this algorithm in the R package Causal Effect ([santikka20b]_). We draw from that
+    Tikka and colleagues implemented this algorithm in the R package Causal Effect ([tikka20b]_). We draw from that
     implementation. Their version also keeps track of the structure of calls
     :param input_variables: The set of variables, C, for which we're checking if causal identification is possible.
     :param input_district: The C-component, T, containing C.
@@ -345,7 +345,7 @@ def _compute_c_factor(
     subgraph_probability: Expression,
     graph_topo: list[Variable],
 ) -> Expression:
-    """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_ and [santikka20a]_.
+    """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_ and [tikka20a]_.
 
     This algorithm uses both Lemma 1, part (i) of Tian03a (Equation 37) and Lemma 4 of Tian 03a (Equations 71 and 72).
 
