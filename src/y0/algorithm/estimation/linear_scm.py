@@ -26,17 +26,24 @@ def get_single_door(
         try:
             adjustment_sets = inference.get_all_backdoor_adjustment_sets(source.name, target.name)
         except ValueError:
+            # There are no valid adjustment sets.
             continue
         if not adjustment_sets:
-            continue
-        coefficients = []
-        for adjustment_set in adjustment_sets:
-            variables = sorted(adjustment_set | {source.name})
+            # There is a valid adjustment set, and it is the empty set, so just regress the target on the source
+            variables = [source.name]
             idx = variables.index(source.name)
             model = LinearRegression()
             model.fit(data[variables], data[target.name])
-            coefficients.append(model.coef_[idx])
-        rv[source, target] = fmean(coefficients)
+            rv[source, target] = model.coef_[idx]
+        else:
+            coefficients = []
+            for adjustment_set in adjustment_sets:
+                variables = sorted(adjustment_set | {source.name})
+                idx = variables.index(source.name)
+                model = LinearRegression()
+                model.fit(data[variables], data[target.name])
+                coefficients.append(model.coef_[idx])
+                rv[source, target] = fmean(coefficients)
     return rv
 
 
