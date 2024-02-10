@@ -32,10 +32,12 @@ from y0.algorithm.counterfactual_transportability import (
     minimize,
     minimize_event,
     same_district,
+    sigma_tr,
     simplify,
 )
 from y0.algorithm.transport import transport_variable
 from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
+    PP,
     W1,
     W2,
     W3,
@@ -46,6 +48,7 @@ from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
     CounterfactualVariable,
     Intervention,
     P,
+    Population,
     R,
     Sum,
     Variable,
@@ -1452,5 +1455,179 @@ class TestCounterfactualFactorTransportability(unittest.TestCase):
         self.assertTrue(
             counterfactual_factors_are_transportable(
                 factors=test_5_in, domain_graph=figure_2_graph_domain_2
+            )
+        )
+
+
+class TestSigmaTR(cases.GraphTestCase):
+    """Test the Sigma-TR algorithm (Algorithm 4 from [correa22a]_)."""
+
+    # from y0.tests.test_algorithm.cases import GraphTestCase
+    figure_2_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
+        directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Z), Z)],
+        undirected=[
+            (W, Y),
+        ],
+    )
+
+    figure_2_graph_domain_2_with_interventions = NxMixedGraph.from_edges(
+        directed=[
+            (Z, X),
+            (X, Y),
+            (X, W),
+            (W, Y),
+            (Z, Y),
+            (transport_variable(W), W),
+        ],
+        undirected=[
+            (Z, X),
+            (W, Y),
+        ],
+    )
+    figure_2_graph_domain_1_with_interventions_topo = list(
+        figure_2_graph_domain_1_with_interventions.topological_sort()
+    )
+    figure_2_graph_domain_2_with_interventions_topo = list(
+        figure_2_graph_domain_2_with_interventions.topological_sort()
+    )
+
+    def test_sigma_tr_1(self):
+        """First test case involving a transportable counterfactual factor.
+
+        Source: Equation 17 of [correa22a]_.
+        """
+        district = {Y, W}
+        domain_graphs = [
+            (
+                self.figure_2_graph_domain_1_with_interventions,
+                self.figure_2_graph_domain_1_with_interventions_topo,
+            ),
+            (
+                self.figure_2_graph_domain_2_with_interventions,
+                self.figure_2_graph_domain_2_with_interventions_topo,
+            ),
+        ]
+        domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
+        expected_result = PP[Population("pi1")](Y, W | X, Z)
+        result = sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
+        self.assert_expr_equal(expected_result, result)
+
+    def test_sigma_tr_2(self):
+        """Second test case involving a transportable counterfactual factor.
+
+        Source: Equation 19 of [correa22a]_.
+        """
+        district = {X, Z}
+        domain_graphs = [
+            (
+                self.figure_2_graph_domain_1_with_interventions,
+                self.figure_2_graph_domain_1_with_interventions_topo,
+            ),
+            (
+                self.figure_2_graph_domain_2_with_interventions,
+                self.figure_2_graph_domain_2_with_interventions_topo,
+            ),
+        ]
+        domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
+        expected_result = PP[Population("pi2")](X, Z)
+        result = sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
+        self.assert_expr_equal(expected_result, result)
+
+    def test_sigma_tr_3(self):
+        """Test case in which a transportability node interferes with transportability for every domain.
+
+        Source: RJC's mind.
+        """
+        # This is figure_2_graph_domain_1, changing the transportability node from T(Z) to T(Y)
+        graph_1 = NxMixedGraph.from_edges(
+            directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Y), Y)],
+            undirected=[
+                (W, Y),
+            ],
+        )
+        graph_1_topo = list(graph_1.topological_sort())
+        district = {W, Y}
+        domain_graphs = [
+            (graph_1, graph_1_topo),
+            (
+                self.figure_2_graph_domain_2_with_interventions,
+                self.figure_2_graph_domain_2_with_interventions_topo,
+            ),
+        ]
+        domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
+        self.assertIsNone(
+            sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
+        )
+
+    def test_sigma_tr_4(self):
+        """Test case in which nothing's transportable because there's an interfering intervention for every domain.
+
+        Source: RJC's mind.
+        """
+        district = {W, Y}
+        graph_1 = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (X, Y),
+                (Z, Y),
+                (W, Y),
+            ],
+            undirected=[
+                (Z, X),
+            ],
+        )
+        graph_1_topo = list(graph_1.topological_sort())
+        graph_2 = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (X, W),
+                (Z, Y),
+                (W, Y),
+            ],
+            undirected=[
+                (W, Y),
+            ],
+        )
+        graph_2_topo = list(graph_2.topological_sort())
+        domain_data = [({W}, P(W, X, Y, Z)), ({Y}, P(W, X, Y, Z))]
+        self.assertIsNone(
+            sigma_tr(
+                district=district,
+                domain_graphs=[(graph_1, graph_1_topo), (graph_2, graph_2_topo)],
+                domain_data=domain_data,
+            )
+        )
+
+    def test_sigma_tr_5(self):
+        """Test case in which a transportability node blocks one domain and an intervention blocks the other.
+
+        Source: RJC's mind.
+        """
+        district = {W, Y}
+        graph_1 = NxMixedGraph.from_edges(
+            directed=[(Z, X), (X, Y), (Z, Y), (W, Y), (transport_variable(Y), Y)],
+            undirected=[
+                (Z, X),
+            ],
+        )
+        graph_1_topo = list(graph_1.topological_sort())
+        graph_2 = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (X, W),
+                (Z, Y),
+                (W, Y),
+            ],
+            undirected=[
+                (W, Y),
+            ],
+        )
+        graph_2_topo = list(graph_2.topological_sort())
+        domain_data = [(set(), P(W, X, Y, Z)), ({Y}, P(W, X, Y, Z))]
+        self.assertIsNone(
+            sigma_tr(
+                district=district,
+                domain_graphs=[(graph_1, graph_1_topo), (graph_2, graph_2_topo)],
+                domain_data=domain_data,
             )
         )

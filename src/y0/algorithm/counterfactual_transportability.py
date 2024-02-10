@@ -967,7 +967,12 @@ def counterfactual_factors_are_transportable(
 
 
 # TODO: Add expected inputs and outputs to the below three algorithms
-def sigma_tr() -> None:
+def sigma_tr(
+    *,
+    district: set[Variable],
+    domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
+    domain_data: list[tuple[set[Variable], Expression]],
+) -> Expression | None:
     """Implement the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B)."""
     raise NotImplementedError("Unimplemented function: sigmaTR")
 
