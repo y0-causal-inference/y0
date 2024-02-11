@@ -1631,3 +1631,108 @@ class TestSigmaTR(cases.GraphTestCase):
                 domain_data=domain_data,
             )
         )
+
+    def test_sigma_tr_preprocessing(self):
+        """Tests of the various data integrity checks at the start of sigma-tr.
+
+        Source: RJC.
+        """
+        domain_graphs = [
+            (
+                self.figure_2_graph_domain_1_with_interventions,
+                self.figure_2_graph_domain_1_with_interventions_topo,
+            ),
+            (
+                self.figure_2_graph_domain_2_with_interventions,
+                self.figure_2_graph_domain_2_with_interventions_topo,
+            ),
+        ]
+        domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
+        # Empty district
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={},
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        # Empty domain graphs
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[],
+            domain_data=domain_data,
+        )
+        # Graph with empty nodes
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    NxMixedGraph(),
+                    self.figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    self.figure_2_graph_domain_2_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # Empty domain data
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=domain_graphs,
+            domain_data=[],
+        )
+        # Empty topo list
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    self.figure_2_graph_domain_1_with_interventions,
+                    self.figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    [],
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        """
+        #Wrong data type for district
+        self.assertRaises(TypeError,
+                          sigma_tr,
+                          district=[1,2,3],
+                          domain_graphs=domain_graphs,
+                          domain_data=domain_data,
+                          )
+        #Wrong data type for domain_graphs
+        self.assertRaises(TypeError,
+                          sigma_tr,
+                          district=[1,2,3],
+                          domain_graphs=[self.figure_2_graph_domain_1_with_interventions,self.figure_2_graph_domain_2_with_interventions],
+                          domain_data=domain_data,
+                          )
+        #Wrong data type for domain_data
+        self.assertRaises(TypeError,
+                          sigma_tr,
+                          district=[1,2,3],
+                          domain_graphs=domain_graphs,
+                          domain_data=[{X},set()],
+                          )
+        #District variable not in a graph
+        self.assertRaises(TypeError,
+                          sigma_tr,
+                          district={X,R},
+                          domain_graphs=domain_graphs,
+                          domain_data=domain_data,
+                          )
+        """

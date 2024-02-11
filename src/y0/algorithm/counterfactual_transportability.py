@@ -966,7 +966,6 @@ def counterfactual_factors_are_transportable(
     )
 
 
-# TODO: Add expected inputs and outputs to the below three algorithms
 def sigma_tr(
     *,
     district: set[Variable],
@@ -974,9 +973,49 @@ def sigma_tr(
     domain_data: list[tuple[set[Variable], Expression]],
 ) -> Expression | None:
     """Implement the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B)."""
+    # Preliminary checks, starting with empty data
+    if len(domain_graphs) == 0 or len(domain_data) == 0:
+        raise TypeError(
+            "In sigma_tr: empty list for either domain_graphs or domain_data. "
+            + "Check your inputs."
+        )
+    if len(district) == 0:
+        raise TypeError("In sigma_tr: the input district cannot be an empty set.")
+    if any(len(g.nodes()) == 0 for g, _ in domain_graphs):
+        raise TypeError(
+            "In sigma_tr: at least one input domain graph contained no nodes. Check your inputs."
+        )
+    if any(len(topo) == 0 for _, topo in domain_graphs):
+        raise TypeError(
+            "In sigma_tr: an input set of topologically sorted vertices was empty. Check your inputs."
+        )
+    if len(domain_graphs) != len(domain_data):
+        raise TypeError(
+            "In sigma_tr: the length of the domain_graphs and domain_data " + "must be the same."
+        )
+    # if any(any(v not in g for v in variables) for g, variables in domain_graphs):
+    # Currently sacrificing some efficiency for the sake of a more informative error message
+    """
+    for k in range(len(domain_graphs)):
+        logger.warning("k = " + str(k))
+        topo_vertices = frozenset(domain_graphs[])
+    for g, variables in domain_graphs:
+        if any(v not in g for v in variables):
+            raise KeyError("In sigma_tr: one of the variables in the list of topologically " +\
+                           "sorted variables is not in the domain graph. Variable list: {variables} " +\
+                           ". Nodes in the graph: " + str([node for node in g.nodes()]) + ".")
+        if any(dv not in g or dv not in variables for dv in district):
+            raise KeyError("In sigma_tr: one of the variables in the input district " +\
+                           "is not in a domain graph or associated list of topologically "+\
+                           "sorted vertices. District: " + str(district) + ". Topologically sorted "+\
+                           "vertices: " + str(variables) + ". Nodes in the graph: " +\
+                           str([node for node in g.nodes()]) + ".")
+    """
+    return None
     raise NotImplementedError("Unimplemented function: sigmaTR")
 
 
+# TODO: Add expected inputs and outputs to the below two algorithms
 def ctf_tr() -> None:
     """Implement the ctfTR algorithm from [correa22a]_ (Algorithm 3)."""
     raise NotImplementedError("Unimplemented function: ctfTR")
