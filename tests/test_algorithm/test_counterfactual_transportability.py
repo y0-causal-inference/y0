@@ -1564,7 +1564,7 @@ class TestSigmaTR(cases.GraphTestCase):
             ),
         ]
         domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
-        expected_result = PP[Population("pi2")](X, Z)
+        expected_result = PP[Population("pi2")](X | Z) * PP[Population("pi2")](Z)
         result = sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
         self.assert_expr_equal(expected_result, result)
 
@@ -1960,7 +1960,7 @@ class TestSigmaTR(cases.GraphTestCase):
         )
 
     def test_sigma_tr_line_1(self):
-        """Tests of the various data integrity checks at the start of sigma-tr.
+        """Tests of the checks in Line 1 of sigma-TR (Algorithm 4 of [correa22a]_).
 
         Source: RJC.
         """

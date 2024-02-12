@@ -14,6 +14,7 @@ import logging
 from collections import defaultdict
 from typing import Collection, DefaultDict, Iterable, Optional
 
+from y0.algorithm.tian_id import _compute_c_factor, tian_pearl_identify
 from y0.algorithm.transport import create_transport_diagram, transport_variable
 from y0.dsl import (
     CounterfactualVariable,
@@ -1161,20 +1162,68 @@ def sigma_tr(
            variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression
            denoting the probability distribution
            $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+    :raises TypeError: the vertices in the input district are part of more than one district
+           in a domain graph.
     :returns: A probabilistic expression for $P^{\ast}_{Pa(\mathbf{C})_{i}}(\mathbf{C}\_i)$ if
            it is transportable, or None if it is not transportable.
     """
+    # Note that we currently don't require the user to input $\mathcal{G}^{\ast}$, the target
+    # graph, and therefore can't verify that the input district is in fact a district of the
+    # target graph as part of validating the user input.
     _validate_sigma_tr_inputs(
         district=district, domain_graphs=domain_graphs, domain_data=domain_data
     )
-    # Line 1
+    # Line 1 test
     for k in range(len(domain_graphs)):
+        # Also Line 1 (the published pseudocode could break the for loop and this test into two lines)
         if _no_intervention_variables_in_domain(
             district=district, interventions=domain_data[k][0]
         ) and _no_transportability_nodes_in_domain(
             district=district, domain_graph=domain_graphs[k][0]
         ):
-            continue
+            domain_graph = domain_graphs[k][0]
+            domain_graph_variables = _remove_transportability_vertices(
+                vertices=domain_graph.nodes()
+            )
+            domain_topo = domain_graphs[k][1]
+
+            # Line 2
+            super_district = frozenset().union(
+                *[domain_graph.get_district(v) for v in district]
+            )  # $B_{i}$
+            # Sanity check: confirm that $C_{i} \subseteq B_{i}$
+            if any(super_district != domain_graph.get_district(v) for v in district):
+                raise TypeError(
+                    "Error in sigma_TR: the vertices in the input district are part of more than "
+                    + "one district in a domain graph. Input district: "
+                    + str(district)
+                    + ". "
+                    + "Domain index: "
+                    + str(k)
+                    + "."
+                )
+
+            # Line 3
+            super_district_q_probability = _compute_c_factor(
+                district=district,
+                subgraph_variables=domain_graph_variables,
+                subgraph_probability=domain_data[k][1],
+                graph_topo=domain_topo,
+            )
+
+            # Line 4
+            district_q_probability = tian_pearl_identify(
+                input_variables=frozenset(district),
+                input_district=super_district,
+                district_probability=super_district_q_probability,
+                graph=domain_graph,
+                topo=domain_topo,
+            )
+
+            # Lines 5-7
+            if district_q_probability is not None:
+                return district_q_probability
+    # Line 9
     return None
 
 
