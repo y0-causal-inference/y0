@@ -975,13 +975,13 @@ def _remove_transportability_vertices(*, vertices: Collection[Variable]) -> set[
     return {v for v in vertices if not v.name.startswith("T_")}
 
 
-def sigma_tr(
+def _validate_sigma_tr_inputs(
     *,
     district: Collection[Variable],
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     domain_data: list[tuple[Collection[Variable], Expression]],
-) -> Expression | None:
-    r"""Implement the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
+) -> None:
+    r"""Conduct pre-processing checks for the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
 
     :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
     :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
@@ -1002,8 +1002,6 @@ def sigma_tr(
     :raises TypeError: the input arguments are in an improper format or not internally consistent.
     :raises KeyError: a variable in an input argument is missing from another input argument
            and should be there.
-    :returns: A probabilistic expression for $P^{\ast}_{Pa(\mathbf{C})_{i}}(\mathbf{C}\_i)$ if
-           it is transportable, or None if it is not transportable.
     """
     # Preliminary checks, starting with type checking
     if not (isinstance(district, Collection) and all(isinstance(v, Variable) for v in district)):
@@ -1052,9 +1050,6 @@ def sigma_tr(
         raise TypeError(
             "In sigma_tr: the length of the domain_graphs and domain_data " + "must be the same."
         )
-    # if any(any(v not in g for v in variables) for g, variables in domain_graphs):
-    # Currently sacrificing some efficiency for the sake of a more informative error message
-
     # Technically the topologically sorted vertices could be for the graph $G$ containing $G_{\mathbf{C}_{i}}$,
     # but we currently have a stricter requirement that they are for $G_{\mathbf{C}_{i}}$. That requirement
     # could be relaxed if it becomes a computational burden in the ctf_TRu algorithm.
@@ -1107,6 +1102,39 @@ def sigma_tr(
                 + str(graph_vertices_without_transportability_nodes)
                 + "."
             )
+    return
+
+
+def sigma_tr(
+    *,
+    district: Collection[Variable],
+    domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
+    domain_data: list[tuple[Collection[Variable], Expression]],
+) -> Expression | None:
+    r"""Implement the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
+
+    :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
+    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
+           contains a selection diagram for that domain. In particular the graph contains
+           transportability nodes for every vertex that is distributed differently in the
+           domain in question than in the target domain (e.g., Vertex Z in Figure 3(a)
+           in [correa22a]_), and it is a causal diagram such that its edges represent
+           the state of the graph after a regime corresponding to domain $k$ has been
+           applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_). The second
+           element of the tuple is a topologically sorted list of all the vertices in
+           the corresponding graph that are not transportability nodes. (Nodes that
+           have no parents come first in such lists.)
+    :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
+           $K$ tuples, one for each of the $K$ domains. Each tuple contains a set of
+           variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression
+           denoting the probability distribution
+           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+    :returns: A probabilistic expression for $P^{\ast}_{Pa(\mathbf{C})_{i}}(\mathbf{C}\_i)$ if
+           it is transportable, or None if it is not transportable.
+    """
+    _validate_sigma_tr_inputs(
+        district=district, domain_graphs=domain_graphs, domain_data=domain_data
+    )
     return None
 
 
