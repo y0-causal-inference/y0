@@ -966,6 +966,15 @@ def counterfactual_factors_are_transportable(
     )
 
 
+def _remove_transportability_vertices(*, vertices: Collection[Variable]) -> set[Variable]:
+    """Remove the transportability nodes from a set of vertices.
+
+    :param vertices: The input vertices.
+    :returns: The input vertices, without the transportability nodes.
+    """
+    return {v for v in vertices if not v.name.startswith("T_")}
+
+
 def sigma_tr(
     *,
     district: Collection[Variable],
@@ -1054,6 +1063,9 @@ def sigma_tr(
         topo_vertices = frozenset(domain_graphs[k][1])
         expression_vertices = frozenset(domain_data[k][1].get_variables())
         graph_vertices = frozenset(domain_graphs[k][0].nodes())
+        graph_vertices_without_transportability_nodes = frozenset(
+            _remove_transportability_vertices(vertices=graph_vertices)
+        )
         policy_vertices = frozenset(domain_data[k][0])
         if topo_vertices != graph_vertices:
             raise KeyError(
@@ -1065,68 +1077,36 @@ def sigma_tr(
                 + str(topo_vertices)
                 + "."
             )
-        if not all(v in graph_vertices for v in expression_vertices):
+        # It's possible for the probability distribution to contain vertices not in the graph
+        # due to conditioning on vertices outside the c-component associated with this graph.
+        # The other way around is not possible, though.
+        if not all(v in expression_vertices for v in graph_vertices_without_transportability_nodes):
             raise KeyError(
-                "In sigma_tr: the expression for the probability of a domain graph contains "
-                + "variables not associated with vertices in the corresponding graph. Check "
-                + "your inputs. Graph vertices: "
-                + str(graph_vertices)
+                "In sigma_tr: some of the vertices in a domain graph do not appear in the expression"
+                + " for the probability of the graph. Check your inputs. Graph vertices: "
+                + str(graph_vertices_without_transportability_nodes)
                 + ". Expression vertices: "
                 + str(expression_vertices)
                 + "."
             )
-        if not all(v in graph_vertices for v in policy_vertices):
+        if not all(v in graph_vertices_without_transportability_nodes for v in policy_vertices):
             raise KeyError(
                 "In sigma_tr: the set of vertices for which a policy has been applied for one "
                 + "of the domains contains at least one vertex not in the domain graph. Check your inputs. "
                 + "Policy vertices: "
                 + str(policy_vertices)
                 + ". Graph vertices: "
-                + str(graph_vertices)
+                + str(graph_vertices_without_transportability_nodes)
             )
-        if not all(v in expression_vertices for v in policy_vertices):
-            raise KeyError(
-                "In sigma_tr: the set of vertices for which a policy has been applied for one "
-                + "of the domains contains at least one variable not in the expression for the probability "
-                + "of the graph for that domain. Check your inputs. "
-                + "Policy vertices: "
-                + str(policy_vertices)
-                + r". P_\{Z\}(V) variables: "
-                + str(expression_vertices)
-                + "."
-            )
-        if not all(v in graph_vertices for v in district):
+        if not all(v in graph_vertices_without_transportability_nodes for v in district):
             raise KeyError(
                 "In sigma_tr: one of the variables in the input district "
                 + "is not in a domain graph. District: "
                 + str(district)
                 + ". Nodes in the graph: "
-                + str(graph_vertices)
+                + str(graph_vertices_without_transportability_nodes)
                 + "."
             )
-        if not all(v in expression_vertices for v in district):
-            raise KeyError(
-                "In sigma_tr: one of the variables in the input district "
-                + "is not in the expression for the probability of the associated graph. "
-                + "District: "
-                + str(district)
-                + r". P_\{Z\}(V) variables: "
-                + str(expression_vertices)
-                + "."
-            )
-    """
-    for g, variables in domain_graphs:
-        if any(v not in g for v in variables):
-            raise KeyError("In sigma_tr: one of the variables in the list of topologically " +\
-                           "sorted variables is not in the domain graph. Variable list: {variables} " +\
-                           ". Nodes in the graph: " + str([node for node in g.nodes()]) + ".")
-        if any(dv not in g or dv not in variables for dv in district):
-            raise KeyError("In sigma_tr: one of the variables in the input district " +\
-                           "is not in a domain graph or associated list of topologically "+\
-                           "sorted vertices. District: " + str(district) + ". Topologically sorted "+\
-                           "vertices: " + str(variables) + ". Nodes in the graph: " +\
-                           str([node for node in g.nodes()]) + ".")
-    """
     return None
 
 

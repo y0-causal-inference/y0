@@ -21,6 +21,7 @@ from y0.algorithm.counterfactual_transportability import (
     _any_variables_with_inconsistent_values,
     _reduce_reflexive_counterfactual_variables_to_interventions,
     _remove_repeated_variables_and_values,
+    _remove_transportability_vertices,
     _split_event_by_reflexivity,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
@@ -1459,6 +1460,38 @@ class TestCounterfactualFactorTransportability(unittest.TestCase):
         )
 
 
+class TestRemoveTransportabilityVertices(cases.GraphTestCase):
+    """Test the _remove_transportability_vertices utility function."""
+
+    def test_remove_transportability_vertices(self):
+        """Simple test that we're properly removing transportability nodes from a set.
+
+        Source: RJC.
+        """
+        test_graph_1 = NxMixedGraph.from_edges(
+            directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Z), Z)],
+            undirected=[
+                (W, Y),
+            ],
+        )
+        input_vertices = set(test_graph_1.topological_sort())
+        expected_result = frozenset({W, X, Y, Z})
+        self.assertSetEqual(
+            expected_result, _remove_transportability_vertices(vertices=input_vertices)
+        )
+        test_graph_2 = NxMixedGraph.from_edges(
+            directed=[(X, Y), (X, W), (W, Y), (Z, Y)],
+            undirected=[
+                (W, Y),
+            ],
+        )
+        input_vertices_2 = set(test_graph_2.topological_sort())
+        expected_result_2 = frozenset({W, X, Y, Z})
+        self.assertSetEqual(
+            expected_result_2, _remove_transportability_vertices(vertices=input_vertices_2)
+        )
+
+
 class TestSigmaTR(cases.GraphTestCase):
     """Test the Sigma-TR algorithm (Algorithm 4 from [correa22a]_)."""
 
@@ -1648,78 +1681,6 @@ class TestSigmaTR(cases.GraphTestCase):
             ),
         ]
         domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
-        # Empty district
-        self.assertRaises(
-            TypeError,
-            sigma_tr,
-            district={},
-            domain_graphs=domain_graphs,
-            domain_data=domain_data,
-        )
-        # Empty domain graphs
-        self.assertRaises(
-            TypeError,
-            sigma_tr,
-            district={W, Y},
-            domain_graphs=[],
-            domain_data=domain_data,
-        )
-        # Graph with empty nodes
-        self.assertRaises(
-            TypeError,
-            sigma_tr,
-            district={W, Y},
-            domain_graphs=[
-                (
-                    NxMixedGraph(),
-                    self.figure_2_graph_domain_1_with_interventions_topo,
-                ),
-                (
-                    self.figure_2_graph_domain_2_with_interventions,
-                    self.figure_2_graph_domain_2_with_interventions_topo,
-                ),
-            ],
-            domain_data=domain_data,
-        )
-        # Empty domain data
-        self.assertRaises(
-            TypeError,
-            sigma_tr,
-            district={W, Y},
-            domain_graphs=domain_graphs,
-            domain_data=[],
-        )
-        # Empty topo list
-        self.assertRaises(
-            TypeError,
-            sigma_tr,
-            district={W, Y},
-            domain_graphs=[
-                (
-                    self.figure_2_graph_domain_1_with_interventions,
-                    self.figure_2_graph_domain_1_with_interventions_topo,
-                ),
-                (
-                    self.figure_2_graph_domain_2_with_interventions,
-                    [],
-                ),
-            ],
-            domain_data=domain_data,
-        )
-        # Length of the domain_graphs is not the same as the length of the domain_data
-        self.assertRaises(
-            TypeError,
-            sigma_tr,
-            district={W, Y},
-            domain_graphs=[
-                (
-                    self.figure_2_graph_domain_1_with_interventions,
-                    self.figure_2_graph_domain_1_with_interventions_topo,
-                ),
-            ],
-            domain_data=domain_data,
-        )
-
         # Wrong data type for district (not a collection of variable objects)
         self.assertRaises(
             TypeError,
@@ -1860,12 +1821,138 @@ class TestSigmaTR(cases.GraphTestCase):
             domain_graphs=domain_graphs,
             domain_data=[({X}, None), (set(), P(W, X, Y, Z))],
         )
-        """
-        #District variable not in a graph
-        self.assertRaises(TypeError,
-                          sigma_tr,
-                          district={X,R},
-                          domain_graphs=domain_graphs,
-                          domain_data=domain_data,
-                          )
-        """
+        # Empty district
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={},
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        # Empty domain graphs
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[],
+            domain_data=domain_data,
+        )
+        # Graph with empty nodes
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    NxMixedGraph(),
+                    self.figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    self.figure_2_graph_domain_2_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # Empty domain data
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=domain_graphs,
+            domain_data=[],
+        )
+        # Empty topo list
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    self.figure_2_graph_domain_1_with_interventions,
+                    self.figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    [],
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # Length of the domain_graphs is not the same as the length of the domain_data
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    self.figure_2_graph_domain_1_with_interventions,
+                    self.figure_2_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # topo vertices != graph vertices
+        self.assertRaises(
+            KeyError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Z), Z)],
+                        undirected=[
+                            (W, Y),
+                        ],
+                    ),
+                    [X, Y, Z, R],
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    self.figure_2_graph_domain_2_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # expression vertices not contained in graph vertices
+        self.assertRaises(
+            KeyError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    self.figure_2_graph_domain_1_with_interventions,
+                    self.figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    self.figure_2_graph_domain_2_with_interventions_topo,
+                ),
+            ],
+            domain_data=[(set(), P(W, X, Y)), ({Y}, P(W, X, Y, Z))],
+        )
+        # Policy variable not in the graph vertices
+        self.assertRaises(
+            KeyError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    self.figure_2_graph_domain_1_with_interventions,
+                    self.figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    self.figure_2_graph_domain_2_with_interventions_topo,
+                ),
+            ],
+            domain_data=[({R}, P(W, X, Y, Z)), ({Y}, P(W, X, Y, Z))],
+        )
+        # District variable not in a graph
+        self.assertRaises(
+            KeyError,
+            sigma_tr,
+            district={X, R},
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
