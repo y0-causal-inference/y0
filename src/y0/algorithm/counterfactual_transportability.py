@@ -1105,6 +1105,38 @@ def _validate_sigma_tr_inputs(
     return
 
 
+def _no_intervention_variables_in_domain(
+    *, district: Collection[Variable], interventions: Collection[Variable]
+):
+    r"""Check that a district in a graph contains no intervention veriables.
+
+    Helper function for the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
+    :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
+    :param interventions: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
+           variables corresponding to $\sigma_{\mathbf{Z}_{k}}$.
+    :returns: true or false.
+    """
+    return len(set(district).intersection(interventions)) == 0
+
+
+def _no_transportability_nodes_in_domain(
+    *, district: Collection[Variable], domain_graph: NxMixedGraph
+):
+    r"""Check that a district in a graph contains no transportability nodes.
+
+    Helper function for the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
+    :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
+    :param domain_graph: a selection diagram for the domain in question.
+           The graph contains a transportability node for every vertex distributed differently
+           in the domain in question than in the target domain (e.g., Vertex Z in Figure 3(a)
+           in [correa22a]_), and it is a causal diagram such that its edges represent
+           the state of the graph after a regime corresponding to domain $k$ has been
+           applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
+    :returns: true or false.
+    """
+    return not any(transport_variable(v) in domain_graph.nodes() for v in district)
+
+
 def sigma_tr(
     *,
     district: Collection[Variable],
@@ -1135,6 +1167,14 @@ def sigma_tr(
     _validate_sigma_tr_inputs(
         district=district, domain_graphs=domain_graphs, domain_data=domain_data
     )
+    # Line 1
+    for k in range(len(domain_graphs)):
+        if _no_intervention_variables_in_domain(
+            district=district, interventions=domain_data[k][0]
+        ) and _no_transportability_nodes_in_domain(
+            district=district, domain_graph=domain_graphs[k][0]
+        ):
+            continue
     return None
 
 

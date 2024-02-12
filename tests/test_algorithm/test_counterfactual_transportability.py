@@ -19,6 +19,8 @@ from networkx import NetworkXError
 from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
     _any_variables_with_inconsistent_values,
+    _no_intervention_variables_in_domain,
+    _no_transportability_nodes_in_domain,
     _reduce_reflexive_counterfactual_variables_to_interventions,
     _remove_repeated_variables_and_values,
     _remove_transportability_vertices,
@@ -1955,4 +1957,22 @@ class TestSigmaTR(cases.GraphTestCase):
             district={X, R},
             domain_graphs=domain_graphs,
             domain_data=domain_data,
+        )
+
+    def test_sigma_tr_line_1(self):
+        """Tests of the various data integrity checks at the start of sigma-tr.
+
+        Source: RJC.
+        """
+        self.assertTrue(_no_intervention_variables_in_domain(district={Y, W}, interventions={X}))
+        self.assertFalse(_no_intervention_variables_in_domain(district={X, Z}, interventions={X}))
+        self.assertTrue(
+            _no_transportability_nodes_in_domain(
+                district={Y, W}, domain_graph=self.figure_2_graph_domain_1_with_interventions
+            )
+        )
+        self.assertFalse(
+            _no_transportability_nodes_in_domain(
+                district={X, Z}, domain_graph=self.figure_2_graph_domain_1_with_interventions
+            )
         )
