@@ -1706,28 +1706,161 @@ class TestSigmaTR(cases.GraphTestCase):
             ],
             domain_data=domain_data,
         )
+        # Length of the domain_graphs is not the same as the length of the domain_data
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    self.figure_2_graph_domain_1_with_interventions,
+                    self.figure_2_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+
+        # Wrong data type for district (not a collection of variable objects)
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district=X,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district=[1, 2, 3],
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        # Wrong data type for domain_graphs
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=X,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=None,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                self.figure_2_graph_domain_1_with_interventions,
+                self.figure_2_graph_domain_2_with_interventions,
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    None,
+                    self.figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    self.figure_2_graph_domain_2_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    {X, Y},
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    self.figure_2_graph_domain_2_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    [1, 2, 3],
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    self.figure_2_graph_domain_2_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, Y},
+            domain_graphs=[
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    [X, Y, 1],
+                ),
+                (
+                    self.figure_2_graph_domain_2_with_interventions,
+                    self.figure_2_graph_domain_2_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # Wrong data type for domain_data. TODO: consider cases where a probability is One() or Zero()
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, R},
+            domain_graphs=domain_graphs,
+            domain_data=None,
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, R},
+            domain_graphs=domain_graphs,
+            domain_data=({X}, set()),
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, R},
+            domain_graphs=domain_graphs,
+            domain_data=[(X, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))],
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, R},
+            domain_graphs=domain_graphs,
+            domain_data=[({1}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))],
+        )
+        self.assertRaises(
+            TypeError,
+            sigma_tr,
+            district={W, R},
+            domain_graphs=domain_graphs,
+            domain_data=[({X}, None), (set(), P(W, X, Y, Z))],
+        )
         """
-        #Wrong data type for district
-        self.assertRaises(TypeError,
-                          sigma_tr,
-                          district=[1,2,3],
-                          domain_graphs=domain_graphs,
-                          domain_data=domain_data,
-                          )
-        #Wrong data type for domain_graphs
-        self.assertRaises(TypeError,
-                          sigma_tr,
-                          district=[1,2,3],
-                          domain_graphs=[self.figure_2_graph_domain_1_with_interventions,self.figure_2_graph_domain_2_with_interventions],
-                          domain_data=domain_data,
-                          )
-        #Wrong data type for domain_data
-        self.assertRaises(TypeError,
-                          sigma_tr,
-                          district=[1,2,3],
-                          domain_graphs=domain_graphs,
-                          domain_data=[{X},set()],
-                          )
         #District variable not in a graph
         self.assertRaises(TypeError,
                           sigma_tr,

@@ -12,7 +12,7 @@
 
 import logging
 from collections import defaultdict
-from typing import DefaultDict, Iterable, Optional
+from typing import Collection, DefaultDict, Iterable, Optional
 
 from y0.algorithm.transport import create_transport_diagram, transport_variable
 from y0.dsl import (
@@ -968,12 +968,62 @@ def counterfactual_factors_are_transportable(
 
 def sigma_tr(
     *,
-    district: set[Variable],
+    district: Collection[Variable],
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
-    domain_data: list[tuple[set[Variable], Expression]],
+    domain_data: list[tuple[Collection[Variable], Expression]],
 ) -> Expression | None:
-    """Implement the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B)."""
-    # Preliminary checks, starting with empty data
+    r"""Implement the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
+
+    :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
+    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
+           contains a selection diagram for that domain. In particular the graph contains
+           transportability nodes for every vertex that is distributed differently in the
+           domain in question than in the target domain (e.g., Vertex Z in Figure 3(a)
+           in [correa22a]_), and it is a causal diagram such that its edges represent
+           the state of the graph after a regime corresponding to domain $k$ has been
+           applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_). The second
+           element of the tuple is a topologically sorted list of all the vertices in
+           the corresponding graph that are not transportability nodes. (Nodes that
+           have no parents come first in such lists.)
+    :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
+           $K$ tuples, one for each of the $K$ domains. Each tuple contains a set of
+           variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression
+           denoting the probability distribution
+           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+    :raises TypeError: the input arguments are in an improper format or not internally consistent.
+    :raises KeyError: a variable in an input argument is missing from another input argument
+           and should be there.
+    :returns: A probabilistic expression for $P^{\ast}_{Pa(\mathbf{C})_{i}}(\mathbf{C}\_i)$ if
+           it is transportable, or None if it is not transportable.
+    """
+    # Preliminary checks, starting with type checking
+    if not (isinstance(district, Collection) and all(isinstance(v, Variable) for v in district)):
+        raise TypeError("In sigma_tr: the input district must be a Collection of Variable objects.")
+    if not (isinstance(domain_graphs, list) and all(isinstance(t, tuple) for t in domain_graphs)):
+        raise TypeError("In sigma_tr: the input domain graphs must be a list of tuples.")
+    if not all(
+        isinstance(g, NxMixedGraph)
+        and isinstance(l, list)
+        and all(isinstance(v, Variable) for v in l)
+        for g, l in domain_graphs
+    ):
+        raise TypeError(
+            "In sigma_tr: the input domain graph tuples must all contain NxMixedGraph objects and lists of variables."
+        )
+    if not (isinstance(domain_data, list) and all(isinstance(t, tuple) for t in domain_data)):
+        raise TypeError("In sigma_tr: the input domain data must be a list of tuples.")
+    # TODO: Consider how to handle cases where a probability distribution is One() or Zero()
+    if not all(
+        isinstance(sigma_z, Collection)
+        and all(isinstance(v, Variable) for v in sigma_z)
+        and isinstance(e, Expression)
+        for sigma_z, e in domain_data
+    ):
+        raise TypeError(
+            "In sigma_tr: the input domain data tuples must all contain Collections of Variable objects "
+            + "(first element) and Expressions (second element)."
+        )
+    # Check we have no empty lists
     if len(domain_graphs) == 0 or len(domain_data) == 0:
         raise TypeError(
             "In sigma_tr: empty list for either domain_graphs or domain_data. "
@@ -995,10 +1045,76 @@ def sigma_tr(
         )
     # if any(any(v not in g for v in variables) for g, variables in domain_graphs):
     # Currently sacrificing some efficiency for the sake of a more informative error message
-    """
+
+    # Technically the topologically sorted vertices could be for the graph $G$ containing $G_{\mathbf{C}_{i}}$,
+    # but we currently have a stricter requirement that they are for $G_{\mathbf{C}_{i}}$. That requirement
+    # could be relaxed if it becomes a computational burden in the ctf_TRu algorithm.
     for k in range(len(domain_graphs)):
         logger.warning("k = " + str(k))
-        topo_vertices = frozenset(domain_graphs[])
+        topo_vertices = frozenset(domain_graphs[k][1])
+        expression_vertices = frozenset(domain_data[k][1].get_variables())
+        graph_vertices = frozenset(domain_graphs[k][0].nodes())
+        policy_vertices = frozenset(domain_data[k][0])
+        if topo_vertices != graph_vertices:
+            raise KeyError(
+                "In sigma_tr: the vertices in each domain graph must match those in the "
+                + "corresponding topologically sorted list of vertices. Check your inputs. "
+                + "Graph vertices: "
+                + str(graph_vertices)
+                + ". List: "
+                + str(topo_vertices)
+                + "."
+            )
+        if not all(v in graph_vertices for v in expression_vertices):
+            raise KeyError(
+                "In sigma_tr: the expression for the probability of a domain graph contains "
+                + "variables not associated with vertices in the corresponding graph. Check "
+                + "your inputs. Graph vertices: "
+                + str(graph_vertices)
+                + ". Expression vertices: "
+                + str(expression_vertices)
+                + "."
+            )
+        if not all(v in graph_vertices for v in policy_vertices):
+            raise KeyError(
+                "In sigma_tr: the set of vertices for which a policy has been applied for one "
+                + "of the domains contains at least one vertex not in the domain graph. Check your inputs. "
+                + "Policy vertices: "
+                + str(policy_vertices)
+                + ". Graph vertices: "
+                + str(graph_vertices)
+            )
+        if not all(v in expression_vertices for v in policy_vertices):
+            raise KeyError(
+                "In sigma_tr: the set of vertices for which a policy has been applied for one "
+                + "of the domains contains at least one variable not in the expression for the probability "
+                + "of the graph for that domain. Check your inputs. "
+                + "Policy vertices: "
+                + str(policy_vertices)
+                + r". P_\{Z\}(V) variables: "
+                + str(expression_vertices)
+                + "."
+            )
+        if not all(v in graph_vertices for v in district):
+            raise KeyError(
+                "In sigma_tr: one of the variables in the input district "
+                + "is not in a domain graph. District: "
+                + str(district)
+                + ". Nodes in the graph: "
+                + str(graph_vertices)
+                + "."
+            )
+        if not all(v in expression_vertices for v in district):
+            raise KeyError(
+                "In sigma_tr: one of the variables in the input district "
+                + "is not in the expression for the probability of the associated graph. "
+                + "District: "
+                + str(district)
+                + r". P_\{Z\}(V) variables: "
+                + str(expression_vertices)
+                + "."
+            )
+    """
     for g, variables in domain_graphs:
         if any(v not in g for v in variables):
             raise KeyError("In sigma_tr: one of the variables in the list of topologically " +\
@@ -1012,7 +1128,6 @@ def sigma_tr(
                            str([node for node in g.nodes()]) + ".")
     """
     return None
-    raise NotImplementedError("Unimplemented function: sigmaTR")
 
 
 # TODO: Add expected inputs and outputs to the below two algorithms
