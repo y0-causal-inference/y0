@@ -39,7 +39,7 @@ from y0.algorithm.counterfactual_transportability import (
     simplify,
 )
 from y0.algorithm.transport import transport_variable
-from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
+from y0.dsl import (
     PP,
     W1,
     W2,
@@ -51,7 +51,8 @@ from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
     CounterfactualVariable,
     Intervention,
     P,
-    Population,
+    Pi1,
+    Pi2,
     R,
     Sum,
     Variable,
@@ -62,7 +63,7 @@ from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
 )
 from y0.graph import NxMixedGraph
 
-# from y0.tests.test_algorithm.cases import GraphTestCase
+logger = logging.getLogger(__name__)
 
 # From [correa22a]_, Figure 1.
 figure_1_graph = NxMixedGraph.from_edges(
@@ -1494,6 +1495,7 @@ class TestRemoveTransportabilityVertices(cases.GraphTestCase):
         )
 
 
+# class TestSigmaTR(unittest.TestCase):
 class TestSigmaTR(cases.GraphTestCase):
     """Test the Sigma-TR algorithm (Algorithm 4 from [correa22a]_)."""
 
@@ -1525,12 +1527,14 @@ class TestSigmaTR(cases.GraphTestCase):
     figure_2_graph_domain_2_with_interventions_topo = list(
         figure_2_graph_domain_2_with_interventions.topological_sort()
     )
+    # pp = PopulationProbabilityBuilderType
 
     def test_sigma_tr_1(self):
         """First test case involving a transportable counterfactual factor.
 
         Source: Equation 17 of [correa22a]_.
         """
+        # PP = PopulationProbabilityBuilderType
         district = {Y, W}
         domain_graphs = [
             (
@@ -1543,7 +1547,7 @@ class TestSigmaTR(cases.GraphTestCase):
             ),
         ]
         domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
-        expected_result = PP[Population("pi1")](Y, W | X, Z)
+        expected_result = PP[Pi1](Y, W | X, Z)
         result = sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
         self.assert_expr_equal(expected_result, result)
 
@@ -1553,6 +1557,7 @@ class TestSigmaTR(cases.GraphTestCase):
         Source: Equation 19 of [correa22a]_.
         """
         district = {X, Z}
+        # pp = PopulationProbabilityBuilderType
         domain_graphs = [
             (
                 self.figure_2_graph_domain_1_with_interventions,
@@ -1564,8 +1569,11 @@ class TestSigmaTR(cases.GraphTestCase):
             ),
         ]
         domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
-        expected_result = PP[Population("pi2")](X | Z) * PP[Population("pi2")](Z)
+        expected_result = PP[Pi2](X | Z) * PP[Pi2](Z)
+        logger.warning("In test_sigma_tr_2: expected_result is " + str(expected_result))
         result = sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
+        self.assert_expr_equal(expected_result, expected_result)
+        self.assert_expr_equal(expected_result, PP[Pi2](X | Z) * PP[Pi2](Z))
         self.assert_expr_equal(expected_result, result)
 
     def test_sigma_tr_3(self):

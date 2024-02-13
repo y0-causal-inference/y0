@@ -1222,6 +1222,7 @@ def sigma_tr(
 
             # Lines 5-7
             if district_q_probability is not None:
+                logger.warning("Returning from sigma_tr: " + str(district_q_probability))
                 return district_q_probability
     # Line 9
     return None

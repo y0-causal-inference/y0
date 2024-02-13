@@ -19,6 +19,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    Type,
     TypeVar,
     Union,
     cast,
@@ -1712,7 +1713,8 @@ class PopulationProbabilityBuilderType(ProbabilityBuilderType):
         )
 
 
-PP = PopulationProbabilityBuilderType
-
+# RJC: We need to declare a type for this alias to avoid false MyPy errors.
+# See https://github.com/python/mypy/issues/7568
+PP: Type[PopulationProbabilityBuilderType] = PopulationProbabilityBuilderType
 
 TARGET_DOMAIN = Population("pi*")

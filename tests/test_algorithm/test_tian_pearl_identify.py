@@ -22,8 +22,9 @@ from y0.algorithm.tian_id import (
     tian_pearl_identify,
 )
 from y0.algorithm.transport import transport_variable
-from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
+from y0.dsl import (
     PP,
+    TARGET_DOMAIN,
     W1,
     W2,
     W3,
@@ -34,7 +35,7 @@ from y0.dsl import (  # TARGET_DOMAIN,; Pi1,
     Fraction,
     One,
     P,
-    Population,
+    Pi1,
     Product,
     R,
     Sum,
@@ -161,7 +162,7 @@ class TestIdentify(cases.GraphTestCase):
             tian_pearl_identify,
             input_variables=frozenset({Y, R}),
             input_district=frozenset({R, X, W, Z}),
-            district_probability=PP[Population("pi*")](R, W, X, Y, Z),
+            district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
             topo=list(soft_interventions_figure_3_graph.topological_sort()),
         )
@@ -171,7 +172,7 @@ class TestIdentify(cases.GraphTestCase):
             tian_pearl_identify,
             input_variables=frozenset({X, Z}),
             input_district=frozenset({R, X, W, Z}),
-            district_probability=PP[Population("pi*")](R, W, X, Y, Z),
+            district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
             topo=[W, X, Z, Y],
         )
@@ -182,7 +183,7 @@ class TestIdentify(cases.GraphTestCase):
             tian_pearl_identify,
             input_variables=frozenset({X, Y}),
             input_district=frozenset({X, Y, Z}),
-            district_probability=PP[Population("pi*")](R, W, X, Y, Z),
+            district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
             topo=list(soft_interventions_figure_3_graph.topological_sort()),
         )
@@ -228,14 +229,11 @@ class TestIdentify(cases.GraphTestCase):
         test_1_identify_input_district = {Z}  # B
 
         # @cthoyt @JZ The next two commented-out lines produce a mypy error:
-        # pi1 = Population("pi1")
-        # test_1_district_probability = PP[Population("pi1")](Z | X1)
+        test_1_district_probability = PP[Pi1](Z | X1)
         # error: Type application targets a non-generic function or class  [misc]
         # test_transport.py uses a similar syntax and does not trigger the error,
         #   so I'm probably missing something simple.
-        test_1_district_probability = PP[Population("pi1")](Z | X1)  # Q
-        # pi1 = Population("pi1")
-        # test_1_district_probability = PP[pi1](Z | X1)
+        # test_1_district_probability = PP[pi1](Z | X1)  # Q
         result = tian_pearl_identify(
             input_variables=frozenset(test_1_identify_input_variables),
             input_district=frozenset(test_1_identify_input_district),
@@ -244,7 +242,7 @@ class TestIdentify(cases.GraphTestCase):
             topo=list(soft_interventions_figure_1b_graph.topological_sort()),
         )
         logger.warning("Result of identify() call for test_identify_1 is " + str(result))
-        self.assert_expr_equal(result, PP[Population("pi1")](Z | X1))
+        self.assert_expr_equal(result, PP[Pi1](Z | X1))
 
     def test_identify_2(self):
         """Test Line 3 of Algorithm 5 of [correa22a]_.
@@ -256,7 +254,7 @@ class TestIdentify(cases.GraphTestCase):
         result1 = tian_pearl_identify(
             input_variables=frozenset({R, Y}),
             input_district=frozenset({W, R, X, Z, Y}),
-            district_probability=PP[Population("pi*")](
+            district_probability=PP[TARGET_DOMAIN](
                 W, R, X, Z, Y
             ),  # This is a c-factor if the input variables comprise a c-component
             graph=soft_interventions_figure_2a_graph,
@@ -267,7 +265,7 @@ class TestIdentify(cases.GraphTestCase):
         result2 = tian_pearl_identify(
             input_variables=frozenset({Z, R}),
             input_district=frozenset({R, X, W, Z}),
-            district_probability=PP[Population("pi*")](R, W, X, Z),
+            district_probability=PP[TARGET_DOMAIN](R, W, X, Z),
             graph=soft_interventions_figure_3_graph.subgraph(vertices={R, Z, X, W}),
             topo=list(soft_interventions_figure_3_graph.topological_sort()),
         )
@@ -280,9 +278,7 @@ class TestIdentify(cases.GraphTestCase):
         """
         test_3_identify_input_variables = {R, X}
         test_3_identify_input_district = {R, X, W, Y}
-        test_3_district_probability = PP[Population("pi1")]((Y, W)).conditional([R, X, Z]) * PP[
-            Population("pi1")
-        ](R, X)
+        test_3_district_probability = PP[Pi1]((Y, W)).conditional([R, X, Z]) * PP[Pi1](R, X)
         result1 = tian_pearl_identify(
             input_variables=frozenset(test_3_identify_input_variables),
             input_district=frozenset(test_3_identify_input_district),
@@ -295,7 +291,7 @@ class TestIdentify(cases.GraphTestCase):
         result2 = tian_pearl_identify(
             input_variables=frozenset({Z, R}),
             input_district=frozenset({R, X, W, Y, Z}),
-            district_probability=PP[Population("pi*")](R, W, X, Y, Z),
+            district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
             topo=list(soft_interventions_figure_3_graph.topological_sort()),
         )
