@@ -1138,6 +1138,21 @@ def _no_transportability_nodes_in_domain(
     return not any(transport_variable(v) in domain_graph.nodes() for v in district)
 
 
+# def _convert_to_population_probability(prob: Expression, index:int) -> PopulationProbability:
+#    """Convert an Expression representing a Probability to a Population Probability.
+#
+#    :param prob: the input expression.
+#    :param index: the index of the domain (0 corresponds to Pi1, 1 to Pi2, and so on.
+#           Convention: use -1 for the target domain.
+#    :returns:
+#    """
+#    if index == -1:
+#        pi_string = "pi*"
+#    else:
+#        pi_string = "pi" + str(index+1)
+#    pop = Population(pi_string)
+
+
 def sigma_tr(
     *,
     district: Collection[Variable],
@@ -1181,6 +1196,7 @@ def sigma_tr(
         ) and _no_transportability_nodes_in_domain(
             district=district, domain_graph=domain_graphs[k][0]
         ):
+            logger.warning("In sigma_tr: domain = " + str(k))
             domain_graph = domain_graphs[k][0]
             domain_graph_variables = _remove_transportability_vertices(
                 vertices=domain_graph.nodes()
@@ -1204,13 +1220,16 @@ def sigma_tr(
                 )
 
             # Line 3
+            logger.warning("Subgraph_probability: " + domain_data[k][1].to_latex())
             super_district_q_probability = _compute_c_factor(
                 district=district,
                 subgraph_variables=domain_graph_variables,
                 subgraph_probability=domain_data[k][1],
                 graph_topo=domain_topo,
             )
-
+            logger.warning(
+                "super_district_q_probability: " + super_district_q_probability.to_latex()
+            )
             # Line 4
             district_q_probability = tian_pearl_identify(
                 input_variables=frozenset(district),
@@ -1219,10 +1238,11 @@ def sigma_tr(
                 graph=domain_graph,
                 topo=domain_topo,
             )
+            # Incorporate the domain index in the representation for Q
 
             # Lines 5-7
             if district_q_probability is not None:
-                logger.warning("Returning from sigma_tr: " + str(district_q_probability))
+                logger.warning("Returning from sigma_tr: " + district_q_probability.to_latex())
                 return district_q_probability
     # Line 9
     return None

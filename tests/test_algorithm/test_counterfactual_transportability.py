@@ -1527,14 +1527,12 @@ class TestSigmaTR(cases.GraphTestCase):
     figure_2_graph_domain_2_with_interventions_topo = list(
         figure_2_graph_domain_2_with_interventions.topological_sort()
     )
-    # pp = PopulationProbabilityBuilderType
 
     def test_sigma_tr_1(self):
         """First test case involving a transportable counterfactual factor.
 
         Source: Equation 17 of [correa22a]_.
         """
-        # PP = PopulationProbabilityBuilderType
         district = {Y, W}
         domain_graphs = [
             (
@@ -1546,8 +1544,8 @@ class TestSigmaTR(cases.GraphTestCase):
                 self.figure_2_graph_domain_2_with_interventions_topo,
             ),
         ]
-        domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
-        expected_result = PP[Pi1](Y, W | X, Z)
+        domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
+        expected_result = PP[Pi1](Y | W, X, Z) * PP[Pi1](W | X)
         result = sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
         self.assert_expr_equal(expected_result, result)
 
@@ -1557,7 +1555,6 @@ class TestSigmaTR(cases.GraphTestCase):
         Source: Equation 19 of [correa22a]_.
         """
         district = {X, Z}
-        # pp = PopulationProbabilityBuilderType
         domain_graphs = [
             (
                 self.figure_2_graph_domain_1_with_interventions,
@@ -1568,9 +1565,9 @@ class TestSigmaTR(cases.GraphTestCase):
                 self.figure_2_graph_domain_2_with_interventions_topo,
             ),
         ]
-        domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
+        domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
         expected_result = PP[Pi2](X | Z) * PP[Pi2](Z)
-        logger.warning("In test_sigma_tr_2: expected_result is " + str(expected_result))
+        logger.warning("In test_sigma_tr_2: expected_result is " + expected_result.to_latex())
         result = sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
         self.assert_expr_equal(expected_result, expected_result)
         self.assert_expr_equal(expected_result, PP[Pi2](X | Z) * PP[Pi2](Z))
@@ -1597,7 +1594,7 @@ class TestSigmaTR(cases.GraphTestCase):
                 self.figure_2_graph_domain_2_with_interventions_topo,
             ),
         ]
-        domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
+        domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
         self.assertIsNone(
             sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
         )
@@ -1632,7 +1629,7 @@ class TestSigmaTR(cases.GraphTestCase):
             ],
         )
         graph_2_topo = list(graph_2.topological_sort())
-        domain_data = [({W}, P(W, X, Y, Z)), ({Y}, P(W, X, Y, Z))]
+        domain_data = [({W}, PP[Pi1](W, X, Y, Z)), ({Y}, PP[Pi2](W, X, Y, Z))]
         self.assertIsNone(
             sigma_tr(
                 district=district,
@@ -1666,7 +1663,7 @@ class TestSigmaTR(cases.GraphTestCase):
             ],
         )
         graph_2_topo = list(graph_2.topological_sort())
-        domain_data = [(set(), P(W, X, Y, Z)), ({Y}, P(W, X, Y, Z))]
+        domain_data = [(set(), PP[Pi1](W, X, Y, Z)), ({Y}, PP[Pi2](W, X, Y, Z))]
         self.assertIsNone(
             sigma_tr(
                 district=district,
@@ -1690,7 +1687,7 @@ class TestSigmaTR(cases.GraphTestCase):
                 self.figure_2_graph_domain_2_with_interventions_topo,
             ),
         ]
-        domain_data = [({X}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))]
+        domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
         # Wrong data type for district (not a collection of variable objects)
         self.assertRaises(
             TypeError,
@@ -1815,21 +1812,21 @@ class TestSigmaTR(cases.GraphTestCase):
             sigma_tr,
             district={W, R},
             domain_graphs=domain_graphs,
-            domain_data=[(X, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))],
+            domain_data=[(X, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
         )
         self.assertRaises(
             TypeError,
             sigma_tr,
             district={W, R},
             domain_graphs=domain_graphs,
-            domain_data=[({1}, P(W, X, Y, Z)), (set(), P(W, X, Y, Z))],
+            domain_data=[({1}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
         )
         self.assertRaises(
             TypeError,
             sigma_tr,
             district={W, R},
             domain_graphs=domain_graphs,
-            domain_data=[({X}, None), (set(), P(W, X, Y, Z))],
+            domain_data=[({X}, None), (set(), PP[Pi2](W, X, Y, Z))],
         )
         # Empty district
         self.assertRaises(
@@ -1939,7 +1936,7 @@ class TestSigmaTR(cases.GraphTestCase):
                     self.figure_2_graph_domain_2_with_interventions_topo,
                 ),
             ],
-            domain_data=[(set(), P(W, X, Y)), ({Y}, P(W, X, Y, Z))],
+            domain_data=[(set(), PP[Pi1](W, X, Y)), ({Y}, PP[Pi2](W, X, Y, Z))],
         )
         # Policy variable not in the graph vertices
         self.assertRaises(
@@ -1956,7 +1953,7 @@ class TestSigmaTR(cases.GraphTestCase):
                     self.figure_2_graph_domain_2_with_interventions_topo,
                 ),
             ],
-            domain_data=[({R}, P(W, X, Y, Z)), ({Y}, P(W, X, Y, Z))],
+            domain_data=[({R}, PP[Pi1](W, X, Y, Z)), ({Y}, PP[Pi2](W, X, Y, Z))],
         )
         # District variable not in a graph
         self.assertRaises(

@@ -3,7 +3,18 @@
 import logging
 from typing import Collection
 
-from y0.dsl import Expression, Fraction, One, P, Probability, Product, Sum, Variable
+from y0.dsl import (
+    Distribution,
+    Expression,
+    Fraction,
+    One,
+    P,
+    PopulationProbability,
+    Probability,
+    Product,
+    Sum,
+    Variable,
+)
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -78,13 +89,14 @@ def tian_pearl_identify(
     ordered_ancestral_set = [a for a in topo if a in ancestral_set]
     if ancestral_set == input_variables:
         logger.warning("In tian_pearl_identify: A = C. Applying Lemma 3.")
+        logger.warning("   Subgraph_probability = " + district_probability.to_latex())
         rv = _compute_ancestral_set_q_value(
             ancestral_set=ancestral_set,
             subgraph_variables=input_district,
             subgraph_probability=district_probability,
             graph_topo=topo,
         )
-        logger.warning("   Returning Q value: " + str(rv))
+        logger.warning("   Returning Q value: " + rv.to_latex())
     elif ancestral_set == input_district:
         logger.warning("In tian_pearl_identify: A = T. Returning None (i.e., FAIL).")
         rv = None
@@ -112,15 +124,37 @@ def tian_pearl_identify(
                 graph_topo=topo,
             )
         elif isinstance(district_probability, Probability):
-            ancestral_set_probability = P(
-                ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
-                | district_probability.parents
+            logger.warning(
+                "About to get ancestral_set_probability. district_probability = "
+                + district_probability.to_latex()
+            )
+            logger.warning(
+                "   Is the district_probability a PopulationProbability? "
+                + str(isinstance(district_probability, PopulationProbability))
+            )
+            if isinstance(district_probability, PopulationProbability):
+                ancestral_set_probability = PopulationProbability(
+                    population=district_probability.population,
+                    distribution=ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
+                    | district_probability.parents,
+                )
+            else:
+                ancestral_set_probability = P(
+                    ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
+                    | district_probability.parents
+                )
+            logger.warning(
+                "Got ancestral_set_probability. Result = " + ancestral_set_probability.to_latex()
             )
         else:
             raise TypeError(
                 "In tian_pearl_identify: the district probability is an expression of an unknown type."
             )
         # Get Q[T'] by Lemma 4 or Lemma 1
+        logger.warning(
+            "In tian_pearl_identify: about to call _compute_c_factor. Subgraph_probability = "
+            + ancestral_set_probability.to_latex()
+        )
         targeted_ancestral_set_subgraph_district_probability = _compute_c_factor(
             district=targeted_ancestral_set_subgraph_district,
             subgraph_variables=ancestral_set,
@@ -188,7 +222,11 @@ def _compute_c_factor_conditioning_on_topological_predecessors(
     logger.warning(
         "In _compute_c_factor_conditioning_on_topological_predecessors: topo = " + str(topo)
     )
-    probabilities = []
+    logger.warning(
+        "In _compute_c_factor_conditioning_on_topological_predecessors: graph_probability = "
+        + graph_probability.to_latex()
+    )
+
     if len(district) == 0 or len(variables) == 0:
         raise TypeError(
             "Error in _compute_c_factor_conditioning_on_topological_predecessors: the district or variable "
@@ -199,20 +237,48 @@ def _compute_c_factor_conditioning_on_topological_predecessors(
             "Error in _compute_c_factor_conditioning_on_topological_predecessors: a variable in the district"
             + " is not in the topological sort of the graph vertices."
         )
-    # A little subtle so it deserves a comment: the Q value passed into Tian's Identify function may
-    # already be conditioned on some variables that are in G but not in the subgraph H. In applying Lemma 1
-    # (but not Lemma 4), we have to make sure we're also conditioning on those variables.
-    graph_probability_parents = set(graph_probability.parents)
-    for variable in district:
-        preceding_variables = topo[: topo.index(variable)]
-        conditioned_variables = graph_probability_parents.union(preceding_variables)  # V^(i-1)
-        probability = P(variable | conditioned_variables)  # v_i
-        probabilities.append(probability)
-    logger.warning(
-        "In _compute_c_factor_conditioning_on_topological_predecessors: returning "
-        + str(Product.safe(probabilities))
-    )
-    return Product.safe(probabilities)
+    if isinstance(graph_probability, PopulationProbability):
+        population_probabilities = []
+        # A little subtle so it deserves a comment: the Q value passed into Tian's Identify function may
+        # already be conditioned on some variables that are in G but not in the subgraph H. In applying Lemma 1
+        # (but not Lemma 4), we have to make sure we're also conditioning on those variables.
+        graph_probability_parents = set(graph_probability.parents)
+        for variable in district:
+            preceding_variables = topo[: topo.index(variable)]
+            conditioned_variables = graph_probability_parents.union(preceding_variables)  # V^(i-1)
+            pp = PopulationProbability(
+                population=graph_probability.population,
+                distribution=Distribution(
+                    children=(variable,), parents=tuple(conditioned_variables)
+                ),
+            )
+            population_probabilities.append(pp)
+            logger.warning(
+                "In _compute_c_factor_conditioning_on_topological_predecessors: returning "
+                + str(Product.safe(population_probabilities))
+            )
+            logger.warning(
+                "Return value in Latex form is " + Product.safe(population_probabilities).to_latex()
+            )
+            rv = Product.safe(population_probabilities)
+    else:
+        probabilities = []
+        # A little subtle so it deserves a comment: the Q value passed into Tian's Identify function may
+        # already be conditioned on some variables that are in G but not in the subgraph H. In applying Lemma 1
+        # (but not Lemma 4), we have to make sure we're also conditioning on those variables.
+        graph_probability_parents = set(graph_probability.parents)
+        for variable in district:
+            preceding_variables = topo[: topo.index(variable)]
+            conditioned_variables = graph_probability_parents.union(preceding_variables)  # V^(i-1)
+            probability = P(variable | conditioned_variables)  # v_i
+            probabilities.append(probability)
+        logger.warning(
+            "In _compute_c_factor_conditioning_on_topological_predecessors: returning "
+            + str(Product.safe(probabilities))
+        )
+        logger.warning("Return value in Latex form is " + Product.safe(probabilities).to_latex())
+        rv = Product.safe(probabilities)
+    return rv
 
 
 def _compute_q_value_of_variables_with_low_topological_ordering_indices(
