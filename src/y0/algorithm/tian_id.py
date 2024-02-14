@@ -18,13 +18,13 @@ from y0.dsl import (
 from y0.graph import NxMixedGraph
 
 __all__ = [
-    "tian_pearl_identify",
+    "identify_variables_in_district",
 ]
 
 logger = logging.getLogger(__name__)
 
 
-def tian_pearl_identify(
+def identify_variables_in_district(
     *,
     input_variables: frozenset[Variable],
     input_district: frozenset[Variable],
@@ -52,17 +52,17 @@ def tian_pearl_identify(
     if not input_variables.intersection(input_district) == input_variables:
         # if not all(v in input_district for v in input_variables):
         raise KeyError(
-            "In tian_pearl_identify: at least one of the input variables C is not in the input district T."
+            "In identify_variables_in_district: at least one of the input variables C is not in the input district T."
         )
     if not input_district.intersection(set(topo)) == input_district:
         raise KeyError(
-            "In tian_pearl_identify: at least one input district variable is not in the "
+            "In identify_variables_in_district: at least one input district variable is not in the "
             + "topologically sorted variable list."
         )
     district_subgraph = graph.subgraph(vertices=input_district)  # $G_{T}$
     if len(district_subgraph.districts()) > 1:
         raise TypeError(
-            "In tian_pearl_identify: the subgraph of the input graph G comprised of the"
+            "In identify_variables_in_district: the subgraph of the input graph G comprised of the"
             + " vertices in the input vertex set T should have only district and has more."
         )
     if (not isinstance(district_probability, Expression)) | isinstance(
@@ -74,7 +74,7 @@ def tian_pearl_identify(
         | isinstance(district_probability, Probability)
     ):
         raise TypeError(
-            "In tian_pearl_identify: the district probability must be an expression that is a "
+            "In identify_variables_in_district: the district probability must be an expression that is a "
             + "Sum, Product, Fraction, or Probability."
         )
     # ordered_graph_vertices = [v for v in topo if v in graph.nodes()]  # This is V
@@ -88,7 +88,7 @@ def tian_pearl_identify(
 
     ordered_ancestral_set = [a for a in topo if a in ancestral_set]
     if ancestral_set == input_variables:
-        logger.warning("In tian_pearl_identify: A = C. Applying Lemma 3.")
+        logger.warning("In identify_variables_in_district: A = C. Applying Lemma 3.")
         logger.warning("   Subgraph_probability = " + district_probability.to_latex())
         rv = _compute_ancestral_set_q_value(
             ancestral_set=ancestral_set,
@@ -98,7 +98,7 @@ def tian_pearl_identify(
         )
         logger.warning("   Returning Q value: " + rv.to_latex())
     elif ancestral_set == input_district:
-        logger.warning("In tian_pearl_identify: A = T. Returning None (i.e., FAIL).")
+        logger.warning("In identify_variables_in_district: A = T. Returning None (i.e., FAIL).")
         rv = None
     elif input_variables.issubset(ancestral_set) and ancestral_set.issubset(input_district):
         ancestral_set_subgraph = graph.subgraph(vertices=ordered_ancestral_set)
@@ -148,11 +148,11 @@ def tian_pearl_identify(
             )
         else:
             raise TypeError(
-                "In tian_pearl_identify: the district probability is an expression of an unknown type."
+                "In identify_variables_in_district: the district probability is an expression of an unknown type."
             )
         # Get Q[T'] by Lemma 4 or Lemma 1
         logger.warning(
-            "In tian_pearl_identify: about to call _compute_c_factor. Subgraph_probability = "
+            "In identify_variables_in_district: about to call _compute_c_factor. Subgraph_probability = "
             + ancestral_set_probability.to_latex()
         )
         targeted_ancestral_set_subgraph_district_probability = _compute_c_factor(
@@ -161,13 +161,15 @@ def tian_pearl_identify(
             subgraph_probability=ancestral_set_probability,
             graph_topo=topo,
         )
-        logger.warning("In tian_pearl_identify: about to recursively call tian_pearl_identify.")
+        logger.warning(
+            "In identify_variables_in_district: about to recursively call identify_variables_in_district."
+        )
         logger.warning("    C = " + str(input_variables))
         logger.warning("    T' = " + str(targeted_ancestral_set_subgraph_district))
         logger.warning("    Q[T'] =" + str(targeted_ancestral_set_subgraph_district_probability))
         logger.warning("    graph nodes = " + str(list(graph.nodes())))
         logger.warning("    topo = " + str(topo))
-        rv = tian_pearl_identify(
+        rv = identify_variables_in_district(
             input_variables=input_variables,
             input_district=targeted_ancestral_set_subgraph_district,
             district_probability=targeted_ancestral_set_subgraph_district_probability,
@@ -175,13 +177,13 @@ def tian_pearl_identify(
             topo=topo,
         )
         logger.warning(
-            "In tian_pearl_identify: returned from recursive call to tian_pearl_identify."
+            "In identify_variables_in_district: returned from recursive call to identify_variables_in_district."
         )
         logger.warning("    Return value = " + str(rv))
     return rv
 
 
-def _do_tian_pearl_identify_line_1(
+def _do_identify_variables_in_district_line_1(
     input_variables: set[Variable],
     input_district: set[Variable],
     graph: NxMixedGraph,

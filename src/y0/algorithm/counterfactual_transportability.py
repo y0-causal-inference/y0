@@ -14,7 +14,7 @@ import logging
 from collections import defaultdict
 from typing import Collection, DefaultDict, Iterable, Optional
 
-from y0.algorithm.tian_id import _compute_c_factor, tian_pearl_identify
+from y0.algorithm.tian_id import _compute_c_factor, identify_variables_in_district
 from y0.algorithm.transport import create_transport_diagram, transport_variable
 from y0.dsl import (
     CounterfactualVariable,
@@ -1231,7 +1231,7 @@ def transport_district_intervening_on_parents(
                 "super_district_q_probability: " + super_district_q_probability.to_latex()
             )
             # Line 4
-            district_q_probability = tian_pearl_identify(
+            district_q_probability = identify_variables_in_district(
                 input_variables=frozenset(district),
                 input_district=super_district,
                 district_probability=super_district_q_probability,
