@@ -39,7 +39,7 @@ __all__ = [
     "do_counterfactual_factor_factorization",
     "make_selection_diagram",
     "counterfactual_factors_are_transportable",
-    "sigma_tr",
+    "transport_district_intervening_on_parents",
     "ctf_tr",
     "ctf_tru",
     # TODO add functions/classes/variables you want to appear in the docs and be exposed to the user in this list
@@ -1153,7 +1153,7 @@ def _no_transportability_nodes_in_domain(
 #    pop = Population(pi_string)
 
 
-def sigma_tr(
+def transport_district_intervening_on_parents(
     *,
     district: Collection[Variable],
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],

@@ -35,8 +35,8 @@ from y0.algorithm.counterfactual_transportability import (
     minimize,
     minimize_event,
     same_district,
-    sigma_tr,
     simplify,
+    transport_district_intervening_on_parents,
 )
 from y0.algorithm.transport import transport_variable
 from y0.dsl import (
@@ -1496,8 +1496,8 @@ class TestRemoveTransportabilityVertices(cases.GraphTestCase):
 
 
 # class TestSigmaTR(unittest.TestCase):
-class TestSigmaTR(cases.GraphTestCase):
-    """Test the Sigma-TR algorithm (Algorithm 4 from [correa22a]_)."""
+class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
+    """Test Correa and Bareinboim's algorithm to transport a district (Algorithm 4 from [correa22a]_)."""
 
     # from y0.tests.test_algorithm.cases import GraphTestCase
     figure_2_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
@@ -1528,7 +1528,7 @@ class TestSigmaTR(cases.GraphTestCase):
         figure_2_graph_domain_2_with_interventions.topological_sort()
     )
 
-    def test_sigma_tr_1(self):
+    def test_transport_district_intervening_on_parents_1(self):
         """First test case involving a transportable counterfactual factor.
 
         Source: Equation 17 of [correa22a]_.
@@ -1546,10 +1546,12 @@ class TestSigmaTR(cases.GraphTestCase):
         ]
         domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
         expected_result = PP[Pi1](Y | W, X, Z) * PP[Pi1](W | X)
-        result = sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
+        result = transport_district_intervening_on_parents(
+            district=district, domain_graphs=domain_graphs, domain_data=domain_data
+        )
         self.assert_expr_equal(expected_result, result)
 
-    def test_sigma_tr_2(self):
+    def test_transport_district_intervening_on_parents_2(self):
         """Second test case involving a transportable counterfactual factor.
 
         Source: Equation 19 of [correa22a]_.
@@ -1567,13 +1569,18 @@ class TestSigmaTR(cases.GraphTestCase):
         ]
         domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
         expected_result = PP[Pi2](X | Z) * PP[Pi2](Z)
-        logger.warning("In test_sigma_tr_2: expected_result is " + expected_result.to_latex())
-        result = sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
+        logger.warning(
+            "In test_transport_district_intervening_on_parents_2: expected_result is "
+            + expected_result.to_latex()
+        )
+        result = transport_district_intervening_on_parents(
+            district=district, domain_graphs=domain_graphs, domain_data=domain_data
+        )
         self.assert_expr_equal(expected_result, expected_result)
         self.assert_expr_equal(expected_result, PP[Pi2](X | Z) * PP[Pi2](Z))
         self.assert_expr_equal(expected_result, result)
 
-    def test_sigma_tr_3(self):
+    def test_transport_district_intervening_on_parents_3(self):
         """Test case in which a transportability node interferes with transportability for every domain.
 
         Source: RJC's mind.
@@ -1596,10 +1603,12 @@ class TestSigmaTR(cases.GraphTestCase):
         ]
         domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
         self.assertIsNone(
-            sigma_tr(district=district, domain_graphs=domain_graphs, domain_data=domain_data)
+            transport_district_intervening_on_parents(
+                district=district, domain_graphs=domain_graphs, domain_data=domain_data
+            )
         )
 
-    def test_sigma_tr_4(self):
+    def test_transport_district_intervening_on_parents_4(self):
         """Test case in which nothing's transportable because there's an interfering intervention for every domain.
 
         Source: RJC's mind.
@@ -1631,14 +1640,14 @@ class TestSigmaTR(cases.GraphTestCase):
         graph_2_topo = list(graph_2.topological_sort())
         domain_data = [({W}, PP[Pi1](W, X, Y, Z)), ({Y}, PP[Pi2](W, X, Y, Z))]
         self.assertIsNone(
-            sigma_tr(
+            transport_district_intervening_on_parents(
                 district=district,
                 domain_graphs=[(graph_1, graph_1_topo), (graph_2, graph_2_topo)],
                 domain_data=domain_data,
             )
         )
 
-    def test_sigma_tr_5(self):
+    def test_transport_district_intervening_on_parents_5(self):
         """Test case in which a transportability node blocks one domain and an intervention blocks the other.
 
         Source: RJC's mind.
@@ -1665,14 +1674,14 @@ class TestSigmaTR(cases.GraphTestCase):
         graph_2_topo = list(graph_2.topological_sort())
         domain_data = [(set(), PP[Pi1](W, X, Y, Z)), ({Y}, PP[Pi2](W, X, Y, Z))]
         self.assertIsNone(
-            sigma_tr(
+            transport_district_intervening_on_parents(
                 district=district,
                 domain_graphs=[(graph_1, graph_1_topo), (graph_2, graph_2_topo)],
                 domain_data=domain_data,
             )
         )
 
-    def test_sigma_tr_preprocessing(self):
+    def test_transport_district_intervening_on_parents_preprocessing(self):
         """Tests of the various data integrity checks at the start of sigma-tr.
 
         Source: RJC.
@@ -1691,14 +1700,14 @@ class TestSigmaTR(cases.GraphTestCase):
         # Wrong data type for district (not a collection of variable objects)
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district=X,
             domain_graphs=domain_graphs,
             domain_data=domain_data,
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district=[1, 2, 3],
             domain_graphs=domain_graphs,
             domain_data=domain_data,
@@ -1706,21 +1715,21 @@ class TestSigmaTR(cases.GraphTestCase):
         # Wrong data type for domain_graphs
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=X,
             domain_data=domain_data,
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=None,
             domain_data=domain_data,
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 self.figure_2_graph_domain_1_with_interventions,
@@ -1730,7 +1739,7 @@ class TestSigmaTR(cases.GraphTestCase):
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 (
@@ -1746,7 +1755,7 @@ class TestSigmaTR(cases.GraphTestCase):
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 (
@@ -1762,7 +1771,7 @@ class TestSigmaTR(cases.GraphTestCase):
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 (
@@ -1778,7 +1787,7 @@ class TestSigmaTR(cases.GraphTestCase):
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 (
@@ -1795,35 +1804,35 @@ class TestSigmaTR(cases.GraphTestCase):
         # Wrong data type for domain_data. TODO: consider cases where a probability is One() or Zero()
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, R},
             domain_graphs=domain_graphs,
             domain_data=None,
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, R},
             domain_graphs=domain_graphs,
             domain_data=({X}, set()),
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, R},
             domain_graphs=domain_graphs,
             domain_data=[(X, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, R},
             domain_graphs=domain_graphs,
             domain_data=[({1}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
         )
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, R},
             domain_graphs=domain_graphs,
             domain_data=[({X}, None), (set(), PP[Pi2](W, X, Y, Z))],
@@ -1831,7 +1840,7 @@ class TestSigmaTR(cases.GraphTestCase):
         # Empty district
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={},
             domain_graphs=domain_graphs,
             domain_data=domain_data,
@@ -1839,7 +1848,7 @@ class TestSigmaTR(cases.GraphTestCase):
         # Empty domain graphs
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[],
             domain_data=domain_data,
@@ -1847,7 +1856,7 @@ class TestSigmaTR(cases.GraphTestCase):
         # Graph with empty nodes
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 (
@@ -1864,7 +1873,7 @@ class TestSigmaTR(cases.GraphTestCase):
         # Empty domain data
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=domain_graphs,
             domain_data=[],
@@ -1872,7 +1881,7 @@ class TestSigmaTR(cases.GraphTestCase):
         # Empty topo list
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 (
@@ -1889,7 +1898,7 @@ class TestSigmaTR(cases.GraphTestCase):
         # Length of the domain_graphs is not the same as the length of the domain_data
         self.assertRaises(
             TypeError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 (
@@ -1902,7 +1911,7 @@ class TestSigmaTR(cases.GraphTestCase):
         # topo vertices != graph vertices
         self.assertRaises(
             KeyError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 (
@@ -1924,7 +1933,7 @@ class TestSigmaTR(cases.GraphTestCase):
         # expression vertices not contained in graph vertices
         self.assertRaises(
             KeyError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 (
@@ -1941,7 +1950,7 @@ class TestSigmaTR(cases.GraphTestCase):
         # Policy variable not in the graph vertices
         self.assertRaises(
             KeyError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
                 (
@@ -1958,13 +1967,13 @@ class TestSigmaTR(cases.GraphTestCase):
         # District variable not in a graph
         self.assertRaises(
             KeyError,
-            sigma_tr,
+            transport_district_intervening_on_parents,
             district={X, R},
             domain_graphs=domain_graphs,
             domain_data=domain_data,
         )
 
-    def test_sigma_tr_line_1(self):
+    def test_transport_district_intervening_on_parents_line_1(self):
         """Tests of the checks in Line 1 of sigma-TR (Algorithm 4 of [correa22a]_).
 
         Source: RJC.
