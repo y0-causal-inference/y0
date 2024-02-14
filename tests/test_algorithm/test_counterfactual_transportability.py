@@ -37,6 +37,7 @@ from y0.algorithm.counterfactual_transportability import (
     same_district,
     simplify,
     transport_district_intervening_on_parents,
+    transport_unconditional_counterfactual_query,
 )
 from y0.algorithm.transport import transport_variable
 from y0.dsl import (
@@ -53,6 +54,7 @@ from y0.dsl import (
     P,
     Pi1,
     Pi2,
+    Product,
     R,
     Sum,
     Variable,
@@ -88,6 +90,18 @@ figure_2a_graph = NxMixedGraph.from_edges(
     undirected=[(Z, X), (W, Y)],
 )
 
+# From [correa22a]_, Figures 3a and 4.
+figure_2_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
+    directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Z), Z)],
+    undirected=[
+        (W, Y),
+    ],
+)
+figure_2_graph_domain_1_with_interventions_topo = list(
+    figure_2_graph_domain_1_with_interventions.topological_sort()
+)
+
+
 # From [correa22a]_, Figure 3a.
 figure_2_graph_domain_1 = NxMixedGraph.from_edges(
     directed=[
@@ -113,6 +127,7 @@ figure_2_graph_domain_2 = NxMixedGraph.from_edges(
     ],
     undirected=[(Z, X), (W, Y)],
 )
+figure_2_graph_domain_2_topo = list(figure_2_graph_domain_2.topological_sort())
 
 # From [correa20a]_, Figure 1a.
 soft_interventions_figure_1a_graph = NxMixedGraph.from_edges(
@@ -1495,38 +1510,8 @@ class TestRemoveTransportabilityVertices(cases.GraphTestCase):
         )
 
 
-# class TestSigmaTR(unittest.TestCase):
 class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
     """Test Correa and Bareinboim's algorithm to transport a district (Algorithm 4 from [correa22a]_)."""
-
-    # from y0.tests.test_algorithm.cases import GraphTestCase
-    figure_2_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
-        directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Z), Z)],
-        undirected=[
-            (W, Y),
-        ],
-    )
-
-    figure_2_graph_domain_2_with_interventions = NxMixedGraph.from_edges(
-        directed=[
-            (Z, X),
-            (X, Y),
-            (X, W),
-            (W, Y),
-            (Z, Y),
-            (transport_variable(W), W),
-        ],
-        undirected=[
-            (Z, X),
-            (W, Y),
-        ],
-    )
-    figure_2_graph_domain_1_with_interventions_topo = list(
-        figure_2_graph_domain_1_with_interventions.topological_sort()
-    )
-    figure_2_graph_domain_2_with_interventions_topo = list(
-        figure_2_graph_domain_2_with_interventions.topological_sort()
-    )
 
     def test_transport_district_intervening_on_parents_1(self):
         """First test case involving a transportable counterfactual factor.
@@ -1536,12 +1521,12 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
         district = {Y, W}
         domain_graphs = [
             (
-                self.figure_2_graph_domain_1_with_interventions,
-                self.figure_2_graph_domain_1_with_interventions_topo,
+                figure_2_graph_domain_1_with_interventions,
+                figure_2_graph_domain_1_with_interventions_topo,
             ),
             (
-                self.figure_2_graph_domain_2_with_interventions,
-                self.figure_2_graph_domain_2_with_interventions_topo,
+                figure_2_graph_domain_2,
+                figure_2_graph_domain_2_topo,
             ),
         ]
         domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
@@ -1559,12 +1544,12 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
         district = {X, Z}
         domain_graphs = [
             (
-                self.figure_2_graph_domain_1_with_interventions,
-                self.figure_2_graph_domain_1_with_interventions_topo,
+                figure_2_graph_domain_1_with_interventions,
+                figure_2_graph_domain_1_with_interventions_topo,
             ),
             (
-                self.figure_2_graph_domain_2_with_interventions,
-                self.figure_2_graph_domain_2_with_interventions_topo,
+                figure_2_graph_domain_2,
+                figure_2_graph_domain_2_topo,
             ),
         ]
         domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
@@ -1597,8 +1582,8 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
         domain_graphs = [
             (graph_1, graph_1_topo),
             (
-                self.figure_2_graph_domain_2_with_interventions,
-                self.figure_2_graph_domain_2_with_interventions_topo,
+                figure_2_graph_domain_2,
+                figure_2_graph_domain_2_topo,
             ),
         ]
         domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
@@ -1688,12 +1673,12 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
         """
         domain_graphs = [
             (
-                self.figure_2_graph_domain_1_with_interventions,
-                self.figure_2_graph_domain_1_with_interventions_topo,
+                figure_2_graph_domain_1_with_interventions,
+                figure_2_graph_domain_1_with_interventions_topo,
             ),
             (
-                self.figure_2_graph_domain_2_with_interventions,
-                self.figure_2_graph_domain_2_with_interventions_topo,
+                figure_2_graph_domain_2,
+                figure_2_graph_domain_2_topo,
             ),
         ]
         domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
@@ -1732,8 +1717,8 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             transport_district_intervening_on_parents,
             district={W, Y},
             domain_graphs=[
-                self.figure_2_graph_domain_1_with_interventions,
-                self.figure_2_graph_domain_2_with_interventions,
+                figure_2_graph_domain_1_with_interventions,
+                figure_2_graph_domain_2,
             ],
             domain_data=domain_data,
         )
@@ -1744,11 +1729,11 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             domain_graphs=[
                 (
                     None,
-                    self.figure_2_graph_domain_1_with_interventions_topo,
+                    figure_2_graph_domain_1_with_interventions_topo,
                 ),
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
-                    self.figure_2_graph_domain_2_with_interventions_topo,
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
                 ),
             ],
             domain_data=domain_data,
@@ -1759,12 +1744,12 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             district={W, Y},
             domain_graphs=[
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
+                    figure_2_graph_domain_2,
                     {X, Y},
                 ),
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
-                    self.figure_2_graph_domain_2_with_interventions_topo,
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
                 ),
             ],
             domain_data=domain_data,
@@ -1775,12 +1760,12 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             district={W, Y},
             domain_graphs=[
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
+                    figure_2_graph_domain_2,
                     [1, 2, 3],
                 ),
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
-                    self.figure_2_graph_domain_2_with_interventions_topo,
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
                 ),
             ],
             domain_data=domain_data,
@@ -1791,12 +1776,12 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             district={W, Y},
             domain_graphs=[
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
+                    figure_2_graph_domain_2,
                     [X, Y, 1],
                 ),
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
-                    self.figure_2_graph_domain_2_with_interventions_topo,
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
                 ),
             ],
             domain_data=domain_data,
@@ -1861,11 +1846,11 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             domain_graphs=[
                 (
                     NxMixedGraph(),
-                    self.figure_2_graph_domain_1_with_interventions_topo,
+                    figure_2_graph_domain_1_with_interventions_topo,
                 ),
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
-                    self.figure_2_graph_domain_2_with_interventions_topo,
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
                 ),
             ],
             domain_data=domain_data,
@@ -1885,11 +1870,11 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             district={W, Y},
             domain_graphs=[
                 (
-                    self.figure_2_graph_domain_1_with_interventions,
-                    self.figure_2_graph_domain_1_with_interventions_topo,
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
                 ),
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
+                    figure_2_graph_domain_2,
                     [],
                 ),
             ],
@@ -1902,8 +1887,8 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             district={W, Y},
             domain_graphs=[
                 (
-                    self.figure_2_graph_domain_1_with_interventions,
-                    self.figure_2_graph_domain_1_with_interventions_topo,
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
                 ),
             ],
             domain_data=domain_data,
@@ -1924,8 +1909,8 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
                     [X, Y, Z, R],
                 ),
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
-                    self.figure_2_graph_domain_2_with_interventions_topo,
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
                 ),
             ],
             domain_data=domain_data,
@@ -1937,12 +1922,12 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             district={W, Y},
             domain_graphs=[
                 (
-                    self.figure_2_graph_domain_1_with_interventions,
-                    self.figure_2_graph_domain_1_with_interventions_topo,
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
                 ),
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
-                    self.figure_2_graph_domain_2_with_interventions_topo,
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
                 ),
             ],
             domain_data=[(set(), PP[Pi1](W, X, Y)), ({Y}, PP[Pi2](W, X, Y, Z))],
@@ -1954,12 +1939,12 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             district={W, Y},
             domain_graphs=[
                 (
-                    self.figure_2_graph_domain_1_with_interventions,
-                    self.figure_2_graph_domain_1_with_interventions_topo,
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
                 ),
                 (
-                    self.figure_2_graph_domain_2_with_interventions,
-                    self.figure_2_graph_domain_2_with_interventions_topo,
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
                 ),
             ],
             domain_data=[({R}, PP[Pi1](W, X, Y, Z)), ({Y}, PP[Pi2](W, X, Y, Z))],
@@ -1982,11 +1967,42 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
         self.assertFalse(_no_intervention_variables_in_domain(district={X, Z}, interventions={X}))
         self.assertTrue(
             _no_transportability_nodes_in_domain(
-                district={Y, W}, domain_graph=self.figure_2_graph_domain_1_with_interventions
+                district={Y, W}, domain_graph=figure_2_graph_domain_1_with_interventions
             )
         )
         self.assertFalse(
             _no_transportability_nodes_in_domain(
-                district={X, Z}, domain_graph=self.figure_2_graph_domain_1_with_interventions
+                district={X, Z}, domain_graph=figure_2_graph_domain_1_with_interventions
             )
         )
+
+
+class TestCtfTrU(cases.GraphTestCase):
+    """Test [correa22a]_'s unconditional counterfactual transportability algorithm (Algorithm 2)."""
+
+    def test_ctf_tru_1(self):
+        """Test of Algorithm 2 of [correa22a]_.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        event = [(Y @ -X, -Y), (X, -X)]
+        domain_graphs = [
+            (
+                figure_2_graph_domain_1_with_interventions,
+                figure_2_graph_domain_1_with_interventions_topo,
+            ),
+            (
+                figure_2_graph_domain_2,
+                figure_2_graph_domain_2_topo,
+            ),
+        ]
+        domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
+        expected_result_part_1 = Product.safe(
+            [PP[Pi1](Y | W, X, Z), PP[Pi1](W | X), PP[Pi2](X | Z), PP[Pi2](Z)]
+        )
+        expected_result = Sum.safe(expected_result_part_1, [Z, W])
+
+        result = transport_unconditional_counterfactual_query(
+            event=event, domain_graphs=domain_graphs, domain_data=domain_data
+        )
+        self.assert_expr_equal(expected_result, result)

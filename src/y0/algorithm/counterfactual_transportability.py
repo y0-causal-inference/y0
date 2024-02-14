@@ -1233,11 +1233,39 @@ def transport_district_intervening_on_parents(
 
 
 # TODO: Add expected inputs and outputs to the below two algorithms
+def transport_unconditional_counterfactual_query(
+    *,
+    event: list[tuple[Variable, Intervention]],
+    domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
+    domain_data: list[tuple[Collection[Variable], Expression]],
+) -> Expression | None:
+    r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
+
+    :param event:
+        "Y_*, a set of counterfactual variables in V and y_* a set of
+        values for Y_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
+           contains a selection diagram for that domain. In particular the graph contains
+           transportability nodes for every vertex that is distributed differently in the
+           domain in question than in the target domain (e.g., Vertex Z in Figure 3(a)
+           in [correa22a]_), and it is a causal diagram such that its edges represent
+           the state of the graph after a regime corresponding to domain $k$ has been
+           applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_). The second
+           element of the tuple is a topologically sorted list of all the vertices in
+           the corresponding graph that are not transportability nodes. (Nodes that
+           have no parents come first in such lists.)
+    :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
+           $K$ tuples, one for each of the $K$ domains. Each tuple contains a set of
+           variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression
+           denoting the probability distribution
+           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+    """
+    raise NotImplementedError(
+        "Unimplemented function: transport_unconditional_counterfactual_query"
+    )
+
+
 def ctf_tr() -> None:
     """Implement the ctfTR algorithm from [correa22a]_ (Algorithm 3)."""
     raise NotImplementedError("Unimplemented function: ctfTR")
-
-
-def ctf_tru() -> None:
-    """Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2)."""
-    raise NotImplementedError("Unimplemented function: ctfTRu")
