@@ -35,7 +35,7 @@ def identify_variables_in_district(
     """Implement the IDENTIFY algorithm as presented in [tian03a]_ with pseudocode in [correa22a]_ (Algorithm 5).
 
     Tikka and colleagues implemented this algorithm in the R package Causal Effect ([tikka20b]_). We draw from that
-    implementation. Their version also keeps track of the structure of calls
+    implementation. Their version also keeps track of the structure of calls, while this one does not.
     :param input_variables: The set of variables, C, for which we're checking if causal identification is possible.
     :param input_district: The C-component, T, containing C.
     :param district_probability: The expression Q[T] as per [tian2003]_, Equation 34. Because T is a single district,
@@ -77,7 +77,6 @@ def identify_variables_in_district(
             "In identify_variables_in_district: the district probability must be an expression that is a "
             + "Sum, Product, Fraction, or Probability."
         )
-    # ordered_graph_vertices = [v for v in topo if v in graph.nodes()]  # This is V
 
     ancestral_set = frozenset(
         district_subgraph.ancestors_inclusive(input_variables)
@@ -189,7 +188,7 @@ def _do_identify_variables_in_district_line_1(
     graph: NxMixedGraph,
 ) -> set[Variable] | None:
     """Implement line 1 of the IDENTIFY algorithm in [tian03a]_ and [correa22a]_ (Algorithm 5)."""
-    raise NotImplementedError("Unimplemented function: ctfTRu")
+    raise NotImplementedError("Unimplemented function: _do_identify_variables_in_district_line_1")
 
 
 def _compute_c_factor_conditioning_on_topological_predecessors(

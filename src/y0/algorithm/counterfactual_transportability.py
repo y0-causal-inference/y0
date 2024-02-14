@@ -878,7 +878,7 @@ def do_counterfactual_factor_factorization(
     ]
 
     ancestral_set: set[Variable] = set()
-    for counterfactual_variable, _value in variables:
+    for counterfactual_variable, _ in variables:
         ancestral_set.update(get_ancestors_of_counterfactual(counterfactual_variable, graph))
 
     #  e.g., Equation 14 in [correa22a]_, without the summation component.
@@ -892,9 +892,7 @@ def do_counterfactual_factor_factorization(
         variable.get_base() for variable in ancestral_set_in_counterfactual_factor_form
     }
 
-    outcome_variable_bases: set[Variable] = {
-        variable.get_base() for (variable, _intervention) in variables
-    }
+    outcome_variable_bases: set[Variable] = {variable.get_base() for (variable, _) in variables}
 
     # Decompose the query by c-component (e.g., Equation 16 in [correa22a]_)
     ancestral_set_subgraph = graph.subgraph(ancestral_set_variable_names)
@@ -1125,7 +1123,8 @@ def _no_transportability_nodes_in_domain(
 ):
     r"""Check that a district in a graph contains no transportability nodes.
 
-    Helper function for the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
+    Helper function for the transport_district_intervening_on_parents algorithm from
+    [correa22a]_ (Algorithm 4 in Appendix B).
     :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
     :param domain_graph: a selection diagram for the domain in question.
            The graph contains a transportability node for every vertex distributed differently
@@ -1136,21 +1135,6 @@ def _no_transportability_nodes_in_domain(
     :returns: true or false.
     """
     return not any(transport_variable(v) in domain_graph.nodes() for v in district)
-
-
-# def _convert_to_population_probability(prob: Expression, index:int) -> PopulationProbability:
-#    """Convert an Expression representing a Probability to a Population Probability.
-#
-#    :param prob: the input expression.
-#    :param index: the index of the domain (0 corresponds to Pi1, 1 to Pi2, and so on.
-#           Convention: use -1 for the target domain.
-#    :returns:
-#    """
-#    if index == -1:
-#        pi_string = "pi*"
-#    else:
-#        pi_string = "pi" + str(index+1)
-#    pop = Population(pi_string)
 
 
 def transport_district_intervening_on_parents(
@@ -1188,7 +1172,7 @@ def transport_district_intervening_on_parents(
     _validate_sigma_tr_inputs(
         district=district, domain_graphs=domain_graphs, domain_data=domain_data
     )
-    # Line 1 test
+    # Line 1
     for k in range(len(domain_graphs)):
         # Also Line 1 (the published pseudocode could break the for loop and this test into two lines)
         if _no_intervention_variables_in_domain(
@@ -1210,8 +1194,8 @@ def transport_district_intervening_on_parents(
             # Sanity check: confirm that $C_{i} \subseteq B_{i}$
             if any(super_district != domain_graph.get_district(v) for v in district):
                 raise TypeError(
-                    "Error in sigma_TR: the vertices in the input district are part of more than "
-                    + "one district in a domain graph. Input district: "
+                    "Error in transport_district_intervening_on_parents: the vertices in an input district "
+                    + "are part of more than one district in a domain graph. Input district: "
                     + str(district)
                     + ". "
                     + "Domain index: "
