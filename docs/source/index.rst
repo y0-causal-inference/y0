@@ -14,6 +14,7 @@ y0 |release| Documentation
    mutation
    conditional_independence
    identification
+   tian_id
    transport
    lvdags
    struct
