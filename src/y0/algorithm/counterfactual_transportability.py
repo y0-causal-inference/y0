@@ -40,8 +40,8 @@ __all__ = [
     "make_selection_diagram",
     "counterfactual_factors_are_transportable",
     "transport_district_intervening_on_parents",
+    "transport_unconditional_counterfactual_query",
     "ctf_tr",
-    "ctf_tru",
     # TODO add functions/classes/variables you want to appear in the docs and be exposed to the user in this list
     #  Run tox -e docs then `open docs/build/html/index.html` to see docs
 ]

@@ -19,6 +19,7 @@ from networkx import NetworkXError
 from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
     _any_variables_with_inconsistent_values,
+    _counterfactual_factor_is_inconsistent,
     _inconsistent_counterfactual_factor_variable_and_intervention_values,
     _inconsistent_counterfactual_factor_variable_intervention_values,
     _no_intervention_variables_in_domain,
@@ -1981,12 +1982,15 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
 
 
 class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.GraphTestCase):
-    """Test [correa22a]_'s unconditional counterfactual transportability algorithm (Algorithm 2)."""
+    """Test a check of whether a counterfactual factor has any variable value inconsistent with an intervention.
+
+    See Definition 4.1, part (i) from [correa22a]_.
+    """
 
     def test_inconsistent_counterfactual_factor_variable_and_intervention_values_1(self):
         """Test #1 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
-        Source: Definition 4.1, part (i) from [correa22]_.
+        Source: RJC
         """
         event = [(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)]
         self.assertFalse(
@@ -1996,7 +2000,7 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
     def test_inconsistent_counterfactual_factor_variable_and_intervention_values_2(self):
         """Test #2 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
-        Source: Definition 4.1, part (i) from [correa22]_.
+        Source: RJC
         """
         event = [(Y @ [+X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)]
         self.assertTrue(
@@ -2006,7 +2010,7 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
     def test_inconsistent_counterfactual_factor_variable_and_intervention_values_3(self):
         """Test #3 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
-        Source: Definition 4.1, part (i) from [correa22]_.
+        Source: RJC
         """
         event = [(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, +X), (Z, -Z)]
         self.assertFalse(
@@ -2016,7 +2020,7 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
     def test_inconsistent_counterfactual_factor_variable_and_intervention_values_4(self):
         """Test #4 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
-        Source: Definition 4.1, part (i) from [correa22]_.
+        Source: RJC
         """
         event = [(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, +X), (Z, -Z)]
         self.assertTrue(
@@ -2026,7 +2030,7 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
     def test_inconsistent_counterfactual_factor_variable_and_intervention_values_5(self):
         """Test #5 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
-        Source: Definition 4.1, part (i) from [correa22]_.
+        Source: RJC
         """
         event = [(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, -X), (Z, -Z)]
         self.assertTrue(
@@ -2035,12 +2039,15 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
 
 
 class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.GraphTestCase):
-    """Test [correa22a]_'s unconditional counterfactual transportability algorithm (Algorithm 2)."""
+    """Test function checking whether a counterfactual factor has any inconsistent intervention values.
+
+    See Definition 4.1, part (i) from [correa22a]_.
+    """
 
     def test_inconsistent_counterfactual_factor_variable_intervention_values_1(self):
         """Test #1 for whether a counterfactual factor has any inconsistent intervention values.
 
-        Source: Definition 4.1, part (ii) from [correa22]_.
+        Source: RJC
         """
         event = [(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, +X), (Z, -Z)]
         self.assertFalse(
@@ -2050,7 +2057,7 @@ class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.Graph
     def test_inconsistent_counterfactual_factor_variable_intervention_values_2(self):
         """Test #2 for whether a counterfactual factor has any inconsistent intervention values.
 
-        Source: Definition 4.1, part (ii) from [correa22]_.
+        Source: RJC
         """
         event = [(Y @ [+X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)]
         self.assertTrue(
@@ -2060,7 +2067,7 @@ class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.Graph
     def test_inconsistent_counterfactual_factor_variable_intervention_values_3(self):
         """Test #3 for whether a counterfactual factor has any inconsistent intervention values.
 
-        Source: Definition 4.1, part (ii) from [correa22]_.
+        Source: RJC
         """
         event = [(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, +X), (Z, -Z)]
         self.assertFalse(
@@ -2070,12 +2077,48 @@ class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.Graph
     def test_inconsistent_counterfactual_factor_variable_intervention_values_4(self):
         """Test #4 for whether a counterfactual factor has any inconsistent intervention values.
 
-        Source: Definition 4.1, part (ii) from [correa22]_.
+        Source: RJC
         """
         event = [(Y @ [+X, +W, +Z], -Y), (W @ +X, -W), (X @ +Z, -X), (Z, -Z)]
         self.assertFalse(
             _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
         )
+
+
+class TestCounterfactualFactorIsInconsistent(cases.GraphTestCase):
+    """Test a check of whether a counterfactual factor is inconsistent (Definition 4.1 of [correa22a]_)."""
+
+    def test_counterfactual_factor_is_inconsistent_1(self):
+        """Test #1 for whether a counterfactual factor is inconsistent.
+
+        Source: RJC
+        """
+        event = [(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, +X), (Z, -Z)]
+        self.assertTrue(_counterfactual_factor_is_inconsistent(event=event))
+
+    def test_counterfactual_factor_is_inconsistent_2(self):
+        """Test #2 for whether a counterfactual factor is inconsistent.
+
+        Source: RJC
+        """
+        event = [(Y @ [+X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)]
+        self.assertTrue(_counterfactual_factor_is_inconsistent(event=event))
+
+    def test_counterfactual_factor_is_inconsistent_3(self):
+        """Test #3 for whether a counterfactual factor is inconsistent.
+
+        Source: RJC
+        """
+        event = [(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, +X), (Z, -Z)]
+        self.assertFalse(_counterfactual_factor_is_inconsistent(event=event))
+
+    def test_counterfactual_factor_is_inconsistent_4(self):
+        """Test #4 for whether a counterfactual factor is inconsistent.
+
+        Source: RJC
+        """
+        event = [(Y @ [+X, +W, +Z], -Y), (W @ +X, -W), (X @ +Z, -X), (Z, -Z)]
+        self.assertTrue(_counterfactual_factor_is_inconsistent(event=event))
 
 
 class TestCtfTrU(cases.GraphTestCase):
