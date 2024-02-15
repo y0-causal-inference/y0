@@ -777,7 +777,7 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
 
     :param event:
         A set of counterfactual variables, some of which may
-        have no interventions. All counterfactual variable must be in counterfactual
+        have no interventions. All counterfactual variables must be in counterfactual
         factor form.
     :param graph: The corresponding graph.
     :raises KeyError: An event is not in counterfactual factor form.
@@ -1232,11 +1232,134 @@ def transport_district_intervening_on_parents(
     return None
 
 
+def transport_unconditional_counterfactual_query_line_2(
+    event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
+) -> tuple[set[Variable], list[set[Variable]]]:
+    r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
+
+    :param event:
+        "Y_*, a set of counterfactual variables in V and y_* a set of
+        values for Y_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param graph: The graph corresponding to the target domain for the query.
+    :returns: an expression for $An(\mathbf{Y_{\ast}})$
+    """
+    ancestral_set: set[Variable] = set()
+    # $W_{\ast}$
+    for variable, _ in event:
+        ancestral_set.update(get_ancestors_of_counterfactual(variable, graph))
+
+    #  e.g., Equation 14 in [correa22a]_, without the summation component.
+    ancestral_set_in_counterfactual_factor_form: set[Variable] = {
+        convert_to_counterfactual_factor_form(event=[(variable, None)], graph=graph)[0][0]
+        for variable in ancestral_set
+    }
+
+    ancestor_bases = {v.get_base() for v in ancestral_set}
+    outcome_ancestor_graph = graph.subgraph(ancestor_bases)
+    factorized_ancestral_set: list[set[Variable]] = get_counterfactual_factors(
+        event=ancestral_set_in_counterfactual_factor_form, graph=outcome_ancestor_graph
+    )
+
+    return ancestral_set, factorized_ancestral_set
+
+
+def _inconsistent_counterfactual_factor_variable_and_intervention_values(
+    *, event: list[tuple[Variable, Intervention]]
+) -> bool:
+    r"""Determine whether a counterfactual factor has a variable value inconsistent with any intervention value.
+
+    Source: Definition 4.1 in [correa22a]_ (Algorithm 2), part (i).
+    :param event:
+        $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and $\mathbf{w_{\ast}}$, a set of
+        values for $\mathbf{W_{\ast}}$. We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :returns: True if the counterfactual factor has a variable value inconsistent with any intervention value, and
+        false otherwise.
+    """
+    intervention_variable_dictionary: dict[Variable, set[Intervention]] = defaultdict(set)
+    # $W_{\ast}$
+    counterfactual_factor_variable_names = {variable.get_base() for variable, _ in event}
+    counterfactual_factor_variables_with_interventions = {
+        variable for variable, _ in event if isinstance(variable, CounterfactualVariable)
+    }
+    # $\mathbf{T} \cup \mathbf{V(W_{\ast})} = \mathbf{Z}$ per Definition 4.1 (i)
+    intervention_variable_names = {
+        intervention.get_base()
+        for variable in counterfactual_factor_variables_with_interventions
+        for intervention in variable.interventions
+    }.intersection(counterfactual_factor_variable_names)
+    for counterfactual_factor_variable, counterfactual_factor_variable_value in event:
+        if counterfactual_factor_variable.get_base() in intervention_variable_names:
+            intervention_variable_dictionary[counterfactual_factor_variable.get_base()].update(
+                {counterfactual_factor_variable_value}
+            )
+        if isinstance(counterfactual_factor_variable, CounterfactualVariable):
+            for intervention in counterfactual_factor_variable.interventions:
+                if intervention.get_base() in intervention_variable_names:
+                    intervention_variable_dictionary[intervention.get_base()].update({intervention})
+    logger.warning(
+        "In _inconsistent_counterfactual_factor_variable_and_intervention_values: dictionary = "
+        + str(intervention_variable_dictionary)
+    )
+    return any(len(values) > 1 for values in intervention_variable_dictionary.values())
+
+
+def _inconsistent_counterfactual_factor_variable_intervention_values(
+    *, event: list[tuple[Variable, Intervention]]
+) -> bool:
+    r"""Determine whether a counterfactual factor has two inconsistent intervention values.
+
+    Source: Definition 4.1 in [correa22a]_ (Algorithm 2), part (ii).
+    :param event:
+        $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and $\mathbf{w_{\ast}}$, a set of
+        values for $\mathbf{W_{\ast}}$. We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :returns: True if the counterfactual factor has at least two inconsistent intervention values, and false otherwise.
+    """
+    intervention_variable_dictionary = defaultdict(set)
+    counterfactual_factor_variables_with_interventions = {
+        variable for variable, _ in event if isinstance(variable, CounterfactualVariable)
+    }
+    # $\mathbf{T}$ per Definition 4.1 (ii)
+    intervention_variable_names = {
+        intervention.get_base()
+        for variable in counterfactual_factor_variables_with_interventions
+        for intervention in variable.interventions
+    }
+    for counterfactual_factor_variable, _ in event:
+        if isinstance(counterfactual_factor_variable, CounterfactualVariable):
+            for intervention in counterfactual_factor_variable.interventions:
+                if intervention.get_base() in intervention_variable_names:
+                    intervention_variable_dictionary[intervention.get_base()].add(intervention)
+    logger.warning(
+        "In _inconsistent_counterfactual_factor_variable_intervention_values: dictionary = "
+        + str(intervention_variable_dictionary)
+    )
+    return any(len(values) > 1 for values in intervention_variable_dictionary.values())
+
+
+def _counterfactual_factor_is_inconsistent(*, event: list[tuple[Variable, Intervention]]) -> bool:
+    r"""Determine whether a counterfactual factor is inconsistent.
+
+      Source: Definition 4.1 in [correa22a]_ (Algorithm 2).
+    :param event:
+        $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and $\mathbf{w_{\ast}}$, a set of
+        values for $\mathbf{W_{\ast}}$. We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :returns: True if the counterfactual factor is consistent, and false if it is inconsistent.
+    """
+    return _inconsistent_counterfactual_factor_variable_and_intervention_values(
+        event=event
+    ) or _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
+
+
 # TODO: Add expected inputs and outputs to the below two algorithms
 def transport_unconditional_counterfactual_query(
     *,
     event: list[tuple[Variable, Intervention]],
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
+    target_domain_graph: NxMixedGraph,
     domain_data: list[tuple[Collection[Variable], Expression]],
 ) -> Expression | None:
     r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
@@ -1255,12 +1378,23 @@ def transport_unconditional_counterfactual_query(
            element of the tuple is a topologically sorted list of all the vertices in
            the corresponding graph that are not transportability nodes. (Nodes that
            have no parents come first in such lists.)
+    :param target_domain_graph: a graph for the target domain.
     :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-           $K$ tuples, one for each of the $K$ domains. Each tuple contains a set of
-           variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression
-           denoting the probability distribution
+           $K$ tuples, one for each of the $K$ domains except for the target domain.
+           Each tuple contains a set of variables corresponding to
+           $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the probability distribution
            $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+    :returns: an expression for $P^{\ast}(\mathbf{Y_{\ast}}=\mathbf{y_{\ast}})$
     """
+    logger.warning("In ctf_tru: input event = " + str(event))
+    # Line 1
+    simplified_event = simplify(event=event, graph=target_domain_graph)
+    logger.warning("In ctf_tru: simplifed event = " + str(simplified_event))
+
+    # Line 2
+    outcome_ancestors, counterfactual_factors = transport_unconditional_counterfactual_query_line_2(
+        event, target_domain_graph
+    )
     raise NotImplementedError(
         "Unimplemented function: transport_unconditional_counterfactual_query"
     )
