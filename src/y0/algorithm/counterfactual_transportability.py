@@ -24,6 +24,7 @@ from y0.dsl import (
     Product,
     Sum,
     Variable,
+    Zero,
 )
 from y0.graph import NxMixedGraph
 
@@ -602,20 +603,31 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
             "This function requires a variable, usually a counterfactual variable, as input."
         )
 
+    logger.warning("In get_ancestors_of_counterfactual: input = " + str(event))
+    logger.warning("  Graph nodes: " + str([node for node in graph.nodes()]))
+    logger.warning("  Graph directed edges: " + str(graph.directed.edges))
+    logger.warning("  Graph undirected edges: " + str(graph.undirected.edges))
     if not isinstance(event, CounterfactualVariable):
         return graph.ancestors_inclusive(event)
 
     # This is the set of variables X in [correa22a]_, Definition 2.1.
-    interventions = {intervention.get_base() for intervention in event.interventions}
+    intervention_variables = {intervention.get_base() for intervention in event.interventions}
+    intervention_values = {intervention for intervention in event.interventions}
 
-    graph_minus_in = graph.remove_in_edges(interventions)
-    ancestors = graph.remove_out_edges(interventions).ancestors_inclusive(event.get_base())
+    graph_minus_in = graph.remove_in_edges(intervention_variables)
+    ancestors = graph.remove_out_edges(intervention_variables).ancestors_inclusive(event.get_base())
 
     ancestors_of_counterfactual_variable: set[Variable] = set()
     for ancestor in ancestors:
-        candidate_interventions_z = graph_minus_in.ancestors_inclusive(ancestor).intersection(
-            interventions
-        )
+        logger.warning("Ancestor under consideration: " + str(ancestor))
+        logger.warning("  Intervention values: " + str(intervention_values))
+        logger.warning("  $An(W)Gupperx$: " + str(graph_minus_in.ancestors_inclusive(ancestor)))
+        candidate_interventions_z = {
+            value
+            for value in intervention_values
+            if value.get_base() in graph_minus_in.ancestors_inclusive(ancestor)
+        }
+        logger.warning("candidate_interventions_z: " + str(candidate_interventions_z))
         # TODO: graph_minus_in.ancestors_inclusive(candidate_ancestor) returns variables.
         # intervention_variables are Interventions, which are a type of Variable.
         # Will these sets intersect without throwing errors?
@@ -623,6 +635,12 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
             ancestors_of_counterfactual_variable.add(ancestor.intervene(candidate_interventions_z))
         else:
             ancestors_of_counterfactual_variable.add(ancestor)
+        logger.warning(
+            "Ancestors_of_counterfactual_variable: " + str(ancestors_of_counterfactual_variable)
+        )
+    logger.warning(
+        "In get_ancestors_of_counterfactual: output = " + str(ancestors_of_counterfactual_variable)
+    )
     return ancestors_of_counterfactual_variable
 
 
@@ -1313,6 +1331,12 @@ def _transport_unconditional_counterfactual_query_line_2(
     ancestral_set: set[Variable] = set()
     # $W_{\ast}$
     for variable, _ in event:
+        logger.warning(
+            "Updating ancestral set for variable "
+            + str(variable)
+            + " with "
+            + str(get_ancestors_of_counterfactual(variable, graph))
+        )
         ancestral_set.update(get_ancestors_of_counterfactual(variable, graph))
     logger.warning(
         "In transport_unconditional_counterfactual_query_line_2: "
@@ -1381,11 +1405,15 @@ def _inconsistent_counterfactual_factor_variable_and_intervention_values(
         for variable in counterfactual_factor_variables_with_interventions
         for intervention in variable.interventions
     }.intersection(counterfactual_factor_variable_names)
-    logger.warning(str({
-        intervention.get_base()
-        for variable in counterfactual_factor_variables_with_interventions
-        for intervention in variable.interventions
-    }))
+    logger.warning(
+        str(
+            {
+                intervention.get_base()
+                for variable in counterfactual_factor_variables_with_interventions
+                for intervention in variable.interventions
+            }
+        )
+    )
     for counterfactual_factor_variable, counterfactual_factor_variable_value in event:
         if (
             counterfactual_factor_variable.get_base() in intervention_variable_names
@@ -1460,8 +1488,8 @@ def _counterfactual_factor_is_inconsistent(
 def transport_unconditional_counterfactual_query(
     *,
     event: list[tuple[Variable, Intervention]],
-    domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     target_domain_graph: NxMixedGraph,
+    domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     domain_data: list[tuple[Collection[Variable], Expression]],
 ) -> Expression | None:
     r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
@@ -1496,22 +1524,28 @@ def transport_unconditional_counterfactual_query(
         + str(simplified_event)
     )
 
-    # Line 2
-    # tuple[set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
-    (
-        outcome_ancestors_with_values,
-        counterfactual_factors_with_values,
-    ) = _transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
-
-    # Line 3
-    if any(
-        _counterfactual_factor_is_inconsistent(event=factor)
-        for factor in counterfactual_factors_with_values
-    ):
-        logger.warning(
-            "In transport_unconditional_counterfactual_query: inconsistent counterfactual factor. Returning FAIL (None)"
+    if simplified_event is not None:
+        # Line 2
+        # tuple[set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
+        (
+            outcome_ancestors_with_values,
+            counterfactual_factors_with_values,
+        ) = _transport_unconditional_counterfactual_query_line_2(
+            simplified_event, target_domain_graph
         )
-        return None
+
+        # Line 3
+        if any(
+            _counterfactual_factor_is_inconsistent(event=factor)
+            for factor in counterfactual_factors_with_values
+        ):
+            logger.warning(
+                "In transport_unconditional_counterfactual_query: inconsistent counterfactual "+\
+                    "factor. Returning FAIL (None)"
+            )
+            return None  # This means FAIL
+    else:
+        return Zero()  # as specified by the output for Algorithm 1 in [correa22a]_
 
     raise NotImplementedError(
         "Unimplemented function: transport_unconditional_counterfactual_query"

@@ -424,6 +424,17 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
             graph=figure_2a_graph,
         )
 
+    def test_7(self):
+        """Make sure the star values of interventions are properly handled for get_ancestors_of_counterfactual().
+
+        Source: out of RJC's head.
+        """
+        test7_in = W @ +X
+        test7_out = {W @ +X}
+        result = get_ancestors_of_counterfactual(event=test7_in, graph=figure_2a_graph)
+        logger.warning("In test_7: result = " + str(result))
+        self.assertTrue(variable in test7_out for variable in result)
+
 
 class TestSimplify(cases.GraphTestCase):
     """Test the simplify algorithm from counterfactual transportability.
@@ -2076,7 +2087,9 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
         #    undirected=[(Y, Z)],
         # )
         event = {(Y @ -X, -Y), (Z @ +X, -Z)}
-        self.assertFalse(_inconsistent_counterfactual_factor_variable_and_intervention_values(event=event))
+        self.assertFalse(
+            _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
+        )
 
 
 class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.GraphTestCase):
@@ -2223,9 +2236,44 @@ class TestCtfTrU(cases.GraphTestCase):
         expected_result = Sum.safe(expected_result_part_1, [Z, W])
 
         result = transport_unconditional_counterfactual_query(
-            event=event, domain_graphs=domain_graphs, domain_data=domain_data
+            event=event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
         )
         self.assert_expr_equal(expected_result, result)
+
+    def test_ctf_tru_2(self):
+        """Test of Algorithm 2 of [correa22a]_.
+
+        Checking Line 3: an inconsistent counterfactual factor.
+        Source: RJC's mind.
+        """
+        event = [(Y @ -X, -Y), (W @ +X, -W), (X, -X)]
+        domain_graphs = [
+            (
+                figure_2_graph_domain_1_with_interventions,
+                figure_2_graph_domain_1_with_interventions_topo,
+            ),
+            (
+                figure_2_graph_domain_2,
+                figure_2_graph_domain_2_topo,
+            ),
+        ]
+        domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
+        expected_result_part_1 = Product.safe(
+            [PP[Pi1](Y | W, X, Z), PP[Pi1](W | X), PP[Pi2](X | Z), PP[Pi2](Z)]
+        )
+        expected_result = Sum.safe(expected_result_part_1, [Z, W])
+
+        result = transport_unconditional_counterfactual_query(
+            event=event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertIsNone(result)
+        # self.assert_expr_equal(expected_result, result)
 
     def test_ctf_tru_line_2_1(self):
         """Test of Line 2 of Algorithm 2 of [correa22a]_.
