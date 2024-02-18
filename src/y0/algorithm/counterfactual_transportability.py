@@ -1291,7 +1291,7 @@ def transport_district_intervening_on_parents(
     return None
 
 
-def transport_unconditional_counterfactual_query_line_2(
+def _transport_unconditional_counterfactual_query_line_2(
     event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
 ) -> tuple[
     set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
@@ -1357,7 +1357,7 @@ def transport_unconditional_counterfactual_query_line_2(
 
 
 def _inconsistent_counterfactual_factor_variable_and_intervention_values(
-    *, event: list[tuple[Variable, Intervention]]
+    *, event: Collection[tuple[Variable, Intervention | None]]
 ) -> bool:
     r"""Determine whether a counterfactual factor has a variable value inconsistent with any intervention value.
 
@@ -1381,8 +1381,16 @@ def _inconsistent_counterfactual_factor_variable_and_intervention_values(
         for variable in counterfactual_factor_variables_with_interventions
         for intervention in variable.interventions
     }.intersection(counterfactual_factor_variable_names)
+    logger.warning(str({
+        intervention.get_base()
+        for variable in counterfactual_factor_variables_with_interventions
+        for intervention in variable.interventions
+    }))
     for counterfactual_factor_variable, counterfactual_factor_variable_value in event:
-        if counterfactual_factor_variable.get_base() in intervention_variable_names:
+        if (
+            counterfactual_factor_variable.get_base() in intervention_variable_names
+            and counterfactual_factor_variable_value is not None
+        ):
             intervention_variable_dictionary[counterfactual_factor_variable.get_base()].update(
                 {counterfactual_factor_variable_value}
             )
@@ -1398,7 +1406,7 @@ def _inconsistent_counterfactual_factor_variable_and_intervention_values(
 
 
 def _inconsistent_counterfactual_factor_variable_intervention_values(
-    *, event: list[tuple[Variable, Intervention]]
+    *, event: Collection[tuple[Variable, Intervention | None]]
 ) -> bool:
     r"""Determine whether a counterfactual factor has two inconsistent intervention values.
 
@@ -1431,7 +1439,9 @@ def _inconsistent_counterfactual_factor_variable_intervention_values(
     return any(len(values) > 1 for values in intervention_variable_dictionary.values())
 
 
-def _counterfactual_factor_is_inconsistent(*, event: list[tuple[Variable, Intervention]]) -> bool:
+def _counterfactual_factor_is_inconsistent(
+    *, event: Collection[tuple[Variable, Intervention | None]]
+) -> bool:
     r"""Determine whether a counterfactual factor is inconsistent.
 
       Source: Definition 4.1 in [correa22a]_ (Algorithm 2).
@@ -1478,17 +1488,31 @@ def transport_unconditional_counterfactual_query(
            $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
     :returns: an expression for $P^{\ast}(\mathbf{Y_{\ast}}=\mathbf{y_{\ast}})$
     """
-    logger.warning("In ctf_tru: input event = " + str(event))
+    logger.warning("In transport_unconditional_counterfactual_query: input event = " + str(event))
     # Line 1
     simplified_event = simplify(event=event, graph=target_domain_graph)
-    logger.warning("In ctf_tru: simplifed event = " + str(simplified_event))
+    logger.warning(
+        "In transport_unconditional_counterfactual_query: simplifed event = "
+        + str(simplified_event)
+    )
 
     # Line 2
-    # TODO: This is wrong: we need to preserve the mapping of variables to values for the
-    #       variables in the counterfactual factors.
-    outcome_ancestors, counterfactual_factors = transport_unconditional_counterfactual_query_line_2(
-        event, target_domain_graph
-    )
+    # tuple[set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
+    (
+        outcome_ancestors_with_values,
+        counterfactual_factors_with_values,
+    ) = _transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
+
+    # Line 3
+    if any(
+        _counterfactual_factor_is_inconsistent(event=factor)
+        for factor in counterfactual_factors_with_values
+    ):
+        logger.warning(
+            "In transport_unconditional_counterfactual_query: inconsistent counterfactual factor. Returning FAIL (None)"
+        )
+        return None
+
     raise NotImplementedError(
         "Unimplemented function: transport_unconditional_counterfactual_query"
     )

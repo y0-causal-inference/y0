@@ -28,6 +28,7 @@ from y0.algorithm.counterfactual_transportability import (
     _remove_repeated_variables_and_values,
     _remove_transportability_vertices,
     _split_event_by_reflexivity,
+    _transport_unconditional_counterfactual_query_line_2,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
@@ -41,7 +42,6 @@ from y0.algorithm.counterfactual_transportability import (
     simplify,
     transport_district_intervening_on_parents,
     transport_unconditional_counterfactual_query,
-    transport_unconditional_counterfactual_query_line_2,
 )
 from y0.algorithm.transport import transport_variable
 from y0.dsl import (
@@ -2016,7 +2016,7 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
 
         Source: RJC
         """
-        event = [(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)]
+        event = {(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)}
         self.assertFalse(
             _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
         )
@@ -2026,7 +2026,7 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
 
         Source: RJC
         """
-        event = [(Y @ [+X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)]
+        event = {(Y @ [+X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)}
         self.assertTrue(
             _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
         )
@@ -2036,7 +2036,7 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
 
         Source: RJC
         """
-        event = [(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, +X), (Z, -Z)]
+        event = {(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, +X), (Z, -Z)}
         self.assertFalse(
             _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
         )
@@ -2046,7 +2046,7 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
 
         Source: RJC
         """
-        event = [(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, +X), (Z, -Z)]
+        event = {(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, +X), (Z, -Z)}
         self.assertTrue(
             _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
         )
@@ -2056,16 +2056,33 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
 
         Source: RJC
         """
-        event = [(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, -X), (Z, -Z)]
+        event = {(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, -X), (Z, -Z)}
         self.assertTrue(
             _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
         )
+
+    def test_inconsistent_counterfactual_factor_variable_and_intervention_values_6(self):
+        """Test #6 for whether a counterfactual factor variable has a value inconsistent with any intervention.
+
+        This is a case that is inconsistent according to Definition 4.1(ii)
+        but not Definition 4.1(i).
+        Source: RJC
+        """
+        # graph = NxMixedGraph.from_edges(
+        #    directed=[
+        #        (X, Y),
+        #        (X, Z),
+        #    ],
+        #    undirected=[(Y, Z)],
+        # )
+        event = {(Y @ -X, -Y), (Z @ +X, -Z)}
+        self.assertFalse(_inconsistent_counterfactual_factor_variable_and_intervention_values(event=event))
 
 
 class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.GraphTestCase):
     """Test function checking whether a counterfactual factor has any inconsistent intervention values.
 
-    See Definition 4.1, part (i) from [correa22a]_.
+    See Definition 4.1, part (ii) from [correa22a]_.
     """
 
     def test_inconsistent_counterfactual_factor_variable_intervention_values_1(self):
@@ -2073,7 +2090,7 @@ class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.Graph
 
         Source: RJC
         """
-        event = [(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, +X), (Z, -Z)]
+        event = {(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, +X), (Z, -Z)}
         self.assertFalse(
             _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
         )
@@ -2083,7 +2100,7 @@ class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.Graph
 
         Source: RJC
         """
-        event = [(Y @ [+X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)]
+        event = {(Y @ [+X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)}
         self.assertTrue(
             _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
         )
@@ -2107,6 +2124,23 @@ class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.Graph
         self.assertFalse(
             _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
         )
+
+    def test_inconsistent_counterfactual_factor_variable_intervention_values_5(self):
+        """Test #5 for whether a counterfactual factor has any inconsistent intervention values.
+
+        This is a case that is inconsistent according to Definition 4.1(ii)
+        but not Definition 4.1(i).
+        Source: RJC
+        """
+        # graph = NxMixedGraph.from_edges(
+        #    directed=[
+        #        (X, Y),
+        #        (X, Z),
+        #    ],
+        #    undirected=[(Y, Z)],
+        # )
+        event = [(Y @ -X, -Y), (Z @ +X, -Z)]
+        self.assertTrue(_counterfactual_factor_is_inconsistent(event=event))
 
 
 class TestCounterfactualFactorIsInconsistent(cases.GraphTestCase):
@@ -2142,6 +2176,24 @@ class TestCounterfactualFactorIsInconsistent(cases.GraphTestCase):
         Source: RJC
         """
         event = [(Y @ [+X, +W, +Z], -Y), (W @ +X, -W), (X @ +Z, -X), (Z, -Z)]
+        self.assertTrue(_counterfactual_factor_is_inconsistent(event=event))
+
+    def test_counterfactual_factor_is_inconsistent_5(self):
+        """Test #5 for whether a counterfactual factor is inconsistent.
+
+        This is a case that is inconsistent according to Definition 4.1(ii)
+        but not Definition 4.1(i).
+
+        Source: RJC
+        """
+        # graph = NxMixedGraph.from_edges(
+        #    directed=[
+        #        (X, Y),
+        #        (X, Z),
+        #    ],
+        #    undirected=[(Y, Z)],
+        # )
+        event = [(Y @ -X, -Y), (Z @ +X, -Z)]
         self.assertTrue(_counterfactual_factor_is_inconsistent(event=event))
 
 
@@ -2190,7 +2242,7 @@ class TestCtfTrU(cases.GraphTestCase):
         (
             outcome_ancestors_with_values,
             counterfactual_factors_with_values,
-        ) = transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
+        ) = _transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
         self.assertSetEqual(expected_ancestors_with_values, outcome_ancestors_with_values)
         self.assertCountEqual(
             expected_counterfactual_factors_with_values, counterfactual_factors_with_values
@@ -2234,7 +2286,7 @@ class TestCtfTrU(cases.GraphTestCase):
         (
             outcome_ancestors_with_values,
             counterfactual_factors_with_values,
-        ) = transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
+        ) = _transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
         self.assertSetEqual(expected_ancestors_with_values, outcome_ancestors_with_values)
         self.assertCountEqual(
             expected_counterfactual_factors_with_values, counterfactual_factors_with_values
@@ -2280,7 +2332,7 @@ class TestCtfTrU(cases.GraphTestCase):
         (
             outcome_ancestors_with_values,
             counterfactual_factors_with_values,
-        ) = transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
+        ) = _transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
         self.assertSetEqual(expected_ancestors_with_values, outcome_ancestors_with_values)
         self.assertCountEqual(
             expected_counterfactual_factors_with_values, counterfactual_factors_with_values
