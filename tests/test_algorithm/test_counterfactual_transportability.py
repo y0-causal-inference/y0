@@ -1401,6 +1401,30 @@ class TestConvertToCounterfactualFactorForm(unittest.TestCase):
             test_4_expected,
         )
 
+    def test_convert_to_counterfactual_factor_form_5(self):
+        """Convert a variable intervening on an ancestor that is not a parent to counterfactual factor form.
+
+        Source: RJC's mind.
+
+        Here we should expect the ancestor X2 to not be an intervention for Z in the output.
+        """
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X1, W),
+                (X1, Y),
+                (X2, W),
+                (W, Y),
+                (W, Z),
+            ],
+        )
+
+        test_4_in = [(Y @ -X1, -Y), (Z @ -X2, -Z)]
+        test_4_expected = [(Y @ [-X1, -W], -Y), (Z @ -W, -Z)]
+        self.assertCountEqual(
+            convert_to_counterfactual_factor_form(event=test_4_in, graph=graph),
+            test_4_expected,
+        )
+
 
 class TestCounterfactualFactorTransportability(unittest.TestCase):
     """Test whether a counterfactual factor can be transported from a domain to the target domain.
@@ -2151,18 +2175,113 @@ class TestCtfTrU(cases.GraphTestCase):
         )
         self.assert_expr_equal(expected_result, result)
 
-    def test_ctf_tru_line_2(self):
+    def test_ctf_tru_line_2_1(self):
         """Test of Line 2 of Algorithm 2 of [correa22a]_.
 
         Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
         """
         event = [(Y @ -X, -Y), (X, -X)]
         target_domain_graph = figure_2a_graph
-        expected_ancestors = {Y @ -X, W @ -X, X, Z}
-        expected_counterfactual_factors = [{Y @ [-X, -W, -Z], W @ -X}, {X @ -Z, Z}]
+        expected_ancestors_with_values = {(Y @ -X, -Y), (W @ -X, None), (X, -X), (Z, None)}
+        expected_counterfactual_factors_with_values = [
+            {(Y @ [-X, -W, -Z], -Y), (W @ -X, None)},
+            {(X @ -Z, -X), (Z, None)},
+        ]
         (
-            outcome_ancestors,
-            counterfactual_factors,
+            outcome_ancestors_with_values,
+            counterfactual_factors_with_values,
         ) = transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
-        self.assertSetEqual(expected_ancestors, outcome_ancestors)
-        self.assertCountEqual(expected_counterfactual_factors, counterfactual_factors)
+        self.assertSetEqual(expected_ancestors_with_values, outcome_ancestors_with_values)
+        self.assertCountEqual(
+            expected_counterfactual_factors_with_values, counterfactual_factors_with_values
+        )
+
+    def test_ctf_tru_line_2_2(self):
+        """Second test of Line 2 of Algorithm 2 of [correa22a]_.
+
+        This tests whether we properly get W @-X1 and W @ -X2 as two separate ancestors, and then
+        merge them into one counterfactual factor W @ [-X1, -X2].
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X1, W),
+                (X1, Y),
+                (X2, W),
+                (W, Y),
+                (W, Z),
+            ],
+        )
+
+        event = [(Y @ -X1, -Y), (Z @ -X2, -Z)]
+        target_domain_graph = graph
+        expected_ancestors_with_values = {
+            (Y @ -X1, -Y),
+            (W @ -X1, None),
+            (W @ -X2, None),
+            (Z @ -X2, -Z),
+            (X1, None),
+            (X2, None),
+        }
+        expected_counterfactual_factors_with_values = [
+            {(Y @ [-X1, -W], -Y)},
+            {(W @ [-X1, -X2], None)},
+            {(Z @ -W, -Z)},
+            {(X1, None)},
+            {(X2, None)},
+        ]
+        (
+            outcome_ancestors_with_values,
+            counterfactual_factors_with_values,
+        ) = transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
+        self.assertSetEqual(expected_ancestors_with_values, outcome_ancestors_with_values)
+        self.assertCountEqual(
+            expected_counterfactual_factors_with_values, counterfactual_factors_with_values
+        )
+
+    # set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
+
+    def test_ctf_tru_line_2_3(self):
+        """Second test of Line 2 of Algorithm 2 of [correa22a]_.
+
+        This tests whether we properly get W @ -X1 and W @ -X2 from two different variables but
+        represent it as one ancestor, which we then merge into one counterfactual factor W @ -X2.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X1, W),
+                (X1, Y),
+                (X2, W),
+                (W, Y),
+                (W, Z),
+            ],
+        )
+
+        event = [(Y @ -X1, -Y), (Z @ -X2, -Z)]
+        target_domain_graph = graph
+        expected_ancestors_with_values = {
+            (Y @ -X1, -Y),
+            (W @ -X1, None),
+            (W @ -X2, None),
+            (Z @ -X2, -Z),
+            (X1, None),
+            (X2, None),
+        }
+        expected_counterfactual_factors_with_values = [
+            {(Y @ [-X1, -W], -Y)},
+            {(W @ [-X1, -X2], None)},
+            {(Z @ -W, -Z)},
+            {(X1, None)},
+            {(X2, None)},
+        ]
+        (
+            outcome_ancestors_with_values,
+            counterfactual_factors_with_values,
+        ) = transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
+        self.assertSetEqual(expected_ancestors_with_values, outcome_ancestors_with_values)
+        self.assertCountEqual(
+            expected_counterfactual_factors_with_values, counterfactual_factors_with_values
+        )

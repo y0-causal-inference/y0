@@ -803,6 +803,65 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
     return return_value
 
 
+def get_counterfactual_factors_retaining_variable_values(
+    *, event: set[tuple[Variable, Intervention | None]], graph: NxMixedGraph
+) -> list[set[tuple[Variable, Intervention | None]]]:
+    """Decompose a joint probability distribution of counterfactual variables.
+
+    Rather than work with probability distributions directly, the function
+    takes in a set of counterfactual variables and returns a set of
+    sets that correspond to factors associated with individual districts
+    (c-components) in the graph. The function returns "None" if any of the
+    counterfactual variables are not in counterfactual factor form, or
+    if an event variable is not in any district (i.e., not in the graph).
+    This variation of the function keeps the values of the counterfactual
+    variables bound to the variables in the form of tuples (necessary for
+    Algorithm 2 of [correa22a]_).
+
+    See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
+
+    :param event:
+        A set of counterfactual variables, some of which may
+        have no interventions. All counterfactual variables must be in counterfactual
+        factor form.
+    :param graph: The corresponding graph.
+    :raises KeyError: An event is not in counterfactual factor form.
+    :returns:
+        A set of sorted lists of counterfactual variables in counterfactual factor
+        form along with the values for those variables, with each list associated
+        with a district of the graph. The lists need not contain every variable in
+        the district, but they can't contain variables missing from the graph.
+    """
+    event_without_values = {variable for variable, _ in event}
+
+    if not is_counterfactual_factor_form(event=event_without_values, graph=graph):
+        logger.warning(
+            "Supposed to trigger KeyError in get_counterfactual_factors_retaining_variable_values()."
+        )
+        raise KeyError(
+            "In get_counterfactual_factors_retaining_variable_values(): the event %s is not"
+            + " in counterfactual factor form.",
+            str(event),
+        )
+
+    district_mappings: DefaultDict[
+        frozenset[Variable], set[tuple[Variable, Intervention | None]]
+    ] = defaultdict(set)
+    for variable, value in event:
+        district_mappings[graph.get_district(variable.get_base())].add((variable, value))
+    logger.warning(
+        "In get_counterfactual_factors_retaining_variable_values(): district_mappings = "
+        + str(district_mappings)
+    )
+
+    # TODO if there aren't duplicates, this can be a set of frozensets
+    return_value = [set(value) for value in district_mappings.values()]
+    logger.warning(
+        "In get_counterfactual_factors_retaining_variable_values(): returning " + str(return_value)
+    )
+    return return_value
+
+
 def convert_to_counterfactual_factor_form(
     *, event: list[tuple[Variable, Intervention | None]], graph: NxMixedGraph
 ) -> list[tuple[Variable, Intervention | None]]:
@@ -829,7 +888,7 @@ def convert_to_counterfactual_factor_form(
     # return result
     # (Here's the more efficient set comprehension with harder-to-read code)
     return [
-        (variable.intervene(graph.directed.predecessors(variable.get_base())), value)
+        (variable.get_base().intervene(graph.directed.predecessors(variable.get_base())), value)
         if len(list(graph.directed.predecessors(variable.get_base()))) > 0
         else (variable, value)
         for (variable, value) in event
@@ -1234,7 +1293,9 @@ def transport_district_intervening_on_parents(
 
 def transport_unconditional_counterfactual_query_line_2(
     event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
-) -> tuple[set[Variable], list[set[Variable]]]:
+) -> tuple[
+    set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
+]:
     r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
 
     :param event:
@@ -1242,26 +1303,57 @@ def transport_unconditional_counterfactual_query_line_2(
         values for Y_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
     :param graph: The graph corresponding to the target domain for the query.
-    :returns: an expression for $An(\mathbf{Y_{\ast}})$
+    :returns: a tuple containing:
+        1. An expression for $W_{\ast} = An(\mathbf{Y_{\ast}})$, which is an event
+              because some variables in $W_{\ast}$ may have values and others may not.
+              We need to keep the known values coupled to their associated variables.
+        2. A list of ctf-factors corresponding to $W_{\ast}$, and values for those
+              variables as well when available.
     """
     ancestral_set: set[Variable] = set()
     # $W_{\ast}$
     for variable, _ in event:
         ancestral_set.update(get_ancestors_of_counterfactual(variable, graph))
-
-    #  e.g., Equation 14 in [correa22a]_, without the summation component.
-    ancestral_set_in_counterfactual_factor_form: set[Variable] = {
-        convert_to_counterfactual_factor_form(event=[(variable, None)], graph=graph)[0][0]
+    logger.warning(
+        "In transport_unconditional_counterfactual_query_line_2: "
+        + "ancestral_set = "
+        + str(ancestral_set)
+    )
+    outcome_value_dict = {variable: value for variable, value in event}
+    ancestral_set_with_values: set[tuple[Variable, Intervention | None]] = {
+        (variable, outcome_value_dict[variable])
+        if variable in outcome_value_dict
+        else (variable, None)
         for variable in ancestral_set
     }
+    logger.warning(
+        "In transport_unconditional_counterfactual_query_line_2: "
+        + "ancestral_set_with_values = "
+        + str(ancestral_set_with_values)
+    )
+
+    #  e.g., Equation 13 in [correa22a]_, without the summation component.
+    ancestral_set_in_counterfactual_factor_form_with_values: set[
+        tuple[Variable, Intervention | None]
+    ] = {
+        (convert_to_counterfactual_factor_form(event=[(variable, value)], graph=graph)[0][0], value)
+        for variable, value in ancestral_set_with_values
+    }
+    logger.warning(
+        "In transport_unconditional_counterfactual_query_line_2: "
+        + "ancestral_set_in_counterfactual_factor_form_with_values = "
+        + str(ancestral_set_in_counterfactual_factor_form_with_values)
+    )
 
     ancestor_bases = {v.get_base() for v in ancestral_set}
     outcome_ancestor_graph = graph.subgraph(ancestor_bases)
-    factorized_ancestral_set: list[set[Variable]] = get_counterfactual_factors(
-        event=ancestral_set_in_counterfactual_factor_form, graph=outcome_ancestor_graph
+    factorized_ancestral_set_with_values: list[
+        set[tuple[Variable, Intervention | None]]
+    ] = get_counterfactual_factors_retaining_variable_values(
+        event=ancestral_set_in_counterfactual_factor_form_with_values, graph=outcome_ancestor_graph
     )
 
-    return ancestral_set, factorized_ancestral_set
+    return ancestral_set_with_values, factorized_ancestral_set_with_values
 
 
 def _inconsistent_counterfactual_factor_variable_and_intervention_values(
@@ -1392,6 +1484,8 @@ def transport_unconditional_counterfactual_query(
     logger.warning("In ctf_tru: simplifed event = " + str(simplified_event))
 
     # Line 2
+    # TODO: This is wrong: we need to preserve the mapping of variables to values for the
+    #       variables in the counterfactual factors.
     outcome_ancestors, counterfactual_factors = transport_unconditional_counterfactual_query_line_2(
         event, target_domain_graph
     )
