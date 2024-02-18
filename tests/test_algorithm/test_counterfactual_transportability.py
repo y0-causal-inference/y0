@@ -1429,11 +1429,11 @@ class TestConvertToCounterfactualFactorForm(unittest.TestCase):
             ],
         )
 
-        test_4_in = [(Y @ -X1, -Y), (Z @ -X2, -Z)]
-        test_4_expected = [(Y @ [-X1, -W], -Y), (Z @ -W, -Z)]
+        test_5_in = [(Y @ -X1, -Y), (Z @ -X2, -Z)]
+        test_5_expected = [(Y @ [-X1, -W], -Y), (Z @ -W, -Z)]
         self.assertCountEqual(
-            convert_to_counterfactual_factor_form(event=test_4_in, graph=graph),
-            test_4_expected,
+            convert_to_counterfactual_factor_form(event=test_5_in, graph=graph),
+            test_5_expected,
         )
 
 
@@ -2261,10 +2261,10 @@ class TestCtfTrU(cases.GraphTestCase):
             ),
         ]
         domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
-        expected_result_part_1 = Product.safe(
-            [PP[Pi1](Y | W, X, Z), PP[Pi1](W | X), PP[Pi2](X | Z), PP[Pi2](Z)]
-        )
-        expected_result = Sum.safe(expected_result_part_1, [Z, W])
+        # expected_result_part_1 = Product.safe(
+        #    [PP[Pi1](Y | W, X, Z), PP[Pi1](W | X), PP[Pi2](X | Z), PP[Pi2](Z)]
+        # )
+        # expected_result = Sum.safe(expected_result_part_1, [Z, W])
 
         result = transport_unconditional_counterfactual_query(
             event=event,

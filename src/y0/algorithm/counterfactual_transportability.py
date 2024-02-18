@@ -467,7 +467,7 @@ def simplify(
     # the minimized variables. So we minimize the event.
     # minimized_variables: set[Variable] = minimize(variables={variable for variable, _ in event}, graph=graph)
     minimized_event: list[tuple[Variable, Intervention]] = minimize_event(event=event, graph=graph)
-    logger.warning("In simplify: minimized_event = " + str(minimized_event))
+    # logger.warning("In simplify: minimized_event = " + str(minimized_event))
 
     # Split the query into Y_x variables and Y_y ("reflexive") variables
     (
@@ -494,14 +494,14 @@ def simplify(
         event=reflexive_interventions_event
     )
 
-    logger.warning(
-        "In simplify after part 1 of line 3: minimized_nonreflexive_variable_to_value_mappings = "
-        + str(minimized_nonreflexive_variable_to_value_mappings)
-    )
-    logger.warning(
-        "                                    minimized_reflexive_variable_to_value_mappings = "
-        + str(minimized_reflexive_variable_to_value_mappings)
-    )
+    # logger.warning(
+    #    "In simplify after part 1 of line 3: minimized_nonreflexive_variable_to_value_mappings = "
+    #    + str(minimized_nonreflexive_variable_to_value_mappings)
+    # )
+    # logger.warning(
+    #    "                                    minimized_reflexive_variable_to_value_mappings = "
+    #    + str(minimized_reflexive_variable_to_value_mappings)
+    # )
 
     # Line 2 of SIMPLIFY.
     if _any_variables_with_inconsistent_values(
@@ -510,14 +510,14 @@ def simplify(
     ):
         return None
 
-    logger.warning(
-        "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
-        + str(minimized_nonreflexive_variable_to_value_mappings)
-    )
-    logger.warning(
-        "                                    minimized_reflexive_variable_to_value_mappings = "
-        + str(minimized_reflexive_variable_to_value_mappings)
-    )
+    # logger.warning(
+    #    "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
+    #    + str(minimized_nonreflexive_variable_to_value_mappings)
+    # )
+    # logger.warning(
+    #    "                                    minimized_reflexive_variable_to_value_mappings = "
+    #    + str(minimized_reflexive_variable_to_value_mappings)
+    # )
 
     # Now we're able to reduce the reflexive counterfactual variables to interventions.
     # This simultaneously addresses Part 2 of Line 3:
@@ -529,10 +529,10 @@ def simplify(
         )
     )
 
-    logger.warning(
-        "In simplify after part 2 of line 3: minimized_reflexive_variable_to_value_mappings = "
-        + str(minimized_reflexive_variable_to_value_mappings)
-    )
+    # logger.warning(
+    #    "In simplify after part 2 of line 3: minimized_reflexive_variable_to_value_mappings = "
+    #    + str(minimized_reflexive_variable_to_value_mappings)
+    # )
 
     # (Original part 2 of Line 3):
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
@@ -555,14 +555,14 @@ def simplify(
     ):
         return None
 
-    logger.warning(
-        "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
-        + str(minimized_nonreflexive_variable_to_value_mappings)
-    )
-    logger.warning(
-        "                                    minimized_reflexive_variable_to_value_mappings = "
-        + str(minimized_reflexive_variable_to_value_mappings)
-    )
+    # logger.warning(
+    #    "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
+    #    + str(minimized_nonreflexive_variable_to_value_mappings)
+    # )
+    # logger.warning(
+    #    "                                    minimized_reflexive_variable_to_value_mappings = "
+    #    + str(minimized_reflexive_variable_to_value_mappings)
+    # )
 
     simplified_event = [
         (key, minimized_nonreflexive_variable_to_value_mappings[key].pop())
@@ -603,10 +603,7 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
             "This function requires a variable, usually a counterfactual variable, as input."
         )
 
-    logger.warning("In get_ancestors_of_counterfactual: input = " + str(event))
-    logger.warning("  Graph nodes: " + str([node for node in graph.nodes()]))
-    logger.warning("  Graph directed edges: " + str(graph.directed.edges))
-    logger.warning("  Graph undirected edges: " + str(graph.undirected.edges))
+    # logger.warning("In get_ancestors_of_counterfactual: input = " + str(event))
     if not isinstance(event, CounterfactualVariable):
         return graph.ancestors_inclusive(event)
 
@@ -619,15 +616,11 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
 
     ancestors_of_counterfactual_variable: set[Variable] = set()
     for ancestor in ancestors:
-        logger.warning("Ancestor under consideration: " + str(ancestor))
-        logger.warning("  Intervention values: " + str(intervention_values))
-        logger.warning("  $An(W)Gupperx$: " + str(graph_minus_in.ancestors_inclusive(ancestor)))
         candidate_interventions_z = {
             value
             for value in intervention_values
             if value.get_base() in graph_minus_in.ancestors_inclusive(ancestor)
         }
-        logger.warning("candidate_interventions_z: " + str(candidate_interventions_z))
         # TODO: graph_minus_in.ancestors_inclusive(candidate_ancestor) returns variables.
         # intervention_variables are Interventions, which are a type of Variable.
         # Will these sets intersect without throwing errors?
@@ -635,12 +628,9 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
             ancestors_of_counterfactual_variable.add(ancestor.intervene(candidate_interventions_z))
         else:
             ancestors_of_counterfactual_variable.add(ancestor)
-        logger.warning(
-            "Ancestors_of_counterfactual_variable: " + str(ancestors_of_counterfactual_variable)
-        )
-    logger.warning(
-        "In get_ancestors_of_counterfactual: output = " + str(ancestors_of_counterfactual_variable)
-    )
+    # logger.warning(
+    #    "In get_ancestors_of_counterfactual: output = " + str(ancestors_of_counterfactual_variable)
+    # )
     return ancestors_of_counterfactual_variable
 
 
@@ -896,21 +886,30 @@ def convert_to_counterfactual_factor_form(
         :math:`w_{1[\mathbf{pa_{1}}]},w_{2[\mathbf{pa_{2}}]},\cdots,w_{l[\mathbf{pa_{l}}]}`
         for each :math:`W_i \in \mathbf V`.
     """
-    # result: set[Variable] = set()
-    # for variable in event:
-    #    parents = list(graph.directed.predecessors(variable.get_base()))
-    #    if len(parents) > 0:
-    #        result.update({variable.intervene(parents)})
-    #    else:
-    #        result.update({variable})
-    # return result
-    # (Here's the more efficient set comprehension with harder-to-read code)
-    return [
-        (variable.get_base().intervene(graph.directed.predecessors(variable.get_base())), value)
-        if len(list(graph.directed.predecessors(variable.get_base()))) > 0
-        else (variable, value)
-        for (variable, value) in event
-    ]
+    result: list[tuple[Variable, Intervention | None]] = []
+    for variable, value in event:
+        candidate_parents = set(graph.directed.predecessors(variable.get_base()))
+        if isinstance(variable, CounterfactualVariable):
+            parents = {
+                intervention
+                for intervention in variable.interventions
+                if intervention.get_base() in candidate_parents
+            }
+        else:
+            parents = set()
+        parent_names = {parent.get_base() for parent in parents}
+        parents.update(
+            {
+                candidate_parent
+                for candidate_parent in candidate_parents
+                if candidate_parent.get_base() not in parent_names
+            }
+        )
+        if len(parents) > 0:
+            result += [(variable.get_base().intervene(parents), value)]
+        else:
+            result += [(variable.get_base(), value)]
+    return result
 
 
 def do_counterfactual_factor_factorization(
@@ -1338,11 +1337,11 @@ def _transport_unconditional_counterfactual_query_line_2(
             + str(get_ancestors_of_counterfactual(variable, graph))
         )
         ancestral_set.update(get_ancestors_of_counterfactual(variable, graph))
-    logger.warning(
-        "In transport_unconditional_counterfactual_query_line_2: "
-        + "ancestral_set = "
-        + str(ancestral_set)
-    )
+    # logger.warning(
+    #    "In transport_unconditional_counterfactual_query_line_2: "
+    #    + "ancestral_set = "
+    #    + str(ancestral_set)
+    # )
     outcome_value_dict = {variable: value for variable, value in event}
     ancestral_set_with_values: set[tuple[Variable, Intervention | None]] = {
         (variable, outcome_value_dict[variable])
@@ -1350,25 +1349,36 @@ def _transport_unconditional_counterfactual_query_line_2(
         else (variable, None)
         for variable in ancestral_set
     }
-    logger.warning(
-        "In transport_unconditional_counterfactual_query_line_2: "
-        + "ancestral_set_with_values = "
-        + str(ancestral_set_with_values)
-    )
+    # logger.warning(
+    #    "In transport_unconditional_counterfactual_query_line_2: "
+    #    + "ancestral_set_with_values = "
+    #    + str(ancestral_set_with_values)
+    # )
 
     #  e.g., Equation 13 in [correa22a]_, without the summation component.
-    ancestral_set_in_counterfactual_factor_form_with_values: set[
+    # ancestral_set_in_counterfactual_factor_form_with_values: set[
+    #    tuple[Variable, Intervention | None]
+    # ] = {
+    #    (convert_to_counterfactual_factor_form(event=[(variable, value)], graph=graph)[0][0], value)
+    #    for variable, value in ancestral_set_with_values
+    # }
+    ancestral_set_in_counterfactual_factor_form_with_values_as_list: list[
         tuple[Variable, Intervention | None]
-    ] = {
+    ] = [
         (convert_to_counterfactual_factor_form(event=[(variable, value)], graph=graph)[0][0], value)
         for variable, value in ancestral_set_with_values
-    }
-    logger.warning(
-        "In transport_unconditional_counterfactual_query_line_2: "
-        + "ancestral_set_in_counterfactual_factor_form_with_values = "
-        + str(ancestral_set_in_counterfactual_factor_form_with_values)
+    ]
+    # logger.warning(
+    #    "In transport_unconditional_counterfactual_query_line_2: "
+    #    + "ancestral_set_in_counterfactual_factor_form_with_values_as_list = "
+    #    + str(ancestral_set_in_counterfactual_factor_form_with_values_as_list)
+    # )
+    ancestral_set_in_counterfactual_factor_form_with_values = set(
+        ancestral_set_in_counterfactual_factor_form_with_values_as_list
     )
-
+    # logger.warning(
+    #    "   As a set that is: " + str(ancestral_set_in_counterfactual_factor_form_with_values)
+    # )
     ancestor_bases = {v.get_base() for v in ancestral_set}
     outcome_ancestor_graph = graph.subgraph(ancestor_bases)
     factorized_ancestral_set_with_values: list[
@@ -1405,15 +1415,6 @@ def _inconsistent_counterfactual_factor_variable_and_intervention_values(
         for variable in counterfactual_factor_variables_with_interventions
         for intervention in variable.interventions
     }.intersection(counterfactual_factor_variable_names)
-    logger.warning(
-        str(
-            {
-                intervention.get_base()
-                for variable in counterfactual_factor_variables_with_interventions
-                for intervention in variable.interventions
-            }
-        )
-    )
     for counterfactual_factor_variable, counterfactual_factor_variable_value in event:
         if (
             counterfactual_factor_variable.get_base() in intervention_variable_names
@@ -1540,8 +1541,8 @@ def transport_unconditional_counterfactual_query(
             for factor in counterfactual_factors_with_values
         ):
             logger.warning(
-                "In transport_unconditional_counterfactual_query: inconsistent counterfactual "+\
-                    "factor. Returning FAIL (None)"
+                "In transport_unconditional_counterfactual_query: inconsistent counterfactual "
+                + "factor. Returning FAIL (None)"
             )
             return None  # This means FAIL
     else:
