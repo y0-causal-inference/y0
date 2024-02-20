@@ -1169,14 +1169,18 @@ def _validate_sigma_tr_inputs(
                 + str(graph_vertices_without_transportability_nodes)
             )
         if not all(v in graph_vertices_without_transportability_nodes for v in district):
-            raise KeyError(
-                "In sigma_tr: one of the variables in the input district "
-                + "is not in a domain graph. District: "
-                + str(district)
-                + ". Nodes in the graph: "
-                + str(graph_vertices_without_transportability_nodes)
-                + "."
-            )
+            for v in district:
+                if v not in graph_vertices_without_transportability_nodes:
+                    raise KeyError(
+                        "In sigma_tr: one of the variables in the input district "
+                        + "is not in a domain graph. District: "
+                        + str(district)
+                        + ". Node missing from the graph: "
+                        + str(v)
+                        + ". Nodes in the graph: "
+                        + str(graph_vertices_without_transportability_nodes)
+                        + "."
+                    )
     return
 
 
@@ -1545,6 +1549,35 @@ def transport_unconditional_counterfactual_query(
                 + "factor. Returning FAIL (None)"
             )
             return None  # This means FAIL
+
+        # Line 4
+        for factor in counterfactual_factors_with_values:
+            # Sigma-TR just takes in the district and then intervenes on the parents of the district. So
+            # we need to strip the district variables of their interventions before running Sigma-TR.
+            district_without_interventions = {variable.get_base() for variable, _ in factor}
+            # Line 5
+            q_value = transport_district_intervening_on_parents(
+                district=district_without_interventions,
+                domain_graphs=domain_graphs,
+                domain_data=domain_data,
+            )
+            if q_value is None:
+                logger.warning(
+                    "In transport_unconditional_counterfactual_query: unable to transport "
+                    + "counterfactual factor: "
+                    + str(factor)
+                )
+                return None  # Return FAIL
+            else:
+                logger.warning(
+                    "In transport_unconditional_counterfactual_query: got a Q value of "
+                    + q_value.to_latex()
+                    + " for district "
+                    + str(district_without_interventions)
+                    + " corresponding to counterfactual factor "
+                    + str(factor)
+                    + "."
+                )
     else:
         return Zero()  # as specified by the output for Algorithm 1 in [correa22a]_
 
