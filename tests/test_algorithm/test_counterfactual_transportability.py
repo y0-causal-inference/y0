@@ -2235,13 +2235,15 @@ class TestCtfTrU(cases.GraphTestCase):
         )
         expected_result = Sum.safe(expected_result_part_1, [Z, W])
 
-        result = transport_unconditional_counterfactual_query(
+        result_expr, result_event = transport_unconditional_counterfactual_query(
             event=event,
             target_domain_graph=figure_2a_graph,
             domain_graphs=domain_graphs,
             domain_data=domain_data,
         )
-        self.assert_expr_equal(expected_result, result)
+        logger.warning("Result_expr = " + result_expr.to_latex())
+        logger.warning("Result_event = " + str(result_event))
+        self.assert_expr_equal(expected_result, result_expr)
 
     def test_ctf_tru_2(self):
         """Test of Algorithm 2 of [correa22a]_.

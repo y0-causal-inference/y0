@@ -1484,19 +1484,20 @@ def _counterfactual_factor_is_inconsistent(
         CounterfactualVariable objects, and the values as Intervention objects.
     :returns: True if the counterfactual factor is consistent, and false if it is inconsistent.
     """
+    # Are counterfactual factor and intervention values inconsistent?
     return _inconsistent_counterfactual_factor_variable_and_intervention_values(
         event=event
     ) or _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
+    # Are different counterfactual factor intervention values inconsistent?
 
 
-# TODO: Add expected inputs and outputs to the below two algorithms
 def transport_unconditional_counterfactual_query(
     *,
     event: list[tuple[Variable, Intervention]],
     target_domain_graph: NxMixedGraph,
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     domain_data: list[tuple[Collection[Variable], Expression]],
-) -> Expression | None:
+) -> tuple[Expression, list[tuple[Variable, Intervention]] | None] | None:
     r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
 
     :param event:
@@ -1523,7 +1524,9 @@ def transport_unconditional_counterfactual_query(
     """
     logger.warning("In transport_unconditional_counterfactual_query: input event = " + str(event))
     # Line 1
-    simplified_event = simplify(event=event, graph=target_domain_graph)
+    simplified_event: list[tuple[Variable, Intervention]] | None = simplify(
+        event=event, graph=target_domain_graph
+    )
     logger.warning(
         "In transport_unconditional_counterfactual_query: simplifed event = "
         + str(simplified_event)
@@ -1551,17 +1554,18 @@ def transport_unconditional_counterfactual_query(
             return None  # This means FAIL
 
         # Line 4
+        district_probabilities_intervening_on_parents = []
         for factor in counterfactual_factors_with_values:
             # Sigma-TR just takes in the district and then intervenes on the parents of the district. So
             # we need to strip the district variables of their interventions before running Sigma-TR.
             district_without_interventions = {variable.get_base() for variable, _ in factor}
             # Line 5
-            q_value = transport_district_intervening_on_parents(
+            district_probability_intervening_on_parents = transport_district_intervening_on_parents(
                 district=district_without_interventions,
                 domain_graphs=domain_graphs,
                 domain_data=domain_data,
-            )
-            if q_value is None:
+            )  # The q_value
+            if district_probability_intervening_on_parents is None:
                 logger.warning(
                     "In transport_unconditional_counterfactual_query: unable to transport "
                     + "counterfactual factor: "
@@ -1569,21 +1573,80 @@ def transport_unconditional_counterfactual_query(
                 )
                 return None  # Return FAIL
             else:
+                # Note about lines 7-9 of the algorithm:
+                # Line 7 does not require a specific implementation. It is merely a comment to the
+                #    reader regarding how the district probability intervening on the district's
+                #    parents (i.e., its Q expression) is transported from one of the available domains.
+                # Line 8 is a statement that the values over which the Q expression is evaluated come
+                #    from the union of the parents of each of the parents of the district variables
+                #    and the values of the district variables themselves. Many of these values are
+                #    not associated with actual input variables $\mathbf{y_{\ast}}$. Instead, we
+                #    will end up marginalizing over them in Line 14. Correa and Bareinboim point this
+                #    out ([correa22a]_) in their appendix after Equation 27, stating that
+                #    "$\mathbf{d_{\ast}}$ is the union of $\mathbf{z_{\ast}} and the indexing values
+                #    of the sum," where the "sum" refers (in Algorithm 2) to
+                #    $\sum_{\mathbf{w_{\ast}\backslash y_{\ast}}}\prod_{i}{P^{\ast}(\mathbf{C}_{i\ast}
+                #       = \mathbf{c}_{i\ast})}$.
+                #    So, especially because no actual values of the counterfactual factor variables
+                #    or their parents will need to be used until after Line 14, we defer binding of
+                #    these variable values to a Q expression until Line 14. Line 8 is therefore
+                #    unnecessary for us as written. We do, however, check that the variables
+                #    in the Q expression are contained in the set of variables referenced in
+                #    Line 8.
+                # Line 9 involves formally evaluating Q over the set of values $\mathbf{c}$. We defer
+                #    this action until Line 14.
+                line_8_variables: set[Variable] = set()
+                for variable in district_without_interventions:
+                    line_8_variables = line_8_variables.union(
+                        set(target_domain_graph.directed.predecessors(variable.get_base()))
+                    )
+                line_8_variables = line_8_variables.union(district_without_interventions)
+                # logger.warning(
+                #    "In transport_unconditional_counterfactual_query: line_8_variables = "
+                #    + str(line_8_variables)
+                # )
+                if not all(
+                    variable in line_8_variables
+                    for variable in district_probability_intervening_on_parents.get_variables()
+                ):
+                    logger.warning(
+                        "Found a variable in the Q expression that is not a district variable or one of its parents."
+                    )
+                    logger.warning("District variables and their parents: " + str(line_8_variables))
+                    logger.warning(
+                        "Q expression variables: "
+                        + str(district_probability_intervening_on_parents.get_variables())
+                    )
                 logger.warning(
                     "In transport_unconditional_counterfactual_query: got a Q value of "
-                    + q_value.to_latex()
+                    + district_probability_intervening_on_parents.to_latex()
                     + " for district "
                     + str(district_without_interventions)
                     + " corresponding to counterfactual factor "
                     + str(factor)
                     + "."
                 )
+                district_probabilities_intervening_on_parents.append(
+                    district_probability_intervening_on_parents
+                )
+        ancestors_excluding_outcomes = {
+            variable.get_base()
+            for (variable, value) in outcome_ancestors_with_values
+            if (variable, value) not in simplified_event
+        }
+        transported_unconditional_query = Sum.safe(
+            Product.safe(district_probabilities_intervening_on_parents),
+            ancestors_excluding_outcomes,
+        )
+        logger.warning(
+            "Returning: "
+            + transported_unconditional_query.to_latex()
+            + " for simplified event: "
+            + str(simplified_event)
+        )
+        return (transported_unconditional_query, simplified_event)
     else:
-        return Zero()  # as specified by the output for Algorithm 1 in [correa22a]_
-
-    raise NotImplementedError(
-        "Unimplemented function: transport_unconditional_counterfactual_query"
-    )
+        return (Zero(), None)  # as specified by the output for Algorithm 1 in [correa22a]_
 
 
 def ctf_tr() -> None:
