@@ -33,6 +33,7 @@ from y0.algorithm.counterfactual_transportability import (
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
     get_ancestors_of_counterfactual,
+    get_conditioned_variables_in_ancestral_set,
     get_counterfactual_factors,
     is_counterfactual_factor_form,
     make_selection_diagram,
@@ -2387,3 +2388,93 @@ class TestCtfTrU(cases.GraphTestCase):
         self.assertCountEqual(
             expected_counterfactual_factors_with_values, counterfactual_factors_with_values
         )
+
+
+class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
+    r"""Identify conditioned variables that are ancestors of an input variable ($\mathbf{X_{\ast}}(W_{\mathbf{\ast}})$).
+
+    Note: see the documentation for get_conditioned_variables_in_ancestral_set for a note about
+    some ambiguity in the mathematical definition of that function in [correa22a]_.
+    """
+
+    figure_1_graph_no_transportability_nodes = NxMixedGraph.from_edges(
+        directed=[
+            (X, Z),
+            (Z, Y),
+            (X, Y),
+        ],
+        undirected=[(Z, X)],
+    )
+
+    def test_get_conditioned_variable_in_ancestral_set_1(self):
+        """First test of the function to identify conditioned variables that are ancestors of an input variable.
+
+        Source: Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        expected_result_1 = {Z}
+        result_1 = get_conditioned_variables_in_ancestral_set(
+            conditioned_variables={Z @ -X, X},
+            ancestral_set_root_variable=Y @ -X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_1, result_1)
+
+    def test_get_conditioned_variable_in_ancestral_set_2(self):
+        """Second test of the function to identify conditioned variables that are ancestors of an input variable."""
+        expected_result_2 = {Z}
+        result_2 = get_conditioned_variables_in_ancestral_set(
+            conditioned_variables={Z @ -X, X},
+            ancestral_set_root_variable=Z @ -X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_2, result_2)
+
+    def test_get_conditioned_variable_in_ancestral_set_3(self):
+        """Third test of the function to identify conditioned variables that are ancestors of an input variable."""
+        expected_result_3 = {X}
+        result_3 = get_conditioned_variables_in_ancestral_set(
+            conditioned_variables={Z @ -X, X},
+            ancestral_set_root_variable=X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_3, result_3)
+
+    def test_get_conditioned_variable_in_ancestral_set_4(self):
+        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable."""
+        expected_result_4 = set()
+        result_4 = get_conditioned_variables_in_ancestral_set(
+            conditioned_variables={Z @ -X},
+            ancestral_set_root_variable=X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_4, result_4)
+
+    def test_get_conditioned_variable_in_ancestral_set_5(self):
+        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable."""
+        expected_result_5 = set()
+        result_5 = get_conditioned_variables_in_ancestral_set(
+            conditioned_variables={X},
+            ancestral_set_root_variable=Z @ -X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_5, result_5)
+
+    def test_get_conditioned_variable_in_ancestral_set_6(self):
+        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable."""
+        expected_result_6 = {X}
+        result_6 = get_conditioned_variables_in_ancestral_set(
+            conditioned_variables={X},
+            ancestral_set_root_variable=X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_6, result_6)
+
+    def test_get_conditioned_variable_in_ancestral_set_7(self):
+        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable."""
+        expected_result_7 = set()
+        result_7 = get_conditioned_variables_in_ancestral_set(
+            conditioned_variables={X},
+            ancestral_set_root_variable=Y @ -X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_7, result_7)

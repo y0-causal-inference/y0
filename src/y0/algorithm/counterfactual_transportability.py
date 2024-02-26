@@ -35,6 +35,7 @@ __all__ = [
     "get_ancestors_of_counterfactual",
     "same_district",
     "is_counterfactual_factor_form",
+    "get_conditioned_variables_in_ancestral_set",
     "get_counterfactual_factors",
     "convert_to_counterfactual_factor_form",
     "do_counterfactual_factor_factorization",
@@ -1571,7 +1572,7 @@ def transport_unconditional_counterfactual_query(
                     + "counterfactual factor: "
                     + str(factor)
                 )
-                return None  # Return FAIL
+                return None  # Return FAIL (Line 13)
             else:
                 # Note about lines 7-9 of the algorithm:
                 # Line 7 does not require a specific implementation. It is merely a comment to the
@@ -1594,7 +1595,8 @@ def transport_unconditional_counterfactual_query(
                 #    in the Q expression are contained in the set of variables referenced in
                 #    Line 8.
                 # Line 9 involves formally evaluating Q over the set of values $\mathbf{c}$. We defer
-                #    this action until Line 14.
+                #    this action until Line 14, when we do so by simply returning the simplified event
+                #    with the expression for $P^{\ast}(\mathbf{Y_{\ast} = y_{\ast}})$.
                 line_8_variables: set[Variable] = set()
                 for variable in district_without_interventions:
                     line_8_variables = line_8_variables.union(
@@ -1647,6 +1649,38 @@ def transport_unconditional_counterfactual_query(
         return (transported_unconditional_query, simplified_event)
     else:
         return (Zero(), None)  # as specified by the output for Algorithm 1 in [correa22a]_
+
+
+def get_conditioned_variables_in_ancestral_set(
+    *,
+    conditioned_variables: set[Variable],
+    ancestral_set_root_variable: Variable,
+    graph: NxMixedGraph,
+) -> set[Variable]:
+    r"""Retrieve the intersection of the ancestral set of a root variable and a set of conditioned variables.
+
+    This function computes $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$,
+    the conditioned variables that are ancestors of the input root variable $W_{\mathbf{t}}$.
+
+    Note that [correa22a]_ contains an apparent contradiction: Example 4.5 indicates that
+    this operator may return a set of counterfactual variables such as $\{Z_{x}\}$ in the text,
+    but in that case this function should compute
+    $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))_{\mathbf{t}}$ and not
+    $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$. The ambiguity can best be
+    resolved with a correction to the article. Meanwhile, because in practice this function
+    is used to consider graphs removing edges out of the set of vertices that the function
+    returns, we implement it according to its definition in the text of [correa22a]_:
+    $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$.
+
+    :param conditioned_variables: Following [correa22a]_ this is $\mathbf{X_{\ast}}$, a set of variables that
+           are conditioned on in a query. They may be Variable or CounterfactualVariable objects.
+    :param ancestral_set_root_variable: following [correa22a]_ this is $W_{\mathbf{t}}$, a variable
+           that the function uses to generate its ancestral set.
+    :param graph: the relevant graph (the target domain graph in [correa22a]_).
+    :returns: an expression for $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$,
+           that is, the conditioned variables that are ancestors of the input root variable $W_{\mathbf{t}}$.
+    """
+    raise NotImplementedError("Unimplemented function: conditioned_variables_in_ancestral_set")
 
 
 def ctf_tr() -> None:
