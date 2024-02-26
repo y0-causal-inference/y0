@@ -1713,6 +1713,32 @@ def _get_ancestral_set_after_intervening_on_conditioned_variables(
     )
 
 
+def _compute_ancestral_components_from_ancestral_sets(
+    *,
+    ancestral_sets: set[frozenset[Variable]],
+    graph: NxMixedGraph,
+) -> frozenset[Variable]:
+    r"""Compute a set of ancestral components corresponding to Definition 4.2 of [correa22a]_.
+
+    Note: [correa22a]_ is silent regarding an algorithm for efficiently combining the input
+        ancestral sets for this function. This implementation runs in time $O(V^{3})$, where $V$
+        is the number of vertices in the graph. The implementation matches Correa and
+        Bareinboim's efficiency analysis in Appendix B of [correa22a]_.
+
+    :param ancestral_sets: These are the sets
+           $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$ in
+           Definition 4.2 of [correa22a]_. They are induced by $\mathbf{W_{\ast}}$, given $\mathbf{X_{\ast}}$.
+    :param graph: the relevant graph $\mathcal{G}$ (without intervening on any conditioned variables).
+    :returns: the sets $\mathbf{A}_{1},\mathbf{A}_{2},\ldots$ that form a partition over $An(\mathbf{W_{\ast}})$,
+           made of unions of the input ancestral sets. Two sets are combined via a union operation if they are
+           not disjoint or there exists a bidirected arrow in $\mathcal{G}$ connecting variables
+           in those sets. (Definition 4.2 of [correa22a]_.)
+    """
+    raise NotImplementedError(
+        "Unimplemented function: compute_ancestral_components_from_ancestral_sets"
+    )
+
+
 def ctf_tr() -> None:
     """Implement the ctfTR algorithm from [correa22a]_ (Algorithm 3)."""
     raise NotImplementedError("Unimplemented function: ctfTR")

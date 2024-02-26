@@ -19,6 +19,7 @@ from networkx import NetworkXError
 from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
     _any_variables_with_inconsistent_values,
+    _compute_ancestral_components_from_ancestral_sets,
     _counterfactual_factor_is_inconsistent,
     _get_ancestral_set_after_intervening_on_conditioned_variables,
     _inconsistent_counterfactual_factor_variable_and_intervention_values,
@@ -80,6 +81,16 @@ figure_1_graph = NxMixedGraph.from_edges(
         (Z, Y),
         (X, Y),
         (transport_variable(Y), Y),
+    ],
+    undirected=[(Z, X)],
+)
+
+# [correa22a]_, Figure 1, without the transportability node.
+figure_1_graph_no_transportability_nodes = NxMixedGraph.from_edges(
+    directed=[
+        (X, Z),
+        (Z, Y),
+        (X, Y),
     ],
     undirected=[(Z, X)],
 )
@@ -2398,15 +2409,6 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
     some ambiguity in the mathematical definition of that function in [correa22a]_.
     """
 
-    figure_1_graph_no_transportability_nodes = NxMixedGraph.from_edges(
-        directed=[
-            (X, Z),
-            (Z, Y),
-            (X, Y),
-        ],
-        undirected=[(Z, X)],
-    )
-
     def test_get_conditioned_variable_in_ancestral_set_1(self):
         """First test of the function to identify conditioned variables that are ancestors of an input variable.
 
@@ -2416,7 +2418,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         result_1 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X, X},
             ancestral_set_root_variable=Y @ -X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_1, result_1)
 
@@ -2429,7 +2431,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         result_2 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X, X},
             ancestral_set_root_variable=Z @ -X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_2, result_2)
 
@@ -2442,7 +2444,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         result_3 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X, X},
             ancestral_set_root_variable=X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_3, result_3)
 
@@ -2455,7 +2457,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         result_4 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X},
             ancestral_set_root_variable=X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_4, result_4)
 
@@ -2468,7 +2470,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         result_5 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={X},
             ancestral_set_root_variable=Z @ -X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_5, result_5)
 
@@ -2481,7 +2483,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         result_6 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={X},
             ancestral_set_root_variable=X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_6, result_6)
 
@@ -2494,22 +2496,13 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         result_7 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={X},
             ancestral_set_root_variable=Y @ -X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_7, result_7)
 
 
 class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestCase):
-    r"""Intervene on conditioned variables in a variable's ancestral set and recompute the ancestral set."""
-
-    figure_1_graph_no_transportability_nodes = NxMixedGraph.from_edges(
-        directed=[
-            (X, Z),
-            (Z, Y),
-            (X, Y),
-        ],
-        undirected=[(Z, X)],
-    )
+    """Intervene on conditioned variables in a variable's ancestral set and recompute the ancestral set."""
 
     def test_get_ancestral_set_after_intervening_on_conditioned_variables_1(self):
         """First test of the function to get an ancestral set after intervening on some conditioned variables.
@@ -2522,7 +2515,7 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
         result_1 = _get_ancestral_set_after_intervening_on_conditioned_variables(
             conditioned_variables={Z @ -X, X},
             ancestral_set_root_variable=Y @ -X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_1, result_1)
 
@@ -2537,7 +2530,7 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
         result_2 = _get_ancestral_set_after_intervening_on_conditioned_variables(
             conditioned_variables={Z @ -X, X},
             ancestral_set_root_variable=Z @ -X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_2, result_2)
 
@@ -2552,7 +2545,7 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
         result_3 = _get_ancestral_set_after_intervening_on_conditioned_variables(
             conditioned_variables={Z @ -X, X},
             ancestral_set_root_variable=X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_3, result_3)
 
@@ -2567,7 +2560,7 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
         result_4 = _get_ancestral_set_after_intervening_on_conditioned_variables(
             conditioned_variables={Z @ -X},
             ancestral_set_root_variable=Z @ -X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_4, result_4)
 
@@ -2582,7 +2575,7 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
         result_5 = _get_ancestral_set_after_intervening_on_conditioned_variables(
             conditioned_variables={X},
             ancestral_set_root_variable=Y @ -X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_5, result_5)
 
@@ -2597,6 +2590,69 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
         result_6 = _get_ancestral_set_after_intervening_on_conditioned_variables(
             conditioned_variables={Z @ -X},
             ancestral_set_root_variable=X,
-            graph=self.figure_1_graph_no_transportability_nodes,
+            graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_6, result_6)
+
+
+class TestComputeAncestralComponentsFromAncestralSets(cases.GraphTestCase):
+    """Test a function to combine ancestral sets if they share vertices or are joined by bidirected edges."""
+
+    def test_compute_ancestral_components_from_ancestral_sets_1(self):
+        """First test of a function to combine ancestral sets if they share vertices or are joined by bidirected edges.
+
+        Source: Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        expected_result_1 = frozenset({frozenset({Y @ -X}), frozenset({Z @ -X, X})})
+        result_1 = _compute_ancestral_components_from_ancestral_sets(
+            ancestral_sets=frozenset({frozenset({X}), frozenset({Z @ -X}), frozenset({Y @ -X})}),
+            graph=figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_1, result_1)
+
+    def test_compute_ancestral_components_from_ancestral_sets_2(self):
+        """Second test of a function to combine ancestral sets if they share vertices or are joined by bidirected edges.
+
+        Source: RJC, using the graph for Figure 2a of [correa22a]_.
+        """
+        expected_result_2 = frozenset({frozenset({X, Z}), frozenset({W, Y})})
+        result_2 = _compute_ancestral_components_from_ancestral_sets(
+            ancestral_sets=frozenset(
+                {frozenset({W}), frozenset({X}), frozenset({Y}), frozenset({Z})}
+            ),
+            graph=figure_2a_graph,
+        )
+        self.assertSetEqual(expected_result_2, result_2)
+
+    def test_compute_ancestral_components_from_ancestral_sets_3(self):
+        """Third test of a function to combine ancestral sets if they share vertices or are joined by bidirected edges.
+
+        Source: RJC, using the graph for Figure 2a of [correa22a]_.
+        """
+        expected_result_3 = frozenset({frozenset({W, X, Y, Z})})
+        result_3 = _compute_ancestral_components_from_ancestral_sets(
+            ancestral_sets=frozenset({frozenset({W, X}), frozenset({Y}), frozenset({Z})}),
+            graph=figure_2a_graph,
+        )
+        self.assertSetEqual(expected_result_3, result_3)
+
+    def test_compute_ancestral_components_from_ancestral_sets_4(self):
+        """Fourth test of a function to combine ancestral sets if they share vertices or are joined by bidirected edges.
+
+        Source: RJC, based the graph for Figure 2a of [correa22a]_ with no bidirectional edges.
+        """
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (Z, Y),
+                (X, Y),
+                (X, W),
+                (W, Y),
+            ],
+        )
+        expected_result_4 = frozenset({frozenset({W, X, Y}), frozenset({Z})})
+        result_4 = _compute_ancestral_components_from_ancestral_sets(
+            ancestral_sets=frozenset({frozenset({W, X}), frozenset({X, Y}), frozenset({Z})}),
+            graph=graph,
+        )
+        self.assertSetEqual(expected_result_4, result_4)
