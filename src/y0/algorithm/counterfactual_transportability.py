@@ -1714,10 +1714,16 @@ def _get_ancestral_set_after_intervening_on_conditioned_variables(
            conditioned variables that would otherwise be in $W_{\mathbf{t}}$'s ancestral set were the
            interventions not applied.
     """
-    raise NotImplementedError(
-        "Unimplemented function: "
-        + "get_ancestral_set_after_intervening_on_conditioned_variables_in_the_set"
+    conditioned_variables_in_ancestral_set = _get_conditioned_variables_in_ancestral_set(
+        conditioned_variables=conditioned_variables,
+        ancestral_set_root_variable=ancestral_set_root_variable,
+        graph=graph,
     )
+    graph_with_interventions = graph.remove_out_edges(conditioned_variables_in_ancestral_set)
+    new_ancestral_set = get_ancestors_of_counterfactual(
+        event=ancestral_set_root_variable, graph=graph_with_interventions
+    )
+    return frozenset(new_ancestral_set)
 
 
 def _compute_ancestral_components_from_ancestral_sets(
