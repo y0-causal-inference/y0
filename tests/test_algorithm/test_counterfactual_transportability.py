@@ -20,6 +20,7 @@ from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
     _any_variables_with_inconsistent_values,
     _counterfactual_factor_is_inconsistent,
+    _get_ancestral_set_after_intervening_on_conditioned_variables,
     _inconsistent_counterfactual_factor_variable_and_intervention_values,
     _inconsistent_counterfactual_factor_variable_intervention_values,
     _no_intervention_variables_in_domain,
@@ -2420,7 +2421,10 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         self.assertSetEqual(expected_result_1, result_1)
 
     def test_get_conditioned_variable_in_ancestral_set_2(self):
-        """Second test of the function to identify conditioned variables that are ancestors of an input variable."""
+        """Second test of the function to identify conditioned variables that are ancestors of an input variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
         expected_result_2 = {Z}
         result_2 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X, X},
@@ -2430,7 +2434,10 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         self.assertSetEqual(expected_result_2, result_2)
 
     def test_get_conditioned_variable_in_ancestral_set_3(self):
-        """Third test of the function to identify conditioned variables that are ancestors of an input variable."""
+        """Third test of the function to identify conditioned variables that are ancestors of an input variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
         expected_result_3 = {X}
         result_3 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X, X},
@@ -2440,7 +2447,10 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         self.assertSetEqual(expected_result_3, result_3)
 
     def test_get_conditioned_variable_in_ancestral_set_4(self):
-        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable."""
+        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
         expected_result_4 = set()
         result_4 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X},
@@ -2450,7 +2460,10 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         self.assertSetEqual(expected_result_4, result_4)
 
     def test_get_conditioned_variable_in_ancestral_set_5(self):
-        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable."""
+        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
         expected_result_5 = set()
         result_5 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={X},
@@ -2460,7 +2473,10 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         self.assertSetEqual(expected_result_5, result_5)
 
     def test_get_conditioned_variable_in_ancestral_set_6(self):
-        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable."""
+        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
         expected_result_6 = {X}
         result_6 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={X},
@@ -2470,7 +2486,10 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         self.assertSetEqual(expected_result_6, result_6)
 
     def test_get_conditioned_variable_in_ancestral_set_7(self):
-        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable."""
+        """Fourth test of the function to identify conditioned variables that are ancestors of an input variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
         expected_result_7 = set()
         result_7 = get_conditioned_variables_in_ancestral_set(
             conditioned_variables={X},
@@ -2478,3 +2497,106 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
             graph=self.figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_7, result_7)
+
+
+class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestCase):
+    r"""Intervene on conditioned variables in a variable's ancestral set and recompute the ancestral set."""
+
+    figure_1_graph_no_transportability_nodes = NxMixedGraph.from_edges(
+        directed=[
+            (X, Z),
+            (Z, Y),
+            (X, Y),
+        ],
+        undirected=[(Z, X)],
+    )
+
+    def test_get_ancestral_set_after_intervening_on_conditioned_variables_1(self):
+        """First test of the function to get an ancestral set after intervening on some conditioned variables.
+
+        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+
+        Source: Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        expected_result_1 = frozenset({Y @ -X})
+        result_1 = _get_ancestral_set_after_intervening_on_conditioned_variables(
+            conditioned_variables={Z @ -X, X},
+            ancestral_set_root_variable=Y @ -X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_1, result_1)
+
+    def test_get_ancestral_set_after_intervening_on_conditioned_variables_2(self):
+        """Second test of the function to get an ancestral set after intervening on some conditioned variables.
+
+        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        expected_result_2 = frozenset({Z @ -X})
+        result_2 = _get_ancestral_set_after_intervening_on_conditioned_variables(
+            conditioned_variables={Z @ -X, X},
+            ancestral_set_root_variable=Z @ -X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_2, result_2)
+
+    def test_get_ancestral_set_after_intervening_on_conditioned_variables_3(self):
+        """Third test of the function to get an ancestral set after intervening on some conditioned variables.
+
+        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        expected_result_3 = frozenset({X})
+        result_3 = _get_ancestral_set_after_intervening_on_conditioned_variables(
+            conditioned_variables={Z @ -X, X},
+            ancestral_set_root_variable=X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_3, result_3)
+
+    def test_get_ancestral_set_after_intervening_on_conditioned_variables_4(self):
+        """Fourth test of the function to get an ancestral set after intervening on some conditioned variables.
+
+        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        expected_result_4 = frozenset({Z @ -X})
+        result_4 = _get_ancestral_set_after_intervening_on_conditioned_variables(
+            conditioned_variables={Z @ -X},
+            ancestral_set_root_variable=Z @ -X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_4, result_4)
+
+    def test_get_ancestral_set_after_intervening_on_conditioned_variables_5(self):
+        """Fifth test of the function to get an ancestral set after intervening on some conditioned variables.
+
+        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        expected_result_5 = frozenset({Y @ -X, Z @ -X})
+        result_5 = _get_ancestral_set_after_intervening_on_conditioned_variables(
+            conditioned_variables={X},
+            ancestral_set_root_variable=Y @ -X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_5, result_5)
+
+    def test_get_ancestral_set_after_intervening_on_conditioned_variables_6(self):
+        """Sixth test of the function to get an ancestral set after intervening on some conditioned variables.
+
+        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+
+        Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        expected_result_6 = frozenset({X})
+        result_6 = _get_ancestral_set_after_intervening_on_conditioned_variables(
+            conditioned_variables={Z @ -X},
+            ancestral_set_root_variable=X,
+            graph=self.figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_6, result_6)

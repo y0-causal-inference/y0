@@ -1656,7 +1656,7 @@ def get_conditioned_variables_in_ancestral_set(
     conditioned_variables: set[Variable],
     ancestral_set_root_variable: Variable,
     graph: NxMixedGraph,
-) -> set[Variable]:
+) -> frozenset[Variable]:
     r"""Retrieve the intersection of the ancestral set of a root variable and a set of conditioned variables.
 
     This function computes $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$,
@@ -1681,6 +1681,36 @@ def get_conditioned_variables_in_ancestral_set(
            that is, the conditioned variables that are ancestors of the input root variable $W_{\mathbf{t}}$.
     """
     raise NotImplementedError("Unimplemented function: conditioned_variables_in_ancestral_set")
+
+
+def _get_ancestral_set_after_intervening_on_conditioned_variables(
+    *,
+    conditioned_variables: set[Variable],
+    ancestral_set_root_variable: Variable,
+    graph: NxMixedGraph,
+) -> frozenset[Variable]:
+    r"""Get a variable's ancestral set after first intervening on any conditioned variables that are its ancestors.
+
+    This function computes $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$,
+    per [correa22a]_.
+
+    :param conditioned_variables: Following [correa22a]_ this is $\mathbf{X_{\ast}}$, a set of variables that
+           are conditioned on in a query. They may be Variable or CounterfactualVariable objects. This function
+           will not intervene on every one of these conditioned variables, just those that are ancestors of
+           the ancestral set root variable.
+    :param ancestral_set_root_variable: following [correa22a]_ this is $W_{\mathbf{t}}$, a variable
+           that the function uses to generate its ancestral set.
+    :param graph: the relevant graph (the target domain graph in [correa22a]_).
+    :returns: a set of variables corresponding to
+           $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$,
+           that is, the ancestors of $W_{\mathbf{t}}$ in a graph intervening on those
+           conditioned variables that would otherwise be in $W_{\mathbf{t}}$'s ancestral set were the
+           interventions not applied.
+    """
+    raise NotImplementedError(
+        "Unimplemented function: "
+        + "get_ancestral_set_after_intervening_on_conditioned_variables_in_the_set"
+    )
 
 
 def ctf_tr() -> None:
