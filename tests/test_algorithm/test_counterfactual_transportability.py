@@ -21,7 +21,9 @@ from y0.algorithm.counterfactual_transportability import (
     _any_variables_with_inconsistent_values,
     _compute_ancestral_components_from_ancestral_sets,
     _counterfactual_factor_is_inconsistent,
+    _get_ancestral_components,
     _get_ancestral_set_after_intervening_on_conditioned_variables,
+    _get_conditioned_variables_in_ancestral_set,
     _inconsistent_counterfactual_factor_variable_and_intervention_values,
     _inconsistent_counterfactual_factor_variable_intervention_values,
     _no_intervention_variables_in_domain,
@@ -35,7 +37,6 @@ from y0.algorithm.counterfactual_transportability import (
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
     get_ancestors_of_counterfactual,
-    get_conditioned_variables_in_ancestral_set,
     get_counterfactual_factors,
     is_counterfactual_factor_form,
     make_selection_diagram,
@@ -2415,7 +2416,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         Source: Example 4.5 and Figure 6 of [correa22a]_.
         """
         expected_result_1 = {Z}
-        result_1 = get_conditioned_variables_in_ancestral_set(
+        result_1 = _get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X, X},
             ancestral_set_root_variable=Y @ -X,
             graph=figure_1_graph_no_transportability_nodes,
@@ -2428,7 +2429,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
         expected_result_2 = {Z}
-        result_2 = get_conditioned_variables_in_ancestral_set(
+        result_2 = _get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X, X},
             ancestral_set_root_variable=Z @ -X,
             graph=figure_1_graph_no_transportability_nodes,
@@ -2441,7 +2442,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
         expected_result_3 = {X}
-        result_3 = get_conditioned_variables_in_ancestral_set(
+        result_3 = _get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X, X},
             ancestral_set_root_variable=X,
             graph=figure_1_graph_no_transportability_nodes,
@@ -2454,7 +2455,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
         expected_result_4 = set()
-        result_4 = get_conditioned_variables_in_ancestral_set(
+        result_4 = _get_conditioned_variables_in_ancestral_set(
             conditioned_variables={Z @ -X},
             ancestral_set_root_variable=X,
             graph=figure_1_graph_no_transportability_nodes,
@@ -2467,7 +2468,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
         expected_result_5 = set()
-        result_5 = get_conditioned_variables_in_ancestral_set(
+        result_5 = _get_conditioned_variables_in_ancestral_set(
             conditioned_variables={X},
             ancestral_set_root_variable=Z @ -X,
             graph=figure_1_graph_no_transportability_nodes,
@@ -2480,7 +2481,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
         expected_result_6 = {X}
-        result_6 = get_conditioned_variables_in_ancestral_set(
+        result_6 = _get_conditioned_variables_in_ancestral_set(
             conditioned_variables={X},
             ancestral_set_root_variable=X,
             graph=figure_1_graph_no_transportability_nodes,
@@ -2493,7 +2494,7 @@ class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
         expected_result_7 = set()
-        result_7 = get_conditioned_variables_in_ancestral_set(
+        result_7 = _get_conditioned_variables_in_ancestral_set(
             conditioned_variables={X},
             ancestral_set_root_variable=Y @ -X,
             graph=figure_1_graph_no_transportability_nodes,
@@ -2595,6 +2596,7 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
         self.assertSetEqual(expected_result_6, result_6)
 
 
+# TODO: Add additional tests after checking code coverage.
 class TestComputeAncestralComponentsFromAncestralSets(cases.GraphTestCase):
     """Test a function to combine ancestral sets if they share vertices or are joined by bidirected edges."""
 
@@ -2656,3 +2658,21 @@ class TestComputeAncestralComponentsFromAncestralSets(cases.GraphTestCase):
             graph=graph,
         )
         self.assertSetEqual(expected_result_4, result_4)
+
+
+# TODO: Add additional tests covering more complex scenarios.
+class TestGetAncestralComponents(cases.GraphTestCase):
+    """Test a function to compute ancestral components given a set of vertices and conditioned variables."""
+
+    def test_get_ancestral_components_1(self):
+        """First test of a function to compute ancestral components for a graph.
+
+        Source: Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        expected_result_1 = frozenset({frozenset({Y @ -X}), frozenset({Z @ -X, X})})
+        result_1 = _get_ancestral_components(
+            conditioned_variables=frozenset({X, Z @ -X}),
+            root_variables=frozenset({Y @ -X, Z @ -X, X}),
+            graph=figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_1, result_1)

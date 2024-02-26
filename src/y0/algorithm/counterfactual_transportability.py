@@ -35,7 +35,6 @@ __all__ = [
     "get_ancestors_of_counterfactual",
     "same_district",
     "is_counterfactual_factor_form",
-    "get_conditioned_variables_in_ancestral_set",
     "get_counterfactual_factors",
     "convert_to_counterfactual_factor_form",
     "do_counterfactual_factor_factorization",
@@ -1651,7 +1650,7 @@ def transport_unconditional_counterfactual_query(
         return (Zero(), None)  # as specified by the output for Algorithm 1 in [correa22a]_
 
 
-def get_conditioned_variables_in_ancestral_set(
+def _get_conditioned_variables_in_ancestral_set(
     *,
     conditioned_variables: set[Variable],
     ancestral_set_root_variable: Variable,
@@ -1718,7 +1717,7 @@ def _compute_ancestral_components_from_ancestral_sets(
     ancestral_sets: set[frozenset[Variable]],
     graph: NxMixedGraph,
 ) -> frozenset[Variable]:
-    r"""Compute a set of ancestral components corresponding to Definition 4.2 of [correa22a]_.
+    r"""Construct a set of ancestral components from ancestral sets following Definition 4.2 of [correa22a]_.
 
     Note: [correa22a]_ is silent regarding an algorithm for efficiently combining the input
         ancestral sets for this function. This implementation runs in time $O(V^{3})$, where $V$
@@ -1737,6 +1736,25 @@ def _compute_ancestral_components_from_ancestral_sets(
     raise NotImplementedError(
         "Unimplemented function: compute_ancestral_components_from_ancestral_sets"
     )
+
+
+def _get_ancestral_components(
+    *, conditioned_variables: set[Variable], root_variables: set[Variable], graph: NxMixedGraph
+) -> frozenset[frozenset[Variable]]:
+    r"""Compute a set of ancestral components corresponding to Definition 4.2 of [correa22a].
+
+    :param conditioned_variables: The set of variables $\mathbf{X_{\ast}}$ on which
+           a counterfactual query has been conditioned.
+    :param root_variables: The set of variables $\mathbf{W_{\ast}}$, such that
+          $\mathbf{X_{\ast}} \subseteq \mathbf{W_{\ast}}$, that we use to construct ancestral sets
+          for each variable in $\mathbf{W_{\ast}}$ and ancestral components from those sets.
+    :param graph: the relevant graph $\mathcal{G}$ (without intervening on any conditioned variables).
+    :returns: the sets $\mathbf{A}_{1},\mathbf{A}_{2},\ldots$ that form a partition over $An(\mathbf{W_{\ast}})$,
+           made of unions of the input ancestral sets. Two sets are combined via a union operation if they are
+           not disjoint or there exists a bidirected arrow in $\mathcal{G}$ connecting variables
+           in those sets. (Definition 4.2 of [correa22a]_.)
+    """
+    raise NotImplementedError("Unimplemented function: _get_ancestral_components")
 
 
 def ctf_tr() -> None:
