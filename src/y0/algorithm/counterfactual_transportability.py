@@ -41,8 +41,8 @@ __all__ = [
     "make_selection_diagram",
     "counterfactual_factors_are_transportable",
     "transport_district_intervening_on_parents",
+    "transport_conditional_counterfactual_query",
     "transport_unconditional_counterfactual_query",
-    "ctf_tr",
     # TODO add functions/classes/variables you want to appear in the docs and be exposed to the user in this list
     #  Run tox -e docs then `open docs/build/html/index.html` to see docs
 ]
@@ -634,7 +634,6 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
     return ancestors_of_counterfactual_variable
 
 
-# Deprecated.
 def minimize(*, variables: Iterable[Variable], graph: NxMixedGraph) -> set[Variable]:
     r"""Minimize a set of counterfactual variables.
 
@@ -1678,7 +1677,17 @@ def _get_conditioned_variables_in_ancestral_set(
     :returns: an expression for $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$,
            that is, the conditioned variables that are ancestors of the input root variable $W_{\mathbf{t}}$.
     """
-    raise NotImplementedError("Unimplemented function: conditioned_variables_in_ancestral_set")
+    minimized_conditioned_variables: set[Variable] = minimize(
+        variables=conditioned_variables, graph=graph
+    )
+    ancestral_set: set[Variable] = get_ancestors_of_counterfactual(
+        ancestral_set_root_variable, graph
+    )
+    conditioned_variables_in_ancestral_set = {
+        variable.get_base()
+        for variable in minimized_conditioned_variables.intersection(ancestral_set)
+    }
+    return frozenset(conditioned_variables_in_ancestral_set)
 
 
 def _get_ancestral_set_after_intervening_on_conditioned_variables(
