@@ -44,12 +44,14 @@ from y0.algorithm.counterfactual_transportability import (
     minimize_event,
     same_district,
     simplify,
+    transport_conditional_counterfactual_query,
     transport_district_intervening_on_parents,
     transport_unconditional_counterfactual_query,
 )
 from y0.algorithm.transport import transport_variable
 from y0.dsl import (
     PP,
+    TARGET_DOMAIN,
     W1,
     W2,
     W3,
@@ -75,18 +77,12 @@ from y0.graph import NxMixedGraph
 
 logger = logging.getLogger(__name__)
 
-# From [correa22a]_, Figure 1.
-figure_1_graph = NxMixedGraph.from_edges(
-    directed=[
-        (X, Z),
-        (Z, Y),
-        (X, Y),
-        (transport_variable(Y), Y),
-    ],
-    undirected=[(Z, X)],
-)
 
 # [correa22a]_, Figure 1, without the transportability node.
+# (This graph represents the target domain, so there is no
+# transportability node. Figure 1 may include a transportability
+# node because at that point in the paper, the notion of target
+# and source domains had not been introduced.)
 figure_1_graph_no_transportability_nodes = NxMixedGraph.from_edges(
     directed=[
         (X, Z),
@@ -94,6 +90,20 @@ figure_1_graph_no_transportability_nodes = NxMixedGraph.from_edges(
         (X, Y),
     ],
     undirected=[(Z, X)],
+)
+figure_1_graph_no_transportability_nodes_topo = list(
+    figure_1_graph_no_transportability_nodes.topological_sort()
+)
+
+# The graph for Domain 1 as described by the text of Example 1.1 and
+# Figure 1 of [correa22a]_. The graph isn't in any figures in the
+# paper, but a reader can infer it.
+figure_1_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
+    directed=[(X, Z), (X, Y), (transport_variable(Y), Y)],
+    undirected=[],
+)
+figure_1_graph_domain_1_with_interventions_topo = list(
+    figure_1_graph_domain_1_with_interventions.topological_sort()
 )
 
 # From [correa22a]_, Figure 2a.
@@ -2224,10 +2234,12 @@ class TestCounterfactualFactorIsInconsistent(cases.GraphTestCase):
         self.assertTrue(_counterfactual_factor_is_inconsistent(event=event))
 
 
-class TestCtfTrU(cases.GraphTestCase):
+# TODO: We need a test case that returns a probability of Zero() if the Simplify() algorithm
+# returns a probability 0 during transport_unconditional_counterfactual_query().
+class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     """Test [correa22a]_'s unconditional counterfactual transportability algorithm (Algorithm 2)."""
 
-    def test_ctf_tru_1(self):
+    def test_transport_unconditional_counterfactual_query_1(self):
         """Test of Algorithm 2 of [correa22a]_.
 
         Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
@@ -2259,7 +2271,7 @@ class TestCtfTrU(cases.GraphTestCase):
         logger.warning("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result, result_expr)
 
-    def test_ctf_tru_2(self):
+    def test_transport_unconditional_counterfactual_query_2(self):
         """Test of Algorithm 2 of [correa22a]_.
 
         Checking Line 3: an inconsistent counterfactual factor.
@@ -2291,7 +2303,7 @@ class TestCtfTrU(cases.GraphTestCase):
         self.assertIsNone(result)
         # self.assert_expr_equal(expected_result, result)
 
-    def test_ctf_tru_line_2_1(self):
+    def test_transport_unconditional_counterfactual_query_line_2_1(self):
         """Test of Line 2 of Algorithm 2 of [correa22a]_.
 
         Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
@@ -2312,7 +2324,7 @@ class TestCtfTrU(cases.GraphTestCase):
             expected_counterfactual_factors_with_values, counterfactual_factors_with_values
         )
 
-    def test_ctf_tru_line_2_2(self):
+    def test_transport_unconditional_counterfactual_query_line_2_2(self):
         """Second test of Line 2 of Algorithm 2 of [correa22a]_.
 
         This tests whether we properly get W @-X1 and W @ -X2 as two separate ancestors, and then
@@ -2358,7 +2370,7 @@ class TestCtfTrU(cases.GraphTestCase):
 
     # set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
 
-    def test_ctf_tru_line_2_3(self):
+    def test_transport_unconditional_counterfactual_query_line_2_3(self):
         """Second test of Line 2 of Algorithm 2 of [correa22a]_.
 
         This tests whether we properly get W @ -X1 and W @ -X2 from two different variables but
@@ -2676,3 +2688,45 @@ class TestGetAncestralComponents(cases.GraphTestCase):
             graph=figure_1_graph_no_transportability_nodes,
         )
         self.assertSetEqual(expected_result_1, result_1)
+
+
+# TODO: We need a test case that returns a probability of Zero() if the Simplify() algorithm
+# returns a probability 0 during transport_unconditional_counterfactual_query().
+class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
+    """Test a function to transport a conditional counterfactual query (Algorithm 3 of [correa22a]_)."""
+
+    def test_transport_conditional_counterfactual_query(self):
+        """First test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
+
+        Source: Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        outcomes = [(Y @ -X, -Y)]
+        conditions = [(Z @ -X, -Z), (X, +X)]
+        target_domain_graph = figure_1_graph_no_transportability_nodes
+        domain_graphs = [
+            (
+                figure_1_graph_no_transportability_nodes,
+                figure_1_graph_no_transportability_nodes_topo,
+            ),
+            (
+                figure_1_graph_domain_1_with_interventions,
+                figure_1_graph_domain_1_with_interventions_topo,
+            ),
+        ]
+        domain_data = [(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))]
+        expected_result_expr, expected_result_event = (
+            PP[TARGET_DOMAIN](Y | X, Z),
+            [(Y, -Y), (X, +X), (Z, -Z)],
+        )
+
+        result_expr, result_event = transport_conditional_counterfactual_query(
+            outcomes=outcomes,
+            conditions=conditions,
+            target_domain_graph=target_domain_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        logger.warning("Result_expr = " + result_expr.to_latex())
+        logger.warning("Result_event = " + str(result_event))
+        self.assert_expr_equal(expected_result_expr, result_expr)
+        self.assertCountEqual(expected_result_event, result_event)

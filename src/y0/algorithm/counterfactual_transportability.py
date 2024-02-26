@@ -1505,15 +1505,14 @@ def transport_unconditional_counterfactual_query(
         values for Y_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
     :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
-           contains a selection diagram for that domain. In particular the graph contains
-           transportability nodes for every vertex that is distributed differently in the
-           domain in question than in the target domain (e.g., Vertex Z in Figure 3(a)
-           in [correa22a]_), and it is a causal diagram such that its edges represent
-           the state of the graph after a regime corresponding to domain $k$ has been
-           applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_). The second
-           element of the tuple is a topologically sorted list of all the vertices in
-           the corresponding graph that are not transportability nodes. (Nodes that
-           have no parents come first in such lists.)
+           contains a selection diagram for that domain and a topologically sorted list
+           of all the vertices in the corresponding graph that are not transportability
+           nodes. (Nodes that have no parents come first in such lists.) The selection
+           diagram contains a transportability node for every vertex that is distributed
+           differently in the domain in question than in the target domain (e.g., Vertex
+           Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such that its edges
+           represent the state of the graph after a regime corresponding to domain $k$ has
+           been applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
     :param target_domain_graph: a graph for the target domain.
     :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
            $K$ tuples, one for each of the $K$ domains except for the target domain.
@@ -1757,6 +1756,39 @@ def _get_ancestral_components(
     raise NotImplementedError("Unimplemented function: _get_ancestral_components")
 
 
-def ctf_tr() -> None:
-    """Implement the ctfTR algorithm from [correa22a]_ (Algorithm 3)."""
-    raise NotImplementedError("Unimplemented function: ctfTR")
+def transport_conditional_counterfactual_query(
+    *,
+    outcomes: list[tuple[Variable, Intervention]],
+    conditions: list[tuple[Variable, Intervention]],
+    target_domain_graph: NxMixedGraph,
+    domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
+    domain_data: list[tuple[Collection[Variable], Expression]],
+) -> tuple[Expression, list[tuple[Variable, Intervention]] | None] | None:
+    r"""Implement the ctfTR algorithm from [correa22a]_ (Algorithm 3).
+
+    :param outcomes:
+        "Y_*, a set of counterfactual variables in V and y_* a set of
+        values for Y_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param conditions:
+        "X_*, a set of counterfactual variables in V and x_* a set of
+        values for X_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
+           contains a selection diagram for that domain and a topologically sorted list
+           of all the vertices in the corresponding graph that are not transportability
+           nodes. (Nodes that have no parents come first in such lists.) The selection
+           diagram contains a transportability node for every vertex that is distributed
+           differently in the domain in question than in the target domain (e.g., Vertex
+           Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such that its edges
+           represent the state of the graph after a regime corresponding to domain $k$ has
+           been applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
+    :param target_domain_graph: a graph for the target domain.
+    :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
+           $K$ tuples, one for each of the $K$ domains except for the target domain.
+           Each tuple contains a set of variables corresponding to
+           $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the probability distribution
+           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+    :returns: an expression for $P^{\ast}(\mathbf{Y_{\ast}}=\mathbf{y_{\ast}})$.
+    """
+    raise NotImplementedError("Unimplemented function: transport_conditional_counterfactual_query")
