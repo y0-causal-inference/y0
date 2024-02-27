@@ -484,7 +484,7 @@ class TestSimplify(cases.GraphTestCase):
     #                       "That should not occur. Check your inputs.")
     #         B. Also trigger the equivalent line checking the dictionary containing
     #            variable-to-value mappings for variables with reflexive interventions.
-    #       5. Test _reduce_reflexive_counterfactual_variables_to_interventions()
+    #       x 5. Test _reduce_reflexive_counterfactual_variables_to_interventions()
     #            for a case in which a variable, counterfactual or otherwise, has a
     #            value of None.
     def test_inconsistent_1(self):
@@ -559,6 +559,24 @@ class TestSimplify(cases.GraphTestCase):
             _reduce_reflexive_counterfactual_variables_to_interventions,
             variables=reflexive_variable_to_value_mappings_3,
         )
+        # Here we test the case where a variable has a value of None.
+        reflexive_variable_to_value_mappings_4 = defaultdict(set)
+        reflexive_variable_to_value_mappings_4[Y @ -Y].add(+Y)
+        reflexive_variable_to_value_mappings_4[Y].add(None)
+        result_dict_4 = _reduce_reflexive_counterfactual_variables_to_interventions(
+            reflexive_variable_to_value_mappings_4
+        )
+        assert Y in result_dict_4
+        self.assertSetEqual(result_dict_4[Y], {+Y, None})
+        # Here we test the case where a counterfactual variable has a value of None.
+        reflexive_variable_to_value_mappings_5 = defaultdict(set)
+        reflexive_variable_to_value_mappings_5[Y @ -Y].add(None)
+        reflexive_variable_to_value_mappings_5[Y].add(-Y)
+        result_dict_5 = _reduce_reflexive_counterfactual_variables_to_interventions(
+            reflexive_variable_to_value_mappings_5
+        )
+        assert Y in result_dict_5
+        self.assertSetEqual(result_dict_5[Y], {-Y, None})
 
     def test_remove_repeated_variables_and_values(self):
         """Test removing repeated occurrences of variables and associated values in an event.
