@@ -53,8 +53,8 @@ logger = logging.getLogger(__name__)
 def _any_variables_with_inconsistent_values(
     # variable_to_value_mappings: DefaultDict[Variable, set[Intervention]]
     *,
-    nonreflexive_variable_to_value_mappings: DefaultDict[Variable, set[Intervention]],
-    reflexive_variable_to_value_mappings: DefaultDict[Variable, set[Intervention]],
+    nonreflexive_variable_to_value_mappings: DefaultDict[Variable, set[Intervention | None]],
+    reflexive_variable_to_value_mappings: DefaultDict[Variable, set[Intervention | None]],
 ) -> bool:
     r"""Check for variables with inconsistent values following Line 2 of Algorithm 1 in [correa_22a]_."""
     # Part 1 of Line 2:
@@ -62,11 +62,28 @@ def _any_variables_with_inconsistent_values(
     # two or more different values in  $\mathbf{y_\ast}$ **then return** 0.
     # Note this definition has to do with counterfactual values, and is different than
     # the "inconsistent counterfactual factor" definition in Definition 4.1 of [correa22a]_.
+    if any(
+        len(value_set) > 1 and None in value_set
+        for value_set in nonreflexive_variable_to_value_mappings.values()
+    ):
+        raise TypeError(
+            "In _any_variables_with_inconsistent values: a variable lacking interventions on itself "
+            + "has an assigned value and also a value of None. That should not occur. Check your inputs."
+        )
+
     if any(len(value_set) > 1 for value_set in nonreflexive_variable_to_value_mappings.values()):
         return True
 
     # Part 2 of Line 2:
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$ **then return** 0.
+    if any(
+        len(value_set) > 1 and None in value_set
+        for value_set in reflexive_variable_to_value_mappings.values()
+    ):
+        raise TypeError(
+            "In _any_variables_with_inconsistent values: a variable containing interventions on itself "
+            + "has an assigned value and also a value of None. That should not occur. Check your inputs."
+        )
     return any(
         (
             not isinstance(variable, CounterfactualVariable)
@@ -276,8 +293,8 @@ def is_consistent(
 
 
 def _remove_repeated_variables_and_values(
-    *, event: list[tuple[Variable, Intervention]]
-) -> defaultdict[Variable, set[Intervention]]:
+    *, event: list[tuple[Variable, Intervention | None]]
+) -> defaultdict[Variable, set[Intervention | None]]:
     r"""Implement the first half of Line 3 of the SIMPLIFY algorithm from [correa22a]_.
 
     The implementation is as simple as creating a dictionary. Adding variables to
@@ -295,15 +312,15 @@ def _remove_repeated_variables_and_values(
     :returns:
         A dictionary mapping the event variables to all values associated with each variable in the event.
     """
-    variable_to_value_mappings: DefaultDict[Variable, set[Intervention]] = defaultdict(set)
-    for variable, intervention in event:
-        variable_to_value_mappings[variable].add(intervention)
+    variable_to_value_mappings: DefaultDict[Variable, set[Intervention | None]] = defaultdict(set)
+    for variable, value in event:
+        variable_to_value_mappings[variable].add(value)
     return variable_to_value_mappings
 
 
 def _split_event_by_reflexivity(
-    event: list[tuple[Variable, Intervention]]
-) -> tuple[list[tuple[Variable, Intervention]], list[tuple[Variable, Intervention]]]:
+    event: list[tuple[Variable, Intervention | None]]
+) -> tuple[list[tuple[Variable, Intervention | None]], list[tuple[Variable, Intervention | None]]]:
     r"""Categorize variables in an event by reflexivity (i.e., whether they intervene on themselves).
 
     :param event:
@@ -318,7 +335,7 @@ def _split_event_by_reflexivity(
         of :math: $Y_{\mathbf{y} \in \mathbf{Y}_\ast$ and fall into the latter category.
     """
     # Y_y
-    reflexive_interventions_event: list[tuple[Variable, Intervention]] = [
+    reflexive_interventions_event: list[tuple[Variable, Intervention | None]] = [
         (variable, value)
         for variable, value in event
         if (
@@ -331,7 +348,7 @@ def _split_event_by_reflexivity(
         or not (isinstance(variable, CounterfactualVariable))
     ]
     # Y_x
-    nonreflexive_interventions_event: list[tuple[Variable, Intervention]] = [
+    nonreflexive_interventions_event: list[tuple[Variable, Intervention | None]] = [
         (variable, value)
         for variable, value in event
         if isinstance(variable, CounterfactualVariable)
@@ -359,8 +376,8 @@ def _split_event_by_reflexivity(
 
 
 def _reduce_reflexive_counterfactual_variables_to_interventions(
-    variables: defaultdict[Variable, set[Intervention]]
-) -> defaultdict[Variable, set[Intervention]]:
+    variables: defaultdict[Variable, set[Intervention | None]]
+) -> defaultdict[Variable, set[Intervention | None]]:
     r"""Simplify counterfactual variables intervening on themselves to Intervention objects with the same base.
 
     :param variables: A defaultdict mapping :math: $\mathbf{Y_\ast}$, a set of counterfactual variables in
@@ -373,7 +390,7 @@ def _reduce_reflexive_counterfactual_variables_to_interventions(
     :returns:
         A defaultdict mapping simple variables :math: $\mathbf{Y}$ to $\mathbf{y}$, a set of corresponding values.
     """
-    result_dict: DefaultDict[Variable, set[Intervention]] = defaultdict(set)
+    result_dict: DefaultDict[Variable, set[Intervention | None]] = defaultdict(set)
     for variable in variables:
         if not isinstance(variable, CounterfactualVariable):
             result_dict[variable].update(variables[variable])
@@ -399,8 +416,8 @@ def _reduce_reflexive_counterfactual_variables_to_interventions(
 
 
 def simplify(
-    *, event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
-) -> Optional[list[tuple[Variable, Intervention]]]:
+    *, event: list[tuple[Variable, Intervention | None]], graph: NxMixedGraph
+) -> Optional[list[tuple[Variable, Intervention | None]]]:
     r"""Run algorithm 1, the SIMPLIFY algorithm from [correa22a]_.
 
     Correa, Lee, and Bareinboim [correa22a]_ state that this algorithm should return "an interventionally
@@ -445,7 +462,9 @@ def simplify(
             "Improperly formatted inputs for simplify(): an event element is a tuple with length not equal to 2."
         )
     for variable, intervention in event:
-        if not isinstance(variable, Variable) or not isinstance(intervention, Intervention):
+        if not isinstance(variable, Variable) or not (
+            isinstance(intervention, Intervention) or intervention is None
+        ):
             raise TypeError(
                 "Improperly formatted inputs for simplify(): check input event element ("
                 + str(variable)
@@ -466,7 +485,9 @@ def simplify(
     # It's not enough to minimize the variables, we need to keep track of what values are associated with
     # the minimized variables. So we minimize the event.
     # minimized_variables: set[Variable] = minimize(variables={variable for variable, _ in event}, graph=graph)
-    minimized_event: list[tuple[Variable, Intervention]] = minimize_event(event=event, graph=graph)
+    minimized_event: list[tuple[Variable, Intervention | None]] = minimize_event(
+        event=event, graph=graph
+    )
     # logger.warning("In simplify: minimized_event = " + str(minimized_event))
 
     # Split the query into Y_x variables and Y_y ("reflexive") variables
@@ -479,9 +500,9 @@ def simplify(
     # :math: If there exists $Y_{\mathbf{X}} \in \mathbf{Y_\ast}$ with two consistent values in
     # $\mathbf{y_\ast} \cap Y_{\mathbf{X}}$ then remove repeated variables from
     # $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
-    minimized_nonreflexive_variable_to_value_mappings = _remove_repeated_variables_and_values(
-        event=nonreflexive_interventions_event
-    )
+    minimized_nonreflexive_variable_to_value_mappings: defaultdict[
+        Variable, set[Intervention | None]
+    ] = _remove_repeated_variables_and_values(event=nonreflexive_interventions_event)
     # Creating this dict partly addresses part 2 of Line 3:
     # :math: If there exists $Y_{y} \in \mathbf{Y_\ast}$ with
     # $\mathbf{y_\ast} \cap Y_{y} = y$ then remove repeated variables from
@@ -490,9 +511,9 @@ def simplify(
     # There is an exception: we don't yet handle the edge case that the CounterfactualVariable Y_y
     # and the Intervention Y, when observed as part of the same event, are considered repeated
     # variables after minimization has taken place.
-    minimized_reflexive_variable_to_value_mappings = _remove_repeated_variables_and_values(
-        event=reflexive_interventions_event
-    )
+    minimized_reflexive_variable_to_value_mappings: defaultdict[
+        Variable, set[Intervention | None]
+    ] = _remove_repeated_variables_and_values(event=reflexive_interventions_event)
 
     # logger.warning(
     #    "In simplify after part 1 of line 3: minimized_nonreflexive_variable_to_value_mappings = "
@@ -650,8 +671,8 @@ def minimize(*, variables: Iterable[Variable], graph: NxMixedGraph) -> set[Varia
 
 
 def minimize_event(
-    *, event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
-) -> list[tuple[Variable, Intervention]]:
+    *, event: list[tuple[Variable, Intervention | None]], graph: NxMixedGraph
+) -> list[tuple[Variable, Intervention | None]]:
     r"""Minimize a set of counterfactual variables wrapped into an event.
 
     Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
@@ -1312,7 +1333,7 @@ def transport_district_intervening_on_parents(
 
 
 def _transport_unconditional_counterfactual_query_line_2(
-    event: list[tuple[Variable, Intervention]], graph: NxMixedGraph
+    event: list[tuple[Variable, Intervention | None]], graph: NxMixedGraph
 ) -> tuple[
     set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
 ]:
@@ -1492,11 +1513,11 @@ def _counterfactual_factor_is_inconsistent(
 
 def transport_unconditional_counterfactual_query(
     *,
-    event: list[tuple[Variable, Intervention]],
+    event: list[tuple[Variable, Intervention | None]],
     target_domain_graph: NxMixedGraph,
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     domain_data: list[tuple[Collection[Variable], Expression]],
-) -> tuple[Expression, list[tuple[Variable, Intervention]] | None] | None:
+) -> tuple[Expression, list[tuple[Variable, Intervention | None]] | None] | None:
     r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
 
     :param event:
@@ -1522,7 +1543,7 @@ def transport_unconditional_counterfactual_query(
     """
     logger.warning("In transport_unconditional_counterfactual_query: input event = " + str(event))
     # Line 1
-    simplified_event: list[tuple[Variable, Intervention]] | None = simplify(
+    simplified_event: list[tuple[Variable, Intervention | None]] | None = simplify(
         event=event, graph=target_domain_graph
     )
     logger.warning(

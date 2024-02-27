@@ -473,7 +473,20 @@ class TestSimplify(cases.GraphTestCase):
     #       2. Take the line 2 and line 3 tests and run them through the
     #           simplify() function in addition to the separate functions
     #           for lines 2 and 3.
-
+    #       3. Test this algorithm and the functions it calls for events
+    #           with values of None assigned to variables.
+    #       4. A. Trigger this line in _any_variables_with_inconsistent_values():
+    #             if any(len(value_set) > 1 and None in value_set for value_set in \
+    #                nonreflexive_variable_to_value_mappings.values()):
+    #                raise TypeError("In _any_variables_with_inconsistent values: "+\
+    #                       " a variable lacking interventions on itself "+\
+    #                       "has an assigned value and also a value of None. "+\
+    #                       "That should not occur. Check your inputs.")
+    #         B. Also trigger the equivalent line checking the dictionary containing
+    #            variable-to-value mappings for variables with reflexive interventions.
+    #       5. Test _reduce_reflexive_counterfactual_variables_to_interventions()
+    #            for a case in which a variable, counterfactual or otherwise, has a
+    #            value of None.
     def test_inconsistent_1(self):
         """Test simplifying an inconsistent event.
 
@@ -2234,8 +2247,13 @@ class TestCounterfactualFactorIsInconsistent(cases.GraphTestCase):
         self.assertTrue(_counterfactual_factor_is_inconsistent(event=event))
 
 
-# TODO: We need a test case that returns a probability of Zero() if the Simplify() algorithm
-# returns a probability 0 during transport_unconditional_counterfactual_query().
+# TODO: 1. We need a test case that returns a probability of Zero() if the Simplify() algorithm
+#          returns a probability 0 during transport_unconditional_counterfactual_query().
+#       2. We need to test _transport_unconditional_counterfactual_query_line_2() for an input
+#          event containing a variable that already has a value of None. This represents input
+#          values for $\mathbf{y_{\ast}}$ corresponding to variables in $\mathbf{d_{\ast}}$ but
+#          not $\mathbf{y_{\ast}}$ or $\mathbf{x_{\ast}}$ processed in Algorithm 3,
+#          transport_conditional_counterfactual_query.
 class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     """Test [correa22a]_'s unconditional counterfactual transportability algorithm (Algorithm 2)."""
 
