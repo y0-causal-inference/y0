@@ -2671,6 +2671,34 @@ class TestComputeAncestralComponentsFromAncestralSets(cases.GraphTestCase):
         )
         self.assertSetEqual(expected_result_4, result_4)
 
+    def test_compute_ancestral_components_from_ancestral_sets_5(self):
+        """Fifth test of a function to combine ancestral sets if they share vertices or are joined by bidirected edges.
+
+        Source: Example 1.1 of [correa22a]_, modified to include ancestral sets that are not disjoint and
+           bidirected edges joining two ancestral sets.
+        """
+        expected_result_5 = frozenset({frozenset({Y @ -X, Y, Z @ -X, X})})
+        result_5 = _compute_ancestral_components_from_ancestral_sets(
+            ancestral_sets=frozenset({frozenset({X, Y}), frozenset({Z @ -X}), frozenset({Y @ -X})}),
+            graph=figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_5, result_5)
+
+    def test_compute_ancestral_components_from_ancestral_sets_6(self):
+        """Sixth test of a function to combine ancestral sets if they share vertices or are joined by bidirected edges.
+
+        Source: Example 1.1 of [correa22a]_, modified to include ancestral sets that are not disjoint and
+           bidirected edges joining two ancestral sets.
+        """
+        expected_result_6 = frozenset({frozenset({Y @ -X, Y @ -Z, Z @ -X, X})})
+        result_6 = _compute_ancestral_components_from_ancestral_sets(
+            ancestral_sets=frozenset(
+                {frozenset({X, Y @ -Z}), frozenset({Z @ -X}), frozenset({Y @ -X})}
+            ),
+            graph=figure_1_graph_no_transportability_nodes,
+        )
+        self.assertSetEqual(expected_result_6, result_6)
+
 
 # TODO: Add additional tests covering more complex scenarios.
 class TestGetAncestralComponents(cases.GraphTestCase):
