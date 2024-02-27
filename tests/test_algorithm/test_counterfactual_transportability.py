@@ -475,14 +475,14 @@ class TestSimplify(cases.GraphTestCase):
     #           for lines 2 and 3.
     #       3. Test this algorithm and the functions it calls for events
     #           with values of None assigned to variables.
-    #       4. A. Trigger this line in _any_variables_with_inconsistent_values():
+    #       x 4. A. Trigger this line in _any_variables_with_inconsistent_values():
     #             if any(len(value_set) > 1 and None in value_set for value_set in \
     #                nonreflexive_variable_to_value_mappings.values()):
     #                raise TypeError("In _any_variables_with_inconsistent values: "+\
     #                       " a variable lacking interventions on itself "+\
     #                       "has an assigned value and also a value of None. "+\
     #                       "That should not occur. Check your inputs.")
-    #         B. Also trigger the equivalent line checking the dictionary containing
+    #           B. Also trigger the equivalent line checking the dictionary containing
     #            variable-to-value mappings for variables with reflexive interventions.
     #       x 5. Test _reduce_reflexive_counterfactual_variables_to_interventions()
     #            for a case in which a variable, counterfactual or otherwise, has a
@@ -753,6 +753,62 @@ class TestSimplify(cases.GraphTestCase):
             )
         )
         self.assertIsNone(simplify(event=event, graph=figure_2a_graph))
+
+    def test_line_2_8(self):
+        """Eighth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls.
+
+        We're checking that an error gets thrown when a nonreflexive intervention has a value that is None
+        and also a value that is something else.
+        """
+        reflexive_variable_to_value_mappings = defaultdict(set)
+        reflexive_variable_to_value_mappings[Y @ -Y].add(-Y)
+
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
+        nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
+        nonreflexive_variable_to_value_mappings[Y @ -X].add(None)
+
+        logger.warning(
+            "In test_line_2_1: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
+        )
+        logger.warning(
+            "In test_line_2_1: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
+        )
+        self.assertRaises(
+            TypeError,
+            _any_variables_with_inconsistent_values,
+            nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+            reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
+        )
+
+    def test_line_2_9(self):
+        """Ninth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls.
+
+        We're checking that an error gets thrown when a reflexive intervention has a value that is None
+        and also a value that is something else.
+        """
+        reflexive_variable_to_value_mappings = defaultdict(set)
+        reflexive_variable_to_value_mappings[Y @ -Y].add(-Y)
+        reflexive_variable_to_value_mappings[Y @ -Y].add(None)
+
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
+        nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
+
+        logger.warning(
+            "In test_line_2_1: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
+        )
+        logger.warning(
+            "In test_line_2_1: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
+        )
+        self.assertRaises(
+            TypeError,
+            _any_variables_with_inconsistent_values,
+            nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+            reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
+        )
 
     def test_redundant_1(self):
         """First test for simplifying an event with redundant subscripts. Source: RJC's mind."""
