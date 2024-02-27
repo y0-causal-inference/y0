@@ -1777,8 +1777,8 @@ def _compute_ancestral_components_from_ancestral_sets(
     # logger.warning("Ancestral components: " + str(ancestral_components))
 
     # Allows us to fix our accounting for vertex_to_ancestral_set_mappings when we place a variable in a new,
-    # merged ancestral set after already visiting it, without kicking the running time up to O(V^4) by looping
-    # through again.
+    # merged ancestral set after already having visited it, without kicking the running time up to O(V^4)
+    # by looping through the vertices again.
     visited_vertices = set()
     # Combine ancestral sets that are not disjoint. O(V^3), where V is the number of vertices
     for v in vertex_to_ancestral_set_mappings.keys():
@@ -1967,7 +1967,18 @@ def _get_ancestral_components(
            not disjoint or there exists a bidirected arrow in $\mathcal{G}$ connecting variables
            in those sets. (Definition 4.2 of [correa22a]_.)
     """
-    raise NotImplementedError("Unimplemented function: _get_ancestral_components")
+    ancestral_sets: set[frozenset[Variable]] = {
+        _get_ancestral_set_after_intervening_on_conditioned_variables(
+            conditioned_variables=conditioned_variables, ancestral_set_root_variable=v, graph=graph
+        )
+        for v in root_variables
+    }
+    ancestral_components: frozenset[
+        frozenset[Variable]
+    ] = _compute_ancestral_components_from_ancestral_sets(
+        ancestral_sets=ancestral_sets, graph=graph
+    )
+    return ancestral_components
 
 
 def transport_conditional_counterfactual_query(
