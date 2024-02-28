@@ -492,7 +492,7 @@ class TestSimplify(cases.GraphTestCase):
     #            value of None.
     #         6. Test _split_event_by_reflexivity() for cases in which variables have
     #            values of None.
-    #         7. Test that _remove_repeated_variables_and_values() removes None as a
+    #       x 7. Test that _remove_repeated_variables_and_values() removes None as a
     #            duplicate value for a variable that also has an actual value.
     def test_inconsistent_1(self):
         """Test simplifying an inconsistent event.
@@ -530,6 +530,11 @@ class TestSimplify(cases.GraphTestCase):
         reflexive_event_3, nonreflexive_event_3 = _split_event_by_reflexivity(event=[(Y @ -Y, -Y)])
         self.assertCountEqual(reflexive_event_3, [(Y @ -Y, -Y)])
         self.assertCountEqual(nonreflexive_event_3, [])
+        reflexive_event_4, nonreflexive_event_4 = _split_event_by_reflexivity(
+            event=[(Y @ -X, -Y), (Y @ -X, None), (Y @ -Y, None)]
+        )
+        self.assertCountEqual(reflexive_event_4, [(Y @ -Y, None)])
+        self.assertCountEqual(nonreflexive_event_4, [(Y @ -X, -Y), (Y @ -X, None)])
 
     def test_reduce_reflexive_counterfactual_variables_to_interventions_part_1(self):
         """Test reducing counterfactual variables that intervene on themselves to simpler Intervention objects.
