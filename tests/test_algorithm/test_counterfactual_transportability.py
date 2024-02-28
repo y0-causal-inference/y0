@@ -490,7 +490,7 @@ class TestSimplify(cases.GraphTestCase):
     #       x 5. Test _reduce_reflexive_counterfactual_variables_to_interventions()
     #            for a case in which a variable, counterfactual or otherwise, has a
     #            value of None.
-    #         6. Test _split_event_by_reflexivity() for cases in which variables have
+    #       x 6. Test _split_event_by_reflexivity() for cases in which variables have
     #            values of None.
     #       x 7. Test that _remove_repeated_variables_and_values() removes None as a
     #            duplicate value for a variable that also has an actual value.
@@ -1188,6 +1188,18 @@ class TestMinimizeEvent(cases.GraphTestCase):
         self.assertCountEqual(
             minimize_event_test7_out,
             minimize_event(event=minimize_event_test7_in, graph=self.minimize_graph_1),
+        )
+
+    def test_minimize_event_8(self):
+        """Test the minimize_event function for variables with a value of None.
+
+        Source: out of RJC's head.
+        """
+        minimize_event_test8_in = [(Y @ (-W, -X, -Z), None), (W @ (-X, -Z), -W)]
+        minimize_event_test8_out = [(Y @ -W, None), (W @ -X, -W)]
+        self.assertCountEqual(
+            minimize_event_test8_out,
+            frozenset(minimize_event(event=minimize_event_test8_in, graph=self.minimize_graph_2)),
         )
 
 
