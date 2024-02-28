@@ -2564,7 +2564,7 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     # set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
 
     def test_transport_unconditional_counterfactual_query_line_2_3(self):
-        """Second test of Line 2 of Algorithm 2 of [correa22a]_.
+        """Third test of Line 2 of Algorithm 2 of [correa22a]_.
 
         This tests whether we properly get W @ -X1 and W @ -X2 from two different variables but
         represent it as one ancestor, which we then merge into one counterfactual factor W @ -X2.
@@ -2597,6 +2597,54 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
             {(Z @ -W, -Z)},
             {(X1, None)},
             {(X2, None)},
+        ]
+        (
+            outcome_ancestors_with_values,
+            counterfactual_factors_with_values,
+        ) = _transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
+        self.assertSetEqual(expected_ancestors_with_values, outcome_ancestors_with_values)
+        self.assertCountEqual(
+            expected_counterfactual_factors_with_values, counterfactual_factors_with_values
+        )
+
+    def test_transport_unconditional_counterfactual_query_line_2_4(self):
+        """Fourth test of Line 2 of Algorithm 2 of [correa22a]_.
+
+        This tests if the function properly parses input counterfactual variables with
+        values of None.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        event = [(Y @ -X, None), (X, -X)]
+        target_domain_graph = figure_2a_graph
+        expected_ancestors_with_values = {(Y @ -X, None), (W @ -X, None), (X, -X), (Z, None)}
+        expected_counterfactual_factors_with_values = [
+            {(Y @ [-X, -W, -Z], None), (W @ -X, None)},
+            {(X @ -Z, -X), (Z, None)},
+        ]
+        (
+            outcome_ancestors_with_values,
+            counterfactual_factors_with_values,
+        ) = _transport_unconditional_counterfactual_query_line_2(event, target_domain_graph)
+        self.assertSetEqual(expected_ancestors_with_values, outcome_ancestors_with_values)
+        self.assertCountEqual(
+            expected_counterfactual_factors_with_values, counterfactual_factors_with_values
+        )
+
+    def test_transport_unconditional_counterfactual_query_line_2_5(self):
+        """Fifth test of Line 2 of Algorithm 2 of [correa22a]_.
+
+        This tests if the function properly parses input variables with
+        values of None.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        event = [(Y @ -X, -Y), (X, None)]
+        target_domain_graph = figure_2a_graph
+        expected_ancestors_with_values = {(Y @ -X, -Y), (W @ -X, None), (X, None), (Z, None)}
+        expected_counterfactual_factors_with_values = [
+            {(Y @ [-X, -W, -Z], -Y), (W @ -X, None)},
+            {(X @ -Z, None), (Z, None)},
         ]
         (
             outcome_ancestors_with_values,
