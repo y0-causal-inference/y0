@@ -60,6 +60,7 @@ from y0.dsl import (
     X1,
     X2,
     CounterfactualVariable,
+    Fraction,
     Intervention,
     P,
     Pi1,
@@ -3049,8 +3050,9 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             ),
         ]
         domain_data = [(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))]
+        # DSL isn't smart enough to replace the denominator with 1
         expected_result_expr, expected_result_event = (
-            PP[TARGET_DOMAIN](Y | X, Z),
+            Fraction(PP[TARGET_DOMAIN](Y | X, Z), Sum.safe(PP[TARGET_DOMAIN](Y | X, Z), {Y})),
             [(Y, -Y), (X, +X), (Z, -Z)],
         )
 
@@ -3061,6 +3063,8 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             domain_graphs=domain_graphs,
             domain_data=domain_data,
         )
+        logger.warning("expected_result_expr = " + expected_result_expr.to_latex())
+        logger.warning("expected_result_event = " + str(expected_result_event))
         logger.warning("Result_expr = " + result_expr.to_latex())
         logger.warning("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result_expr, result_expr)
