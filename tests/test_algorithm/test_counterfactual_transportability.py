@@ -473,7 +473,7 @@ class TestSimplify(cases.GraphTestCase):
     #       2. Take the line 2 and line 3 tests and run them through the
     #           simplify() function in addition to the separate functions
     #           for lines 2 and 3.
-    #       3. Test this algorithm and the functions it calls for events
+    #       x 3. Test this algorithm and the functions it calls for events
     #           with values of None assigned to variables.
     #       x 4. A. Trigger this line in _any_variables_with_inconsistent_values():
     #             if any(len(value_set) > 1 and None in value_set for value_set in \
@@ -965,14 +965,31 @@ class TestSimplify(cases.GraphTestCase):
         self.assertRaises(TypeError, simplify, event=event_4, graph=figure_2a_graph)
         self.assertRaises(TypeError, simplify, event=event_5, graph=figure_2a_graph)
 
-    def test_simplified_1(self):
-        """Fourth test for simplifying an event with redundant subscripts. Source: RJC's mind."""
-        event = [
+    def test_simplify_1(self):
+        """Test of the full simplify algorithm. Source: RJC's mind."""
+        event_1 = [
             (Y @ -X, -Y),
             (Y @ -Z, -Y),
         ]
         self.assertCountEqual(
-            simplify(event=event, graph=figure_2a_graph), [(Y @ -Z, -Y), (Y @ -X, -Y)]
+            simplify(event=event_1, graph=figure_2a_graph), [(Y @ -Z, -Y), (Y @ -X, -Y)]
+        )
+        # Check that simplify() correctly processes None as a value.
+        event_2 = [
+            (Y @ -X, None),
+            (Y @ -Z, -Y),
+        ]
+        self.assertCountEqual(
+            simplify(event=event_2, graph=figure_2a_graph), [(Y @ -Z, -Y), (Y @ -X, None)]
+        )
+        # Check that simplify() gets rid of None as a value when it's redundant with another counterfactual variable.
+        event_3 = [
+            (Y @ -X, -Y),
+            (Y @ -X, None),
+            (Y @ -Z, -Y),
+        ]
+        self.assertCountEqual(
+            simplify(event=event_3, graph=figure_2a_graph), [(Y @ -Z, -Y), (Y @ -X, -Y)]
         )
 
     def test_simplify_y(self):
