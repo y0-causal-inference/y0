@@ -76,13 +76,10 @@ def _any_variables_with_inconsistent_values(
 
     # Part 2 of Line 2:
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$ **then return** 0.
-    if any(
-        len(value_set) > 1 and None in value_set
-        for value_set in reflexive_variable_to_value_mappings.values()
-    ):
+    if any(None in value_set for value_set in reflexive_variable_to_value_mappings.values()):
         raise TypeError(
             "In _any_variables_with_inconsistent values: a variable containing interventions on itself "
-            + "has an assigned value and also a value of None. That should not occur. Check your inputs."
+            + "has an assigned value of None. That should not occur. Check your inputs."
         )
     return any(
         (
@@ -305,6 +302,18 @@ def _remove_repeated_variables_and_values(
     two consistent values in  $\mathbf{y_\ast} \cap Y_x$ **then**
     remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
 
+    In this function we also handle a case that [correa22a]_ does not address. Some variables
+    passed in to Algorithm 2 of [correa22a]_ (transport_unconditional_counterfactual_query())
+    from Algorithm 3 of [correa22a]_ (transport_conditional_counterfactual_query())
+    may have values of None, because they were ancestors of a counterfactual when processed
+    in Algorithm 3 and not variables passed in to Algorithm 3 along with actual values.
+    Such variables may be redundant with variables passed in to Algorithm 2 for which values
+    are observed. Because a value of None in this context implies that the variable could
+    take any value, it is consistent with a specific value. Its intervention set is also
+    guaranteed to match the intervention set of its counterpart that has a specific value, because
+    all variables passed from Algorithm 3 to Algorithm 2 are in counterfactual factor form.
+    Therefore in this function, we want to treat the None value as consistent with a specific value.
+
     :param event:
         A tuple associating $\mathbf{Y_\ast}$, a set of counterfactual variables (or regular variables)
         in $\mathbf{V}$ with $\mathbf{y_\ast}$, a set of values for $\mathbf{Y_\ast}$. We encode the
@@ -315,6 +324,12 @@ def _remove_repeated_variables_and_values(
     variable_to_value_mappings: DefaultDict[Variable, set[Intervention | None]] = defaultdict(set)
     for variable, value in event:
         variable_to_value_mappings[variable].add(value)
+    for variable in variable_to_value_mappings.keys():
+        if (
+            len(variable_to_value_mappings[variable]) > 1
+            and None in variable_to_value_mappings[variable]
+        ):
+            variable_to_value_mappings[variable].remove(None)
     return variable_to_value_mappings
 
 
@@ -384,7 +399,7 @@ def _reduce_reflexive_counterfactual_variables_to_interventions(
         $\mathbf{V}$, to $\mathbf{y_\ast}$, a set of values for $\mathbf{Y_\ast}$. Each variable in
         $\mathbf{Y_\ast}$ is assumed to be either $Y_{y}$ \in $\mathbf{Y_\ast}$ or just $Y$ in $\mathbf{Y_\ast}$,
         where $Y$ is considered a special case of $Y_{y}$ because minimization has already taken place.
-        The $\mathbf{Y_\ast}$ variables are CounterfactualVariable objects, and the values as Intervention objects.
+        The $\mathbf{Y_\ast}$ variables are CounterfactualVariable objects, and the values are Intervention objects.
     :raises TypeError: a variable in the input dictionary has more than one intervention or its intervention is
         not itself.
     :returns:

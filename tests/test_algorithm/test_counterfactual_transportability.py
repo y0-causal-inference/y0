@@ -484,9 +484,16 @@ class TestSimplify(cases.GraphTestCase):
     #                       "That should not occur. Check your inputs.")
     #           B. Also trigger the equivalent line checking the dictionary containing
     #            variable-to-value mappings for variables with reflexive interventions.
+    #           C. Also make sure that _any_variables_with_inconsistent_values()
+    #            handles None values for reflexive and nonreflexive interventions
+    #            in the case where there are no conflicts with other intervention values.
     #       x 5. Test _reduce_reflexive_counterfactual_variables_to_interventions()
     #            for a case in which a variable, counterfactual or otherwise, has a
     #            value of None.
+    #         6. Test _split_event_by_reflexivity() for cases in which variables have
+    #            values of None.
+    #         7. Test that _remove_repeated_variables_and_values() removes None as a
+    #            duplicate value for a variable that also has an actual value.
     def test_inconsistent_1(self):
         """Test simplifying an inconsistent event.
 
@@ -585,8 +592,12 @@ class TestSimplify(cases.GraphTestCase):
         """
         event_1 = [(Y @ -Y, -Y), (Y @ -Y, -Y)]
         event_2 = [(X, -X), (X, -X)]
+        event_3 = [(X, -X), (X, None)]
+        event_4 = [(Y @ -Y, None), (Y @ -Y, -Y)]
         result_1 = _remove_repeated_variables_and_values(event=event_1)
         result_2 = _remove_repeated_variables_and_values(event=event_2)
+        result_3 = _remove_repeated_variables_and_values(event=event_3)
+        result_4 = _remove_repeated_variables_and_values(event=event_4)
         # @cthoyt: Just curious: is there a one-liner to assert that two dictionaries are equal?
         self.assertCountEqual([Y @ -Y], result_1.keys())
         self.assertEqual(len(result_1[Y @ -Y]), 1)
@@ -594,6 +605,12 @@ class TestSimplify(cases.GraphTestCase):
         self.assertCountEqual([X], result_2.keys())
         self.assertEqual(len(result_2[X]), 1)
         self.assertSetEqual(result_2[X], {-X})
+        self.assertCountEqual([X], result_3.keys())
+        self.assertEqual(len(result_3[X]), 1)
+        self.assertSetEqual(result_3[X], {-X})
+        self.assertCountEqual([Y @ -Y], result_4.keys())
+        self.assertEqual(len(result_4[Y @ -Y]), 1)
+        self.assertSetEqual(result_4[Y @ -Y], {-Y})
 
     def test_line_2_1(self):
         """Directly test the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
@@ -641,6 +658,28 @@ class TestSimplify(cases.GraphTestCase):
             )
         )
 
+    def test_line_2_10(self):
+        """Tenth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
+        reflexive_variable_to_value_mappings = defaultdict(set)
+
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
+        nonreflexive_variable_to_value_mappings[Y @ -X].add(None)
+        nonreflexive_variable_to_value_mappings[Y @ -X].add(None)
+        logger.warning(
+            "In test_line_2_10: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
+        )
+        logger.warning(
+            "In test_line_2_10: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
+        )
+        self.assertFalse(
+            _any_variables_with_inconsistent_values(
+                nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+                reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
+            )
+        )
+
     def test_line_2_3(self):
         """Third test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls."""
         reflexive_variable_to_value_mappings = defaultdict(set)
@@ -660,6 +699,32 @@ class TestSimplify(cases.GraphTestCase):
                 nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
                 reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
             )
+        )
+
+    def test_line_2_11(self):
+        """Eleventh test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls.
+
+        This one's a little subtle: Y@-Y with a value of None evaluates to Y with a value of -Y and also None,
+        which should raise an error instead of merely signalling that values are inconsistent and therefore
+        the expression has a probability of Zero.
+        """
+        reflexive_variable_to_value_mappings = defaultdict(set)
+        reflexive_variable_to_value_mappings[Y @ -Y].add(None)
+
+        nonreflexive_variable_to_value_mappings = defaultdict(set)
+        logger.warning(
+            "In test_line_2_11: nonreflexive_variable_to_value_mappings = "
+            + str(nonreflexive_variable_to_value_mappings)
+        )
+        logger.warning(
+            "In test_line_2_11: reflexive_variable_to_value_mappings = "
+            + str(reflexive_variable_to_value_mappings)
+        )
+        self.assertRaises(
+            TypeError,
+            _any_variables_with_inconsistent_values,
+            nonreflexive_variable_to_value_mappings=nonreflexive_variable_to_value_mappings,
+            reflexive_variable_to_value_mappings=reflexive_variable_to_value_mappings,
         )
 
     def test_line_2_4(self):
@@ -768,11 +833,11 @@ class TestSimplify(cases.GraphTestCase):
         nonreflexive_variable_to_value_mappings[Y @ -X].add(None)
 
         logger.warning(
-            "In test_line_2_1: nonreflexive_variable_to_value_mappings = "
+            "In test_line_2_8: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
         logger.warning(
-            "In test_line_2_1: reflexive_variable_to_value_mappings = "
+            "In test_line_2_8: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
         self.assertRaises(
@@ -796,11 +861,11 @@ class TestSimplify(cases.GraphTestCase):
         nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
 
         logger.warning(
-            "In test_line_2_1: nonreflexive_variable_to_value_mappings = "
+            "In test_line_2_9: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
         logger.warning(
-            "In test_line_2_1: reflexive_variable_to_value_mappings = "
+            "In test_line_2_9: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
         self.assertRaises(
@@ -2328,6 +2393,8 @@ class TestCounterfactualFactorIsInconsistent(cases.GraphTestCase):
 #          values for $\mathbf{y_{\ast}}$ corresponding to variables in $\mathbf{d_{\ast}}$ but
 #          not $\mathbf{y_{\ast}}$ or $\mathbf{x_{\ast}}$ processed in Algorithm 3,
 #          transport_conditional_counterfactual_query.
+#       3. Test a query containing a variable with a value of None and the same variable with an
+#          actual value (see test cases for TransportConditionalCounterfactualQuery for the reason).
 class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     """Test [correa22a]_'s unconditional counterfactual transportability algorithm (Algorithm 2)."""
 
@@ -2810,8 +2877,11 @@ class TestGetAncestralComponents(cases.GraphTestCase):
         self.assertSetEqual(expected_result_1, result_1)
 
 
-# TODO: We need a test case that returns a probability of Zero() if the Simplify() algorithm
-# returns a probability 0 during transport_unconditional_counterfactual_query().
+# TODO: 1. We need a test case that returns a probability of Zero() if the Simplify() algorithm
+#          returns a probability 0 during transport_unconditional_counterfactual_query().
+#       2. Test a case that sends a query to TransportUnconditionalCounterfactualQuery containing
+#          a variable with a value of None and the same variable with an actual value, due to its
+#          status as both an outcome variable and an ancestor of an outcome variable.
 class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
     """Test a function to transport a conditional counterfactual query (Algorithm 3 of [correa22a]_)."""
 
