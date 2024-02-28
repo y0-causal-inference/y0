@@ -2496,6 +2496,69 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
         self.assertIsNone(result)
         # self.assert_expr_equal(expected_result, result)
 
+    def test_transport_unconditional_counterfactual_query_3(self):
+        """Test of Algorithm 2 of [correa22a]_.
+
+        Checking that the algorithm properly processes variables with values of None.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        event = [(Y @ -X, -Y), (X, -X)]
+        domain_graphs = [
+            (
+                figure_2_graph_domain_1_with_interventions,
+                figure_2_graph_domain_1_with_interventions_topo,
+            ),
+            (
+                figure_2_graph_domain_2,
+                figure_2_graph_domain_2_topo,
+            ),
+        ]
+        domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
+        expected_result_part_1 = Product.safe(
+            [PP[Pi1](Y | W, X, Z), PP[Pi1](W | X), PP[Pi2](X | Z), PP[Pi2](Z)]
+        )
+        expected_result = Sum.safe(expected_result_part_1, [Z, W])
+        result_expr, result_event = transport_unconditional_counterfactual_query(
+            event=event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        logger.warning("Result_expr = " + result_expr.to_latex())
+        logger.warning("Result_event = " + str(result_event))
+        self.assert_expr_equal(expected_result, result_expr)
+        self.assertCountEqual(event, result_event)
+        # Test sending variables with a value of None into this algorithm
+        event_2 = [(Y @ -X, None), (X, -X)]
+        event_3 = [(Y @ -X, -Y), (X, None)]
+        event_4 = [(Y @ -X, -Y), (Y @ -X, None), (X, -X)]
+        result_expr_2, result_event_2 = transport_unconditional_counterfactual_query(
+            event=event_2,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        result_expr_3, result_event_3 = transport_unconditional_counterfactual_query(
+            event=event_3,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        result_expr_4, result_event_4 = transport_unconditional_counterfactual_query(
+            event=event_4,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assert_expr_equal(expected_result, result_expr_2)
+        self.assertCountEqual(event_2, result_event_2)
+        self.assert_expr_equal(expected_result, result_expr_3)
+        self.assertCountEqual(event_3, result_event_3)
+        self.assert_expr_equal(expected_result, result_expr_4)
+        # Simplify() should drop the redundant query variable that has a None value
+        self.assertCountEqual(event, result_event_4)
+
     def test_transport_unconditional_counterfactual_query_line_2_1(self):
         """Test of Line 2 of Algorithm 2 of [correa22a]_.
 

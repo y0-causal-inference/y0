@@ -65,6 +65,11 @@ def _any_variables_with_inconsistent_values(
     if any(
         len(value_set) > 1 and None in value_set
         for value_set in nonreflexive_variable_to_value_mappings.values()
+    ) or any(
+        None in reflexive_variable_to_value_mappings[key]
+        and not isinstance(key, CounterfactualVariable)
+        and len(reflexive_variable_to_value_mappings[key]) > 1
+        for key in reflexive_variable_to_value_mappings
     ):
         raise TypeError(
             "In _any_variables_with_inconsistent values: a variable lacking interventions on itself "
@@ -76,7 +81,11 @@ def _any_variables_with_inconsistent_values(
 
     # Part 2 of Line 2:
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$ **then return** 0.
-    if any(None in value_set for value_set in reflexive_variable_to_value_mappings.values()):
+    if any(
+        None in reflexive_variable_to_value_mappings[key]
+        and (isinstance(key, CounterfactualVariable))
+        for key in reflexive_variable_to_value_mappings
+    ):
         raise TypeError(
             "In _any_variables_with_inconsistent values: a variable containing interventions on itself "
             + "has an assigned value of None. That should not occur. Check your inputs."
@@ -95,7 +104,7 @@ def _any_variables_with_inconsistent_values(
         )
         for variable in reflexive_variable_to_value_mappings.keys()
     )
-    # Longer version of the above.
+    # Longer version of the above. (Old)
     # for variable in reflexive_variable_to_value_mappings.keys():  # Y_y, Y
     #    if not isinstance(variable, CounterfactualVariable):  # Y
     #        # TODO: Check with JZ that it's intended that $Y_y$ and $Y$ are the same.
