@@ -18,14 +18,14 @@ from networkx import NetworkXError
 
 from tests.test_algorithm import cases
 from y0.algorithm.counterfactual_transportability import (
+    _any_inconsistent_intervention_values,
+    _any_variable_values_inconsistent_with_interventions,
     _any_variables_with_inconsistent_values,
     _compute_ancestral_components_from_ancestral_sets,
     _counterfactual_factor_is_inconsistent,
     _get_ancestral_components,
     _get_ancestral_set_after_intervening_on_conditioned_variables,
     _get_conditioned_variables_in_ancestral_set,
-    _inconsistent_counterfactual_factor_variable_and_intervention_values,
-    _inconsistent_counterfactual_factor_variable_intervention_values,
     _no_intervention_variables_in_domain,
     _no_transportability_nodes_in_domain,
     _reduce_reflexive_counterfactual_variables_to_interventions,
@@ -39,7 +39,7 @@ from y0.algorithm.counterfactual_transportability import (
     get_ancestors_of_counterfactual,
     get_counterfactual_factors,
     is_counterfactual_factor_form,
-    make_selection_diagram,
+    make_selection_diagrams,
     minimize,
     minimize_event,
     same_district,
@@ -1064,16 +1064,16 @@ class TestIsCounterfactualFactorForm(unittest.TestCase):
         self.assertFalse(is_counterfactual_factor_form(event=event7, graph=figure_2a_graph))
 
 
-class TestMakeSelectionDiagram(unittest.TestCase):
-    """Test the results of creating a selection diagram that is an amalgamation of domain selection diagrams."""
+class TestMakeSelectionDiagrams(unittest.TestCase):
+    """Test the results of creating a list of domain selection diagrams."""
 
-    def test_make_selection_diagram(self):
+    def test_make_selection_diagrams(self):
         """Create Figure 2(b) of [correa22a]_ from Figures 3(a) and 3(b)."""
         selection_nodes = {1: {Z}, 2: {W}}
-        selection_diagram = make_selection_diagram(
+        selection_diagrams = make_selection_diagrams(
             selection_nodes=selection_nodes, graph=figure_2a_graph
         )
-        expected_selection_diagram = NxMixedGraph.from_edges(
+        expected_domain_1_graph = NxMixedGraph.from_edges(
             directed=[
                 (Z, X),
                 (Z, Y),
@@ -1084,16 +1084,29 @@ class TestMakeSelectionDiagram(unittest.TestCase):
                     transport_variable(Z),
                     Z,
                 ),
-                # How do we indicate with a superscript that this is from domain 1?
-                # cthoyt:The domain-variable association explicitly does not live in the graph.
-                (
-                    transport_variable(W),
-                    W,
-                ),  # How do we indicate with a superscript that this is from domain 2?
             ],
             undirected=[(Z, X), (W, Y)],
         )
-        self.assertEquals(selection_diagram, expected_selection_diagram)
+        expected_domain_2_graph = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (Z, Y),
+                (X, Y),
+                (X, W),
+                (W, Y),
+                (
+                    transport_variable(W),
+                    W,
+                ),
+            ],
+            undirected=[(Z, X), (W, Y)],
+        )
+        expected_selection_diagrams = [
+            (0, figure_2a_graph),
+            (1, expected_domain_1_graph),
+            (2, expected_domain_2_graph),
+        ]
+        self.assertCountEqual(selection_diagrams, expected_selection_diagrams)
 
 
 class TestMinimizeEvent(cases.GraphTestCase):
@@ -2233,57 +2246,47 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
     See Definition 4.1, part (i) from [correa22a]_.
     """
 
-    def test_inconsistent_counterfactual_factor_variable_and_intervention_values_1(self):
+    def test_any_variable_values_inconsistent_with_interventions_1(self):
         """Test #1 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
         Source: RJC
         """
         event = {(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)}
-        self.assertFalse(
-            _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
-        )
+        self.assertFalse(_any_variable_values_inconsistent_with_interventions(event=event))
 
-    def test_inconsistent_counterfactual_factor_variable_and_intervention_values_2(self):
+    def test_any_variable_values_inconsistent_with_interventions_2(self):
         """Test #2 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
         Source: RJC
         """
         event = {(Y @ [+X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)}
-        self.assertTrue(
-            _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
-        )
+        self.assertTrue(_any_variable_values_inconsistent_with_interventions(event=event))
 
-    def test_inconsistent_counterfactual_factor_variable_and_intervention_values_3(self):
+    def test_any_variable_values_inconsistent_with_interventions_3(self):
         """Test #3 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
         Source: RJC
         """
         event = {(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, +X), (Z, -Z)}
-        self.assertFalse(
-            _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
-        )
+        self.assertFalse(_any_variable_values_inconsistent_with_interventions(event=event))
 
-    def test_inconsistent_counterfactual_factor_variable_and_intervention_values_4(self):
+    def test_any_variable_values_inconsistent_with_interventions_4(self):
         """Test #4 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
         Source: RJC
         """
         event = {(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, +X), (Z, -Z)}
-        self.assertTrue(
-            _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
-        )
+        self.assertTrue(_any_variable_values_inconsistent_with_interventions(event=event))
 
-    def test_inconsistent_counterfactual_factor_variable_and_intervention_values_5(self):
+    def test_any_variable_values_inconsistent_with_interventions_5(self):
         """Test #5 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
         Source: RJC
         """
         event = {(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, -X), (Z, -Z)}
-        self.assertTrue(
-            _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
-        )
+        self.assertTrue(_any_variable_values_inconsistent_with_interventions(event=event))
 
-    def test_inconsistent_counterfactual_factor_variable_and_intervention_values_6(self):
+    def test_any_variable_values_inconsistent_with_interventions_6(self):
         """Test #6 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
         This is a case that is inconsistent according to Definition 4.1(ii)
@@ -2298,9 +2301,7 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
         #    undirected=[(Y, Z)],
         # )
         event = {(Y @ -X, -Y), (Z @ +X, -Z)}
-        self.assertFalse(
-            _inconsistent_counterfactual_factor_variable_and_intervention_values(event=event)
-        )
+        self.assertFalse(_any_variable_values_inconsistent_with_interventions(event=event))
 
 
 class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.GraphTestCase):
@@ -2309,47 +2310,39 @@ class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.Graph
     See Definition 4.1, part (ii) from [correa22a]_.
     """
 
-    def test_inconsistent_counterfactual_factor_variable_intervention_values_1(self):
+    def test_any_inconsistent_intervention_values_1(self):
         """Test #1 for whether a counterfactual factor has any inconsistent intervention values.
 
         Source: RJC
         """
         event = {(Y @ [-X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, +X), (Z, -Z)}
-        self.assertFalse(
-            _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
-        )
+        self.assertFalse(_any_inconsistent_intervention_values(event=event))
 
-    def test_inconsistent_counterfactual_factor_variable_intervention_values_2(self):
+    def test_any_inconsistent_intervention_values_2(self):
         """Test #2 for whether a counterfactual factor has any inconsistent intervention values.
 
         Source: RJC
         """
         event = {(Y @ [+X, -W, -Z], -Y), (W @ -X, -W), (X @ -Z, -X), (Z, -Z)}
-        self.assertTrue(
-            _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
-        )
+        self.assertTrue(_any_inconsistent_intervention_values(event=event))
 
-    def test_inconsistent_counterfactual_factor_variable_intervention_values_3(self):
+    def test_any_inconsistent_intervention_values_3(self):
         """Test #3 for whether a counterfactual factor has any inconsistent intervention values.
 
         Source: RJC
         """
         event = [(Y @ [+X, -W, -Z], -Y), (W @ +X, -W), (X @ -Z, +X), (Z, -Z)]
-        self.assertFalse(
-            _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
-        )
+        self.assertFalse(_any_inconsistent_intervention_values(event=event))
 
-    def test_inconsistent_counterfactual_factor_variable_intervention_values_4(self):
+    def test_any_inconsistent_intervention_values_4(self):
         """Test #4 for whether a counterfactual factor has any inconsistent intervention values.
 
         Source: RJC
         """
         event = [(Y @ [+X, +W, +Z], -Y), (W @ +X, -W), (X @ +Z, -X), (Z, -Z)]
-        self.assertFalse(
-            _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
-        )
+        self.assertFalse(_any_inconsistent_intervention_values(event=event))
 
-    def test_inconsistent_counterfactual_factor_variable_intervention_values_5(self):
+    def test_any_inconsistent_intervention_values_5(self):
         """Test #5 for whether a counterfactual factor has any inconsistent intervention values.
 
         This is a case that is inconsistent according to Definition 4.1(ii)

@@ -39,7 +39,7 @@ __all__ = [
     "get_counterfactual_factors",
     "convert_to_counterfactual_factor_form",
     "do_counterfactual_factor_factorization",
-    "make_selection_diagram",
+    "make_selection_diagrams",
     "counterfactual_factors_are_transportable",
     "transport_district_intervening_on_parents",
     "transport_conditional_counterfactual_query",
@@ -1037,9 +1037,9 @@ def do_counterfactual_factor_factorization(
     return result_expression, result_event
 
 
-def make_selection_diagram(
+def make_selection_diagrams(
     *, selection_nodes: dict[int, Iterable[Variable]], graph: NxMixedGraph
-) -> NxMixedGraph:
+) -> list[tuple[int, NxMixedGraph]]:
     r"""Make a selection diagram.
 
     [correa22a]_ refer to transportability diagrams as "selection diagrams" and combine
@@ -1054,22 +1054,15 @@ def make_selection_diagram(
     :param graph: The graph containing it.
     :returns: A new graph that is the selection diagram merging the multiple domains.
     """
-    selection_diagrams = [
-        create_transport_diagram(nodes_to_transport=selection_variables, graph=graph)
-        for selection_variables in selection_nodes.values()
+    selection_diagrams = [(0, graph)] + [
+        (
+            index,
+            create_transport_diagram(nodes_to_transport=selection_nodes[index], graph=graph),
+        )
+        for index in selection_nodes
     ]
-    return _merge_transport_diagrams(graphs=selection_diagrams)
-
-
-def _merge_transport_diagrams(*, graphs: list[NxMixedGraph]) -> NxMixedGraph:
-    """Merge transport diagrams from multiple domains into one diagram.
-
-    This implementation could be incorporated into make_selection_diagram().
-
-    :param graphs: A list of graphs (transport diagrams) corresponding to each domain.
-    :returns: A new graph merging the domains.
-    """
-    raise NotImplementedError("Unimplemented function: _merge_transport_diagrams")
+    # Note Figure 2(b) in [correa22a]_
+    return selection_diagrams
 
 
 def counterfactual_factors_are_transportable(
@@ -1379,18 +1372,7 @@ def _transport_unconditional_counterfactual_query_line_2(
     ancestral_set: set[Variable] = set()
     # $W_{\ast}$
     for variable, _ in event:
-        logger.warning(
-            "Updating ancestral set for variable "
-            + str(variable)
-            + " with "
-            + str(get_ancestors_of_counterfactual(variable, graph))
-        )
         ancestral_set.update(get_ancestors_of_counterfactual(variable, graph))
-    # logger.warning(
-    #    "In transport_unconditional_counterfactual_query_line_2: "
-    #    + "ancestral_set = "
-    #    + str(ancestral_set)
-    # )
     outcome_value_dict = {variable: value for variable, value in event}
     ancestral_set_with_values: set[tuple[Variable, Intervention | None]] = {
         (variable, outcome_value_dict[variable])
@@ -1398,36 +1380,13 @@ def _transport_unconditional_counterfactual_query_line_2(
         else (variable, None)
         for variable in ancestral_set
     }
-    # logger.warning(
-    #    "In transport_unconditional_counterfactual_query_line_2: "
-    #    + "ancestral_set_with_values = "
-    #    + str(ancestral_set_with_values)
-    # )
-
     #  e.g., Equation 13 in [correa22a]_, without the summation component.
-    # ancestral_set_in_counterfactual_factor_form_with_values: set[
-    #    tuple[Variable, Intervention | None]
-    # ] = {
-    #    (convert_to_counterfactual_factor_form(event=[(variable, value)], graph=graph)[0][0], value)
-    #    for variable, value in ancestral_set_with_values
-    # }
-    ancestral_set_in_counterfactual_factor_form_with_values_as_list: list[
+    ancestral_set_in_counterfactual_factor_form_with_values: set[
         tuple[Variable, Intervention | None]
-    ] = [
+    ] = {
         (convert_to_counterfactual_factor_form(event=[(variable, value)], graph=graph)[0][0], value)
         for variable, value in ancestral_set_with_values
-    ]
-    # logger.warning(
-    #    "In transport_unconditional_counterfactual_query_line_2: "
-    #    + "ancestral_set_in_counterfactual_factor_form_with_values_as_list = "
-    #    + str(ancestral_set_in_counterfactual_factor_form_with_values_as_list)
-    # )
-    ancestral_set_in_counterfactual_factor_form_with_values = set(
-        ancestral_set_in_counterfactual_factor_form_with_values_as_list
-    )
-    # logger.warning(
-    #    "   As a set that is: " + str(ancestral_set_in_counterfactual_factor_form_with_values)
-    # )
+    }
     ancestor_bases = {v.get_base() for v in ancestral_set}
     outcome_ancestor_graph = graph.subgraph(ancestor_bases)
     factorized_ancestral_set_with_values: list[
@@ -1435,11 +1394,10 @@ def _transport_unconditional_counterfactual_query_line_2(
     ] = get_counterfactual_factors_retaining_variable_values(
         event=ancestral_set_in_counterfactual_factor_form_with_values, graph=outcome_ancestor_graph
     )
-
     return ancestral_set_with_values, factorized_ancestral_set_with_values
 
 
-def _inconsistent_counterfactual_factor_variable_and_intervention_values(
+def _any_variable_values_inconsistent_with_interventions(
     *, event: Collection[tuple[Variable, Intervention | None]]
 ) -> bool:
     r"""Determine whether a counterfactual factor has a variable value inconsistent with any intervention value.
@@ -1477,13 +1435,13 @@ def _inconsistent_counterfactual_factor_variable_and_intervention_values(
                 if intervention.get_base() in intervention_variable_names:
                     intervention_variable_dictionary[intervention.get_base()].update({intervention})
     logger.warning(
-        "In _inconsistent_counterfactual_factor_variable_and_intervention_values: dictionary = "
+        "In _any_variable_values_inconsistent_with_interventions: dictionary = "
         + str(intervention_variable_dictionary)
     )
     return any(len(values) > 1 for values in intervention_variable_dictionary.values())
 
 
-def _inconsistent_counterfactual_factor_variable_intervention_values(
+def _any_inconsistent_intervention_values(
     *, event: Collection[tuple[Variable, Intervention | None]]
 ) -> bool:
     r"""Determine whether a counterfactual factor has two inconsistent intervention values.
@@ -1511,7 +1469,7 @@ def _inconsistent_counterfactual_factor_variable_intervention_values(
                 if intervention.get_base() in intervention_variable_names:
                     intervention_variable_dictionary[intervention.get_base()].add(intervention)
     logger.warning(
-        "In _inconsistent_counterfactual_factor_variable_intervention_values: dictionary = "
+        "In _any_inconsistent_intervention_values: dictionary = "
         + str(intervention_variable_dictionary)
     )
     return any(len(values) > 1 for values in intervention_variable_dictionary.values())
@@ -1530,9 +1488,9 @@ def _counterfactual_factor_is_inconsistent(
     :returns: True if the counterfactual factor is consistent, and false if it is inconsistent.
     """
     # Are counterfactual factor and intervention values inconsistent?
-    return _inconsistent_counterfactual_factor_variable_and_intervention_values(
+    return _any_variable_values_inconsistent_with_interventions(
         event=event
-    ) or _inconsistent_counterfactual_factor_variable_intervention_values(event=event)
+    ) or _any_inconsistent_intervention_values(event=event)
     # Are different counterfactual factor intervention values inconsistent?
 
 
