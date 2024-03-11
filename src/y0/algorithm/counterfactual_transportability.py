@@ -1118,9 +1118,15 @@ def validate_inputs_for_transport_district_intervening_on_parents(
     """
     # Preliminary checks, starting with type checking
     if not (isinstance(district, Collection) and all(isinstance(v, Variable) for v in district)):
-        raise TypeError("In sigma_tr: the input district must be a Collection of Variable objects.")
+        raise TypeError(
+            "In validate_inputs_for_transport_district_intervening_on_parents: "
+            + "the input district must be a Collection of Variable objects."
+        )
     if not (isinstance(domain_graphs, list) and all(isinstance(t, tuple) for t in domain_graphs)):
-        raise TypeError("In sigma_tr: the input domain graphs must be a list of tuples.")
+        raise TypeError(
+            "In validate_inputs_for_transport_district_intervening_on_parents: the "
+            + "input domain graphs must be a list of tuples."
+        )
     if not all(
         isinstance(g, NxMixedGraph)
         and isinstance(l, list)
@@ -1128,10 +1134,14 @@ def validate_inputs_for_transport_district_intervening_on_parents(
         for g, l in domain_graphs
     ):
         raise TypeError(
-            "In sigma_tr: the input domain graph tuples must all contain NxMixedGraph objects and lists of variables."
+            "In validate_inputs_for_transport_district_intervening_on_parents: the input domain "
+            + "graph tuples must all contain NxMixedGraph objects and lists of variables."
         )
     if not (isinstance(domain_data, list) and all(isinstance(t, tuple) for t in domain_data)):
-        raise TypeError("In sigma_tr: the input domain data must be a list of tuples.")
+        raise TypeError(
+            "In validate_inputs_for_transport_district_intervening_on_parents: the "
+            + "input domain data must be a list of tuples."
+        )
     # TODO: Consider how to handle cases where a probability distribution is One() or Zero()
     if not all(
         isinstance(sigma_z, Collection)
@@ -1140,28 +1150,35 @@ def validate_inputs_for_transport_district_intervening_on_parents(
         for sigma_z, e in domain_data
     ):
         raise TypeError(
-            "In sigma_tr: the input domain data tuples must all contain Collections of Variable objects "
+            "In validate_inputs_for_transport_district_intervening_on_parents: the input "
+            + "domain data tuples must all contain Collections of Variable objects "
             + "(first element) and Expressions (second element)."
         )
     # Check we have no empty lists
     if len(domain_graphs) == 0 or len(domain_data) == 0:
         raise TypeError(
-            "In sigma_tr: empty list for either domain_graphs or domain_data. "
-            + "Check your inputs."
+            "In validate_inputs_for_transport_district_intervening_on_parents: empty list for "
+            + "either domain_graphs or domain_data. Check your inputs."
         )
     if len(district) == 0:
-        raise TypeError("In sigma_tr: the input district cannot be an empty set.")
+        raise TypeError(
+            "In validate_inputs_for_transport_district_intervening_on_parents: the "
+            + "input district cannot be an empty set."
+        )
     if any(len(g.nodes()) == 0 for g, _ in domain_graphs):
         raise TypeError(
-            "In sigma_tr: at least one input domain graph contained no nodes. Check your inputs."
+            "In validate_inputs_for_transport_district_intervening_on_parents: at least one input "
+            + "domain graph contained no nodes. Check your inputs."
         )
     if any(len(topo) == 0 for _, topo in domain_graphs):
         raise TypeError(
-            "In sigma_tr: an input set of topologically sorted vertices was empty. Check your inputs."
+            "In validate_inputs_for_transport_district_intervening_on_parents: an input set of "
+            + "topologically sorted vertices was empty. Check your inputs."
         )
     if len(domain_graphs) != len(domain_data):
         raise TypeError(
-            "In sigma_tr: the length of the domain_graphs and domain_data " + "must be the same."
+            "In validate_inputs_for_transport_district_intervening_on_parents: the length of the "
+            + "domain_graphs and domain_data must be the same."
         )
     # Technically the topologically sorted vertices could be for the graph $G$ containing $G_{\mathbf{C}_{i}}$,
     # but we currently have a stricter requirement that they are for $G_{\mathbf{C}_{i}}$. That requirement
@@ -1177,7 +1194,8 @@ def validate_inputs_for_transport_district_intervening_on_parents(
         policy_vertices = frozenset(domain_data[k][0])
         if topo_vertices != graph_vertices:
             raise KeyError(
-                "In sigma_tr: the vertices in each domain graph must match those in the "
+                "In validate_inputs_for_transport_district_intervening_on_parents: the vertices "
+                + "in each domain graph must match those in the "
                 + "corresponding topologically sorted list of vertices. Check your inputs. "
                 + "Graph vertices: "
                 + str(graph_vertices)
@@ -1190,7 +1208,8 @@ def validate_inputs_for_transport_district_intervening_on_parents(
         # The other way around is not possible, though.
         if not all(v in expression_vertices for v in graph_vertices_without_transportability_nodes):
             raise KeyError(
-                "In sigma_tr: some of the vertices in a domain graph do not appear in the expression"
+                "In validate_inputs_for_transport_district_intervening_on_parents: some of the "
+                + "vertices in a domain graph do not appear in the expression"
                 + " for the probability of the graph. Check your inputs. Graph vertices: "
                 + str(graph_vertices_without_transportability_nodes)
                 + ". Expression vertices: "
@@ -1199,7 +1218,8 @@ def validate_inputs_for_transport_district_intervening_on_parents(
             )
         if not all(v in graph_vertices_without_transportability_nodes for v in policy_vertices):
             raise KeyError(
-                "In sigma_tr: the set of vertices for which a policy has been applied for one "
+                "In validate_inputs_for_transport_district_intervening_on_parents: the set of "
+                + "vertices for which a policy has been applied for one "
                 + "of the domains contains at least one vertex not in the domain graph. Check your inputs. "
                 + "Policy vertices: "
                 + str(policy_vertices)
@@ -1210,7 +1230,8 @@ def validate_inputs_for_transport_district_intervening_on_parents(
             for v in district:
                 if v not in graph_vertices_without_transportability_nodes:
                     raise KeyError(
-                        "In sigma_tr: one of the variables in the input district "
+                        "In validate_inputs_for_transport_district_intervening_on_parents: one of "
+                        + "the variables in the input district "
                         + "is not in a domain graph. District: "
                         + str(district)
                         + ". Node missing from the graph: "
@@ -1227,7 +1248,8 @@ def _no_intervention_variables_in_domain(
 ):
     r"""Check that a district in a graph contains no intervention veriables.
 
-    Helper function for the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
+    Helper function for the transport_district_intervening_on_parents algorithm
+    from [correa22a]_ (Algorithm 4 in Appendix B).
     :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
     :param interventions: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
            variables corresponding to $\sigma_{\mathbf{Z}_{k}}$.
