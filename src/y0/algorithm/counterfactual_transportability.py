@@ -1988,7 +1988,7 @@ def _get_ancestral_components(
     return ancestral_components
 
 
-# Internal function moved outside transport_conditional_counterfactual_query() to clean up the code
+# Internal subroutine for transport_conditional_counterfactual_query()
 def _initialize_conditional_transportability_data_structures(
     *,
     outcomes: list[tuple[Variable, Intervention]],
@@ -2031,6 +2031,7 @@ def _initialize_conditional_transportability_data_structures(
     )
 
 
+# Internal subroutine for transport_conditional_counterfactual_query
 def transport_conditional_counterfactual_query_line_2(
     *,
     ancestral_components: frozenset[frozenset[Variable]],
@@ -2066,6 +2067,7 @@ def transport_conditional_counterfactual_query_line_2(
     )
 
 
+# Internal subroutine for transport_conditional_counterfactual_query
 def _validate_transport_conditional_counterfactual_query_line_4_output(
     *,
     simplified_event: list[tuple[Variable, Intervention | None]],
@@ -2075,22 +2077,12 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
     result_expression: Expression,
     result_event: list[tuple[Variable, Intervention]],
 ):
-    # Line 4: evaluate that expression
-    # 1. Make sure in the simplified event we got back, all of the variables
-    #    that have values map to either variables in the outcomes or variables
-    #    in the conditions.
-    # 2. Make sure the values for those variables in the simplified event map
-    #    to the values for their corresponding values in the input for this function.
-    # 3. Make sure all the variables in the expression this function will return are either
-    #    in the outcomes, the conditions, or the outcome ancestral component variables
-    #    excluding outcomes and conditions.
-    #    TODO: Test the assumption for this step. Can the input probability of the
-    #    data condition on variables not in the target domain graph?
-    # 4. Return the input outcome and condition variables and their values, to be used
-    #    to evaluate the return expression.
     simplified_event_variable_names_to_values: dict[Variable, Intervention | None] = {
         variable.get_base(): value for variable, value in simplified_event
     }
+    # 1. Make sure in the simplified event we got back, all of the variables
+    #    that have values are either variables in the outcomes or variables
+    #    in the conditions.
     if any(
         name not in outcome_and_conditioned_variable_names
         for name in simplified_event_variable_names_to_values.keys()
@@ -2102,6 +2094,9 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
             + "the return expression is not one of the input variables (outcomes and "
             + "conditioned variables."
         )
+    # 2. Make sure the values for those variables in the simplified event match
+    #    the values for their corresponding outcome or condition variables
+    #    in the input for this function.
     if any(
         value not in outcome_and_conditioned_variable_names_to_values[variable.get_base()]
         for variable, value in simplified_event
@@ -2113,6 +2108,12 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
             + " with one of the input variables (outcomes and conditioned variables) "
             + "that has the same name after ignoring any intervention set."
         )
+    # 3. Make sure all the variables in the expression this function will return are either
+    #    in the outcomes, the conditions, or the outcome ancestral component variables
+    #    excluding outcomes and conditions.
+    #    TODO: Test the assumption for this step. Can the probability of the
+    #    data sent into transport_conditional_counterfactual_query as input
+    #    condition on variables not in the target domain graph?
     if not all(
         variable in outcome_ancestral_component_variables_with_no_values
         or variable in outcome_and_conditioned_variable_names
@@ -2125,36 +2126,9 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
             + "variables) nor a variable in one of the ancestral components containing "
             + "an outcome variable. This validity check ignored interventions in all variables."
         )
-    # result_event: list[tuple[Variable, Intervention]] = []
-    # for variable, value in outcomes + conditions:
-    #    result_event.append((variable.get_base(), value))
-
-    # logger.warning("   outcomes + conditions = " + str(outcomes + conditions))
-    # for variable, _ in outcomes + conditions:
-    #    logger.warning("   Considering variable: " + str(variable))
-    #    if variable.get_base() in simplified_event_variable_names_to_values:
-    #        # Get precise with typing to avoid some mypy shenanigans
-    #        tmp_value: Intervention | None = simplified_event_variable_names_to_values[
-    #            variable.get_base()
-    #        ]
-    #        if tmp_value is None:
-    #            raise KeyError(
-    #                "In transport_conditional_counterfactual_query: "
-    #                + "transport_unconditional_counterfactual_query returned no value"
-    #                + str(tmp_value)
-    #                + " for variable "
-    #                + str(variable.get_base())
-    #                + ". Check your input variables and values."
-    #            )
-    #        else:
-    #            logger.warning(
-    #                "   Appending to result_event: " + str((variable, tmp_value))
-    #            )
-    #            result_event.append((variable, tmp_value))
-    result_variables = frozenset({variable for variable, _ in result_event})
-
-    # Final sanity checks on the data integrity (TODO: clean this up, some checks
-    # are not necessary)
+    # 4. Make sure we're not going to return any variables with None values. TODO: This check
+    #    won't be necessary after we verify that the input outcomes and conditions have no
+    #    None values.
     if any(value is None for _, value in result_event):
         raise TypeError(
             "In transport_conditional_counterfactual_query: all returned values "
@@ -2163,20 +2137,9 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
             + str(result_event)
             + ". Also check your inputs."
         )
-    if result_variables != frozenset(outcome_and_conditioned_variable_names):
-        logger.warning("result_variables = " + str(result_variables))
-        logger.warning(
-            "outcome_and_conditioned_variable_names = "
-            + str(frozenset(outcome_and_conditioned_variable_names))
-        )
-        raise KeyError(
-            "In transport_conditional_counterfactual_query: the variables "
-            + "in the returned event to evaluate the query result should match "
-            + "the union of the outcome and conditioned variables passed in "
-            + "as parameters."
-        )
 
 
+# Internal subroutine for transport_conditional_counterfactual_query
 def _transport_conditional_counterfactual_query_line_4(
     *,
     outcome_variable_ancestral_component_variable_names: set[Variable],
@@ -2211,6 +2174,8 @@ def _transport_conditional_counterfactual_query_line_4(
         "In transport_conditional_counterfactual_query: result_expression = "
         + result_expression.to_latex()
     )
+    # The input outcome and condition variables and their values, to be used
+    # to evaluate the return expression.
     result_event: list[tuple[Variable, Intervention]] = [
         (variable.get_base(), value) for variable, value in outcomes + conditions
     ]
