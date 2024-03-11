@@ -1527,15 +1527,15 @@ def transport_unconditional_counterfactual_query(
            $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
     :returns: an expression for $P^{\ast}(\mathbf{Y_{\ast}}=\mathbf{y_{\ast}})$
     """
-    logger.warning("In transport_unconditional_counterfactual_query: input event = " + str(event))
+    # logger.warning("In transport_unconditional_counterfactual_query: input event = " + str(event))
     # Line 1
     simplified_event: list[tuple[Variable, Intervention | None]] | None = simplify(
         event=event, graph=target_domain_graph
     )
-    logger.warning(
-        "In transport_unconditional_counterfactual_query: simplifed event = "
-        + str(simplified_event)
-    )
+    # logger.warning(
+    #    "In transport_unconditional_counterfactual_query: simplifed event = "
+    #    + str(simplified_event)
+    # )
 
     if simplified_event is not None:
         # Line 2
@@ -1571,11 +1571,11 @@ def transport_unconditional_counterfactual_query(
                 domain_data=domain_data,
             )  # The q_value
             if district_probability_intervening_on_parents is None:
-                logger.warning(
-                    "In transport_unconditional_counterfactual_query: unable to transport "
-                    + "counterfactual factor: "
-                    + str(factor)
-                )
+                # logger.warning(
+                #    "In transport_unconditional_counterfactual_query: unable to transport "
+                #    + "counterfactual factor: "
+                #    + str(factor)
+                # )
                 return None  # Return FAIL (Line 13)
             else:
                 # Note about lines 7-9 of the algorithm:
@@ -1601,37 +1601,34 @@ def transport_unconditional_counterfactual_query(
                 # Line 9 involves formally evaluating Q over the set of values $\mathbf{c}$. We defer
                 #    this action until Line 14, when we do so by simply returning the simplified event
                 #    with the expression for $P^{\ast}(\mathbf{Y_{\ast} = y_{\ast}})$.
-                line_8_variables: set[Variable] = set()
-                for variable in district_without_interventions:
-                    line_8_variables = line_8_variables.union(
-                        set(target_domain_graph.directed.predecessors(variable.get_base()))
-                    )
-                line_8_variables = line_8_variables.union(district_without_interventions)
-                # logger.warning(
-                #    "In transport_unconditional_counterfactual_query: line_8_variables = "
-                #    + str(line_8_variables)
-                # )
+                district_variables_and_their_parents: set[Variable] = {
+                    target_domain_graph.directed.predecessors(variable.get_base())
+                    for variable in district_without_interventions
+                }.union(district_without_interventions)
                 if not all(
-                    variable in line_8_variables
+                    variable in district_variables_and_their_parents
                     for variable in district_probability_intervening_on_parents.get_variables()
                 ):
                     logger.warning(
                         "Found a variable in the Q expression that is not a district variable or one of its parents."
                     )
-                    logger.warning("District variables and their parents: " + str(line_8_variables))
+                    logger.warning(
+                        "District variables and their parents: "
+                        + str(district_variables_and_their_parents)
+                    )
                     logger.warning(
                         "Q expression variables: "
                         + str(district_probability_intervening_on_parents.get_variables())
                     )
-                logger.warning(
-                    "In transport_unconditional_counterfactual_query: got a Q value of "
-                    + district_probability_intervening_on_parents.to_latex()
-                    + " for district "
-                    + str(district_without_interventions)
-                    + " corresponding to counterfactual factor "
-                    + str(factor)
-                    + "."
-                )
+                # logger.warning(
+                #    "In transport_unconditional_counterfactual_query: got a Q value of "
+                #    + district_probability_intervening_on_parents.to_latex()
+                #    + " for district "
+                #    + str(district_without_interventions)
+                #    + " corresponding to counterfactual factor "
+                #    + str(factor)
+                #    + "."
+                # )
                 district_probabilities_intervening_on_parents.append(
                     district_probability_intervening_on_parents
                 )
@@ -1644,12 +1641,12 @@ def transport_unconditional_counterfactual_query(
             Product.safe(district_probabilities_intervening_on_parents),
             ancestors_excluding_outcomes,
         )
-        logger.warning(
-            "Returning: "
-            + transported_unconditional_query.to_latex()
-            + " for simplified event: "
-            + str(simplified_event)
-        )
+        # logger.warning(
+        #    "Returning: "
+        #    + transported_unconditional_query.to_latex()
+        #    + " for simplified event: "
+        #    + str(simplified_event)
+        # )
         return (transported_unconditional_query, simplified_event)
     else:
         return (Zero(), None)  # as specified by the output for Algorithm 1 in [correa22a]_
