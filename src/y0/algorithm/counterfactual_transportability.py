@@ -14,7 +14,7 @@ import logging
 from collections import defaultdict
 from typing import Collection, DefaultDict, Iterable, Optional
 
-from y0.algorithm.tian_id import _compute_c_factor, identify_variables_in_district
+from y0.algorithm.tian_id import _compute_c_factor, identify_district_variables
 from y0.algorithm.transport import create_transport_diagram, transport_variable
 from y0.dsl import (
     CounterfactualVariable,
@@ -1088,7 +1088,7 @@ def _remove_transportability_vertices(*, vertices: Collection[Variable]) -> set[
     return {v for v in vertices if not v.name.startswith("T_")}
 
 
-def _validate_sigma_tr_inputs(
+def validate_inputs_for_transport_district_intervening_on_parents(
     *,
     district: Collection[Variable],
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
@@ -1284,10 +1284,10 @@ def transport_district_intervening_on_parents(
     :returns: A probabilistic expression for $P^{\ast}_{Pa(\mathbf{C})_{i}}(\mathbf{C}\_i)$ if
            it is transportable, or None if it is not transportable.
     """
-    # Note that we currently don't require the user to input $\mathcal{G}^{\ast}$, the target
-    # graph, and therefore can't verify that the input district is in fact a district of the
+    # We don't require the user to input $\mathcal{G}^{\ast}$, the target graph, and
+    # therefore can't verify that the input district is in fact a district of the
     # target graph as part of validating the user input.
-    _validate_sigma_tr_inputs(
+    validate_inputs_for_transport_district_intervening_on_parents(
         district=district, domain_graphs=domain_graphs, domain_data=domain_data
     )
     # Line 1
@@ -1298,7 +1298,7 @@ def transport_district_intervening_on_parents(
         ) and _no_transportability_nodes_in_domain(
             district=district, domain_graph=domain_graphs[k][0]
         ):
-            logger.warning("In sigma_tr: domain = " + str(k))
+            # logger.warning("In transport_district_intervening_on_parents: domain = " + str(k))
             domain_graph = domain_graphs[k][0]
             domain_graph_variables = _remove_transportability_vertices(
                 vertices=domain_graph.nodes()
@@ -1306,11 +1306,11 @@ def transport_district_intervening_on_parents(
             domain_topo = domain_graphs[k][1]
 
             # Line 2
-            super_district = frozenset().union(
+            domain_graph_district = frozenset().union(
                 *[domain_graph.get_district(v) for v in district]
             )  # $B_{i}$
             # Sanity check: confirm that $C_{i} \subseteq B_{i}$
-            if any(super_district != domain_graph.get_district(v) for v in district):
+            if any(domain_graph_district != domain_graph.get_district(v) for v in district):
                 raise TypeError(
                     "Error in transport_district_intervening_on_parents: the vertices in an input district "
                     + "are part of more than one district in a domain graph. Input district: "
@@ -1322,21 +1322,21 @@ def transport_district_intervening_on_parents(
                 )
 
             # Line 3
-            logger.warning("Subgraph_probability: " + domain_data[k][1].to_latex())
-            super_district_q_probability = _compute_c_factor(
+            # logger.warning("Subgraph_probability: " + domain_data[k][1].to_latex())
+            domain_graph_district_q_probability = _compute_c_factor(
                 district=district,
                 subgraph_variables=domain_graph_variables,
                 subgraph_probability=domain_data[k][1],
                 graph_topo=domain_topo,
             )
-            logger.warning(
-                "super_district_q_probability: " + super_district_q_probability.to_latex()
-            )
+            # logger.warning(
+            #    "domain_graph_district_q_probability: " + domain_graph_district_q_probability.to_latex()
+            # )
             # Line 4
-            district_q_probability = identify_variables_in_district(
+            district_q_probability = identify_district_variables(
                 input_variables=frozenset(district),
-                input_district=super_district,
-                district_probability=super_district_q_probability,
+                input_district=domain_graph_district,
+                district_probability=domain_graph_district_q_probability,
                 graph=domain_graph,
                 topo=domain_topo,
             )

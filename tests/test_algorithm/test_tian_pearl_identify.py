@@ -19,7 +19,7 @@ from y0.algorithm.tian_id import (
     _compute_c_factor_conditioning_on_topological_predecessors,
     _compute_c_factor_marginalizing_over_topological_successors,
     _compute_q_value_of_variables_with_low_topological_ordering_indices,
-    identify_variables_in_district,
+    identify_district_variables,
 )
 from y0.algorithm.transport import transport_variable
 from y0.dsl import (
@@ -160,7 +160,7 @@ class TestIdentify(cases.GraphTestCase):
         # is a subset and therefore not a C-component.
         self.assertRaises(
             KeyError,
-            identify_variables_in_district,
+            identify_district_variables,
             input_variables=frozenset({Y, R}),
             input_district=frozenset({R, X, W, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
@@ -170,7 +170,7 @@ class TestIdentify(cases.GraphTestCase):
         # Raises a KeyError because a variable in T is not in the topo.
         self.assertRaises(
             KeyError,
-            identify_variables_in_district,
+            identify_district_variables,
             input_variables=frozenset({X, Z}),
             input_district=frozenset({R, X, W, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
@@ -181,7 +181,7 @@ class TestIdentify(cases.GraphTestCase):
         # {X,Y} happen to be in two different districts of G_{X,Y,Z}.
         self.assertRaises(
             TypeError,
-            identify_variables_in_district,
+            identify_district_variables,
             input_variables=frozenset({X, Y}),
             input_district=frozenset({X, Y, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
@@ -194,7 +194,7 @@ class TestIdentify(cases.GraphTestCase):
         # test_4_district_probability = PP[Population("pi1")](Z | X1)  # Q
         self.assertRaises(
             TypeError,
-            identify_variables_in_district,
+            identify_district_variables,
             input_variables=frozenset(test_4_identify_input_variables),
             input_district=frozenset(test_4_identify_input_district),
             district_probability=[],
@@ -203,7 +203,7 @@ class TestIdentify(cases.GraphTestCase):
         )
         self.assertRaises(
             TypeError,
-            identify_variables_in_district,
+            identify_district_variables,
             input_variables=frozenset(test_4_identify_input_variables),
             input_district=frozenset(test_4_identify_input_district),
             district_probability=One(),
@@ -212,7 +212,7 @@ class TestIdentify(cases.GraphTestCase):
         )
         self.assertRaises(
             TypeError,
-            identify_variables_in_district,
+            identify_district_variables,
             input_variables=frozenset(test_4_identify_input_variables),
             input_district=frozenset(test_4_identify_input_district),
             district_probability=Zero(),
@@ -235,7 +235,7 @@ class TestIdentify(cases.GraphTestCase):
         # test_transport.py uses a similar syntax and does not trigger the error,
         #   so I'm probably missing something simple.
         # test_1_district_probability = PP[pi1](Z | X1)  # Q
-        result = identify_variables_in_district(
+        result = identify_district_variables(
             input_variables=frozenset(test_1_identify_input_variables),
             input_district=frozenset(test_1_identify_input_district),
             district_probability=test_1_district_probability,
@@ -252,7 +252,7 @@ class TestIdentify(cases.GraphTestCase):
         Sources: a modification of the example following Theorem 2 in [correa20a]_
         and the paragraph at the end of section 4 in [correa20a]_.
         """
-        result1 = identify_variables_in_district(
+        result1 = identify_district_variables(
             input_variables=frozenset({R, Y}),
             input_district=frozenset({W, R, X, Z, Y}),
             district_probability=PP[TARGET_DOMAIN](
@@ -263,7 +263,7 @@ class TestIdentify(cases.GraphTestCase):
         )
         logger.warning("Result of identify() call for test_identify_2 part 1 is " + str(result1))
         self.assertIsNone(result1)
-        result2 = identify_variables_in_district(
+        result2 = identify_district_variables(
             input_variables=frozenset({Z, R}),
             input_district=frozenset({R, X, W, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Z),
@@ -280,7 +280,7 @@ class TestIdentify(cases.GraphTestCase):
         test_3_identify_input_variables = {R, X}
         test_3_identify_input_district = {R, X, W, Y}
         test_3_district_probability = PP[Pi1]((Y, W)).conditional([R, X, Z]) * PP[Pi1](R, X)
-        result1 = identify_variables_in_district(
+        result1 = identify_district_variables(
             input_variables=frozenset(test_3_identify_input_variables),
             input_district=frozenset(test_3_identify_input_district),
             district_probability=test_3_district_probability,
@@ -289,7 +289,7 @@ class TestIdentify(cases.GraphTestCase):
         )
         logger.warning("Result of identify() call for test_identify_3 is " + str(result1))
         self.assertIsNone(result1)
-        result2 = identify_variables_in_district(
+        result2 = identify_district_variables(
             input_variables=frozenset({Z, R}),
             input_district=frozenset({R, X, W, Y, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
@@ -335,7 +335,7 @@ class TestIdentify(cases.GraphTestCase):
             Sum.safe(result_piece_2, [W1]),
             Sum.safe(Sum.safe(result_piece_2, [W1]), [Y]),
         )  # Q[X,Y]/Q[X]
-        result_4 = identify_variables_in_district(
+        result_4 = identify_district_variables(
             input_variables=frozenset({Y}),
             input_district=frozenset({X, Y, W1, W2, W3, W4, W5}),
             district_probability=P(W1, W2, W3, W4, W5, X, Y),
@@ -376,14 +376,14 @@ class TestIdentify(cases.GraphTestCase):
             Sum.safe(result_piece_2, [W1]),
             Sum.safe(Sum.safe(result_piece_2, [W1]), [Y]),
         )  # Q[X,Y]/Q[X]
-        result_4 = identify_variables_in_district(
+        result_4 = identify_district_variables(
             input_variables=frozenset({Y}),
             input_district=frozenset({X, Y, W1, W2, W3, W4, W5}),
             district_probability=PP[Pi1](W1, W2, W3, W4, W5, X, Y),
             graph=tian_pearl_figure_9a_graph,
             topo=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
-        logger.warning("Result from identify_variables_in_district: " + result_4.to_latex())
+        logger.warning("Result from identify_district_variables: " + result_4.to_latex())
         logger.warning("  Expected result: " + expected_result.to_latex())
         self.assert_expr_equal(result_4, expected_result)
 
@@ -542,7 +542,7 @@ class TestComputeCFactor(cases.GraphTestCase):
         nor a simple probability.
         Source: derivative from [tian03a], the example in section 4.6.
         """
-        # TODO: Discuss whether we want identify_variables_in_district() and _compute_c_factor()
+        # TODO: Discuss whether we want identify_district_variables() and _compute_c_factor()
         # to handle expressions of type One, Zero, or QFactor.
         topo = list(tian_pearl_figure_9a_graph.topological_sort())
         district = [W1, W3, W2, X, Y]
