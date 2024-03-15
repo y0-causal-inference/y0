@@ -1472,8 +1472,7 @@ class Zero(Expression):
 class QBuilder(Protocol[T_co]):
     """A protocol for annotating the special class getitem functionality of the :class:`QFactor` class."""
 
-    def __call__(self, arg: VariableHint, *args: Union[str, Variable]) -> T_co:
-        ...
+    def __call__(self, arg: VariableHint, *args: Union[str, Variable]) -> T_co: ...
 
 
 @dataclass(frozen=True, repr=False)

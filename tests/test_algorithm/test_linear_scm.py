@@ -9,7 +9,6 @@ import pandas as pd
 from y0.algorithm.estimation.linear_scm import get_single_door
 from y0.dsl import Z1, Z2, X, Y, Z
 from y0.examples import backdoor_example, frontdoor_example, napkin_example
-from y0.graph import NxMixedGraph
 
 
 class TestLinearSCM(unittest.TestCase):

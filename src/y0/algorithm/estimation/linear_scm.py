@@ -3,9 +3,7 @@
 from statistics import fmean
 
 import pandas as pd
-import pyro
 import sympy
-import sympytorch
 from sklearn.linear_model import LinearRegression
 
 from y0.dsl import Variable
@@ -74,6 +72,7 @@ def get_single_door_learnable(
 
 
 def evaluate_admg(graph, data: pd.DataFrame):
+    """Evalautes an acyclic directed mixed graph (ADMG)."""
     params = {sympy_nested("\\beta", l, r): v for (l, r), v in get_single_door(graph, data).items()}
     lscm = graph.to_linear_scm_sympy()
     return evaluate_lscm(lscm, params)
@@ -82,7 +81,7 @@ def evaluate_admg(graph, data: pd.DataFrame):
 def evaluate_lscm(
     linear_scm: dict[Variable, sympy.Expr], params: dict[sympy.Symbol, float]
 ) -> dict[sympy.Symbol, sympy.core.numbers.Rational]:
-    """given an LSCM, assign values to the parameters (i.e. beta, epsilon, gamma terms), and return variable assignments dictionary"""
+    """Given an LSCM, assign values to the parameters and return variable assignments dictionary."""
     # solve set of simulateous linear equations in sympy
 
     expressions: dict[sympy.Symbol, sympy.Expr] = {
@@ -107,8 +106,7 @@ def _main():
         print(example.name, rv)  # noqa:T201
 
         s = evaluate_admg(example.graph, data)
-        print(s)
-        print()
+        print(s)  # noqa:T201
 
 
 if __name__ == "__main__":
