@@ -2151,7 +2151,6 @@ def _transport_conditional_counterfactual_query_line_2(
     )
 
 
-# Internal subroutine for transport_conditional_counterfactual_query
 def _validate_transport_conditional_counterfactual_query_line_4_output(
     *,
     simplified_event: list[tuple[Variable, Intervention | None]],
@@ -2162,6 +2161,37 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
     result_event: list[tuple[Variable, Intervention]],
     domain_data: list[tuple[Collection[Variable], Expression]],
 ):
+    r"""Perform validity checks on output for Algorithm 3 of [correa22a]_.
+
+    This function is an internal subroutine for transport_conditional_counterfactual_query(). It performs
+    some validity checks and does not return any value if successful or raises a KeyError or TypeError if not.
+
+    :param simplified_event:
+        This is the set of variables $D_{\ast}$ (in counterfactual factor form) and their values $d_{\ast}$
+        after getting processed by the simplify() algorithm (Algorithm 1 in [correa22a]_, called from Line 1 in
+        Algorithm 2 of [correa22a]_. ) We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param outcome_and_conditioned_variable_names: The graph vertices associated with outcome and conditioned variables
+        in the query (stripped of any interventions), represented as a set of Variable objects.
+    :param outcome_and_conditioned_variable_names_to_values: a dictionary mapping those variables to their values
+        from the query passed in to transport_conditional_counterfactual_query() as a parameter.
+    :param outcome_ancestral_component_variables_with_no_values: the graph vertices associated with elements of
+        the ancestral components of $\mathbf{Y_{\ast}} \cap \mathbf{X_{\ast}}$ given $\mathbf{X_{\ast}}$
+        that are neither outcome variables nor conditioned variables in the query, and therefore do not have
+        values assigned to those variables. Represented as a set of Variable objects.
+    :param result_expression: the probabilistic expression to be returned by this query (if this function gets called,
+        the query is not expected to fail or return a probability of zero due to inconsistent query variable values).
+    :param result_event: a list of tuples of variables and their values used to evaluate the result_expression.
+    :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
+           $K$ tuples, one for each of the $K$ domains except for the target domain.
+           Each tuple contains a set of variables corresponding to
+           $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the probability distribution
+           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+           Passed in to transport_conditional_counterfactual_query() as an input parameter.
+    :raises KeyError: a variable in one of the input parameters should appear in another parameter and does not,
+           or should not and does. See each error description for specifics.
+    :raises TypeError: a return value used to evaluate the result_expression is None and that should not happen.
+    """
     simplified_event_variable_names_to_values: dict[Variable, Intervention | None] = {
         variable.get_base(): value for variable, value in simplified_event
     }
