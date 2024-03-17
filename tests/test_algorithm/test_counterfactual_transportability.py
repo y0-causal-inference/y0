@@ -26,6 +26,7 @@ from y0.algorithm.counterfactual_transportability import (
     _get_ancestral_components,
     _get_ancestral_set_after_intervening_on_conditioned_variables,
     _get_conditioned_variables_in_ancestral_set,
+    _initialize_conditional_transportability_data_structures,
     _no_intervention_variables_in_domain,
     _no_transportability_nodes_in_domain,
     _reduce_reflexive_counterfactual_variables_to_interventions,
@@ -3142,3 +3143,32 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         logger.warning("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result_expr, result_expr)
         self.assertCountEqual(expected_result_event, result_event)
+
+    def test_transport_conditional_counterfactual_query_subroutines_1(self):
+        """Test _initialize_conditional_transportability_data_structures().
+
+        Source: RC's mind.
+        """
+        outcomes = [(Y @ -X1, -Y), (W @ -X2, -W)]
+        conditions = [(X1, -X1), (X2, -X2)]
+
+        (
+            conditioned_variables,
+            outcome_variables,
+            outcome_and_conditioned_variables,
+            outcome_variable_to_value_mappings,
+            outcome_and_conditioned_variable_names_to_values,
+            outcome_and_conditioned_variable_names,
+            conditioned_variable_names,
+        ) = _initialize_conditional_transportability_data_structures(
+            outcomes=outcomes, conditions=conditions
+        )
+        self.assertSetEqual(conditioned_variables, {X1, X2})
+        self.assertSetEqual(outcome_variables, {Y @ -X1, W @ -X2})
+        self.assertSetEqual(outcome_and_conditioned_variables, {X1, X2, Y @ -X1, W @ -X2})
+        self.assertDictEqual(outcome_variable_to_value_mappings, {Y @ -X1: {-Y}, W @ -X2: {-W}})
+        self.assertDictEqual(
+            outcome_and_conditioned_variable_names_to_values, {X1: {-X1}, X2: {-X2}, Y: {-Y}, W: {-W}}
+        )
+        self.assertSetEqual(outcome_and_conditioned_variable_names, {X1, X2, W, Y})
+        self.assertSetEqual(conditioned_variable_names, {X1, X2})

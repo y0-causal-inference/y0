@@ -2015,7 +2015,27 @@ def _initialize_conditional_transportability_data_structures(
     *,
     outcomes: list[tuple[Variable, Intervention]],
     conditions: list[tuple[Variable, Intervention]],
-):
+) -> tuple[
+    set[Variable],
+    set[Variable],
+    set[Variable],
+    defaultdict[Variable, set[Intervention]],
+    defaultdict[Variable, set[Intervention]],
+    set[Variable],
+    set[Variable],
+]:
+    r"""Set up data structures to process a conditional counterfactual query per Algorithm 3 of [correa22a]_.
+
+    :param outcomes:
+        "Y_*, a set of counterfactual variables in V and y_* a set of
+        values for Y_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param conditions:
+        "X_*, a set of counterfactual variables in V and x_* a set of
+        values for X_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :returns: a tuple of hash tables and dictionaries that speed processing of a conditional counterfactual query.
+    """
     conditioned_variables: set[Variable] = {variable for variable, _ in conditions}
     outcome_variables: set[Variable] = {outcome for outcome, _ in outcomes}
     outcome_and_conditioned_variables: set[Variable] = conditioned_variables.union(
