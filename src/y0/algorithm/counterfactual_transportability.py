@@ -2270,7 +2270,6 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
         )
 
 
-# Internal subroutine for transport_conditional_counterfactual_query
 def _transport_conditional_counterfactual_query_line_4(
     *,
     outcome_variable_ancestral_component_variable_names: set[Variable],
@@ -2283,6 +2282,45 @@ def _transport_conditional_counterfactual_query_line_4(
     conditions: list[tuple[Variable, Intervention]],
     domain_data: list[tuple[Collection[Variable], Expression]],
 ) -> tuple[Expression, list[tuple[Variable, Intervention]]]:
+    r"""Execute Line 4 of Algorithm 3 of [correa22a]_.
+
+    This function is an internal subroutine for transport_conditional_counterfactual_query().
+
+    :param outcome_variable_ancestral_component_variable_names: The graph vertices associated with ancestral
+        components containing at least one outcome variable in the query, represented as a set of Variable objects.
+    :param outcome_and_conditioned_variable_names: The graph vertices associated with outcome and conditioned variables
+        in the query (stripped of any interventions), represented as a set of Variable objects.
+    :param conditioned_variable_names: The graph vertices associated with conditioned variables
+        in the query (stripped of any interventions), represented as a set of Variable objects.
+    :param transported_unconditional_query_expression: the probabilistic expression returned by the call to Algorithm
+        2 of [correa22a]_ and represented by $Q$ in the pseudocode for Algorithm 3 of [correa22a]_.
+    :param simplified_event:
+        This is the set of variables $D_{\ast}$ (in counterfactual factor form) and their values $d_{\ast}$
+        after getting processed by the simplify() algorithm (Algorithm 1 in [correa22a]_, called from Line 1 in
+        Algorithm 2 of [correa22a]_. ) We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param outcome_and_conditioned_variable_names_to_values: a dictionary mapping those variables to their values
+        from the query passed in to transport_conditional_counterfactual_query() as a parameter.
+    :param outcomes:
+        "Y_*, a set of counterfactual variables in V and y_* a set of
+        values for Y_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param conditions:
+        "X_*, a set of counterfactual variables in V and x_* a set of
+        values for X_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
+           $K$ tuples, one for each of the $K$ domains except for the target domain.
+           Each tuple contains a set of variables corresponding to
+           $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the probability distribution
+           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+           Passed in to transport_conditional_counterfactual_query() as an input parameter.
+    :returns: a tuple containing an expression representing the query result, and a list of
+           variables and their values used to evaluate the expression. Per Line 4 of Algorithm 4 of
+           [correa22a]_, the return expression has the following form:
+        :math: $\frac{\Sigma_{\mathbf{d_{\ast}}\backslash(\mathbf{y_{\ast}} \cup \mathbf{x_{\ast}})}{Q}}
+                     {\Sigma_{\mathbf{d_{\ast}}\backslash\mathbf{x_{\ast}}}{Q}}$
+    """
     # Line 4: compute the expression to return
     # $\mathbf{d_{\ast}} \backslash (\mathbf{y_{\ast}}\cup\mathbf{x_{\ast}})}$
     outcome_ancestral_component_variables_with_no_values: set[Variable] = (
