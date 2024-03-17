@@ -1068,7 +1068,11 @@ class TestMakeSelectionDiagrams(unittest.TestCase):
     """Test the results of creating a list of domain selection diagrams."""
 
     def test_make_selection_diagrams(self):
-        """Create Figure 2(b) of [correa22a]_ from Figures 3(a) and 3(b)."""
+        """Produce Figure 2(a), Figure 3(a), and Figure 3(b) of [correa22a]_.
+
+        Note that although Correa and Bareinboim describe this set of diagrams
+        in the text preceding Example 3.1
+        """
         selection_nodes = {1: {Z}, 2: {W}}
         selection_diagrams = make_selection_diagrams(
             selection_nodes=selection_nodes, graph=figure_2a_graph
@@ -3024,7 +3028,7 @@ class TestGetAncestralComponents(cases.GraphTestCase):
 class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
     """Test a function to transport a conditional counterfactual query (Algorithm 3 of [correa22a]_)."""
 
-    def test_transport_conditional_counterfactual_query(self):
+    def test_transport_conditional_counterfactual_query_1(self):
         """First test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
 
         Source: Example 4.5 and Figure 6 of [correa22a]_.
@@ -3047,6 +3051,82 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         expected_result_expr, expected_result_event = (
             Fraction(PP[TARGET_DOMAIN](Y | X, Z), Sum.safe(PP[TARGET_DOMAIN](Y | X, Z), {Y})),
             [(Y, -Y), (X, +X), (Z, -Z)],
+        )
+
+        result_expr, result_event = transport_conditional_counterfactual_query(
+            outcomes=outcomes,
+            conditions=conditions,
+            target_domain_graph=target_domain_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        logger.warning("expected_result_expr = " + expected_result_expr.to_latex())
+        logger.warning("expected_result_event = " + str(expected_result_event))
+        logger.warning("Result_expr = " + result_expr.to_latex())
+        logger.warning("Result_event = " + str(result_event))
+        self.assert_expr_equal(expected_result_expr, result_expr)
+        self.assertCountEqual(expected_result_event, result_event)
+
+    def test_transport_conditional_counterfactual_query_2(self):
+        """Second test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
+
+        Source: RC's mind. Designed to test merging outcome ancestral sets into ancestral components.
+        """
+        outcomes = [(Y @ -X1, -Y), (W @ -X2, -W)]
+        conditions = [(X1, -X1)]
+        target_domain_graph = NxMixedGraph.from_edges(
+            directed=[
+                (X1, Z),
+                (X2, Z),
+                (Z, W),
+                (W, Y),
+            ],
+            undirected=[(Z, W)],
+        )
+        target_domain_graph_topo = list(target_domain_graph.topological_sort())
+        domain_1_graph = NxMixedGraph.from_edges(
+            directed=[(X1, Z), (X2, Z), (Z, W), (W, Y), (transport_variable(X2), X2)],
+            undirected=[],
+        )
+        domain_1_graph_topo = list(domain_1_graph.topological_sort())
+        domain_graphs = [
+            (
+                target_domain_graph,
+                target_domain_graph_topo,
+            ),
+            (
+                domain_1_graph,
+                domain_1_graph_topo,
+            ),
+        ]
+        domain_data = [(set(), PP[TARGET_DOMAIN](X1, X2, W, Y, Z)), ({W}, PP[Pi1](X1, X2, W, Y, Z))]
+        # DSL isn't smart enough to replace the denominator with 1
+        expected_result_expr, expected_result_event = (
+            Fraction(
+                Sum.safe(
+                    Product.safe(
+                        [
+                            PP[TARGET_DOMAIN](Y | W, Z, X2, X1),
+                            PP[TARGET_DOMAIN](W | Z, X2, X1),
+                            PP[TARGET_DOMAIN](Z | X2, X1),
+                            PP[TARGET_DOMAIN](X2 | X1),
+                        ],
+                    ),
+                    {Z, X2},
+                ),
+                Sum.safe(
+                    Product.safe(
+                        [
+                            PP[TARGET_DOMAIN](Y | W, Z, X2, X1),
+                            PP[TARGET_DOMAIN](W | Z, X2, X1),
+                            PP[TARGET_DOMAIN](Z | X2, X1),
+                            PP[TARGET_DOMAIN](X2 | X1),
+                        ],
+                    ),
+                    {Z, X2, Y, W},
+                ),
+            ),
+            [(Y, -Y), (W, -W), (X1, -X1)],
         )
 
         result_expr, result_event = transport_conditional_counterfactual_query(

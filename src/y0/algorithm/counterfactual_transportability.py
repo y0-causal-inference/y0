@@ -1793,14 +1793,30 @@ def _compute_ancestral_components_from_ancestral_sets(
             # variable. See the proof of Lemma A.5 of [correa22a]_.
             vertex_to_ancestral_set_mappings[v.get_base()].add(s)
 
+    logger.warning("Initialization complete.")
+    logger.warning("vertex_to_ancestral_set_mappings: " + str(vertex_to_ancestral_set_mappings))
+    logger.warning(
+        "original_to_merged_ancestral_set_mappings: "
+        + str(original_to_merged_ancestral_set_mappings)
+    )
+    logger.warning("Ancestral components: " + str(ancestral_components))
+
     # Allows us to fix our accounting for vertex_to_ancestral_set_mappings when we place a variable in a new,
     # merged ancestral set after already having visited it, without kicking the running time up to O(V^4)
     # by looping through the vertices again.
-    visited_vertices = set()
+    visited_vertices: set[Variable] = set()
     # Combine ancestral sets that are not disjoint. O(V^3), where V is the number of vertices
     for v in vertex_to_ancestral_set_mappings.keys():
         # Make sure our ancestral set mappings for this vertex reference the latest, merged ancestral sets.
         # O(V)
+        logger.warning(
+            "Considering variable "
+            + str(v)
+            + "(base variable "
+            + str(v.get_base())
+            + ") at start of vertex loop."
+        )
+        logger.warning("   visited_vertices: " + str(visited_vertices))
         updates = {
             original_to_merged_ancestral_set_mappings[s]
             for s in vertex_to_ancestral_set_mappings[v]
@@ -1808,10 +1824,18 @@ def _compute_ancestral_components_from_ancestral_sets(
         vertex_to_ancestral_set_mappings[v] = updates
         # O(V^2), as this is at worst O(V) modifications to a hash table (e.g., V/2), done for O(V) ancestral sets
         if len(vertex_to_ancestral_set_mappings[v]) > 1:
+            logger.warning("Combining frozen sets for vertex " + str(v) + ".")
+            logger.warning(
+                "   vertex_to_ancestral_set_mappings[v]: "
+                + str(vertex_to_ancestral_set_mappings[v])
+            )
             s_new: set[Variable] = set()
             for s in vertex_to_ancestral_set_mappings[v]:
                 s_new.update(s)
+            logger.warning("   Just updated s_new to " + str(s_new))
             s_new_frozen: frozenset[Variable] = frozenset(s_new)
+            logger.warning("   s_new_frozen = " + str(s_new_frozen))
+            logger.warning("   Ancestral components prior to update: " + str(ancestral_components))
             for s in vertex_to_ancestral_set_mappings[v]:
                 if s in original_to_merged_ancestral_set_mappings.keys():
                     original_to_merged_ancestral_set_mappings[s] = s_new_frozen
@@ -1823,23 +1847,58 @@ def _compute_ancestral_components_from_ancestral_sets(
                         + str(original_to_merged_ancestral_set_mappings)
                     )
                 ancestral_components.remove(s)
+                logger.warning(
+                    "   updated original_to_merged_ancestral_set_mappings[ "
+                    + str(s)
+                    + "]: "
+                    + str(original_to_merged_ancestral_set_mappings[s])
+                )
             ancestral_components.add(s_new_frozen)
+            logger.warning("   Updated ancestral_components: " + str(ancestral_components))
             visited_vertices.add(v.get_base())
-            for v in s_new:
-                if v in visited_vertices:
-                    vertex_to_ancestral_set_mappings[v.get_base()] = {s_new_frozen}
+            logger.warning("   New visited_vertices: " + str(visited_vertices))
+            for v_s in s_new:
+                # Have to update the vertexes we've been to already, and it's okay
+                # to update the vertexes we haven't been to (and necessary to update the
+                # current one.)
+                if v_s.get_base() in visited_vertices:
+                    vertex_to_ancestral_set_mappings[v_s.get_base()] = {s_new_frozen}
+                    logger.warning(
+                        "   Updated vertex_to_ancestral_set_mappings[v_s.get_base()]: "
+                        + str(vertex_to_ancestral_set_mappings[v_s.get_base()])
+                        + " for variable "
+                        + str(v_s)
+                        + "."
+                    )
         else:
             visited_vertices.add(v.get_base())
+    logger.warning("Finished pass through the vertices.")
+    logger.warning("vertex_to_ancestral_set_mappings: " + str(vertex_to_ancestral_set_mappings))
+    logger.warning(
+        "original_to_merged_ancestral_set_mappings: "
+        + str(original_to_merged_ancestral_set_mappings)
+    )
+    logger.warning("Ancestral components: " + str(ancestral_components))
 
     # Combine ancestral sets connected by a bidirected edge. O(E) which is O(V^2)
     for e in graph.undirected.edges:
         v1 = e[0]
         v2 = e[1]
+        logger.warning("Considering an edge involving " + str(v1) + " and " + str(v2) + ".")
         if (
             v1 in vertex_to_ancestral_set_mappings
             and v2 in vertex_to_ancestral_set_mappings
             and vertex_to_ancestral_set_mappings[v1] != vertex_to_ancestral_set_mappings[v2]
         ):
+            logger.warning("Processing edge involving " + str(v1) + "(v1) and " + str(v2) + "(v2).")
+            logger.warning(
+                "  vertex_to_ancestral_set_mappings[v1]: "
+                + str(vertex_to_ancestral_set_mappings[v1])
+            )
+            logger.warning(
+                "  vertex_to_ancestral_set_mappings[v2]: "
+                + str(vertex_to_ancestral_set_mappings[v2])
+            )
             tmp: set[frozenset[Variable]] = vertex_to_ancestral_set_mappings[v1].union(
                 vertex_to_ancestral_set_mappings[v2]
             )
@@ -1850,20 +1909,56 @@ def _compute_ancestral_components_from_ancestral_sets(
             frozen_merged_ancestral_sets: set[frozenset[Variable]] = {
                 frozenset(merged_ancestral_set)
             }
+            logger.warning("frozen_merged_ancestral_sets: " + str(frozen_merged_ancestral_sets))
+            logger.warning("Old ancestral components: " + str(ancestral_components))
             for s in vertex_to_ancestral_set_mappings[v1]:  # One entry
+                logger.warning("Removing s = " + str(s) + " from ancestral components (parsing v1)")
                 ancestral_components.remove(s)
             for s in vertex_to_ancestral_set_mappings[v2]:  # One entry
+                logger.warning("Removing s = " + str(s) + " from ancestral components (parsing v2)")
                 ancestral_components.remove(s)
             ancestral_components.update(frozen_merged_ancestral_sets)
             # O(V)
             for v in merged_ancestral_set:
+                logger.warning(
+                    "   Looking at variable "
+                    + str(v)
+                    + " in the merged_ancestral_set "
+                    + str(merged_ancestral_set)
+                    + "."
+                )
                 vertex_to_ancestral_set_mappings[v.get_base()] = frozen_merged_ancestral_sets
+                logger.warning(
+                    "  New vertex_to_ancestral_set_mappings["
+                    + str(v.get_base())
+                    + "]: "
+                    + str(vertex_to_ancestral_set_mappings[v.get_base()])
+                )
+            logger.warning("New ancestral components: " + str(ancestral_components))
+
+    logger.warning("Finished pass through the edges.")
+    logger.warning("vertex_to_ancestral_set_mappings: " + str(vertex_to_ancestral_set_mappings))
+    logger.warning(
+        "original_to_merged_ancestral_set_mappings: "
+        + str(original_to_merged_ancestral_set_mappings)
+    )
+    logger.warning("Ancestral components: " + str(ancestral_components))
 
     # Final check
     if any(
         len(vertex_to_ancestral_set_mappings[v]) > 1
         for v in vertex_to_ancestral_set_mappings.keys()
     ):
+        logger.warning(
+            "In _compute_ancestral_components_from_ancestral_sets: a vertex is still associated "
+            + "with more than one ancestral component during final checks."
+        )
+        for v in vertex_to_ancestral_set_mappings.keys():
+            logger.warning("Vertex: " + str(v))
+            logger.warning(
+                "   Ancestral sets associated with this vertex: "
+                + str(vertex_to_ancestral_set_mappings[v])
+            )
         raise TypeError(
             "In _compute_ancestral_components_from_ancestral_sets: a vertex "
             + "is still associated with more than one ancestral component during final checks."
@@ -1874,6 +1969,10 @@ def _compute_ancestral_components_from_ancestral_sets(
         and vertex_to_ancestral_set_mappings[v1] != vertex_to_ancestral_set_mappings[v2]
         for v1, v2 in graph.undirected.edges
     ):
+        logger.warning(
+            "In _compute_ancestral_components_from_ancestral_sets: a bidirected edge still connects "
+            + "two ancestral components during final checks."
+        )
         raise TypeError(
             "In _compute_ancestral_components_from_ancestral_sets: a bidirected edge "
             + "still connects two ancestral components during final checks."
@@ -2020,9 +2119,16 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
     # 2. Make sure the values for those variables in the simplified event match
     #    the values for their corresponding outcome or condition variables
     #    in the input for this function.
+    # logger.warning("In _validate_transport_conditionalcounterfactual_query_line_4_output: ")
+    # logger.warning("    simplified_event: " + str(simplified_event))
+    # logger.warning(
+    #    "    outcome_and_conditioned_variable_names_to_values: "
+    #    + str(outcome_and_conditioned_variable_names_to_values)
+    # )
     if any(
         value not in outcome_and_conditioned_variable_names_to_values[variable.get_base()]
         for variable, value in simplified_event
+        if simplified_event_variable_names_to_values[variable.get_base()] is not None
     ):
         raise KeyError(
             "In final checks for transport_conditional_counterfactual_query: a value "
