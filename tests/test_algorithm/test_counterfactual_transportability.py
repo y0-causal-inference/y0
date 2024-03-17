@@ -36,6 +36,7 @@ from y0.algorithm.counterfactual_transportability import (
     _transport_conditional_counterfactual_query_line_2,
     _transport_conditional_counterfactual_query_line_4,
     _transport_unconditional_counterfactual_query_line_2,
+    _validate_transport_conditional_counterfactual_query_line_4_output,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
@@ -3031,36 +3032,63 @@ class TestGetAncestralComponents(cases.GraphTestCase):
 class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
     """Test a function to transport a conditional counterfactual query (Algorithm 3 of [correa22a]_)."""
 
+    example_1_outcomes = [(Y @ -X, -Y)]
+    example_1_conditions = [(Z @ -X, -Z), (X, +X)]
+    example_1_target_domain_graph = figure_1_graph_no_transportability_nodes
+    example_1_domain_graphs = [
+        (
+            figure_1_graph_no_transportability_nodes,
+            figure_1_graph_no_transportability_nodes_topo,
+        ),
+        (
+            figure_1_graph_domain_1_with_interventions,
+            figure_1_graph_domain_1_with_interventions_topo,
+        ),
+    ]
+    example_2_outcomes = [(Y @ -X1, -Y), (W @ -X2, -W)]
+    example_2_conditions = [(X1, -X1)]
+    example_2_target_domain_graph = NxMixedGraph.from_edges(
+        directed=[
+            (X1, Z),
+            (X2, Z),
+            (Z, W),
+            (W, Y),
+        ],
+        undirected=[(Z, W)],
+    )
+    example_2_target_domain_graph_topo = list(example_2_target_domain_graph.topological_sort())
+    example_2_domain_1_graph = NxMixedGraph.from_edges(
+        directed=[(X1, Z), (X2, Z), (Z, W), (W, Y), (transport_variable(X2), X2)],
+        undirected=[],
+    )
+    example_2_domain_1_graph_topo = list(example_2_domain_1_graph.topological_sort())
+    example_2_domain_graphs = [
+        (
+            example_2_target_domain_graph,
+            example_2_target_domain_graph_topo,
+        ),
+        (
+            example_2_domain_1_graph,
+            example_2_domain_1_graph_topo,
+        ),
+    ]
+
     def test_transport_conditional_counterfactual_query_1(self):
         """First test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
 
         Source: Example 4.5 and Figure 6 of [correa22a]_.
         """
-        outcomes = [(Y @ -X, -Y)]
-        conditions = [(Z @ -X, -Z), (X, +X)]
-        target_domain_graph = figure_1_graph_no_transportability_nodes
-        domain_graphs = [
-            (
-                figure_1_graph_no_transportability_nodes,
-                figure_1_graph_no_transportability_nodes_topo,
-            ),
-            (
-                figure_1_graph_domain_1_with_interventions,
-                figure_1_graph_domain_1_with_interventions_topo,
-            ),
-        ]
-        domain_data = [(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))]
         # DSL isn't smart enough to replace the denominator with 1
+        domain_data = [(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))]
         expected_result_expr, expected_result_event = (
             Fraction(PP[TARGET_DOMAIN](Y | X, Z), Sum.safe(PP[TARGET_DOMAIN](Y | X, Z), {Y})),
             [(Y, -Y), (X, +X), (Z, -Z)],
         )
-
         result_expr, result_event = transport_conditional_counterfactual_query(
-            outcomes=outcomes,
-            conditions=conditions,
-            target_domain_graph=target_domain_graph,
-            domain_graphs=domain_graphs,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
             domain_data=domain_data,
         )
         logger.warning("expected_result_expr = " + expected_result_expr.to_latex())
@@ -3075,35 +3103,10 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
 
         Source: RC's mind. Designed to test merging outcome ancestral sets into ancestral components.
         """
-        outcomes = [(Y @ -X1, -Y), (W @ -X2, -W)]
-        conditions = [(X1, -X1)]
-        target_domain_graph = NxMixedGraph.from_edges(
-            directed=[
-                (X1, Z),
-                (X2, Z),
-                (Z, W),
-                (W, Y),
-            ],
-            undirected=[(Z, W)],
-        )
-        target_domain_graph_topo = list(target_domain_graph.topological_sort())
-        domain_1_graph = NxMixedGraph.from_edges(
-            directed=[(X1, Z), (X2, Z), (Z, W), (W, Y), (transport_variable(X2), X2)],
-            undirected=[],
-        )
-        domain_1_graph_topo = list(domain_1_graph.topological_sort())
-        domain_graphs = [
-            (
-                target_domain_graph,
-                target_domain_graph_topo,
-            ),
-            (
-                domain_1_graph,
-                domain_1_graph_topo,
-            ),
-        ]
-        domain_data = [(set(), PP[TARGET_DOMAIN](X1, X2, W, Y, Z)), ({W}, PP[Pi1](X1, X2, W, Y, Z))]
         # DSL isn't smart enough to replace the denominator with 1
+        # @cthoyt: The code base would be simpler were we to instantiate these as static class-level objects,
+        # but then we get the following MyPy error:
+        # error: Value of type "type[PopulationProbabilityBuilderType]" is not indexable
         expected_result_expr, expected_result_event = (
             Fraction(
                 Sum.safe(
@@ -3131,12 +3134,15 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             ),
             [(Y, -Y), (W, -W), (X1, -X1)],
         )
-
+        domain_data = [
+            (set(), PP[TARGET_DOMAIN](X1, X2, W, Y, Z)),
+            ({W}, PP[Pi1](X1, X2, W, Y, Z)),
+        ]
         result_expr, result_event = transport_conditional_counterfactual_query(
-            outcomes=outcomes,
-            conditions=conditions,
-            target_domain_graph=target_domain_graph,
-            domain_graphs=domain_graphs,
+            outcomes=self.example_2_outcomes,
+            conditions=self.example_2_conditions,
+            target_domain_graph=self.example_2_target_domain_graph,
+            domain_graphs=self.example_2_domain_graphs,
             domain_data=domain_data,
         )
         logger.warning("expected_result_expr = " + expected_result_expr.to_latex())
@@ -3153,7 +3159,6 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         """
         outcomes = [(Y @ -X1, -Y), (W @ -X2, -W)]
         conditions = [(X1, -X1), (X2, -X2)]
-
         (
             conditioned_variables,
             outcome_variables,
@@ -3181,22 +3186,11 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
 
         Source: RC's mind.
         """
-        # outcomes = [(Y @ -X1, -Y), (W @ -X2, -W)]
-        # conditions = [(X1, -X1)]
         ancestral_components = frozenset(
             {frozenset({Y @ -X1, W @ -X1, Z @ -X1, X2, W @ -X2, Z @ -X2}), frozenset({X1})}
         )
         outcome_variables = {Y @ -X1, W @ -X2}
         outcome_variable_to_value_mappings = {Y @ -X1: {-Y}, W @ -X2: {-W}}
-        target_domain_graph = NxMixedGraph.from_edges(
-            directed=[
-                (X1, Z),
-                (X2, Z),
-                (Z, W),
-                (W, Y),
-            ],
-            undirected=[(Z, W)],
-        )
         expected_outcome_ancestral_component_query_in_counterfactual_factor_form = [
             (Y @ -W, -Y),
             (W @ -Z, -W),
@@ -3206,7 +3200,6 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             (X2, None),
         ]
         expected_outcome_variable_ancestral_component_variable_names = {Y, W, Z, X2}
-
         (
             outcome_ancestral_component_query_in_counterfactual_factor_form,
             outcome_variable_ancestral_component_variable_names,
@@ -3214,7 +3207,7 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             ancestral_components=ancestral_components,
             outcome_variables=outcome_variables,
             outcome_variable_to_value_mappings=outcome_variable_to_value_mappings,
-            target_domain_graph=target_domain_graph,
+            target_domain_graph=self.example_2_target_domain_graph,
         )
         self.assertCountEqual(
             expected_outcome_ancestral_component_query_in_counterfactual_factor_form,
@@ -3249,7 +3242,9 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             (Z @ -X1 @ -X2, None),
             (X2, None),
         ]
-        outcome_and_conditioned_variable_names_to_values = {X1: {-X1}, Y: {-Y}, W: {-W}}
+        # @cthoyt: The code base would be simpler were we to instantiate these as static class-level objects,
+        # but then we get the following MyPy error:
+        # error: Value of type "type[PopulationProbabilityBuilderType]" is not indexable
         expected_result_expr, expected_result_event = (
             Fraction(
                 Sum.safe(
@@ -3277,6 +3272,11 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             ),
             [(Y, -Y), (W, -W), (X1, -X1)],
         )
+        domain_data = [
+            (set(), PP[TARGET_DOMAIN](X1, X2, W, Y, Z)),
+            ({W}, PP[Pi1](X1, X2, W, Y, Z)),
+        ]
+        outcome_and_conditioned_variable_names_to_values = {X1: {-X1}, Y: {-Y}, W: {-W}}
         result_expression, result_event = _transport_conditional_counterfactual_query_line_4(
             outcome_variable_ancestral_component_variable_names=outcome_variable_ancestral_component_variable_names,
             outcome_and_conditioned_variable_names=outcome_and_conditioned_variable_names,
@@ -3286,6 +3286,242 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             outcome_and_conditioned_variable_names_to_values=outcome_and_conditioned_variable_names_to_values,
             outcomes=outcomes,
             conditions=conditions,
+            domain_data=domain_data,
         )
         self.assert_expr_equal(result_expression, expected_result_expr)
         self.assertCountEqual(result_event, expected_result_event)
+
+    def test_transport_conditional_counterfactual_query_subroutines_4(self):
+        """Test _validate_transport_conditional_counterfactual_query_line_4_output().
+
+        Source: RC's mind.
+        """
+        simplified_event = [
+            (Y @ -W, -Y),
+            (W @ -Z, -W),
+            (Z @ -X1 @ -X2, None),
+            (X2, None),
+        ]
+        outcome_and_conditioned_variable_names = {Y, W, X1}
+        outcome_and_conditioned_variable_names_to_values = {X1: {-X1}, Y: {-Y}, W: {-W}}
+        outcome_ancestral_component_variables_with_no_values = {Z, X2}  # {Y, W, Z, X2} - {Y, W, X1}
+        result_expression, result_event = (
+            Fraction(
+                Sum.safe(
+                    Product.safe(
+                        [
+                            PP[TARGET_DOMAIN](Y | W, Z, X2, X1),
+                            PP[TARGET_DOMAIN](W | Z, X2, X1),
+                            PP[TARGET_DOMAIN](Z | X2, X1),
+                            PP[TARGET_DOMAIN](X2 | X1),
+                        ],
+                    ),
+                    {Z, X2},
+                ),
+                Sum.safe(
+                    Product.safe(
+                        [
+                            PP[TARGET_DOMAIN](Y | W, Z, X2, X1),
+                            PP[TARGET_DOMAIN](W | Z, X2, X1),
+                            PP[TARGET_DOMAIN](Z | X2, X1),
+                            PP[TARGET_DOMAIN](X2 | X1),
+                        ],
+                    ),
+                    {Z, X2, Y, W},
+                ),
+            ),
+            [(Y, -Y), (W, -W), (X1, -X1)],
+        )
+        domain_data = [
+            (set(), PP[TARGET_DOMAIN](X1, X2, W, Y, Z)),
+            ({W}, PP[Pi1](X1, X2, W, Y, Z)),
+        ]
+        # 1. Make sure in the simplified event we got back, all of the variables
+        #    that have values are either variables in the outcomes or variables
+        #    in the conditions.
+        self.assertRaises(
+            KeyError,
+            _validate_transport_conditional_counterfactual_query_line_4_output,
+            simplified_event=[
+                (Y @ -W, -Y),
+                (W @ -Z, -W),
+                (Z @ -X1 @ -X2, -Z),  # Testing the first check
+                (X2, None),
+            ],
+            outcome_and_conditioned_variable_names=outcome_and_conditioned_variable_names,
+            outcome_and_conditioned_variable_names_to_values=outcome_and_conditioned_variable_names_to_values,
+            outcome_ancestral_component_variables_with_no_values=outcome_ancestral_component_variables_with_no_values,
+            result_expression=result_expression,
+            result_event=result_event,
+            domain_data=domain_data,
+        )
+        # 2. Make sure the values for those variables in the simplified event match
+        #    the values for their corresponding outcome or condition variables
+        #    in the input for this function.
+        self.assertRaises(
+            KeyError,
+            _validate_transport_conditional_counterfactual_query_line_4_output,
+            simplified_event=[
+                (Y @ -W, +Y),  # Testing the second check
+                (W @ -Z, -W),
+                (Z @ -X1 @ -X2, None),
+                (X2, None),
+            ],
+            outcome_and_conditioned_variable_names=outcome_and_conditioned_variable_names,
+            outcome_and_conditioned_variable_names_to_values=outcome_and_conditioned_variable_names_to_values,
+            outcome_ancestral_component_variables_with_no_values=outcome_ancestral_component_variables_with_no_values,
+            result_expression=result_expression,
+            result_event=result_event,
+            domain_data=domain_data,
+        )
+        # 3. Make sure all the variables in the expression this function will return are either
+        #    in the outcomes, the conditions, one of the expressions passed in with the
+        #    domain data, or the outcome ancestral component variables excluding outcomes and conditions.
+        #    See also test_transport_conditional_counterfactual_query_5 below.
+        self.assertRaises(
+            KeyError,
+            _validate_transport_conditional_counterfactual_query_line_4_output,
+            simplified_event=simplified_event,
+            outcome_and_conditioned_variable_names=outcome_and_conditioned_variable_names,
+            outcome_and_conditioned_variable_names_to_values=outcome_and_conditioned_variable_names_to_values,
+            outcome_ancestral_component_variables_with_no_values=outcome_ancestral_component_variables_with_no_values,
+            result_expression=Fraction(
+                Sum.safe(
+                    Product.safe(
+                        [
+                            PP[TARGET_DOMAIN](Y | W, Z, X2, X1),
+                            PP[TARGET_DOMAIN](W | Z, X2, X1),
+                            PP[TARGET_DOMAIN](Z | X2, X1),
+                            PP[TARGET_DOMAIN](X2 | X1),
+                        ],
+                    ),
+                    {Z, X2},
+                ),
+                Sum.safe(
+                    Product.safe(
+                        [
+                            PP[TARGET_DOMAIN](Y | W, Z, X2, X1),
+                            PP[TARGET_DOMAIN](W | Z, X2, X1),
+                            PP[TARGET_DOMAIN](Z | X2, X1),
+                            PP[TARGET_DOMAIN](X2 | X1, R),  # Testing the third check
+                        ],
+                    ),
+                    {Z, X2, Y, W},
+                ),
+            ),
+            result_event=result_event,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            KeyError,
+            _validate_transport_conditional_counterfactual_query_line_4_output,
+            simplified_event=simplified_event,
+            outcome_and_conditioned_variable_names=outcome_and_conditioned_variable_names,
+            outcome_and_conditioned_variable_names_to_values=outcome_and_conditioned_variable_names_to_values,
+            outcome_ancestral_component_variables_with_no_values=outcome_ancestral_component_variables_with_no_values,
+            result_expression=Fraction(
+                Sum.safe(
+                    Product.safe(
+                        [
+                            PP[TARGET_DOMAIN](Y, R | W, Z, X2, X1),  # Testing the third check
+                            PP[TARGET_DOMAIN](W | Z, X2, X1),
+                            PP[TARGET_DOMAIN](Z | X2, X1),
+                            PP[TARGET_DOMAIN](X2 | X1),
+                        ],
+                    ),
+                    {Z, X2},
+                ),
+                Sum.safe(
+                    Product.safe(
+                        [
+                            PP[TARGET_DOMAIN](Y | W, Z, X2, X1),
+                            PP[TARGET_DOMAIN](W | Z, X2, X1),
+                            PP[TARGET_DOMAIN](Z | X2, X1),
+                            PP[TARGET_DOMAIN](X2 | X1),
+                        ],
+                    ),
+                    {Z, X2, Y, W},
+                ),
+            ),
+            result_event=result_event,
+            domain_data=domain_data,
+        )
+        # 4. Make sure we're not going to return any variables with None values. TODO: This check
+        #    won't be necessary after we verify that the input outcomes and conditions have no
+        #    None values.
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_line_4_output,
+            simplified_event=simplified_event,
+            outcome_and_conditioned_variable_names=outcome_and_conditioned_variable_names,
+            outcome_and_conditioned_variable_names_to_values=outcome_and_conditioned_variable_names_to_values,
+            outcome_ancestral_component_variables_with_no_values=outcome_ancestral_component_variables_with_no_values,
+            result_expression=result_expression,
+            result_event=[(Y, -Y), (W, -W), (X1, None)],
+            domain_data=domain_data,
+        )
+        # 5. Make sure the result expression and result event have the same variables.
+        self.assertRaises(
+            KeyError,
+            _validate_transport_conditional_counterfactual_query_line_4_output,
+            simplified_event=simplified_event,
+            outcome_and_conditioned_variable_names=outcome_and_conditioned_variable_names,
+            outcome_and_conditioned_variable_names_to_values=outcome_and_conditioned_variable_names_to_values,
+            outcome_ancestral_component_variables_with_no_values=outcome_ancestral_component_variables_with_no_values,
+            result_expression=result_expression,
+            result_event=[(Y, -Y), (W, -W), (X1, -X1), (R, -R)],
+            domain_data=domain_data,
+        )
+
+    def test_transport_conditional_counterfactual_query_5(self):
+        """Fifth test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
+
+        Here we test the notion that the joint probability of the vertices sent in as input conditions
+        on other variables we don't see in the graph. A user may wish to transport a subgraph,
+        for example.
+
+        Source: Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        domain_data = [(set(), PP[TARGET_DOMAIN](X, Y, Z | R)), ({X}, PP[Pi1](X, Y, Z | R))]
+        expected_result_expr, expected_result_event = (
+            Fraction(PP[TARGET_DOMAIN](Y | X, Z, R), Sum.safe(PP[TARGET_DOMAIN](Y | X, Z, R), {Y})),
+            [(Y, -Y), (X, +X), (Z, -Z)],
+        )
+        result_expr, result_event = transport_conditional_counterfactual_query(
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=domain_data,
+        )
+        logger.warning("expected_result_expr = " + expected_result_expr.to_latex())
+        logger.warning("expected_result_event = " + str(expected_result_event))
+        logger.warning("Result_expr = " + result_expr.to_latex())
+        logger.warning("Result_event = " + str(result_event))
+        self.assert_expr_equal(expected_result_expr, result_expr)
+        self.assertCountEqual(expected_result_event, result_event)
+
+
+"""
+_validate_transport_conditional_counterfactual_query_line_4_output
+    simplified_event: list[tuple[Variable, Intervention | None]],
+    outcome_and_conditioned_variable_names: set[Variable],
+    outcome_and_conditioned_variable_names_to_values: defaultdict[Variable, set[Intervention]],
+    outcome_ancestral_component_variables_with_no_values: set[Variable],
+    result_expression: Expression,
+    result_event: list[tuple[Variable, Intervention]],
+    # 1. Make sure in the simplified event we got back, all of the variables
+    #    that have values are either variables in the outcomes or variables
+    #    in the conditions.
+
+    # 2. Make sure the values for those variables in the simplified event match
+    #    the values for their corresponding outcome or condition variables
+    #    in the input for this function.
+
+    # 3. Make sure all the variables in the expression this function will return are either
+    #    in the outcomes, the conditions, or the outcome ancestral component variables
+    #    excluding outcomes and conditions.
+    #    TODO: Test the assumption for this step. Can the probability of the
+    #    data sent into transport_conditional_counterfactual_query as input
+    #    condition on variables not in the target domain graph?
+"""

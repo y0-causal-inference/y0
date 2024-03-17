@@ -1623,23 +1623,31 @@ def transport_unconditional_counterfactual_query(
                 # Line 9 involves formally evaluating Q over the set of values $\mathbf{c}$. We defer
                 #    this action until Line 14, when we do so by simply returning the simplified event
                 #    with the expression for $P^{\ast}(\mathbf{Y_{\ast} = y_{\ast}})$.
-                district_variables_and_their_parents: set[Variable] = {
-                    target_domain_graph.directed.predecessors(variable.get_base())
-                    for variable in district_without_interventions
-                }.union(district_without_interventions)
+                district_variables_and_their_parents: set[
+                    Variable
+                ] = set()  # district_without_interventions
+                for variable in district_without_interventions:
+                    district_variables_and_their_parents.update(
+                        {v for v in target_domain_graph.directed.predecessors(variable.get_base())}
+                    )
+                district_variables_and_their_parents.update(district_without_interventions)
                 if not all(
                     variable in district_variables_and_their_parents
                     for variable in district_probability_intervening_on_parents.get_variables()
                 ):
+                    # This can happen if the joint probability of the vertices passed in to Algorithms 2 or 3
+                    # with the 'domain_data' parameter conditions on some other variable not in the graph. So,
+                    # we throw a warning but don't stop execution.
                     logger.warning(
-                        "Found a variable in the Q expression that is not a district variable or one of its parents."
+                        "In transport_unconditional_counterfactual_query: found a variable in the Q expression "
+                        + "that is not a district variable or one of its parents."
                     )
                     logger.warning(
-                        "District variables and their parents: "
+                        "    District variables and their parents: "
                         + str(district_variables_and_their_parents)
                     )
                     logger.warning(
-                        "Q expression variables: "
+                        "    Q expression variables: "
                         + str(district_probability_intervening_on_parents.get_variables())
                     )
                 # logger.warning(
@@ -2152,6 +2160,7 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
     outcome_ancestral_component_variables_with_no_values: set[Variable],
     result_expression: Expression,
     result_event: list[tuple[Variable, Intervention]],
+    domain_data: list[tuple[Collection[Variable], Expression]],
 ):
     simplified_event_variable_names_to_values: dict[Variable, Intervention | None] = {
         variable.get_base(): value for variable, value in simplified_event
@@ -2192,14 +2201,12 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
             + "that has the same name after ignoring any intervention set."
         )
     # 3. Make sure all the variables in the expression this function will return are either
-    #    in the outcomes, the conditions, or the outcome ancestral component variables
-    #    excluding outcomes and conditions.
-    #    TODO: Test the assumption for this step. Can the probability of the
-    #    data sent into transport_conditional_counterfactual_query as input
-    #    condition on variables not in the target domain graph?
+    #    in the outcomes, the conditions, one of the expressions passed in with the
+    #    domain data, or the outcome ancestral component variables excluding outcomes and conditions.
     if not all(
         variable in outcome_ancestral_component_variables_with_no_values
         or variable in outcome_and_conditioned_variable_names
+        or any(variable in expression.get_variables() for _, expression in domain_data)
         for variable in result_expression.get_variables()
     ):
         raise KeyError(
@@ -2220,6 +2227,17 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
             + str(result_event)
             + ". Also check your inputs."
         )
+    # 5. Make sure all the variables in the result_event are in the result_expression.
+    if not all(variable in result_expression.get_variables() for variable, _ in result_event):
+        raise KeyError(
+            "In final checks for transport_conditional_counterfactual_query: at least one variable in "
+            + "the event that transport_unconditional_counterfactual_query() "
+            + "will return is not a variable in the expression for the probability of the query "
+            + "that is to be returned. result_event: "
+            + str(result_event)
+            + " and return expression: "
+            + str(result_expression)
+        )
 
 
 # Internal subroutine for transport_conditional_counterfactual_query
@@ -2233,6 +2251,7 @@ def _transport_conditional_counterfactual_query_line_4(
     outcome_and_conditioned_variable_names_to_values: defaultdict[Variable, set[Intervention]],
     outcomes: list[tuple[Variable, Intervention]],
     conditions: list[tuple[Variable, Intervention]],
+    domain_data: list[tuple[Collection[Variable], Expression]],
 ) -> tuple[Expression, list[tuple[Variable, Intervention]]]:
     # Line 4: compute the expression to return
     # $\mathbf{d_{\ast}} \backslash (\mathbf{y_{\ast}}\cup\mathbf{x_{\ast}})}$
@@ -2269,6 +2288,7 @@ def _transport_conditional_counterfactual_query_line_4(
         outcome_ancestral_component_variables_with_no_values=outcome_ancestral_component_variables_with_no_values,
         result_expression=result_expression,
         result_event=result_event,
+        domain_data=domain_data,
     )
     return (result_expression, result_event)
 
@@ -2407,4 +2427,5 @@ def transport_conditional_counterfactual_query(
                 outcome_and_conditioned_variable_names_to_values=outcome_and_conditioned_variable_names_to_values,
                 outcomes=outcomes,
                 conditions=conditions,
+                domain_data=domain_data,
             )
