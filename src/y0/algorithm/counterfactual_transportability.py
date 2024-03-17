@@ -2029,11 +2029,11 @@ def _initialize_conditional_transportability_data_structures(
     :param outcomes:
         "Y_*, a set of counterfactual variables in V and y_* a set of
         values for Y_*." We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
+        CounterfactualVariable objects, and their values as Intervention objects.
     :param conditions:
         "X_*, a set of counterfactual variables in V and x_* a set of
         values for X_*." We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
+        CounterfactualVariable objects, and their values as Intervention objects.
     :returns: a tuple of hash tables and dictionaries that speed processing of a conditional counterfactual query.
     """
     conditioned_variables: set[Variable] = {variable for variable, _ in conditions}
@@ -2073,14 +2073,48 @@ def _initialize_conditional_transportability_data_structures(
     )
 
 
-# Internal subroutine for transport_conditional_counterfactual_query
-def transport_conditional_counterfactual_query_line_2(
+def _transport_conditional_counterfactual_query_line_2(
     *,
     ancestral_components: frozenset[frozenset[Variable]],
     outcome_variables: set[Variable],
     outcome_variable_to_value_mappings: defaultdict[Variable, set[Intervention]],
     target_domain_graph: NxMixedGraph,
 ) -> tuple[list[tuple[Variable, Intervention | None]], set[Variable]]:
+    r"""Set up data structures to process a conditional counterfactual query per Algorithm 3 of [correa22a]_.
+
+    This function is an internal subroutine for transport_conditional_counterfactual_query().
+
+    :param ancestral_components:
+        The ancestral components associated with a conditional counterfactual query, encoded as a set of sets of
+        counterfactual variables.
+
+        :math: Let $\mathbf{W_{\ast}}$ be a set of counterfactual variables,
+           $\mathbf{X_{\ast}} \subseteq \mathbf{W_{\ast}}$,
+           and $\mathcal{G}$ be a causal diagram. Then the ancestral components induced by $\mathbf{W_{\ast}}$,
+           given $\mathbf{X_{\ast}}$, are sets $\mathbf{A}_{1\ast},\mathbf{A}_{2\ast},\ldots$ that form a partition
+           over $An(\mathbf{W_{\ast}})$, made of unions of the ancestral sets
+           $An(W_\mathbf{t})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}}(W_\mathbf{t})}}}$,
+           $W_{\mathbf{t}} \in \mathbf{W_{\ast}}$. Sets
+           $An(W_{1\left[\mathbf{t}_{1}\right]})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}}(W_{1\left[\mathbf{t}_{1}\right]})}}}$
+           and
+           $An(W_{2\left[\mathbf{t}_{2}\right]})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}}(W_{2\left[\mathbf{t}_{2}\right]})}}}$
+           are put together if they are not disjoint or there exists a bidirected arrow in $\mathcal{G}$
+           connecting variables in those sets.
+    :param outcome_variables:
+        "Y_*, a set of counterfactual variables in V.", encoded as a set of Variable objects.
+    :param outcome_variable_to_value_mappings:
+        A dictionary mapping Variable objects to sets of Intervention objects representing the values
+        those variables attain in the query.
+    :param target_domain_graph: The associated graph, for the target domain.
+    :returns: The union of the ancestral components containing at least one outcome variable:
+
+        :math: "Let $\mathbf{D_{\ast}}$ be the union of the ancestral components containing a variable in
+           $\mathbf{Y_{\ast}}$ and $\mathbf{d_{\ast}}$ the corresponding set of values" ([correa22a]_, Algorithm 3).
+
+        This function converts the variables to counterfactual factor form in preparation for calling Line 3 of
+        the algorithm. It also returns a set of variables representing the target domain graph vertices associated with
+        variables in $\mathbf{D_{\ast}}$.
+    """
     outcome_ancestral_component_variables_and_values: list[
         tuple[Variable, Intervention | None]
     ] = []
@@ -2315,7 +2349,7 @@ def transport_conditional_counterfactual_query(
     (
         outcome_ancestral_component_query_in_counterfactual_factor_form,
         outcome_variable_ancestral_component_variable_names,
-    ) = transport_conditional_counterfactual_query_line_2(
+    ) = _transport_conditional_counterfactual_query_line_2(
         ancestral_components=ancestral_components,
         outcome_variables=outcome_variables,
         outcome_variable_to_value_mappings=outcome_variable_to_value_mappings,

@@ -3168,7 +3168,8 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         self.assertSetEqual(outcome_and_conditioned_variables, {X1, X2, Y @ -X1, W @ -X2})
         self.assertDictEqual(outcome_variable_to_value_mappings, {Y @ -X1: {-Y}, W @ -X2: {-W}})
         self.assertDictEqual(
-            outcome_and_conditioned_variable_names_to_values, {X1: {-X1}, X2: {-X2}, Y: {-Y}, W: {-W}}
+            outcome_and_conditioned_variable_names_to_values,
+            {X1: {-X1}, X2: {-X2}, Y: {-Y}, W: {-W}},
         )
         self.assertSetEqual(outcome_and_conditioned_variable_names, {X1, X2, W, Y})
         self.assertSetEqual(conditioned_variable_names, {X1, X2})
