@@ -33,6 +33,8 @@ from y0.algorithm.counterfactual_transportability import (
     _remove_repeated_variables_and_values,
     _remove_transportability_vertices,
     _split_event_by_reflexivity,
+    _transport_conditional_counterfactual_query_line_2,
+    _transport_conditional_counterfactual_query_line_4,
     _transport_unconditional_counterfactual_query_line_2,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
@@ -3173,3 +3175,117 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         )
         self.assertSetEqual(outcome_and_conditioned_variable_names, {X1, X2, W, Y})
         self.assertSetEqual(conditioned_variable_names, {X1, X2})
+
+    def test_transport_conditional_counterfactual_query_subroutines_2(self):
+        """Test _transport_conditional_counterfactual_query_line_2().
+
+        Source: RC's mind.
+        """
+        # outcomes = [(Y @ -X1, -Y), (W @ -X2, -W)]
+        # conditions = [(X1, -X1)]
+        ancestral_components = frozenset(
+            {frozenset({Y @ -X1, W @ -X1, Z @ -X1, X2, W @ -X2, Z @ -X2}), frozenset({X1})}
+        )
+        outcome_variables = {Y @ -X1, W @ -X2}
+        outcome_variable_to_value_mappings = {Y @ -X1: {-Y}, W @ -X2: {-W}}
+        target_domain_graph = NxMixedGraph.from_edges(
+            directed=[
+                (X1, Z),
+                (X2, Z),
+                (Z, W),
+                (W, Y),
+            ],
+            undirected=[(Z, W)],
+        )
+        expected_outcome_ancestral_component_query_in_counterfactual_factor_form = [
+            (Y @ -W, -Y),
+            (W @ -Z, -W),
+            (W @ -Z, None),
+            (Z @ -X1 @ -X2, None),
+            (Z @ -X1 @ -X2, None),
+            (X2, None),
+        ]
+        expected_outcome_variable_ancestral_component_variable_names = {Y, W, Z, X2}
+
+        (
+            outcome_ancestral_component_query_in_counterfactual_factor_form,
+            outcome_variable_ancestral_component_variable_names,
+        ) = _transport_conditional_counterfactual_query_line_2(
+            ancestral_components=ancestral_components,
+            outcome_variables=outcome_variables,
+            outcome_variable_to_value_mappings=outcome_variable_to_value_mappings,
+            target_domain_graph=target_domain_graph,
+        )
+        self.assertCountEqual(
+            expected_outcome_ancestral_component_query_in_counterfactual_factor_form,
+            outcome_ancestral_component_query_in_counterfactual_factor_form,
+        )
+        self.assertSetEqual(
+            outcome_variable_ancestral_component_variable_names,
+            expected_outcome_variable_ancestral_component_variable_names,
+        )
+
+    def test_transport_conditional_counterfactual_query_subroutines_3(self):
+        """Test _transport_conditional_counterfactual_query_line_4().
+
+        Source: RC's mind.
+        """
+        outcomes = [(Y @ -X1, -Y), (W @ -X2, -W)]
+        conditions = [(X1, -X1)]
+        outcome_variable_ancestral_component_variable_names = {Y, W, Z, X2}
+        outcome_and_conditioned_variable_names = {Y, W, X1}
+        conditioned_variable_names = {X1}
+        transported_unconditional_query_expression = Product.safe(
+            [
+                PP[TARGET_DOMAIN](Y | W, Z, X2, X1),
+                PP[TARGET_DOMAIN](W | Z, X2, X1),
+                PP[TARGET_DOMAIN](Z | X2, X1),
+                PP[TARGET_DOMAIN](X2 | X1),
+            ],
+        )
+        simplified_event = [
+            (Y @ -W, -Y),
+            (W @ -Z, -W),
+            (Z @ -X1 @ -X2, None),
+            (X2, None),
+        ]
+        outcome_and_conditioned_variable_names_to_values = {X1: {-X1}, Y: {-Y}, W: {-W}}
+        expected_result_expr, expected_result_event = (
+            Fraction(
+                Sum.safe(
+                    Product.safe(
+                        [
+                            PP[TARGET_DOMAIN](Y | W, Z, X2, X1),
+                            PP[TARGET_DOMAIN](W | Z, X2, X1),
+                            PP[TARGET_DOMAIN](Z | X2, X1),
+                            PP[TARGET_DOMAIN](X2 | X1),
+                        ],
+                    ),
+                    {Z, X2},
+                ),
+                Sum.safe(
+                    Product.safe(
+                        [
+                            PP[TARGET_DOMAIN](Y | W, Z, X2, X1),
+                            PP[TARGET_DOMAIN](W | Z, X2, X1),
+                            PP[TARGET_DOMAIN](Z | X2, X1),
+                            PP[TARGET_DOMAIN](X2 | X1),
+                        ],
+                    ),
+                    {Z, X2, Y, W},
+                ),
+            ),
+            [(Y, -Y), (W, -W), (X1, -X1)],
+        )
+        result_expression, result_event = _transport_conditional_counterfactual_query_line_4(
+            outcome_variable_ancestral_component_variable_names=outcome_variable_ancestral_component_variable_names,
+            outcome_and_conditioned_variable_names=outcome_and_conditioned_variable_names,
+            conditioned_variable_names=conditioned_variable_names,
+            transported_unconditional_query_expression=transported_unconditional_query_expression,
+            simplified_event=simplified_event,
+            outcome_and_conditioned_variable_names_to_values=outcome_and_conditioned_variable_names_to_values,
+            outcomes=outcomes,
+            conditions=conditions,
+        )
+        self.assert_expr_equal(result_expression, expected_result_expr)
+        self.assertCountEqual(result_event, expected_result_event)

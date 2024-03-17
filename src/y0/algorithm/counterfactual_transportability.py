@@ -2112,8 +2112,8 @@ def _transport_conditional_counterfactual_query_line_2(
            $\mathbf{Y_{\ast}}$ and $\mathbf{d_{\ast}}$ the corresponding set of values" ([correa22a]_, Algorithm 3).
 
         This function converts the variables to counterfactual factor form in preparation for calling Line 3 of
-        the algorithm. It also returns a set of variables representing the target domain graph vertices associated with
-        variables in $\mathbf{D_{\ast}}$.
+        Algorithm 3 of [correa22a]_. It also returns a set of variables representing the target domain graph vertices
+        associated with variables in $\mathbf{D_{\ast}}$.
     """
     outcome_ancestral_component_variables_and_values: list[
         tuple[Variable, Intervention | None]
