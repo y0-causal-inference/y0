@@ -3,7 +3,7 @@
 import unittest
 
 from y0.algorithm.conditional_independencies import are_d_separated
-from y0.algorithm.sigma_separation import (
+from y0.algorithm.separation.sigma_separation import (
     are_sigma_separated,
     get_equivalence_classes,
     is_collider,

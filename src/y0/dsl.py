@@ -1,6 +1,30 @@
 # -*- coding: utf-8 -*-
 
-"""An internal domain-specific language for probability expressions."""
+r"""An internal domain-specific language for probability expressions.
+
+=======================  ====================================================================
+Expression               Description
+=======================  ====================================================================
+:math:`P(A)`             The probability of A occurring
+:math:`P(A^*)`           The probability of A not occurring
+:math:`P(A, B)`          The joint probability of A and B occurring
+:math:`P(A \mid B)`      The conditional probability of A given B occurring
+:math:`P(A \mid B^*)`    The conditional probability of A occurring given B not occurring
+:math:`P(A^* \mid B)`    The conditional probability of A not occurring given B occurring
+:math:`P(A^* \mid B^*)`  The conditional probability of A not occurring given B not occurring
+:math:`\sum_A P(A, B)`   The marginal probability of B
+=======================  ====================================================================
+
+Level 3 of Pearl's Causal Hierarchy.
+
+==============================  =================================================
+Expression                      Description
+==============================  =================================================
+:math:`P(Y_X \mid X^*, Y^*)`    Probability of sufficient causation
+:math:`P(Y^*_{X^*} \mid X, Y)`  Probability of necessary causation
+:math:`P(Y_X, Y^*_{X^*})`       Probability of necessary and sufficient causation
+==============================  =================================================
+"""
 
 from __future__ import annotations
 
@@ -114,9 +138,11 @@ T_co = TypeVar("T_co", covariant=True)
 
 def _to_interventions(variables: Sequence[Variable]) -> Tuple[Intervention, ...]:
     return tuple(
-        variable
-        if isinstance(variable, Intervention)
-        else Intervention(name=variable.name, star=False)
+        (
+            variable
+            if isinstance(variable, Intervention)
+            else Intervention(name=variable.name, star=False)
+        )
         for variable in variables
     )
 
@@ -1437,8 +1463,7 @@ class Zero(Expression):
 class QBuilder(Protocol[T_co]):
     """A protocol for annotating the special class getitem functionality of the :class:`QFactor` class."""
 
-    def __call__(self, arg: VariableHint, *args: Union[str, Variable]) -> T_co:
-        ...
+    def __call__(self, arg: VariableHint, *args: Union[str, Variable]) -> T_co: ...
 
 
 @dataclass(frozen=True, repr=False)
@@ -1539,7 +1564,7 @@ A, B, C, D, E, F, G, M, R, S, T, U, W, X, Y, Z = map(Variable, "ABCDEFGMRSTUWXYZ
 U1, U2, U3, U4, U5, U6 = [Variable(f"U{i}") for i in range(1, 7)]
 V1, V2, V3, V4, V5, V6 = [Variable(f"V{i}") for i in range(1, 7)]
 W0, W1, W2, W3, W4, W5, W6 = [Variable(f"W{i}") for i in range(7)]
-M1, M2, M2, M3, M4, M5, M6 = [Variable(f"M{i}") for i in range(7)]
+M0, M1, M2, M3, M4, M5, M6 = [Variable(f"M{i}") for i in range(7)]
 X1, X2, X3, X4, X5, X6 = [Variable(f"X{i}") for i in range(1, 7)]
 Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f"Y{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]

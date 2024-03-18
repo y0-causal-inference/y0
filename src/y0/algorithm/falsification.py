@@ -47,6 +47,7 @@ def get_graph_falsifications(
     max_given: Optional[int] = None,
     verbose: bool = False,
     method: Optional[CITest] = None,
+    sep: Optional[str] = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a graph.
 
@@ -57,6 +58,7 @@ def get_graph_falsifications(
     :param verbose: If true, use tqdm for status updates.
     :param method: Conditional independence from :mod:`pgmpy` to use. If none,
         defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
+    :param sep: The separator between givens when outputting the dataframe
     :return: Falsifications report
     """
     judgements = get_conditional_independencies(graph, max_conditions=max_given, verbose=verbose)
@@ -66,6 +68,7 @@ def get_graph_falsifications(
         significance_level=significance_level,
         verbose=verbose,
         method=method,
+        sep=sep,
     )
 
 
@@ -77,6 +80,7 @@ def get_falsifications(
     verbose: bool = False,
     method: Optional[CITest] = None,
     correction: Optional[str] = None,
+    sep: Optional[str] = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a list of D-separation judgements.
 
@@ -88,34 +92,28 @@ def get_falsifications(
     :param correction: Method used for multiple hypothesis test correction. Defaults to ``holm``.
         See :func:`statsmodels.stats.multitest.multipletests` for possible methods.
     :param significance_level: Significance for p-value test, applied after multiple hypothesis testing correction
+    :param sep: The separator between givens when outputting the dataframe
     :return: Falsifications report
     """
     if significance_level is None:
         significance_level = 0.05
     if correction is None:
         correction = "holm"
+    if sep is None:
+        sep = "|"
     # Make this loop explicit for clarity
     results = []
     method = _ensure_method(method, df)
     for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals"):
-        result = judgement.test(df, method=method)
-        # Person's correlation returns a pair with the first element being the Person's correlation
-        # and the second being the p-value. The other methods return a triple with the first element
-        # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of
-        # freedom.
-        if method == "pearson":
-            stat, p_value = result
-            dof = None
-        else:
-            stat, p_value, dof = result
+        result = judgement.test(df, method=method, boolean=False)
         results.append(
             (
                 judgement.left.name,
                 judgement.right.name,
-                "|".join(c.name for c in judgement.conditions),
-                stat,
-                p_value,
-                dof,
+                sep.join(c.name for c in judgement.conditions),
+                result.statistic,
+                result.p_value,
+                result.dof,
             )
         )
     evidence_df = pd.DataFrame(
