@@ -341,7 +341,7 @@ def _compute_q_value_of_variables_with_low_topological_ordering_indices(
 def _compute_c_factor_marginalizing_over_topological_successors(
     *, district: Collection[Variable], graph_probability: Expression, topo: list[Variable]
 ) -> Expression:
-    r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equations 71 and 72.
+    r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, eqns. 71 and 72.
 
     This algorithm uses part (ii) of Lemma 4 of [tian03a]_. The context for Equations 71 and 72 follow:
 
