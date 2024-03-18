@@ -27,7 +27,7 @@ def get_single_door(
             # There are no valid adjustment sets.
             continue
         if not adjustment_sets:
-            # There is a valid adjustment set, and it is the empty set, so just regress the target on the source
+            # There is a valid adjustment set, and it is the empty set, so just regress the target on the source.
             variables = [source.name]
             idx = variables.index(source.name)
             model = LinearRegression()
