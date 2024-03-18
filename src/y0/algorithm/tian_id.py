@@ -36,18 +36,25 @@ def identify_district_variables(
 
     Tikka and colleagues implemented this algorithm in the R package Causal Effect ([tikka20b]_). We draw from that
     implementation. Their version also keeps track of the structure of calls, while this one does not.
+
     :param input_variables: The set of variables, C, for which we're checking if causal identification is possible.
     :param input_district: The C-component, T, containing C.
-    :param district_probability: The expression Q[T] as per [tian2003]_, Equation 34. Because T is a single district,
-           Q[T] is the "post-intervention distribution of the variables in T, under an intervention that sets all
-           other variables to constants" (see Equation 36 of [tian2003]_).
+    :param district_probability:
+        The expression $Q[T]$ as per [tian2003]_, Equation 34. Because T is a single district,
+        $Q[T]$ is the "post-intervention distribution of the variables in T, under an intervention that sets all
+        other variables to constants" (see Equation 36 of [tian2003]_).
     :param graph: The relevant graph.
     :param topo: A list of variables in topological order that includes all variables in the graph and may contain more.
-    :raises KeyError: at least one input variable is not in the input district or at least one input district variable
-                      is not in the topologically sorted list of graph variables.
-    :raises TypeError: the subgraph of the input graph G comprised of thevertices in the input vertex set T should
-                      should have only district and has more.
-    :returns: An expression for Q[C] in terms of Q, or Fail.
+    :returns: An expression for $Q[C]$ in terms of $Q$, or Fail.
+
+    :raises KeyError:
+        at least one input variable is not in the input district or at least one input district variable
+        is not in the topologically sorted list of graph variables.
+    :raises TypeError:
+        the subgraph of the input graph G comprised of the vertices in the input vertex set T should
+        have only district and has more.
+    :raises NotImplementedError:
+        If we get to the end of the conditional, which still needs an "else"
     """
     if not input_variables.intersection(input_district) == input_variables:
         # if not all(v in input_district for v in input_variables):
@@ -57,30 +64,24 @@ def identify_district_variables(
     if not input_district.intersection(set(topo)) == input_district:
         raise KeyError(
             "In identify_district_variables: at least one input district variable is not in the "
-            + "topologically sorted variable list."
+            "topologically sorted variable list."
         )
     district_subgraph = graph.subgraph(vertices=input_district)  # $G_{T}$
     if len(district_subgraph.districts()) > 1:
         raise TypeError(
             "In identify_district_variables: the subgraph of the input graph G comprised of the"
-            + " vertices in the input vertex set T should have only district and has more."
+            " vertices in the input vertex set T should have only district and has more."
         )
     if (not isinstance(district_probability, Expression)) | isinstance(
         district_probability, Expression
-    ) and not (
-        isinstance(district_probability, Sum)
-        | isinstance(district_probability, Product)
-        | isinstance(district_probability, Fraction)
-        | isinstance(district_probability, Probability)
-    ):
+    ) and not (isinstance(district_probability, (Sum, Product, Fraction, Probability))):
         raise TypeError(
             "In identify_district_variables: the district probability must be an expression that is a "
-            + "Sum, Product, Fraction, or Probability."
+            "Sum, Product, Fraction, or Probability."
         )
 
-    ancestral_set = frozenset(
-        district_subgraph.ancestors_inclusive(input_variables)
-    )  # A = Ancestors of C in $G_{T}$
+    # A = Ancestors of C in $G_{T}$
+    ancestral_set = frozenset(district_subgraph.ancestors_inclusive(input_variables))
 
     # Next, Tikka has an additional line intersecting the ancestral set with the set T in case any C was not in T,
     # but we raise an error in that case as a pre-processing step, so we omit that line.
@@ -111,11 +112,7 @@ def identify_district_variables(
         #             input_variables.intersect(district)==input_variables][0]
         # ordered_t_prime_vertices = [v for v in topo if v in t_prime]
         # t_one = t_prime.intersection(ancestral_set) # RC: This line is in Tikka
-        if (
-            isinstance(district_probability, Fraction)
-            or isinstance(district_probability, Product)
-            or isinstance(district_probability, Sum)
-        ):  # Compute Q[A] from Lemma 3
+        if isinstance(district_probability, (Fraction, Product, Sum)):  # Compute Q[A] from Lemma 3
             ancestral_set_probability = _compute_ancestral_set_q_value(
                 ancestral_set=ancestral_set,
                 subgraph_variables=input_district,
@@ -179,6 +176,8 @@ def identify_district_variables(
         #    "In identify_district_variables: returned from recursive call to identify_district_variables."
         # )
         # logger.warning("    Return value = " + str(rv))
+    else:
+        raise NotImplementedError
     return rv
 
 
@@ -261,7 +260,7 @@ def _compute_c_factor_conditioning_on_topological_predecessors(
             # logger.warning(
             #    "Return value in Latex form is " + Product.safe(population_probabilities).to_latex()
             # )
-            rv = Product.safe(population_probabilities)
+        return Product.safe(population_probabilities)
     else:
         probabilities = []
         # A little subtle so it deserves a comment: the Q value passed into Tian's Identify function may
@@ -278,8 +277,7 @@ def _compute_c_factor_conditioning_on_topological_predecessors(
         #    + str(Product.safe(probabilities))
         # )
         # logger.warning("Return value in Latex form is " + Product.safe(probabilities).to_latex())
-        rv = Product.safe(probabilities)
-    return rv
+        return Product.safe(probabilities)
 
 
 def _compute_q_value_of_variables_with_low_topological_ordering_indices(
@@ -334,7 +332,7 @@ def _compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex,
         )
 
-    ranges = [v for v in topo[topo.index(vertex) + 1 :]]
+    ranges = topo[topo.index(vertex) + 1 :]
     return Sum.safe(graph_probability, ranges)
 
 
@@ -365,8 +363,9 @@ def _compute_c_factor_marginalizing_over_topological_successors(
         \end{equation}
 
     :param district: A list of variables comprising the district for which we're computing a C factor.
-    :param graph_probability: The expression Q corresponding to the set of variables in v. It is
-        Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
+    :param graph_probability:
+        The expression $Q$ corresponding to the set of variables in $v$. It is
+        $Q[A]$ on the line calling Lemma 4 in [tian2003]_, Figure 7.
     :param topo: a topological ordering of the vertices in the subgraph $G_{H}$ in question.
     :returns: An expression for Q[district].
     """
@@ -410,10 +409,12 @@ def _compute_c_factor(
 
     :param district: A list of variables comprising the district C for which we're computing a C factor.
     :param subgraph_variables: The variables in the subgraph T under analysis.
-    :param subgraph_probability: The expression Q corresponding to the set of variables in T. As an example, this
-              quantity would be Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
-    :param graph_topo: A list of variables in topological order that includes all variables in G, where T is contained
-              in G.
+    :param subgraph_probability:
+        The expression Q corresponding to the set of variables in T. As an example, this
+        quantity would be Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
+    :param graph_topo:
+        A list of variables in topological order that includes all variables in G, where T is contained
+        in G.
     :raises TypeError: In _compute_c_factor: expected the subgraph_probability parameter to be a simple probability.
     :returns: An expression for Q[district].
     """
@@ -424,11 +425,7 @@ def _compute_c_factor(
     subgraph_topo = [v for v in graph_topo if v in subgraph_variables]
     # logger.warning("In _compute_c_factor: graph_topo = " + str(graph_topo))
     # logger.warning("In _compute_c_factor: subgraph_topo = " + str(subgraph_topo))
-    if (
-        isinstance(subgraph_probability, Fraction)
-        or isinstance(subgraph_probability, Product)
-        or isinstance(subgraph_probability, Sum)
-    ):
+    if isinstance(subgraph_probability, (Fraction, Product, Sum)):
         # logger.warning(
         #    "In _compute_c_factor: calling _compute_c_factor_marginalizing_over_topological_successors"
         # )
@@ -438,18 +435,16 @@ def _compute_c_factor(
         )
         # logger.warning("Returning from _compute_c_factor: " + str(rv))
         return rv
-    else:
-        if not isinstance(subgraph_probability, Probability):
-            raise TypeError(
-                "In _compute_c_factor: expected the subgraph_probability "
-                + str(subgraph_probability)
-                + " to be a simple probability."
-            )
-        else:
-            # Lemma 1
-            return _compute_c_factor_conditioning_on_topological_predecessors(
-                district=district, graph_probability=subgraph_probability, topo=subgraph_topo
-            )
+    if not isinstance(subgraph_probability, Probability):
+        raise TypeError(
+            "In _compute_c_factor: expected the subgraph_probability "
+            + str(subgraph_probability)
+            + " to be a simple probability."
+        )
+    # Lemma 1
+    return _compute_c_factor_conditioning_on_topological_predecessors(
+        district=district, graph_probability=subgraph_probability, topo=subgraph_topo
+    )
 
 
 def _compute_ancestral_set_q_value(
@@ -471,12 +466,14 @@ def _compute_ancestral_set_q_value(
     \sum\limits_{W'}{Q[C]=Q[W]}
     \end{equation}
 
-    :param ancestral_set: A set of variables (W in Equation 69, A in Figure 7 of [tian03a]_) that comprise the
-           ancestral set of some other variables (unspecified in Equation 69, and C in Figure 7 of [tian03a]_).
+    :param ancestral_set:
+        A set of variables (W in Equation 69, A in Figure 7 of [tian03a]_) that comprise the
+        ancestral set of some other variables (unspecified in Equation 69, and C in Figure 7 of [tian03a]_).
     :param subgraph_variables: The variables in the subgraph under analysis (C in Equation 69, and T in Figure 7).
     :param subgraph_probability: The expression Q corresponding to Q[C] in Equation 69 and Q[T] in Figure 7.
-    :param graph_topo: A list of variables in topological order that includes all variables in the graph
-           (i.e., V in Equation 69 and G in Figure 7).
+    :param graph_topo:
+        A list of variables in topological order that includes all variables in the graph
+        (i.e., V in Equation 69 and G in Figure 7).
     :returns: An expression for Q[ancestral_set].
     """
     # T\A is W', so Sum_{T\A}{Q[T]} = Q[A], corresponding to Sum_{W'}{Q[C]} = Q[W] in Equation 69
