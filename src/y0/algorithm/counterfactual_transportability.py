@@ -9,7 +9,7 @@ import logging
 from collections import defaultdict
 from typing import Collection, DefaultDict, Iterable, Optional
 
-from y0.algorithm.tian_id import _compute_c_factor, identify_district_variables
+from y0.algorithm.tian_id import compute_c_factor, identify_district_variables
 from y0.algorithm.transport import create_transport_diagram, transport_variable
 from y0.dsl import (
     CounterfactualVariable,
@@ -1340,7 +1340,7 @@ def transport_district_intervening_on_parents(
 
             # Line 3
             # logger.warning("Subgraph_probability: " + domain_data[k][1].to_latex())
-            domain_graph_district_q_probability = _compute_c_factor(
+            domain_graph_district_q_probability = compute_c_factor(
                 district=district,
                 subgraph_variables=domain_graph_variables,
                 subgraph_probability=domain_data[k][1],

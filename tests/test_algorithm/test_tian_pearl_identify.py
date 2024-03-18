@@ -14,11 +14,11 @@ import logging
 
 from tests.test_algorithm import cases
 from y0.algorithm.tian_id import (
-    _compute_ancestral_set_q_value,
-    _compute_c_factor,
-    _compute_c_factor_conditioning_on_topological_predecessors,
-    _compute_c_factor_marginalizing_over_topological_successors,
-    _compute_q_value_of_variables_with_low_topological_ordering_indices,
+    compute_ancestral_set_q_value,
+    compute_c_factor,
+    compute_c_factor_conditioning_on_topological_predecessors,
+    compute_c_factor_marginalizing_over_topological_successors,
+    compute_q_value_of_variables_with_low_topological_ordering_indices,
     identify_district_variables,
 )
 from y0.algorithm.transport import transport_variable
@@ -413,7 +413,7 @@ class TestComputeCFactor(cases.GraphTestCase):
 
     def test_compute_c_factor_1(self):
         """First test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
-        result_1 = _compute_c_factor(
+        result_1 = compute_c_factor(
             district=[Y, W1, W3, W2, X],
             subgraph_variables=[X, W4, W2, W3, W1, Y],
             subgraph_probability=P(W1, W2, W3, W4, X, Y),
@@ -423,7 +423,7 @@ class TestComputeCFactor(cases.GraphTestCase):
 
     def test_compute_c_factor_2(self):
         """Second test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
-        result_2 = _compute_c_factor(
+        result_2 = compute_c_factor(
             district=[W1, X, Y],
             subgraph_variables=[W1, W2, X, Y],
             subgraph_probability=Sum.safe(self.expected_result_1, [W3]),
@@ -433,7 +433,7 @@ class TestComputeCFactor(cases.GraphTestCase):
 
     def test_compute_c_factor_3(self):
         """Third test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
-        result_3 = _compute_c_factor(
+        result_3 = compute_c_factor(
             district=[Y],
             subgraph_variables=[X, Y],
             subgraph_probability=Sum.safe(self.expected_result_2, [W1]),
@@ -461,7 +461,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             * P(W3 | W1)
             * P(W1)
         )
-        result_4 = _compute_c_factor(
+        result_4 = compute_c_factor(
             district=district,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,
@@ -493,7 +493,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             * P(W3 | [W1, W5])
             * P(W1 | W5)
         )
-        result_5 = _compute_c_factor(
+        result_5 = compute_c_factor(
             district=district,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,
@@ -519,7 +519,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             * PP[Pi2](W3 | [W1, W5])
             * PP[Pi2](W1 | W5)
         )
-        result_5 = _compute_c_factor(
+        result_5 = compute_c_factor(
             district=district,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,
@@ -550,7 +550,7 @@ class TestComputeCFactor(cases.GraphTestCase):
         subgraph_probability = One()
         self.assertRaises(
             TypeError,
-            _compute_c_factor,
+            compute_c_factor,
             district=district,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,
@@ -568,7 +568,7 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
         """
         topo = [W1, W3, W2, W4, X, Y]
         part_1_graph = tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
-        result_1 = _compute_c_factor_conditioning_on_topological_predecessors(
+        result_1 = compute_c_factor_conditioning_on_topological_predecessors(
             district=[Y, W1, W3, W2, X],
             topo=topo,
             graph_probability=part_1_graph.joint_probability(),
@@ -588,7 +588,7 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
         # District contains no variables
         self.assertRaises(
             TypeError,
-            _compute_c_factor_conditioning_on_topological_predecessors,
+            compute_c_factor_conditioning_on_topological_predecessors,
             district=[],
             topo=topo,
             graph_probability=part_1_graph.joint_probability(),
@@ -596,7 +596,7 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
         # District variable not in topo set
         self.assertRaises(
             KeyError,
-            _compute_c_factor_conditioning_on_topological_predecessors,
+            compute_c_factor_conditioning_on_topological_predecessors,
             district=[Y, W1, W3, W2, X, Z],
             topo=topo,
             graph_probability=part_1_graph.joint_probability(),
@@ -610,7 +610,7 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
         """
         # working with tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
         topo = [W1, W3, W2, W4, X, Y]
-        result_1 = _compute_c_factor_conditioning_on_topological_predecessors(
+        result_1 = compute_c_factor_conditioning_on_topological_predecessors(
             district=[Y, W1, W3, W2, X],
             topo=topo,
             graph_probability=P(Y, X, W1, W2, W3, W4 | W5),
@@ -708,7 +708,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
         """
-        result = _compute_c_factor_marginalizing_over_topological_successors(
+        result = compute_c_factor_marginalizing_over_topological_successors(
             district={W1, X, Y},
             graph_probability=Sum.safe(self.result_piece, [W3]),
             topo=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
@@ -727,7 +727,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
             "In second test of Lemma 4(ii): expecting this result: " + str(self.expected_result_2)
         )
         logger.warning("Expected_result_1 = " + str(self.expected_result_1))
-        result = _compute_c_factor_marginalizing_over_topological_successors(
+        result = compute_c_factor_marginalizing_over_topological_successors(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1, [W1]),
             topo=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
@@ -739,7 +739,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
         """
-        result = _compute_c_factor_marginalizing_over_topological_successors(
+        result = compute_c_factor_marginalizing_over_topological_successors(
             district={W1, X, Y},
             graph_probability=Sum.safe(self.result_piece_pp, [W3]),
             topo=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
@@ -760,7 +760,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
             + self.expected_result_2.to_latex()
         )
         logger.warning("Expected_result_1 = " + self.expected_result_1_pp.to_latex())
-        result = _compute_c_factor_marginalizing_over_topological_successors(
+        result = compute_c_factor_marginalizing_over_topological_successors(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1_pp, [W1]),
             topo=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
@@ -778,7 +778,7 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
         Source: RJC's mind.
         """
         topo = [variable for variable in figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()]
-        result = _compute_q_value_of_variables_with_low_topological_ordering_indices(
+        result = compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=W,
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             topo=topo,
@@ -789,7 +789,7 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
         # Variable not in the graph
         self.assertRaises(
             KeyError,
-            _compute_q_value_of_variables_with_low_topological_ordering_indices,
+            compute_q_value_of_variables_with_low_topological_ordering_indices,
             vertex={R},
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             topo=topo,
@@ -801,7 +801,7 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
         Source: RJC's mind.
         """
         topo = [variable for variable in figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()]
-        result = _compute_q_value_of_variables_with_low_topological_ordering_indices(
+        result = compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=None,
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             topo=topo,
@@ -831,7 +831,7 @@ class TestComputeAncestralSetQValue(cases.GraphTestCase):
         # The ancestors of {Y} in Figure 9(c) of [tian03a]_
         ancestral_set = {W1, W2, X, Y}
         subgraph_variables = {W1, W2, W3, X, Y}  # T in Figure 9(c) of [tian03a]_
-        result_1 = _compute_ancestral_set_q_value(
+        result_1 = compute_ancestral_set_q_value(
             ancestral_set=ancestral_set,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,

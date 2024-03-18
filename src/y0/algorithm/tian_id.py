@@ -24,6 +24,11 @@ from y0.graph import NxMixedGraph
 
 __all__ = [
     "identify_district_variables",
+    "compute_c_factor_conditioning_on_topological_predecessors",
+    "compute_q_value_of_variables_with_low_topological_ordering_indices",
+    "compute_c_factor_marginalizing_over_topological_successors",
+    "compute_c_factor",
+    "compute_ancestral_set_q_value",
 ]
 
 logger = logging.getLogger(__name__)
@@ -95,7 +100,7 @@ def identify_district_variables(
     if ancestral_set == input_variables:
         logger.warning("In identify_district_variables: A = C. Applying Lemma 3.")
         logger.warning("   Subgraph_probability = " + district_probability.to_latex())
-        rv = _compute_ancestral_set_q_value(
+        rv = compute_ancestral_set_q_value(
             ancestral_set=ancestral_set,
             subgraph_variables=input_district,
             subgraph_probability=district_probability,
@@ -118,7 +123,7 @@ def identify_district_variables(
         # ordered_t_prime_vertices = [v for v in topo if v in t_prime]
         # t_one = t_prime.intersection(ancestral_set) # RC: This line is in Tikka
         if isinstance(district_probability, (Fraction, Product, Sum)):  # Compute Q[A] from Lemma 3
-            ancestral_set_probability = _compute_ancestral_set_q_value(
+            ancestral_set_probability = compute_ancestral_set_q_value(
                 ancestral_set=ancestral_set,
                 subgraph_variables=input_district,
                 subgraph_probability=district_probability,  # Q[T]
@@ -156,7 +161,7 @@ def identify_district_variables(
         #    "In identify_district_variables: about to call _compute_c_factor. Subgraph_probability = "
         #    + ancestral_set_probability.to_latex()
         # )
-        targeted_ancestral_set_subgraph_district_probability = _compute_c_factor(
+        targeted_ancestral_set_subgraph_district_probability = compute_c_factor(
             district=targeted_ancestral_set_subgraph_district,
             subgraph_variables=ancestral_set,
             subgraph_probability=ancestral_set_probability,
@@ -195,7 +200,7 @@ def _do_identify_district_variables_line_1(
     raise NotImplementedError("Unimplemented function: _do_identify_district_variables_line_1")
 
 
-def _compute_c_factor_conditioning_on_topological_predecessors(
+def compute_c_factor_conditioning_on_topological_predecessors(
     *,
     district: Collection[Variable],
     graph_probability: Probability,
@@ -285,7 +290,7 @@ def _compute_c_factor_conditioning_on_topological_predecessors(
         return Product.safe(probabilities)
 
 
-def _compute_q_value_of_variables_with_low_topological_ordering_indices(
+def compute_q_value_of_variables_with_low_topological_ordering_indices(
     *,
     vertex: Variable | None,
     graph_probability: Expression,  # Q[H]
@@ -341,7 +346,7 @@ def _compute_q_value_of_variables_with_low_topological_ordering_indices(
     return Sum.safe(graph_probability, ranges)
 
 
-def _compute_c_factor_marginalizing_over_topological_successors(
+def compute_c_factor_marginalizing_over_topological_successors(
     *, district: Collection[Variable], graph_probability: Expression, topo: list[Variable]
 ) -> Expression:
     r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, eqns. 71 and 72.
@@ -376,12 +381,12 @@ def _compute_c_factor_marginalizing_over_topological_successors(
     """
 
     def _get_expression_from_index(index: int) -> Expression:  # Compute $Q[H^{i}]$ given i
-        current_index_expr = _compute_q_value_of_variables_with_low_topological_ordering_indices(
+        current_index_expr = compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=topo[index], graph_probability=graph_probability, topo=topo
         )
         if index == 0:
             return current_index_expr
-        previous_index_expr = _compute_q_value_of_variables_with_low_topological_ordering_indices(
+        previous_index_expr = compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=topo[index - 1], graph_probability=graph_probability, topo=topo
         )
         rv = Fraction(current_index_expr, previous_index_expr)
@@ -401,7 +406,7 @@ def _compute_c_factor_marginalizing_over_topological_successors(
     return rv
 
 
-def _compute_c_factor(
+def compute_c_factor(
     *,
     district: Collection[Variable],
     subgraph_variables: Collection[Variable],
@@ -435,7 +440,7 @@ def _compute_c_factor(
         #    "In _compute_c_factor: calling _compute_c_factor_marginalizing_over_topological_successors"
         # )
         # Lemma 4
-        rv = _compute_c_factor_marginalizing_over_topological_successors(
+        rv = compute_c_factor_marginalizing_over_topological_successors(
             district=district, graph_probability=subgraph_probability, topo=subgraph_topo
         )
         # logger.warning("Returning from _compute_c_factor: " + str(rv))
@@ -447,12 +452,12 @@ def _compute_c_factor(
             + " to be a simple probability."
         )
     # Lemma 1
-    return _compute_c_factor_conditioning_on_topological_predecessors(
+    return compute_c_factor_conditioning_on_topological_predecessors(
         district=district, graph_probability=subgraph_probability, topo=subgraph_topo
     )
 
 
-def _compute_ancestral_set_q_value(
+def compute_ancestral_set_q_value(
     *,
     ancestral_set: frozenset[Variable],  # A
     subgraph_variables: frozenset[Variable],  # T
