@@ -2,7 +2,6 @@
 
 """Implementation of counterfactual transportability.
 
-.. [huang08a] https://link.springer.com/article/10.1007/s10472-008-9101-x.
 .. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
 .. [tikka20a] https://github.com/santikka/causaleffect/blob/master/R/compute.c.factor.R.
