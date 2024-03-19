@@ -3,6 +3,7 @@
 """Implementation of counterfactual transportability.
 
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
+.. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
 """
 
 import logging
@@ -1280,6 +1281,10 @@ def transport_district_intervening_on_parents(
 ) -> Expression | None:
     r"""Implement the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
 
+    See also: [correa20a]_, which contains the original sigma-TR algorithm. Algorithm 4 in
+    [correa22a]_ is the algorithm in [correa20a]_ modified to run on a single district in a
+    graph.
+
     :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
     :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
            contains a selection diagram for that domain. In particular the graph contains
@@ -1411,11 +1416,11 @@ def _transport_unconditional_counterfactual_query_line_2(
     }
     ancestor_bases = {v.get_base() for v in ancestral_set}
     outcome_ancestor_graph = graph.subgraph(ancestor_bases)
-    factorized_ancestral_set_with_values: list[set[tuple[Variable, Intervention | None]]] = (
-        get_counterfactual_factors_retaining_variable_values(
-            event=ancestral_set_in_counterfactual_factor_form_with_values,
-            graph=outcome_ancestor_graph,
-        )
+    factorized_ancestral_set_with_values: list[
+        set[tuple[Variable, Intervention | None]]
+    ] = get_counterfactual_factors_retaining_variable_values(
+        event=ancestral_set_in_counterfactual_factor_form_with_values,
+        graph=outcome_ancestor_graph,
     )
     return ancestral_set_with_values, factorized_ancestral_set_with_values
 
@@ -1621,9 +1626,9 @@ def transport_unconditional_counterfactual_query(
                 # Line 9 involves formally evaluating Q over the set of values $\mathbf{c}$. We defer
                 #    this action until Line 14, when we do so by simply returning the simplified event
                 #    with the expression for $P^{\ast}(\mathbf{Y_{\ast} = y_{\ast}})$.
-                district_variables_and_their_parents: set[Variable] = (
-                    set()
-                )  # district_without_interventions
+                district_variables_and_their_parents: set[
+                    Variable
+                ] = set()  # district_without_interventions
                 for variable in district_without_interventions:
                     district_variables_and_their_parents.update(
                         {v for v in target_domain_graph.directed.predecessors(variable.get_base())}
@@ -1786,9 +1791,9 @@ def _compute_ancestral_components_from_ancestral_sets(
     vertex_to_ancestral_set_mappings: defaultdict[Variable, set[frozenset[Variable]]] = defaultdict(
         set
     )
-    original_to_merged_ancestral_set_mappings: dict[frozenset[Variable], frozenset[Variable]] = (
-        dict()
-    )
+    original_to_merged_ancestral_set_mappings: dict[
+        frozenset[Variable], frozenset[Variable]
+    ] = dict()
     ancestral_components: set[frozenset[Variable]] = {s for s in ancestral_sets}
     for s in ancestral_sets:
         original_to_merged_ancestral_set_mappings[s] = s
@@ -2008,10 +2013,10 @@ def _get_ancestral_components(
         )
         for v in root_variables
     }
-    ancestral_components: frozenset[frozenset[Variable]] = (
-        _compute_ancestral_components_from_ancestral_sets(
-            ancestral_sets=ancestral_sets, graph=graph
-        )
+    ancestral_components: frozenset[
+        frozenset[Variable]
+    ] = _compute_ancestral_components_from_ancestral_sets(
+        ancestral_sets=ancestral_sets, graph=graph
     )
     return ancestral_components
 
@@ -2051,9 +2056,9 @@ def _initialize_conditional_transportability_data_structures(
     # outcome_and_conditioned_variable_to_value_mappings: defaultdict[
     #    Variable, set[Intervention]
     # ] = defaultdict(set)
-    outcome_and_conditioned_variable_names_to_values: defaultdict[Variable, set[Intervention]] = (
-        defaultdict(set)
-    )
+    outcome_and_conditioned_variable_names_to_values: defaultdict[
+        Variable, set[Intervention]
+    ] = defaultdict(set)
     for key, value in outcomes:
         outcome_variable_to_value_mappings[key].update({value})
         # outcome_and_conditioned_variable_to_value_mappings[key].update({value})
@@ -2121,9 +2126,9 @@ def _transport_conditional_counterfactual_query_line_2(
         Algorithm 3 of [correa22a]_. It also returns a set of variables representing the target domain graph vertices
         associated with variables in $\mathbf{D_{\ast}}$.
     """
-    outcome_ancestral_component_variables_and_values: list[tuple[Variable, Intervention | None]] = (
-        []
-    )
+    outcome_ancestral_component_variables_and_values: list[
+        tuple[Variable, Intervention | None]
+    ] = []
     outcome_variable_ancestral_component_variables: set[Variable] = set()
     for component in ancestral_components:
         if any(variable in outcome_variables for variable in component):
@@ -2464,9 +2469,9 @@ def transport_conditional_counterfactual_query(
         transported_unconditional_query_expression: Expression = unconditional_query_result[
             0
         ]  # This is Q
-        simplified_event: list[tuple[Variable, Intervention | None]] | None = (
-            unconditional_query_result[1]
-        )
+        simplified_event: list[
+            tuple[Variable, Intervention | None]
+        ] | None = unconditional_query_result[1]
         if (
             simplified_event is None
         ):  # Event has probability of zero due to inconsistent values in the query
@@ -2495,3 +2500,23 @@ def transport_conditional_counterfactual_query(
                 conditions=conditions,
                 domain_data=domain_data,
             )
+
+
+def _valid_topo_list(topo: list[Variable], graph: NxMixedGraph):
+    r"""Verify that a list of vertices is in topologically sorted order for a given graph.
+
+    :param topo: A candidate list of graph vertices. This function assumes every vertex in topo is somewhere
+        in the graph and every graph vertex is in topo (that is, this information has already been verified).
+    :param graph: The graph in question.
+    :returns: True if the list is in a valid topologically sorted order, False otherwise.
+    """
+    # From Cormen, Leiserson, Rivest, and Stein, "Introduction to Algorithms", second edition, p. 549:
+    # a graph is sorted topologically if for every directed edge in the graph from $u$ to $v$,
+    # the index of $u$ in the topologically sorted array of vertices is less than the index of $v$.
+    # We just have to check this definition holds for each edge.
+    # O(E*V) if we use list.index() to do this. But list.index() is O(n) so we improve the running time
+    # to O(E+V) by creating a hash table first.
+    index_lookups = {}
+    for i in range(len(topo)):
+        index_lookups[topo[i]] = i
+    return not any(index_lookups[u] > index_lookups[v] for u,v in graph.directed.edges)

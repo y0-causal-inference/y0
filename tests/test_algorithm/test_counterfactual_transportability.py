@@ -36,6 +36,7 @@ from y0.algorithm.counterfactual_transportability import (
     _transport_conditional_counterfactual_query_line_2,
     _transport_conditional_counterfactual_query_line_4,
     _transport_unconditional_counterfactual_query_line_2,
+    _valid_topo_list,
     _validate_transport_conditional_counterfactual_query_line_4_output,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
@@ -3502,26 +3503,25 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         self.assertCountEqual(expected_result_event, result_event)
 
 
-"""
-_validate_transport_conditional_counterfactual_query_line_4_output
-    simplified_event: list[tuple[Variable, Intervention | None]],
-    outcome_and_conditioned_variable_names: set[Variable],
-    outcome_and_conditioned_variable_names_to_values: defaultdict[Variable, set[Intervention]],
-    outcome_ancestral_component_variables_with_no_values: set[Variable],
-    result_expression: Expression,
-    result_event: list[tuple[Variable, Intervention]],
-    # 1. Make sure in the simplified event we got back, all of the variables
-    #    that have values are either variables in the outcomes or variables
-    #    in the conditions.
+class TestTransportConditionalCounterfactualQueryUtils(cases.GraphTestCase):
+    """Test utility functions to transport a conditional counterfactual query."""
 
-    # 2. Make sure the values for those variables in the simplified event match
-    #    the values for their corresponding outcome or condition variables
-    #    in the input for this function.
+    def test_valid_topo_list(self):
+        r"""Test the valid_topo_list() utility function.
 
-    # 3. Make sure all the variables in the expression this function will return are either
-    #    in the outcomes, the conditions, or the outcome ancestral component variables
-    #    excluding outcomes and conditions.
-    #    TODO: Test the assumption for this step. Can the probability of the
-    #    data sent into transport_conditional_counterfactual_query as input
-    #    condition on variables not in the target domain graph?
-"""
+        Source: RC's mind.
+        """
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X1, Z),
+                (X2, Z),
+                (X2, W),
+                (W, Y),
+                (Z, Y),
+            ],
+        )
+        topo = list(graph.topological_sort())
+        self.assertTrue(_valid_topo_list([X1, X2, Z, W, Y], graph))
+        self.assertTrue(_valid_topo_list(topo, graph))
+        self.assertFalse(_valid_topo_list([X1, Z, X2, W, Y], graph))
+        self.assertTrue(_valid_topo_list([X2, W, X1, Z, Y], graph))
