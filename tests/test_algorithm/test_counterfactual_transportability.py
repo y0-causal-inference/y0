@@ -37,6 +37,7 @@ from y0.algorithm.counterfactual_transportability import (
     _transport_conditional_counterfactual_query_line_4,
     _transport_unconditional_counterfactual_query_line_2,
     _valid_topo_list,
+    _validate_transport_conditional_counterfactual_query_input,
     _validate_transport_conditional_counterfactual_query_line_4_output,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
@@ -67,6 +68,7 @@ from y0.dsl import (
     CounterfactualVariable,
     Fraction,
     Intervention,
+    One,
     P,
     Pi1,
     Pi2,
@@ -78,6 +80,7 @@ from y0.dsl import (
     X,
     Y,
     Z,
+    Zero,
 )
 from y0.graph import NxMixedGraph
 
@@ -3501,6 +3504,1167 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         logger.warning("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result_expr, result_expr)
         self.assertCountEqual(expected_result_event, result_event)
+
+    def test_transport_conditional_counterfactual_query_6(self):
+        """Sixth test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
+
+        Here we test the notion that the joint probability of the vertices sent in as input conditions
+        on other variables we don't see in the graph. A user may wish to transport a subgraph,
+        for example.
+
+        Source: Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        domain_data = [(set(), PP[TARGET_DOMAIN](X, Y, Z, R)), ({X}, PP[Pi1](X, Y, Z, R))]
+        # What happens here is the extra variable R in the domain_data graph probability expression
+        # doesn't get used during processing because it's outside the graph and we don't condition on it.
+        # Leaving out R doesn't happen explicitly: it happens implicitly during compute_c_factor() called
+        # from tian_pearl_identify(). compute_c_factor() leaves out R because it's not part of the graph
+        # and it's not a conditioned variable, and that's expected behavior.
+        expected_result_expr, expected_result_event = (
+            Fraction(PP[TARGET_DOMAIN](Y | X, Z), Sum.safe(PP[TARGET_DOMAIN](Y | X, Z), {Y})),
+            [(Y, -Y), (X, +X), (Z, -Z)],
+        )
+        result_expr, result_event = transport_conditional_counterfactual_query(
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=domain_data,
+        )
+        logger.warning("expected_result_expr = " + expected_result_expr.to_latex())
+        logger.warning("expected_result_event = " + str(expected_result_event))
+        logger.warning("Result_expr = " + result_expr.to_latex())
+        logger.warning("Result_event = " + str(result_event))
+        self.assert_expr_equal(expected_result_expr, result_expr)
+        self.assertCountEqual(expected_result_event, result_event)
+
+    def test_transport_conditional_counterfactual_query_preprocessing(self):
+        """Tests of input validation for transport_conditional_counterfactual_query() [correa22a].
+
+        Here are all the checks (numbering is just based on convenience during implementation, and
+        the numbered order is not necessarily the order of implementation):
+        1. Type checking for outcomes and conditions
+        2. Type checking for target_domain_graph
+        3. Type checking for domain_graphs
+        4. Type checking for domain_data
+        4.5. Make sure probabilistic expressions in domain_data aren't Zero() or One()
+        5. Make sure conditions and outcomes aren't empty
+        6. (Skipped for the conditional transportability algorithm, included for unconditional
+        transportability) Make sure at least one event element has a non-None value
+        7. Check domain_graphs and domain_data aren't empty lists
+        8. Check all graphs in domain_graphs have nodes
+        9. Check all topologically sorted lists have entries
+        9.2. Check that the target domain graph contains no transportability nodes and is a directed acyclic graph
+        9.5. Check that the domain_graphs and domain_data list lengths are equal
+        9.7. Check that every domain graph is a directed acyclic graph
+        10. Check that every topological order list in domain_graphs is a valid topological order,
+            given the corresponding graph
+        11. Check the domain graph vertices are all the same as the target domain graph vertices
+        12. Check the event vertices are in the target domain graph (given check #11, that
+            means they're in every graph)
+        13. Check the conditioned and outcome variables have the same base variable
+            as the base variable of their corresponding values
+        14. Domain graphs: make sure the vertex set of the topologically sorted vertex order matches
+            the set of vertices in each corresponding domain graph
+        15. It's possible for a graph probability expression to contain vertices not in the graph
+            due to conditioning on vertices outside the graph. But the graph vertices must all be
+            represented in that graph probability expression.
+        16. If the target domain graph is also in the domain_graphs list (i.e., data were collected for
+            the target domain), then the target domain graph in the domain_graphs list must be
+            identical to the target_domain_graph parameter.
+        17. Make sure the conditioned variable and outcome variable sets don't share graph vertices
+
+        Source: RJC.
+        """
+        # 1. Type check the outcomes
+        example_1_domain_data = [(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))]
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=1,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=[1],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=1,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=[1],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=[(Y @ -X, -Y, None)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=[(Y @ -X, -Y, None)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=[(1, -Y)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=[(Y @ -X, None)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=[(1, -Y)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=[(Y @ -X, None)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        # 1. Type check the conditions
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=1,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=[1],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=1,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=[1],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=[(Z @ -X, -Z), (5, +X), None],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=[(Z @ -X, -Z), (5, +X), None],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=[(Z @ -X, -Z), (5, +X)],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=[(Z @ -X, -Z), (5, +X)],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=[(Z @ -X, -Z), (X, None)],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=[(Z @ -X, -Z), (X, None)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        # Check we have no empty inputs, for inputs unique to Algorithm 3
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=[],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=[],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=[],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=[],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=NxMixedGraph(),
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=NxMixedGraph(),
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        # Type checking for inputs consistent with both Algorithms 2 and 3
+        # 2.
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=1,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=1,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[None],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[1],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    figure_1_graph_no_transportability_nodes_topo,
+                ),
+                (
+                    1,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    figure_1_graph_no_transportability_nodes_topo,
+                ),
+                (
+                    1,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    1,
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    1,
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    [1],
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    [1],
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        # 4.
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=1,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=1,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[1],
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[1],
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(None, PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[({1}, PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), 1), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), 1), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        # 4.5.
+        self.assertRaises(
+            NotImplementedError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), Zero()), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            NotImplementedError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), Zero()), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            NotImplementedError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), One()), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            NotImplementedError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), One()), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            NotImplementedError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=[(Y @ -X, -Y)],
+            conditions=[(Y @ -Z, -Y), (X, +X)],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            NotImplementedError,
+            transport_conditional_counterfactual_query,
+            outcomes=[(Y @ -X, -Y)],
+            conditions=[(Y @ -Z, -Y), (X, +X)],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        # 7.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[],
+            domain_data=[(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[],
+            domain_data=[(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[],
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[],
+        )
+        # 8.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    figure_1_graph_no_transportability_nodes_topo,
+                ),
+                (
+                    NxMixedGraph(),
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    figure_1_graph_no_transportability_nodes_topo,
+                ),
+                (
+                    NxMixedGraph(),
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        # 9.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    figure_1_graph_no_transportability_nodes_topo,
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    [],
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    figure_1_graph_no_transportability_nodes_topo,
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    [],
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        # 9.5.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    figure_1_graph_no_transportability_nodes_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    figure_1_graph_no_transportability_nodes_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        # 9.2.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=figure_1_graph_domain_1_with_interventions,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=figure_1_graph_domain_1_with_interventions,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=figure_1_graph_domain_1_with_interventions,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=figure_1_graph_domain_1_with_interventions,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=NxMixedGraph.from_edges(
+                directed=[
+                    (X, Z),
+                    (Z, Y),
+                    (Y, X),
+                ],
+            ),
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=NxMixedGraph.from_edges(
+                directed=[
+                    (X, Z),
+                    (Z, Y),
+                    (Y, X),
+                ],
+            ),
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        # 11.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=NxMixedGraph.from_edges(
+                directed=[
+                    (X, Z),
+                    (Z, Y),
+                    (X, R),
+                ],
+            ),
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=NxMixedGraph.from_edges(
+                directed=[
+                    (X, Z),
+                    (Z, Y),
+                    (X, R),
+                ],
+            ),
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    figure_1_graph_no_transportability_nodes_topo,
+                ),
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[(X, Z), (X, Y), (R, Y)],
+                        undirected=[],
+                    ),
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    figure_1_graph_no_transportability_nodes,
+                    figure_1_graph_no_transportability_nodes_topo,
+                ),
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[(X, Z), (X, Y), (R, Y)],
+                        undirected=[],
+                    ),
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        # 12.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=[(Z @ -X, -Z), (R, -R)],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=[(Z @ -X, -Z), (R, -R)],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=[(R @ -X, -R)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=[(R @ -X, -R)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        # 13.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=[(Z @ -X, -Z), (X, -Z)],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=[(Z @ -X, -Z), (X, -Z)],
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=[(Y @ -X, -R)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=[(Y @ -X, -Z)],
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        # 14.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (X, Z),
+                            (Z, Y),
+                            (X, Y),
+                        ],
+                        undirected=[(Z, X)],
+                    ),
+                    [X, Z, Y, R],
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (X, Z),
+                            (Z, Y),
+                            (X, Y),
+                        ],
+                        undirected=[(Z, X)],
+                    ),
+                    [X, Z, Y, R],
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        # 15.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), PP[TARGET_DOMAIN](X, Y)), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), PP[TARGET_DOMAIN](X, Y)), ({X}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X, R}, PP[Pi1](X, Y, Z))],
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=[(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X, R}, PP[Pi1](X, Y, Z))],
+        )
+        # 10.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (X, Z),
+                            (Z, Y),
+                            (X, Y),
+                        ],
+                        undirected=[(Z, X)],
+                    ),
+                    [Y, Z, X],
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (X, Z),
+                            (Z, Y),
+                            (X, Y),
+                        ],
+                        undirected=[(Z, X)],
+                    ),
+                    [Y, Z, X],
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        # 16.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=NxMixedGraph.from_edges(
+                directed=[
+                    (X, Z),
+                    (Z, Y),
+                    (X, Y),
+                ],
+                undirected=[],
+            ),
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=NxMixedGraph.from_edges(
+                directed=[
+                    (X, Z),
+                    (Z, Y),
+                    (X, Y),
+                ],
+                undirected=[],
+            ),
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        # 9.7.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (X, Z),
+                            (Z, Y),
+                            (Y, X),
+                        ],  # not a directed acyclic graph
+                        undirected=[(Z, X)],
+                    ),
+                    [X, Z, Y],
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=self.example_1_target_domain_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (X, Z),
+                            (Z, Y),
+                            (Y, X),
+                        ],  # not a directed acyclic graph
+                        undirected=[(Z, X)],
+                    ),
+                    [X, Z, Y],
+                ),
+                (
+                    figure_1_graph_domain_1_with_interventions,
+                    figure_1_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=example_1_domain_data,
+        )
 
 
 class TestTransportConditionalCounterfactualQueryUtils(cases.GraphTestCase):
