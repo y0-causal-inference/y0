@@ -28,24 +28,16 @@ def get_single_door(
             continue
         if not adjustment_sets:
             # There is a valid adjustment set, and it is the empty set, so just regress the target on the source.
-            variables = [source.name]
+            adjustment_sets = frozenset([frozenset([])])
+        coefficients = []
+        for adjustment_set in adjustment_sets:
+            variables = sorted(adjustment_set | {source.name})
             idx = variables.index(source.name)
             model = LinearRegression()
             model.fit(data[variables], data[target.name])
-            rv[source, target] = model.coef_[idx]
-        else:
-            coefficients = []
-            for adjustment_set in adjustment_sets:
-                variables = sorted(adjustment_set | {source.name})
-                idx = variables.index(source.name)
-                model = LinearRegression()
-                model.fit(data[variables], data[target.name])
-                coefficients.append(model.coef_[idx])
-                rv[source, target] = fmean(coefficients)
+            coefficients.append(model.coef_[idx])
+        rv[source, target] = fmean(coefficients)
     return rv
-
-
-
 
 
 def evaluate_admg(graph, data: pd.DataFrame):
