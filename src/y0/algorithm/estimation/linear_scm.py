@@ -50,9 +50,7 @@ def evaluate_admg(graph, data: pd.DataFrame):
 def evaluate_lscm(
     linear_scm: dict[Variable, sympy.Expr], params: dict[sympy.Symbol, float]
 ) -> dict[sympy.Symbol, sympy.core.numbers.Rational]:
-    """Given an LSCM, assign values to the parameters and return variable assignments dictionary."""
-    # solve set of simulateous linear equations in sympy
-
+    """Given a linear SCM, assign values to the parameters and return variable assignments dictionary."""
     expressions: dict[sympy.Symbol, sympy.Expr] = {
         variable.to_sympy(): expression for variable, expression in linear_scm.items()
     }
