@@ -34,6 +34,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from operator import attrgetter
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Dict,
     Iterable,
@@ -47,6 +48,9 @@ from typing import (
     Union,
     cast,
 )
+
+if TYPE_CHECKING:
+    import sympy
 
 __all__ = [
     "Element",
@@ -211,6 +215,12 @@ class Variable(Element):
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
         return self.name
+
+    def to_sympy(self) -> "sympy.Symbol":
+        """Get the object for sympy."""
+        import sympy
+
+        return sympy.Symbol(self.to_latex())
 
     def to_latex(self) -> str:
         """Output this variable in the LaTeX string format.
