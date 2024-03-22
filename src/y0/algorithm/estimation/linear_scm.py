@@ -11,6 +11,8 @@ from y0.graph import NxMixedGraph, sympy_nested
 
 __all__ = [
     "get_single_door",
+    "evaluate_admg",
+    "evaluate_lscm",
 ]
 
 
@@ -41,7 +43,7 @@ def get_single_door(
 
 
 def evaluate_admg(graph, data: pd.DataFrame):
-    """Evalautes an acyclic directed mixed graph (ADMG)."""
+    """Evaluate an acyclic directed mixed graph (ADMG)."""
     params = {sympy_nested("\\beta", l, r): v for (l, r), v in get_single_door(graph, data).items()}
     lscm = graph.to_linear_scm_sympy()
     return evaluate_lscm(lscm, params)
@@ -50,7 +52,7 @@ def evaluate_admg(graph, data: pd.DataFrame):
 def evaluate_lscm(
     linear_scm: dict[Variable, sympy.Expr], params: dict[sympy.Symbol, float]
 ) -> dict[sympy.Symbol, sympy.core.numbers.Rational]:
-    """Given a linear SCM, assign values to the parameters and return variable assignments dictionary."""
+    """Assign values to the parameters and return variable assignments dictionary."""
     expressions: dict[sympy.Symbol, sympy.Expr] = {
         variable.to_sympy(): expression for variable, expression in linear_scm.items()
     }
