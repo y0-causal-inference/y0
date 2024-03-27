@@ -50,9 +50,9 @@ def identify_district_variables(
     :param input_variables: The set of variables, C, for which we're checking if causal identification is possible.
     :param input_district: The C-component, T, containing C.
     :param district_probability:
-        The expression $Q[T]$ as per [tian2003]_, Equation 34. Because T is a single district,
+        The expression $Q[T]$ as per [tian03a]_, Equation 34. Because T is a single district,
         $Q[T]$ is the "post-intervention distribution of the variables in T, under an intervention that sets all
-        other variables to constants" (see Equation 36 of [tian2003]_).
+        other variables to constants" (see Equation 36 of [tian03a]_).
     :param graph: The relevant graph.
     :param topo: A list of variables in topological order that includes all variables in the graph and may contain more.
     :returns: An expression for $Q[C]$ in terms of $Q$, or Fail.
@@ -65,6 +65,7 @@ def identify_district_variables(
         have only district and has more.
     :raises NotImplementedError:
         If we get to the end of the conditional, which still needs an "else"
+
     """
     if not input_variables.intersection(input_district) == input_variables:
         # if not all(v in input_district for v in input_variables):
@@ -211,17 +212,16 @@ def compute_c_factor_conditioning_on_topological_predecessors(
     This algorithm uses part (i) of Lemma 1 of [tian03a]_.
 
     :math: Let a topological order over $V$ be $V_{1} < \ldots < V_{n}$, and let
-    $V^{(i)}=\{V_{1},\ldots,V_{i}\}$, $i = 1,\ldots,n$, and $V^{(0)} = \emptyset$.
-    For any set $C$, let $G_{C}$ denote the subgraph of $G$ composed only of variables in $C$.
-    Then each c-factor $Q_{j}$, $j=1,\ldots,k$, is identifiable and is given by
+        $V^{(i)}=\{V_{1},\ldots,V_{i}\}$, $i = 1,\ldots,n$, and $V^{(0)} = \emptyset$.
+        For any set $C$, let $G_{C}$ denote the subgraph of $G$ composed only of variables in $C$.
+        Then each c-factor $Q_{j}$, $j=1,\ldots,k$, is identifiable and is given by
 
-    \begin{equation}
-    Q_{j} = \prod_\limit{\{i|V_{i}\in S_{j}\}}{P(v_i}|v^{(i-1}))}.
-    \end{equation}
+        \begin{equation}
+        $Q_{j} = \prod_\limit{\{i|V_{i}\in S_{j}\}}{P(v_i}|v^{(i-1}))}$.
+        \end{equation}
 
     :param district: A list of variables comprising the district for which we're computing a C factor.
     :param graph_probability: the Q value for the full graph.
-
     :param topo: a topological sort of the vertices in the graph.
     :raises TypeError: the district or variable set from which it is drawn contained no variables.
     :raises KeyError: a variable in the district is not in the topological sort of the graph vertices.
@@ -375,7 +375,7 @@ def compute_c_factor_marginalizing_over_topological_successors(
     :param district: A list of variables comprising the district for which we're computing a C factor.
     :param graph_probability:
         The expression $Q$ corresponding to the set of variables in $v$. It is
-        $Q[A]$ on the line calling Lemma 4 in [tian2003]_, Figure 7.
+        $Q[A]$ on the line calling Lemma 4 in [tian03a]_, Figure 7.
     :param topo: a topological ordering of the vertices in the subgraph $G_{H}$ in question.
     :returns: An expression for Q[district].
     """
@@ -421,7 +421,7 @@ def compute_c_factor(
     :param subgraph_variables: The variables in the subgraph T under analysis.
     :param subgraph_probability:
         The expression Q corresponding to the set of variables in T. As an example, this
-        quantity would be Q[A] on the line calling Lemma 4 in [tian2003]_, Figure 7.
+        quantity would be Q[A] on the line calling Lemma 4 in [tian03a]_, Figure 7.
     :param graph_topo:
         A list of variables in topological order that includes all variables in G, where T is contained
         in G.
@@ -469,12 +469,12 @@ def compute_ancestral_set_q_value(
     This algorithm uses Lemma 3 of [tian03a]_ (Equation 69).
 
     :math: Let $W \subseteq C \subseteq V$, and $W' = C \backslash W$. If $W$ is an ancestral set in the subgraph
-    $G_{C}$ $(An(W)_{G_{C}} = W)$, or equivalently, if none of the parents of $W$ is in
-    $W'$ $(Pa(W) \cap W' = \emptyset)$, then
+        $G_{C}$ $(An(W)_{G_{C}} = W)$, or equivalently, if none of the parents of $W$ is in
+        $W'$ $(Pa(W) \cap W' = \emptyset)$, then
 
-    \begin{equation}
-    \sum\limits_{W'}{Q[C]=Q[W]}
-    \end{equation}
+        \begin{equation}
+        \sum\limits_{W'}{Q[C]=Q[W]}
+        \end{equation}
 
     :param ancestral_set:
         A set of variables (W in Equation 69, A in Figure 7 of [tian03a]_) that comprise the
