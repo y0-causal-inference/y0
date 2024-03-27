@@ -108,7 +108,7 @@ figure_1_graph_no_transportability_nodes_topo = list(
 # Figure 1 of [correa22a]_. The graph isn't in any figures in the
 # paper, but a reader can infer it.
 figure_1_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
-    directed=[(X, Z), (X, Y), (transport_variable(Y), Y)],
+    directed=[(X, Z), (X, Y), (Z, Y), (transport_variable(Y), Y)],
     undirected=[],
 )
 figure_1_graph_domain_1_with_interventions_topo = list(
