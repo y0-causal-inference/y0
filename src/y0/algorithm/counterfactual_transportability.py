@@ -1428,11 +1428,11 @@ def _transport_unconditional_counterfactual_query_line_2(
     }
     ancestor_bases = {v.get_base() for v in ancestral_set}
     outcome_ancestor_graph = graph.subgraph(ancestor_bases)
-    factorized_ancestral_set_with_values: list[
-        set[tuple[Variable, Intervention | None]]
-    ] = get_counterfactual_factors_retaining_variable_values(
-        event=ancestral_set_in_counterfactual_factor_form_with_values,
-        graph=outcome_ancestor_graph,
+    factorized_ancestral_set_with_values: list[set[tuple[Variable, Intervention | None]]] = (
+        get_counterfactual_factors_retaining_variable_values(
+            event=ancestral_set_in_counterfactual_factor_form_with_values,
+            graph=outcome_ancestor_graph,
+        )
     )
     return ancestral_set_with_values, factorized_ancestral_set_with_values
 
@@ -1638,9 +1638,9 @@ def transport_unconditional_counterfactual_query(
                 # Line 9 involves formally evaluating Q over the set of values $\mathbf{c}$. We defer
                 #    this action until Line 14, when we do so by simply returning the simplified event
                 #    with the expression for $P^{\ast}(\mathbf{Y_{\ast} = y_{\ast}})$.
-                district_variables_and_their_parents: set[
-                    Variable
-                ] = set()  # district_without_interventions
+                district_variables_and_their_parents: set[Variable] = (
+                    set()
+                )  # district_without_interventions
                 for variable in district_without_interventions:
                     district_variables_and_their_parents.update(
                         {v for v in target_domain_graph.directed.predecessors(variable.get_base())}
@@ -1803,9 +1803,9 @@ def _compute_ancestral_components_from_ancestral_sets(
     vertex_to_ancestral_set_mappings: defaultdict[Variable, set[frozenset[Variable]]] = defaultdict(
         set
     )
-    original_to_merged_ancestral_set_mappings: dict[
-        frozenset[Variable], frozenset[Variable]
-    ] = dict()
+    original_to_merged_ancestral_set_mappings: dict[frozenset[Variable], frozenset[Variable]] = (
+        dict()
+    )
     ancestral_components: set[frozenset[Variable]] = {s for s in ancestral_sets}
     for s in ancestral_sets:
         original_to_merged_ancestral_set_mappings[s] = s
@@ -2025,10 +2025,10 @@ def _get_ancestral_components(
         )
         for v in root_variables
     }
-    ancestral_components: frozenset[
-        frozenset[Variable]
-    ] = _compute_ancestral_components_from_ancestral_sets(
-        ancestral_sets=ancestral_sets, graph=graph
+    ancestral_components: frozenset[frozenset[Variable]] = (
+        _compute_ancestral_components_from_ancestral_sets(
+            ancestral_sets=ancestral_sets, graph=graph
+        )
     )
     return ancestral_components
 
@@ -2068,9 +2068,9 @@ def _initialize_conditional_transportability_data_structures(
     # outcome_and_conditioned_variable_to_value_mappings: defaultdict[
     #    Variable, set[Intervention]
     # ] = defaultdict(set)
-    outcome_and_conditioned_variable_names_to_values: defaultdict[
-        Variable, set[Intervention]
-    ] = defaultdict(set)
+    outcome_and_conditioned_variable_names_to_values: defaultdict[Variable, set[Intervention]] = (
+        defaultdict(set)
+    )
     for key, value in outcomes:
         outcome_variable_to_value_mappings[key].update({value})
         # outcome_and_conditioned_variable_to_value_mappings[key].update({value})
@@ -2138,9 +2138,9 @@ def _transport_conditional_counterfactual_query_line_2(
         Algorithm 3 of [correa22a]_. It also returns a set of variables representing the target domain graph vertices
         associated with variables in $\mathbf{D_{\ast}}$.
     """
-    outcome_ancestral_component_variables_and_values: list[
-        tuple[Variable, Intervention | None]
-    ] = []
+    outcome_ancestral_component_variables_and_values: list[tuple[Variable, Intervention | None]] = (
+        []
+    )
     outcome_variable_ancestral_component_variables: set[Variable] = set()
     for component in ancestral_components:
         if any(variable in outcome_variables for variable in component):
@@ -2482,9 +2482,9 @@ def transport_conditional_counterfactual_query(
         transported_unconditional_query_expression: Expression = unconditional_query_result[
             0
         ]  # This is Q
-        simplified_event: list[
-            tuple[Variable, Intervention | None]
-        ] | None = unconditional_query_result[1]
+        simplified_event: list[tuple[Variable, Intervention | None]] | None = (
+            unconditional_query_result[1]
+        )
         if (
             simplified_event is None
         ):  # Event has probability of zero due to inconsistent values in the query
