@@ -39,6 +39,7 @@ from y0.algorithm.counterfactual_transportability import (
     _valid_topo_list,
     _validate_transport_conditional_counterfactual_query_input,
     _validate_transport_conditional_counterfactual_query_line_4_output,
+    _validate_transport_unconditional_counterfactual_query_input,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
@@ -4070,6 +4071,7 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             domain_graphs=self.example_1_domain_graphs,
             domain_data=[(set(), One()), ({X}, PP[Pi1](X, Y, Z))],
         )
+        # 17.
         self.assertRaises(
             NotImplementedError,
             _validate_transport_conditional_counterfactual_query_input,
@@ -4689,3 +4691,1025 @@ class TestTransportConditionalCounterfactualQueryUtils(cases.GraphTestCase):
         self.assertTrue(_valid_topo_list(topo, graph))
         self.assertFalse(_valid_topo_list([X1, Z, X2, W, Y], graph))
         self.assertTrue(_valid_topo_list([X2, W, X1, Z, Y], graph))
+
+
+class TestTransportUnconditionalCounterfactualQueryPreprocessing(cases.GraphTestCase):
+    """Test input validation for [correa22a]_'s unconditional counterfactual transportability algorithm."""
+
+    event = [(Y @ -X, -Y), (X, -X)]
+    domain_graphs = [
+        (
+            figure_2_graph_domain_1_with_interventions,
+            figure_2_graph_domain_1_with_interventions_topo,
+        ),
+        (
+            figure_2_graph_domain_2,
+            figure_2_graph_domain_2_topo,
+        ),
+    ]
+
+    def test_unconditional_counterfactual_query_preprocessing(self):
+        """Tests of input validation for transport_conditional_counterfactual_query() [correa22a].
+
+        Here are all the checks (numbering is just based on convenience during implementation, and
+        the numbered order is not necessarily the order of implementation):
+        1. Type checking for the input event
+        2. Type checking for target_domain_graph
+        3. Type checking for domain_graphs
+        4. Type checking for domain_data
+        4.5. Make sure probabilistic expressions in domain_data aren't Zero() or One()
+        5. Make sure the input event isn't empty
+        6. Make sure at least one event element has a non-None value
+        7. Check domain_graphs and domain_data aren't empty lists
+        8. Check all graphs in domain_graphs have nodes
+        9. Check all topologically sorted lists have entries
+        9.2. Check that the target domain graph contains no transportability nodes and is a directed acyclic graph
+        9.5. Check that the domain_graphs and domain_data list lengths are equal
+        9.7. Check that every domain graph is a directed acyclic graph
+        10. Check that every topological order list in domain_graphs is a valid topological order,
+            given the corresponding graph
+        11. Check the domain graph vertices are all the same as the target domain graph vertices
+        12. Check the event vertices are in the target domain graph (given check #11, that
+            means they're in every graph)
+        13. Check the event variables have the same base variable as the base variable of their
+            corresponding values, if those values aren't None
+        14. Domain graphs: make sure the vertex set of the topologically sorted vertex order matches
+            the set of vertices in each corresponding domain graph
+        15. It's possible for a graph probability expression to contain vertices not in the graph
+            due to conditioning on vertices outside the graph. But the graph vertices must all be
+            represented in that graph probability expression
+        15.5. Make sure policy vertices are in the target domain graph
+        16. If the target domain graph is also in the domain_graphs list (i.e., data were collected for
+            the target domain), then the target domain graph in the domain_graphs list must be
+            identical to the target_domain_graph parameter
+
+        Source: RJC.
+        """
+        # 1. Type check the outcomes
+        domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=1,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=1,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=[1],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=[1],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=[(Y @ -X, -Y), (X, -X), None],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=[(Y @ -X, -Y), (X, -X), None],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=[(Y @ -X, -Y, None), (X, -X)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=[(Y @ -X, -Y, None), (X, -X)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=[(1, -Y), (X, -X)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=[(1, -Y), (X, -X)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=[(Y @ -X, 1), (X, -X)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=[(Y @ -X, 1), (X, -X)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        # None values for event interventions are allowed for Algorithm 2 but not Algorithm 3.
+        # So the next two (commented out) tests fail and are supposed to fail.
+        # self.assertRaises(
+        #    TypeError,
+        #    _validate_transport_unconditional_counterfactual_query_input,
+        #    event=[(Y @ -X, None), (X, -X)],
+        #    target_domain_graph=figure_2a_graph,
+        #    domain_graphs=self.domain_graphs,
+        #    domain_data=domain_data,
+        # )
+        # self.assertRaises(
+        #    TypeError,
+        #    transport_unconditional_counterfactual_query,
+        #    event=[(Y @ -X, None), (X, -X)],
+        #    target_domain_graph=figure_2a_graph,
+        #    domain_graphs=self.domain_graphs,
+        #    domain_data=domain_data,
+        # )
+        # 5.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=[],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=[],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        # 2.
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=1,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=None,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        # 3.
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=1,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=1,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[1],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[None],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    1,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    1,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    1,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    1,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    [1],
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    [1],
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=1,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=1,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[1],
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[1],
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[(None, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[(1, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({1}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({1}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({X}, 1), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            TypeError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({X}, 1), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            NotImplementedError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({X}, Zero()), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            NotImplementedError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({X}, Zero()), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            NotImplementedError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({X}, One()), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            NotImplementedError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({X}, One()), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        # 6. At least one event element has a non-None value
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=[(Y @ -X, None), (X, None)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=[(Y @ -X, None), (X, None)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        # 7.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[],
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[],
+        )
+        # 8.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=NxMixedGraph(),
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=NxMixedGraph(),
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    NxMixedGraph(),
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    NxMixedGraph(),
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # 9.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    [],
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    [],
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # 9.5.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    figure_2_graph_domain_1_with_interventions,
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # 9.2
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2_graph_domain_2,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2_graph_domain_2,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=NxMixedGraph.from_edges(
+                directed=[
+                    (Z, X),
+                    (Y, Z),
+                    (X, Y),
+                    (X, W),
+                    (W, Y),
+                ],
+                undirected=[(Z, X), (W, Y)],
+            ),
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=NxMixedGraph.from_edges(
+                directed=[
+                    (Z, X),
+                    (Y, Z),
+                    (X, Y),
+                    (X, W),
+                    (W, Y),
+                ],
+                undirected=[(Z, X), (W, Y)],
+            ),
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        # 11.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=NxMixedGraph.from_edges(
+                directed=[
+                    (Z, X),
+                    (Z, R),
+                    (X, Y),
+                    (X, W),
+                    (W, Y),
+                ],
+                undirected=[(Z, X), (W, Y)],
+            ),
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=NxMixedGraph.from_edges(
+                directed=[
+                    (Z, X),
+                    (Z, R),
+                    (X, Y),
+                    (X, W),
+                    (W, Y),
+                ],
+                undirected=[(Z, X), (W, Y)],
+            ),
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[(X, Y), (X, W), (W, R), (Z, Y), (transport_variable(Z), Z)],
+                        undirected=[
+                            (W, Y),
+                        ],
+                    ),
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[(X, Y), (X, W), (W, R), (Z, Y), (transport_variable(Z), Z)],
+                        undirected=[
+                            (W, Y),
+                        ],
+                    ),
+                    figure_2_graph_domain_1_with_interventions_topo,
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # 12.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=[(Y @ -X, -Y), (R, -R)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=[(Y @ -X, -Y), (R, -R)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        # 13.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=[(Y @ -X, -Y), (X, -R)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=[(Y @ -X, -Y), (X, -R)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=domain_data,
+        )
+        # 14.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Z), Z)],
+                        undirected=[
+                            (W, Y),
+                        ],
+                    ),
+                    [Z, X, W, R],
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Z), Z)],
+                        undirected=[
+                            (W, Y),
+                        ],
+                    ),
+                    [Z, X, W, R],
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # 15.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({X}, PP[Pi1](W, X, Y)), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({X}, PP[Pi1](W, X, Y)), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        # 15.5.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({X}, PP[Pi1](W, X, Y, Z)), ({R}, PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=self.domain_graphs,
+            domain_data=[({X}, PP[Pi1](W, X, Y, Z)), ({R}, PP[Pi2](W, X, Y, Z))],
+        )
+        # 10.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (X, Y),
+                            (X, W),
+                            (W, Y),
+                            (Z, Y),
+                            (Z, X),
+                            (transport_variable(Z), Z),
+                        ],
+                        undirected=[
+                            (W, Y),
+                        ],
+                    ),
+                    [transport_variable(Z), X, Z, W, Y],
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (X, Y),
+                            (X, W),
+                            (W, Y),
+                            (Z, Y),
+                            (Z, X),
+                            (transport_variable(Z), Z),
+                        ],
+                        undirected=[
+                            (W, Y),
+                        ],
+                    ),
+                    [transport_variable(Z), X, Z, W, Y],
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=domain_data,
+        )
+        # 16.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (Z, X),
+                            (Z, Y),
+                            (X, Y),
+                            (X, W),
+                            (W, Y),
+                        ],
+                        undirected=[(Z, X)],  # Missing an undirected edge
+                    ),
+                    [Z, X, W, Y],
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=[({X}, PP[TARGET_DOMAIN](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (Z, X),
+                            (Z, Y),
+                            (X, Y),
+                            (X, W),
+                            (W, Y),
+                        ],
+                        undirected=[(Z, X)],  # Missing an undirected edge
+                    ),
+                    [Z, X, W, Y],
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=[({X}, PP[TARGET_DOMAIN](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        # 9.7.
+        self.assertRaises(
+            ValueError,
+            _validate_transport_unconditional_counterfactual_query_input,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (Z, X),
+                            (Y, Z),
+                            (X, Y),
+                            (X, W),
+                            (W, Y),
+                        ],  # Not a DAG
+                        undirected=[(Z, X), (W, Y)],
+                    ),
+                    [Z, X, W, Y],
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=[({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
+        )
+        self.assertRaises(
+            ValueError,
+            transport_unconditional_counterfactual_query,
+            event=self.event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[
+                (
+                    NxMixedGraph.from_edges(
+                        directed=[
+                            (Z, X),
+                            (Y, Z),
+                            (X, Y),
+                            (X, W),
+                            (W, Y),
+                        ],  # Not a DAG
+                        undirected=[(Z, X)],
+                    ),
+                    [Z, X, W, Y],
+                ),
+                (
+                    figure_2_graph_domain_2,
+                    figure_2_graph_domain_2_topo,
+                ),
+            ],
+            domain_data=[({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
+        )

@@ -1204,7 +1204,11 @@ def validate_inputs_for_transport_district_intervening_on_parents(
             raise KeyError(
                 "In validate_inputs_for_transport_district_intervening_on_parents: the vertices "
                 + "in each domain graph must match those in the "
-                + "corresponding topologically sorted list of vertices. Check your inputs. "
+                + "corresponding topologically sorted list of vertices. Check your inputs and "
+                + "note that the topologically sorted vertex lists "
+                + "must contain any transportability nodes. An easy way to "
+                + "generate a usable list is to call "
+                + "[graph_name].topological_sort() on the graph. "
                 + "Graph vertices: "
                 + str(graph_vertices)
                 + ". List: "
@@ -1604,7 +1608,7 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
     #     identical to the target_domain_graph parameter.
     if not (isinstance(event, list) and all(isinstance(t, tuple) and len(t) == 2 for t in event)):
         raise TypeError(
-            "In _validate_transport_unconditional_counterfactual_query_input: the input outcomes "
+            "In _validate_transport_unconditional_counterfactual_query_input: the input event "
             + "must be a list of tuples of length 2. Check your inputs."
         )
     if not all(
@@ -1753,7 +1757,7 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
         value is not None and variable.get_base() != value.get_base() for variable, value in event
     ):
         raise ValueError(
-            "In _validate_transport_conditional_counterfactual_query_input: all input "
+            "In _validate_transport_unconditional_counterfactual_query_input: all input "
             + "event variables must either have values of None or the same base variable "
             + "as their corresponding values (e.g., your variable is (W @ -X) and its value "
             + "must be +W or -W, but it's -X). Check your inputs."
@@ -1775,7 +1779,11 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
             raise ValueError(
                 "In _validate_transport_unconditional_counterfactual_query_input: the vertices "
                 + "in each domain graph must match those in the "
-                + "corresponding topologically sorted list of vertices. Check your inputs. "
+                + "corresponding topologically sorted list of vertices. Check your inputs and "
+                + "note that the topologically sorted vertex lists "
+                + "must contain any transportability nodes. An easy way to "
+                + "generate a usable list is to call "
+                + "[graph_name].topological_sort() on the graph. "
                 + "Graph vertices: "
                 + str(graph_vertices)
                 + ". Topologically sorted list of vertices: "
@@ -1823,7 +1831,7 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
         # 10.
         if not _valid_topo_list(topo=domain_graphs[k][1], graph=domain_graphs[k][0]):
             raise ValueError(
-                "In _validate_transport_conditional_counterfactual_query_input: the provided topologically "
+                "In _validate_transport_unconditional_counterfactual_query_input: the provided topologically "
                 + "sorted order of the vertices ("
                 + str(domain_graphs[k][1])
                 + ") for domain graph entry "
@@ -1844,9 +1852,9 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
         if str(domain_data[k][1].population) == str(TARGET_DOMAIN):
             if domain_graphs[k][0] != target_domain_graph:
                 raise ValueError(
-                    "In _validate_transport_unconditional_counterfactual_query_input: the domain_data contain "
-                    + "a graph probability expression from the target domain, but the corresponding domain_graph "
-                    + "is not the same graph as the target_domain_graph. Check your inputs. Domain index "
+                    "In _validate_transport_unconditional_counterfactual_query_input: the domain_data input contains "
+                    + 'a graph probability expression from the target domain (i.e., "pi*"), but the corresponding '
+                    + "domain_graph is not the same graph as the target_domain_graph. Check your inputs. Domain index "
                     + "(zero-indexed): "
                     + str(k)
                 )
@@ -3123,7 +3131,11 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
             raise ValueError(
                 "In _validate_transport_conditional_counterfactual_query_input: the vertices "
                 + "in each domain graph must match those in the "
-                + "corresponding topologically sorted list of vertices. Check your inputs. "
+                + "corresponding topologically sorted list of vertices. Check your inputs and "
+                + "note that the topologically sorted vertex lists "
+                + "must contain any transportability nodes. An easy way to "
+                + "generate a usable list is to call "
+                + "[graph_name].topological_sort() on the graph. "
                 + "Graph vertices: "
                 + str(graph_vertices)
                 + ". Topologically sorted list of vertices: "
@@ -3193,9 +3205,9 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
             if domain_graphs[k][0] != target_domain_graph:
                 raise ValueError(
                     "In _validate_transport_conditional_counterfactual_query_input: the domain_data contain "
-                    + "a graph probability expression from the target domain, but the corresponding domain_graph "
-                    + "is not the same graph as the target_domain_graph. Check your inputs. Domain index "
-                    + "(zero-indexed): "
+                    + 'a graph probability expression from the target domain (i.e., "pi*"), but the '
+                    + "corresponding domain_graph is not the same graph as the target_domain_graph. "
+                    + "Check your inputs. Domain index (zero-indexed): "
                     + str(k)
                 )
     return
