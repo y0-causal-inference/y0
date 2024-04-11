@@ -1943,6 +1943,33 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             )
         )
 
+    def test_transport_district_intervening_on_parents_6(self):
+        """Sixth test case involving a transportable counterfactual factor.
+
+        Here we make the input district contain variables in more than one district.
+
+        Source: Equation 17 of [correa22a]_.
+        """
+        district = {Y, W, X}  # X is from another district
+        domain_graphs = [
+            (
+                figure_2_graph_domain_1_with_interventions,
+                figure_2_graph_domain_1_with_interventions_topo,
+            ),
+            (
+                figure_2_graph_domain_2,
+                figure_2_graph_domain_2_topo,
+            ),
+        ]
+        domain_data = [(set(), PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
+        self.assertRaises(
+            ValueError,
+            transport_district_intervening_on_parents,
+            district=district,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+
     def test_transport_district_intervening_on_parents_preprocessing(self):
         """Tests of the various data integrity checks at the start of sigma-tr.
 

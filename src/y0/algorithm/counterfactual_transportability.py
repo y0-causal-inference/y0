@@ -1239,20 +1239,19 @@ def validate_inputs_for_transport_district_intervening_on_parents(
                 + ". Graph vertices: "
                 + str(graph_vertices_without_transportability_nodes)
             )
-        if not all(v in graph_vertices_without_transportability_nodes for v in district):
-            for v in district:
-                if v not in graph_vertices_without_transportability_nodes:
-                    raise KeyError(
-                        "In validate_inputs_for_transport_district_intervening_on_parents: one of "
-                        + "the variables in the input district "
-                        + "is not in a domain graph. District: "
-                        + str(district)
-                        + ". Node missing from the graph: "
-                        + str(v)
-                        + ". Nodes in the graph: "
-                        + str(graph_vertices_without_transportability_nodes)
-                        + "."
-                    )
+        for v in district:
+            if v not in graph_vertices_without_transportability_nodes:
+                raise KeyError(
+                    "In validate_inputs_for_transport_district_intervening_on_parents: one of "
+                    + "the variables in the input district "
+                    + "is not in a domain graph. District: "
+                    + str(district)
+                    + ". Node missing from the graph: "
+                    + str(v)
+                    + ". Nodes in the graph: "
+                    + str(graph_vertices_without_transportability_nodes)
+                    + "."
+                )
     return
 
 
@@ -1318,7 +1317,7 @@ def transport_district_intervening_on_parents(
            variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression
            denoting the probability distribution
            $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
-    :raises TypeError: the vertices in the input district are part of more than one district
+    :raises ValueError: the vertices in the input district are part of more than one district
            in a domain graph.
     :returns: A probabilistic expression for $P^{\ast}_{Pa(\mathbf{C})_{i}}(\mathbf{C}\_i)$ if
            it is transportable, or None if it is not transportable.
@@ -1329,9 +1328,27 @@ def transport_district_intervening_on_parents(
     validate_inputs_for_transport_district_intervening_on_parents(
         district=district, domain_graphs=domain_graphs, domain_data=domain_data
     )
+    logger.warning("In transport_district_intervening_on_parents: input validated successfully.")
     # Line 1
     for k in range(len(domain_graphs)):
         # Also Line 1 (the published pseudocode could break the for loop and this test into two lines)
+        logger.warning(" k = " + str(k))
+        logger.warning(
+            " _no_intervention_variables_in_domain: "
+            + str(
+                _no_intervention_variables_in_domain(
+                    district=district, interventions=domain_data[k][0]
+                )
+            )
+        )
+        logger.warning(
+            " _no_transportability_nodes_in_domain: "
+            + str(
+                _no_transportability_nodes_in_domain(
+                    district=district, domain_graph=domain_graphs[k][0]
+                )
+            )
+        )
         if _no_intervention_variables_in_domain(
             district=district, interventions=domain_data[k][0]
         ) and _no_transportability_nodes_in_domain(
@@ -1356,7 +1373,7 @@ def transport_district_intervening_on_parents(
             if any(
                 domain_graph_district != frozenset(domain_graph.get_district(v)) for v in district
             ):
-                raise TypeError(
+                raise ValueError(
                     "Error in transport_district_intervening_on_parents: the vertices in an input district "
                     + "are part of more than one district in a domain graph. Input district: "
                     + str(district)
