@@ -45,6 +45,7 @@ from y0.algorithm.counterfactual_transportability import (
     do_counterfactual_factor_factorization,
     get_ancestors_of_counterfactual,
     get_counterfactual_factors,
+    get_counterfactual_factors_retaining_variable_values,
     is_counterfactual_factor_form,
     make_selection_diagrams,
     minimize,
@@ -1486,7 +1487,7 @@ class TestGetCounterfactualFactors(cases.GraphTestCase):
             (-Z),
         }
         self.assertRaises(
-            KeyError,
+            ValueError,
             get_counterfactual_factors,
             event=get_counterfactual_factors_test_3_in,
             graph=figure_2a_graph,
@@ -2427,7 +2428,7 @@ class TestCounterfactualFactorIsInconsistent(cases.GraphTestCase):
         self.assertTrue(_counterfactual_factor_is_inconsistent(event=event))
 
 
-# TODO: 1. We need a test case that returns a probability of Zero() if the Simplify() algorithm
+# TODO: x 1. We need a test case that returns a probability of Zero() if the Simplify() algorithm
 #          returns a probability 0 during transport_unconditional_counterfactual_query().
 #       2. We need to test _transport_unconditional_counterfactual_query_line_2() for an input
 #          event containing a variable that already has a value of None. This represents input
@@ -2631,7 +2632,37 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
             expected_counterfactual_factors_with_values, counterfactual_factors_with_values
         )
 
-    # set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
+    def test_transport_unconditional_counterfactual_query_simplify_returns_none(self):
+        """Test of Line 1 of Algorithm 2 of [correa22a]_.
+
+        This tests whether we properly return (Zero(), None) if a query, when simplified,
+        returns a probability of zero.
+
+        Source: Example 4.2 from [correa22]_, modified to make the simplification fail.
+        """
+        # 1. We need a test case that returns a probability of Zero() if the Simplify() algorithm
+        #   returns a probability 0 during transport_unconditional_counterfactual_query().
+        event = [(Y @ -Y, -Y), (Y, +Y)]
+        # event = [(Y @ -X, -Y), (X, -X)]
+        domain_graphs = [
+            (
+                figure_2_graph_domain_1_with_interventions,
+                figure_2_graph_domain_1_with_interventions_topo,
+            ),
+            (
+                figure_2_graph_domain_2,
+                figure_2_graph_domain_2_topo,
+            ),
+        ]
+        domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
+        result_expr, result_event = transport_unconditional_counterfactual_query(
+            event=event,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assert_expr_equal(result_expr, Zero())
+        self.assertIsNone(result_event)
 
     def test_transport_unconditional_counterfactual_query_line_2_3(self):
         """Third test of Line 2 of Algorithm 2 of [correa22a]_.
@@ -2724,6 +2755,42 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
         self.assertCountEqual(
             expected_counterfactual_factors_with_values, counterfactual_factors_with_values
         )
+
+    def test_transport_unconditional_counterfactual_query_line_5(self):
+        """Test of Line 5 of Algorithm 2 of [correa22a]_.
+
+        This test checks that if a counterfactual factor can't be transported, the algorithm
+        returns None.
+
+        Source: RJC's mind.
+        """
+        graph_1 = NxMixedGraph.from_edges(
+            directed=[(Z, X), (X, Y), (Z, Y), (W, Y), (transport_variable(Y), Y)],
+            undirected=[
+                (Z, X),
+            ],
+        )
+        graph_1_topo = list(graph_1.topological_sort())
+        # Let's say graph 2 is a stochastic intervention where Y is a function of W and Z,
+        # but not X.
+        graph_2 = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (X, W),
+                (Z, Y),
+                (W, Y),
+            ],
+            undirected=[],
+        )
+        graph_2_topo = list(graph_2.topological_sort())
+        domain_data = [(set(), PP[Pi1](W, X, Y, Z)), ({Y}, PP[Pi2](W, X, Y, Z))]
+        query_result = transport_unconditional_counterfactual_query(
+            event=[(Y @ -X, -Y), (X, -X)],
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=[(graph_1, graph_1_topo), (graph_2, graph_2_topo)],
+            domain_data=domain_data,
+        )
+        self.assertIsNone(query_result)
 
 
 class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
@@ -5713,3 +5780,43 @@ class TestTransportUnconditionalCounterfactualQueryPreprocessing(cases.GraphTest
             ],
             domain_data=[({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))],
         )
+
+
+class TestGetCounterfactualFactorsRetainingVariableValues(cases.GraphTestCase):
+    """Test function to retrieve counterfactual factors from a graph."""
+
+    def test_get_counterfactual_factors_retaining_variable_values(self):
+        r"""Test a function to retrieve counterfactual factors, retaining variable values.
+
+        Source: RC's mind.
+        """
+        event = [(Y @ -X, -Y), (X @ -Z, -X)]
+        self.assertRaises(
+            ValueError,
+            get_counterfactual_factors_retaining_variable_values,
+            event=event,
+            graph=figure_2a_graph,
+        )
+        # The next test is expected to fail and it does
+        event_2 = [(Y @ -X @ -W @ -Z, -Y), (X @ -Z, -X)]
+        expected_result = [{(Y @ -X @ -W @ -Z, -Y)}, {(X @ -Z, -X)}]
+        # expected_result[frozenset({W, Y})] = {(Y @ -X @ -W @ -Z, -Y)}
+        # expected_result[frozenset({X, Z})] = {(X @ -Z, -X)}
+        self.assertCountEqual(
+            expected_result,
+            get_counterfactual_factors_retaining_variable_values(
+                event=event_2, graph=figure_2a_graph
+            ),
+        )
+
+    # district_mappings: DefaultDict[
+    #    frozenset[Variable], set[tuple[Variable, Intervention | None]]
+    # ] = defaultdict(set)
+    # for variable, value in event:
+    #    district_mappings[graph.get_district(variable.get_base())].add((variable, value))
+    # self.assertRaises(
+    #   ValueError,
+    #   get_counterfactual_factors_retaining_variable_values,
+    #   event=event_2,
+    #   graph=figure_2a_graph
+    # )

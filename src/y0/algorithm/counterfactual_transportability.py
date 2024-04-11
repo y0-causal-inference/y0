@@ -834,7 +834,7 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
         have no interventions. All counterfactual variables must be in counterfactual
         factor form.
     :param graph: The corresponding graph.
-    :raises KeyError: An event is not in counterfactual factor form.
+    :raises ValueError: An event is not in counterfactual factor form.
     :returns:
         A set of sorted lists of counterfactual variables in counterfactual factor
         form, with each list associated with a district of the graph. The lists
@@ -842,8 +842,8 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
         variables missing from the graph.
     """
     if not is_counterfactual_factor_form(event=event, graph=graph):
-        logger.warning("Supposed to trigger KeyError in get_counterfactual_factors().")
-        raise KeyError(
+        logger.warning("Supposed to trigger ValueError in get_counterfactual_factors().")
+        raise ValueError(
             "In get_counterfactual_factors(): the event %s is not in counterfactual factor form.",
             str(event),
         )
@@ -879,7 +879,7 @@ def get_counterfactual_factors_retaining_variable_values(
         have no interventions. All counterfactual variables must be in counterfactual
         factor form.
     :param graph: The corresponding graph.
-    :raises KeyError: An event is not in counterfactual factor form.
+    :raises ValueError: An event is not in counterfactual factor form.
     :returns:
         A set of sorted lists of counterfactual variables in counterfactual factor
         form along with the values for those variables, with each list associated
@@ -890,9 +890,10 @@ def get_counterfactual_factors_retaining_variable_values(
 
     if not is_counterfactual_factor_form(event=event_without_values, graph=graph):
         logger.warning(
-            "Supposed to trigger KeyError in get_counterfactual_factors_retaining_variable_values()."
+            "Supposed to trigger ValueError in get_counterfactual_factors_retaining_variable_values()."
         )
-        raise KeyError(
+        logger.warning("    Event = " + str(event))
+        raise ValueError(
             "In get_counterfactual_factors_retaining_variable_values(): the event %s is not"
             + " in counterfactual factor form.",
             str(event),
@@ -1336,7 +1337,7 @@ def transport_district_intervening_on_parents(
         ) and _no_transportability_nodes_in_domain(
             district=district, domain_graph=domain_graphs[k][0]
         ):
-            # logger.warning("In transport_district_intervening_on_parents: domain = " + str(k))
+            logger.warning("In transport_district_intervening_on_parents: domain = " + str(k))
             domain_graph = domain_graphs[k][0]
             domain_graph_variables = _remove_transportability_vertices(
                 vertices=domain_graph.nodes()
@@ -1347,13 +1348,23 @@ def transport_district_intervening_on_parents(
             domain_graph_district = frozenset().union(
                 *[domain_graph.get_district(v) for v in district]
             )  # $B_{i}$
+            logger.warning(
+                "In transport_district_intervening_on_parents: domain_graph_district = "
+                + str(domain_graph_district)
+            )
             # Sanity check: confirm that $C_{i} \subseteq B_{i}$
-            if any(domain_graph_district != domain_graph.get_district(v) for v in district):
+            if any(
+                domain_graph_district != frozenset(domain_graph.get_district(v)) for v in district
+            ):
                 raise TypeError(
                     "Error in transport_district_intervening_on_parents: the vertices in an input district "
                     + "are part of more than one district in a domain graph. Input district: "
                     + str(district)
+                    + " and domain_graph_district derived from it: "
+                    + str(domain_graph_district)
                     + ". "
+                    + "Also, here is each domain graph district we are comparing it to:"
+                    + str({frozenset(domain_graph.get_district(v)) for v in district})
                     + "Domain index: "
                     + str(k)
                     + "."
@@ -1936,6 +1947,10 @@ def transport_unconditional_counterfactual_query(
         # we need to strip the district variables of their interventions before running Sigma-TR.
         district_without_interventions = {variable.get_base() for variable, _ in factor}
         # Line 5
+        logger.warning(
+            "In transport_unconditional_counterfactual_query: attempting to transport district "
+            + str(district_without_interventions)
+        )
         district_probability_intervening_on_parents = transport_district_intervening_on_parents(
             district=district_without_interventions,
             domain_graphs=domain_graphs,
@@ -1999,15 +2014,15 @@ def transport_unconditional_counterfactual_query(
                     "    Q expression variables: "
                     + str(district_probability_intervening_on_parents.get_variables())
                 )
-            # logger.warning(
-            #    "In transport_unconditional_counterfactual_query: got a Q value of "
-            #    + district_probability_intervening_on_parents.to_latex()
-            #    + " for district "
-            #    + str(district_without_interventions)
-            #    + " corresponding to counterfactual factor "
-            #    + str(factor)
-            #    + "."
-            # )
+            logger.warning(
+                "In transport_unconditional_counterfactual_query: got a Q value of "
+                + district_probability_intervening_on_parents.to_latex()
+                + " for district "
+                + str(district_without_interventions)
+                + " corresponding to counterfactual factor "
+                + str(factor)
+                + "."
+            )
             district_probabilities_intervening_on_parents.append(
                 district_probability_intervening_on_parents
             )
