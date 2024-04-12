@@ -1970,6 +1970,50 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
             domain_data=domain_data,
         )
 
+    def test_transport_district_intervening_on_parents_7(self):
+        """Seventh test case involving a transportable counterfactual factor.
+
+        We need a test case in which a call to tian_pearl_identify() returns None.
+
+        Source: RC's mind.
+        """
+        district = {Y, Z}
+        # For reference: an example (unused) target graph such that Y and Z are one of the C-components
+        # target_graph = NxMixedGraph.from_edges(
+        #    directed=[(X,Y)],
+        #    undirected=[
+        #        (Y, Z),
+        #    ],
+        # )
+        domain_graphs = [
+            (
+                NxMixedGraph.from_edges(
+                    directed=[(X, Y)],
+                    undirected=[
+                        (Y, Z),
+                        (X, Y),
+                    ],
+                ),
+                [X, Y, Z],
+            ),
+            (
+                NxMixedGraph.from_edges(
+                    directed=[(X, Y)],
+                    undirected=[
+                        (Y, Z),
+                        (X, Y),
+                    ],
+                ),
+                [X, Y, Z],
+            ),
+        ]
+        domain_data = [(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({Y}, PP[Pi1](X, Y, Z))]
+        self.assertIsNone(
+            transport_district_intervening_on_parents(
+                district=district, domain_graphs=domain_graphs, domain_data=domain_data
+            )
+        )
+
     def test_transport_district_intervening_on_parents_preprocessing(self):
         """Tests of the various data integrity checks at the start of sigma-tr.
 
