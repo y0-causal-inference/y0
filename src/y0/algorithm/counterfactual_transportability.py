@@ -2147,16 +2147,15 @@ def _compute_ancestral_components_from_ancestral_sets(
            $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$ in
            Definition 4.2 of [correa22a]_. They are induced by $\mathbf{W_{\ast}}$, given $\mathbf{X_{\ast}}$.
     :param graph: the relevant graph $\mathcal{G}$ (without intervening on any conditioned variables).
-    :raises ValueError: final checks indicated the algorithm failed to merge all ancestral sets that should be merged.
     :returns: the sets $\mathbf{A}_{1},\mathbf{A}_{2},\ldots$ that form a partition over $An(\mathbf{W_{\ast}})$,
            made of unions of the input ancestral sets. Two sets are combined via a union operation if they are
            not disjoint or there exists a bidirected arrow in $\mathcal{G}$ connecting variables
            in those sets. (Definition 4.2 of [correa22a]_.)
     """
     # Initialization
-    vertex_to_ancestral_component_mappings: defaultdict[
-        Variable, set[frozenset[Variable]]
-    ] = defaultdict(set)
+    # vertex_to_ancestral_component_mappings: defaultdict[
+    #    Variable, set[frozenset[Variable]]
+    # ] = defaultdict(set)
     # O(V)
     ancestral_components: set[frozenset[Variable]] = {s for s in ancestral_sets}
 
@@ -2174,47 +2173,117 @@ def _compute_ancestral_components_from_ancestral_sets(
 
     # Final check
     # O(V)
-    for s in merged_ancestral_components:
-        # original_to_merged_ancestral_set_mappings[s] = s
-        for v in s:
-            # Two counterfactual variables with the same base variable and different interventions
-            # may be considered not disjoint, because they correspond to the same
-            # graph vertex. So we do the indexing by primitive variable, not counterfactual
-            # variable. See the proof of Lemma A.5 of [correa22a]_.
-            vertex_to_ancestral_component_mappings[v.get_base()].add(s)
+    # for s in merged_ancestral_components:
+    #    # original_to_merged_ancestral_set_mappings[s] = s
+    #    for v in s:
+    #        # Two counterfactual variables with the same base variable and different interventions
+    #        # may be considered not disjoint, because they correspond to the same
+    #        # graph vertex. So we do the indexing by primitive variable, not counterfactual
+    #        # variable. See the proof of Lemma A.5 of [correa22a]_.
+    #        vertex_to_ancestral_component_mappings[v.get_base()].add(s)
 
-    if any(
-        len(vertex_to_ancestral_component_mappings[v]) > 1
-        for v in vertex_to_ancestral_component_mappings.keys()
-    ):
-        logger.warning(
-            "In _compute_ancestral_components_from_ancestral_sets: a vertex is still associated "
-            + "with more than one ancestral component during final checks."
-        )
-        for v in vertex_to_ancestral_component_mappings.keys():
-            logger.warning("Vertex: " + str(v))
-            logger.warning(
-                "   Ancestral components associated with this vertex: "
-                + str(vertex_to_ancestral_component_mappings[v])
-            )
-        raise ValueError(
-            "In _compute_ancestral_components_from_ancestral_sets: a vertex "
-            + "is still associated with more than one ancestral component during final checks."
-        )
-    if any(
-        v1 in vertex_to_ancestral_component_mappings
-        and v2 in vertex_to_ancestral_component_mappings
-        and vertex_to_ancestral_component_mappings[v1] != vertex_to_ancestral_component_mappings[v2]
-        for v1, v2 in graph.undirected.edges
-    ):
-        logger.warning(
-            "In _compute_ancestral_components_from_ancestral_sets: a bidirected edge still connects "
-            + "two ancestral components during final checks."
-        )
-        raise ValueError(
-            "In _compute_ancestral_components_from_ancestral_sets: a bidirected edge "
-            + "still connects two ancestral components during final checks."
-        )
+    # 1. Prove this next check never gets triggered. Assume: there's a vertex in more than one component
+    # of merged_ancestral_outcomes.
+    #
+    #    Then, either _merge_frozen_sets_with_common_vertices() returned two frozen sets with a vertex
+    # in common or it didn't, and _merge_frozen_sets_linked_by_bidirectional_edges() therefore
+    # split a frozen set.  _merge_frozen_sets_linked_by_bidirectional_edges() only ever applies
+    # union operations to input sets, so the latter condition could not have happened. That leaves
+    # _merge_frozen_sets_with_common_vertices() returning two frozen sets with a vertex in common.
+    # Again, it only applies union operations to input sets, so there must have existed two input sets
+    # with a vertex in common that didn't get merged.
+    # So _merge_frozen_sets_with_common_vertices() returned two frozen sets with a vertex in common.
+    #
+    #    Consider two such sets, A and B, that both contain vertex V (or equivalently, which contain two
+    # counterfactual variables with base variable V). (_convert_counterfactual_variables_to_base_variables()
+    # works: a variable is either its own base in which we're done, or it's not in which case this
+    # one-line function returns its base.) A and B definitely get compared during the for loop that
+    # calls combinations_with_replacement() on input_sets, at which point B goes into the adjaceny
+    # list for A and A goes into the adjacency list for B. Next, observe that every vertex V gets
+    # visited at least once by dft(), either by a call to dft(V,V) or recursively, by a call to
+    # dft(V, W) where W is some other node with V as its neighbor. So, one of three things can happen:
+    # 1. A gets visited for the first time with a call dft(A,A), in which case dft(A,A) adds
+    #    A to components[A]. The final line will then union sets A and B together as B is a
+    #    neighbor of A.
+    # 2. B gets visited for the first time with a call dft(B,B), in which case dft(B,B) adds
+    #    B to components[B]. The final line will then union sets A and B together as A is a
+    #    neighbor of B.
+    # 3. A gets visited for the first time with a call dft(A,C), at which point A goes into
+    #    components[C]. During the last line of this function, A and its neighbors will
+    #    then get unioned together, so A and B will go into one set.
+    #    a. If B hasn't been visited, then dft(B, C) gets called, at which point B goes into
+    #       components[C]. Then A, B, and C will get merged during the last line of this function
+    #       because A and B will be neighbors of C.
+    #    b. B cannot have already been visited. Assume it was visited already. It could have been per
+    #       a call dft(B,B) which would lead to a call dft(A,B) since A hasn't been visited.
+    #       But we visited A for the first time with a call dft(A,C), a contradiction. It could have
+    #       been per a call dft(B,C) in which case B is also a neighbor of C, and A, B, and C will get
+    #       merged during the last line of this function. Or it could have been per a call dft(B,D)
+    #       where D is some other vertex. But since dft is a depth-first traversal, a call
+    #       dft(B,D) would have led to a call dft(A,D) and A was visited for the first time
+    #       in the call dft(A,C). So all three possibilities lead to contradictions and B cannot
+    #       have already been visited.
+    #
+    #    We have seen that in all possible cases, _merge_frozen_sets_with_common_vertices() leads
+    # to A and B merged into a frozen set. So we must reject our assumption that there's a vertex in
+    # more than one component of merged_ancestral_outcomes, and this validity check is unnecessary
+    # and the line of code will never be run.
+    #
+    # if any(
+    #    len(vertex_to_ancestral_component_mappings[v]) > 1
+    #    for v in vertex_to_ancestral_component_mappings.keys()
+    # ):
+    #    logger.warning(
+    #        "In _compute_ancestral_components_from_ancestral_sets: a vertex is still associated "
+    #        + "with more than one ancestral component during final checks."
+    #    )
+    #    for v in vertex_to_ancestral_component_mappings.keys():
+    #        logger.warning("Vertex: " + str(v))
+    #        logger.warning(
+    #            "   Ancestral components associated with this vertex: "
+    #            + str(vertex_to_ancestral_component_mappings[v])
+    #        )
+    #    raise ValueError(
+    #        "In _compute_ancestral_components_from_ancestral_sets: a vertex "
+    #        + "is still associated with more than one ancestral component during final checks."
+    #    )
+
+    # 2. Prove this next check never gets triggered. Assume: there exist two sets A and B such that
+    # A is in one component of merged_ancestral_outcomes and B is in a second component, and
+    # there exist vertices v1 in A and v2 in B such that a bidirected edge v1 <-> v2 exists in the
+    # graph.
+    #
+    #    Either _merge_frozen_sets_with_common_vertices() placed A and B into the same component or
+    # it didn't. It could not have done so because _merge_frozen_sets_linked_by_bidirectional_edges()
+    # would then have had to split a component, and the function only calls union operations on
+    # input sets. So A and B were in separate input sets passed into
+    # _merge_frozen_sets_linked_by_bidirectional_edges(). Therefore we try to show that
+    # _merge_frozen_sets_linked_by_bidirectional_edges() returned
+    # A in one component and B in a second component of its output, such that
+    # there exist vertices v1 in A and v2 in B with a bidirected edge v1 <-> v2 existing in the
+    # graph. Clearly A and B can't be in the same input set. Because the edge is in the graph, it
+    # gets visited by the for loop visiting graph.undirected.edges, and thus A is a neighbor of
+    # B in the adjacency list and B is a neighbor of A. The rest of the code and the rest of the proof
+    # is exactly the same as the proof that _merge_frozen_sets_with_common_vertices() always links
+    # sets that share a common vertex / counterfactual variables with the same base variable.
+    # We have to reject our assumption and thus the next check never gets triggered.
+    # if any(
+    #    v1 in vertex_to_ancestral_component_mappings
+    #    and v2 in vertex_to_ancestral_component_mappings
+    #    and vertex_to_ancestral_component_mappings[v1] != vertex_to_ancestral_component_mappings[v2]
+    #    for v1, v2 in graph.undirected.edges
+    # ):
+    #    logger.warning(
+    #        "In _compute_ancestral_components_from_ancestral_sets: a bidirected edge still connects "
+    #        + "two ancestral components during final checks."
+    #    )
+    #    raise ValueError(
+    #        "In _compute_ancestral_components_from_ancestral_sets: a bidirected edge "
+    #        + "still connects two ancestral components during final checks."
+    #    )
+    #
+    #   These two proofs together verify that this algorithm meets the requirements of the
+    # last sentence of Definition 4.2 in [correa22a]_.
     return frozenset(merged_ancestral_components)
 
 
@@ -3128,7 +3197,10 @@ def _merge_frozen_sets_with_common_vertices(
 
     Two sets get merged if they share a common graph vertex. That is, there exists a counterfactual
     variable in the first set and a counterfactual variable in the first set such that both
-    counterfactual variables have the same base variable name.
+    counterfactual variables have the same base variable name. This algorithm treats input sets as
+    nodes in a graph, defines an edge in the graph in all cases for which two input sets share
+    a common vertex, computes the union of the vertices in each connected component in
+    the resulting graph as a frozen set, and returns the set of those frozen sets.
 
     Total running time: O(V^3) where V is the number of vertices in the graph.
 
@@ -3161,6 +3233,66 @@ def _merge_frozen_sets_with_common_vertices(
     for s in input_sets:
         converted_sets[s] = _convert_counterfactual_variables_to_base_variables(s)
 
+    # Prove this never gets triggered. Assume: there's a vertex in more than one component
+    # of merged_ancestral_outcomes.
+    # Then, either _merge_frozen_sets_with_common_vertices() returned two frozen sets with a vertex
+    # in common or it didn't, and _merge_frozen_sets_linked_by_bidirectional_edges() therefore
+    # split a frozen set.  _merge_frozen_sets_linked_by_bidirectional_edges() only ever applies
+    # union operations to input sets, so the latter condition could not have happened. That leaves
+    # _merge_frozen_sets_with_common_vertices() returning two frozen sets with a vertex in common.
+    # Again, it only applies union operations to input sets, so there must have existed two input sets
+    # with a vertex in common that didn't get merged.
+    # So _merge_frozen_sets_with_common_vertices() returned two frozen sets with a vertex in common.
+
+    # Consider two such sets, A and B, that both contain vertex V (or equivalently, which contain two
+    # counterfactual variables with base variable V). (_convert_counterfactual_variables_to_base_variables()
+    # works: a variable is either its own base in which we're done, or it's not in which case this
+    # one-line function returns its base.) A and B definitely get compared during the for loop that
+    # calls combinations_with_replacement() on input_sets, at which point B goes into the adjaceny
+    # list for A and A goes into the adjacency list for B. Next, observe that every vertex V gets
+    # visited at least once by dft(), either by a call to dft(V,V) or recursively, by a call to
+    # dft(V, W) where W is some other node with V as its neighbor. So, one of three things can happen:
+    # 1. A gets visited for the first time with a call dft(A,A), in which case dft(A,A) adds
+    #    A to components[A]. The final line will then union sets A and B together as B is a
+    #    neighbor of A.
+    # 2. B gets visited for the first time with a call dft(B,B), in which case dft(B,B) adds
+    #    B to components[B]. The final line will then union sets A and B together as A is a
+    #    neighbor of B.
+    # 3. A gets visited for the first time with a call dft(A,C), at which point A goes into
+    #    components[C]. During the last line of this function, A and its neighbors will
+    #    then get unioned together, so A and B will go into one set.
+    #    a. If B hasn't been visited, then dft(B, C) gets called, at which point B goes into
+    #       components[C]. Then A, B, and C will get merged during the last line of this function
+    #       because A and B will be neighbors of C.
+    #    b. B cannot have already been visited. Assume it was visited already. It could have been per
+    #       a call dft(B,B) which would lead to a call dft(A,B) since A hasn't been visited.
+    #       But we visited A for the first time with a call dft(A,C), a contradiction. It could have
+    #       been per a call dft(B,C) in which case B is also a neighbor of C, and A, B, and C will get
+    #       merged during the last line of this function. Or it could have been per a call dft(B,D)
+    #       where D is some other vertex. But since dft is a depth-first traversal, a call
+    #       dft(B,D) would have led to a call dft(A,D) and A was visited for the first time
+    #       in the call dft(A,C). So all three possibilities lead to contradictions and B cannot
+    #       have already been visited.
+    # We have seen that in all possible cases, _merge_frozen_sets_with_common_vertices() leads
+    # to A and B merged into a frozen set. So we must reject our assumption that there's a vertex in
+    # more than one component of merged_ancestral_outcomes, and this validity check is unnecessary
+    # and the line of code will never be run.
+
+    # The adjacency lists for both A and B get visited during
+    # the loop through the adj_list dictionary. If A and B get placed into the same connected component
+    # during this step, then they get merged during the union operation during the last line, at which point
+    # _merge_frozen_sets_with_common_vertices() does not
+
+    # We wish to show that A and B will get placed
+    # into a connected component.
+    #
+    # One of three things can happen:
+
+    # 3. Note that if A and B are to be ultimately merged, they must be part of a connected
+    #
+    # B gets visited for the first time with a call dft(B,B) and then calls dft(A,B) within
+    # When that happens, either A has been visited before during a
+    # call to dft() or it has not. If it has not, then dft(A,A) gets called,
     # Runs in O(V^2) time
     for r1, r2 in combinations_with_replacement(input_sets, 2):
         if converted_sets[r1] & converted_sets[r2]:
