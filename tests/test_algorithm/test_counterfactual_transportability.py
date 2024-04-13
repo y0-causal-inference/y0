@@ -22,11 +22,14 @@ from y0.algorithm.counterfactual_transportability import (
     _any_variable_values_inconsistent_with_interventions,
     _any_variables_with_inconsistent_values,
     _compute_ancestral_components_from_ancestral_sets,
+    _convert_counterfactual_variables_to_base_variables,
     _counterfactual_factor_is_inconsistent,
     _get_ancestral_components,
     _get_ancestral_set_after_intervening_on_conditioned_variables,
     _get_conditioned_variables_in_ancestral_set,
     _initialize_conditional_transportability_data_structures,
+    _merge_frozen_sets_linked_by_bidirectional_edges,
+    _merge_frozen_sets_with_common_vertices,
     _no_intervention_variables_in_domain,
     _no_transportability_nodes_in_domain,
     _reduce_reflexive_counterfactual_variables_to_interventions,
@@ -5891,3 +5894,84 @@ class TestGetCounterfactualFactorsRetainingVariableValues(cases.GraphTestCase):
     #   event=event_2,
     #   graph=figure_2a_graph
     # )
+
+
+class TestMergeFrozenSetsWithCommonElements(cases.GraphTestCase):
+    """Utility function to merge frozen sets that have common elements."""
+
+    def test_merge_frozen_sets_with_common_vertices(self):
+        r"""Test a helper function to merge ancestral components based on common vertices.
+
+        Source: RC's mind.
+        """
+        test_1_inputs = {
+            frozenset([W, X]),
+            frozenset([X, Y]),
+            frozenset([W, Z]),
+            frozenset([X1, X2]),
+            frozenset([X1, R, W1]),
+        }
+        result = _merge_frozen_sets_with_common_vertices(test_1_inputs)
+        expected_result = {frozenset([W, X, Y, Z]), frozenset([R, W1, X1, X2])}
+        self.assertSetEqual(result, expected_result)
+        test_2_inputs = {
+            frozenset([W]),
+            frozenset(),
+            frozenset([X]),
+            frozenset([W, Y]),
+            frozenset([Z, R]),
+            frozenset([W1]),
+        }
+        result_2 = _merge_frozen_sets_with_common_vertices(test_2_inputs)
+        expected_result_2 = {frozenset([W, Y]), frozenset([X]), frozenset([W1]), frozenset([R, Z])}
+        self.assertSetEqual(result_2, expected_result_2)
+
+    def test_merge_frozen_sets_linked_by_bidirectional_edges(self):
+        r"""Test a helper function to merge ancestral components linked by bidirectional edges.
+
+        Source: RC's mind.
+        """
+        graph_1 = NxMixedGraph.from_edges(
+            directed=[],  # Not a DAG
+            undirected=[(W, Y), (W, X), (W1, R)],
+        )
+        test_1_inputs = {frozenset([W, Y]), frozenset([X]), frozenset([W1]), frozenset([R, Z])}
+        result = _merge_frozen_sets_linked_by_bidirectional_edges(
+            input_sets=test_1_inputs, graph=graph_1
+        )
+        expected_result = {frozenset([W, X, Y]), frozenset([R, W1, Z])}
+        self.assertSetEqual(result, expected_result)
+        graph_2 = NxMixedGraph.from_edges(
+            directed=[],
+            undirected=[],
+        )
+        test_2_inputs = {frozenset([X]), frozenset([W, Y]), frozenset([Z, R]), frozenset([W1])}
+        result_2 = _merge_frozen_sets_linked_by_bidirectional_edges(
+            input_sets=test_2_inputs, graph=graph_2
+        )
+        expected_result_2 = {frozenset([W, Y]), frozenset([X]), frozenset([W1]), frozenset([R, Z])}
+        logger.warning(str(expected_result_2))
+        logger.warning(str(result_2))
+        self.assertSetEqual(result_2, expected_result_2)
+        graph_3 = NxMixedGraph.from_edges(directed=[], undirected=[(W, X), (X, Y), (R, Z), (W1, Y)])
+        result_3 = _merge_frozen_sets_linked_by_bidirectional_edges(
+            input_sets=test_2_inputs, graph=graph_3
+        )
+        expected_result_3 = {frozenset([W, Y, X, W1]), frozenset([R, Z])}
+        self.assertSetEqual(result_3, expected_result_3)
+
+    def test_convert_counterfactual_variables_to_base_variables(self):
+        r"""Test a helper function to merge ancestral components linked by bidirectional edges.
+
+        Source: RC's mind.
+        """
+        test_1_input = frozenset([X])
+        result_1 = _convert_counterfactual_variables_to_base_variables(test_1_input)
+        self.assertSetEqual(result_1, frozenset([X]))
+        test_2_input = frozenset([X @ -Y])
+        result_2 = _convert_counterfactual_variables_to_base_variables(test_2_input)
+        self.assertSetEqual(result_2, frozenset([X]))
+        test_3_input = frozenset([])
+        self.assertSetEqual(
+            _convert_counterfactual_variables_to_base_variables(test_3_input), frozenset([])
+        )

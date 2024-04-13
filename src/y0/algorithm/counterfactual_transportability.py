@@ -8,6 +8,7 @@
 
 import logging
 from collections import defaultdict
+from itertools import combinations_with_replacement
 from typing import Collection, DefaultDict, Iterable, Optional
 
 from networkx import is_directed_acyclic_graph
@@ -1526,19 +1527,10 @@ def _any_inconsistent_intervention_values(
     :returns: True if the counterfactual factor has at least two inconsistent intervention values, and false otherwise.
     """
     intervention_variable_dictionary = defaultdict(set)
-    # counterfactual_factor_variables_with_interventions = {
-    #    variable for variable, _ in event if isinstance(variable, CounterfactualVariable)
-    # }
     # $\mathbf{T}$ per Definition 4.1 (ii)
-    # intervention_variable_names = {
-    #    intervention.get_base()
-    #    for variable in counterfactual_factor_variables_with_interventions
-    #    for intervention in variable.interventions
-    # }
     for counterfactual_factor_variable, _ in event:
         if isinstance(counterfactual_factor_variable, CounterfactualVariable):
             for intervention in counterfactual_factor_variable.interventions:
-                # if intervention.get_base() in intervention_variable_names: # always true
                 intervention_variable_dictionary[intervention.get_base()].add(intervention)
     logger.warning(
         "In _any_inconsistent_intervention_values: dictionary = "
@@ -2155,216 +2147,75 @@ def _compute_ancestral_components_from_ancestral_sets(
            $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$ in
            Definition 4.2 of [correa22a]_. They are induced by $\mathbf{W_{\ast}}$, given $\mathbf{X_{\ast}}$.
     :param graph: the relevant graph $\mathcal{G}$ (without intervening on any conditioned variables).
-    :raises TypeError: final checks indicated the algorithm failed to merge all ancestral sets that should be merged.
-    :raises KeyError: the algorithm expected an ancestral set to be one of the original passed in as inputs,
-           and it was not.
+    :raises ValueError: final checks indicated the algorithm failed to merge all ancestral sets that should be merged.
     :returns: the sets $\mathbf{A}_{1},\mathbf{A}_{2},\ldots$ that form a partition over $An(\mathbf{W_{\ast}})$,
            made of unions of the input ancestral sets. Two sets are combined via a union operation if they are
            not disjoint or there exists a bidirected arrow in $\mathcal{G}$ connecting variables
            in those sets. (Definition 4.2 of [correa22a]_.)
     """
     # Initialization
-    vertex_to_ancestral_set_mappings: defaultdict[Variable, set[frozenset[Variable]]] = defaultdict(
-        set
-    )
-    original_to_merged_ancestral_set_mappings: dict[
-        frozenset[Variable], frozenset[Variable]
-    ] = dict()
+    vertex_to_ancestral_component_mappings: defaultdict[
+        Variable, set[frozenset[Variable]]
+    ] = defaultdict(set)
+    # O(V)
     ancestral_components: set[frozenset[Variable]] = {s for s in ancestral_sets}
-    for s in ancestral_sets:
-        original_to_merged_ancestral_set_mappings[s] = s
+
+    # O(V^3)
+    merged_ancestral_components_using_vertices: set[
+        frozenset[Variable]
+    ] = _merge_frozen_sets_with_common_vertices(ancestral_components)
+
+    # O(V^3)
+    merged_ancestral_components: set[
+        frozenset[Variable]
+    ] = _merge_frozen_sets_linked_by_bidirectional_edges(
+        input_sets=merged_ancestral_components_using_vertices, graph=graph
+    )
+
+    # Final check
+    # O(V)
+    for s in merged_ancestral_components:
+        # original_to_merged_ancestral_set_mappings[s] = s
         for v in s:
             # Two counterfactual variables with the same base variable and different interventions
             # may be considered not disjoint, because they correspond to the same
             # graph vertex. So we do the indexing by primitive variable, not counterfactual
             # variable. See the proof of Lemma A.5 of [correa22a]_.
-            vertex_to_ancestral_set_mappings[v.get_base()].add(s)
+            vertex_to_ancestral_component_mappings[v.get_base()].add(s)
 
-    logger.warning("Initialization complete.")
-    logger.warning("vertex_to_ancestral_set_mappings: " + str(vertex_to_ancestral_set_mappings))
-    logger.warning(
-        "original_to_merged_ancestral_set_mappings: "
-        + str(original_to_merged_ancestral_set_mappings)
-    )
-    logger.warning("Ancestral components: " + str(ancestral_components))
-
-    # Allows us to fix our accounting for vertex_to_ancestral_set_mappings when we place a variable in a new,
-    # merged ancestral set after already having visited it, without kicking the running time up to O(V^4)
-    # by looping through the vertices again.
-    visited_vertices: set[Variable] = set()
-    # Combine ancestral sets that are not disjoint. O(V^3), where V is the number of vertices
-    for v in vertex_to_ancestral_set_mappings.keys():
-        # Make sure our ancestral set mappings for this vertex reference the latest, merged ancestral sets.
-        # O(V)
-        logger.warning(
-            "Considering variable "
-            + str(v)
-            + "(base variable "
-            + str(v.get_base())
-            + ") at start of vertex loop."
-        )
-        logger.warning("   visited_vertices: " + str(visited_vertices))
-        updates = {
-            original_to_merged_ancestral_set_mappings[s]
-            for s in vertex_to_ancestral_set_mappings[v]
-        }
-        vertex_to_ancestral_set_mappings[v] = updates
-        # O(V^2), as this is at worst O(V) modifications to a hash table (e.g., V/2), done for O(V) ancestral sets
-        if len(vertex_to_ancestral_set_mappings[v]) > 1:
-            logger.warning("Combining frozen sets for vertex " + str(v) + ".")
-            logger.warning(
-                "   vertex_to_ancestral_set_mappings[v]: "
-                + str(vertex_to_ancestral_set_mappings[v])
-            )
-            s_new: set[Variable] = set()
-            for s in vertex_to_ancestral_set_mappings[v]:
-                s_new.update(s)
-            logger.warning("   Just updated s_new to " + str(s_new))
-            s_new_frozen: frozenset[Variable] = frozenset(s_new)
-            logger.warning("   s_new_frozen = " + str(s_new_frozen))
-            logger.warning("   Ancestral components prior to update: " + str(ancestral_components))
-            for s in vertex_to_ancestral_set_mappings[v]:
-                if s in original_to_merged_ancestral_set_mappings.keys():
-                    original_to_merged_ancestral_set_mappings[s] = s_new_frozen
-                else:
-                    raise KeyError(
-                        "Ancestral set "
-                        + str(s)
-                        + " not in original_to_merged_ancestral_set_mappings: "
-                        + str(original_to_merged_ancestral_set_mappings)
-                    )
-                ancestral_components.remove(s)
-                logger.warning(
-                    "   updated original_to_merged_ancestral_set_mappings[ "
-                    + str(s)
-                    + "]: "
-                    + str(original_to_merged_ancestral_set_mappings[s])
-                )
-            ancestral_components.add(s_new_frozen)
-            logger.warning("   Updated ancestral_components: " + str(ancestral_components))
-            visited_vertices.add(v.get_base())
-            logger.warning("   New visited_vertices: " + str(visited_vertices))
-            for v_s in s_new:
-                # Have to update the vertexes we've been to already, and it's okay
-                # to update the vertexes we haven't been to (and necessary to update the
-                # current one.)
-                if v_s.get_base() in visited_vertices:
-                    vertex_to_ancestral_set_mappings[v_s.get_base()] = {s_new_frozen}
-                    logger.warning(
-                        "   Updated vertex_to_ancestral_set_mappings[v_s.get_base()]: "
-                        + str(vertex_to_ancestral_set_mappings[v_s.get_base()])
-                        + " for variable "
-                        + str(v_s)
-                        + "."
-                    )
-        else:
-            visited_vertices.add(v.get_base())
-    logger.warning("Finished pass through the vertices.")
-    logger.warning("vertex_to_ancestral_set_mappings: " + str(vertex_to_ancestral_set_mappings))
-    logger.warning(
-        "original_to_merged_ancestral_set_mappings: "
-        + str(original_to_merged_ancestral_set_mappings)
-    )
-    logger.warning("Ancestral components: " + str(ancestral_components))
-
-    # Combine ancestral sets connected by a bidirected edge. O(E) which is O(V^2)
-    for e in graph.undirected.edges:
-        v1 = e[0]
-        v2 = e[1]
-        logger.warning("Considering an edge involving " + str(v1) + " and " + str(v2) + ".")
-        if (
-            v1 in vertex_to_ancestral_set_mappings
-            and v2 in vertex_to_ancestral_set_mappings
-            and vertex_to_ancestral_set_mappings[v1] != vertex_to_ancestral_set_mappings[v2]
-        ):
-            logger.warning("Processing edge involving " + str(v1) + "(v1) and " + str(v2) + "(v2).")
-            logger.warning(
-                "  vertex_to_ancestral_set_mappings[v1]: "
-                + str(vertex_to_ancestral_set_mappings[v1])
-            )
-            logger.warning(
-                "  vertex_to_ancestral_set_mappings[v2]: "
-                + str(vertex_to_ancestral_set_mappings[v2])
-            )
-            tmp: set[frozenset[Variable]] = vertex_to_ancestral_set_mappings[v1].union(
-                vertex_to_ancestral_set_mappings[v2]
-            )
-            # O(V) because the union operation which is O(V) is applied to exactly two sets,
-            # as the loop through the vertices has reduced the set size associated with
-            # each key in vertex_to_ancestral_set_mappings to 1.
-            merged_ancestral_set: set[Variable] = set.union(*list(set(s) for s in tmp))
-            frozen_merged_ancestral_sets: set[frozenset[Variable]] = {
-                frozenset(merged_ancestral_set)
-            }
-            logger.warning("frozen_merged_ancestral_sets: " + str(frozen_merged_ancestral_sets))
-            logger.warning("Old ancestral components: " + str(ancestral_components))
-            for s in vertex_to_ancestral_set_mappings[v1]:  # One entry
-                logger.warning("Removing s = " + str(s) + " from ancestral components (parsing v1)")
-                ancestral_components.remove(s)
-            for s in vertex_to_ancestral_set_mappings[v2]:  # One entry
-                logger.warning("Removing s = " + str(s) + " from ancestral components (parsing v2)")
-                ancestral_components.remove(s)
-            ancestral_components.update(frozen_merged_ancestral_sets)
-            # O(V)
-            for v in merged_ancestral_set:
-                logger.warning(
-                    "   Looking at variable "
-                    + str(v)
-                    + " in the merged_ancestral_set "
-                    + str(merged_ancestral_set)
-                    + "."
-                )
-                vertex_to_ancestral_set_mappings[v.get_base()] = frozen_merged_ancestral_sets
-                logger.warning(
-                    "  New vertex_to_ancestral_set_mappings["
-                    + str(v.get_base())
-                    + "]: "
-                    + str(vertex_to_ancestral_set_mappings[v.get_base()])
-                )
-            logger.warning("New ancestral components: " + str(ancestral_components))
-
-    logger.warning("Finished pass through the edges.")
-    logger.warning("vertex_to_ancestral_set_mappings: " + str(vertex_to_ancestral_set_mappings))
-    logger.warning(
-        "original_to_merged_ancestral_set_mappings: "
-        + str(original_to_merged_ancestral_set_mappings)
-    )
-    logger.warning("Ancestral components: " + str(ancestral_components))
-
-    # Final check
     if any(
-        len(vertex_to_ancestral_set_mappings[v]) > 1
-        for v in vertex_to_ancestral_set_mappings.keys()
+        len(vertex_to_ancestral_component_mappings[v]) > 1
+        for v in vertex_to_ancestral_component_mappings.keys()
     ):
         logger.warning(
             "In _compute_ancestral_components_from_ancestral_sets: a vertex is still associated "
             + "with more than one ancestral component during final checks."
         )
-        for v in vertex_to_ancestral_set_mappings.keys():
+        for v in vertex_to_ancestral_component_mappings.keys():
             logger.warning("Vertex: " + str(v))
             logger.warning(
-                "   Ancestral sets associated with this vertex: "
-                + str(vertex_to_ancestral_set_mappings[v])
+                "   Ancestral components associated with this vertex: "
+                + str(vertex_to_ancestral_component_mappings[v])
             )
-        raise TypeError(
+        raise ValueError(
             "In _compute_ancestral_components_from_ancestral_sets: a vertex "
             + "is still associated with more than one ancestral component during final checks."
         )
     if any(
-        v1 in vertex_to_ancestral_set_mappings
-        and v2 in vertex_to_ancestral_set_mappings
-        and vertex_to_ancestral_set_mappings[v1] != vertex_to_ancestral_set_mappings[v2]
+        v1 in vertex_to_ancestral_component_mappings
+        and v2 in vertex_to_ancestral_component_mappings
+        and vertex_to_ancestral_component_mappings[v1] != vertex_to_ancestral_component_mappings[v2]
         for v1, v2 in graph.undirected.edges
     ):
         logger.warning(
             "In _compute_ancestral_components_from_ancestral_sets: a bidirected edge still connects "
             + "two ancestral components during final checks."
         )
-        raise TypeError(
+        raise ValueError(
             "In _compute_ancestral_components_from_ancestral_sets: a bidirected edge "
             + "still connects two ancestral components during final checks."
         )
-    return frozenset(ancestral_components)
+    return frozenset(merged_ancestral_components)
 
 
 def _get_ancestral_components(
@@ -2389,10 +2240,15 @@ def _get_ancestral_components(
         )
         for v in root_variables
     }
+    logger.warning("In _get_ancestral_components: ancestral_sets = " + str(ancestral_sets))
     ancestral_components: frozenset[
         frozenset[Variable]
     ] = _compute_ancestral_components_from_ancestral_sets(
         ancestral_sets=ancestral_sets, graph=graph
+    )
+    logger.warning(
+        "In _get_ancestral_components: computed these ancestral components: "
+        + str(ancestral_components)
     )
     return ancestral_components
 
@@ -3263,3 +3119,137 @@ def _valid_topo_list(topo: list[Variable], graph: NxMixedGraph) -> bool:
     for i in range(len(topo)):
         index_lookups[topo[i]] = i
     return not any(index_lookups[u] > index_lookups[v] for u, v in graph.directed.edges)
+
+
+def _merge_frozen_sets_with_common_vertices(
+    input_sets: set[frozenset[Variable]],
+) -> set[frozenset[Variable]]:
+    r"""Merge a set of frozen sets of counterfactual variables using common vertices.
+
+    Two sets get merged if they share a common graph vertex. That is, there exists a counterfactual
+    variable in the first set and a counterfactual variable in the first set such that both
+    counterfactual variables have the same base variable name.
+
+    Total running time: O(V^3) where V is the number of vertices in the graph.
+
+    :param input_sets: the counterfactual variables in question.
+    :returns: A set containing the merged frozen sets.
+    """
+    # From this StackOverflow post: https://stackoverflow.com/questions/42211947/merging-sets-with-common-elements
+    result, visited = set(), set()
+    components: defaultdict[frozenset[Variable], list[frozenset[Variable]]] = defaultdict(list)
+    adj_list: defaultdict[frozenset[Variable], list[frozenset[Variable]]] = defaultdict(list)
+
+    # DFS runs in O(V+E) time where V is the number of vertices and E is the number of edges in a graph
+    # (Cormen, Leisserson, Rivest and Stein 2002:541).
+    #
+    # Here V is the number of input sets and E is the number of edges are the number of sets with common vertices.
+    # The number of sets with common vertices is O(V), e.g., there can be V-1 sets each containing two vertices
+    # that form a giant cycle, so that's O(V) calls to dft. The number of edges are also O(V) in this case so
+    # dft() runs in O(V+V) = O(V) time.
+    def dft(node, key):
+        visited.add(node)
+        components[key].append(node)
+        for neighbor in adj_list[node]:
+            if neighbor not in visited:
+                dft(neighbor, key)
+
+    # Create a hash table to speed the process of checking if pairs of sets contain common vertices
+    # after their members are converted from counterfactual variables to their base variables.
+    # O(V) running time
+    converted_sets: defaultdict[frozenset[Variable], frozenset[Variable]] = defaultdict(frozenset)
+    for s in input_sets:
+        converted_sets[s] = _convert_counterfactual_variables_to_base_variables(s)
+
+    # Runs in O(V^2) time
+    for r1, r2 in combinations_with_replacement(input_sets, 2):
+        if converted_sets[r1] & converted_sets[r2]:
+            adj_list[r1].append(r2)
+            adj_list[r2].append(r1)
+
+    # O(V^2): outer loop is O(V), inner loop is O(V)
+    for node in adj_list:
+        if node not in visited:
+            dft(node, node)
+
+    # O(V) components, and for each component O(V) neighbors receive a union operation that runs
+    # in O(V) time. So, total running time of this loop (and thus the algorithm) is O(V^3).
+    for node, neighbors in components.items():
+        result.add(node.union(*neighbors))
+    return result
+
+
+def _merge_frozen_sets_linked_by_bidirectional_edges(
+    input_sets: set[frozenset[Variable]],
+    graph: NxMixedGraph,
+) -> set[frozenset[Variable]]:
+    r"""Merge a set of frozen sets of counterfactual variables using common bidirectional edges.
+
+    Two sets get merged if a bidirectional edge connects them.
+    Running time: O(V^3)
+
+    :param input_sets: the counterfactual variables in question.
+    :param graph: the graph in question.
+    :returns: A set containing the merged frozen sets.
+    """
+    # Modified from https://stackoverflow.com/questions/42211947/merging-sets-with-common-elements
+    result, visited = set(), set()
+    components: defaultdict[frozenset[Variable], list[frozenset[Variable]]] = defaultdict(list)
+    adj_list: defaultdict[frozenset[Variable], list[frozenset[Variable]]] = defaultdict(list)
+
+    # O(V)
+    def dft(node, key):
+        visited.add(node)
+        components[key].append(node)
+        for neighbor in adj_list[node]:
+            if neighbor not in visited:
+                dft(neighbor, key)
+
+    # O(V^2)
+    converted_sets: defaultdict[frozenset[Variable], frozenset[Variable]] = defaultdict(frozenset)
+    for s in input_sets:
+        converted_sets[s] = _convert_counterfactual_variables_to_base_variables(s)
+
+    # Loop through the sets and create a vertex to set mapping. O(V^2)
+    vertices_to_input_sets: defaultdict[Variable, frozenset[Variable]] = defaultdict(frozenset)
+    for s in input_sets:
+        for v in converted_sets[s]:
+            vertices_to_input_sets[v] = s
+
+    # Connect sets to themselves. O(V)
+    for s in input_sets:
+        adj_list[s].append(s)
+
+    # Connect sets joined by bidirectional edges. O(E)
+    for e in graph.undirected.edges:
+        v1 = e[0]
+        v2 = e[1]
+        r1 = vertices_to_input_sets[v1]
+        r2 = vertices_to_input_sets[v2]
+        if r1 != r2:
+            adj_list[r1].append(r2)
+            adj_list[r2].append(r1)
+
+    # O(V^2)
+    for node in adj_list:
+        if node not in visited:
+            dft(node, node)
+
+    # O(V^3).
+    for node, neighbors in components.items():
+        result.add(node.union(*neighbors))
+
+    # So, total running time is O(V^3+E). But since E can't be greater than V^2,
+    # the running time is just O(V^3).
+    return result
+
+
+def _convert_counterfactual_variables_to_base_variables(
+    input_set: frozenset[Variable],
+) -> frozenset[Variable]:
+    r"""Replace a set of counterfactual variables with a set of corresponding base variables.
+
+    :param input_set: the counterfactual variables in question.
+    :returns: The base variables.
+    """
+    return frozenset({v.get_base() for v in input_set})
