@@ -3729,6 +3729,74 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         )
         self.assertIsNone(query_result)
 
+    def test_transport_conditional_counterfactual_query_8(self):
+        """Eigth test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
+
+        This tests whether we properly return (Zero(), None) if a query, when simplified,
+        returns a probability of zero.
+
+        Source: Example 4.2 from [correa22]_, modified to make the simplification fail.
+        """
+        # 1. We need a test case that returns a probability of Zero() if the Simplify() algorithm
+        #   returns a probability 0 during transport_unconditional_counterfactual_query().
+        outcomes = [(Y @ -Y, -Y), (Y, +Y)]
+        conditions = [(R, -R)]
+        # event = [(Y @ -X, -Y), (X, -X)]
+        target_domain_graph = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (Z, Y),
+                (X, Y),
+                (X, W),
+                (W, Y),
+                (Y, R),
+            ],
+            undirected=[(Z, X), (W, Y)],
+        )
+        # From [correa22a]_, Figures 3a and 4, with an extra vertex R that is a descendent of Y.
+        graph_1 = NxMixedGraph.from_edges(
+            directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Z), Z), (Y, R)],
+            undirected=[
+                (W, Y),
+            ],
+        )
+        graph_1_topo = list(graph_1.topological_sort())
+
+        # From [correa22a]_, Figure 3b, with an extra vertex R that is a descendent of Y.
+        graph_2 = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (Z, Y),
+                (X, Y),
+                (X, W),
+                (W, Y),
+                (transport_variable(W), W),
+                (Y, R),
+            ],
+            undirected=[(Z, X), (W, Y)],
+        )
+        graph_2_topo = list(graph_2.topological_sort())
+        domain_graphs = [
+            (
+                graph_1,
+                graph_1_topo,
+            ),
+            (
+                graph_2,
+                graph_2_topo,
+            ),
+        ]
+        domain_data = [({X}, PP[Pi1](W, X, Y, Z, R)), (set(), PP[Pi2](W, X, Y, Z, R))]
+        result_expr, result_event = transport_conditional_counterfactual_query(
+            outcomes=outcomes,
+            conditions=conditions,
+            target_domain_graph=target_domain_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        self.assert_expr_equal(result_expr, Zero())
+        self.assertIsNone(result_event)
+
     def test_transport_conditional_counterfactual_query_preprocessing(self):
         """Tests of input validation for transport_conditional_counterfactual_query() [correa22a].
 
