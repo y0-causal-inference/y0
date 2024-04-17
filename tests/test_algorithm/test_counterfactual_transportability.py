@@ -3680,6 +3680,54 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         self.assert_expr_equal(expected_result_expr, result_expr)
         self.assertCountEqual(expected_result_event, result_event)
 
+    def test_transport_conditional_counterfactual_query_7(self):
+        """Seventh test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
+
+        This test checks that if a counterfactual factor can't be transported, the algorithm
+        returns None.
+
+        Source: RJC's mind.
+        """
+        target_domain_graph = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (Z, Y),
+                (X, Y),
+                (X, W),
+                (W, Y),
+                (Y, R),
+            ],
+            undirected=[(Z, X), (W, Y)],
+        )
+        graph_1 = NxMixedGraph.from_edges(
+            directed=[(Z, X), (X, Y), (Z, Y), (W, Y), (transport_variable(Y), Y), (Y, R)],
+            undirected=[
+                (Z, X),
+            ],
+        )
+        graph_1_topo = list(graph_1.topological_sort())
+        # Let's say graph 2 is a stochastic intervention where Y is a function of W and Z,
+        # but not X.
+        graph_2 = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (X, W),
+                (Z, Y),
+                (W, Y),
+                (Y, R),
+            ],
+            undirected=[],
+        )
+        graph_2_topo = list(graph_2.topological_sort())
+        domain_data = [(set(), PP[Pi1](W, X, Y, Z, R)), ({Y}, PP[Pi2](W, X, Y, Z, R))]
+        query_result = transport_unconditional_counterfactual_query(
+            event=[(Y @ -X, -Y), (X, -X)],
+            target_domain_graph=target_domain_graph,
+            domain_graphs=[(graph_1, graph_1_topo), (graph_2, graph_2_topo)],
+            domain_data=domain_data,
+        )
+        self.assertIsNone(query_result)
+
     def test_transport_conditional_counterfactual_query_preprocessing(self):
         """Tests of input validation for transport_conditional_counterfactual_query() [correa22a].
 

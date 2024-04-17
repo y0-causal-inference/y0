@@ -780,7 +780,6 @@ def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
     }
     logger.warning("In same_district(): event = " + str(event))
     logger.warning("Visited districts: " + str(visited_districts))
-    # raise NotImplementedError("Unimplemented function: same_district")
     return len(visited_districts) == 1
 
 
@@ -2153,9 +2152,7 @@ def _compute_ancestral_components_from_ancestral_sets(
            in those sets. (Definition 4.2 of [correa22a]_.)
     """
     # Initialization
-    # vertex_to_ancestral_component_mappings: defaultdict[
-    #    Variable, set[frozenset[Variable]]
-    # ] = defaultdict(set)
+
     # O(V)
     ancestral_components: set[frozenset[Variable]] = {s for s in ancestral_sets}
 
@@ -2173,6 +2170,9 @@ def _compute_ancestral_components_from_ancestral_sets(
 
     # Final check
     # O(V)
+    # vertex_to_ancestral_component_mappings: defaultdict[
+    #    Variable, set[frozenset[Variable]]
+    # ] = defaultdict(set)
     # for s in merged_ancestral_components:
     #    # original_to_merged_ancestral_set_mappings[s] = s
     #    for v in s:
