@@ -4080,6 +4080,24 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             _validate_transport_conditional_counterfactual_query_input,
             outcomes=self.example_1_outcomes,
             conditions=self.example_1_conditions,
+            target_domain_graph=1,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            transport_conditional_counterfactual_query,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
+            target_domain_graph=1,
+            domain_graphs=self.example_1_domain_graphs,
+            domain_data=example_1_domain_data,
+        )
+        self.assertRaises(
+            TypeError,
+            _validate_transport_conditional_counterfactual_query_input,
+            outcomes=self.example_1_outcomes,
+            conditions=self.example_1_conditions,
             target_domain_graph=self.example_1_target_domain_graph,
             domain_graphs=1,
             domain_data=example_1_domain_data,
