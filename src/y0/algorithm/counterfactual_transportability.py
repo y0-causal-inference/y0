@@ -2774,21 +2774,6 @@ def transport_conditional_counterfactual_query(
 
     # Event has probability of zero due to inconsistent values in the query
     if simplified_event is None:
-        # It's possible to prove the next TypeError can never be raised.
-        # If simplified_event is None then transported_unconditional_query_expression == Zero().
-        # That's because unconditional_query_result[0] must be Zero() if unconditional_query_result[1] is None,
-        # looking at the flow of the code in transport_unconditional_counterfactual_query().
-        # if transported_unconditional_query_expression != Zero():
-        #    raise TypeError(
-        #        "In transport_conditional_counterfactual_query: "
-        #        + "if transport_unconditional_counterfactual_query returns a nonzero probabilistic "
-        #        + "expression, it should also return a list of variables and values used to "
-        #        + "evaluate the expression. If nothing is wrong with the inputs, this may be "
-        #        + "due to an error in transport_unconditional_counterfactual_query()."
-        #    )
-        # Due to the inconsistent variable values, there's no way to evaluate the expression
-        # over a set of values
-        # else:
         return transported_unconditional_query_expression, simplified_event
     else:
         # Line 4: compute the expression to return
