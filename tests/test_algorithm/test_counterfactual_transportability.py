@@ -3720,8 +3720,9 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         )
         graph_2_topo = list(graph_2.topological_sort())
         domain_data = [(set(), PP[Pi1](W, X, Y, Z, R)), ({Y}, PP[Pi2](W, X, Y, Z, R))]
-        query_result = transport_unconditional_counterfactual_query(
-            event=[(Y @ -X, -Y), (X, -X)],
+        query_result = transport_conditional_counterfactual_query(
+            outcomes=[(Y @ -X, -Y), (X, -X)],
+            conditions=[(R, -R)],
             target_domain_graph=target_domain_graph,
             domain_graphs=[(graph_1, graph_1_topo), (graph_2, graph_2_topo)],
             domain_data=domain_data,
