@@ -67,13 +67,17 @@ class FitTuple(NamedTuple):
     d_separation: Optional[DSeparationJudgement]
 
 
+FitsDict = Dict[FrozenSet[Variable], FitTuple]
+
+
 def simulate(
     graph: NxMixedGraph,
     trials: int = 200,
     return_fits: bool = True,
+    progress: bool = False,
     tqdm_kwargs: Optional[Mapping[str, Any]] = None,
     **kwargs,
-) -> Union[pd.DataFrame, Tuple[pd.DataFrame, Mapping[FrozenSet[Variable], FitTuple]]]:
+) -> Union[pd.DataFrame, Tuple[pd.DataFrame, FitsDict]]:
     """Simulate a graph using a linear structural causal model."""
     judgements = get_conditional_independencies(graph)
     cis: Mapping[FrozenSet[Variable], DSeparationJudgement] = {
@@ -87,7 +91,7 @@ def simulate(
     linear_scm = LinearSCM(graph, **kwargs)
     results = {
         trial: {variable.name: values for variable, values in linear_scm.trial().items()}
-        for trial in trange(trials, **_tqdm_kwargs)
+        for trial in trange(trials, disable=not progress, **_tqdm_kwargs)
     }
     rv = pd.DataFrame(results).T
 
@@ -103,7 +107,7 @@ def simulate(
     if not return_fits:
         return rv
 
-    fits: Dict[FrozenSet[Variable], FitTuple] = {}
+    fits: FitsDict = {}
     for parent, child in order:
         x, y = rv[parent.name].to_numpy().reshape(-1, 1), rv[child.name]
         regression = LinearRegression()
@@ -122,6 +126,27 @@ def simulate(
 
 
 Generator = Callable[[], float]
+
+
+def get_fits_df(fits_dict: FitsDict) -> pd.DataFrame:
+    """Convert a fits dictionary into a pandas dataframe."""
+    rows = [
+        (
+            a.name,
+            b.name,
+            fits_tuple.slope,
+            fits_tuple.intercept,
+            fits_tuple.r2,
+            # t.edge,
+            False if fits_tuple.d_separation is None else fits_tuple.d_separation.separated,
+            None if fits_tuple.d_separation is None else fits_tuple.d_separation.conditions,
+        )
+        for (a, b), fits_tuple in fits_dict.items()
+    ]
+    df = pd.DataFrame(
+        rows, columns=["parent", "child", "slope", "intercept", "r2", "d_separated", "d_sep_cond"]
+    )
+    return df
 
 
 class LinearSCM:
