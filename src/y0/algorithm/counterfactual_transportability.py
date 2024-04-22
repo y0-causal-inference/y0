@@ -3194,7 +3194,8 @@ def _merge_frozen_sets_with_common_vertices(
     :returns: A set containing the merged frozen sets.
     """
     # From this StackOverflow post: https://stackoverflow.com/questions/42211947/merging-sets-with-common-elements
-    result, visited = set(), set()
+    result = set()
+    visited: set[frozenset[Variable]] = set()
     components: defaultdict[frozenset[Variable], list[frozenset[Variable]]] = defaultdict(list)
     adj_list: defaultdict[frozenset[Variable], list[frozenset[Variable]]] = defaultdict(list)
 
@@ -3205,12 +3206,12 @@ def _merge_frozen_sets_with_common_vertices(
     # The number of sets with common vertices is O(V), e.g., there can be V-1 sets each containing two vertices
     # that form a giant cycle, so that's O(V) calls to dft. The number of edges are also O(V) in this case so
     # dft() runs in O(V+V) = O(V) time.
-    def dft(node, key):
+    def _dft(node: frozenset[Variable], key: frozenset[Variable]) -> None:
         visited.add(node)
         components[key].append(node)
         for neighbor in adj_list[node]:
             if neighbor not in visited:
-                dft(neighbor, key)
+                _dft(neighbor, key)
 
     # Create a hash table to speed the process of checking if pairs of sets contain common vertices
     # after their members are converted from counterfactual variables to their base variables.
@@ -3288,7 +3289,7 @@ def _merge_frozen_sets_with_common_vertices(
     # O(V^2): outer loop is O(V), inner loop is O(V)
     for node in adj_list:
         if node not in visited:
-            dft(node, node)
+            _dft(node, node)
 
     # O(V) components, and for each component O(V) neighbors receive a union operation that runs
     # in O(V) time. So, total running time of this loop (and thus the algorithm) is O(V^3).
@@ -3311,17 +3312,19 @@ def _merge_frozen_sets_linked_by_bidirectional_edges(
     :returns: A set containing the merged frozen sets.
     """
     # Modified from https://stackoverflow.com/questions/42211947/merging-sets-with-common-elements
-    result, visited = set(), set()
+    result = set()
+    visited: set[frozenset[Variable]] = set()
     components: defaultdict[frozenset[Variable], list[frozenset[Variable]]] = defaultdict(list)
     adj_list: defaultdict[frozenset[Variable], list[frozenset[Variable]]] = defaultdict(list)
 
     # O(V)
-    def dft(node, key):
+    # FIXME this DFT code is duplicate from above
+    def _dft(node: frozenset[Variable], key: frozenset[Variable]) -> None:
         visited.add(node)
         components[key].append(node)
         for neighbor in adj_list[node]:
             if neighbor not in visited:
-                dft(neighbor, key)
+                _dft(neighbor, key)
 
     # O(V^2)
     converted_sets: defaultdict[frozenset[Variable], frozenset[Variable]] = defaultdict(frozenset)
@@ -3351,7 +3354,7 @@ def _merge_frozen_sets_linked_by_bidirectional_edges(
     # O(V^2)
     for node in adj_list:
         if node not in visited:
-            dft(node, node)
+            _dft(node, node)
 
     # O(V^3).
     for node, neighbors in components.items():
