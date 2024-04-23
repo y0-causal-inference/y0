@@ -1396,16 +1396,12 @@ def transport_district_intervening_on_parents(
                 )
 
             # Line 3
-            # logger.warning("Subgraph_probability: " + domain_data[k][1].to_latex())
             domain_graph_district_q_probability = compute_c_factor(
                 district=district,
                 subgraph_variables=domain_graph_variables,
                 subgraph_probability=domain_data[k][1],
                 graph_topo=domain_topo,
             )
-            # logger.warning(
-            #    "domain_graph_district_q_probability: " + domain_graph_district_q_probability.to_latex()
-            # )
             # Line 4
             district_q_probability = identify_district_variables(
                 input_variables=frozenset(district),
@@ -1418,10 +1414,6 @@ def transport_district_intervening_on_parents(
 
             # Lines 5-7
             if district_q_probability is not None:
-                # logger.warning(
-                #    "Returning from transport_district_intervening_on_parents: "
-                #    + district_q_probability.to_latex()
-                # )
                 return district_q_probability
     # Line 9
     return None
@@ -1924,15 +1916,10 @@ def transport_unconditional_counterfactual_query(
         domain_graphs=domain_graphs,  #: list[tuple[NxMixedGraph, list[Variable]]],
         domain_data=domain_data,  #: list[tuple[Collection[Variable], PopulationProbability]],
     )
-    # logger.warning("In transport_unconditional_counterfactual_query: input event = " + str(event))
     # Line 1
     simplified_event: list[tuple[Variable, Intervention | None]] | None = simplify(
         event=event, graph=target_domain_graph
     )
-    # logger.warning(
-    #    "In transport_unconditional_counterfactual_query: simplifed event = "
-    #    + str(simplified_event)
-    # )
 
     if simplified_event is None:
         # as specified by the output for Algorithm 1 in [correa22a]_
