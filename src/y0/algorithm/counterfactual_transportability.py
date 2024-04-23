@@ -6,6 +6,7 @@
 .. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
 """
 
+import itertools as itt
 import logging
 from collections import defaultdict
 from itertools import combinations_with_replacement
@@ -36,6 +37,7 @@ from y0.dsl import (
 from y0.graph import NxMixedGraph
 
 __all__ = [
+    # TODO do a proper audit of which of these a user should ever have to import
     "transport_unconditional_counterfactual_query",
     "transport_conditional_counterfactual_query",
     "simplify",
@@ -56,6 +58,7 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
+# FIXME potentially rename, since there are more strict events that are tuple[Variable, Intervention]
 EventItem = tuple[Variable, Intervention | None]
 Event = list[EventItem]
 
@@ -63,6 +66,7 @@ Event = list[EventItem]
 def _any_variables_with_inconsistent_values(
     # variable_to_value_mappings: DefaultDict[Variable, set[Intervention]]
     *,
+    # FIXME never have defaultdict as input unless you're adding to the dict in the function. instead, just use dict[]
     nonreflexive_variable_to_value_mappings: DefaultDict[Variable, set[Intervention | None]],
     reflexive_variable_to_value_mappings: DefaultDict[Variable, set[Intervention | None]],
 ) -> bool:
@@ -428,12 +432,13 @@ def _reduce_reflexive_counterfactual_variables_to_interventions(
             result_dict[variable].update(variables[variable])
         else:
             if len(variable.interventions) != 1:
+                # FIXME please replace all instances of concatenating str() with usage of f strings
                 raise TypeError(
                     "In _reduce_reflexive_counterfactual_variables_to_interventions: all variables in the \
                             input dictionary should have exactly one intervention, but this one has more than one: "
                     + str(variable)
                 )
-            if any(
+            if any(  # TODO check if this is already a check somewhere, it might already be in the CounterfactualVariable class
                 intervention.get_base() != variable.get_base()
                 for intervention in variable.interventions
             ):
@@ -2384,10 +2389,10 @@ def _initialize_conditional_transportability_data_structures(
     for key, value in outcomes:
         outcome_variable_to_value_mappings[key].update({value})
         # outcome_and_conditioned_variable_to_value_mappings[key].update({value})
-        outcome_and_conditioned_variable_names_to_values[key.get_base()].update({value})
+        outcome_and_conditioned_variable_names_to_values[key.get_base()].add(value)
     for key, value in conditions:
         # outcome_and_conditioned_variable_to_value_mappings[key].update({value})
-        outcome_and_conditioned_variable_names_to_values[key.get_base()].update({value})
+        outcome_and_conditioned_variable_names_to_values[key.get_base()].add(value)
 
     outcome_and_conditioned_variable_names: set[Variable] = {
         v.get_base() for v in outcome_and_conditioned_variables
@@ -2671,7 +2676,7 @@ def _transport_conditional_counterfactual_query_line_4(
     # The input outcome and condition variables and their values, to be used
     # to evaluate the return expression.
     result_event: list[tuple[Variable, Intervention]] = [
-        (variable.get_base(), value) for variable, value in outcomes + conditions
+        (variable.get_base(), value) for variable, value in itt.chain(outcomes, conditions)
     ]
     _validate_transport_conditional_counterfactual_query_line_4_output(
         simplified_event=simplified_event,
@@ -2685,6 +2690,7 @@ def _transport_conditional_counterfactual_query_line_4(
     return result_expression, result_event
 
 
+# TODO split this out into a seperate module
 def transport_conditional_counterfactual_query(
     *,
     outcomes: list[tuple[Variable, Intervention]],
