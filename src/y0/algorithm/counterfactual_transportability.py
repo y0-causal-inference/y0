@@ -9,7 +9,7 @@
 import logging
 from collections import defaultdict
 from itertools import combinations_with_replacement
-from typing import Collection, DefaultDict, Iterable, Optional
+from typing import Collection, DefaultDict, Iterable, Optional, NamedTuple
 
 from networkx import is_directed_acyclic_graph
 
@@ -1881,19 +1881,53 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
     return
 
 
+class DomainQuery:
+    #: TODO write docstring
+    graph: NxMixedGraph
+    #: TODO write docstring
+    ordering: list[Variable]  # TODO make this optional
+    #: TODO rename and write docstring
+    unknown_argument_1: Collection[Variable]
+    #: TODO rename and write docstring
+    unknown_argument_2: PopulationProbability
+
+
+class TransportUnconditionalCounterfactualQueryResult(NamedTuple):
+    expression: Expression
+    event: list[tuple[Variable, Intervention | None]] | None
+
+
+def better_transport_unconditional_counterfactual_query(
+    *,
+    event: list[tuple[Variable, Intervention | None]],
+    graph: NxMixedGraph,
+    domains: list[DomainQuery],
+) -> TransportUnconditionalCounterfactualQueryResult | None:
+    # FIXME consider making this the only interface
+    domain_graphs = [(domain.graph, domain.ordering) for domain in domains]
+    domain_data = [(domain.unknown_argument_1, domain.unknown_argument_2) for domain in domains]
+    return transport_unconditional_counterfactual_query(
+        event=event,
+        target_domain_graph=graph,
+        domain_graphs=domain_graphs,
+        domain_data=domain_data,
+    )
+
+
 def transport_unconditional_counterfactual_query(
     *,
     event: list[tuple[Variable, Intervention | None]],
     target_domain_graph: NxMixedGraph,
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     domain_data: list[tuple[Collection[Variable], PopulationProbability]],
-) -> tuple[Expression, list[tuple[Variable, Intervention | None]] | None] | None:
+) -> TransportUnconditionalCounterfactualQueryResult | None:
     r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
 
     :param event:
         "Y_*, a set of counterfactual variables in V and y_* a set of
         values for Y_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
+    :param target_domain_graph: a graph for the target domain.
     :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
            contains a selection diagram for that domain and a topologically sorted list
            of all the vertices in the corresponding graph that are not transportability
@@ -1903,7 +1937,6 @@ def transport_unconditional_counterfactual_query(
            Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such that its edges
            represent the state of the graph after a regime corresponding to domain $k$ has
            been applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
-    :param target_domain_graph: a graph for the target domain.
     :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
            $K$ tuples, one for each of the $K$ domains except for the target domain.
            Each tuple contains a set of variables corresponding to
@@ -1924,7 +1957,9 @@ def transport_unconditional_counterfactual_query(
 
     if simplified_event is None:
         # as specified by the output for Algorithm 1 in [correa22a]_
-        return Zero(), simplified_event
+        return TransportUnconditionalCounterfactualQueryResult(
+            expression=Zero(), event=simplified_event
+        )
 
     # Line 2
     # FIXME if you want to make type annotations, then create a named tuple
@@ -2040,13 +2075,9 @@ def transport_unconditional_counterfactual_query(
         Product.safe(district_probabilities_intervening_on_parents),
         ancestors_excluding_outcomes,
     )
-    # logger.warning(
-    #    "Returning: "
-    #    + transported_unconditional_query.to_latex()
-    #    + " for simplified event: "
-    #    + str(simplified_event)
-    # )
-    return transported_unconditional_query, simplified_event
+    return TransportUnconditionalCounterfactualQueryResult(
+        expression=transported_unconditional_query, event=simplified_event
+    )
 
 
 def _get_conditioned_variables_in_ancestral_set(
