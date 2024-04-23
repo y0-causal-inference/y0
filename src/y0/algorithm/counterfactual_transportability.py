@@ -1337,6 +1337,7 @@ def transport_district_intervening_on_parents(
     )
     logger.warning("In transport_district_intervening_on_parents: input validated successfully.")
     # Line 1
+    # FIXME use list comprehension + enumerate
     for k in range(len(domain_graphs)):
         # Also Line 1 (the published pseudocode could break the for loop and this test into two lines)
         logger.warning(" k = " + str(k))
