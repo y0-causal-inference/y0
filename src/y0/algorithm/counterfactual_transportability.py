@@ -1786,7 +1786,6 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
     # Technically the topologically sorted vertices could be for a superset of the vertices
     # in the input graphs, but we currently require them to be for the vertices in the input graphs.
     for k in range(len(domain_graphs)):
-        # logger.warning("k = " + str(k))
         topo_vertices = frozenset(domain_graphs[k][1])
         expression_vertices = frozenset(domain_data[k][1].get_variables())
         graph_vertices = frozenset(domain_graphs[k][0].nodes())
