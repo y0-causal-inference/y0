@@ -1518,12 +1518,13 @@ def _any_inconsistent_intervention_values(
 ) -> bool:
     r"""Determine whether a counterfactual factor has two inconsistent intervention values.
 
-    Source: Definition 4.1 in [correa22a]_ (Algorithm 2), part (ii).
     :param event:
         $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and $\mathbf{w_{\ast}}$, a set of
         values for $\mathbf{W_{\ast}}$. We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
     :returns: True if the counterfactual factor has at least two inconsistent intervention values, and false otherwise.
+
+    .. seealso:: Definition 4.1 in [correa22a]_ (Algorithm 2), part (ii).
     """
     base_to_interventions = defaultdict(set)
     # $\mathbf{T}$ per Definition 4.1 (ii)
@@ -1542,12 +1543,13 @@ def _counterfactual_factor_is_inconsistent(
 ) -> bool:
     r"""Determine whether a counterfactual factor is inconsistent.
 
-      Source: Definition 4.1 in [correa22a]_ (Algorithm 2).
     :param event:
         $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and $\mathbf{w_{\ast}}$, a set of
         values for $\mathbf{W_{\ast}}$. We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
-    :returns: True if the counterfactual factor is consistent, and false if it is inconsistent.
+    :returns: If the counterfactual factor is consistent
+
+    .. seealso:: Source: Definition 4.1 in [correa22a]_ (Algorithm 2).
     """
     # Are counterfactual factor and intervention values inconsistent?
     return _any_variable_values_inconsistent_with_interventions(
