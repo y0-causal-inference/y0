@@ -1470,7 +1470,7 @@ def _transport_unconditional_counterfactual_query_line_2(
 
 
 def _any_variable_values_inconsistent_with_interventions(
-    *, event: Collection[tuple[Variable, Intervention | None]]
+    event: Collection[tuple[Variable, Intervention | None]]
 ) -> bool:
     r"""Determine whether a counterfactual factor has a variable value inconsistent with any intervention value.
 
@@ -1514,7 +1514,7 @@ def _any_variable_values_inconsistent_with_interventions(
 
 
 def _any_inconsistent_intervention_values(
-    *, event: Collection[tuple[Variable, Intervention | None]]
+    event: Collection[tuple[Variable, Intervention | None]]
 ) -> bool:
     r"""Determine whether a counterfactual factor has two inconsistent intervention values.
 
@@ -1539,7 +1539,7 @@ def _any_inconsistent_intervention_values(
 
 
 def _counterfactual_factor_is_inconsistent(
-    *, event: Collection[tuple[Variable, Intervention | None]]
+    event: Collection[tuple[Variable, Intervention | None]]
 ) -> bool:
     r"""Determine whether a counterfactual factor is inconsistent.
 
@@ -1552,8 +1552,8 @@ def _counterfactual_factor_is_inconsistent(
     """
     # Are counterfactual factor and intervention values inconsistent?
     return _any_variable_values_inconsistent_with_interventions(
-        event=event
-    ) or _any_inconsistent_intervention_values(event=event)
+        event
+    ) or _any_inconsistent_intervention_values(event)
     # Are different counterfactual factor intervention values inconsistent?
 
 
@@ -1934,7 +1934,7 @@ def transport_unconditional_counterfactual_query(
 
     # Line 3
     if any(
-        _counterfactual_factor_is_inconsistent(event=factor)
+        _counterfactual_factor_is_inconsistent(factor)
         for factor in counterfactual_factors_with_values
     ):
         logger.warning(
