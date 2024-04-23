@@ -1381,6 +1381,7 @@ def transport_district_intervening_on_parents(
             if any(
                 domain_graph_district != frozenset(domain_graph.get_district(v)) for v in district
             ):
+                # FIXME use f-string and triple quote. This is unreadable.
                 raise ValueError(
                     "Error in transport_district_intervening_on_parents: the vertices in an input district "
                     + "are part of more than one district in a domain graph. Input district: "
