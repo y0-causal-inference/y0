@@ -22,7 +22,6 @@ from y0.algorithm.counterfactual_transportability import (
     _any_variable_values_inconsistent_with_interventions,
     _any_variables_with_inconsistent_values,
     _compute_ancestral_components_from_ancestral_sets,
-    _convert_counterfactual_variables_to_base_variables,
     _counterfactual_factor_is_inconsistent,
     _get_ancestral_components,
     _get_ancestral_set_after_intervening_on_conditioned_variables,
@@ -47,6 +46,7 @@ from y0.algorithm.counterfactual_transportability import (
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
     get_ancestors_of_counterfactual,
+    get_base_variables,
     get_counterfactual_factors,
     get_counterfactual_factors_retaining_variable_values,
     is_counterfactual_factor_form,
@@ -6101,12 +6101,10 @@ class TestMergeFrozenSetsWithCommonElements(cases.GraphTestCase):
         Source: RC's mind.
         """
         test_1_input = frozenset([X])
-        result_1 = _convert_counterfactual_variables_to_base_variables(test_1_input)
+        result_1 = get_base_variables(test_1_input)
         self.assertSetEqual(result_1, frozenset([X]))
         test_2_input = frozenset([X @ -Y])
-        result_2 = _convert_counterfactual_variables_to_base_variables(test_2_input)
+        result_2 = get_base_variables(test_2_input)
         self.assertSetEqual(result_2, frozenset([X]))
         test_3_input = frozenset([])
-        self.assertSetEqual(
-            _convert_counterfactual_variables_to_base_variables(test_3_input), frozenset([])
-        )
+        self.assertSetEqual(get_base_variables(test_3_input), frozenset([]))

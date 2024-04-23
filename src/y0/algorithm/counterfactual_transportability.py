@@ -9,12 +9,16 @@
 import logging
 from collections import defaultdict
 from itertools import combinations_with_replacement
-from typing import Collection, DefaultDict, Iterable, Optional, NamedTuple
+from typing import Collection, DefaultDict, Iterable, NamedTuple
 
 from networkx import is_directed_acyclic_graph
 
 from y0.algorithm.tian_id import compute_c_factor, identify_district_variables
-from y0.algorithm.transport import create_transport_diagram, transport_variable
+from y0.algorithm.transport import (
+    create_transport_diagram,
+    is_transport_node,
+    transport_variable,
+)
 from y0.dsl import (
     TARGET_DOMAIN,
     CounterfactualVariable,
@@ -51,6 +55,9 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
+
+EventItem = tuple[Variable, Intervention | None]
+Event = list[EventItem]
 
 
 def _any_variables_with_inconsistent_values(
@@ -302,7 +309,7 @@ def is_consistent(
 
 
 def _remove_repeated_variables_and_values(
-    *, event: list[tuple[Variable, Intervention | None]]
+    event: Event,
 ) -> defaultdict[Variable, set[Intervention | None]]:
     r"""Implement the first half of Line 3 of the SIMPLIFY algorithm from [correa22a]_.
 
@@ -345,9 +352,7 @@ def _remove_repeated_variables_and_values(
     return variable_to_value_mappings
 
 
-def _split_event_by_reflexivity(
-    event: list[tuple[Variable, Intervention | None]]
-) -> tuple[list[tuple[Variable, Intervention | None]], list[tuple[Variable, Intervention | None]]]:
+def _split_event_by_reflexivity(event: Event) -> tuple[Event, Event]:
     r"""Categorize variables in an event by reflexivity (i.e., whether they intervene on themselves).
 
     :param event:
@@ -362,7 +367,7 @@ def _split_event_by_reflexivity(
         of :math: $Y_{\mathbf{y} \in \mathbf{Y}_\ast$ and fall into the latter category.
     """
     # Y_y
-    reflexive_interventions_event: list[tuple[Variable, Intervention | None]] = [
+    reflexive_interventions_event: Event = [
         (variable, value)
         for variable, value in event
         if (
@@ -375,7 +380,7 @@ def _split_event_by_reflexivity(
         or not (isinstance(variable, CounterfactualVariable))
     ]
     # Y_x
-    nonreflexive_interventions_event: list[tuple[Variable, Intervention | None]] = [
+    nonreflexive_interventions_event: Event = [
         (variable, value)
         for variable, value in event
         if isinstance(variable, CounterfactualVariable)
@@ -442,9 +447,7 @@ def _reduce_reflexive_counterfactual_variables_to_interventions(
     return result_dict
 
 
-def simplify(
-    *, event: list[tuple[Variable, Intervention | None]], graph: NxMixedGraph
-) -> Optional[list[tuple[Variable, Intervention | None]]]:
+def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     r"""Run algorithm 1, the SIMPLIFY algorithm from [correa22a]_.
 
     Correa, Lee, and Bareinboim [correa22a]_ state that this algorithm should return "an interventionally
@@ -512,9 +515,7 @@ def simplify(
     # It's not enough to minimize the variables, we need to keep track of what values are associated with
     # the minimized variables. So we minimize the event.
     # minimized_variables: set[Variable] = minimize(variables={variable for variable, _ in event}, graph=graph)
-    minimized_event: list[tuple[Variable, Intervention | None]] = minimize_event(
-        event=event, graph=graph
-    )
+    minimized_event: Event = minimize_event(event=event, graph=graph)
     # logger.warning("In simplify: minimized_event = " + str(minimized_event))
 
     # Split the query into Y_x variables and Y_y ("reflexive") variables
@@ -697,9 +698,7 @@ def minimize(*, variables: Iterable[Variable], graph: NxMixedGraph) -> set[Varia
     return {_do_minimize(variable, graph) for variable in variables}
 
 
-def minimize_event(
-    *, event: list[tuple[Variable, Intervention | None]], graph: NxMixedGraph
-) -> list[tuple[Variable, Intervention | None]]:
+def minimize_event(*, event: Event, graph: NxMixedGraph) -> Event:
     r"""Minimize a set of counterfactual variables wrapped into an event.
 
     Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
@@ -917,9 +916,7 @@ def get_counterfactual_factors_retaining_variable_values(
     return return_value
 
 
-def convert_to_counterfactual_factor_form(
-    *, event: list[tuple[Variable, Intervention | None]], graph: NxMixedGraph
-) -> list[tuple[Variable, Intervention | None]]:
+def convert_to_counterfactual_factor_form(*, event: Event, graph: NxMixedGraph) -> Event:
     r"""Convert a list of variables and their values to counterfactual factor ("ctf-factor") form.
 
     That requires intervening on all the parents of each counterfactual variable.
@@ -933,7 +930,7 @@ def convert_to_counterfactual_factor_form(
         :math:`w_{1[\mathbf{pa_{1}}]},w_{2[\mathbf{pa_{2}}]},\cdots,w_{l[\mathbf{pa_{l}}]}`
         for each :math:`W_i \in \mathbf V`.
     """
-    result: list[tuple[Variable, Intervention | None]] = []
+    result: Event = []
     for variable, value in event:
         candidate_parents = set(graph.directed.predecessors(variable.get_base()))
         if isinstance(variable, CounterfactualVariable):
@@ -953,6 +950,7 @@ def convert_to_counterfactual_factor_form(
             }
         )
         if len(parents) > 0:
+            # FIXME why not just append the list? much better for readability
             result += [(variable.get_base().intervene(parents), value)]
         else:
             result += [(variable.get_base(), value)]
@@ -1040,7 +1038,7 @@ def do_counterfactual_factor_factorization(
 
 
 def make_selection_diagrams(
-    *, selection_nodes: dict[int, Iterable[Variable]], graph: NxMixedGraph
+    *, selection_nodes: dict[int, Collection[Variable]], graph: NxMixedGraph
 ) -> list[tuple[int, NxMixedGraph]]:
     r"""Make a selection diagram.
 
@@ -1056,13 +1054,12 @@ def make_selection_diagrams(
     :param graph: The graph containing it.
     :returns: A new graph that is the selection diagram merging the multiple domains.
     """
-    selection_diagrams = [(0, graph)] + [
-        (
-            index,
-            create_transport_diagram(nodes_to_transport=selection_nodes[index], graph=graph),
-        )
-        for index in selection_nodes
-    ]
+    # FIXME is this function actually used anywhere? It only appears in a test. Delete.
+    selection_diagrams = [(0, graph)]
+    selection_diagrams.extend(
+        (index, create_transport_diagram(nodes_to_transport=nodes, graph=graph))
+        for index, nodes in selection_nodes.items()
+    )
     # Note Figure 2(b) in [correa22a]_
     return selection_diagrams
 
@@ -1076,9 +1073,8 @@ def counterfactual_factors_are_transportable(
     :param factors: The counterfactual factors in question.
     :returns: Whether the query is transportable.
     """
-    return not any(
-        transport_variable(factor.get_base()) in domain_graph.nodes() for factor in factors
-    )
+    nodes = set(domain_graph.nodes())
+    return not any(transport_variable(factor.get_base()) in nodes for factor in factors)
 
 
 def _remove_transportability_vertices(*, vertices: Collection[Variable]) -> set[Variable]:
@@ -1087,7 +1083,7 @@ def _remove_transportability_vertices(*, vertices: Collection[Variable]) -> set[
     :param vertices: The input vertices.
     :returns: The input vertices, without the transportability nodes.
     """
-    return {v for v in vertices if not v.name.startswith("T_")}
+    return {v for v in vertices if not is_transport_node(v)}
 
 
 def validate_inputs_for_transport_district_intervening_on_parents(
@@ -1421,7 +1417,7 @@ def transport_district_intervening_on_parents(
 
 
 def _transport_unconditional_counterfactual_query_line_2(
-    event: list[tuple[Variable, Intervention | None]], graph: NxMixedGraph
+    event: Event, graph: NxMixedGraph
 ) -> tuple[
     set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
 ]:
@@ -1560,7 +1556,7 @@ def _counterfactual_factor_is_inconsistent(
 
 
 def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
-    event: list[tuple[Variable, Intervention | None]],
+    event: Event,
     target_domain_graph: NxMixedGraph,
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     domain_data: list[tuple[Collection[Variable], PopulationProbability]],
@@ -1894,12 +1890,12 @@ class DomainQuery:
 
 class TransportUnconditionalCounterfactualQueryResult(NamedTuple):
     expression: Expression
-    event: list[tuple[Variable, Intervention | None]] | None
+    event: Event | None
 
 
 def better_transport_unconditional_counterfactual_query(
     *,
-    event: list[tuple[Variable, Intervention | None]],
+    event: Event,
     graph: NxMixedGraph,
     domains: list[DomainQuery],
 ) -> TransportUnconditionalCounterfactualQueryResult | None:
@@ -1916,7 +1912,7 @@ def better_transport_unconditional_counterfactual_query(
 
 def transport_unconditional_counterfactual_query(
     *,
-    event: list[tuple[Variable, Intervention | None]],
+    event: Event,
     target_domain_graph: NxMixedGraph,
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     domain_data: list[tuple[Collection[Variable], PopulationProbability]],
@@ -1945,16 +1941,13 @@ def transport_unconditional_counterfactual_query(
     :returns: an expression for $P^{\ast}(\mathbf{Y_{\ast}}=\mathbf{y_{\ast}})$
     """
     _validate_transport_unconditional_counterfactual_query_input(
-        event=event,  #: list[tuple[Variable, Intervention | None]],
+        event=event,
         target_domain_graph=target_domain_graph,  #: NxMixedGraph,
         domain_graphs=domain_graphs,  #: list[tuple[NxMixedGraph, list[Variable]]],
         domain_data=domain_data,  #: list[tuple[Collection[Variable], PopulationProbability]],
     )
     # Line 1
-    simplified_event: list[tuple[Variable, Intervention | None]] | None = simplify(
-        event=event, graph=target_domain_graph
-    )
-
+    simplified_event: Event | None = simplify(event=event, graph=target_domain_graph)
     if simplified_event is None:
         # as specified by the output for Algorithm 1 in [correa22a]_
         return TransportUnconditionalCounterfactualQueryResult(
@@ -2420,7 +2413,7 @@ def _transport_conditional_counterfactual_query_line_2(
     outcome_variables: set[Variable],
     outcome_variable_to_value_mappings: defaultdict[Variable, set[Intervention]],
     target_domain_graph: NxMixedGraph,
-) -> tuple[list[tuple[Variable, Intervention | None]], set[Variable]]:
+) -> tuple[Event, set[Variable]]:
     r"""Set up data structures to process a conditional counterfactual query per Algorithm 3 of [correa22a]_.
 
     This function is an internal subroutine for transport_conditional_counterfactual_query().
@@ -2456,9 +2449,7 @@ def _transport_conditional_counterfactual_query_line_2(
         Algorithm 3 of [correa22a]_. It also returns a set of variables representing the target domain graph vertices
         associated with variables in $\mathbf{D_{\ast}}$.
     """
-    outcome_ancestral_component_variables_and_values: list[tuple[Variable, Intervention | None]] = (
-        []
-    )
+    outcome_ancestral_component_variables_and_values: Event = []
     outcome_variable_ancestral_component_variables: set[Variable] = set()
     for component in ancestral_components:
         if any(variable in outcome_variables for variable in component):
@@ -2470,10 +2461,10 @@ def _transport_conditional_counterfactual_query_line_2(
             # There could be redundant values for a variable, and Simplify() will catch them
             for value in outcome_variable_to_value_mappings[variable]:
                 outcome_ancestral_component_variables_and_values.append((variable, value))
-    outcome_ancestral_component_query_in_counterfactual_factor_form: list[
-        tuple[Variable, Intervention | None]
-    ] = convert_to_counterfactual_factor_form(
-        event=outcome_ancestral_component_variables_and_values, graph=target_domain_graph
+    outcome_ancestral_component_query_in_counterfactual_factor_form: Event = (
+        convert_to_counterfactual_factor_form(
+            event=outcome_ancestral_component_variables_and_values, graph=target_domain_graph
+        )
     )
     outcome_variable_ancestral_component_variable_names = {
         variable.get_base() for variable in outcome_variable_ancestral_component_variables
@@ -2486,7 +2477,7 @@ def _transport_conditional_counterfactual_query_line_2(
 
 def _validate_transport_conditional_counterfactual_query_line_4_output(
     *,
-    simplified_event: list[tuple[Variable, Intervention | None]],
+    simplified_event: Event,
     outcome_and_conditioned_variable_names: set[Variable],
     outcome_and_conditioned_variable_names_to_values: defaultdict[Variable, set[Intervention]],
     outcome_ancestral_component_variables_with_no_values: set[Variable],
@@ -2609,7 +2600,7 @@ def _transport_conditional_counterfactual_query_line_4(
     outcome_and_conditioned_variable_names: set[Variable],
     conditioned_variable_names: set[Variable],
     transported_unconditional_query_expression: Expression,
-    simplified_event: list[tuple[Variable, Intervention | None]],
+    simplified_event: Event,
     outcome_and_conditioned_variable_names_to_values: defaultdict[Variable, set[Intervention]],
     outcomes: list[tuple[Variable, Intervention]],
     conditions: list[tuple[Variable, Intervention]],
@@ -2734,7 +2725,6 @@ def transport_conditional_counterfactual_query(
            variables were not consistent, then the algorithm returns Zero (a DSL Expression type)
            and no mapping.
     """
-    # Validate inputs
     _validate_transport_conditional_counterfactual_query_input(
         outcomes=outcomes,
         conditions=conditions,
@@ -2776,29 +2766,19 @@ def transport_conditional_counterfactual_query(
     )
 
     # Line 3
-    unconditional_query_result: (
-        tuple[Expression, list[tuple[Variable, Intervention | None]] | None] | None
-    ) = transport_unconditional_counterfactual_query(
+    unconditional_query_result = transport_unconditional_counterfactual_query(
         event=outcome_ancestral_component_query_in_counterfactual_factor_form,
         target_domain_graph=target_domain_graph,
         domain_graphs=domain_graphs,
         domain_data=domain_data,
     )
-    logger.warning(
-        "In transport_conditional_counterfactual_query: unconditional_query_result = "
-        + str(unconditional_query_result)
-    )
-
     if unconditional_query_result is None:
         # Technically the logic of possibly returning FAIL if Algorithm 2 of [correa22a]_ returns FAIL is
         # not in the published version of Algorithm 3, but it's implied by Algorithm 2's return values
         return None
-    transported_unconditional_query_expression: Expression = unconditional_query_result[
-        0
-    ]  # This is Q
-    simplified_event: list[tuple[Variable, Intervention | None]] | None = (
-        unconditional_query_result[1]
-    )
+
+    transported_unconditional_query_expression = unconditional_query_result.expression  # This is Q
+    simplified_event: Event | None = unconditional_query_result.event
 
     # Event has probability of zero due to inconsistent values in the query
     if simplified_event is None:
@@ -3245,7 +3225,7 @@ def _merge_frozen_sets_with_common_vertices(
     # O(V) running time
     converted_sets: defaultdict[frozenset[Variable], frozenset[Variable]] = defaultdict(frozenset)
     for s in input_sets:
-        converted_sets[s] = _convert_counterfactual_variables_to_base_variables(s)
+        converted_sets[s] = get_base_variables(s)
 
     # Prove this never gets triggered. Assume: there's a vertex in more than one component
     # of merged_ancestral_outcomes.
@@ -3356,7 +3336,7 @@ def _merge_frozen_sets_linked_by_bidirectional_edges(
     # O(V^2)
     converted_sets: defaultdict[frozenset[Variable], frozenset[Variable]] = defaultdict(frozenset)
     for s in input_sets:
-        converted_sets[s] = _convert_counterfactual_variables_to_base_variables(s)
+        converted_sets[s] = get_base_variables(s)
 
     # Loop through the sets and create a vertex to set mapping. O(V^2)
     vertices_to_input_sets: defaultdict[Variable, frozenset[Variable]] = defaultdict(frozenset)
@@ -3392,12 +3372,10 @@ def _merge_frozen_sets_linked_by_bidirectional_edges(
     return result
 
 
-def _convert_counterfactual_variables_to_base_variables(
-    input_set: frozenset[Variable],
-) -> frozenset[Variable]:
+def get_base_variables(variables: frozenset[Variable]) -> frozenset[Variable]:
     r"""Replace a set of counterfactual variables with a set of corresponding base variables.
 
-    :param input_set: the counterfactual variables in question.
+    :param variables: the counterfactual variables in question.
     :returns: The base variables.
     """
-    return frozenset({v.get_base() for v in input_set})
+    return frozenset(variable.get_base() for variable in variables)
