@@ -3191,17 +3191,16 @@ def _valid_topo_list(topo: list[Variable], graph: NxMixedGraph) -> bool:
         in the graph and every graph vertex is in topo (that is, this information has already been verified).
     :param graph: The graph in question.
     :returns: True if the list is in a valid topologically sorted order, False otherwise.
+
+    From Cormen, Leiserson, Rivest, and Stein, "Introduction to Algorithms", second edition, p. 549:
+    a graph is sorted topologically if for every directed edge in the graph from $u$ to $v$,
+    the index of $u$ in the topologically sorted array of vertices is less than the index of $v$.
+    We just have to check this definition holds for each edge.
+    $O(E*V)$ if we use :func:`list.index` to do this. But :func:`list.index` is $O(n)$,
+    so we improve the running time to $O(E+V)$ by creating a hash table first.
     """
-    # From Cormen, Leiserson, Rivest, and Stein, "Introduction to Algorithms", second edition, p. 549:
-    # a graph is sorted topologically if for every directed edge in the graph from $u$ to $v$,
-    # the index of $u$ in the topologically sorted array of vertices is less than the index of $v$.
-    # We just have to check this definition holds for each edge.
-    # O(E*V) if we use list.index() to do this. But list.index() is O(n) so we improve the running time
-    # to O(E+V) by creating a hash table first.
-    index_lookups = {}
-    for i in range(len(topo)):
-        index_lookups[topo[i]] = i
-    return not any(index_lookups[u] > index_lookups[v] for u, v in graph.directed.edges)
+    node_to_index = {node: index for index, node in enumerate(topo)}
+    return not any(node_to_index[u] > node_to_index[v] for u, v in graph.directed.edges)
 
 
 def _merge_frozen_sets_with_common_vertices(
