@@ -1525,17 +1525,16 @@ def _any_inconsistent_intervention_values(
         CounterfactualVariable objects, and the values as Intervention objects.
     :returns: True if the counterfactual factor has at least two inconsistent intervention values, and false otherwise.
     """
-    intervention_variable_dictionary = defaultdict(set)
+    base_to_interventions = defaultdict(set)
     # $\mathbf{T}$ per Definition 4.1 (ii)
     for counterfactual_factor_variable, _ in event:
         if isinstance(counterfactual_factor_variable, CounterfactualVariable):
             for intervention in counterfactual_factor_variable.interventions:
-                intervention_variable_dictionary[intervention.get_base()].add(intervention)
+                base_to_interventions[intervention.get_base()].add(intervention)
     logger.warning(
-        "In _any_inconsistent_intervention_values: dictionary = "
-        + str(intervention_variable_dictionary)
+        "In _any_inconsistent_intervention_values: dictionary = " + str(base_to_interventions)
     )
-    return any(len(values) > 1 for values in intervention_variable_dictionary.values())
+    return any(len(values) > 1 for values in base_to_interventions.values())
 
 
 def _counterfactual_factor_is_inconsistent(
