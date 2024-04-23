@@ -1312,11 +1312,18 @@ def transport_district_intervening_on_parents(
            element of the tuple is a topologically sorted list of all the vertices in
            the corresponding graph that are not transportability nodes. (Nodes that
            have no parents come first in such lists.)
-    :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-           $K$ tuples, one for each of the $K$ domains. Each tuple contains a set of
-           variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression
-           denoting the probability distribution
-           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+    :param domain_data:
+            .. todo::
+
+                Start with a human readable version of explaining what the data structure is.
+                Then, after it is possible to understand without thinking about math at all,
+                you can then say "this corresponds to the impenetrable math notation used in some paper"
+
+            Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
+            $K$ tuples, one for each of the $K$ domains. Each tuple contains a set of
+            variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression
+            denoting the probability distribution
+            $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
     :raises ValueError: the vertices in the input district are part of more than one district
            in a domain graph.
     :returns: A probabilistic expression for $P^{\ast}_{Pa(\mathbf{C})_{i}}(\mathbf{C}\_i)$ if

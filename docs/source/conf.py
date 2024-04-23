@@ -232,3 +232,6 @@ intersphinx_mapping = {
 
 autoclass_content = "both"
 autodoc_member_order = "bysource"
+
+todo_include_todos = True
+todo_emit_warnings = True
