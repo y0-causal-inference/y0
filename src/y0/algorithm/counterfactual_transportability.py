@@ -1926,6 +1926,7 @@ def transport_unconditional_counterfactual_query(
         return Zero(), simplified_event
 
     # Line 2
+    # FIXME if you want to make type annotations, then create a named tuple
     # tuple[set[tuple[Variable, Intervention | None]], list[set[tuple[Variable, Intervention | None]]]
     (
         outcome_ancestors_with_values,
