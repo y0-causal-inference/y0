@@ -135,9 +135,7 @@ figure_2a_graph = NxMixedGraph.from_edges(
 # From [correa22a]_, Figures 3a and 4.
 figure_2_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
     directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Z), Z)],
-    undirected=[
-        (W, Y),
-    ],
+    undirected=[(W, Y)],
 )
 figure_2_graph_domain_1_with_interventions_topo = list(
     figure_2_graph_domain_1_with_interventions.topological_sort()
@@ -186,7 +184,6 @@ soft_interventions_figure_1b_graph = NxMixedGraph.from_edges(
         (X2, Y),
         (transport_variable(Y), Y),
     ],
-    undirected=[],
 )
 
 # From [correa20a]_, Figure 1c.
@@ -211,7 +208,6 @@ soft_interventions_figure_1d_graph = NxMixedGraph.from_edges(
         (Z, X2),
         (X2, Y),
     ],
-    undirected=[],
 )
 
 # From [correa20a]_, Figure 2a.
@@ -331,9 +327,6 @@ tian_pearl_figure_9a_graph = NxMixedGraph.from_edges(
         (W1, Y),
     ],
 )
-
-
-logger = logging.getLogger(__name__)
 
 
 class TestGetAncestorsOfCounterfactual(unittest.TestCase):
