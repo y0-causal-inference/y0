@@ -129,8 +129,8 @@ def _any_variables_with_inconsistent_values(
     #        # That implies that there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y \neq y$,
     #        # so we return 0.
     #        if len(reflexive_variable_to_value_mappings[variable]) > 1:
-    #            logger.warning("Part 2 of Line 2 fails for (non-counterfactual) variables: ")
-    #            logger.warning(
+    #            logger.debug("Part 2 of Line 2 fails for (non-counterfactual) variables: ")
+    #            logger.debug(
     #                "    Variable = "
     #                + str(variable)
     #                + ", values are "
@@ -147,7 +147,7 @@ def _any_variables_with_inconsistent_values(
     #            # reflexive_variable_to_value_mappings[variable] = $\mathbf{y_*} \cap Y_y
     #            # {intervention} = y
     #            if {intervention} != reflexive_variable_to_value_mappings[variable]:
-    #                logger.warning(
+    #                logger.debug(
     #                    "Part 2 of Line 2 fails: {{intervention}} = "
     #                    + str({intervention})
     #                    + " and reflexive_variable_to_value_mappings[variable] = "
@@ -405,7 +405,7 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     # the minimized variables. So we minimize the event.
     # minimized_variables: set[Variable] = minimize(variables={variable for variable, _ in event}, graph=graph)
     minimized_event: Event = minimize_event(event=event, graph=graph)
-    # logger.warning("In simplify: minimized_event = " + str(minimized_event))
+    # logger.debug("In simplify: minimized_event = " + str(minimized_event))
 
     # Split the query into Y_x variables and Y_y ("reflexive") variables
     (
@@ -432,11 +432,11 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
         _remove_repeated_variables_and_values(reflexive_interventions_event)
     )
 
-    # logger.warning(
+    # logger.debug(
     #    "In simplify after part 1 of line 3: minimized_nonreflexive_variable_to_value_mappings = "
     #    + str(minimized_nonreflexive_variable_to_value_mappings)
     # )
-    # logger.warning(
+    # logger.debug(
     #    "                                    minimized_reflexive_variable_to_value_mappings = "
     #    + str(minimized_reflexive_variable_to_value_mappings)
     # )
@@ -448,11 +448,11 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     ):
         return None
 
-    # logger.warning(
+    # logger.debug(
     #    "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
     #    + str(minimized_nonreflexive_variable_to_value_mappings)
     # )
-    # logger.warning(
+    # logger.debug(
     #    "                                    minimized_reflexive_variable_to_value_mappings = "
     #    + str(minimized_reflexive_variable_to_value_mappings)
     # )
@@ -467,7 +467,7 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
         )
     )
 
-    # logger.warning(
+    # logger.debug(
     #    "In simplify after part 2 of line 3: minimized_reflexive_variable_to_value_mappings = "
     #    + str(minimized_reflexive_variable_to_value_mappings)
     # )
@@ -493,11 +493,11 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     ):
         return None
 
-    # logger.warning(
+    # logger.debug(
     #    "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
     #    + str(minimized_nonreflexive_variable_to_value_mappings)
     # )
-    # logger.warning(
+    # logger.debug(
     #    "                                    minimized_reflexive_variable_to_value_mappings = "
     #    + str(minimized_reflexive_variable_to_value_mappings)
     # )
@@ -510,7 +510,7 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
         for key in minimized_reflexive_variable_to_value_mappings
     ]
     # FIXME please replace all instances of concatenating str() with usage of f strings
-    logger.warning("In simplify before return: return value = " + str(simplified_event))
+    logger.debug("In simplify before return: return value = " + str(simplified_event))
     return simplified_event
 
 
@@ -542,7 +542,7 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
             "This function requires a variable, usually a counterfactual variable, as input."
         )
 
-    # logger.warning("In get_ancestors_of_counterfactual: input = " + str(event))
+    # logger.debug("In get_ancestors_of_counterfactual: input = " + str(event))
     if not isinstance(event, CounterfactualVariable):
         return graph.ancestors_inclusive(event)
 
@@ -567,7 +567,7 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
             ancestors_of_counterfactual_variable.add(ancestor.intervene(candidate_interventions_z))
         else:
             ancestors_of_counterfactual_variable.add(ancestor)
-    # logger.warning(
+    # logger.debug(
     #    "In get_ancestors_of_counterfactual: output = " + str(ancestors_of_counterfactual_variable)
     # )
     return ancestors_of_counterfactual_variable
@@ -728,7 +728,7 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
         variables missing from the graph.
     """
     if not is_counterfactual_factor_form(event=event, graph=graph):
-        logger.warning("Supposed to trigger ValueError in get_counterfactual_factors().")
+        logger.debug("Supposed to trigger ValueError in get_counterfactual_factors().")
         # FIXME please replace all instances of concatenating str() with usage of f strings
         raise ValueError(
             "In get_counterfactual_factors(): the event %s is not in counterfactual factor form.",
@@ -776,11 +776,11 @@ def get_counterfactual_factors_retaining_variable_values(
     event_without_values = {variable for variable, _ in event}
 
     if not is_counterfactual_factor_form(event=event_without_values, graph=graph):
-        logger.warning(
+        logger.debug(
             "Supposed to trigger ValueError in get_counterfactual_factors_retaining_variable_values()."
         )
         # FIXME please replace all instances of concatenating str() with usage of f strings
-        logger.warning("    Event = " + str(event))
+        logger.debug("    Event = " + str(event))
         raise ValueError(
             "In get_counterfactual_factors_retaining_variable_values(): the event %s is not"
             + " in counterfactual factor form.",
@@ -793,14 +793,14 @@ def get_counterfactual_factors_retaining_variable_values(
     for variable, value in event:
         district_mappings[graph.get_district(variable.get_base())].add((variable, value))
 
-    logger.warning(
+    logger.debug(
         "In get_counterfactual_factors_retaining_variable_values(): district_mappings = "
         + str(district_mappings)
     )
 
     # TODO if there aren't duplicates, this can be a set of frozensets
     return_value = [set(value) for value in district_mappings.values()]
-    logger.warning(
+    logger.debug(
         "In get_counterfactual_factors_retaining_variable_values(): returning " + str(return_value)
     )
     return return_value
@@ -1048,7 +1048,7 @@ def validate_inputs_for_transport_district_intervening_on_parents(
     # but we currently have a stricter requirement that they are for $G_{\mathbf{C}_{i}}$. That requirement
     # could be relaxed if it becomes a computational burden in the ctf_TRu algorithm.
     for k in range(len(domain_graphs)):
-        logger.warning("k = " + str(k))
+        logger.debug("k = " + str(k))
         topo_vertices = frozenset(domain_graphs[k][1])
         expression_vertices = frozenset(domain_data[k][1].get_variables())
         graph_vertices = frozenset(domain_graphs[k][0].nodes())
@@ -1190,13 +1190,13 @@ def transport_district_intervening_on_parents(
     validate_inputs_for_transport_district_intervening_on_parents(
         district=district, domain_graphs=domain_graphs, domain_data=domain_data
     )
-    logger.warning("In transport_district_intervening_on_parents: input validated successfully.")
+    logger.debug("In transport_district_intervening_on_parents: input validated successfully.")
     # Line 1
     # FIXME use list comprehension + enumerate
     for k in range(len(domain_graphs)):
         # Also Line 1 (the published pseudocode could break the for loop and this test into two lines)
-        logger.warning(" k = " + str(k))
-        logger.warning(
+        logger.debug(" k = " + str(k))
+        logger.debug(
             " _no_intervention_variables_in_domain: "
             + str(
                 _no_intervention_variables_in_domain(
@@ -1204,7 +1204,7 @@ def transport_district_intervening_on_parents(
                 )
             )
         )
-        logger.warning(
+        logger.debug(
             " _no_transportability_nodes_in_domain: "
             + str(
                 _no_transportability_nodes_in_domain(
@@ -1217,7 +1217,7 @@ def transport_district_intervening_on_parents(
         ) and _no_transportability_nodes_in_domain(
             district=district, domain_graph=domain_graphs[k][0]
         ):
-            logger.warning("In transport_district_intervening_on_parents: domain = " + str(k))
+            logger.debug("In transport_district_intervening_on_parents: domain = " + str(k))
             domain_graph = domain_graphs[k][0]
             domain_graph_variables = _remove_transportability_vertices(
                 vertices=domain_graph.nodes()
@@ -1228,7 +1228,7 @@ def transport_district_intervening_on_parents(
             domain_graph_district = frozenset().union(
                 *[domain_graph.get_district(v) for v in district]
             )  # $B_{i}$
-            logger.warning(
+            logger.debug(
                 "In transport_district_intervening_on_parents: domain_graph_district = "
                 + str(domain_graph_district)
             )
@@ -1362,7 +1362,7 @@ def _any_variable_values_inconsistent_with_interventions(
             for intervention in counterfactual_factor_variable.interventions:
                 if intervention.get_base() in intervention_variable_names:
                     intervention_variable_dictionary[intervention.get_base()].update({intervention})
-    logger.warning(
+    logger.debug(
         "In _any_variable_values_inconsistent_with_interventions: dictionary = "
         + str(intervention_variable_dictionary)
     )
@@ -1388,7 +1388,7 @@ def _any_inconsistent_intervention_values(
         if isinstance(counterfactual_factor_variable, CounterfactualVariable):
             for intervention in counterfactual_factor_variable.interventions:
                 base_to_interventions[intervention.get_base()].add(intervention)
-    logger.warning(
+    logger.debug(
         "In _any_inconsistent_intervention_values: dictionary = " + str(base_to_interventions)
     )
     return any(len(values) > 1 for values in base_to_interventions.values())
@@ -1831,7 +1831,7 @@ def transport_unconditional_counterfactual_query(
         _counterfactual_factor_is_inconsistent(factor)
         for factor in counterfactual_factors_with_values
     ):
-        logger.warning(
+        logger.debug(
             "In transport_unconditional_counterfactual_query: inconsistent counterfactual "
             + "factor. Returning FAIL (None)"
         )
@@ -1844,7 +1844,7 @@ def transport_unconditional_counterfactual_query(
         # we need to strip the district variables of their interventions before running Sigma-TR.
         district_without_interventions = {variable.get_base() for variable, _ in factor}
         # Line 5
-        logger.warning(
+        logger.debug(
             "In transport_unconditional_counterfactual_query: attempting to transport district "
             + str(district_without_interventions)
         )
@@ -1854,7 +1854,7 @@ def transport_unconditional_counterfactual_query(
             domain_data=domain_data,
         )  # The q_value
         if district_probability_intervening_on_parents is None:
-            # logger.warning(
+            # logger.debug(
             #    "In transport_unconditional_counterfactual_query: unable to transport "
             #    + "counterfactual factor: "
             #    + str(factor)
@@ -1899,19 +1899,19 @@ def transport_unconditional_counterfactual_query(
                 # This can happen if the joint probability of the vertices passed in to Algorithms 2 or 3
                 # with the 'domain_data' parameter conditions on some other variable not in the graph. So,
                 # we throw a warning but don't stop execution.
-                logger.warning(
+                logger.debug(
                     "In transport_unconditional_counterfactual_query: found a variable in the Q expression "
                     + "that is not a district variable or one of its parents."
                 )
-                logger.warning(
+                logger.debug(
                     "    District variables and their parents: "
                     + str(district_variables_and_their_parents)
                 )
-                logger.warning(
+                logger.debug(
                     "    Q expression variables: "
                     + str(district_probability_intervening_on_parents.get_variables())
                 )
-            logger.warning(
+            logger.debug(
                 "In transport_unconditional_counterfactual_query: got a Q value of "
                 + district_probability_intervening_on_parents.to_latex()
                 + " for district "
@@ -2118,13 +2118,13 @@ def _compute_ancestral_components_from_ancestral_sets(
     #    len(vertex_to_ancestral_component_mappings[v]) > 1
     #    for v in vertex_to_ancestral_component_mappings.keys()
     # ):
-    #    logger.warning(
+    #    logger.debug(
     #        "In _compute_ancestral_components_from_ancestral_sets: a vertex is still associated "
     #        + "with more than one ancestral component during final checks."
     #    )
     #    for v in vertex_to_ancestral_component_mappings.keys():
-    #        logger.warning("Vertex: " + str(v))
-    #        logger.warning(
+    #        logger.debug("Vertex: " + str(v))
+    #        logger.debug(
     #            "   Ancestral components associated with this vertex: "
     #            + str(vertex_to_ancestral_component_mappings[v])
     #        )
@@ -2158,7 +2158,7 @@ def _compute_ancestral_components_from_ancestral_sets(
     #    and vertex_to_ancestral_component_mappings[v1] != vertex_to_ancestral_component_mappings[v2]
     #    for v1, v2 in graph.undirected.edges
     # ):
-    #    logger.warning(
+    #    logger.debug(
     #        "In _compute_ancestral_components_from_ancestral_sets: a bidirected edge still connects "
     #        + "two ancestral components during final checks."
     #    )
@@ -2194,13 +2194,13 @@ def _get_ancestral_components(
         )
         for v in root_variables
     }
-    logger.warning("In _get_ancestral_components: ancestral_sets = " + str(ancestral_sets))
+    logger.debug("In _get_ancestral_components: ancestral_sets = " + str(ancestral_sets))
     ancestral_components: frozenset[frozenset[Variable]] = (
         _compute_ancestral_components_from_ancestral_sets(
             ancestral_sets=ancestral_sets, graph=graph
         )
     )
-    logger.warning(
+    logger.debug(
         "In _get_ancestral_components: computed these ancestral components: "
         + str(ancestral_components)
     )
@@ -2399,9 +2399,9 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
     # 2. Make sure the values for those variables in the simplified event match
     #    the values for their corresponding outcome or condition variables
     #    in the input for this function.
-    # logger.warning("In _validate_transport_conditionalcounterfactual_query_line_4_output: ")
-    # logger.warning("    simplified_event: " + str(simplified_event))
-    # logger.warning(
+    # logger.debug("In _validate_transport_conditionalcounterfactual_query_line_4_output: ")
+    # logger.debug("    simplified_event: " + str(simplified_event))
+    # logger.debug(
     #    "    outcome_and_conditioned_variable_names_to_values: "
     #    + str(outcome_and_conditioned_variable_names_to_values)
     # )
@@ -2527,7 +2527,7 @@ def _transport_conditional_counterfactual_query_line_4(
             outcome_ancestral_component_variable_names_excluding_outcomes,
         ),
     )
-    logger.warning(
+    logger.debug(
         "In transport_conditional_counterfactual_query: result_expression = "
         + result_expression.to_latex()
     )
@@ -2933,7 +2933,7 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     # Technically the topologically sorted vertices could be for a superset of the vertices
     # in the input graphs, but we currently require them to be for the vertices in the input graphs.
     for k in range(len(domain_graphs)):
-        # logger.warning("k = " + str(k))
+        # logger.debug("k = " + str(k))
         topo_vertices = frozenset(domain_graphs[k][1])
         expression_vertices = frozenset(domain_data[k][1].get_variables())
         graph_vertices = frozenset(domain_graphs[k][0].nodes())
