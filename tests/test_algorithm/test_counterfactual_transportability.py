@@ -555,7 +555,7 @@ class TestSimplify(cases.GraphTestCase):
         result_dict = _reduce_reflexive_counterfactual_variables_to_interventions(
             reflexive_variable_to_value_mappings
         )
-        assert Y in result_dict
+        self.assertIn(Y, result_dict)
         self.assertSetEqual(result_dict[Y], {+Y, -Y})
         # The next test sends in a counterfactual variable intervening on itself and something else.
         # The minimize() algorithm should always get rid of the intervention that is not the
@@ -585,7 +585,7 @@ class TestSimplify(cases.GraphTestCase):
         result_dict_4 = _reduce_reflexive_counterfactual_variables_to_interventions(
             reflexive_variable_to_value_mappings_4
         )
-        assert Y in result_dict_4
+        self.assertIn(Y, result_dict_4)
         self.assertSetEqual(result_dict_4[Y], {+Y, None})
         # Here we test the case where a counterfactual variable has a value of None.
         reflexive_variable_to_value_mappings_5 = defaultdict(set)
@@ -594,7 +594,7 @@ class TestSimplify(cases.GraphTestCase):
         result_dict_5 = _reduce_reflexive_counterfactual_variables_to_interventions(
             reflexive_variable_to_value_mappings_5
         )
-        assert Y in result_dict_5
+        self.assertIn(Y, result_dict_5)
         self.assertSetEqual(result_dict_5[Y], {-Y, None})
 
     def test_remove_repeated_variables_and_values(self):
