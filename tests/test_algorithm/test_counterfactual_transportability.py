@@ -17,19 +17,24 @@ from collections import defaultdict
 from networkx import NetworkXError
 
 from tests.test_algorithm import cases
+from y0.algorithm.cft_ancestral import (
+    _compute_ancestral_components_from_ancestral_sets,
+    _get_ancestral_set_after_intervening_on_conditioned_variables,
+    _get_conditioned_variables_in_ancestral_set,
+    _merge_frozen_sets_linked_by_bidirectional_edges,
+    _merge_frozen_sets_with_common_vertices,
+    _minimize_set,
+    get_ancestors_of_counterfactual,
+    get_ancestral_components,
+    get_base_variables,
+)
 from y0.algorithm.cft_unused import make_selection_diagrams
 from y0.algorithm.counterfactual_transportability import (
     _any_inconsistent_intervention_values,
     _any_variable_values_inconsistent_with_interventions,
     _any_variables_with_inconsistent_values,
-    _compute_ancestral_components_from_ancestral_sets,
     _counterfactual_factor_is_inconsistent,
-    _get_ancestral_components,
-    _get_ancestral_set_after_intervening_on_conditioned_variables,
-    _get_conditioned_variables_in_ancestral_set,
     _initialize_conditional_transportability_data_structures,
-    _merge_frozen_sets_linked_by_bidirectional_edges,
-    _merge_frozen_sets_with_common_vertices,
     _no_intervention_variables_in_domain,
     _no_transportability_nodes_in_domain,
     _reduce_reflexive_counterfactual_variables_to_interventions,
@@ -46,12 +51,9 @@ from y0.algorithm.counterfactual_transportability import (
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
-    get_ancestors_of_counterfactual,
-    get_base_variables,
     get_counterfactual_factors,
     get_counterfactual_factors_retaining_variable_values,
     is_counterfactual_factor_form,
-    minimize,
     minimize_event,
     same_district,
     simplify,
@@ -1279,7 +1281,7 @@ class TestMinimize(cases.GraphTestCase):
         minimize_test1_out = {(Y @ -W)}
         self.assertSetEqual(
             frozenset(minimize_test1_out),
-            frozenset(minimize(variables=minimize_test1_in, graph=self.minimize_graph_1)),
+            frozenset(_minimize_set(variables=minimize_test1_in, graph=self.minimize_graph_1)),
         )
 
     def test_minimize_2(self):
@@ -1291,7 +1293,7 @@ class TestMinimize(cases.GraphTestCase):
         minimize_test2_out = {(Y @ -W), (W @ -X)}
         self.assertSetEqual(
             frozenset(minimize_test2_out),
-            frozenset(minimize(variables=minimize_test2_in, graph=self.minimize_graph_2)),
+            frozenset(_minimize_set(variables=minimize_test2_in, graph=self.minimize_graph_2)),
         )
 
     def test_minimize_3(self):
@@ -1305,7 +1307,7 @@ class TestMinimize(cases.GraphTestCase):
         # The intentional reverse order of the interventions means we have to use P() to sort it out (no pun intended).
         self.assertSetEqual(
             frozenset(minimize_test3_out),
-            frozenset(minimize(variables=minimize_test3_in, graph=figure_2a_graph)),
+            frozenset(_minimize_set(variables=minimize_test3_in, graph=figure_2a_graph)),
         )
 
     def test_minimize_4(self):
@@ -1317,7 +1319,7 @@ class TestMinimize(cases.GraphTestCase):
         minimize_test4_out = {(Y)}
         self.assertSetEqual(
             frozenset(minimize_test4_out),
-            frozenset(minimize(variables=minimize_test4_in, graph=self.minimize_graph_1)),
+            frozenset(_minimize_set(variables=minimize_test4_in, graph=self.minimize_graph_1)),
         )
 
     def test_minimize_5(self):
@@ -1329,7 +1331,7 @@ class TestMinimize(cases.GraphTestCase):
         minimize_test5_out = {(Y @ -X)}
         self.assertSetEqual(
             frozenset(minimize_test5_out),
-            frozenset(minimize(variables=minimize_test5_in, graph=self.minimize_graph_1)),
+            frozenset(_minimize_set(variables=minimize_test5_in, graph=self.minimize_graph_1)),
         )
 
     def test_minimize_6(self):
@@ -1341,7 +1343,7 @@ class TestMinimize(cases.GraphTestCase):
         minimize_test6_out = {(Y @ -Y)}
         self.assertSetEqual(
             frozenset(minimize_test6_out),
-            frozenset(minimize(variables=minimize_test6_in, graph=self.minimize_graph_1)),
+            frozenset(_minimize_set(variables=minimize_test6_in, graph=self.minimize_graph_1)),
         )
 
     def test_minimize_7(self):
@@ -1353,7 +1355,7 @@ class TestMinimize(cases.GraphTestCase):
         minimize_test7_out = {(Y @ -X)}
         self.assertSetEqual(
             frozenset(minimize_test7_out),
-            frozenset(minimize(variables=minimize_test7_in, graph=self.minimize_graph_1)),
+            frozenset(_minimize_set(variables=minimize_test7_in, graph=self.minimize_graph_1)),
         )
 
 
@@ -3155,7 +3157,7 @@ class TestGetAncestralComponents(cases.GraphTestCase):
         Source: Example 4.5 and Figure 6 of [correa22a]_.
         """
         expected_result_1 = frozenset({frozenset({Y @ -X}), frozenset({Z @ -X, X})})
-        result_1 = _get_ancestral_components(
+        result_1 = get_ancestral_components(
             conditioned_variables=frozenset({X, Z @ -X}),
             root_variables=frozenset({Y @ -X, Z @ -X, X}),
             graph=figure_1_graph_no_transportability_nodes,
