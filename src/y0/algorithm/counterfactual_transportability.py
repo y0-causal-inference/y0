@@ -9,7 +9,7 @@
 import itertools as itt
 import logging
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Collection, NamedTuple
 
 from networkx import is_directed_acyclic_graph
@@ -35,16 +35,19 @@ from y0.dsl import (
     Variable,
     Zero,
 )
-from y0.graph import NxMixedGraph
+from y0.graph import NxMixedGraph, _LatexStr
 
 __all__ = [
     # TODO do a proper audit of which of these a user should ever have to import
-    "cleaner_transport_unconditional_counterfactual_query",
+    "unconditional_cft",
+    "conditional_cft",
     "transport_unconditional_counterfactual_query",
     "transport_conditional_counterfactual_query",
     #
     "Event",
-    "DomainQuery",
+    "CFTDomain",
+    "ConditionalCFTResult",
+    "UnconditionalCFTResult",
     # Utilities
     "simplify",
     "minimize_event",
@@ -64,6 +67,14 @@ logger = logging.getLogger(__name__)
 # FIXME potentially rename, since there are more strict events that are tuple[Variable, Intervention]
 EventItem = tuple[Variable, Intervention | None]
 Event = list[EventItem]
+
+
+def event_to_latex(event) -> _LatexStr:
+    """Turn an event into latex."""
+    # TODO how should events be converted to latex strings?
+    #  this is necessary to make the output in jupyter notebook useful for users
+    raise NotImplementedError
+    return _LatexStr(str(event))
 
 
 def _any_variables_with_inconsistent_values(
@@ -1617,38 +1628,47 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
 
 
 @dataclass
-class DomainQuery:
+class CFTDomain:
+    """Represents a counterfactual transport domain."""
+
     #: TODO write docstring
     graph: NxMixedGraph
     #: TODO rename and write docstring
-    unknown_argument_1: Collection[Variable]
-    #: TODO rename and write docstring
-    unknown_argument_2: PopulationProbability
+    population: PopulationProbability
 
+    #: TODO rename and write docstring
+    unknown_argument_1: Collection[Variable] = field(default_factory=set)
     #: TODO write docstring, giving an ordering should be optional
     ordering: list[Variable] | None = None
 
 
-class TransportUnconditionalCounterfactualQueryResult(NamedTuple):
+class UnconditionalCFTResult(NamedTuple):
     expression: Expression
     event: Event | None
 
+    def display(self):
+        """Display this result."""
+        from IPython.display import display
 
-def cleaner_transport_unconditional_counterfactual_query(
+        display(event_to_latex(self.event))
+        display(self.expression)
+
+
+def unconditional_cft(
     *,
     event: Event,
-    graph: NxMixedGraph,
-    domains: list[DomainQuery],
-) -> TransportUnconditionalCounterfactualQueryResult | None:
+    target_domain_graph: NxMixedGraph,
+    domains: list[CFTDomain],
+) -> UnconditionalCFTResult | None:
     # FIXME consider making this the only interface
     # TODO rename
     domain_graphs = [
         (domain.graph, domain.ordering or domain.graph.topological_sort()) for domain in domains
     ]
-    domain_data = [(domain.unknown_argument_1, domain.unknown_argument_2) for domain in domains]
+    domain_data = [(domain.unknown_argument_1, domain.population) for domain in domains]
     return transport_unconditional_counterfactual_query(
         event=event,
-        target_domain_graph=graph,
+        target_domain_graph=target_domain_graph,
         domain_graphs=domain_graphs,
         domain_data=domain_data,
     )
@@ -1660,7 +1680,7 @@ def transport_unconditional_counterfactual_query(
     target_domain_graph: NxMixedGraph,
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     domain_data: list[tuple[Collection[Variable], PopulationProbability]],
-) -> TransportUnconditionalCounterfactualQueryResult | None:
+) -> UnconditionalCFTResult | None:
     r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
 
     :param event:
@@ -1694,9 +1714,7 @@ def transport_unconditional_counterfactual_query(
     simplified_event: Event | None = simplify(event=event, graph=target_domain_graph)
     if simplified_event is None:
         # as specified by the output for Algorithm 1 in [correa22a]_
-        return TransportUnconditionalCounterfactualQueryResult(
-            expression=Zero(), event=simplified_event
-        )
+        return UnconditionalCFTResult(expression=Zero(), event=simplified_event)
 
     # Line 2
     # FIXME if you want to make type annotations, then create a named tuple
@@ -1812,7 +1830,7 @@ def transport_unconditional_counterfactual_query(
         Product.safe(district_probabilities_intervening_on_parents),
         ancestors_excluding_outcomes,
     )
-    return TransportUnconditionalCounterfactualQueryResult(
+    return UnconditionalCFTResult(
         expression=transported_unconditional_query, event=simplified_event
     )
 
@@ -2078,7 +2096,7 @@ def _transport_conditional_counterfactual_query_line_4(
     outcomes: list[tuple[Variable, Intervention]],
     conditions: list[tuple[Variable, Intervention]],
     domain_data: list[tuple[Collection[Variable], PopulationProbability]],
-) -> tuple[Expression, list[tuple[Variable, Intervention]]]:
+) -> "ConditionalCFTResult":
     r"""Execute Line 4 of Algorithm 3 of [correa22a]_.
 
     This function is an internal subroutine for transport_conditional_counterfactual_query().
@@ -2155,10 +2173,41 @@ def _transport_conditional_counterfactual_query_line_4(
         result_event=result_event,
         domain_data=domain_data,
     )
-    return result_expression, result_event
+    return ConditionalCFTResult(expression=result_expression, event=result_event)
 
 
-# TODO split this out into a seperate module
+class ConditionalCFTResult(NamedTuple):
+    expression: Expression
+    event: list[tuple[Variable, Intervention]] | None
+
+    def display(self):
+        """Display this result."""
+        from IPython.display import display
+
+        display(event_to_latex(self.event))
+        display(self.expression)
+
+
+def conditional_cft(
+    *,
+    outcomes: list[tuple[Variable, Intervention]],
+    conditions: list[tuple[Variable, Intervention]],
+    target_domain_graph: NxMixedGraph,
+    domains: list[CFTDomain],
+) -> ConditionalCFTResult | None:
+    domain_graphs = [
+        (domain.graph, domain.ordering or domain.graph.topological_sort()) for domain in domains
+    ]
+    domain_data = [(domain.unknown_argument_1, domain.population) for domain in domains]
+    return transport_conditional_counterfactual_query(
+        outcomes=outcomes,
+        conditions=conditions,
+        target_domain_graph=target_domain_graph,
+        domain_graphs=domain_graphs,
+        domain_data=domain_data,
+    )
+
+
 def transport_conditional_counterfactual_query(
     *,
     outcomes: list[tuple[Variable, Intervention]],
@@ -2166,7 +2215,7 @@ def transport_conditional_counterfactual_query(
     target_domain_graph: NxMixedGraph,
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     domain_data: list[tuple[Collection[Variable], PopulationProbability]],
-) -> tuple[Expression, list[tuple[Variable, Intervention]] | None] | None:
+) -> ConditionalCFTResult | None:
     r"""Implement the ctfTR algorithm from [correa22a]_ (Algorithm 3).
 
     :param outcomes:
@@ -2256,7 +2305,9 @@ def transport_conditional_counterfactual_query(
 
     # Event has probability of zero due to inconsistent values in the query
     if simplified_event is None:
-        return transported_unconditional_query_expression, simplified_event
+        return ConditionalCFTResult(
+            expression=transported_unconditional_query_expression, event=simplified_event
+        )
     else:
         # Line 4: compute the expression to return
         return _transport_conditional_counterfactual_query_line_4(
