@@ -15,11 +15,7 @@ from typing import Collection, DefaultDict, Iterable, NamedTuple
 from networkx import is_directed_acyclic_graph
 
 from y0.algorithm.tian_id import compute_c_factor, identify_district_variables
-from y0.algorithm.transport import (
-    create_transport_diagram,
-    is_transport_node,
-    transport_variable,
-)
+from y0.algorithm.transport import is_transport_node, transport_variable
 from y0.dsl import (
     TARGET_DOMAIN,
     CounterfactualVariable,
@@ -40,6 +36,9 @@ __all__ = [
     # TODO do a proper audit of which of these a user should ever have to import
     "transport_unconditional_counterfactual_query",
     "transport_conditional_counterfactual_query",
+    #
+    "Event",
+    # Utilities
     "simplify",
     "minimize",
     "minimize_event",
@@ -49,7 +48,6 @@ __all__ = [
     "get_counterfactual_factors",
     "convert_to_counterfactual_factor_form",
     "do_counterfactual_factor_factorization",
-    "make_selection_diagrams",
     "counterfactual_factors_are_transportable",
     "transport_district_intervening_on_parents",
     # TODO add functions/classes/variables you want to appear in the docs and be exposed to the user in this list
@@ -83,8 +81,10 @@ def _any_variables_with_inconsistent_values(
         None in reflexive_variable_to_value_mappings[key]
         and not isinstance(key, CounterfactualVariable)
         and len(reflexive_variable_to_value_mappings[key]) > 1
+        # FIXME use .items() when iterating over dicts to directly give a name to the value!
         for key in reflexive_variable_to_value_mappings
     ):
+        # most of the type errors in this module should actually be value errors
         raise TypeError(
             "In _any_variables_with_inconsistent values: a variable lacking interventions on itself "
             + "has an assigned value and also a value of None. That should not occur. Check your inputs."
@@ -204,117 +204,7 @@ def _any_variables_with_inconsistent_values(
 #    return outcome_variable_to_value_mappings, outcome_variables
 
 
-def get_event_subset_for_designated_variables(
-    event: list[tuple[Variable, Intervention]], constraint_variables: set[Variable]
-) -> list[tuple[Variable, Intervention]]:
-    r"""Select a subset of a set of values that correspond to designated variables.
-
-    Note that we could more elegantly represent the values as sets of interventions, but we use
-    (variable, intervention) tuples to represent values instead. Because values are often
-    associated with counterfactual variables for our purposes, in practice we need these tuples
-    to associate a value with its corresponding counterfactual variable without losing track of the
-    interventions associated with that counterfactual variable.
-
-    :math: We denote by $\mathbf{x} \cup \mathbf{Z}$ the subset of $\mathbf{x}$ corresponding
-    to variables in $\mathbf{Z}$. We assume the domain of every variable is finite.
-
-    :param event:
-        A tuple associating $\mathbf{X}$, a set of counterfactual variables (or regular variables)
-        in $\mathbf{V}$ with $\mathbf{x}$, a set of values for $\mathbf{X}$. We encode the
-        counterfactual variables as Variable objects, and the values as Intervention objects.
-    :param constraint_variables: $\mathbf{Z}$, the set of variables in $\mathbf{V} used to constrain the
-        values $\mathbf{x}$.
-    :returns:
-        An event containing tuples associating variables in $\mathbf{X} \cup \mathbf{Z}$
-        with values in $\mathbf{x} \cup \mathbf{Z}$.
-    """
-    return [(variable, value) for variable, value in event if variable in constraint_variables]
-
-
-def get_event_subset_excluding_designated_variables(
-    event: list[tuple[Variable, Intervention]], constraint_variables: set[Variable]
-) -> list[tuple[Variable, Intervention]]:
-    r"""Select a subset of a set of values that do not correspond to a set of designated variables.
-
-    Note that we could more elegantly represent the values as sets of interventions, but we use
-    (variable, intervention) tuples to represent values instead. Because values are often
-    associated with counterfactual variables for our purposes, in practice we need these tuples
-    to associate a value with its corresponding counterfactual variable without losing track of the
-    interventions associated with that counterfactual variable.
-
-    :math: We also denote by $\mathbf{x} \backslash \mathbf{Z} the value of \mathbf{X} \backslash \mathbf{Z}
-    consistent with \mathbf{x}. We assume the domain of every variable is finite.
-
-    :param event:
-        A tuple associating $\mathbf{X}$, a set of counterfactual variables (or regular variables)
-        in $\mathbf{V}$ with $\mathbf{x}$, a set of values for $\mathbf{X}$. We encode the
-        counterfactual variables as Variable objects, and the values as Intervention objects.
-    :param constraint_variables: $\mathbf{Z}$, the set of variables in $\mathbf{V} used to constrain the
-        values $\mathbf{x}$.
-    :returns:
-        An event containing tuples associating variables in $\mathbf{X} \backslash \mathbf{Z}$
-        with values in $\mathbf{x} \backslash \mathbf{Z}$.
-    """
-    return [(variable, value) for variable, value in event if variable not in constraint_variables]
-
-
-# def is_consistent(list_1: dict[Variable,Intervention], list_2: dict[Variable,Intervention]):
-def is_consistent(
-    event_1: list[tuple[Variable, Intervention]], event_2: list[tuple[Variable, Intervention]]
-) -> bool:
-    r"""Check whether two lists of values are consistent.
-
-    Note that we could more elegantly represent the values as sets of interventions, but we use
-    (variable, intervention) tuples to represent values instead. Because values are often
-    associated with counterfactual variables for our purposes, in practice we need these tuples
-    to associate a value with its corresponding counterfactual variable without losing track of the
-    interventions associated with that counterfactual variable.
-
-    :math: Two values $\mathbf{x} and \mathbf{z}$ are said to be consistent if they share the common values
-    for $\mathbf{X} \cap \mathbf{Z}$.
-    We assume the domain of every variable is finite.
-
-    :param event_1:
-        A tuple associating $\mathbf{X}$, a set of counterfactual variables (or regular variables)
-        in $\mathbf{V}$ with $\mathbf{x}$, a set of values for $\mathbf{X}$. We encode the
-        counterfactual variables as Variable objects, and the values as Intervention objects.
-    :param event_2:
-        A tuple associating $\mathbf{Z}$, a set of counterfactual variables (or regular variables)
-        in $\mathbf{V}$ with $\mathbf{z}$, a set of values for $\mathbf{Z}$. We encode the
-        counterfactual variables as Variable objects, and the values as Intervention objects.
-    :returns:
-        A boolean indicating whether the values in $\mathbf{x}$ (event_1) and $\mathbf{z}$ (event_2) are consistent.
-    """
-    # Key the input variables by their domain. Create a dictionary such that the key is variable.get_base() and
-    # the value is a set of interventions.
-
-    # We don't use variable.get_base() because even though [correa22a]_ do not include counterfactual
-    # variables in their definition for consistent values and merely use the regular notation for variables,
-    # that is because the definition for consistency shows up in section 1.1, before they describe a notation
-    # for counterfactual variables. They operationalize their definition of consistency in the simplify
-    # algorithm, where they speak of consistent values for counterfactual variables such as $Y_\mathbf{X}$.
-    # Clearly in that section they do not mean for the reader to compare the values of $Y_\mathbf{X}$ to
-    # $Y_\mathbf{X'}$.
-    event_1_variables = {variable for variable, _ in event_1}
-    event_2_variables = {variable for variable, _ in event_1}
-    common_variables = event_1_variables.intersection(event_2_variables)
-    common_value_dict = defaultdict(set)
-    for variable, value in event_1:
-        if variable in common_variables:
-            common_value_dict[variable].add(value)
-    for variable, value in event_2:
-        if variable.get_base() in common_variables:
-            common_value_dict[variable].add(value)
-
-    return all(value in common_value_dict[variable] for variable, value in event_1) and all(
-        value in common_value_dict[variable] for variable, value in event_2
-    )
-    # return all([list_1[v].star == list_2[v].star for v in list_1 if v in list_2])
-
-
-def _remove_repeated_variables_and_values(
-    event: Event,
-) -> defaultdict[Variable, set[Intervention | None]]:
+def _remove_repeated_variables_and_values(event: Event) -> dict[Variable, set[Intervention | None]]:
     r"""Implement the first half of Line 3 of the SIMPLIFY algorithm from [correa22a]_.
 
     The implementation is as simple as creating a dictionary. Adding variables to
@@ -335,7 +225,7 @@ def _remove_repeated_variables_and_values(
     take any value, it is consistent with a specific value. Its intervention set is also
     guaranteed to match the intervention set of its counterpart that has a specific value, because
     all variables passed from Algorithm 3 to Algorithm 2 are in counterfactual factor form.
-    Therefore in this function, we want to treat the None value as consistent with a specific value.
+    Therefore, in this function, we want to treat the None value as consistent with a specific value.
 
     :param event:
         A tuple associating $\mathbf{Y_\ast}$, a set of counterfactual variables (or regular variables)
@@ -353,7 +243,7 @@ def _remove_repeated_variables_and_values(
             and None in variable_to_value_mappings[variable]
         ):
             variable_to_value_mappings[variable].remove(None)
-    return variable_to_value_mappings
+    return dict(variable_to_value_mappings)
 
 
 def _split_event_by_reflexivity(event: Event) -> tuple[Event, Event]:
@@ -412,11 +302,11 @@ def _split_event_by_reflexivity(event: Event) -> tuple[Event, Event]:
 
 
 def _reduce_reflexive_counterfactual_variables_to_interventions(
-    variables: defaultdict[Variable, set[Intervention | None]]
-) -> defaultdict[Variable, set[Intervention | None]]:
+    variables: dict[Variable, set[Intervention | None]]
+) -> dict[Variable, set[Intervention | None]]:
     r"""Simplify counterfactual variables intervening on themselves to Intervention objects with the same base.
 
-    :param variables: A defaultdict mapping :math: $\mathbf{Y_\ast}$, a set of counterfactual variables in
+    :param variables: A mapping :math: $\mathbf{Y_\ast}$, a set of counterfactual variables in
         $\mathbf{V}$, to $\mathbf{y_\ast}$, a set of values for $\mathbf{Y_\ast}$. Each variable in
         $\mathbf{Y_\ast}$ is assumed to be either $Y_{y}$ \in $\mathbf{Y_\ast}$ or just $Y$ in $\mathbf{Y_\ast}$,
         where $Y$ is considered a special case of $Y_{y}$ because minimization has already taken place.
@@ -424,32 +314,24 @@ def _reduce_reflexive_counterfactual_variables_to_interventions(
     :raises TypeError: a variable in the input dictionary has more than one intervention or its intervention is
         not itself.
     :returns:
-        A defaultdict mapping simple variables :math: $\mathbf{Y}$ to $\mathbf{y}$, a set of corresponding values.
+        A mapping from simple variables :math: $\mathbf{Y}$ to $\mathbf{y}$ to a set of corresponding values.
     """
     result_dict: DefaultDict[Variable, set[Intervention | None]] = defaultdict(set)
-    for variable in variables:
+    for variable, interventions in variables.items():
         if not isinstance(variable, CounterfactualVariable):
-            result_dict[variable].update(variables[variable])
+            result_dict[variable].update(interventions)
         else:
             if len(variable.interventions) != 1:
-                # FIXME please replace all instances of concatenating str() with usage of f strings
-                raise TypeError(
-                    "In _reduce_reflexive_counterfactual_variables_to_interventions: all variables in the \
-                            input dictionary should have exactly one intervention, but this one has more than one: "
-                    + str(variable)
-                )
-            if any(  # TODO check if this is already a check somewhere, it might already be in the CounterfactualVariable class
-                intervention.get_base() != variable.get_base()
-                for intervention in variable.interventions
-            ):
-                raise TypeError(
-                    "In _reduce_reflexive_counterfactual_variables_to_interventions: variable "
-                    + str(variable)
-                    + " has an intervention that is not itself: "
-                    + str(variable.interventions)
-                )
-            result_dict[variable.get_base()].update(variables[variable])
-    return result_dict
+                raise ValueError(f"Variable had more than one intervention: {variable}")
+            if _check_nonreflexive(variable):
+                raise ValueError(f"Variable had non-reflexive intervention: {variable}")
+            result_dict[variable.get_base()].update(interventions)
+    return dict(result_dict)
+
+
+def _check_nonreflexive(variable: CounterfactualVariable) -> bool:
+    base = variable.get_base()
+    return any(intervention.get_base() != base for intervention in variable.interventions)
 
 
 def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
@@ -500,6 +382,7 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
         if not isinstance(variable, Variable) or not (
             isinstance(intervention, Intervention) or intervention is None
         ):
+            # FIXME please replace all instances of concatenating str() with usage of f strings
             raise TypeError(
                 "Improperly formatted inputs for simplify(): check input event element ("
                 + str(variable)
@@ -625,6 +508,7 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
         (key, minimized_reflexive_variable_to_value_mappings[key].pop())
         for key in minimized_reflexive_variable_to_value_mappings
     ]
+    # FIXME please replace all instances of concatenating str() with usage of f strings
     logger.warning("In simplify before return: return value = " + str(simplified_event))
     return simplified_event
 
@@ -778,12 +662,9 @@ def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
     """
     if len(event) < 1:
         return True
-
     visited_districts: set[frozenset] = {
         graph.get_district(variable.get_base()) for variable in event
     }
-    logger.warning("In same_district(): event = " + str(event))
-    logger.warning("Visited districts: " + str(visited_districts))
     return len(visited_districts) == 1
 
 
@@ -847,6 +728,7 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
     """
     if not is_counterfactual_factor_form(event=event, graph=graph):
         logger.warning("Supposed to trigger ValueError in get_counterfactual_factors().")
+        # FIXME please replace all instances of concatenating str() with usage of f strings
         raise ValueError(
             "In get_counterfactual_factors(): the event %s is not in counterfactual factor form.",
             str(event),
@@ -896,6 +778,7 @@ def get_counterfactual_factors_retaining_variable_values(
         logger.warning(
             "Supposed to trigger ValueError in get_counterfactual_factors_retaining_variable_values()."
         )
+        # FIXME please replace all instances of concatenating str() with usage of f strings
         logger.warning("    Event = " + str(event))
         raise ValueError(
             "In get_counterfactual_factors_retaining_variable_values(): the event %s is not"
@@ -908,6 +791,7 @@ def get_counterfactual_factors_retaining_variable_values(
     ] = defaultdict(set)
     for variable, value in event:
         district_mappings[graph.get_district(variable.get_base())].add((variable, value))
+
     logger.warning(
         "In get_counterfactual_factors_retaining_variable_values(): district_mappings = "
         + str(district_mappings)
@@ -995,6 +879,9 @@ def do_counterfactual_factor_factorization(
     # get_ancestors_of_counterfactual() with these inputs. Because we want the ancestral set.
     if not variables:
         raise TypeError(
+            # FIXME the stack trace always says which function was called when an exception
+            #  is raised, so it's not necessary to write the name of the function inside.
+            #  in fact, it's better not to since this might get out of sync with the function name
             "do_counterfactual_factorization() requires at least one variable in the query."
         )
 
@@ -1026,13 +913,6 @@ def do_counterfactual_factor_factorization(
         event=ancestral_set_in_counterfactual_factor_form, graph=ancestral_set_subgraph
     )
 
-    # Question for JZ / @cthoyt: The below works, but is ugly. Mypy won't allow me to
-    #           initialize result_expression to 'None' because that messes with
-    #           result_expression's expected type later in the function. I tried initializing
-    #           the expression to 1 with 'result_expression = One()'. That returned
-    #           'error: Incompatible types in assignment (expression has type "Expression",
-    #           variable has type "One")' from mypy. (One() is a subclass of Expression.)
-    #           What's a better way to initialize an 'empty' expression?
     result_expression = Product.safe(P(factor) for factor in factorized_ancestral_set)
 
     # The summation portion of Equation 11 in [correa22a]_
@@ -1040,33 +920,6 @@ def do_counterfactual_factor_factorization(
 
     result_expression = Sum.safe(result_expression, sum_range)
     return result_expression, result_event
-
-
-def make_selection_diagrams(
-    *, selection_nodes: dict[int, Collection[Variable]], graph: NxMixedGraph
-) -> list[tuple[int, NxMixedGraph]]:
-    r"""Make a selection diagram.
-
-    [correa22a]_ refer to transportability diagrams as "selection diagrams" and combine
-    multiple domains into a single diagram. The input dict maps an integer corresponding to each domain
-    to the set of "selection variables" for that domain. We depart from the notation in [correa22a]_
-    They use $\pi$ to denote selection variables in a selection diagram, but because you could in
-    theory have multiple $\pi$ variables from different domains pointing to the same node in a graph, we
-    prefer to retain the notation of transportability nodes from Tikka and Karvanen 2019 ("Surrogate
-    Outcomes and Transportability").
-
-    :param selection_nodes: A mapping of integers (indexes for each domain) to the selection variables for each domain.
-    :param graph: The graph containing it.
-    :returns: A new graph that is the selection diagram merging the multiple domains.
-    """
-    # FIXME is this function actually used anywhere? It only appears in a test. Delete.
-    selection_diagrams = [(0, graph)]
-    selection_diagrams.extend(
-        (index, create_transport_diagram(nodes_to_transport=nodes, graph=graph))
-        for index, nodes in selection_nodes.items()
-    )
-    # Note Figure 2(b) in [correa22a]_
-    return selection_diagrams
 
 
 def counterfactual_factors_are_transportable(

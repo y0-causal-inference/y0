@@ -17,6 +17,7 @@ from collections import defaultdict
 from networkx import NetworkXError
 
 from tests.test_algorithm import cases
+from y0.algorithm.cft_unused import make_selection_diagrams
 from y0.algorithm.counterfactual_transportability import (
     _any_inconsistent_intervention_values,
     _any_variable_values_inconsistent_with_interventions,
@@ -50,7 +51,6 @@ from y0.algorithm.counterfactual_transportability import (
     get_counterfactual_factors,
     get_counterfactual_factors_retaining_variable_values,
     is_counterfactual_factor_form,
-    make_selection_diagrams,
     minimize,
     minimize_event,
     same_district,
@@ -572,7 +572,7 @@ class TestSimplify(cases.GraphTestCase):
         reflexive_variable_to_value_mappings_2[Y @ [-Y, -X]].add(+Y)
         reflexive_variable_to_value_mappings_2[Y].add(-Y)
         self.assertRaises(
-            TypeError,
+            ValueError,
             _reduce_reflexive_counterfactual_variables_to_interventions,
             variables=reflexive_variable_to_value_mappings_2,
         )
@@ -581,7 +581,7 @@ class TestSimplify(cases.GraphTestCase):
         reflexive_variable_to_value_mappings_3[Y @ -X].add(+Y)
         reflexive_variable_to_value_mappings_3[Y].add(-Y)
         self.assertRaises(
-            TypeError,
+            ValueError,
             _reduce_reflexive_counterfactual_variables_to_interventions,
             variables=reflexive_variable_to_value_mappings_3,
         )
