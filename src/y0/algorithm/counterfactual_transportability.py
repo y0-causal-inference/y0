@@ -1659,18 +1659,17 @@ class CFTDomain:
     4 of [correa22a]_).
     """
 
-    # The domain graph (a selection diagram, containing transportability nodes)
+    #: The domain graph (a selection diagram, containing transportability nodes)
     graph: NxMixedGraph
-    # An expression for the joint probability of the vertices in the domain graph,
-    # which may be a conditional probability with vertices not in the graph to the
-    # right of the conditioning bar (i.e., we may be getting a subgraph of something larger)
+    #: An expression for the joint probability of the vertices in the domain graph,
+    #: which may be a conditional probability with vertices not in the graph to the
+    #: right of the conditioning bar (i.e., we may be getting a subgraph of something larger)
     population: PopulationProbability
-
-    # The variables in the domain receiving an intervention, which may be stochastic
-    # (i.e., intervening on the variable does not necessarily break all incoming
-    # edges and may even add some edges)
+    #: The variables in the domain receiving an intervention, which may be stochastic
+    #: (i.e., intervening on the variable does not necessarily break all incoming
+    #: edges and may even add some edges)
     policy_variables: Collection[Variable] = field(default_factory=set)
-    # Topological ordering of the vertices in the domain graph (optional)
+    #: Topological ordering of the vertices in the domain graph (optional)
     ordering: list[Variable] | None = None
 
 
