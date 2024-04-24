@@ -73,7 +73,7 @@ def event_to_latex(event) -> _LatexStr:
     """Turn an event into latex."""
     # TODO how should events be converted to latex strings?
     #  this is necessary to make the output in jupyter notebook useful for users
-    raise NotImplementedError
+    # raise NotImplementedError
     return _LatexStr(str(event))
 
 
@@ -1143,11 +1143,16 @@ def transport_district_intervening_on_parents(
                 )
 
             # Line 3
+            logger.debug("Subgraph_probability: " + domain_data[k][1].to_latex())
             domain_graph_district_q_probability = compute_c_factor(
-                district=district,
+                district=domain_graph_district,  # district=district,
                 subgraph_variables=domain_graph_variables,
                 subgraph_probability=domain_data[k][1],
                 graph_topo=domain_topo,
+            )
+            logger.debug(
+                "domain_graph_district_q_probability: "
+                + domain_graph_district_q_probability.to_latex()
             )
             # Line 4
             district_q_probability = identify_district_variables(
@@ -1198,6 +1203,11 @@ def _transport_unconditional_counterfactual_query_line_2(
         )
         for variable in ancestral_set
     }
+    logger.debug(
+        "In _transport_unconditional_counterfactual_query_line_2: ancestral_set_with_values = "
+        + str(ancestral_set_with_values)
+    )
+
     #  e.g., Equation 13 in [correa22a]_, without the summation component.
     ancestral_set_in_counterfactual_factor_form_with_values: set[
         tuple[Variable, Intervention | None]
@@ -1212,6 +1222,10 @@ def _transport_unconditional_counterfactual_query_line_2(
             event=ancestral_set_in_counterfactual_factor_form_with_values,
             graph=outcome_ancestor_graph,
         )
+    )
+    logger.debug(
+        "In _transport_unconditional_counterfactual_query_line_2: factorized_ancestral_set_with_values = "
+        + str(factorized_ancestral_set_with_values)
     )
     return ancestral_set_with_values, factorized_ancestral_set_with_values
 
@@ -1629,20 +1643,40 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
 
 @dataclass
 class CFTDomain:
-    """Represents a counterfactual transport domain."""
+    r"""Represents a counterfactual transport domain.
 
-    #: TODO write docstring
+    Each CFTDomain class contains a selection diagram for that domain,
+    an expression denoting the probability distribution
+    $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$,
+    a set of policy variables corresponding to $\sigma_{\mathbf{Z}_{k}}$,
+    and a topologically sorted list of all the vertices in the corresponding graph
+    that are not transportability nodes. (Nodes that have no parents come first in
+    such lists.) The selection diagram contains a transportability node for every
+    vertex that is distributed differently in the domain in question than in the
+    target domain (e.g., Vertex Z in Figure 3(a) in [correa22a]_), and it is a causal
+    diagram such that its edges represent the state of the graph after a regime
+    corresponding to domain $k$ has been applied (e.g., policy $\sigma_{X}$ in Figure
+    4 of [correa22a]_).
+    """
+
+    # The domain graph (a selection diagram, containing transportability nodes)
     graph: NxMixedGraph
-    #: TODO rename and write docstring
+    # An expression for the joint probability of the vertices in the domain graph,
+    # which may be a conditional probability with vertices not in the graph to the
+    # right of the conditioning bar (i.e., we may be getting a subgraph of something larger)
     population: PopulationProbability
 
-    #: TODO rename and write docstring
-    unknown_argument_1: Collection[Variable] = field(default_factory=set)
-    #: TODO write docstring, giving an ordering should be optional
+    # The variables in the domain receiving an intervention, which may be stochastic
+    # (i.e., intervening on the variable does not necessarily break all incoming
+    # edges and may even add some edges)
+    policy_variables: Collection[Variable] = field(default_factory=set)
+    # Topological ordering of the vertices in the domain graph (optional)
     ordering: list[Variable] | None = None
 
 
 class UnconditionalCFTResult(NamedTuple):
+    """Represents the result from an unconditional counterfactual transportability query."""
+
     expression: Expression
     event: Event | None
 
@@ -1660,12 +1694,24 @@ def unconditional_cft(
     target_domain_graph: NxMixedGraph,
     domains: list[CFTDomain],
 ) -> UnconditionalCFTResult | None:
+    r"""Run an unconditional counterfactual transportability query (Algorithm 2 from [correa22a]_).
+
+    :param event:
+        "Y_*, a set of counterfactual variables in V and y_* a set of
+        values for Y_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param target_domain_graph: a graph for the target domain.
+    :param domains: A set of $K$ CFTDomain classes, one for each of the $K$ domains. See the
+        documentation for CFTDomain for more details.
+
+    :returns: The result of the query as an UnconditionalCFTResult object.
+    """
     # FIXME consider making this the only interface
     # TODO rename
     domain_graphs = [
         (domain.graph, domain.ordering or domain.graph.topological_sort()) for domain in domains
     ]
-    domain_data = [(domain.unknown_argument_1, domain.population) for domain in domains]
+    domain_data = [(domain.policy_variables, domain.population) for domain in domains]
     return transport_unconditional_counterfactual_query(
         event=event,
         target_domain_graph=target_domain_graph,
@@ -1790,25 +1836,6 @@ def transport_unconditional_counterfactual_query(
                     {v for v in target_domain_graph.directed.predecessors(variable.get_base())}
                 )
             district_variables_and_their_parents.update(district_without_interventions)
-            if not all(
-                variable in district_variables_and_their_parents
-                for variable in district_probability_intervening_on_parents.get_variables()
-            ):
-                # This can happen if the joint probability of the vertices passed in to Algorithms 2 or 3
-                # with the 'domain_data' parameter conditions on some other variable not in the graph. So,
-                # we throw a warning but don't stop execution.
-                logger.debug(
-                    "In transport_unconditional_counterfactual_query: found a variable in the Q expression "
-                    + "that is not a district variable or one of its parents."
-                )
-                logger.debug(
-                    "    District variables and their parents: "
-                    + str(district_variables_and_their_parents)
-                )
-                logger.debug(
-                    "    Q expression variables: "
-                    + str(district_probability_intervening_on_parents.get_variables())
-                )
             logger.debug(
                 "In transport_unconditional_counterfactual_query: got a Q value of "
                 + district_probability_intervening_on_parents.to_latex()
@@ -2177,6 +2204,8 @@ def _transport_conditional_counterfactual_query_line_4(
 
 
 class ConditionalCFTResult(NamedTuple):
+    """Represents the result of a conditional counterfactual transportability query."""
+
     expression: Expression
     event: list[tuple[Variable, Intervention]] | None
 
@@ -2195,10 +2224,26 @@ def conditional_cft(
     target_domain_graph: NxMixedGraph,
     domains: list[CFTDomain],
 ) -> ConditionalCFTResult | None:
+    r"""Run a conditional counterfactual transportability query (Algorithm 3 from [correa22a]_).
+
+    :param outcomes:
+        "Y_*, a set of counterfactual variables in V and y_* a set of
+        values for Y_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param conditions:
+        "X_*, a set of counterfactual variables in V and x_* a set of
+        values for X_*." We encode the counterfactual variables as
+        CounterfactualVariable objects, and the values as Intervention objects.
+    :param target_domain_graph: a graph for the target domain.
+    :param domains: A set of $K$ CFTDomain classes, one for each of the $K$ domains. See the
+        documentation for CFTDomain for more details.
+
+    :returns: The result of the query as a ConditionalCFTResult object.
+    """
     domain_graphs = [
         (domain.graph, domain.ordering or domain.graph.topological_sort()) for domain in domains
     ]
-    domain_data = [(domain.unknown_argument_1, domain.population) for domain in domains]
+    domain_data = [(domain.policy_variables, domain.population) for domain in domains]
     return transport_conditional_counterfactual_query(
         outcomes=outcomes,
         conditions=conditions,
