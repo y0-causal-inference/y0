@@ -14,6 +14,7 @@ from typing import (
     Any,
     Collection,
     Iterable,
+    List,
     Mapping,
     Optional,
     Sequence,
@@ -574,9 +575,9 @@ class NxMixedGraph:
         sources = _ensure_set(sources)
         return _descendants_inclusive(self.directed, sources)
 
-    def topological_sort(self) -> Iterable[Variable]:
+    def topological_sort(self) -> List[Variable]:
         """Get a topological sort from the directed component of the mixed graph."""
-        return nx.topological_sort(self.directed)
+        return list(nx.topological_sort(self.directed))
 
     def get_c_components(self) -> list[frozenset[Variable]]:
         """Get the co-components (i.e., districts) in the undirected portion of the graph."""

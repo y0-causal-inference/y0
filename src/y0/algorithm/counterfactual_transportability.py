@@ -9,8 +9,9 @@
 import itertools as itt
 import logging
 from collections import defaultdict
+from dataclasses import dataclass
 from itertools import combinations_with_replacement
-from typing import Collection, DefaultDict, Iterable, NamedTuple
+from typing import Collection, Iterable, NamedTuple
 
 from networkx import is_directed_acyclic_graph
 
@@ -34,10 +35,12 @@ from y0.graph import NxMixedGraph
 
 __all__ = [
     # TODO do a proper audit of which of these a user should ever have to import
+    "cleaner_transport_unconditional_counterfactual_query",
     "transport_unconditional_counterfactual_query",
     "transport_conditional_counterfactual_query",
     #
     "Event",
+    "DomainQuery",
     # Utilities
     "simplify",
     "minimize",
@@ -62,11 +65,9 @@ Event = list[EventItem]
 
 
 def _any_variables_with_inconsistent_values(
-    # variable_to_value_mappings: DefaultDict[Variable, set[Intervention]]
     *,
-    # FIXME never have defaultdict as input unless you're adding to the dict in the function. instead, just use dict[]
-    nonreflexive_variable_to_value_mappings: DefaultDict[Variable, set[Intervention | None]],
-    reflexive_variable_to_value_mappings: DefaultDict[Variable, set[Intervention | None]],
+    nonreflexive_variable_to_value_mappings: dict[Variable, set[Intervention | None]],
+    reflexive_variable_to_value_mappings: dict[Variable, set[Intervention | None]],
 ) -> bool:
     r"""Check for variables with inconsistent values following Line 2 of Algorithm 1 in [correa_22a]_."""
     # Part 1 of Line 2:
@@ -158,9 +159,9 @@ def _any_variables_with_inconsistent_values(
 
 # Deprecated.
 # def _simplify_self_interventions_with_consistent_values(
-#    outcome_variable_to_value_mappings: DefaultDict[Variable, set[Intervention]],
+#    outcome_variable_to_value_mappings: defaultdict[Variable, set[Intervention]],
 #    outcome_variables: set[Variable],
-# ) -> tuple[DefaultDict[Variable, set[Intervention]], set[Variable]]:
+# ) -> tuple[defaultdict[Variable, set[Intervention]], set[Variable]]:
 #    r"""Address Part 2 of Line 3 of SIMPLIFY from [correa22a]_.
 #
 #    :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
@@ -234,7 +235,7 @@ def _remove_repeated_variables_and_values(event: Event) -> dict[Variable, set[In
     :returns:
         A dictionary mapping the event variables to all values associated with each variable in the event.
     """
-    variable_to_value_mappings: DefaultDict[Variable, set[Intervention | None]] = defaultdict(set)
+    variable_to_value_mappings: defaultdict[Variable, set[Intervention | None]] = defaultdict(set)
     for variable, value in event:
         variable_to_value_mappings[variable].add(value)
     for variable in variable_to_value_mappings.keys():
@@ -311,12 +312,12 @@ def _reduce_reflexive_counterfactual_variables_to_interventions(
         $\mathbf{Y_\ast}$ is assumed to be either $Y_{y}$ \in $\mathbf{Y_\ast}$ or just $Y$ in $\mathbf{Y_\ast}$,
         where $Y$ is considered a special case of $Y_{y}$ because minimization has already taken place.
         The $\mathbf{Y_\ast}$ variables are CounterfactualVariable objects, and the values are Intervention objects.
-    :raises TypeError: a variable in the input dictionary has more than one intervention or its intervention is
-        not itself.
+    :raises ValueError:
+        a variable in the input dictionary has more than one intervention or its intervention is not itself.
     :returns:
         A mapping from simple variables :math: $\mathbf{Y}$ to $\mathbf{y}$ to a set of corresponding values.
     """
-    result_dict: DefaultDict[Variable, set[Intervention | None]] = defaultdict(set)
+    result_dict: defaultdict[Variable, set[Intervention | None]] = defaultdict(set)
     for variable, interventions in variables.items():
         if not isinstance(variable, CounterfactualVariable):
             result_dict[variable].update(interventions)
@@ -416,9 +417,9 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     # :math: If there exists $Y_{\mathbf{X}} \in \mathbf{Y_\ast}$ with two consistent values in
     # $\mathbf{y_\ast} \cap Y_{\mathbf{X}}$ then remove repeated variables from
     # $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
-    minimized_nonreflexive_variable_to_value_mappings: defaultdict[
-        Variable, set[Intervention | None]
-    ] = _remove_repeated_variables_and_values(event=nonreflexive_interventions_event)
+    minimized_nonreflexive_variable_to_value_mappings: dict[Variable, set[Intervention | None]] = (
+        _remove_repeated_variables_and_values(nonreflexive_interventions_event)
+    )
     # Creating this dict partly addresses part 2 of Line 3:
     # :math: If there exists $Y_{y} \in \mathbf{Y_\ast}$ with
     # $\mathbf{y_\ast} \cap Y_{y} = y$ then remove repeated variables from
@@ -427,9 +428,9 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     # There is an exception: we don't yet handle the edge case that the CounterfactualVariable Y_y
     # and the Intervention Y, when observed as part of the same event, are considered repeated
     # variables after minimization has taken place.
-    minimized_reflexive_variable_to_value_mappings: defaultdict[
-        Variable, set[Intervention | None]
-    ] = _remove_repeated_variables_and_values(event=reflexive_interventions_event)
+    minimized_reflexive_variable_to_value_mappings: dict[Variable, set[Intervention | None]] = (
+        _remove_repeated_variables_and_values(reflexive_interventions_event)
+    )
 
     # logger.warning(
     #    "In simplify after part 1 of line 3: minimized_nonreflexive_variable_to_value_mappings = "
@@ -734,7 +735,7 @@ def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> 
             str(event),
         )
 
-    district_mappings: DefaultDict[frozenset[Variable], set[Variable]] = defaultdict(set)
+    district_mappings: defaultdict[frozenset[Variable], set[Variable]] = defaultdict(set)
     for variable in event:
         district_mappings[graph.get_district(variable.get_base())].add(variable)
 
@@ -786,7 +787,7 @@ def get_counterfactual_factors_retaining_variable_values(
             str(event),
         )
 
-    district_mappings: DefaultDict[
+    district_mappings: defaultdict[
         frozenset[Variable], set[tuple[Variable, Intervention | None]]
     ] = defaultdict(set)
     for variable, value in event:
@@ -1735,15 +1736,17 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
     return
 
 
+@dataclass
 class DomainQuery:
     #: TODO write docstring
     graph: NxMixedGraph
-    #: TODO write docstring
-    ordering: list[Variable]  # TODO make this optional
     #: TODO rename and write docstring
     unknown_argument_1: Collection[Variable]
     #: TODO rename and write docstring
     unknown_argument_2: PopulationProbability
+
+    #: TODO write docstring, giving an ordering should be optional
+    ordering: list[Variable] | None = None
 
 
 class TransportUnconditionalCounterfactualQueryResult(NamedTuple):
@@ -1751,14 +1754,17 @@ class TransportUnconditionalCounterfactualQueryResult(NamedTuple):
     event: Event | None
 
 
-def better_transport_unconditional_counterfactual_query(
+def cleaner_transport_unconditional_counterfactual_query(
     *,
     event: Event,
     graph: NxMixedGraph,
     domains: list[DomainQuery],
 ) -> TransportUnconditionalCounterfactualQueryResult | None:
     # FIXME consider making this the only interface
-    domain_graphs = [(domain.graph, domain.ordering) for domain in domains]
+    # TODO rename
+    domain_graphs = [
+        (domain.graph, domain.ordering or domain.graph.topological_sort()) for domain in domains
+    ]
     domain_data = [(domain.unknown_argument_1, domain.unknown_argument_2) for domain in domains]
     return transport_unconditional_counterfactual_query(
         event=event,
@@ -2210,8 +2216,8 @@ def _initialize_conditional_transportability_data_structures(
     set[Variable],
     set[Variable],
     set[Variable],
-    defaultdict[Variable, set[Intervention]],
-    defaultdict[Variable, set[Intervention]],
+    dict[Variable, set[Intervention]],
+    dict[Variable, set[Intervention]],
     set[Variable],
     set[Variable],
 ]:
@@ -2257,9 +2263,8 @@ def _initialize_conditional_transportability_data_structures(
         conditioned_variables,
         outcome_variables,
         outcome_and_conditioned_variables,
-        outcome_variable_to_value_mappings,
-        # outcome_and_conditioned_variable_to_value_mappings,
-        outcome_and_conditioned_variable_names_to_values,
+        dict(outcome_variable_to_value_mappings),
+        dict(outcome_and_conditioned_variable_names_to_values),
         outcome_and_conditioned_variable_names,
         conditioned_variable_names,
     )
@@ -2269,7 +2274,7 @@ def _transport_conditional_counterfactual_query_line_2(
     *,
     ancestral_components: frozenset[frozenset[Variable]],
     outcome_variables: set[Variable],
-    outcome_variable_to_value_mappings: defaultdict[Variable, set[Intervention]],
+    outcome_variable_to_value_mappings: dict[Variable, set[Intervention]],
     target_domain_graph: NxMixedGraph,
 ) -> tuple[Event, set[Variable]]:
     r"""Set up data structures to process a conditional counterfactual query per Algorithm 3 of [correa22a]_.
@@ -2337,7 +2342,7 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
     *,
     simplified_event: Event,
     outcome_and_conditioned_variable_names: set[Variable],
-    outcome_and_conditioned_variable_names_to_values: defaultdict[Variable, set[Intervention]],
+    outcome_and_conditioned_variable_names_to_values: dict[Variable, set[Intervention]],
     outcome_ancestral_component_variables_with_no_values: set[Variable],
     result_expression: Expression,
     result_event: list[tuple[Variable, Intervention]],
@@ -2459,7 +2464,7 @@ def _transport_conditional_counterfactual_query_line_4(
     conditioned_variable_names: set[Variable],
     transported_unconditional_query_expression: Expression,
     simplified_event: Event,
-    outcome_and_conditioned_variable_names_to_values: defaultdict[Variable, set[Intervention]],
+    outcome_and_conditioned_variable_names_to_values: dict[Variable, set[Intervention]],
     outcomes: list[tuple[Variable, Intervention]],
     conditions: list[tuple[Variable, Intervention]],
     domain_data: list[tuple[Collection[Variable], PopulationProbability]],
