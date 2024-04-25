@@ -9,7 +9,7 @@ from typing import Set, Tuple
 import networkx as nx
 from pgmpy.models import BayesianNetwork
 
-from y0.dsl import A, B, C, D, M, Variable, X, Y, Z
+from y0.dsl import V1, V2, V3, V4, A, B, C, D, M, Variable, X, Y, Z
 from y0.examples import SARS_SMALL_GRAPH, Example, examples, napkin, verma_1
 from y0.graph import (
     DEFAULT_TAG,
@@ -71,7 +71,8 @@ class TestGraph(unittest.TestCase):
         labeled_dag = graph.to_latent_variable_dag(prefix=prefix, tag=tag)
         for node in labeled_dag:
             self.assertIn(tag, labeled_dag.nodes[node], msg=f"Node: {node}")
-            self.assertEqual(node.startswith(prefix), labeled_dag.nodes[node][tag])
+            self.assertIsInstance(node, Variable)
+            self.assertEqual(node.name.startswith(prefix), labeled_dag.nodes[node][tag])
 
         self.assertEqual(labeled_edges, set(labeled_dag.edges()))
 
@@ -84,11 +85,11 @@ class TestGraph(unittest.TestCase):
             (
                 verma_1,
                 {
-                    ("V1", "V2"),
-                    ("V2", "V3"),
-                    ("V3", "V4"),
-                    (f"{DEFULT_PREFIX}0", "V2"),
-                    (f"{DEFULT_PREFIX}0", "V4"),
+                    (V1, V2),
+                    (V2, V3),
+                    (V3, V4),
+                    (Variable(f"{DEFULT_PREFIX}0"), V2),
+                    (Variable(f"{DEFULT_PREFIX}0"), V4),
                 },
             ),
         ]:
