@@ -742,14 +742,13 @@ def _latent_dag(
     if prefix is None:
         prefix = DEFULT_PREFIX
 
-    str_di_edges = [(u, v) for u, v in di_edges]
-    str_bi_edges = [(u, v) for u, v in bi_edges]
+    bi_edges_list = list(bi_edges)
 
     rv = nx.DiGraph()
-    rv.add_nodes_from(itt.chain.from_iterable(str_bi_edges))
-    rv.add_edges_from(str_di_edges)
+    rv.add_nodes_from(itt.chain.from_iterable(bi_edges_list))
+    rv.add_edges_from(di_edges)
     nx.set_node_attributes(rv, False, tag)
-    for i, (u, v) in enumerate(sorted(str_bi_edges), start=start):
+    for i, (u, v) in enumerate(sorted(bi_edges_list), start=start):
         latent_node = Variable(f"{prefix}{i}")
         rv.add_node(latent_node, **{tag: True})
         rv.add_edge(latent_node, u)
