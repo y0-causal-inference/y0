@@ -195,6 +195,8 @@ class Variable(Element):
     star: Optional[bool] = None
 
     def __post_init__(self):
+        if not isinstance(self.name, str):
+            raise TypeError(f"Names must be strings: {self.name}")
         if self.name in {"P", "Q", "PP"}:
             raise ValueError(f"trust me, {self.name} is a bad variable name.")
 

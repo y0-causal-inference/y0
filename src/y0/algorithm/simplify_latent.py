@@ -50,7 +50,7 @@ def evans_simplify(
     if latents is not None:
         latents = _ensure_set(latents)
         for node, data in lv_dag.nodes(data=True):
-            if Variable(node) in latents:
+            if node in latents:
                 data[tag] = True
     simplify_results = simplify_latent_dag(lv_dag, tag=tag)
     return NxMixedGraph.from_latent_variable_dag(simplify_results.graph, tag=tag)
