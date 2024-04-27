@@ -1701,9 +1701,52 @@ class UnconditionalCFTResult(NamedTuple):
         display(self.expression)
 
 
+def _event_from_counterfactuals(
+    variables: Variable | list[Variable],
+) -> list[tuple[Variable, Intervention | None]]:
+    if isinstance(variables, Variable):
+        variables = [variables]
+    rv = []
+    for variable in variables:
+        base = _event_base(variable)
+        if variable.star is not None:
+            value = Intervention(name=variable.name, star=variable.star)
+        else:
+            value = None
+        rv.append((base, value))
+    return rv
+
+
+def _event_from_counterfactuals_strict(
+    variables: Variable | list[Variable],
+) -> list[tuple[Variable, Intervention]]:
+    if isinstance(variables, Variable):
+        variables = [variables]
+    rv = []
+    for variable in variables:
+        base = _event_base(variable)
+        if variable.star is not None:
+            value = Intervention(name=variable.name, star=variable.star)
+        else:
+            raise TypeError
+        rv.append((base, value))
+    return rv
+
+
+def _event_base(variable):
+    if isinstance(variable, CounterfactualVariable):
+        return CounterfactualVariable(
+            name=variable.name,
+            star=None,
+            interventions=variable.interventions,
+        )
+    else:
+        return variable.get_base()
+
+
 def unconditional_cft(
     *,
-    event: Event,
+    event: Variable | list[Variable],
     target_domain_graph: NxMixedGraph,
     domains: list[CFTDomain],
 ) -> UnconditionalCFTResult | None:
@@ -1719,14 +1762,12 @@ def unconditional_cft(
 
     :returns: The result of the query as an UnconditionalCFTResult object.
     """
-    # FIXME consider making this the only interface
-    # TODO rename
     domain_graphs = [
         (domain.graph, domain.ordering or domain.graph.topological_sort()) for domain in domains
     ]
     domain_data = [(domain.policy_variables, domain.population) for domain in domains]
     return transport_unconditional_counterfactual_query(
-        event=event,
+        event=_event_from_counterfactuals(event),
         target_domain_graph=target_domain_graph,
         domain_graphs=domain_graphs,
         domain_data=domain_data,
@@ -2232,8 +2273,8 @@ class ConditionalCFTResult(NamedTuple):
 
 def conditional_cft(
     *,
-    outcomes: list[tuple[Variable, Intervention]],
-    conditions: list[tuple[Variable, Intervention]],
+    outcomes: Variable | list[Variable],
+    conditions: Variable | list[Variable],
     target_domain_graph: NxMixedGraph,
     domains: list[CFTDomain],
 ) -> ConditionalCFTResult | None:
@@ -2258,8 +2299,8 @@ def conditional_cft(
     ]
     domain_data = [(domain.policy_variables, domain.population) for domain in domains]
     return transport_conditional_counterfactual_query(
-        outcomes=outcomes,
-        conditions=conditions,
+        outcomes=_event_from_counterfactuals_strict(outcomes),
+        conditions=_event_from_counterfactuals_strict(conditions),
         target_domain_graph=target_domain_graph,
         domain_graphs=domain_graphs,
         domain_data=domain_data,
