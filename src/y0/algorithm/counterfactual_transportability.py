@@ -73,10 +73,15 @@ Event = list[EventItem]
 
 def event_to_latex(event) -> _LatexStr:
     """Turn an event into latex."""
-    # TODO how should events be converted to latex strings?
-    #  this is necessary to make the output in jupyter notebook useful for users
-    # raise NotImplementedError
-    return _LatexStr(str(event))
+    values = []
+    for variable, value in event:
+        if value is not None:
+            icon = "" if not value.star else "^*"
+            values.append(f"{variable.to_latex()}={value.name.lower()}{icon}")
+        else:
+            raise NotImplementedError
+    rv = r"$\text{Event} := P(" + ",".join(values) + ")$"
+    return _LatexStr(rv)
 
 
 def _any_variables_with_inconsistent_values(
