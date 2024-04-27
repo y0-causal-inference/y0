@@ -22,6 +22,7 @@ from y0.algorithm.cft_ancestral import (
 from y0.algorithm.tian_id import compute_c_factor, identify_district_variables
 from y0.algorithm.transport import is_transport_node, transport_variable
 from y0.dsl import (
+    PP,
     TARGET_DOMAIN,
     CounterfactualVariable,
     Expression,
@@ -29,6 +30,7 @@ from y0.dsl import (
     Intervention,
     One,
     P,
+    Population,
     PopulationProbability,
     Product,
     Sum,
@@ -1663,7 +1665,9 @@ class CFTDomain:
     graph: NxMixedGraph
     #: An expression for the joint probability of the vertices in the domain graph,
     #: which may be a conditional probability with vertices not in the graph to the
-    #: right of the conditioning bar (i.e., we may be getting a subgraph of something larger)
+    #: right of the conditioning bar (i.e., we may be getting a subgraph of something larger).
+    #: Can also directly give a Variable, in which case, the population probability is inferred
+    #: to be the joint population probability over all non-transport nodes in the graph
     population: PopulationProbability
     #: The variables in the domain receiving an intervention, which may be stochastic
     #: (i.e., intervening on the variable does not necessarily break all incoming
@@ -1671,6 +1675,11 @@ class CFTDomain:
     policy_variables: Collection[Variable] = field(default_factory=set)
     #: Topological ordering of the vertices in the domain graph (optional)
     ordering: list[Variable] | None = None
+
+    def __post_init__(self) -> None:
+        if isinstance(self.population, Population):
+            nodes = [node for node in self.graph.nodes() if not is_transport_node(node)]
+            self.population = PP[self.population](nodes)
 
 
 class UnconditionalCFTResult(NamedTuple):
