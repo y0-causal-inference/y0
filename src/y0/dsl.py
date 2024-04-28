@@ -224,7 +224,8 @@ class Variable(Element):
 
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
-        return self.name
+        sign = self._get_sign()
+        return sign + self.name
 
     def to_sympy(self) -> "sympy.Symbol":
         """Get the object for sympy."""
@@ -240,13 +241,13 @@ class Variable(Element):
         >>> Variable('X').to_latex()
         'X'
         >>> Variable('X', star=True).to_latex()
-        'X^+'
+        'X^{+}'
         >>> Variable('X', star=False).to_latex()
-        'X^+'
+        'X^{+}'
         >>> Variable('X1').to_latex()
         'X_1'
         >>> Variable('X1', star=True).to_latex()
-        'X_1^+'
+        '{X_1}^{+}'
         >>> Variable('X12').to_latex()
         'X_{12}'
         """
@@ -256,12 +257,9 @@ class Variable(Element):
             if c.isnumeric():
                 ending_numeric += 1
         sign = self._get_sign(latex=True)
-        if ending_numeric == 0:
+        if not ending_numeric:
             return self.name + sign
-        elif ending_numeric == 1:
-            return f"{self.name[:-1]}_{self.name[-1]}{sign}"
-        else:
-            return f"{self.name[:-ending_numeric]}_{{{self.name[-ending_numeric:]}}}{sign}"
+        return f"{{{self.name[:-ending_numeric]}_{{{self.name[-ending_numeric:]}}}}}{sign}"
 
     def to_y0(self) -> str:
         """Output this variable instance as y0 internal DSL code."""
@@ -409,6 +407,12 @@ class CounterfactualVariable(Variable):
         '{X_1}_{Y}'
         >>> (Variable('X12') @ Variable('Y')).to_latex()
         '{X_{12}}_{Y}'
+        >>> (+Variable('X') @ Variable('Y')).to_latex()
+        '{X}^{+}_{Y}'
+        >>> (+Variable('X1') @ Variable('Y')).to_latex()
+        '{X_1}^{+}_{Y}'
+        >>> (+Variable('X12') @ Variable('Y')).to_latex()
+        '{X_{12}}^{+}_{Y}'
         """
         intervention_latex = _list_to_latex(_sort_interventions(self.interventions))
         return f"{super().to_latex()}_{{{intervention_latex}}}"
