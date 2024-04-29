@@ -36,6 +36,7 @@ def add_ci_undirected_edges(
     *,
     method: Optional[CITest] = None,
     significance_level: Optional[float] = None,
+    max_conditions: Optional[int] = None,
 ) -> NxMixedGraph:
     """Add undirected edges between d-separated nodes that fail a data-driven conditional independency test.
 
@@ -50,11 +51,17 @@ def add_ci_undirected_edges(
     :param significance_level: The statistical tests employ this value for
         comparison with the p-value of the test to determine the independence of
         the tested variables. If none, defaults to 0.05.
+    :param max_conditions: Longest set of conditions to investigate
     :returns: A copy of the input graph potentially with new undirected edges added
     """
     rv = graph.copy()
     for judgement, result in test_conditional_independencies(
-        graph=graph, data=data, method=method, boolean=True, significance_level=significance_level
+        graph=graph,
+        data=data,
+        method=method,
+        boolean=True,
+        significance_level=significance_level,
+        max_conditions=max_conditions,
     ):
         if not result:
             rv.add_undirected_edge(judgement.left, judgement.right)
@@ -69,6 +76,7 @@ def test_conditional_independencies(
     boolean: bool = False,
     significance_level: Optional[float] = None,
     _method_checked: bool = False,
+    max_conditions: Optional[int] = None,
 ) -> List[Tuple[DSeparationJudgement, Union[bool, CITestTuple]]]:
     """Gets CIs with :func:`get_conditional_independencies` then tests them against data.
 
@@ -84,6 +92,7 @@ def test_conditional_independencies(
     :param significance_level: The statistical tests employ this value for
         comparison with the p-value of the test to determine the independence of
         the tested variables. If none, defaults to 0.05.
+    :param max_conditions: Longest set of conditions to investigate
     :returns: A copy of the input graph potentially with new undirected edges added
     """
     if significance_level is None:
@@ -100,7 +109,7 @@ def test_conditional_independencies(
                 _method_checked=True,
             ),
         )
-        for judgement in get_conditional_independencies(graph)
+        for judgement in get_conditional_independencies(graph, max_conditions=max_conditions)
     ]
 
 
@@ -108,6 +117,7 @@ def get_conditional_independencies(
     graph: NxMixedGraph,
     *,
     policy=None,
+    max_conditions: Optional[int] = None,
     **kwargs,
 ) -> Set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
@@ -117,6 +127,7 @@ def get_conditional_independencies(
 
     :param graph: An acyclic directed mixed graph
     :param policy: Retention policy when more than one conditional independency option exists (see minimal for details)
+    :param max_conditions: Longest set of conditions to investigate
     :param kwargs: Other keyword arguments are passed to :func:`d_separations`
     :return: A set of conditional dependencies
 
@@ -125,7 +136,7 @@ def get_conditional_independencies(
     if policy is None:
         policy = get_topological_policy(graph)
     return minimal(
-        d_separations(graph, **kwargs),
+        d_separations(graph, max_conditions=max_conditions, **kwargs),
         policy=policy,
     )
 
