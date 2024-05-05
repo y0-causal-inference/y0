@@ -243,13 +243,13 @@ class Variable(Element):
         >>> Variable('X', star=True).to_latex()
         'X^{+}'
         >>> Variable('X', star=False).to_latex()
-        'X^{+}'
+        'X^{-}'
         >>> Variable('X1').to_latex()
-        'X_1'
+        '{X_{1}}'
         >>> Variable('X1', star=True).to_latex()
-        '{X_1}^{+}'
+        '{X_{1}}^{+}'
         >>> Variable('X12').to_latex()
-        'X_{12}'
+        '{X_{12}}'
         """
         # if it ends with a number, use that as a subscript
         ending_numeric = 0
@@ -402,17 +402,19 @@ class CounterfactualVariable(Variable):
         :returns: A latex representation of this counterfactual variable
 
         >>> (Variable('X') @ Variable('Y')).to_latex()
-        '{X}_{Y}'
+        'X_{Y^{-}}'
         >>> (Variable('X1') @ Variable('Y')).to_latex()
-        '{X_1}_{Y}'
+        '{X_{1}}_{Y^{-}}'
         >>> (Variable('X12') @ Variable('Y')).to_latex()
-        '{X_{12}}_{Y}'
+        '{X_{12}}_{Y^{-}}'
         >>> (+Variable('X') @ Variable('Y')).to_latex()
-        '{X}^{+}_{Y}'
+        'X^{+}_{Y^{-}}'
         >>> (+Variable('X1') @ Variable('Y')).to_latex()
-        '{X_1}^{+}_{Y}'
+        '{X_{1}}^{+}_{Y^{-}}'
         >>> (+Variable('X12') @ Variable('Y')).to_latex()
-        '{X_{12}}^{+}_{Y}'
+        '{X_{12}}^{+}_{Y^{-}}'
+        >>> (+Variable('X12') @ Variable('Y') @ Variable('Z')).to_latex()
+        '{X_{12}}^{+}_{Y^{-}, Z^{-}}'
         """
         intervention_latex = _list_to_latex(_sort_interventions(self.interventions))
         return f"{super().to_latex()}_{{{intervention_latex}}}"

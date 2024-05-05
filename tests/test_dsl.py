@@ -200,7 +200,9 @@ class TestDSL(unittest.TestCase):
         self.assert_text("Y_{-W} | B", Y @ W | B)
         self.assert_text("Y_{-W} | B, C", Y @ W | B | C)
         self.assert_text("Y_{-W, +X} | B, C", Y @ W @ ~X | B | C)
-        self.assert_text("Y_{-W, +X} | B_{+N}, C", Y @ W @ ~X | B @ Intervention("N", star=True) | C)
+        self.assert_text(
+            "Y_{-W, +X} | B_{+N}, C", Y @ W @ ~X | B @ Intervention("N", star=True) | C
+        )
 
     def test_joint_distribution(self):
         """Test the JointProbability DSL object."""
