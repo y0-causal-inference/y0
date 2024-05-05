@@ -36,6 +36,7 @@ from y0.dsl import (
     Sum,
     Variable,
     Zero,
+    Probability,
 )
 from y0.graph import NxMixedGraph, _LatexStr
 
@@ -71,17 +72,23 @@ EventItem = tuple[Variable, Intervention | None]
 Event = list[EventItem]
 
 
-def event_to_latex(event) -> _LatexStr:
-    """Turn an event into latex."""
+
+def event_to_probability(event: Event) -> Probability:
+    """Turn an event list into a probability object."""
     values = []
     for variable, value in event:
-        if value is not None:
-            icon = "" if not value.star else "^*"
-            values.append(f"{variable.to_latex()}={value.name.lower()}{icon}")
+        if variable.star is not None:
+            raise ValueError("events can not have star values for the variable")
+        if isinstance(variable, CounterfactualVariable):
+            new_variable = CounterfactualVariable(
+                name=variable.name,
+                star=value.star,
+                interventions=variable.interventions,
+            )
         else:
-            raise NotImplementedError
-    rv = r"$\text{Event} := P(" + ",".join(values) + ")$"
-    return _LatexStr(rv)
+            new_variable = Variable(name=variable.name, star=value.star)
+        values.append(new_variable)
+    return Probability.safe(values)
 
 
 def _any_variables_with_inconsistent_values(
@@ -1697,7 +1704,7 @@ class UnconditionalCFTResult(NamedTuple):
         """Display this result."""
         from IPython.display import display
 
-        display(event_to_latex(self.event))
+        display(event_to_probability(self.event))
         display(self.expression)
 
 
@@ -2267,7 +2274,7 @@ class ConditionalCFTResult(NamedTuple):
         """Display this result."""
         from IPython.display import display
 
-        display(event_to_latex(self.event))
+        display(event_to_probability(self.event))
         display(self.expression)
 
 
