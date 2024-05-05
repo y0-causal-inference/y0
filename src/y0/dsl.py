@@ -200,6 +200,14 @@ class Variable(Element):
         if self.name in {"P", "Q", "PP"}:
             raise ValueError(f"trust me, {self.name} is a bad variable name.")
 
+    def _get_sign(self, latex: bool = False) -> str:
+        if self.star is None:
+            return ""
+        elif self.star:
+            return "^{+}" if latex else "+"
+        else:
+            return "^{-}" if latex else "-"
+
     @classmethod
     def norm(cls, name: Union[str, Variable]) -> Variable:
         """Automatically upgrade a string to a variable."""
@@ -216,7 +224,8 @@ class Variable(Element):
 
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
-        return self.name
+        sign = self._get_sign()
+        return sign + self.name
 
     def to_sympy(self) -> "sympy.Symbol":
         """Get the object for sympy."""
@@ -231,31 +240,31 @@ class Variable(Element):
 
         >>> Variable('X').to_latex()
         'X'
+        >>> Variable('X', star=True).to_latex()
+        'X^{+}'
+        >>> Variable('X', star=False).to_latex()
+        'X^{-}'
         >>> Variable('X1').to_latex()
-        'X_1'
+        '{X_{1}}'
+        >>> Variable('X1', star=True).to_latex()
+        '{X_{1}}^{+}'
         >>> Variable('X12').to_latex()
-        'X_{12}'
+        '{X_{12}}'
         """
         # if it ends with a number, use that as a subscript
         ending_numeric = 0
         for c in reversed(self.name):
             if c.isnumeric():
                 ending_numeric += 1
-        if ending_numeric == 0:
-            return self.name
-        elif ending_numeric == 1:
-            return f"{self.name[:-1]}_{self.name[-1]}"
-        else:
-            return f"{self.name[:-ending_numeric]}_{{{self.name[-ending_numeric:]}}}"
+        sign = self._get_sign(latex=True)
+        if not ending_numeric:
+            return self.name + sign
+        return f"{{{self.name[:-ending_numeric]}_{{{self.name[-ending_numeric:]}}}}}{sign}"
 
     def to_y0(self) -> str:
         """Output this variable instance as y0 internal DSL code."""
-        if self.star is None:
-            return self.name
-        elif self.star:
-            return f"+{self.name}"
-        else:
-            return f"-{self.name}"
+        sign = self._get_sign()
+        return f"{sign}{self.name}"
 
     def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this variable with the given variable(s).
@@ -359,20 +368,6 @@ class Intervention(Variable):
         if self.star is None:
             raise ValueError("Intervention must have a non-None star")
 
-    def to_text(self) -> str:
-        """Output this intervention variable in the internal string format."""
-        return f"{self.name}*" if self.star else self.name
-
-    def to_latex(self) -> str:
-        """Output this intervention variable in the LaTeX string format."""
-        latex = super().to_latex()
-        return f"{latex}^*" if self.star else latex
-
-    def to_y0(self) -> str:
-        """Output this intervention instance as y0 internal DSL code."""
-        mark = "+" if self.star else "-"
-        return f"{mark}{self.name}"
-
 
 @dataclass(frozen=True, order=True, repr=False)
 class CounterfactualVariable(Variable):
@@ -407,29 +402,31 @@ class CounterfactualVariable(Variable):
         :returns: A latex representation of this counterfactual variable
 
         >>> (Variable('X') @ Variable('Y')).to_latex()
-        '{X}_{Y}'
+        'X_{Y^{-}}'
         >>> (Variable('X1') @ Variable('Y')).to_latex()
-        '{X_1}_{Y}'
+        '{X_{1}}_{Y^{-}}'
         >>> (Variable('X12') @ Variable('Y')).to_latex()
-        '{X_{12}}_{Y}'
+        '{X_{12}}_{Y^{-}}'
+        >>> (+Variable('X') @ Variable('Y')).to_latex()
+        'X^{+}_{Y^{-}}'
+        >>> (+Variable('X1') @ Variable('Y')).to_latex()
+        '{X_{1}}^{+}_{Y^{-}}'
+        >>> (+Variable('X12') @ Variable('Y')).to_latex()
+        '{X_{12}}^{+}_{Y^{-}}'
+        >>> (+Variable('X12') @ Variable('Y') @ Variable('Z')).to_latex()
+        '{X_{12}}^{+}_{Y^{-}, Z^{-}}'
         """
         intervention_latex = _list_to_latex(_sort_interventions(self.interventions))
-        prefix = "^*" if self.star else ""
-        return f"{{{super().to_latex()}}}{prefix}_{{{intervention_latex}}}"
+        return f"{super().to_latex()}_{{{intervention_latex}}}"
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
-        if self.star is None:
-            prefix = ""
-        elif self.star:
-            prefix = "+"
-        else:
-            prefix = "-"
+        sign = self._get_sign()
         if len(self.interventions) == 1:
-            return f"{prefix}{self.name} @ {list(self.interventions)[0].to_y0()}"
+            return f"{sign}{self.name} @ {list(self.interventions)[0].to_y0()}"
         else:
             ins = ", ".join(i.to_y0() for i in _sort_interventions(self.interventions))
-            return f"{prefix}{self.name} @ ({ins})"
+            return f"{sign}{self.name} @ ({ins})"
 
     def is_event(self) -> bool:
         """Return if the counterfactual variable has a value."""
@@ -1706,7 +1703,7 @@ class PopulationProbability(Probability):
         """Output this probability instance as y0 internal DSL code."""
         interventions, unintervened_distribution = self._help_level_2_distribution()
         if not interventions:
-            return f"P({self.distribution.to_y0()})"
+            return f"PP[{self.population.to_y0()}]({self.distribution.to_y0()})"
 
         # only keep the + if necessary, otherwise show regular
         intervention_str = ",".join(
@@ -1714,6 +1711,10 @@ class PopulationProbability(Probability):
             for intervention in interventions
         )
         return f"PP[{self.population.to_y0()}][{intervention_str}]({unintervened_distribution.to_y0()})"
+
+    def to_text(self) -> str:
+        """Output this probability in the internal string format."""
+        return f"PP[{self.population.to_text()}]({self.distribution.to_text()})"
 
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
