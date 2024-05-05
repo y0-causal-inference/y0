@@ -1,10 +1,11 @@
 """Unused functions implemented for CFT."""
 
+import unittest
 from collections import defaultdict
 from typing import Collection
 
-from y0.algorithm.transport import create_transport_diagram
-from y0.dsl import Intervention, Variable
+from y0.algorithm.transport import create_transport_diagram, transport_variable
+from y0.dsl import Intervention, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 
@@ -148,3 +149,65 @@ def make_selection_diagrams(
     )
     # Note Figure 2(b) in [correa22a]_
     return selection_diagrams
+
+
+#: From [correa22a]_, Figure 2a.
+figure_2a_graph = NxMixedGraph.from_edges(
+    directed=[
+        (Z, X),
+        (Z, Y),
+        (X, Y),
+        (X, W),
+        (W, Y),
+    ],
+    undirected=[(Z, X), (W, Y)],
+)
+
+
+class TestMakeSelectionDiagrams(unittest.TestCase):
+    """Test the results of creating a list of domain selection diagrams."""
+
+    def test_make_selection_diagrams(self):
+        """Produce Figure 2(a), Figure 3(a), and Figure 3(b) of [correa22a]_.
+
+        Note that although Correa and Bareinboim describe this set of diagrams
+        in the text preceding Example 3.1
+        """
+        selection_nodes = {1: {Z}, 2: {W}}
+        selection_diagrams = make_selection_diagrams(
+            selection_nodes=selection_nodes, graph=figure_2a_graph
+        )
+        expected_domain_1_graph = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (Z, Y),
+                (X, Y),
+                (X, W),
+                (W, Y),
+                (
+                    transport_variable(Z),
+                    Z,
+                ),
+            ],
+            undirected=[(Z, X), (W, Y)],
+        )
+        expected_domain_2_graph = NxMixedGraph.from_edges(
+            directed=[
+                (Z, X),
+                (Z, Y),
+                (X, Y),
+                (X, W),
+                (W, Y),
+                (
+                    transport_variable(W),
+                    W,
+                ),
+            ],
+            undirected=[(Z, X), (W, Y)],
+        )
+        expected_selection_diagrams = [
+            (0, figure_2a_graph),
+            (1, expected_domain_1_graph),
+            (2, expected_domain_2_graph),
+        ]
+        self.assertCountEqual(selection_diagrams, expected_selection_diagrams)

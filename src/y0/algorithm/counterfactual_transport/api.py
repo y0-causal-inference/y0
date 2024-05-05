@@ -14,11 +14,6 @@ from typing import Collection, NamedTuple
 
 from networkx import is_directed_acyclic_graph
 
-from y0.algorithm.cft_ancestral import (
-    get_ancestors_of_counterfactual,
-    get_ancestral_components,
-    minimize_counterfactual,
-)
 from y0.algorithm.tian_id import compute_c_factor, identify_district_variables
 from y0.algorithm.transport import is_transport_node, transport_variable
 from y0.dsl import (
@@ -39,6 +34,12 @@ from y0.dsl import (
     Zero,
 )
 from y0.graph import NxMixedGraph
+
+from .ancestor_utils import (
+    get_ancestors_of_counterfactual,
+    get_ancestral_components,
+    minimize_counterfactual,
+)
 
 __all__ = [
     # TODO do a proper audit of which of these a user should ever have to import

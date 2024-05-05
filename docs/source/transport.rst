@@ -5,5 +5,5 @@ Transport
 
 Counterfactual Transport
 ========================
-.. automodule:: y0.algorithm.counterfactual_transportability
+.. automodule:: y0.algorithm.counterfactual_transport
     :members:

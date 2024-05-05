@@ -17,7 +17,7 @@ from collections import defaultdict
 from networkx import NetworkXError
 
 from tests.test_algorithm import cases
-from y0.algorithm.cft_ancestral import (
+from y0.algorithm.counterfactual_transport.ancestor_utils import (
     _compute_ancestral_components_from_ancestral_sets,
     _get_ancestral_set_after_intervening_on_conditioned_variables,
     _get_conditioned_variables_in_ancestral_set,
@@ -28,8 +28,7 @@ from y0.algorithm.cft_ancestral import (
     get_ancestral_components,
     get_base_variables,
 )
-from y0.algorithm.cft_unused import make_selection_diagrams
-from y0.algorithm.counterfactual_transportability import (
+from y0.algorithm.counterfactual_transport.api import (
     _any_inconsistent_intervention_values,
     _any_variable_values_inconsistent_with_interventions,
     _any_variables_with_inconsistent_values,
@@ -1070,55 +1069,6 @@ class TestIsCounterfactualFactorForm(unittest.TestCase):
         # Check that P(Y_y) is not in counterfactual factor form
         event7 = {(Y @ (-Z, -W, -X, -Y)), (W @ -X)}  # (Y @ -Z @ -W @ -X)
         self.assertFalse(is_counterfactual_factor_form(event=event7, graph=figure_2a_graph))
-
-
-class TestMakeSelectionDiagrams(unittest.TestCase):
-    """Test the results of creating a list of domain selection diagrams."""
-
-    def test_make_selection_diagrams(self):
-        """Produce Figure 2(a), Figure 3(a), and Figure 3(b) of [correa22a]_.
-
-        Note that although Correa and Bareinboim describe this set of diagrams
-        in the text preceding Example 3.1
-        """
-        selection_nodes = {1: {Z}, 2: {W}}
-        selection_diagrams = make_selection_diagrams(
-            selection_nodes=selection_nodes, graph=figure_2a_graph
-        )
-        expected_domain_1_graph = NxMixedGraph.from_edges(
-            directed=[
-                (Z, X),
-                (Z, Y),
-                (X, Y),
-                (X, W),
-                (W, Y),
-                (
-                    transport_variable(Z),
-                    Z,
-                ),
-            ],
-            undirected=[(Z, X), (W, Y)],
-        )
-        expected_domain_2_graph = NxMixedGraph.from_edges(
-            directed=[
-                (Z, X),
-                (Z, Y),
-                (X, Y),
-                (X, W),
-                (W, Y),
-                (
-                    transport_variable(W),
-                    W,
-                ),
-            ],
-            undirected=[(Z, X), (W, Y)],
-        )
-        expected_selection_diagrams = [
-            (0, figure_2a_graph),
-            (1, expected_domain_1_graph),
-            (2, expected_domain_2_graph),
-        ]
-        self.assertCountEqual(selection_diagrams, expected_selection_diagrams)
 
 
 class TestMinimizeEvent(cases.GraphTestCase):

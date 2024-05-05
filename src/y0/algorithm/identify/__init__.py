@@ -28,7 +28,7 @@ Algorithm                                      Implementation
 =============================================  ============================================
 Surrogate Outcomes [tikka2018]_                :mod:`y0.algorithm.transport`
 Transportability [correa2020]_                 :mod:`y0.algorithm.transport`
-Counterfactual Transportability [correa2022]_  :mod:`y0.algorithm.counterfactual_transportability`
+Counterfactual Transportability [correa2022]_  :mod:`y0.algorithm.counterfactual_transport`
 =============================================  ============================================
 
 .. [shpitser2006] `Identification of joint interventional distributions in recursive semi-Markovian
