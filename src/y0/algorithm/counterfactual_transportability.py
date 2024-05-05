@@ -32,13 +32,13 @@ from y0.dsl import (
     P,
     Population,
     PopulationProbability,
+    Probability,
     Product,
     Sum,
     Variable,
     Zero,
-    Probability,
 )
-from y0.graph import NxMixedGraph, _LatexStr
+from y0.graph import NxMixedGraph
 
 __all__ = [
     # TODO do a proper audit of which of these a user should ever have to import
@@ -72,22 +72,23 @@ EventItem = tuple[Variable, Intervention | None]
 Event = list[EventItem]
 
 
-
 def event_to_probability(event: Event) -> Probability:
     """Turn an event list into a probability object."""
-    values = []
+    values: list[Variable] = []
     for variable, value in event:
         if variable.star is not None:
             raise ValueError("events can not have star values for the variable")
+        star = None if value is None else value.star
         if isinstance(variable, CounterfactualVariable):
-            new_variable = CounterfactualVariable(
-                name=variable.name,
-                star=value.star,
-                interventions=variable.interventions,
+            values.append(
+                CounterfactualVariable(
+                    name=variable.name,
+                    star=star,
+                    interventions=variable.interventions,
+                )
             )
         else:
-            new_variable = Variable(name=variable.name, star=value.star)
-        values.append(new_variable)
+            values.append(Variable(name=variable.name, star=star))
     return Probability.safe(values)
 
 
