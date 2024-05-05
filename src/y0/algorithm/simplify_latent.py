@@ -50,7 +50,7 @@ def evans_simplify(
     if latents is not None:
         latents = _ensure_set(latents)
         for node, data in lv_dag.nodes(data=True):
-            if Variable(node) in latents:
+            if node in latents:
                 data[tag] = True
     simplify_results = simplify_latent_dag(lv_dag, tag=tag)
     return NxMixedGraph.from_latent_variable_dag(simplify_results.graph, tag=tag)
@@ -69,6 +69,8 @@ def simplify_latent_dag(graph: nx.DiGraph, *, tag: Optional[str] = None) -> Simp
     """Apply Robin Evans' four rules in succession, in place from [evans2012]_ and [evans2016]_."""
     if tag is None:
         tag = DEFAULT_TAG
+
+    _assert_variable_nodes(graph)
 
     _ = transform_latents_with_parents(graph, tag=tag)
     _, widows = remove_widow_latents(graph, tag=tag)
@@ -213,6 +215,7 @@ def remove_redundant_latents(
     :param tag: The tag for which variables are latent
     :returns: The graph, modified in place
     """
+    _assert_variable_nodes(graph)
     remove = set(_iter_redundant_latents(graph, tag=tag))
     graph.remove_nodes_from(remove)
     return graph, remove
@@ -229,3 +232,12 @@ def _iter_redundant_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> 
         elif left_children < right_children:
             # if left's children are a proper subset of right's children, we don't need left
             yield left
+
+
+def _assert_variable_nodes(graph: nx.DiGraph) -> None:
+    """Assert that all nodes in the graph are variables."""
+    for node in graph.nodes:
+        if not isinstance(node, Variable):
+            raise TypeError(
+                f"latent variable dags must contain Variable objects as nodes. Got {type(node)}"
+            )
