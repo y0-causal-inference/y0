@@ -88,14 +88,18 @@ class TestCanonicalize(unittest.TestCase):
         # self.assert_canonicalize(One(), Sum(One(), ()), ())
         self.assert_canonicalize(One(), Product.safe(One()), ())
         self.assert_canonicalize(One(), Product.safe([One()]), ())
-        self.assert_canonicalize(One(), Product((One(), One())), ())
+        with self.assertRaises(ValueError):
+            Product(frozenset((One(), One())))
+        with self.assertRaises(ValueError):
+            Product(frozenset((Zero(), Zero())))
         self.assert_canonicalize(Zero(), Sum.safe(Zero(), (A,)), [A])
         self.assert_canonicalize(Zero(), Product.safe(Zero()), ())
         self.assert_canonicalize(Zero(), Product.safe([Zero()]), ())
-        self.assert_canonicalize(Zero(), Product((P(A), Product((P(B), Zero())))), [A, B])
-        self.assert_canonicalize(Zero(), Product((Zero(), Zero())), ())
-        self.assert_canonicalize(P(A), Product((One(), P(A))), [A])
-        self.assert_canonicalize(Zero(), Product((Zero(), One(), P(A))), [A])
+        self.assert_canonicalize(
+            Zero(), Product(frozenset((P(A), Product(frozenset((P(B), Zero())))))), [A, B]
+        )
+        self.assert_canonicalize(P(A), Product(frozenset((One(), P(A)))), [A])
+        self.assert_canonicalize(Zero(), Product(frozenset((Zero(), One(), P(A)))), [A])
 
         # Sum
         expected = expression = Sum[R](P(A))
@@ -114,10 +118,10 @@ class TestCanonicalize(unittest.TestCase):
         # Nested product
         expected = P(A) * P(B) * P(C)
         for b, c in itt.permutations((P(B), P(C))):
-            expression = Product((P(A), Product((b, c))))
+            expression = Product(frozenset((P(A), Product(frozenset((b, c))))))
             self.assert_canonicalize(expected, expression, [A, B, C])
 
-            expression = Product((Product((P(A), b)), c))
+            expression = Product(frozenset((Product(frozenset((P(A), b))), c)))
             self.assert_canonicalize(expected, expression, [A, B, C])
 
         # Sum with simple product (only atomic)
