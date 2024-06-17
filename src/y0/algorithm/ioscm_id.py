@@ -76,3 +76,53 @@ def get_consolidated_district(
         The set of consolidated districts for the variables in $B$.
     """
     raise NotImplementedError
+
+
+def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
+    r"""Return one possible assembling pseudo-topological order ("apt-order") for the vertices in a graph.
+
+    See Definition 9.2 of [forré20a].
+
+    :math: Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. An assembling
+    pseudo-topological order (apt-order) of $G$ is a total order $\lt$ on $V$ with the following two properties:
+
+    1. For every $v, w \in V$ we have:
+
+       $w \in \text{Anc}^{G}(v) \backslash \text{Sc}^{G}(v) \Longrightarrow w \lt v$.
+
+    2. For every $v_1, v_2, w \in V$ we have:
+
+      $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in \text{Sc}^{G}(v_1)$.
+
+    :param graph:
+        The corresponding graph.
+    :returns:
+        An apt-order for the vertices in $G$.
+    """
+    raise NotImplementedError
+
+
+def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
+    r"""Verify that a list of vertices is a possible assembling pseudo-topological order ("apt-order") for a graph.
+
+    See Definition 9.2 of [forré20a].
+
+    :math: Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. An assembling
+    pseudo-topological order (apt-order) of $G$ is a total order $\lt$ on $V$ with the following two properties:
+
+    1. For every $v, w \in V$ we have:
+
+       $w \in \text{Anc}^{G}(v) \backslash \text{Sc}^{G}(v) \Longrightarrow w \lt v$.
+
+    2. For every $v_1, v_2, w \in V$ we have:
+
+      $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in \text{Sc}^{G}(v_1)$.
+
+    :param order:
+        The candidate apt-order.
+    :param graph:
+        The corresponding graph.
+    :returns:
+        True if the candidate apt-order is a possible apt-order for the graph, False otherwise.
+    """
+    raise NotImplementedError

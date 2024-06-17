@@ -10,9 +10,11 @@
 import unittest
 
 from y0.algorithm.ioscm_id import (
+    get_apt_order,
     get_consolidated_district,
     get_strongly_connected_component,
     get_vertex_consolidated_district,
+    is_apt_order,
 )
 from y0.dsl import (  # Fraction,; One,; P,; Pi1,; Pi2,; Product,; Sum,; Zero,; Intervention,; Variable,
     R,
@@ -105,3 +107,33 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
         self.assertSetEqual(result_2, frozenset(frozenset({X, W, Z, R})))
         result_3 = get_consolidated_district(simple_cyclic_graph_2, {X, Y})
         self.assertSetEqual(result_3, frozenset(frozenset({X, W, R, Z}), frozenset({Y})))
+
+
+class TestAptOrder(unittest.TestCase):
+    """Test retrieving an apt-order for a graph G."""
+
+    # TODO: Implement type checking on the graph and the input variable.
+    # TODO: Also check that we can't pass in multiple vertices or an empty graph.
+    # TODO: Add more tests.
+
+    def test_get_apt_order_1(self):
+        """First test for getting an assembling pseudo-topological order for a graph."""
+        result_1 = get_apt_order(simple_cyclic_graph_1)
+        # TODO: The function may return something else: revisit during testing
+        self.assertListEqual(result_1, [R, X, W, Z, Y])
+
+    def test_is_apt_order_1(self):
+        """First test for verifying an assembling pseudo-topological order for a graph."""
+        self.assertTrue(is_apt_order([R, X, W, Z, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, X, Z, W, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, W, X, Z, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, W, Z, X, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, Z, X, W, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, Z, W, X, Y], simple_cyclic_graph_1))
+        self.assertFalse(is_apt_order([Y, Z, W, X, R], simple_cyclic_graph_1))
+        self.assertFalse(is_apt_order([Y, Z, W, R, X], simple_cyclic_graph_1))
+        self.assertFalse(is_apt_order([Y, Z, X, R, W], simple_cyclic_graph_1))
+        self.assertFalse(is_apt_order([Y, Z, X, W, R], simple_cyclic_graph_1))
+        self.assertFalse(is_apt_order([Y, Z, R, X, W], simple_cyclic_graph_1))
+        self.assertFalse(is_apt_order([Y, Z, R, W, X], simple_cyclic_graph_1))
+        # TODO: Use itertools.permutations to test every permutation of the vertices for this small graph
