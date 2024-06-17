@@ -2608,8 +2608,8 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
         )
 
     # 17.
-    conditioned_variables = {variable.get_base() for variable, _ in conditions}
-    outcome_variables = {variable.get_base() for variable, _ in outcomes}
+    # conditioned_variables = {variable.get_base() for variable, _ in conditions}
+    # outcome_variables = {variable.get_base() for variable, _ in outcomes}
     # if conditioned_variables.intersection(outcome_variables) != set():
     #    raise NotImplementedError(
     #        "In _validate_transport_conditional_counterfactual_query_input: currently this "
