@@ -110,6 +110,8 @@ def identify_district_variables(
         logger.debug("   Returning Q value: " + rv.to_latex())
     elif ancestral_set == input_district:
         logger.debug("In identify_district_variables: A = T. Returning None (i.e., FAIL).")
+        logger.debug("   A = " + str(input_district))
+        logger.debug("   T = " + str(ancestral_set))
         rv = None
     elif input_variables.issubset(ancestral_set) and ancestral_set.issubset(input_district):
         ancestral_set_subgraph = graph.subgraph(vertices=ordered_ancestral_set)
@@ -131,14 +133,14 @@ def identify_district_variables(
                 graph_topo=topo,
             )
         elif isinstance(district_probability, Probability):
-            # logger.debug(
-            #    "About to get ancestral_set_probability. district_probability = "
-            #    + district_probability.to_latex()
-            # )
-            # logger.debug(
-            #    "   Is the district_probability a PopulationProbability? "
-            #    + str(isinstance(district_probability, PopulationProbability))
-            # )
+            logger.debug(
+                "About to get ancestral_set_probability. district_probability = "
+                + district_probability.to_latex()
+            )
+            logger.debug(
+                "   Is the district_probability a PopulationProbability? "
+                + str(isinstance(district_probability, PopulationProbability))
+            )
             if isinstance(district_probability, PopulationProbability):
                 ancestral_set_probability = PopulationProbability(
                     population=district_probability.population,
@@ -150,32 +152,32 @@ def identify_district_variables(
                     ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
                     | district_probability.parents
                 )
-            # logger.debug(
-            #    "Got ancestral_set_probability. Result = " + ancestral_set_probability.to_latex()
-            # )
+            logger.debug(
+                "Got ancestral_set_probability. Result = " + ancestral_set_probability.to_latex()
+            )
         else:
             raise TypeError(
                 "In identify_district_variables: the district probability is an expression of an unknown type."
             )
         # Get Q[T'] by Lemma 4 or Lemma 1
-        # logger.debug(
-        #    "In identify_district_variables: about to call _compute_c_factor. Subgraph_probability = "
-        #    + ancestral_set_probability.to_latex()
-        # )
+        logger.debug(
+            "In identify_district_variables: about to call _compute_c_factor. Subgraph_probability = "
+            + ancestral_set_probability.to_latex()
+        )
         targeted_ancestral_set_subgraph_district_probability = compute_c_factor(
             district=targeted_ancestral_set_subgraph_district,
             subgraph_variables=ancestral_set,
             subgraph_probability=ancestral_set_probability,
             graph_topo=topo,
         )
-        # logger.debug(
-        #    "In identify_district_variables: about to recursively call identify_district_variables."
-        # )
-        # logger.debug("    C = " + str(input_variables))
-        # logger.debug("    T' = " + str(targeted_ancestral_set_subgraph_district))
-        # logger.debug("    Q[T'] =" + str(targeted_ancestral_set_subgraph_district_probability))
-        # logger.debug("    graph nodes = " + str(list(graph.nodes())))
-        # logger.debug("    topo = " + str(topo))
+        logger.debug(
+            "In identify_district_variables: about to recursively call identify_district_variables."
+        )
+        logger.debug("    C = " + str(input_variables))
+        logger.debug("    T' = " + str(targeted_ancestral_set_subgraph_district))
+        logger.debug("    Q[T'] =" + str(targeted_ancestral_set_subgraph_district_probability))
+        logger.debug("    graph nodes = " + str(list(graph.nodes())))
+        logger.debug("    topo = " + str(topo))
         rv = identify_district_variables(
             input_variables=input_variables,
             input_district=targeted_ancestral_set_subgraph_district,
@@ -183,10 +185,10 @@ def identify_district_variables(
             graph=graph,
             topo=topo,
         )
-        # logger.debug(
-        #    "In identify_district_variables: returned from recursive call to identify_district_variables."
-        # )
-        # logger.debug("    Return value = " + str(rv))
+        logger.debug(
+            "In identify_district_variables: returned from recursive call to identify_district_variables."
+        )
+        logger.debug("    Return value = " + str(rv))
     else:
         raise NotImplementedError
     return rv
@@ -229,13 +231,13 @@ def compute_c_factor_conditioning_on_topological_predecessors(
     """
     # (Topological sort is O(V+E): https://stackoverflow.com/questions/31010922/)
     variables = set(topo)
-    # logger.debug(
-    #    "In _compute_c_factor_conditioning_on_topological_predecessors: topo = " + str(topo)
-    # )
-    # logger.debug(
-    #    "In _compute_c_factor_conditioning_on_topological_predecessors: graph_probability = "
-    #    + graph_probability.to_latex()
-    # )
+    logger.debug(
+        "In _compute_c_factor_conditioning_on_topological_predecessors: topo = " + str(topo)
+    )
+    logger.debug(
+        "In _compute_c_factor_conditioning_on_topological_predecessors: graph_probability = "
+        + graph_probability.to_latex()
+    )
 
     if len(district) == 0 or len(variables) == 0:
         raise TypeError(
@@ -263,13 +265,13 @@ def compute_c_factor_conditioning_on_topological_predecessors(
                 ),
             )
             population_probabilities.append(pp)
-            # logger.debug(
-            #    "In _compute_c_factor_conditioning_on_topological_predecessors: returning "
-            #    + str(Product.safe(population_probabilities))
-            # )
-            # logger.debug(
-            #    "Return value in Latex form is " + Product.safe(population_probabilities).to_latex()
-            # )
+            logger.debug(
+                "In _compute_c_factor_conditioning_on_topological_predecessors: returning "
+                + str(Product.safe(population_probabilities))
+            )
+            logger.debug(
+                "Return value in Latex form is " + Product.safe(population_probabilities).to_latex()
+            )
         return Product.safe(population_probabilities)
     else:
         probabilities = []
@@ -282,11 +284,11 @@ def compute_c_factor_conditioning_on_topological_predecessors(
             conditioned_variables = graph_probability_parents.union(preceding_variables)  # V^(i-1)
             probability = P(variable | conditioned_variables)  # v_i
             probabilities.append(probability)
-        # logger.debug(
-        #    "In _compute_c_factor_conditioning_on_topological_predecessors: returning "
-        #    + str(Product.safe(probabilities))
-        # )
-        # logger.debug("Return value in Latex form is " + Product.safe(probabilities).to_latex())
+        logger.debug(
+            "In _compute_c_factor_conditioning_on_topological_predecessors: returning "
+            + str(Product.safe(probabilities))
+        )
+        logger.debug("Return value in Latex form is " + Product.safe(probabilities).to_latex())
         return Product.safe(probabilities)
 
 
@@ -329,12 +331,12 @@ def compute_q_value_of_variables_with_low_topological_ordering_indices(
     if vertex is None:
         return One()
     variables = set(topo)
-    # logger.debug(
-    #    "In _compute_q_value_of_variables_with_low_topological_ordering_indices: input vertex is "
-    #    + str(vertex)
-    # )
-    # logger.debug("   and variables are " + str(variables))
-    # logger.debug("   and topo is " + str(topo))
+    logger.debug(
+        "In _compute_q_value_of_variables_with_low_topological_ordering_indices: input vertex is "
+        + str(vertex)
+    )
+    logger.debug("   and variables are " + str(variables))
+    logger.debug("   and topo is " + str(topo))
     if vertex not in variables:
         raise KeyError(
             "In _compute_q_value_of_variables_with_low_topological_ordering_indices: input vertex "
@@ -394,15 +396,15 @@ def compute_c_factor_marginalizing_over_topological_successors(
 
     expressions = []
     for _, vertex in enumerate(district):
-        # logger.debug("In Lemma 4(ii): vertex = " + str(vertex))
+        logger.debug("In Lemma 4(ii): vertex = " + str(vertex))
         index = topo.index(vertex)
         expression = _get_expression_from_index(index)
         expressions.append(expression)
-        # logger.debug("\nIndex = %d, Q[H^(i)] = %s", index, expression)
+        logger.debug("\nIndex = %d, Q[H^(i)] = %s", index, expression)
 
     rv = Product.safe(expressions)
     # TODO: We can simplify this product by cancelling terms in the numerator and denominator.
-    # logger.debug("Returning product: %s", rv)
+    logger.debug("Returning product: %s", rv)
     return rv
 
 
@@ -433,17 +435,17 @@ def compute_c_factor(
     # sort the vertices in H topologically. It is also faster as topological sort is O(V+E) and getting
     # subgraph_topo below is O(V).
     subgraph_topo = [v for v in graph_topo if v in subgraph_variables]
-    # logger.debug("In _compute_c_factor: graph_topo = " + str(graph_topo))
-    # logger.debug("In _compute_c_factor: subgraph_topo = " + str(subgraph_topo))
+    logger.debug("In _compute_c_factor: graph_topo = " + str(graph_topo))
+    logger.debug("In _compute_c_factor: subgraph_topo = " + str(subgraph_topo))
     if isinstance(subgraph_probability, (Fraction, Product, Sum)):
-        # logger.debug(
-        #    "In _compute_c_factor: calling _compute_c_factor_marginalizing_over_topological_successors"
-        # )
+        logger.debug(
+            "In _compute_c_factor: calling _compute_c_factor_marginalizing_over_topological_successors"
+        )
         # Lemma 4
         rv = compute_c_factor_marginalizing_over_topological_successors(
             district=district, graph_probability=subgraph_probability, topo=subgraph_topo
         )
-        # logger.debug("Returning from _compute_c_factor: " + str(rv))
+        logger.debug("Returning from _compute_c_factor: " + str(rv))
         return rv
     if not isinstance(subgraph_probability, Probability):
         raise TypeError(

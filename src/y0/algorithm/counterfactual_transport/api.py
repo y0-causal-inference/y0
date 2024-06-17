@@ -2610,13 +2610,13 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     # 17.
     conditioned_variables = {variable.get_base() for variable, _ in conditions}
     outcome_variables = {variable.get_base() for variable, _ in outcomes}
-    if conditioned_variables.intersection(outcome_variables) != set():
-        raise NotImplementedError(
-            "In _validate_transport_conditional_counterfactual_query_input: currently this "
-            + "algorithm does not allow for the conditioned and outcome variables to share common"
-            + " vertices. Overlapping graph vertices (i.e., without their interventions): "
-            + str(conditioned_variables.intersection(outcome_variables))
-        )
+    # if conditioned_variables.intersection(outcome_variables) != set():
+    #    raise NotImplementedError(
+    #        "In _validate_transport_conditional_counterfactual_query_input: currently this "
+    #        + "algorithm does not allow for the conditioned and outcome variables to share common"
+    #        + " vertices. Overlapping graph vertices (i.e., without their interventions): "
+    #        + str(conditioned_variables.intersection(outcome_variables))
+    #    )
 
     # Check we have no empty inputs (Algorithms 2, 3, and 4)
     # 7.

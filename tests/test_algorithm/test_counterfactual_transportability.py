@@ -1019,6 +1019,7 @@ class TestSimplify(cases.GraphTestCase):
         event_12 = [(Y @ +Y, +Y), (Y, +Y)]
         event_13 = [(Y, -Y)]
         event_14 = [(Y, +Y)]
+        event_15 = [(Y @ [-W, -Y], -Y), (Y, -Y)]
         # event_15 = [(Y, -Y),(Y, +Y)]
         # The reason event_1 can safely simplify to an intervention is that An(Y_y) == An(Y) (Algorithm 2, Line 2).
         self.assertCountEqual(simplify(event=event_1, graph=figure_2a_graph), [(Y, -Y)])
@@ -1035,6 +1036,7 @@ class TestSimplify(cases.GraphTestCase):
         self.assertCountEqual(simplify(event=event_12, graph=figure_2a_graph), [(Y, +Y)])
         self.assertCountEqual(simplify(event=event_13, graph=figure_2a_graph), [(Y, -Y)])
         self.assertCountEqual(simplify(event=event_14, graph=figure_2a_graph), [(Y, +Y)])
+        self.assertCountEqual(simplify(event=event_15, graph=figure_2a_graph), [(Y, -Y)])
 
 
 class TestIsCounterfactualFactorForm(unittest.TestCase):
@@ -6053,3 +6055,46 @@ class TestMergeFrozenSetsWithCommonElements(cases.GraphTestCase):
         self.assertSetEqual(result_2, frozenset([X]))
         test_3_input = frozenset([])
         self.assertSetEqual(get_base_variables(test_3_input), frozenset([]))
+
+
+class TestConditionalCounterfactualTransportabilityEdgeCases(cases.GraphTestCase):
+    """Test a few edge cases dealing with different ways to condition on an outcome variable."""
+
+    def test_conditional_counterfactual_transportability_edge_cases_1(self):
+        r"""Test an edge case for counterfactual outcome variables.
+
+        For this case we have a nonreflexive outcome counterfactual variable conditioned
+        on a second nonreflexive outcome counterfactual variable.
+
+        Source: JZ
+        """
+        conditions = [(Y @ -X, -Y)]
+        outcomes = [(Y @ -W, -Y)]
+        domain_data = [(set(), PP[TARGET_DOMAIN](W, X, Y, Z))]
+        domain_graphs = [
+            (
+                figure_2a_graph,
+                figure_2a_graph.topological_sort(),
+            ),
+        ]
+        self.assertRaises(
+            NotImplementedError,
+            transport_conditional_counterfactual_query,
+            outcomes=outcomes,
+            conditions=conditions,
+            target_domain_graph=figure_2a_graph,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        # Once we implement the case for which we can condition on outcome base variables,
+        # the below should pass:
+        # expected_result_expr, _ = (Zero(), None)
+        # result_expr, result_event = transport_conditional_counterfactual_query(
+        #    outcomes=outcomes,
+        #    conditions=conditions,
+        #    target_domain_graph=figure_2a_graph,
+        #    domain_graphs=domain_graphs,
+        #    domain_data=domain_data,
+        # )
+        # self.assert_expr_equal(result_expr, expected_result_expr)
+        # self.assertIsNone(result_event)
