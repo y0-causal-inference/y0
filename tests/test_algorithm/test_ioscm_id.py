@@ -66,6 +66,7 @@ class TestGetStronglyConnectedComponent(unittest.TestCase):
         self.assertSetEqual(result_2, {R})
         result_3 = get_strongly_connected_component(simple_cyclic_graph_1, Y)
         self.assertSetEqual(result_3, {Y})
+        #self.assertSetEqual(result_3, {R})
 
 
 class TestGetConsolidatedDistrict(unittest.TestCase):

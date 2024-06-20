@@ -6,10 +6,27 @@
 .. [forré20b] http://proceedings.mlr.press/v115/forre20a/forre20a-supp.pdf
 """
 
+import logging
 from typing import Collection
+
+import networkx as nx
 
 from y0.dsl import Variable  # P,; R,; W,; X,; Y,; Z,
 from y0.graph import NxMixedGraph
+
+__all__ = [
+    # TODO do a proper audit of which of these a user should ever have to import
+    # Utilities
+    "get_strongly_connected_component",
+    "get_vertex_consolidated_district",
+    "get_consolidated_district",
+    "get_apt_order",
+    "is_apt_order",
+    # TODO add functions/classes/variables you want to appear in the docs and be exposed to the user in this list
+    #  Run tox -e docs then `open docs/build/html/index.html` to see docs
+]
+
+logger = logging.getLogger(__name__)
 
 
 def get_strongly_connected_component(graph: NxMixedGraph, v: Variable) -> set[Variable]:
@@ -25,7 +42,16 @@ def get_strongly_connected_component(graph: NxMixedGraph, v: Variable) -> set[Va
     :returns:
         The set of variables comprising the strongly connected component $\text{Sc}^{G}(v)$.
     """
-    raise NotImplementedError
+    #ancestors = graph.ancestors_inclusive(v)
+    #descendents = graph.descendants_inclusive(v)
+    #logger.warning(f"In get_strongly_connected_component: ancestors = {str(ancestors)}")
+    #logger.warning(f"In get_strongly_connected_component: descendents = {str(descendents)}")
+    #result = ancestors.intersection(descendents)
+    #logger.warning(f"In get_strongly_connected_component: returning {str(result)}")
+    # TODO: It might be faster to use strongly_connected_components:
+    #return result
+    # https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.components.strongly_connected_components.html#networkx.algorithms.components.strongly_connected_components
+    return graph.ancestors_inclusive(v).intersection(graph.descendants_inclusive(v))
 
 
 def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozenset[Variable]:
@@ -50,6 +76,11 @@ def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozen
     :returns:
         The set of variables comprising $\text{Cd}^{G}(v)$.
     """
+    # Strategy:
+    # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
+    # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
+    # 3. Get the district for the new graph that contains the target vertex in question using get_district().
+    # 4. Return the resulting set.
     raise NotImplementedError
 
 
@@ -75,7 +106,22 @@ def get_consolidated_district(
     :returns:
         The set of consolidated districts for the variables in $B$.
     """
+    # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
+    # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
+    # 3. Get all the consolidated districts.
+    # 4. Return the resulting set.
     raise NotImplementedError
+
+
+# Utility function
+def _convert_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph:
+    r"""Replace every edge in a strongly-connected component with a bidirected edge."""
+    # undirected: nx.Graph = field(default_factory=nx.Graph)
+
+    sccs = nx.connected_components(graph.undirected)
+    logger.warning(f"In _convert_strongly_connected_components: graph = {str(graph)}")
+    logger.warning(f"In _convert_strongly_connected_components: sccs = {str(sccs)}")
+    return graph  # TODO: Implement the function for real
 
 
 def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
