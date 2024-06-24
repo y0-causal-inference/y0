@@ -10,6 +10,7 @@
 import unittest
 
 from y0.algorithm.ioscm_id import (
+    _convert_strongly_connected_components,
     get_apt_order,
     get_consolidated_district,
     get_strongly_connected_component,
@@ -49,6 +50,24 @@ simple_cyclic_graph_2 = NxMixedGraph.from_edges(
 )
 
 
+class TestConvertStronglyConnectedComponents(unittest.TestCase):
+    """Tests converting strongly connected components in a graph to bidirected edges."""
+
+    def test_convert_strongly_connected_components_1(self):
+        """First test converting strongly connected components in a graph to bidirected edges."""
+        result_1 = _convert_strongly_connected_components(simple_cyclic_graph_1)
+        self.assertSetEqual({edge for edge in result_1.undirected.edges}, {(X, W), (W, Z), (X, Z)})
+        self.assertSetEqual({edge for edge in result_1.directed.edges}, {(R, X), (W, Y)})
+
+    def test_convert_strongly_connected_components_2(self):
+        """Second test converting strongly connected components in a graph to bidirected edges."""
+        result_2 = _convert_strongly_connected_components(simple_cyclic_graph_2)
+        self.assertSetEqual(
+            {edge for edge in result_2.undirected.edges}, {(X, R), (X, W), (W, Z), (X, Z)}
+        )
+        self.assertSetEqual({edge for edge in result_2.directed.edges}, {(W, Y)})
+
+
 class TestGetStronglyConnectedComponent(unittest.TestCase):
     """Test retrieving a strongly connected component in a graph with or without cycles."""
 
@@ -66,7 +85,7 @@ class TestGetStronglyConnectedComponent(unittest.TestCase):
         self.assertSetEqual(result_2, {R})
         result_3 = get_strongly_connected_component(simple_cyclic_graph_1, Y)
         self.assertSetEqual(result_3, {Y})
-        #self.assertSetEqual(result_3, {R})
+        # self.assertSetEqual(result_3, {R})
 
 
 class TestGetConsolidatedDistrict(unittest.TestCase):

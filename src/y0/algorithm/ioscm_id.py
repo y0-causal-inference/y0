@@ -6,6 +6,7 @@
 .. [forré20b] http://proceedings.mlr.press/v115/forre20a/forre20a-supp.pdf
 """
 
+import copy
 import logging
 from typing import Collection
 
@@ -17,7 +18,9 @@ from y0.graph import NxMixedGraph
 __all__ = [
     # TODO do a proper audit of which of these a user should ever have to import
     # Utilities
+    "_convert_strongly_connected_components",
     "get_strongly_connected_component",
+    "get_strongly_connected_components",
     "get_vertex_consolidated_district",
     "get_consolidated_district",
     "get_apt_order",
@@ -42,16 +45,38 @@ def get_strongly_connected_component(graph: NxMixedGraph, v: Variable) -> set[Va
     :returns:
         The set of variables comprising the strongly connected component $\text{Sc}^{G}(v)$.
     """
-    #ancestors = graph.ancestors_inclusive(v)
-    #descendents = graph.descendants_inclusive(v)
-    #logger.warning(f"In get_strongly_connected_component: ancestors = {str(ancestors)}")
-    #logger.warning(f"In get_strongly_connected_component: descendents = {str(descendents)}")
-    #result = ancestors.intersection(descendents)
-    #logger.warning(f"In get_strongly_connected_component: returning {str(result)}")
+    # logger.warning(
+    #    f"In get_strongly_connected_component: directed edges = {str(graph.directed.edges)}"
+    # )
+    # logger.warning(
+    #    f"In get_strongly_connected_component: undirected edges = {str(graph.undirected.edges)}"
+    # )
+    # ancestors = graph.ancestors_inclusive(v)
+    # descendents = graph.descendants_inclusive(v)
+    # logger.warning(f"In get_strongly_connected_component: ancestors = {str(ancestors)}")
+    # logger.warning(f"In get_strongly_connected_component: descendents = {str(descendents)}")
+    # result = ancestors.intersection(descendents)
+    # logger.warning(f"In get_strongly_connected_component: returning {str(result)}")
     # TODO: It might be faster to use strongly_connected_components:
-    #return result
+    # return result
     # https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.components.strongly_connected_components.html#networkx.algorithms.components.strongly_connected_components
     return graph.ancestors_inclusive(v).intersection(graph.descendants_inclusive(v))
+
+
+def get_strongly_connected_components(graph: NxMixedGraph) -> set[frozenset[Variable]]:
+    r"""Return the strongly-connected components for a graph.
+
+    :math: The strongly connected component of $v$ in $G$ is defined to be:
+    $\text{Sc}^{G}(v):= \text{Anc}^{G}(v)\cap \text{Desc}^{G}(v)$.
+
+    :param graph:
+        The corresponding graph.
+    :returns:
+        A set of frozen sets of variables comprising $\text{Sc}^{G}(v)$ for all vertices $v$.
+    """
+    return set(
+        frozenset(component) for component in nx.strongly_connected_components(graph.directed)
+    )
 
 
 def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozenset[Variable]:
@@ -76,7 +101,7 @@ def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozen
     :returns:
         The set of variables comprising $\text{Cd}^{G}(v)$.
     """
-    # Strategy:
+    # Strategy: (O(N^2))
     # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
     # 3. Get the district for the new graph that contains the target vertex in question using get_district().
@@ -118,10 +143,30 @@ def _convert_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph:
     r"""Replace every edge in a strongly-connected component with a bidirected edge."""
     # undirected: nx.Graph = field(default_factory=nx.Graph)
 
-    sccs = nx.connected_components(graph.undirected)
-    logger.warning(f"In _convert_strongly_connected_components: graph = {str(graph)}")
+    new_graph = copy.deepcopy(graph)
+
+    sccs: set[frozenset[Variable]] = get_strongly_connected_components(new_graph)
+    # Need a dictionary mapping vertices to strongly connected components. O(V) to create
+    component_dictionary = dict()
+    for component in sccs:
+        for vertex in component:
+            component_dictionary[vertex] = component
+
+    edges_to_convert = set()
+    for edge in new_graph.directed.edges:
+        ego = edge[0]
+        alter = edge[1]
+        if component_dictionary[ego] == component_dictionary[alter]:
+            edges_to_convert.add((ego, alter))
+
+    logger.warning(f"edges_to_convert: {str(edges_to_convert)}")
+    for ego, alter in edges_to_convert:
+        new_graph.directed.remove_edge(ego, alter)
+        new_graph.undirected.add_edge(ego, alter)
+
+    logger.warning(f"In _convert_strongly_connected_components: graph = {str(new_graph)}")
     logger.warning(f"In _convert_strongly_connected_components: sccs = {str(sccs)}")
-    return graph  # TODO: Implement the function for real
+    return new_graph
 
 
 def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
@@ -145,6 +190,16 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
     :returns:
         An apt-order for the vertices in $G$.
     """
+    # Strategy:
+    # 1. Get the strongly-connected components and replace each one with a single vertex.
+    #    An edge going into or out of the strongly-connected component becomes an edge going
+    #    into or out of the representative vertex
+    # 2. Topologically sort the resulting graph
+    # 3. For the vertices in the topologically sorted list associated with strongly-connected components,
+    #    replace each one with a list of vertices in the strongly-connected component in any order
+    # 4. Flatten the resulting list (e.g., [A, B, [C, D], E] -> [A, B, C, D, E])
+    # JZ: Consider not even bothering to add an edge into or out of a strongly connected component
+    #     once it's already been added.
     raise NotImplementedError
 
 
@@ -172,3 +227,13 @@ def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
         True if the candidate apt-order is a possible apt-order for the graph, False otherwise.
     """
     raise NotImplementedError
+    # TODO: Confirm we need the function
+    # Strategy (not sure this is optimal yet):
+    # 1. Get the strongly-connected components
+    # 2. For each strongly-connected component, flag the associated vertices in the input list
+    #    and make sure the vertices are consecutive in the 'order' param
+    # 3. Replace the vertices in 'order' associated with a single strongly-connected component
+    #    by one vertex in that component (with a dictionary mapping the vertex name to the
+    #    set of vertices in the strongly-connected component). An edge going into or out of the
+    #    strongly-connected component becomes an edge going into or out of the representative vertex
+    # 4. Test whether the result is in topologically sorted order
