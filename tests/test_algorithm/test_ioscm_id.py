@@ -6,13 +6,14 @@
 .. [forré20b] http://proceedings.mlr.press/v115/forre20a/forre20a-supp.pdf
 """
 
-# import logging
+import logging
 import unittest
 
 from y0.algorithm.ioscm_id import (
     _convert_strongly_connected_components,
     get_apt_order,
     get_consolidated_district,
+    get_graph_consolidated_districts,
     get_strongly_connected_component,
     get_vertex_consolidated_district,
     is_apt_order,
@@ -48,6 +49,8 @@ simple_cyclic_graph_2 = NxMixedGraph.from_edges(
         (R, X),
     ],
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TestConvertStronglyConnectedComponents(unittest.TestCase):
@@ -98,10 +101,13 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
     def test_get_vertex_consolidated_district_1(self):
         """First test for getting the consolidated district for a single vertex."""
         result_1 = get_vertex_consolidated_district(simple_cyclic_graph_2, X)
+        logger.warning(f"In test_get_vertex_consolidated_district_1: result_1 = {str(result_1)}")
         self.assertSetEqual(result_1, {X, W, Z, R})
         result_2 = get_vertex_consolidated_district(simple_cyclic_graph_2, R)
+        logger.warning(f"In test_get_vertex_consolidated_district_1: result_2 = {str(result_2)}")
         self.assertSetEqual(result_2, {X, W, Z, R})
         result_3 = get_vertex_consolidated_district(simple_cyclic_graph_2, Y)
+        logger.warning(f"In test_get_vertex_consolidated_district_1: result_3 = {str(result_3)}")
         self.assertSetEqual(result_3, {Y})
 
     def test_get_consolidated_district_1(self):
@@ -110,11 +116,14 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
         Testing inputs that are single vertices.
         """
         result_1 = get_consolidated_district(simple_cyclic_graph_2, {X})
-        self.assertSetEqual(result_1, frozenset(frozenset({X, W, Z, R})))
+        logger.warning(f"In test_get_consolidated_district_1: result_1 = {str(result_1)}")
+        self.assertSetEqual(result_1, {X, W, Z, R})
         result_2 = get_consolidated_district(simple_cyclic_graph_2, {R})
-        self.assertSetEqual(result_2, frozenset(frozenset({X, W, Z, R})))
+        logger.warning(f"In test_get_consolidated_district_1: result_2 = {str(result_2)}")
+        self.assertSetEqual(result_2, {X, W, Z, R})
         result_3 = get_consolidated_district(simple_cyclic_graph_2, {Y})
-        self.assertSetEqual(result_3, frozenset(frozenset({Y})))
+        logger.warning(f"In test_get_consolidated_district_1: result_3 = {str(result_3)}")
+        self.assertSetEqual(result_3, {Y})
 
     def test_get_consolidated_district_2(self):
         """Second test for getting the consolidated districts for multiple vertices.
@@ -122,11 +131,23 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
         Testing inputs that are multiple vertices.
         """
         result_1 = get_consolidated_district(simple_cyclic_graph_2, {X, R})
-        self.assertSetEqual(result_1, frozenset(frozenset({X, W, Z, R})))
+        self.assertSetEqual(result_1, {X, W, Z, R})
         result_2 = get_consolidated_district(simple_cyclic_graph_2, {R})
-        self.assertSetEqual(result_2, frozenset(frozenset({X, W, Z, R})))
+        self.assertSetEqual(result_2, {X, W, Z, R})
         result_3 = get_consolidated_district(simple_cyclic_graph_2, {X, Y})
-        self.assertSetEqual(result_3, frozenset(frozenset({X, W, R, Z}), frozenset({Y})))
+        self.assertSetEqual(result_3, {X, W, R, Z, Y})
+
+    def test_get_graph_consolidated_district_1(self):
+        """First test for getting the consolidated districts for a graph."""
+        result_1 = get_graph_consolidated_districts(simple_cyclic_graph_1)
+        logger.warning(f"In test_get_graph_consolidated_district_1: result_1 = {str(result_1)}")
+        self.assertSetEqual(result_1, {frozenset({R}), frozenset({X, W, Z}), frozenset({Y})})
+
+    def test_get_graph_consolidated_district_2(self):
+        """Second test for getting the consolidated districts for a graph."""
+        result_2 = get_graph_consolidated_districts(simple_cyclic_graph_2)
+        logger.warning(f"In test_get_graph_consolidated_district_1: result_2 = {str(result_2)}")
+        self.assertSetEqual(result_2, {frozenset({R, X, W, Z}), frozenset({Y})})
 
 
 class TestAptOrder(unittest.TestCase):

@@ -23,6 +23,7 @@ __all__ = [
     "get_strongly_connected_components",
     "get_vertex_consolidated_district",
     "get_consolidated_district",
+    "get_graph_consolidated_districts",
     "get_apt_order",
     "is_apt_order",
     # TODO add functions/classes/variables you want to appear in the docs and be exposed to the user in this list
@@ -106,13 +107,52 @@ def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozen
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
     # 3. Get the district for the new graph that contains the target vertex in question using get_district().
     # 4. Return the resulting set.
-    raise NotImplementedError
+    converted_graph = _convert_strongly_connected_components(graph)
+    result = converted_graph.get_district(v)
+    return result
 
 
-def get_consolidated_district(
-    graph: NxMixedGraph, v: Collection[Variable]
-) -> frozenset[frozenset[Variable]]:
+def get_consolidated_district(graph: NxMixedGraph, vertices: Collection[Variable]) -> set[Variable]:
     r"""Return the consolidated districts for one or more vertices in a graph.
+
+    See Definition 9.1 of [forré20a].
+
+    :math: Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. Let $v \in V$. The
+    consolidated district $\text{Cd}^{G}(v)$ of $v$ in $G$ is given by all nodes $w \in V$ for which
+    there exist $k \ge 1$ nodes $(v_1,\dots,v_k)$ in $G$ such that $v_1 = v, v_k = w$ and for
+    $i = 2,\dots\,k$ we have that the bidirected edge $v_{i-1} \leftrightarrow v_i$ is in $G$
+    or that $v_i \in \text{Sc}^{G}(v_{i-1})$. For $B \subseteq V$ we write
+    $\text{Cd}^{G}(B) := \bigcup_{v\in B}\text{Cd}^{G}(v)$. Let
+    $\mathcal{CD}(G)$ be the set of consolidated districts of $G$.
+
+    Note: it's not entirely clear from the text whether the return value is meant to be
+    a set of sets of vertices or just a set of vertices. We return a set of vertices in order
+    for the notation to be consistent with Notation 9.4 part 3 and Remark 9.5: in Remark 9.5,
+    the function $\text{Anc}^{G}$ only makes sense when called on a set of vertices, not a
+    set of sets of vertices.
+
+    :param graph:
+        The corresponding graph.
+    :param vertices:
+        The vertex for which the consolidated district is to be retrieved.
+    :returns:
+        The set of consolidated districts for the variables in $B$.
+    """
+    # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
+    # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
+    # 3. Get all the consolidated districts.
+    # 4. Return the union of all of them as one set.
+    converted_graph = _convert_strongly_connected_components(graph)
+    result: set[Variable] = set()
+    for v in vertices:
+        district = converted_graph.get_district(v)
+        if v not in result:
+            result = result.union(district)
+    return result
+
+
+def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Variable]]:
+    r"""Return the set of all consolidated districts in a graph.
 
     See Definition 9.1 of [forré20a].
 
@@ -126,16 +166,21 @@ def get_consolidated_district(
 
     :param graph:
         The corresponding graph.
-    :param v:
-        The vertex for which the consolidated district is to be retrieved.
     :returns:
-        The set of consolidated districts for the variables in $B$.
+        The set of consolidated districts for the graph.
     """
     # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
-    # 3. Get all the consolidated districts.
-    # 4. Return the resulting set.
-    raise NotImplementedError
+    # 3. Get each consolidated district as a frozen set.
+    # 4. Return all of them as a set of frozen sets.
+    converted_graph = _convert_strongly_connected_components(graph)
+    vertices = set(graph.nodes())
+    result: set[frozenset[Variable]] = set()
+    for v in vertices:
+        consolidated_district = frozenset(converted_graph.get_district(v))
+        if v not in result:
+            result.update({consolidated_district})
+    return result
 
 
 # Utility function
