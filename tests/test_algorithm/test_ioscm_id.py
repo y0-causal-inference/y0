@@ -160,7 +160,8 @@ class TestAptOrder(unittest.TestCase):
 
     def test_simplify_strongly_connected_components_1(self):
         """Test a utility function to simplify strongly-connected components for a graph."""
-        result_1 = _simplify_strongly_connected_components(simple_cyclic_graph_1)
+        # TODO: Check the returned dictionaries.
+        result_1, result_1_dict = _simplify_strongly_connected_components(simple_cyclic_graph_1)
         # Make the representative vertex W
         expected_result = NxMixedGraph.from_edges(
             directed=[
@@ -177,7 +178,8 @@ class TestAptOrder(unittest.TestCase):
 
     def test_simplify_strongly_connected_components_2(self):
         """Test a utility function to simplify strongly-connected components for a graph."""
-        result_2 = _simplify_strongly_connected_components(simple_cyclic_graph_2)
+        # TODO: Check the returned dictionaries.
+        result_2, result_2_dict = _simplify_strongly_connected_components(simple_cyclic_graph_2)
         # Make the representative vertex W
         expected_result_2 = NxMixedGraph.from_edges(
             directed=[
@@ -198,8 +200,11 @@ class TestAptOrder(unittest.TestCase):
     def test_get_apt_order_1(self):
         """First test for getting an assembling pseudo-topological order for a graph."""
         result_1 = get_apt_order(simple_cyclic_graph_1)
-        # TODO: The function may return something else: revisit during testing
-        self.assertListEqual(result_1, [R, X, W, Z, Y])
+        self.assertListEqual(result_1, [R, W, X, Z, Y])
+        result_2 = get_apt_order(simple_cyclic_graph_2)
+        # For this second test, R is allowed to occur before W, X, Z as well but it comes after
+        # just based on the way the sorting works out.
+        self.assertListEqual(result_2, [W, X, Z, R, Y])
 
     def test_is_apt_order_1(self):
         """First test for verifying an assembling pseudo-topological order for a graph."""

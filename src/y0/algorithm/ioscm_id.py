@@ -248,10 +248,24 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
     #     once it's already been added.
 
     # 1.
-    raise NotImplementedError
+    new_graph, representative_vertices_to_strongly_connected_components = (
+        _simplify_strongly_connected_components(graph)
+    )
+    sorted_new_graph_vertices: list[Variable] = new_graph.topological_sort()
+    logger.warning(f"In get_apt_order: sorted vertices = {str(sorted_new_graph_vertices)} ")
+    original_list = [
+        sorted(list(representative_vertices_to_strongly_connected_components[v]))
+        for v in sorted_new_graph_vertices
+    ]
+    logger.warning(f"In get_apt_order: original vertex list, not flattened = {str(original_list)}")
+    flattened_list = [v for vs in original_list for v in vs]
+    logger.warning(f"In get_apt_order: flattened output vertex list = {str(flattened_list)}")
+    return flattened_list
 
 
-def _simplify_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph:
+def _simplify_strongly_connected_components(
+    graph: NxMixedGraph,
+) -> tuple[NxMixedGraph, dict[Variable, frozenset[Variable]]]:
     r"""Reduce each strongly-connected component in a directed graph to a single vertex.
 
     This is a helper function for generating the assembling pseudo-topological order for a graph.
@@ -262,7 +276,8 @@ def _simplify_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph
     :param graph:
         The input graph.
     :returns:
-        The simplified graph.
+        The simplified graph and a dictionary mapping vertices representing strongly-connected components
+        in the new graph to the vertices in each strongly-connected component in the original graph.
     """
     scc: set[frozenset[Variable]] = get_strongly_connected_components(graph)
     vertices_to_strongly_connected_components: dict[Variable, frozenset[Variable]] = {}
@@ -332,7 +347,7 @@ def _simplify_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph
     new_graph = NxMixedGraph.from_edges(
         directed=new_directed_edgelist, undirected=new_undirected_edgelist
     )
-    return new_graph
+    return new_graph, representative_vertices_to_strongly_connected_components
 
 
 def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
