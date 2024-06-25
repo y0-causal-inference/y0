@@ -11,6 +11,7 @@ import unittest
 
 from y0.algorithm.ioscm_id import (
     _convert_strongly_connected_components,
+    _simplify_strongly_connected_components,
     get_apt_order,
     get_consolidated_district,
     get_graph_consolidated_districts,
@@ -156,6 +157,43 @@ class TestAptOrder(unittest.TestCase):
     # TODO: Implement type checking on the graph and the input variable.
     # TODO: Also check that we can't pass in multiple vertices or an empty graph.
     # TODO: Add more tests.
+
+    def test_simplify_strongly_connected_components_1(self):
+        """Test a utility function to simplify strongly-connected components for a graph."""
+        result_1 = _simplify_strongly_connected_components(simple_cyclic_graph_1)
+        # Make the representative vertex W
+        expected_result = NxMixedGraph.from_edges(
+            directed=[
+                (R, W),
+                (W, Y),
+            ],
+        )
+        self.assertListEqual(
+            sorted(list(result_1.directed.edges)), sorted(list(expected_result.directed.edges))
+        )
+        self.assertListEqual(
+            sorted(list(result_1.undirected.edges)), sorted(list(expected_result.undirected.edges))
+        )
+
+    def test_simplify_strongly_connected_components_2(self):
+        """Test a utility function to simplify strongly-connected components for a graph."""
+        result_2 = _simplify_strongly_connected_components(simple_cyclic_graph_2)
+        # Make the representative vertex W
+        expected_result_2 = NxMixedGraph.from_edges(
+            directed=[
+                (W, Y),
+            ],
+            undirected=[
+                (R, W),
+            ],
+        )
+        self.assertListEqual(
+            sorted(list(expected_result_2.directed.edges)), sorted(list(result_2.directed.edges))
+        )
+        self.assertListEqual(
+            sorted(list(expected_result_2.undirected.edges)),
+            sorted(list(result_2.undirected.edges)),
+        )
 
     def test_get_apt_order_1(self):
         """First test for getting an assembling pseudo-topological order for a graph."""

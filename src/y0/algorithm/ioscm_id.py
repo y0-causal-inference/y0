@@ -19,6 +19,7 @@ __all__ = [
     # TODO do a proper audit of which of these a user should ever have to import
     # Utilities
     "_convert_strongly_connected_components",
+    "_simplify_strongly_connected_components",
     "get_strongly_connected_component",
     "get_strongly_connected_components",
     "get_vertex_consolidated_district",
@@ -245,7 +246,93 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
     # 4. Flatten the resulting list (e.g., [A, B, [C, D], E] -> [A, B, C, D, E])
     # JZ: Consider not even bothering to add an edge into or out of a strongly connected component
     #     once it's already been added.
+
+    # 1.
     raise NotImplementedError
+
+
+def _simplify_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph:
+    r"""Reduce each strongly-connected component in a directed graph to a single vertex.
+
+    This is a helper function for generating the assembling pseudo-topological order for a graph.
+
+    Get the strongly-connected components and replace each one with a single vertex. An edge going into or out
+    of the strongly-connected component becomes an edge going into or out of the representative vertex.
+
+    :param graph:
+        The input graph.
+    :returns:
+        The simplified graph.
+    """
+    scc: set[frozenset[Variable]] = get_strongly_connected_components(graph)
+    vertices_to_strongly_connected_components: dict[Variable, frozenset[Variable]] = {}
+    strongly_connected_components_to_representative_vertices: dict[
+        frozenset[Variable], Variable
+    ] = {}
+    representative_vertices_to_strongly_connected_components: dict[
+        Variable, frozenset[Variable]
+    ] = {}
+
+    for component in scc:
+        # The sorting isn't necessary; we're making the ordering of v predictable for testing purposes
+        for v in sorted(list(component)):
+            if component not in strongly_connected_components_to_representative_vertices:
+                strongly_connected_components_to_representative_vertices[component] = v
+                representative_vertices_to_strongly_connected_components[v] = component
+                vertices_to_strongly_connected_components[v] = component
+            else:
+                vertices_to_strongly_connected_components[v] = component
+    new_directed_edgelist_as_set: set[tuple[Variable, Variable]] = set()
+    # O(V^2)
+    for ego, alter in sorted(
+        graph.directed.edges
+    ):  # The sorting is just to make testing predictable
+        if (
+            vertices_to_strongly_connected_components[ego]
+            != vertices_to_strongly_connected_components[alter]
+        ):
+            new_directed_edgelist_as_set.add(
+                (
+                    strongly_connected_components_to_representative_vertices[
+                        vertices_to_strongly_connected_components[ego]
+                    ],
+                    strongly_connected_components_to_representative_vertices[
+                        vertices_to_strongly_connected_components[alter]
+                    ],
+                )
+            )
+    new_directed_edgelist = list(new_directed_edgelist_as_set)
+    # The undirected edges don't affect the topological ordering but they may indicate the presence
+    # of vertices otherwise not included in the graph. Such vertices must be their own strongly-connected
+    # components since they're not present in any directed edges. And they're therefore their own representative
+    # vertices. So, replacing the "ego" (first vertex) in each edge in graph.undirected.edges with the
+    # representative vertex for the strongly-connected component corresponding to the ego, and doing the
+    # same for the "alter" (slight abuse of naming), will maintain the vertices not connected to other
+    # strongly-connected components in the resulting graph, while getting rid of undirected edges between
+    # vertices within strongly-connected components. And thus topological_sort will work on the result.
+    new_undirected_edgelist_as_set: set[tuple[Variable, Variable]] = set()
+    for ego, alter in sorted(graph.undirected.edges):
+        if (
+            vertices_to_strongly_connected_components[ego]
+            != vertices_to_strongly_connected_components[alter]
+        ):
+            new_undirected_edgelist_as_set.add(
+                (
+                    strongly_connected_components_to_representative_vertices[
+                        vertices_to_strongly_connected_components[ego]
+                    ],
+                    strongly_connected_components_to_representative_vertices[
+                        vertices_to_strongly_connected_components[alter]
+                    ],
+                )
+            )
+            # If we add both (u,v) and (v,u), that will go away when the actual graph gets
+            # produced, so there's no need for a test
+    new_undirected_edgelist = list(new_undirected_edgelist_as_set)
+    new_graph = NxMixedGraph.from_edges(
+        directed=new_directed_edgelist, undirected=new_undirected_edgelist
+    )
+    return new_graph
 
 
 def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
