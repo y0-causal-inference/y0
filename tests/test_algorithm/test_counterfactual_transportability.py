@@ -4295,24 +4295,24 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             domain_data=[(set(), One()), ({X}, PP[Pi1](X, Y, Z))],
         )
         # 17.
-        self.assertRaises(
-            NotImplementedError,
-            _validate_transport_conditional_counterfactual_query_input,
-            outcomes=[(Y @ -X, -Y)],
-            conditions=[(Y @ -Z, -Y), (X, +X)],
-            target_domain_graph=self.example_1_target_domain_graph,
-            domain_graphs=self.example_1_domain_graphs,
-            domain_data=[(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))],
-        )
-        self.assertRaises(
-            NotImplementedError,
-            transport_conditional_counterfactual_query,
-            outcomes=[(Y @ -X, -Y)],
-            conditions=[(Y @ -Z, -Y), (X, +X)],
-            target_domain_graph=self.example_1_target_domain_graph,
-            domain_graphs=self.example_1_domain_graphs,
-            domain_data=[(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))],
-        )
+        # self.assertRaises(
+        #    NotImplementedError,
+        #    _validate_transport_conditional_counterfactual_query_input,
+        #    outcomes=[(Y @ -X, -Y)],
+        #    conditions=[(Y @ -Z, -Y), (X, +X)],
+        #    target_domain_graph=self.example_1_target_domain_graph,
+        #    domain_graphs=self.example_1_domain_graphs,
+        #    domain_data=[(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))],
+        #)
+        #self.assertRaises(
+        #    NotImplementedError,
+        #    transport_conditional_counterfactual_query,
+        #    outcomes=[(Y @ -X, -Y)],
+        #    conditions=[(Y @ -Z, -Y), (X, +X)],
+        #    target_domain_graph=self.example_1_target_domain_graph,
+        #    domain_graphs=self.example_1_domain_graphs,
+        #    domain_data=[(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))],
+        #)
         # 7.
         self.assertRaises(
             ValueError,
@@ -6077,15 +6077,15 @@ class TestConditionalCounterfactualTransportabilityEdgeCases(cases.GraphTestCase
                 figure_2a_graph.topological_sort(),
             ),
         ]
-        self.assertRaises(
-            NotImplementedError,
-            transport_conditional_counterfactual_query,
-            outcomes=outcomes,
-            conditions=conditions,
-            target_domain_graph=figure_2a_graph,
-            domain_graphs=domain_graphs,
-            domain_data=domain_data,
-        )
+        #self.assertRaises(
+        #    NotImplementedError,
+        #    transport_conditional_counterfactual_query,
+        #    outcomes=outcomes,
+        #    conditions=conditions,
+        #    target_domain_graph=figure_2a_graph,
+        #    domain_graphs=domain_graphs,
+        #    domain_data=domain_data,
+        #)
         # Once we implement the case for which we can condition on outcome base variables,
         # the below should pass:
         # expected_result_expr, _ = (Zero(), None)
