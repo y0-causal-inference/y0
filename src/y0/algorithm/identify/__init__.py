@@ -8,6 +8,7 @@ Identification
 Algorithm               Implementation
 ======================  ====================================================================
 ID [shpitser2006]_      :mod:`y0.algorithm.identifiy.id_std`
+Tian ID [tian03a]_      :mod:`y0.algorithm.tian_id`
 IDC [shpitser2008]_     :mod:`y0.algorithm.identifiy.idc`
 ID* [shpitser2012]_     :mod:`y0.algorithm.identifiy.id_star`
 IDC* [shpitser2012]_    :mod:`y0.algorithm.identifiy.idc_star`
@@ -22,13 +23,13 @@ identification methods.
 
 Transport
 ---------
-=============================================  ======================================
+=============================================  ============================================
 Algorithm                                      Implementation
-=============================================  ======================================
+=============================================  ============================================
 Surrogate Outcomes [tikka2018]_                :mod:`y0.algorithm.transport`
 Transportability [correa2020]_                 :mod:`y0.algorithm.transport`
-Counterfactual Transportability [correa2022]_  `PR #197 <https://github.com/y0-causal-inference/y0/pull/197>`_
-=============================================  ======================================
+Counterfactual Transportability [correa2022]_  :mod:`y0.algorithm.counterfactual_transport`
+=============================================  ============================================
 
 .. [shpitser2006] `Identification of joint interventional distributions in recursive semi-Markovian
        causal models <https://dl.acm.org/doi/10.5555/1597348.1597382>`_

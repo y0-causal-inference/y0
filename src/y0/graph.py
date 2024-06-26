@@ -14,6 +14,7 @@ from typing import (
     Any,
     Collection,
     Iterable,
+    List,
     Mapping,
     Optional,
     Sequence,
@@ -27,7 +28,15 @@ import networkx as nx
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
+from .dsl import (
+    CounterfactualVariable,
+    Intervention,
+    P,
+    Probability,
+    Variable,
+    vmap_adj,
+    vmap_pairs,
+)
 
 if TYPE_CHECKING:
     import ananke.graphs
@@ -142,6 +151,10 @@ class NxMixedGraph:
     def nodes(self) -> NodeView[Variable]:
         """Get the nodes in the graph."""
         return self.directed.nodes()
+
+    def joint_probability(self) -> Probability:
+        """Get the joint probability over all nodes."""
+        return P(self.nodes())
 
     def to_admg(self) -> "ananke.graphs.ADMG":
         """Get an ananke ADMG."""
@@ -562,9 +575,9 @@ class NxMixedGraph:
         sources = _ensure_set(sources)
         return _descendants_inclusive(self.directed, sources)
 
-    def topological_sort(self) -> Iterable[Variable]:
+    def topological_sort(self) -> List[Variable]:
         """Get a topological sort from the directed component of the mixed graph."""
-        return nx.topological_sort(self.directed)
+        return list(nx.topological_sort(self.directed))
 
     def get_c_components(self) -> list[frozenset[Variable]]:
         """Get the co-components (i.e., districts) in the undirected portion of the graph."""

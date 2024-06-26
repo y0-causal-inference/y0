@@ -122,7 +122,7 @@ def idc_star(
         if cf_rule_2_of_do_calculus_applies(cf_graph, new_outcomes, condition):
             logger.debug(
                 f"\t[{_number_recursions}]: line 4 IDC* algorithm: rule 2 of do calculus applies:\n\t\t{outcomes} "
-                f"""is D-separated from {condition} in G{"'"*(_number_recursions + 1)} ({condition}_bar)"""
+                f"""is D-separated from {condition} in G{"'" * (_number_recursions + 1)} ({condition}_bar)"""
             )
             new_outcomes = {
                 (
