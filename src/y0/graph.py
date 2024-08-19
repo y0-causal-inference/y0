@@ -28,7 +28,15 @@ import networkx as nx
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
+from .dsl import (
+    CounterfactualVariable,
+    Intervention,
+    P,
+    Probability,
+    Variable,
+    vmap_adj,
+    vmap_pairs,
+)
 
 if TYPE_CHECKING:
     import ananke.graphs
@@ -143,6 +151,10 @@ class NxMixedGraph:
     def nodes(self) -> NodeView[Variable]:
         """Get the nodes in the graph."""
         return self.directed.nodes()
+
+    def joint_probability(self) -> Probability:
+        """Get the joint probability over all nodes."""
+        return P(self.nodes())
 
     def to_admg(self) -> "ananke.graphs.ADMG":
         """Get an ananke ADMG."""
