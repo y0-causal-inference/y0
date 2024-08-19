@@ -1,4 +1,3 @@
-
 """Tests for the identify algorithm."""
 
 import unittest
@@ -103,9 +102,7 @@ class TestIdentifiable(unittest.TestCase):
     https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb.
     """
 
-    def assert_identifiable(
-        self, graph: NxMixedGraph, query: Probability | Distribution
-    ) -> None:
+    def assert_identifiable(self, graph: NxMixedGraph, query: Probability | Distribution) -> None:
         """Assert the graph is identifiable under the given query."""
         estimand = identify(Identification.from_expression(graph=graph, query=query))
         self.assertIsNotNone(estimand)

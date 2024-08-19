@@ -1,4 +1,3 @@
-
 """Tests for the canonicalization algorithm."""
 
 import itertools as itt

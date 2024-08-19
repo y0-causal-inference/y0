@@ -1,6 +1,5 @@
 """High-level API for identification algorithms."""
 
-
 from .id_c import idc
 from .id_std import identify
 from .utils import Identification, Query, Unidentifiable

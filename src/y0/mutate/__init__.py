@@ -1,4 +1,3 @@
-
 """Functions that mutate probability expressions."""
 
 from .canonicalize_expr import canonical_expr_equal, canonicalize

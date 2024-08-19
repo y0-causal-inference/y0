@@ -1,4 +1,3 @@
-
 """Utilities for identification algorithms."""
 
 from __future__ import annotations
@@ -119,9 +118,7 @@ class Query:
             conditions=conditions,
         )
 
-    def exchange_observation_with_action(
-        self, variables: Variable | Iterable[Variable]
-    ) -> Query:
+    def exchange_observation_with_action(self, variables: Variable | Iterable[Variable]) -> Query:
         """Move the condition variable(s) to the treatments."""
         if isinstance(variables, Variable):
             variables = {variables}
@@ -135,9 +132,7 @@ class Query:
             conditions=self.conditions - variables,
         )
 
-    def exchange_action_with_observation(
-        self, variables: Variable | Iterable[Variable]
-    ) -> Query:
+    def exchange_action_with_observation(self, variables: Variable | Iterable[Variable]) -> Query:
         """Move the treatment variable(s) to the conditions."""
         if isinstance(variables, Variable):
             variables = {variables}

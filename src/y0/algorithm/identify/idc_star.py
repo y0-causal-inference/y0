@@ -1,4 +1,3 @@
-
 """Implementation of the IDC* algorithm."""
 
 import logging

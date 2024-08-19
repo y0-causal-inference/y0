@@ -1,4 +1,3 @@
-
 """Implement Robin Evans' simplification algorithms from [evans2012]_ and [evans2016]_.
 
 .. [evans2012] `Constraints on marginalised DAGs
@@ -140,9 +139,7 @@ def iter_widow_latents(graph: nx.DiGraph, *, tag: str | None = None) -> Iterable
             yield node
 
 
-def iter_unidirectional_latents(
-    graph: nx.DiGraph, *, tag: str | None = None
-) -> Iterable[Variable]:
+def iter_unidirectional_latents(graph: nx.DiGraph, *, tag: str | None = None) -> Iterable[Variable]:
     """Iterate over latent variables with one child.
 
     :param graph: A latent variable DAG

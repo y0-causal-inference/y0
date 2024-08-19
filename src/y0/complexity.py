@@ -1,4 +1,3 @@
-
 """Calculate the complexity of an expression."""
 
 from collections.abc import Iterable

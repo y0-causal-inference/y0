@@ -1,4 +1,3 @@
-
 """Predicates for expressions."""
 
 from .dsl import Expression, Fraction, Probability, Product, Sum

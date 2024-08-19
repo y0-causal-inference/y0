@@ -1,4 +1,3 @@
-
 """Test the causaleffect probability expression parser."""
 
 import unittest

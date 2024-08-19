@@ -1,4 +1,3 @@
-
 """Tests for canceling fractions."""
 
 import unittest

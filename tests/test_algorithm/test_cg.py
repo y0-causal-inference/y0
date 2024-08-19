@@ -1,4 +1,3 @@
-
 """Tests for parallel world graphs and counterfactual graphs."""
 
 import unittest

@@ -1,4 +1,3 @@
-
 """Test cases."""
 
 import unittest

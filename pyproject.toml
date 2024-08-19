@@ -206,7 +206,7 @@ ignore = [
 # Ignore commented out code in Sphinx configuration file
 "docs/source/conf.py" = ["ERA001"]
 # Prints are okay in notebooks
-"notebooks/**/*.ipynb" = ["T201"]
+"notebooks/**/*.ipynb" = ["T201", "S101", "N811", "N802", "N803"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

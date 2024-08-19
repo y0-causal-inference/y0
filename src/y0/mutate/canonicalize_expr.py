@@ -1,4 +1,3 @@
-
 """Implementation of the canonicalization algorithm."""
 
 from collections.abc import Collection, Iterable, Mapping, Sequence

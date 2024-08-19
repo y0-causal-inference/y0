@@ -1,4 +1,3 @@
-
 """An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
 from collections.abc import Callable, Iterable, Sequence

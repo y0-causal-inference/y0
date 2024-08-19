@@ -1,4 +1,3 @@
-
 """Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172."""
 
 import logging
@@ -240,6 +239,7 @@ def trso_line2(
     :param query: A TRSO query
     :param outcomes_ancestors: the ancestors of target variables in transportability_diagram
     :returns: A TRSO query with modified attributes.
+    :raises TypeError: if the new query's expression is not a population probability
     """
     new_query = deepcopy(query)
     new_query.target_interventions.intersection_update(outcomes_ancestors)
@@ -254,7 +254,8 @@ def trso_line2(
         simplify=True,
     )
     if isinstance(new_query.expression, Probability):
-        assert isinstance(new_query.expression, PopulationProbability)
+        if not isinstance(new_query.expression, PopulationProbability):
+            raise TypeError
         # it might be the case that these two are not the same, but
         # other parts of the algorithm clean it up. This isn't so
         # satisfying. Sorry!
@@ -317,9 +318,7 @@ def trso_line6(query: TRSOQuery) -> dict[Population, TRSOQuery]:
     return expressions
 
 
-def _line_6_helper(
-    query: TRSOQuery, domain: Population, graph: NxMixedGraph
-) -> TRSOQuery | None:
+def _line_6_helper(query: TRSOQuery, domain: Population, graph: NxMixedGraph) -> TRSOQuery | None:
     """Perform d-separation check and then modify query active interventions.
 
     :param query: A TRSO query
@@ -356,9 +355,11 @@ def activate_domain_and_interventions(
     :param domain: A given population
     :returns: A new expression, intervened
     :raises NotImplementedError: If an expression type that is not handled gets passed
+    :raises TypeError: if the expression is a probability but not a population probability
     """
     if isinstance(expression, Probability):
-        assert isinstance(expression, PopulationProbability)
+        if not isinstance(expression, PopulationProbability):
+            raise TypeError
         return PopulationProbability(
             population=domain,
             distribution=Distribution.safe(set(expression.children) - interventions),

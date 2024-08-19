@@ -1,4 +1,3 @@
-
 """Operations for mutating and simplifying expressions."""
 
 import warnings

@@ -1,4 +1,3 @@
-
 """Tests for the ID* algorithm."""
 
 from tests.test_algorithm import cases

@@ -1,4 +1,3 @@
-
 """Data structures."""
 
 from __future__ import annotations
@@ -6,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Literal, NamedTuple, Union, cast
+from typing import Literal, NamedTuple, cast
 
 import pandas as pd
 
@@ -101,7 +100,7 @@ class CITestTuple(NamedTuple):
     dof: float | None = None
 
 
-CITestResult = Union[CITestTuple, bool]
+CITestResult = CITestTuple | bool
 
 
 @dataclass(frozen=True)

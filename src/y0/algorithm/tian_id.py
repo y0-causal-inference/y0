@@ -34,7 +34,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def identify_district_variables(
+def identify_district_variables(  # noqa:C901
     *,
     input_variables: frozenset[Variable],
     input_district: frozenset[Variable],

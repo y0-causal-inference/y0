@@ -1,4 +1,3 @@
-
 """Tests for expression complexity.
 
 Note: tests in this module should **NOT** use exact

@@ -1,2 +1,1 @@
-
 """Implementations of assorted algorithms."""

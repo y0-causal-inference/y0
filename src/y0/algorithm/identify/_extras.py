@@ -166,7 +166,8 @@ def original_id_star(
     if not cf_subgraph.is_connected():
         summand, events_of_each_district = original_id_star_line_6(cf_graph, new_event)
         logger.debug("[%d] summand: %s", _number_recursions, summand)
-        assert 1 < len(events_of_each_district)
+        if 1 >= len(events_of_each_district):
+            raise RuntimeError
         logger.debug(
             "[%d] recurring on each district: %s ", _number_recursions, events_of_each_district
         )

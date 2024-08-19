@@ -1,4 +1,3 @@
-
 """Version information for :mod:`y0`.
 
 Run with ``python -m y0.version``
@@ -21,7 +20,7 @@ def get_git_hash() -> str:
     with open(os.devnull, "w") as devnull:
         try:
             ret = check_output(  # noqa: S603,S607
-                ["git", "rev-parse", "HEAD"],
+                ["git", "rev-parse", "HEAD"],  # noqa: S603,S607
                 cwd=os.path.dirname(__file__),
                 stderr=devnull,
             )

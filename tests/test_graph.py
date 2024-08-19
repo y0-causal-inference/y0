@@ -1,4 +1,3 @@
-
 """Test graph construction and conversion."""
 
 import unittest

@@ -1,4 +1,3 @@
-
 """An implementation of Sara Taheri's algorithm for using causal queries for experimental design.
 
 .. seealso:: https://docs.google.com/presentation/d/1klBOjGtRkXOMSDgOCLChBTBJZ0dFxJPn9IPRLAlv_N8/edit?usp=sharing

@@ -1,4 +1,3 @@
-
 """Utilities for parallel world graphs and counterfactual graphs."""
 
 from collections.abc import Iterable
@@ -54,7 +53,7 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
     ) == is_not_self_intervened(node2)
 
 
-def nodes_attain_same_value(graph: NxMixedGraph, event: Event, a: Variable, b: Variable) -> bool:
+def nodes_attain_same_value(graph: NxMixedGraph, event: Event, a: Variable, b: Variable) -> bool:  # noqa:C901
     """Check if the two nodes attain the same value."""
     if a == b:
         return True
@@ -96,7 +95,8 @@ def parents_attain_same_values(graph: NxMixedGraph, event: Event, a: Variable, b
         nodes_attain_same_value(graph, event, parent_a, parent_b)
         for parent_a, parent_b in zip(
             sorted(remainder_a, key=lambda x: x.get_base()),
-            sorted(remainder_b, key=lambda x: x.get_base()), strict=False,
+            sorted(remainder_b, key=lambda x: x.get_base()),
+            strict=False,
         )
     )
 
@@ -126,6 +126,7 @@ def is_pw_equivalent(graph: NxMixedGraph, event: Event, node1: Variable, node2: 
     :param node1: A node in the graph
     :param node2: Another node in the graph
     :returns: If the two nodes are equivalent under the parallel worlds assumption
+    :raises KeyError: if one or both of the nodes are not in the graph
 
     Let :math:`M` be a model inducing :math:`G` containing variables
     :math:`\alpha`, :math:`\beta` with the following properties:
@@ -153,7 +154,10 @@ def is_pw_equivalent(graph: NxMixedGraph, event: Event, node1: Variable, node2: 
     """
     # Rather than all n choose 2 combinations, we can restrict ourselves to the original
     # graph variables and their counterfactual versions
-    assert (node1 in graph.nodes()) and (node2 in graph.nodes()), "Nodes must be in the graph"
+    if node1 not in graph:
+        raise KeyError(f"{node1} is not in graph")
+    if node2 not in graph:
+        raise KeyError(f"{node2} is not in graph")
     return (
         has_same_function(node1, node2)
         and parents_attain_same_values(graph, event, node1, node2)

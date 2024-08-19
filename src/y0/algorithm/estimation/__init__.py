@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from contextlib import redirect_stdout
-from typing import List, Optional, Union
 
 import pandas as pd
 
@@ -21,7 +20,7 @@ __all__ = [
 ]
 
 
-def estimate_ace(
+def estimate_ace(  # noqa:C901
     graph: NxMixedGraph,
     treatments: Variable | list[Variable],
     outcomes: Variable | list[Variable],

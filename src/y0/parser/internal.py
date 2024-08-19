@@ -1,4 +1,3 @@
-
 """A parser for y0 internal DSL probability expressions based on Python's :func:`eval` function."""
 
 import itertools as itt

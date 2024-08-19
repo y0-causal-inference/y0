@@ -1,4 +1,3 @@
-
 """Tests for simplifying latent variable DAGs."""
 
 import unittest

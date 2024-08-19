@@ -1,4 +1,3 @@
-
 """Interface to the R causaleffect package via :mod:`rpy2`."""
 
 from __future__ import annotations
@@ -16,9 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 @uses_r
-def r_get_verma_constraints(
-    graph: NxMixedGraph | CausalEffectGraph
-) -> Sequence[VermaConstraint]:
+def r_get_verma_constraints(graph: NxMixedGraph | CausalEffectGraph) -> Sequence[VermaConstraint]:
     """Calculate the verma constraints on the graph using ``causaleffect``."""
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_causaleffect()

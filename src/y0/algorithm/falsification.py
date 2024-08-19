@@ -1,4 +1,3 @@
-
 """Causal graphs have implications that can be tested in the context of a specific dataset.
 
 This module includes algorithms to perform those tests.

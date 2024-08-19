@@ -1,4 +1,3 @@
-
 r"""An internal domain-specific language for probability expressions.
 
 =======================  ====================================================================
@@ -33,14 +32,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from operator import attrgetter
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Protocol,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Protocol, TypeVar, cast
 
 if TYPE_CHECKING:
     import sympy
@@ -347,7 +339,7 @@ class Variable(Element):
         yield self
 
 
-VariableHint = Union[str, Variable, Iterable[str | Variable]]
+VariableHint = str | Variable | Iterable[str | Variable]
 
 
 @dataclass(frozen=True, order=True, repr=False)
@@ -882,7 +874,7 @@ class Probability(Expression):
         yield from self.distribution._iter_variables()
 
 
-DistributionHint = Union[VariableHint, Distribution]
+DistributionHint = VariableHint | Distribution
 
 
 class ProbabilityBuilderType:
@@ -1572,6 +1564,7 @@ Z1, Z2, Z3, Z4, Z5, Z6 = (Variable(f"Z{i}") for i in range(1, 7))
 Pi1, Pi2, Pi3, Pi4, Pi5, Pi6 = (Variable(f"π{i}") for i in range(1, 7))
 π1, π2, π3, π4, π5, π6 = Pi1, Pi2, Pi3, Pi4, Pi5, Pi6
 
+
 def _sort_interventions(interventions: Iterable[Intervention]) -> tuple[Intervention, ...]:
     return tuple(sorted(interventions, key=lambda i: (i.name, i.star)))
 
@@ -1602,7 +1595,7 @@ def _upgrade_ordering(variables: VariableHint) -> tuple[Variable, ...]:
     return _sorted_variables(set(_upgrade_variables(variables)))
 
 
-OrderingHint = Optional[Iterable[str | Variable]]
+OrderingHint = None | Iterable[str | Variable]
 
 
 def ensure_ordering(

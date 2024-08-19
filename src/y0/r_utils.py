@@ -1,4 +1,3 @@
-
 """General utilities for :mod:`rpy2`."""
 
 import logging

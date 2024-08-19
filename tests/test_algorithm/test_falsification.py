@@ -1,4 +1,3 @@
-
 """Test falsification of testable implications given a graph."""
 
 import unittest

@@ -1,4 +1,3 @@
-
 """Utilities."""
 
 import math

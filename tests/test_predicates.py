@@ -1,4 +1,3 @@
-
 """Tests for expression predicates."""
 
 import unittest

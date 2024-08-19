@@ -1,4 +1,3 @@
-
 """An implementation of the identification algorithm."""
 
 from collections.abc import Sequence

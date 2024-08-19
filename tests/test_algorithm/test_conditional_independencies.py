@@ -1,4 +1,3 @@
-
 """Test getting conditional independencies (and related)."""
 
 import typing

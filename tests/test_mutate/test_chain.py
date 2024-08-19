@@ -1,4 +1,3 @@
-
 """Tests for chain mutations."""
 
 import unittest

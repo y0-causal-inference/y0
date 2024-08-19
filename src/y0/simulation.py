@@ -1,4 +1,3 @@
-
 """Generate data using a linear structural causal model."""
 
 from __future__ import annotations

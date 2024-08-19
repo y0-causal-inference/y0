@@ -1,4 +1,3 @@
-
 """Tests for the identify algorithm."""
 
 import itertools as itt

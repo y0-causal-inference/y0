@@ -1,4 +1,3 @@
-
 """Implementation of the ID* algorithm."""
 
 import itertools as itt
@@ -82,7 +81,8 @@ def id_star(graph: NxMixedGraph, event: Event, *, _number_recursions: int = 0) -
     if not cf_subgraph.is_connected():
         summand, events_of_each_district = id_star_line_6(cf_graph, new_event)
         logger.debug("[%d] summand: %s", _number_recursions, summand)
-        assert 1 < len(events_of_each_district)
+        if len(events_of_each_district) <= 1:
+            raise RuntimeError
         logger.debug(
             "[%d] recurring on each district: %s ", _number_recursions, events_of_each_district
         )

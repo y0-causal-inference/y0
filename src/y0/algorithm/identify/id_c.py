@@ -1,4 +1,3 @@
-
 """Implementation of the IDC algorithm."""
 
 from .id_std import identify
