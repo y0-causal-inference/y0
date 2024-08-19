@@ -1,15 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172.
-
-.. todo::
-
-    high level documentation
-
-    1. What problem are we trying to solve here?
-    2. What's the difference between surrogate outcomes nad transportability?
-    3. Real world example
-"""
+"""Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172."""
 
 import logging
 from copy import deepcopy
@@ -421,7 +412,7 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
 
 
 def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
-    """Return the probability in the case with exactly one districts_without_interventions and it is present in districts.
+    """Get the probability in the case with exactly one districts_without_interventions and it is present in districts.
 
     :param query: A TRSO query
     :param district: The C-component present in both districts_without_interventions and districts

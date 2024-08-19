@@ -1,4 +1,4 @@
-"""Implementation of sigma-separation."""
+"""Implementation of sigma-separation from [forre2018]_."""
 
 from typing import Iterable, Optional, Sequence
 
@@ -28,7 +28,7 @@ def are_sigma_separated(
     Sigma separation is a generalization of d-separation that
     works not only for directed acyclic graphs, but also for
     directed graphs containing cycles. It was originally introduced
-    in https://arxiv.org/abs/1807.03024.
+    in [forre2018]_.
 
     We say that X and Y are σ-connected by Z or not
     σ-separated by Z if there exists a path π (with some

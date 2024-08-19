@@ -35,8 +35,16 @@ def estimate_ace(
     """Estimate the average treatment effect."""
     if conditions is not None:
         raise NotImplementedError("can not yet handle conditional queries")
-    if isinstance(treatments, list) or isinstance(outcomes, list):
-        raise NotImplementedError("can not yet handle multiple treatments nor outcomes")
+    if isinstance(treatments, list):
+        if len(treatments) == 1:
+            treatments = treatments[0]
+        else:
+            raise NotImplementedError(f"can not yet handle multiple treatments: {treatments}")
+    if isinstance(outcomes, list):
+        if len(outcomes) == 1:
+            outcomes = outcomes[0]
+        else:
+            raise NotImplementedError(f"can not yet handle multiple outcomes: {outcomes}")
     if isinstance(treatments, CounterfactualVariable) or isinstance(
         outcomes, CounterfactualVariable
     ):

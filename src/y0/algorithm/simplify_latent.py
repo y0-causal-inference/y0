@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 
-"""Implement Robin Evans' simplification algorithms.
+"""Implement Robin Evans' simplification algorithms from [evans2012]_ and [evans2016]_.
 
-.. seealso:: https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf slides 34-43
+.. [evans2012] `Constraints on marginalised DAGs
+      <https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf>`_
 """
 
 import itertools as itt
 import logging
-from typing import Iterable, Mapping, NamedTuple, Optional, Set, Tuple
+from typing import Iterable, Mapping, NamedTuple, Optional, Set, Tuple, Union
 
 import networkx as nx
 
 from ..dsl import Variable
-from ..graph import DEFAULT_TAG
+from ..graph import DEFAULT_TAG, NxMixedGraph, _ensure_set
 
 __all__ = [
+    "evans_simplify",
     "simplify_latent_dag",
     "SimplifyResults",
     "remove_widow_latents",
@@ -28,6 +30,32 @@ logger = logging.getLogger(__name__)
 DEFAULT_SUFFIX = "_prime"
 
 
+def evans_simplify(
+    graph: NxMixedGraph,
+    *,
+    latents: Union[None, Variable, Iterable[Variable]] = None,
+    tag: Optional[str] = None,
+) -> NxMixedGraph:
+    """Reduce the ADMG based on Evans' simplification rules in [evans2012]_ and [evans2016]_.
+
+    :param graph: an NxMixedGraph
+    :param latents: Additional variables to mark as latent, in addition to the
+        ones created by undirected edges
+    :param tag: The tag for which variables are latent
+    :return: the new graph after simplification
+    """
+    if tag is None:
+        tag = DEFAULT_TAG
+    lv_dag = NxMixedGraph.to_latent_variable_dag(graph, tag=tag)
+    if latents is not None:
+        latents = _ensure_set(latents)
+        for node, data in lv_dag.nodes(data=True):
+            if node in latents:
+                data[tag] = True
+    simplify_results = simplify_latent_dag(lv_dag, tag=tag)
+    return NxMixedGraph.from_latent_variable_dag(simplify_results.graph, tag=tag)
+
+
 class SimplifyResults(NamedTuple):
     """Results from the simplification of a LV-DAG."""
 
@@ -37,10 +65,12 @@ class SimplifyResults(NamedTuple):
     unidirectional_latents: Set[Variable]
 
 
-def simplify_latent_dag(graph: nx.DiGraph, tag: Optional[str] = None):
-    """Apply Robin Evans' four rules in succession."""
+def simplify_latent_dag(graph: nx.DiGraph, *, tag: Optional[str] = None) -> SimplifyResults:
+    """Apply Robin Evans' four rules in succession, in place from [evans2012]_ and [evans2016]_."""
     if tag is None:
         tag = DEFAULT_TAG
+
+    _assert_variable_nodes(graph)
 
     _ = transform_latents_with_parents(graph, tag=tag)
     _, widows = remove_widow_latents(graph, tag=tag)
@@ -185,6 +215,7 @@ def remove_redundant_latents(
     :param tag: The tag for which variables are latent
     :returns: The graph, modified in place
     """
+    _assert_variable_nodes(graph)
     remove = set(_iter_redundant_latents(graph, tag=tag))
     graph.remove_nodes_from(remove)
     return graph, remove
@@ -201,3 +232,12 @@ def _iter_redundant_latents(graph: nx.DiGraph, *, tag: Optional[str] = None) -> 
         elif left_children < right_children:
             # if left's children are a proper subset of right's children, we don't need left
             yield left
+
+
+def _assert_variable_nodes(graph: nx.DiGraph) -> None:
+    """Assert that all nodes in the graph are variables."""
+    for node in graph.nodes:
+        if not isinstance(node, Variable):
+            raise TypeError(
+                f"latent variable dags must contain Variable objects as nodes. Got {type(node)}"
+            )

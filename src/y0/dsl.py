@@ -1,6 +1,30 @@
 # -*- coding: utf-8 -*-
 
-"""An internal domain-specific language for probability expressions."""
+r"""An internal domain-specific language for probability expressions.
+
+=======================  ====================================================================
+Expression               Description
+=======================  ====================================================================
+:math:`P(A)`             The probability of A occurring
+:math:`P(A^*)`           The probability of A not occurring
+:math:`P(A, B)`          The joint probability of A and B occurring
+:math:`P(A \mid B)`      The conditional probability of A given B occurring
+:math:`P(A \mid B^*)`    The conditional probability of A occurring given B not occurring
+:math:`P(A^* \mid B)`    The conditional probability of A not occurring given B occurring
+:math:`P(A^* \mid B^*)`  The conditional probability of A not occurring given B not occurring
+:math:`\sum_A P(A, B)`   The marginal probability of B
+=======================  ====================================================================
+
+Level 3 of Pearl's Causal Hierarchy.
+
+==============================  =================================================
+Expression                      Description
+==============================  =================================================
+:math:`P(Y_X \mid X^*, Y^*)`    Probability of sufficient causation
+:math:`P(Y^*_{X^*} \mid X, Y)`  Probability of necessary causation
+:math:`P(Y_X, Y^*_{X^*})`       Probability of necessary and sufficient causation
+==============================  =================================================
+"""
 
 from __future__ import annotations
 
@@ -10,6 +34,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from operator import attrgetter
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Dict,
     Iterable,
@@ -19,10 +44,14 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    Type,
     TypeVar,
     Union,
     cast,
 )
+
+if TYPE_CHECKING:
+    import sympy
 
 __all__ = [
     "Element",
@@ -113,9 +142,11 @@ T_co = TypeVar("T_co", covariant=True)
 
 def _to_interventions(variables: Sequence[Variable]) -> Tuple[Intervention, ...]:
     return tuple(
-        variable
-        if isinstance(variable, Intervention)
-        else Intervention(name=variable.name, star=False)
+        (
+            variable
+            if isinstance(variable, Intervention)
+            else Intervention(name=variable.name, star=False)
+        )
         for variable in variables
     )
 
@@ -165,8 +196,18 @@ class Variable(Element):
     star: Optional[bool] = None
 
     def __post_init__(self):
+        if not isinstance(self.name, str):
+            raise TypeError(f"Names must be strings: {self.name}")
         if self.name in {"P", "Q", "PP"}:
             raise ValueError(f"trust me, {self.name} is a bad variable name.")
+
+    def _get_sign(self, latex: bool = False) -> str:
+        if self.star is None:
+            return ""
+        elif self.star:
+            return "^{+}" if latex else "+"
+        else:
+            return "^{-}" if latex else "-"
 
     @classmethod
     def norm(cls, name: Union[str, Variable]) -> Variable:
@@ -184,7 +225,14 @@ class Variable(Element):
 
     def to_text(self) -> str:
         """Output this variable in the internal string format."""
-        return self.name
+        sign = self._get_sign()
+        return sign + self.name
+
+    def to_sympy(self) -> "sympy.Symbol":
+        """Get the object for sympy."""
+        import sympy
+
+        return sympy.Symbol(self.to_latex())
 
     def to_latex(self) -> str:
         """Output this variable in the LaTeX string format.
@@ -193,31 +241,31 @@ class Variable(Element):
 
         >>> Variable('X').to_latex()
         'X'
+        >>> Variable('X', star=True).to_latex()
+        'X^{+}'
+        >>> Variable('X', star=False).to_latex()
+        'X^{-}'
         >>> Variable('X1').to_latex()
-        'X_1'
+        '{X_{1}}'
+        >>> Variable('X1', star=True).to_latex()
+        '{X_{1}}^{+}'
         >>> Variable('X12').to_latex()
-        'X_{12}'
+        '{X_{12}}'
         """
         # if it ends with a number, use that as a subscript
         ending_numeric = 0
         for c in reversed(self.name):
             if c.isnumeric():
                 ending_numeric += 1
-        if ending_numeric == 0:
-            return self.name
-        elif ending_numeric == 1:
-            return f"{self.name[:-1]}_{self.name[-1]}"
-        else:
-            return f"{self.name[:-ending_numeric]}_{{{self.name[-ending_numeric:]}}}"
+        sign = self._get_sign(latex=True)
+        if not ending_numeric:
+            return self.name + sign
+        return f"{{{self.name[:-ending_numeric]}_{{{self.name[-ending_numeric:]}}}}}{sign}"
 
     def to_y0(self) -> str:
         """Output this variable instance as y0 internal DSL code."""
-        if self.star is None:
-            return self.name
-        elif self.star:
-            return f"+{self.name}"
-        else:
-            return f"-{self.name}"
+        sign = self._get_sign()
+        return f"{sign}{self.name}"
 
     def intervene(self, variables: VariableHint) -> CounterfactualVariable:
         """Intervene on this variable with the given variable(s).
@@ -229,11 +277,10 @@ class Variable(Element):
         .. note:: This function can be accessed with the matmult @ operator.
         """
         interventions = _to_interventions(_upgrade_variables(variables))
-        interventions = tuple(sorted(set(interventions), key=lambda i: (i.name, i.star)))
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
-            interventions=interventions,
+            interventions=frozenset(interventions),
         )
 
     def __matmul__(self, variables: VariableHint) -> CounterfactualVariable:
@@ -322,20 +369,6 @@ class Intervention(Variable):
         if self.star is None:
             raise ValueError("Intervention must have a non-None star")
 
-    def to_text(self) -> str:
-        """Output this intervention variable in the internal string format."""
-        return f"{self.name}*" if self.star else self.name
-
-    def to_latex(self) -> str:
-        """Output this intervention variable in the LaTeX string format."""
-        latex = super().to_latex()
-        return f"{latex}^*" if self.star else latex
-
-    def to_y0(self) -> str:
-        """Output this intervention instance as y0 internal DSL code."""
-        mark = "+" if self.star else "-"
-        return f"{mark}{self.name}"
-
 
 @dataclass(frozen=True, order=True, repr=False)
 class CounterfactualVariable(Variable):
@@ -347,7 +380,7 @@ class CounterfactualVariable(Variable):
     """
 
     #: The interventions on the variable. Should be non-empty
-    interventions: Tuple[Intervention, ...] = field(default_factory=tuple)
+    interventions: frozenset[Intervention] = field(default_factory=frozenset)
 
     def __post_init__(self):
         if not self.interventions:
@@ -361,7 +394,7 @@ class CounterfactualVariable(Variable):
 
     def to_text(self) -> str:
         """Output this counterfactual variable in the internal string format."""
-        intervention_latex = _list_to_text(self.interventions)
+        intervention_latex = _list_to_text(_sort_interventions(self.interventions))
         return f"{self.name}_{{{intervention_latex}}}"
 
     def to_latex(self) -> str:
@@ -370,29 +403,31 @@ class CounterfactualVariable(Variable):
         :returns: A latex representation of this counterfactual variable
 
         >>> (Variable('X') @ Variable('Y')).to_latex()
-        '{X}_{Y}'
+        'X_{Y^{-}}'
         >>> (Variable('X1') @ Variable('Y')).to_latex()
-        '{X_1}_{Y}'
+        '{X_{1}}_{Y^{-}}'
         >>> (Variable('X12') @ Variable('Y')).to_latex()
-        '{X_{12}}_{Y}'
+        '{X_{12}}_{Y^{-}}'
+        >>> (+Variable('X') @ Variable('Y')).to_latex()
+        'X^{+}_{Y^{-}}'
+        >>> (+Variable('X1') @ Variable('Y')).to_latex()
+        '{X_{1}}^{+}_{Y^{-}}'
+        >>> (+Variable('X12') @ Variable('Y')).to_latex()
+        '{X_{12}}^{+}_{Y^{-}}'
+        >>> (+Variable('X12') @ Variable('Y') @ Variable('Z')).to_latex()
+        '{X_{12}}^{+}_{Y^{-}, Z^{-}}'
         """
-        intervention_latex = _list_to_latex(self.interventions)
-        prefix = "^*" if self.star else ""
-        return f"{{{super().to_latex()}}}{prefix}_{{{intervention_latex}}}"
+        intervention_latex = _list_to_latex(_sort_interventions(self.interventions))
+        return f"{super().to_latex()}_{{{intervention_latex}}}"
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
-        if self.star is None:
-            prefix = ""
-        elif self.star:
-            prefix = "+"
-        else:
-            prefix = "-"
+        sign = self._get_sign()
         if len(self.interventions) == 1:
-            return f"{prefix}{self.name} @ {list(self.interventions)[0].to_y0()}"
+            return f"{sign}{self.name} @ {list(self.interventions)[0].to_y0()}"
         else:
-            ins = ", ".join(i.to_y0() for i in self.interventions)
-            return f"{prefix}{self.name} @ ({ins})"
+            ins = ", ".join(i.to_y0() for i in _sort_interventions(self.interventions))
+            return f"{sign}{self.name} @ ({ins})"
 
     def is_event(self) -> bool:
         """Return if the counterfactual variable has a value."""
@@ -441,9 +476,7 @@ class CounterfactualVariable(Variable):
         interventions = {*self.interventions, *_interventions}
         self._raise_for_overlapping_interventions(interventions)
         return CounterfactualVariable(
-            name=self.name,
-            star=self.star,
-            interventions=tuple(sorted(interventions, key=attrgetter("name"))),
+            name=self.name, star=self.star, interventions=frozenset(interventions)
         )
 
     @staticmethod
@@ -1439,8 +1472,7 @@ class Zero(Expression):
 class QBuilder(Protocol[T_co]):
     """A protocol for annotating the special class getitem functionality of the :class:`QFactor` class."""
 
-    def __call__(self, arg: VariableHint, *args: Union[str, Variable]) -> T_co:
-        ...
+    def __call__(self, arg: VariableHint, *args: Union[str, Variable]) -> T_co: ...
 
 
 @dataclass(frozen=True, repr=False)
@@ -1541,14 +1573,28 @@ A, B, C, D, E, F, G, M, R, S, T, U, W, X, Y, Z = map(Variable, "ABCDEFGMRSTUWXYZ
 U1, U2, U3, U4, U5, U6 = [Variable(f"U{i}") for i in range(1, 7)]
 V1, V2, V3, V4, V5, V6 = [Variable(f"V{i}") for i in range(1, 7)]
 W0, W1, W2, W3, W4, W5, W6 = [Variable(f"W{i}") for i in range(7)]
+M0, M1, M2, M3, M4, M5, M6 = [Variable(f"M{i}") for i in range(7)]
 X1, X2, X3, X4, X5, X6 = [Variable(f"X{i}") for i in range(1, 7)]
 Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f"Y{i}") for i in range(1, 7)]
 Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
 π1, π2, π3, π4, π5, π6 = Pi1, Pi2, Pi3, Pi4, Pi5, Pi6 = [Variable(f"π{i}") for i in range(1, 7)]
 
 
+def _sort_interventions(interventions: Iterable[Intervention]) -> Tuple[Intervention, ...]:
+    return tuple(sorted(interventions, key=lambda i: (i.name, i.star)))
+
+
+def _variable_sort_key(variable: Variable) -> tuple[str, str]:
+    if isinstance(variable, CounterfactualVariable):
+        return variable.name, ",".join(
+            i.to_y0() for i in _sort_interventions(variable.interventions)
+        )
+    else:
+        return variable.name, ""
+
+
 def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
-    return tuple(sorted(variables, key=attrgetter("name")))
+    return tuple(sorted(variables, key=_variable_sort_key))
 
 
 def _upgrade_variables(variables: VariableHint) -> Tuple[Variable, ...]:
@@ -1658,7 +1704,7 @@ class PopulationProbability(Probability):
         """Output this probability instance as y0 internal DSL code."""
         interventions, unintervened_distribution = self._help_level_2_distribution()
         if not interventions:
-            return f"P({self.distribution.to_y0()})"
+            return f"PP[{self.population.to_y0()}]({self.distribution.to_y0()})"
 
         # only keep the + if necessary, otherwise show regular
         intervention_str = ",".join(
@@ -1666,6 +1712,10 @@ class PopulationProbability(Probability):
             for intervention in interventions
         )
         return f"PP[{self.population.to_y0()}][{intervention_str}]({unintervened_distribution.to_y0()})"
+
+    def to_text(self) -> str:
+        """Output this probability in the internal string format."""
+        return f"PP[{self.population.to_text()}]({self.distribution.to_text()})"
 
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
@@ -1701,7 +1751,8 @@ class PopulationProbabilityBuilderType(ProbabilityBuilderType):
         )
 
 
-PP = PopulationProbabilityBuilderType
-
+# We need to declare a type for this alias to avoid false MyPy errors.
+# See https://github.com/python/mypy/issues/7568
+PP: Type[PopulationProbabilityBuilderType] = PopulationProbabilityBuilderType
 
 TARGET_DOMAIN = Population("pi*")

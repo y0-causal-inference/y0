@@ -26,6 +26,7 @@ from sklearn.linear_model import LinearRegression
 from tqdm.auto import trange
 
 from .algorithm.conditional_independencies import get_conditional_independencies
+from .algorithm.estimation.linear_scm import get_single_door
 from .dsl import V1, V2, V3, V4, V5, V6, Variable
 from .graph import NxMixedGraph
 from .struct import DSeparationJudgement
@@ -66,13 +67,17 @@ class FitTuple(NamedTuple):
     d_separation: Optional[DSeparationJudgement]
 
 
+FitsDict = Dict[FrozenSet[Variable], FitTuple]
+
+
 def simulate(
     graph: NxMixedGraph,
     trials: int = 200,
     return_fits: bool = True,
+    progress: bool = False,
     tqdm_kwargs: Optional[Mapping[str, Any]] = None,
     **kwargs,
-) -> Union[pd.DataFrame, Tuple[pd.DataFrame, Mapping[FrozenSet[Variable], FitTuple]]]:
+) -> Union[pd.DataFrame, Tuple[pd.DataFrame, FitsDict]]:
     """Simulate a graph using a linear structural causal model."""
     judgements = get_conditional_independencies(graph)
     cis: Mapping[FrozenSet[Variable], DSeparationJudgement] = {
@@ -86,7 +91,7 @@ def simulate(
     linear_scm = LinearSCM(graph, **kwargs)
     results = {
         trial: {variable.name: values for variable, values in linear_scm.trial().items()}
-        for trial in trange(trials, **_tqdm_kwargs)
+        for trial in trange(trials, disable=not progress, **_tqdm_kwargs)
     }
     rv = pd.DataFrame(results).T
 
@@ -102,7 +107,7 @@ def simulate(
     if not return_fits:
         return rv
 
-    fits: Dict[FrozenSet[Variable], FitTuple] = {}
+    fits: FitsDict = {}
     for parent, child in order:
         x, y = rv[parent.name].to_numpy().reshape(-1, 1), rv[child.name]
         regression = LinearRegression()
@@ -123,6 +128,27 @@ def simulate(
 Generator = Callable[[], float]
 
 
+def get_fits_df(fits_dict: FitsDict) -> pd.DataFrame:
+    """Convert a fits dictionary into a pandas dataframe."""
+    rows = [
+        (
+            a.name,
+            b.name,
+            fits_tuple.slope,
+            fits_tuple.intercept,
+            fits_tuple.r2,
+            # t.edge,
+            False if fits_tuple.d_separation is None else fits_tuple.d_separation.separated,
+            None if fits_tuple.d_separation is None else fits_tuple.d_separation.conditions,
+        )
+        for (a, b), fits_tuple in fits_dict.items()
+    ]
+    df = pd.DataFrame(
+        rows, columns=["parent", "child", "slope", "intercept", "r2", "d_separated", "d_sep_cond"]
+    )
+    return df
+
+
 class LinearSCM:
     """A data structure for a simulation.
 
@@ -140,7 +166,9 @@ class LinearSCM:
     def __init__(
         self,
         graph: NxMixedGraph,
+        *,
         generators: Optional[Mapping[Variable, Generator]] = None,
+        data: Optional[pd.DataFrame] = None,
         weights: Optional[Mapping[Tuple[Variable, Variable], float]] = None,
     ) -> None:
         """Prepare a simulation.
@@ -148,13 +176,16 @@ class LinearSCM:
         :param graph: The ADMG
         :param generators: Generator functions for each node. If none given, defaults to uniformly
             distributed between -1.0 and 1.0.
+        :param data: If given, estimates weights.
         :param weights: Weights for each directed edge. If none given, defaults to uniformly distributed
             weights between -1.0 and 1.0.
         :raises ValueError: if the generators or weights are given and don't match the graph
         """
         self.graph = graph
 
-        if weights is None:
+        if data is not None:
+            self.weights = get_single_door(graph, data)
+        elif weights is None:
             self.weights = {edge: uniform(low=0.0, high=1.0) for edge in graph.directed.edges()}
         elif set(weights) != set(self.graph.directed.edges()):
             raise ValueError("given weights do not exactly match directed edges in the graph")

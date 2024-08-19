@@ -9,11 +9,12 @@ from dataclasses import dataclass
 from typing import Iterable, Optional, Union
 
 import pandas as pd
+import statsmodels.stats.multitest
 from tqdm.auto import tqdm
 
 from .conditional_independencies import get_conditional_independencies
 from ..graph import NxMixedGraph
-from ..struct import DSeparationJudgement
+from ..struct import CITest, DSeparationJudgement, _ensure_method
 
 __all__ = [
     "get_graph_falsifications",
@@ -45,7 +46,8 @@ def get_graph_falsifications(
     significance_level: Optional[float] = None,
     max_given: Optional[int] = None,
     verbose: bool = False,
-    method: Optional[str] = None,
+    method: Optional[CITest] = None,
+    sep: Optional[str] = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a graph.
 
@@ -56,6 +58,7 @@ def get_graph_falsifications(
     :param verbose: If true, use tqdm for status updates.
     :param method: Conditional independence from :mod:`pgmpy` to use. If none,
         defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
+    :param sep: The separator between givens when outputting the dataframe
     :return: Falsifications report
     """
     judgements = get_conditional_independencies(graph, max_conditions=max_given, verbose=verbose)
@@ -65,10 +68,8 @@ def get_graph_falsifications(
         significance_level=significance_level,
         verbose=verbose,
         method=method,
+        sep=sep,
     )
-
-
-HB_LEVEL_NAME = "Holm–Bonferroni level"
 
 
 def get_falsifications(
@@ -77,51 +78,61 @@ def get_falsifications(
     *,
     significance_level: Optional[float] = None,
     verbose: bool = False,
-    method: Optional[str] = None,
+    method: Optional[CITest] = None,
+    correction: Optional[str] = None,
+    sep: Optional[str] = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a list of D-separation judgements.
 
     :param judgements: A list of D-separation judgements to check.
     :param df: Data to check for consistency with a causal implications
-    :param significance_level: Significance for p-value test
     :param verbose: If true, use tqdm for status updates.
     :param method: Conditional independence from :mod:`pgmpy` to use. If none,
         defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
+    :param correction: Method used for multiple hypothesis test correction. Defaults to ``holm``.
+        See :func:`statsmodels.stats.multitest.multipletests` for possible methods.
+    :param significance_level: Significance for p-value test, applied after multiple hypothesis testing correction
+    :param sep: The separator between givens when outputting the dataframe
     :return: Falsifications report
     """
     if significance_level is None:
         significance_level = 0.05
-    variances = {
-        judgement: judgement.test(df, test=method)
-        for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals")
-    }
-    evidence = pd.DataFrame(
-        [
+    if correction is None:
+        correction = "holm"
+    if sep is None:
+        sep = "|"
+    # Make this loop explicit for clarity
+    results = []
+    method = _ensure_method(method, df)
+    for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals"):
+        result = judgement.test(df, method=method, boolean=False)
+        results.append(
             (
                 judgement.left.name,
                 judgement.right.name,
-                "|".join(c.name for c in judgement.conditions),
-                chi,
-                p,
-                dof,
+                sep.join(c.name for c in judgement.conditions),
+                result.statistic,
+                result.p_value,
+                result.dof,
             )
-            for judgement, (chi, p, dof) in variances.items()
-        ],
-        columns=["left", "right", "given", "chi^2", "p", "dof"],
-    )
-    evidence.sort_values("p", ascending=True, inplace=True)
-    evidence = (
-        evidence.assign(
-            **{HB_LEVEL_NAME: significance_level / pd.Series(range(len(evidence.index) + 1, 0, -1))}
         )
-        .pipe(_assign_flags)
-        .sort_values(["flagged", "dof"], ascending=False)
+    evidence_df = pd.DataFrame(
+        results,
+        columns=["left", "right", "given", "stats", "p", "dof"],
     )
-
-    failures_df = evidence.loc[evidence["flagged"], ["left", "right", "given"]]
+    if not results:
+        reject = []
+        p_adj = []
+    else:
+        reject, p_adj, _, _ = statsmodels.stats.multitest.multipletests(
+            evidence_df["p"],
+            alpha=significance_level,
+            method=correction,
+        )
+    evidence_df["p_adj"] = p_adj
+    evidence_df["p_adj_significant"] = reject
+    evidence_df.sort_values("p_adj", ascending=True, inplace=True)
+    evidence_df = evidence_df.sort_values("p_adj")
+    failures_df = evidence_df.loc[evidence_df["p_adj_significant"], ["left", "right", "given"]]
     failures = failures_df.apply(tuple, axis="columns")
-    return Falsifications(failures, evidence)
-
-
-def _assign_flags(df: pd.DataFrame) -> pd.DataFrame:
-    return df.assign(flagged=(df["p"] < df[HB_LEVEL_NAME]))
+    return Falsifications(failures, evidence_df)

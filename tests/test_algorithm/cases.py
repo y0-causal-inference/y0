@@ -3,8 +3,10 @@
 """Test cases."""
 
 import unittest
+from collections import Counter
+from typing import Collection
 
-from y0.dsl import Expression, get_outcomes_and_treatments
+from y0.dsl import Expression, Variable, get_outcomes_and_treatments
 from y0.graph import NxMixedGraph
 from y0.mutate import canonicalize
 
@@ -14,9 +16,18 @@ __all__ = ["GraphTestCase"]
 class GraphTestCase(unittest.TestCase):
     """Tests parallel worlds and counterfactual graphs."""
 
-    def assert_graph_equal(self, expected: NxMixedGraph, actual: NxMixedGraph, msg=None) -> None:
+    def assert_graph_equal(
+        self, expected: NxMixedGraph, actual: NxMixedGraph, msg=None, *, sort: bool = False
+    ) -> None:
         """Check the graphs are equal (more nice than the builtin :meth:`NxMixedGraph.__eq__` for testing)."""
-        self.assertEqual(set(expected.directed.nodes()), set(actual.directed.nodes()), msg=msg)
+        if sort:
+            self.assertEqual(
+                sorted(set(expected.directed.nodes())),
+                sorted(set(actual.directed.nodes())),
+                msg=msg,
+            )
+        else:
+            self.assertEqual(set(expected.directed.nodes()), set(actual.directed.nodes()), msg=msg)
         self.assertEqual(set(expected.undirected.nodes()), set(actual.undirected.nodes()), msg=msg)
         self.assertEqual(set(expected.directed.edges()), set(actual.directed.edges()), msg=msg)
         self.assertEqual(
@@ -39,3 +50,11 @@ class GraphTestCase(unittest.TestCase):
             actual_canonical,
             msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
         )
+
+    def assert_collection_of_set_equal(
+        self, left: Collection[set[Variable]], right: Collection[set[Variable]]
+    ) -> None:
+        """Check that two collections contain sets with the same elements."""
+        c1 = Counter(frozenset(element) for element in left)
+        c2 = Counter(frozenset(el) for el in right)
+        self.assertEqual(c1, c2)

@@ -2,11 +2,9 @@
 
 """Implementation of the canonicalization algorithm."""
 
-from operator import attrgetter
 from typing import Collection, Iterable, Mapping, Optional, Sequence, Tuple, Union
 
 from ..dsl import (
-    CounterfactualVariable,
     Distribution,
     Expression,
     Fraction,
@@ -16,6 +14,7 @@ from ..dsl import (
     Sum,
     Variable,
     Zero,
+    _variable_sort_key,
     ensure_ordering,
 )
 
@@ -66,22 +65,10 @@ class Canonicalizer:
         )
 
     def _sorted(self, variables: Collection[Variable]) -> Tuple[Variable, ...]:
-        return tuple(
-            sorted(
-                (self._canonicalize_variable(variable) for variable in variables),
-                key=self._sorted_key,
-            )
-        )
+        return tuple(sorted(variables, key=self._sorted_key))
 
     def _canonicalize_variable(self, variable: Variable) -> Variable:
-        if isinstance(variable, CounterfactualVariable):
-            return CounterfactualVariable(
-                name=variable.name,
-                star=variable.star,
-                interventions=tuple(sorted(variable.interventions)),
-            )
-        else:
-            return variable
+        return variable
 
     def _sorted_key(self, variable: Variable) -> int:
         return self.ordering_level[variable.name]
@@ -131,5 +118,5 @@ def _flatten_product(product: Product) -> Iterable[Expression]:
 
 def canonical_expr_equal(left: Expression, right: Expression) -> bool:
     """Return True if two expressions are equal after canonicalization."""
-    ordering = sorted(left.get_variables() | right.get_variables(), key=attrgetter("name"))
+    ordering = sorted(left.get_variables() | right.get_variables(), key=_variable_sort_key)
     return canonicalize(left, ordering) == canonicalize(right, ordering)

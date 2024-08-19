@@ -8,23 +8,41 @@ import itertools as itt
 import json
 import warnings
 from dataclasses import dataclass, field
+from itertools import chain, combinations
 from typing import (
+    TYPE_CHECKING,
     Any,
     Collection,
     Iterable,
+    List,
     Mapping,
     Optional,
     Sequence,
     Set,
     Tuple,
     Union,
+    cast,
 )
 
 import networkx as nx
 from networkx.classes.reportviews import NodeView
 from networkx.utils import open_file
 
-from .dsl import CounterfactualVariable, Intervention, Variable, vmap_adj, vmap_pairs
+from .dsl import (
+    CounterfactualVariable,
+    Intervention,
+    P,
+    Probability,
+    Variable,
+    vmap_adj,
+    vmap_pairs,
+)
+
+if TYPE_CHECKING:
+    import ananke.graphs
+    import pgmpy.inference.CausalInference
+    import pgmpy.models
+    import sympy
 
 __all__ = [
     "NxMixedGraph",
@@ -89,6 +107,13 @@ class NxMixedGraph:
         """Check if the given item is a node in the graph."""
         return item in self.directed
 
+    def copy(self):
+        """Get a copy of the graph."""
+        return self.__class__(
+            directed=self.directed.copy(),
+            undirected=self.undirected.copy(),
+        )
+
     def is_counterfactual(self) -> bool:
         """Check if this is a counterfactual graph."""
         return any(isinstance(n, CounterfactualVariable) for n in self.nodes())
@@ -127,7 +152,11 @@ class NxMixedGraph:
         """Get the nodes in the graph."""
         return self.directed.nodes()
 
-    def to_admg(self):
+    def joint_probability(self) -> Probability:
+        """Get the joint probability over all nodes."""
+        return P(self.nodes())
+
+    def to_admg(self) -> "ananke.graphs.ADMG":
         """Get an ananke ADMG."""
         self.raise_on_counterfactual()
         from ananke.graphs import ADMG
@@ -139,6 +168,63 @@ class NxMixedGraph:
             di_edges=[(u.name, v.name) for u, v in self.directed.edges()],
             bi_edges=[(u.name, v.name) for u, v in self.undirected.edges()],
         )
+
+    def to_pgmpy_bayesian_network(self) -> "pgmpy.models.BayesianNetwork":
+        """Convert a mixed graph to an equivalent :class:`pgmpy.BayesianNetwork`."""
+        from pgmpy.models import BayesianNetwork
+
+        edges = [(u.name, v.name) for u, v in self.directed.edges()]
+        latents = set()
+        for u, v in self.undirected.edges():
+            latent = f"U_{u.name}_{v.name}"
+            latents.add(latent)
+            edges.append((latent, u.name))
+            edges.append((latent, v.name))
+        model = BayesianNetwork(ebunch=edges, latents=latents)
+        return model
+
+    def to_pgmpy_causal_inference(self) -> "pgmpy.inference.CausalInference.CausalInference":
+        """Get a pgmpy causal inference object."""
+        from pgmpy.inference.CausalInference import CausalInference
+
+        return CausalInference(self.to_pgmpy_bayesian_network())
+
+    def to_linear_scm_sympy(self) -> dict[Variable, "sympy.Expr"]:
+        """Generate a Sympy system of equations."""
+        import sympy
+
+        variable_to_equation = {}
+        for node in self.topological_sort():
+            terms = []
+
+            # Add parent edges
+            for parent in self.directed.predecessors(node):
+                beta = sympy_nested(r"\beta", parent, node)
+                terms.append(beta * parent.to_sympy())
+
+            # Add noise term
+            epsilon_symbol = sympy_nested(r"\epsilon", node)
+            terms.append(epsilon_symbol)
+
+            # get bidirected edges
+            for u, v in self.undirected.edges(node):
+                u, v = sorted([u, v])
+                gamma_symbol = sympy_nested(r"\gamma", u, v)
+                terms.append(gamma_symbol)
+
+            variable_to_equation[node] = cast(sympy.Expr, sum(terms))
+        return variable_to_equation
+
+    def to_linear_scm_latex(self) -> str:
+        """Generate a Sympy system of equations."""
+        import sympy
+
+        equations_dict = self.to_linear_scm_sympy()
+        latex_equations = [
+            rf"{variable.to_latex()} &= {sympy.latex(expression)} \\"
+            for variable, expression in equations_dict.items()
+        ]
+        return _LatexStr(r"\begin{align*}" + "\n ".join(latex_equations) + r"\end{align*}")
 
     @classmethod
     def from_admg(cls, admg) -> NxMixedGraph:
@@ -208,6 +294,20 @@ class NxMixedGraph:
         rv.add_nodes_from(self.directed)
         rv.add_edges_from(self.directed.edges)
         rv.add_edges_from(self.undirected.edges)
+        return rv
+
+    def moralize(self):
+        """Moralize the graph.
+
+        :returns: A moralized ADMG in which all nodes $U$ and $v$ that are parents of some
+            node $N$ are connected with an undirected edge.
+
+        .. seealso:: https://en.wikipedia.org/wiki/Moral_graph
+        """
+        rv = NxMixedGraph(directed=self.directed.copy(), undirected=self.undirected.copy())
+        # Moralize (link parents of mentioned nodes)
+        for u, v in iter_moral_links(self):
+            rv.add_undirected_edge(u, v)
         return rv
 
     def draw(
@@ -475,9 +575,9 @@ class NxMixedGraph:
         sources = _ensure_set(sources)
         return _descendants_inclusive(self.directed, sources)
 
-    def topological_sort(self) -> Iterable[Variable]:
+    def topological_sort(self) -> List[Variable]:
         """Get a topological sort from the directed component of the mixed graph."""
-        return nx.topological_sort(self.directed)
+        return list(nx.topological_sort(self.directed))
 
     def get_c_components(self) -> list[frozenset[Variable]]:
         """Get the co-components (i.e., districts) in the undirected portion of the graph."""
@@ -579,6 +679,11 @@ class NxMixedGraph:
         return pre
 
 
+class _LatexStr(str):
+    def _repr_latex_(self):
+        return self
+
+
 def _node_not_an_intervention(node: Variable, interventions: Set[Intervention]) -> bool:
     """Confirm that node is not an intervention."""
     if isinstance(node, (Intervention, CounterfactualVariable)):
@@ -638,7 +743,7 @@ def _latent_dag(
     """Create a labeled DAG where bi-directed edges are assigned as nodes upstream of their two incident nodes.
 
     :param di_edges: A list of directional edges
-    :param bi_edges: A list of bi-directional edges
+    :param bi_edges: A list of bidirectional edges
     :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
     :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
     :param tag: The key for node data describing whether it is latent.
@@ -650,15 +755,14 @@ def _latent_dag(
     if prefix is None:
         prefix = DEFULT_PREFIX
 
-    str_di_edges = [(u.name, v.name) for u, v in di_edges]
-    str_bi_edges = [(u.name, v.name) for u, v in bi_edges]
+    bi_edges_list = list(bi_edges)
 
     rv = nx.DiGraph()
-    rv.add_nodes_from(itt.chain.from_iterable(str_bi_edges))
-    rv.add_edges_from(str_di_edges)
+    rv.add_nodes_from(itt.chain.from_iterable(bi_edges_list))
+    rv.add_edges_from(di_edges)
     nx.set_node_attributes(rv, False, tag)
-    for i, (u, v) in enumerate(sorted(str_bi_edges), start=start):
-        latent_node = f"{prefix}{i}"
+    for i, (u, v) in enumerate(sorted(bi_edges_list), start=start):
+        latent_node = Variable(f"{prefix}{i}")
         rv.add_node(latent_node, **{tag: True})
         rv.add_edge(latent_node, u)
         rv.add_edge(latent_node, v)
@@ -722,7 +826,7 @@ def _layout(self, prog):
         return layout
     try:
         layout = nx.nx_pydot.pydot_layout(joint, prog=prog)
-    except ImportError:
+    except (ImportError, IndexError):
         pass
     else:
         return layout
@@ -837,3 +941,78 @@ def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bo
     return u in get_district_and_predecessors(graph, [v]) or v in get_district_and_predecessors(
         graph, [u]
     )
+
+
+def iter_moral_links(graph: NxMixedGraph) -> Iterable[Tuple[Variable, Variable]]:
+    """Generate links to ensure all co-parents in a graph are linked.
+
+    May generate links that already exist as we assume we are not working on a multi-graph.
+
+    :param graph: Graph to process
+    :yields: An collection of edges to add.
+    """
+    #  note that combinations(x, 2) returns an empty list when len(x) == 1
+    yield from chain.from_iterable(
+        combinations(graph.directed.predecessors(node), 2) for node in graph.nodes()
+    )
+
+
+def get_nodes_in_directed_paths(
+    graph: NxMixedGraph,
+    sources: Union[Variable, Set[Variable]],
+    targets: Union[Variable, Set[Variable]],
+) -> Set[Variable]:
+    """Get all nodes appearing in directed paths from sources to targets.
+
+    :param graph: an NxMixedGraph
+    :param sources: source nodes
+    :param targets: target nodes
+    :return: the nodes on all causal paths from sources to targets
+    """
+    sources = _ensure_set(sources)
+    targets = _ensure_set(targets)
+    if nx.is_directed_acyclic_graph(graph.directed):
+        return _get_nodes_in_directed_paths_dag(graph.directed, sources, targets)
+    else:
+        # note, this is a simpler implementation can use :func:`nx.all_simple_paths`,
+        # but it is less efficient since it requires potentially calculating the same
+        # paths over and over again.
+        return _get_nodes_in_directed_paths_cyclic(graph.directed, sources, targets)
+
+
+def _get_nodes_in_directed_paths_dag(
+    graph: nx.DiGraph, sources: set[Variable], targets: set[Variable]
+) -> set[Variable]:
+    tc: nx.DiGraph = nx.transitive_closure_dag(graph)
+    rv = {
+        node
+        for node in graph.nodes()
+        if any(
+            tc.has_edge(source, node) and tc.has_edge(node, target)
+            for source, target in itt.product(sources, targets)
+        )
+    }
+    for source, target in itt.product(sources, targets):
+        if tc.has_edge(source, target):
+            rv.add(source)
+            rv.add(target)
+    return rv
+
+
+def _get_nodes_in_directed_paths_cyclic(
+    graph: nx.DiGraph, sources: set[Variable], targets: set[Variable]
+) -> set[Variable]:
+    return {
+        node
+        for source, target in itt.product(sources, targets)
+        for causal_path in nx.all_simple_paths(graph, source, target)
+        for node in causal_path
+    }
+
+
+def sympy_nested(glyph: str, *variables: Variable) -> "sympy.Symbol":
+    """Create a sympy nested symbol."""
+    import sympy
+
+    inner_latex = ",".join(variable.to_latex() for variable in variables)
+    return sympy.Symbol(rf"{glyph}_{{{inner_latex}}}")

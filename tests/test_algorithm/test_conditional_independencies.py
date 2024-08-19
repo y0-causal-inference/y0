@@ -2,18 +2,26 @@
 
 """Test getting conditional independencies (and related)."""
 
+import typing
 import unittest
 from typing import Iterable, Set
+
+from pgmpy.estimators import CITests
 
 from y0.algorithm.conditional_independencies import (
     are_d_separated,
     get_conditional_independencies,
-    iter_moral_links,
 )
-from y0.dsl import AA, B, C, D, E, F, G, Variable
-from y0.examples import Example, d_separation_example, examples
-from y0.graph import NxMixedGraph
-from y0.struct import DSeparationJudgement
+from y0.dsl import AA, B, C, D, E, F, G, Variable, X, Y
+from y0.examples import (
+    Example,
+    d_separation_example,
+    examples,
+    frontdoor_backdoor_example,
+    frontdoor_example,
+)
+from y0.graph import NxMixedGraph, iter_moral_links
+from y0.struct import CITestTuple, DSeparationJudgement
 
 
 class TestDSeparation(unittest.TestCase):
@@ -219,3 +227,44 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             with self.subTest(name=example.name):
                 self.maxDiff = None
                 self.assert_example_has_judgements(example)
+
+    def test_ci_test_continuous(self):
+        """Test conditional independency test on continuous data."""
+        data = frontdoor_example.generate_data(500)  # continuous
+        judgement = DSeparationJudgement(
+            left=X,
+            right=Y,
+            separated=...,
+            conditions=(),
+        )
+        test_result_bool = judgement.test(data, method="pearson", boolean=True)
+        self.assertIsInstance(test_result_bool, bool)
+
+        test_result_tuple = judgement.test(data, method="pearson", boolean=False)
+        self.assertIsInstance(test_result_tuple, CITestTuple)
+        self.assertIsNone(test_result_tuple.dof)
+
+        # Test that an error is thrown if using a discrete test on continuous data
+        with self.assertRaises(ValueError):
+            judgement.test(data, method="chi-square", boolean=True)
+
+    def test_ci_test_discrete(self):
+        """Test conditional independency test on discrete data."""
+        data = frontdoor_backdoor_example.generate_data(500)  # discrete
+        judgement = DSeparationJudgement(
+            left=X,
+            right=Y,
+            separated=...,
+            conditions=(),
+        )
+        for method in typing.get_args(CITests):
+            test_result_bool = judgement.test(data, method=method, boolean=True)
+            self.assertIsInstance(test_result_bool, bool)
+
+            test_result_tuple = judgement.test(data, method=method, boolean=False)
+            self.assertIsInstance(test_result_tuple, CITestTuple)
+            self.assertIsNotNone(test_result_tuple.dof)
+
+        # Test that an error is thrown if using a continous test on discrete data
+        with self.assertRaises(ValueError):
+            judgement.test(data, method="pearson", boolean=True)
