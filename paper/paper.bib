@@ -1,0 +1,107 @@
+@misc{lee2023ananke,
+    title={Ananke: A Python Package For Causal Inference Using Graphical Models},
+    author={Jaron J. R. Lee and Rohit Bhattacharya and Razieh Nabi and Ilya Shpitser},
+    year={2023},
+    eprint={2301.11477},
+    archivePrefix={arXiv},
+    primaryClass={stat.ME},
+    url={https://arxiv.org/abs/2301.11477},
+}
+
+@misc{bingham2018pyro,
+    title={Pyro: Deep Universal Probabilistic Programming},
+    author={Eli Bingham and Jonathan P. Chen and Martin Jankowiak and Fritz Obermeyer and Neeraj Pradhan and Theofanis Karaletsos and Rohit Singh and Paul Szerlip and Paul Horsfall and Noah D. Goodman},
+    year={2018},
+    eprint={1810.09538},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG},
+    url={https://arxiv.org/abs/1810.09538},
+}
+
+@InProceedings{hagberg2008networkx,
+    author =       {Aric A. Hagberg and Daniel A. Schult and Pieter J. Swart},
+    title =        {Exploring Network Structure, Dynamics, and Function using NetworkX},
+    booktitle =   {Proceedings of the 7th Python in Science Conference},
+    pages =     {11 - 15},
+    address = {Pasadena, CA USA},
+    year =      {2008},
+    editor =    {Ga\"el Varoquaux and Travis Vaught and Jarrod Millman},
+}
+
+@article{tikka2017causaleffectr,
+    title={Identifying Causal Effects with the R Package causaleffect},
+    volume={76},
+    url={https://www.jstatsoft.org/index.php/jss/article/view/v076i12},
+    doi={10.18637/jss.v076.i12},
+    abstract={Do-calculus is concerned with estimating the interventional distribution of an action from the observed joint probability distribution of the variables in a given causal structure. All identifiable causal effects can be derived using the rules of do-calculus, but the rules themselves do not give any direct indication whether the effect in question is identifiable or not. Shpitser and Pearl (2006b) constructed an algorithm for identifying joint interventional distributions in causal models, which contain unobserved variables and induce directed acyclic graphs. This algorithm can be seen as a repeated application of the rules of do-calculus and known properties of probabilities, and it ultimately either derives an expression for the causal distribution, or fails to identify the effect, in which case the effect is non-identifiable. In this paper, the R package causaleffect is presented, which provides an implementation of this algorithm. Functionality of causaleffect is also demonstrated through examples.},
+    number={12},
+    journal={Journal of Statistical Software},
+    author={Tikka, Santtu and Karvanen, Juha},
+    year={2017},
+    pages={1–30}
+}
+
+@misc{pedemonte2021causalefffectpy,
+    title={Algorithmic Causal Effect Identification with causaleffect},
+    author={Martí Pedemonte and Jordi Vitrià and Álvaro Parafita},
+    year={2021},
+    eprint={2107.04632},
+    archivePrefix={arXiv},
+    primaryClass={cs.MS},
+    url={https://arxiv.org/abs/2107.04632},
+}
+
+@inproceedings{ankan2015pgmpy,
+    author = {Ankan, Ankur and Panda, Abinash},
+    doi = {10.25080/majora-7b98e3ed-001},
+    pages = {6--11},
+    title = {{pgmpy: Probabilistic Graphical Models using Python}},
+    year = {2015}
+}
+
+@article{evans2016simplification,
+    author = {Evans, Robin J.},
+    title = {Graphs for Margins of Bayesian Networks},
+    journal = {Scandinavian Journal of Statistics},
+    volume = {43},
+    number = {3},
+    pages = {625-648},
+    keywords = {causal model, directed acyclic graph, latent variable},
+    doi = {https://doi.org/10.1111/sjos.12194},
+    url = {https://onlinelibrary.wiley.com/doi/abs/10.1111/sjos.12194},
+    eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1111/sjos.12194},
+    abstract = {Abstract Directed acyclic graph (DAG) models—also called Bayesian networks—are widely used in probabilistic reasoning, machine learning and causal inference. If latent variables are present, then the set of possible marginal distributions over the remaining (observed) variables is generally not represented by any DAG. Larger classes of mixed graphical models have been introduced to overcome this; however, as we show, these classes are not sufficiently rich to capture all the marginal models that can arise. We introduce a new class of hyper-graphs, called mDAGs, and a latent projection operation to obtain an mDAG from the margin of a DAG. We show that each distinct marginal of a DAG model is represented by at least one mDAG and provide graphical results towards characterizing equivalence of these models. Finally, we show that mDAGs correctly capture the marginal structure of causally interpreted DAGs under interventions on the observed variables.},
+    year = {2016}
+}
+
+@book{Pearl_2009,
+    place={Cambridge},
+    edition={2},
+    title={Causality},
+    publisher={Cambridge University Press},
+    author={Pearl, Judea},
+    year={2009}
+}
+
+@inproceedings{drton2004mseparation,
+    author = {Drton, Mathias and Richardson, Thomas S.},
+    title = {Iterative conditional fitting for Gaussian ancestral graph models},
+    year = {2004},
+    isbn = {0974903906},
+    publisher = {AUAI Press},
+    address = {Arlington, Virginia, USA},
+    abstract = {Ancestral graph models, introduced by Richardson and Spirtes (2002), generalize both Markov random fields and Bayesian networks to a class of graphs with a global Markov property that is closed under conditioning and marginalization. By design, ancestral graphs encode precisely the conditional independence structures that can arise from Bayesian networks with selection and unobserved (hidden/latent) variables. Thus, ancestral graph models provide a potentially very useful framework for exploratory model selection when unobserved variables might be involved in the data-generating process but no particular hidden structure can be specified. In this paper, we present the Iterative Conditional Fitting (ICF) algorithm for maximum likelihood estimation in Gaussian ancestral graph models. The name reflects that in each step of the procedure a conditional distribution is estimated, subject to constraints, while a marginal distribution is held fixed. This approach is in duality to the well-known Iterative Proportional Fitting algorithm, in which marginal distributions are fitted while conditional distributions are held fixed.},
+    booktitle = {Proceedings of the 20th Conference on Uncertainty in Artificial Intelligence},
+    pages = {130–137},
+    numpages = {8},
+    location = {Banff, Canada},
+    series = {UAI '04}
+}
+
+@article{forre2018sigmaseparation,
+  title={Constraint-based causal discovery for non-linear structural causal models with cycles and latent confounders},
+  author={Forr{\'e}, Patrick and Mooij, Joris M},
+  journal={arXiv preprint arXiv:1807.03024},
+  year={2018}
+}
+
