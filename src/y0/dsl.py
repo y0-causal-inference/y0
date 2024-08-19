@@ -1751,7 +1751,7 @@ class PopulationProbabilityBuilderType(ProbabilityBuilderType):
         )
 
 
-# RJC: We need to declare a type for this alias to avoid false MyPy errors.
+# We need to declare a type for this alias to avoid false MyPy errors.
 # See https://github.com/python/mypy/issues/7568
 PP: Type[PopulationProbabilityBuilderType] = PopulationProbabilityBuilderType
 

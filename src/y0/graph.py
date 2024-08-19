@@ -826,7 +826,7 @@ def _layout(self, prog):
         return layout
     try:
         layout = nx.nx_pydot.pydot_layout(joint, prog=prog)
-    except ImportError:
+    except (ImportError, IndexError):
         pass
     else:
         return layout
