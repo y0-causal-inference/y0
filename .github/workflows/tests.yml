@@ -44,7 +44,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install tox tox-uv
-          sudo apt-get install graphviz
+          sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
       - name: Check RST conformity with doc8
         run: tox -e doc8
       - name: Check docstring coverage
@@ -65,7 +65,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: pip install tox tox-uv
+        run: |
+          pip install tox tox-uv
+          sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
       - name: Test with pytest and generate coverage file
         run:
           tox -e py
