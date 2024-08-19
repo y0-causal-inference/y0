@@ -3,6 +3,7 @@
 .. [tikka20a] https://github.com/santikka/causaleffect/blob/master/R/compute.c.factor.R.
 .. [tikka20b] https://github.com/santikka/causaleffect/blob/master/R/identify.R.
 .. [tian03a] https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf
+   TODO make this more clear. apparently this PDF isn't possible to cite easily
 """
 
 import logging

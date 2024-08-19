@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-"""Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172."""
+"""Implement of surrogate outcomes and transportability from [tikka2018]_.
+
+.. [tikka2018] `Surrogate Outcomes and Transportability <https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf>`_
+"""
 
 import logging
 from copy import deepcopy
