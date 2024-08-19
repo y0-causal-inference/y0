@@ -4,10 +4,10 @@
 
 .. todo::
 
-    high level documentation
+    Add high level documentation to "transport" module
 
     1. What problem are we trying to solve here?
-    2. What's the difference between surrogate outcomes nad transportability?
+    2. What's the difference between surrogate outcomes and transportability?
     3. Real world example
 """
 
