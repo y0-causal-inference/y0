@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 """An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
+from collections.abc import Callable, Iterable, Sequence
 from functools import partial
 from itertools import combinations, groupby
-from typing import Callable, Iterable, List, Optional, Sequence, Set, Tuple, Union
 
 import networkx as nx
 import pandas as pd
@@ -34,9 +33,9 @@ def add_ci_undirected_edges(
     graph: NxMixedGraph,
     data: pd.DataFrame,
     *,
-    method: Optional[CITest] = None,
-    significance_level: Optional[float] = None,
-    max_conditions: Optional[int] = None,
+    method: CITest | None = None,
+    significance_level: float | None = None,
+    max_conditions: int | None = None,
 ) -> NxMixedGraph:
     """Add undirected edges between d-separated nodes that fail a data-driven conditional independency test.
 
@@ -72,12 +71,12 @@ def test_conditional_independencies(
     graph: NxMixedGraph,
     data: pd.DataFrame,
     *,
-    method: Optional[CITest] = None,
+    method: CITest | None = None,
     boolean: bool = False,
-    significance_level: Optional[float] = None,
+    significance_level: float | None = None,
     _method_checked: bool = False,
-    max_conditions: Optional[int] = None,
-) -> List[Tuple[DSeparationJudgement, Union[bool, CITestTuple]]]:
+    max_conditions: int | None = None,
+) -> list[tuple[DSeparationJudgement, bool | CITestTuple]]:
     """Gets CIs with :func:`get_conditional_independencies` then tests them against data.
 
     :param graph: An acyclic directed mixed graph
@@ -117,9 +116,9 @@ def get_conditional_independencies(
     graph: NxMixedGraph,
     *,
     policy=None,
-    max_conditions: Optional[int] = None,
+    max_conditions: int | None = None,
     **kwargs,
-) -> Set[DSeparationJudgement]:
+) -> set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
 
     Conditional independencies is the minimal set of d-separation judgements to cover
@@ -141,7 +140,7 @@ def get_conditional_independencies(
     )
 
 
-def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSeparationJudgement]:
+def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> set[DSeparationJudgement]:
     r"""Given some d-separations, reduces to a 'minimal' collection.
 
     For independencies of the form $A \perp B | {C_1, C_2, ...}$, the minimal collection will
@@ -164,7 +163,7 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
 
 def get_topological_policy(
     graph: NxMixedGraph,
-) -> Callable[[DSeparationJudgement], Tuple[int, int]]:
+) -> Callable[[DSeparationJudgement], tuple[int, int]]:
     """Sort d-separations by condition length and topological order.
 
     This policy prefers small collections, and collections with variables earlier
@@ -179,19 +178,19 @@ def get_topological_policy(
 
 def _topological_policy(
     judgement: DSeparationJudgement, order: Sequence[Variable]
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     return (
         len(judgement.conditions),
-        sum((order.index(v) for v in judgement.conditions)),
+        sum(order.index(v) for v in judgement.conditions),
     )
 
 
-def _judgement_grouper(judgement: DSeparationJudgement) -> Tuple[Variable, Variable]:
+def _judgement_grouper(judgement: DSeparationJudgement) -> tuple[Variable, Variable]:
     """Simplify d-separation to just left & right element (for grouping left/right pairs)."""
     return judgement.left, judgement.right
 
 
-def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
+def _len_lex(judgement: DSeparationJudgement) -> tuple[int, str]:
     """Sort by length of conditions & the lexicography a d-separation."""
     return len(judgement.conditions), ",".join(c.name for c in judgement.conditions)
 
@@ -201,7 +200,7 @@ def are_d_separated(
     a: Variable,
     b: Variable,
     *,
-    conditions: Optional[Iterable[Variable]] = None,
+    conditions: Iterable[Variable] | None = None,
 ) -> DSeparationJudgement:
     """Test if nodes named by a & b are d-separated in G as described in [pearl2009]_.
 
@@ -255,9 +254,9 @@ def are_d_separated(
 def d_separations(
     graph: NxMixedGraph,
     *,
-    max_conditions: Optional[int] = None,
-    verbose: Optional[bool] = False,
-    return_all: Optional[bool] = False,
+    max_conditions: int | None = None,
+    verbose: bool | None = False,
+    return_all: bool | None = False,
 ) -> Iterable[DSeparationJudgement]:
     """Generate d-separations in the provided graph.
 

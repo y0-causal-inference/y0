@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 """Tests for Tian and Pearl's Identify algorithm.
 

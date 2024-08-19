@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 """Parsers for various probability expression grammars."""
 

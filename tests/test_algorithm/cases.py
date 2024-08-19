@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 """Test cases."""
 
 import unittest
 from collections import Counter
-from typing import Collection
+from collections.abc import Collection
 
 from y0.dsl import Expression, Variable, get_outcomes_and_treatments
 from y0.graph import NxMixedGraph

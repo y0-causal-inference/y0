@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 """Implementation of counterfactual transportability.
 
@@ -9,8 +8,9 @@
 import itertools as itt
 import logging
 from collections import defaultdict
+from collections.abc import Collection
 from dataclasses import dataclass, field
-from typing import Collection, NamedTuple
+from typing import NamedTuple
 
 from networkx import is_directed_acyclic_graph
 

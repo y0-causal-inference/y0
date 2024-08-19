@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 
 """An implementation of the identification algorithm."""
 
-from typing import List, Sequence
+from collections.abc import Sequence
 
 from .utils import Identification, Unidentifiable
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
@@ -158,7 +157,7 @@ def line_3(identification: Identification) -> Identification:
     return identification.with_treatments(no_effect_on_outcome)
 
 
-def line_4(identification: Identification) -> List[Identification]:
+def line_4(identification: Identification) -> list[Identification]:
     r"""Run line 4 of the identification algorithm.
 
     The key line of the algorithm, it decomposes the problem into a set

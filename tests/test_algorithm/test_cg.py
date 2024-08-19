@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 """Tests for parallel world graphs and counterfactual graphs."""
 

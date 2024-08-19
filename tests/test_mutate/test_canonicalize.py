@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 
 """Tests for the canonicalization algorithm."""
 
 import itertools as itt
 import unittest
-from typing import Sequence
+from collections.abc import Sequence
 
 from y0.dsl import (
     A,

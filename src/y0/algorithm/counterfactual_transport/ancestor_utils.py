@@ -2,8 +2,8 @@
 
 import logging
 from collections import defaultdict
+from collections.abc import Iterable
 from itertools import combinations_with_replacement
-from typing import Iterable
 
 from y0.dsl import CounterfactualVariable, Intervention, Variable
 from y0.graph import NxMixedGraph
