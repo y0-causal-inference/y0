@@ -66,7 +66,10 @@ Existing software:
 
 > A summary describing the high-level functionality and purpose of the software for a diverse, non-specialist audience.
 
+
+
 - DSL
+    - Sympy [@meurer2017sympy] isn't sufficient for operations 
     - Represent L1, L2, and L3 expressions from [@bareinboim2022]
     - Probability of necessary and sufficient causation
     - Simplify algorithm TBD [@tikka2017causaleffectr]
@@ -75,7 +78,7 @@ Existing software:
     - Mixed Directed Graph (acyclic for many algorithms)
     - Latent Variable Graph [@evans2016simplification]
 - Graph algorithms and methods
-    - Verma constraints [@tian2012verma], conditional independencies [@Pearl1989], and falsification [@eulig2023falsifyingcausalgraphsusing]
+    - Verma constraints [@tian2012verma] (not fully implemented), conditional independencies [@Pearl1989], and falsification [@eulig2023falsifyingcausalgraphsusing]
     - Separation (D-Separation [@Pearl_2009], M-Separation [@drton2004mseparation],
       Sigma-Separation [@forre2018sigmaseparation])
     - Graph simplification via LV-dag with Evans' rules [@evans2016simplification]
@@ -95,6 +98,7 @@ Existing software:
 
 # Case studies / Use Cases
 
+- TODO ID example
 - Surrogate outcomes for smoking and cancer [https://github.com/y0-causal-inference/y0/blob/main/notebooks/Surrogate%20Outcomes.ipynb]
 - Counterfactual transportability in COVID-19 [https://github.com/y0-causal-inference/y0/blob/main/notebooks/Counterfactual%20Transportability.ipynb]
 - Reference case studies from Sara's papers
@@ -103,7 +107,7 @@ Existing software:
   - [@mohammadtaheri2022experimentaldesigncausalquery]
   - [@taheri2023adjustment]
   - [@taheri2024eliater]
-- Reference other use cases (even if they're not published)
+- Reference other PNNL use cases (even if they're not published)
 
 # Ongoing research projects using it
 
@@ -125,6 +129,7 @@ Existing software:
     - gID [@lee2019general]
     - gID* [@correa2021counterfactual]
     - Data ID [@nabi2020dataid]
+    - Good and bad controls [@cinelli2022crash]
 
 # Availability and usage
 
