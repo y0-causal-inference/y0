@@ -103,7 +103,7 @@ def id_star(graph: NxMixedGraph, event: Event, *, _number_recursions: int = 0) -
     return id_star_line_9(cf_subgraph)
 
 
-class ConflictUnidentifiable(Unidentifiable):  # noqa:N818
+class ConflictUnidentifiable(Unidentifiable):
     """An exception raised when line 8 of the ID* algorithm determines that the query is not identifiable.
 
     This happens because the event contains a conflict, i.e., an inconsistent value

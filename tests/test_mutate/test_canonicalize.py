@@ -42,7 +42,7 @@ class TestCanonicalize(unittest.TestCase):
             self.assertEqual(
                 expected,
                 actual,
-                msg=f"\nExpected: {str(expected)}\nActual:   {str(actual)}",
+                msg=f"\nExpected: {expected!s}\nActual:   {actual!s}",
             )
 
     def test_invalid_ordering(self):

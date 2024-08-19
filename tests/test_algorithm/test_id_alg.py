@@ -74,7 +74,7 @@ class TestIdentify(unittest.TestCase):
         self.assertEqual(
             expected_canonical,
             actual_canonical,
-            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
+            msg=f"\nExpected: {expected_canonical!s}\nActual:   {actual_canonical!s}",
         )
 
     def test_idc(self):

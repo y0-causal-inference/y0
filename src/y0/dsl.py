@@ -408,7 +408,7 @@ class CounterfactualVariable(Variable):
         """Output this counterfactual variable instance as y0 internal DSL code."""
         sign = self._get_sign()
         if len(self.interventions) == 1:
-            return f"{sign}{self.name} @ {list(self.interventions)[0].to_y0()}"
+            return f"{sign}{self.name} @ {next(iter(self.interventions)).to_y0()}"
         else:
             ins = ", ".join(i.to_y0() for i in _sort_interventions(self.interventions))
             return f"{sign}{self.name} @ ({ins})"
@@ -1729,7 +1729,7 @@ class PopulationProbabilityBuilderType(ProbabilityBuilderType):
         """Get a population probability builder class initialized with the given population."""
         return cls(population)
 
-    def __call__(self, *args, **kwargs) -> PopulationProbability:  # noqa:D102
+    def __call__(self, *args, **kwargs) -> PopulationProbability:
         probability = super().__call__(*args, **kwargs)
         return PopulationProbability(
             population=self.population, distribution=probability.distribution

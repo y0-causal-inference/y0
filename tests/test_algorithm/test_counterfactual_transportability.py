@@ -3121,46 +3121,51 @@ class TestGetAncestralComponents(cases.GraphTestCase):
 class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
     """Test a function to transport a conditional counterfactual query (Algorithm 3 of [correa22a]_)."""
 
-    example_1_outcomes = [(Y @ -X, -Y)]
-    example_1_conditions = [(Z @ -X, -Z), (X, +X)]
-    example_1_target_domain_graph = figure_1_graph_no_transportability_nodes
-    example_1_domain_graphs = [
-        (
-            figure_1_graph_no_transportability_nodes,
-            figure_1_graph_no_transportability_nodes_topo,
-        ),
-        (
-            figure_1_graph_domain_1_with_interventions,
-            figure_1_graph_domain_1_with_interventions_topo,
-        ),
-    ]
-    example_2_outcomes = [(Y @ -X1, -Y), (W @ -X2, -W)]
-    example_2_conditions = [(X1, -X1)]
-    example_2_target_domain_graph = NxMixedGraph.from_edges(
-        directed=[
-            (X1, Z),
-            (X2, Z),
-            (Z, W),
-            (W, Y),
-        ],
-        undirected=[(Z, W)],
-    )
-    example_2_target_domain_graph_topo = list(example_2_target_domain_graph.topological_sort())
-    example_2_domain_1_graph = NxMixedGraph.from_edges(
-        directed=[(X1, Z), (X2, Z), (Z, W), (W, Y), (transport_variable(X2), X2)],
-        undirected=[],
-    )
-    example_2_domain_1_graph_topo = list(example_2_domain_1_graph.topological_sort())
-    example_2_domain_graphs = [
-        (
-            example_2_target_domain_graph,
-            example_2_target_domain_graph_topo,
-        ),
-        (
-            example_2_domain_1_graph,
-            example_2_domain_1_graph_topo,
-        ),
-    ]
+    @classmethod
+    def setUpClass(cls):
+        """Set up the class."""
+        cls.example_1_outcomes = [(Y @ -X, -Y)]
+        cls.example_1_conditions = [(Z @ -X, -Z), (X, +X)]
+        cls.example_1_target_domain_graph = figure_1_graph_no_transportability_nodes
+        cls.example_1_domain_graphs = [
+            (
+                figure_1_graph_no_transportability_nodes,
+                figure_1_graph_no_transportability_nodes_topo,
+            ),
+            (
+                figure_1_graph_domain_1_with_interventions,
+                figure_1_graph_domain_1_with_interventions_topo,
+            ),
+        ]
+        cls.example_2_outcomes = [(Y @ -X1, -Y), (W @ -X2, -W)]
+        cls.example_2_conditions = [(X1, -X1)]
+        cls.example_2_target_domain_graph = NxMixedGraph.from_edges(
+            directed=[
+                (X1, Z),
+                (X2, Z),
+                (Z, W),
+                (W, Y),
+            ],
+            undirected=[(Z, W)],
+        )
+        cls.example_2_target_domain_graph_topo = (
+            cls.example_2_target_domain_graph.topological_sort()
+        )
+        cls.example_2_domain_1_graph = NxMixedGraph.from_edges(
+            directed=[(X1, Z), (X2, Z), (Z, W), (W, Y), (transport_variable(X2), X2)],
+            undirected=[],
+        )
+        cls.example_2_domain_1_graph_topo = cls.example_2_domain_1_graph.topological_sort()
+        cls.example_2_domain_graphs = [
+            (
+                cls.example_2_target_domain_graph,
+                cls.example_2_target_domain_graph_topo,
+            ),
+            (
+                cls.example_2_domain_1_graph,
+                cls.example_2_domain_1_graph_topo,
+            ),
+        ]
 
     def test_transport_conditional_counterfactual_query_1(self):
         """First test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
@@ -3648,7 +3653,7 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
                 (Z, X),
             ],
         )
-        graph_1_topo = list(graph_1.topological_sort())
+        graph_1_topo = graph_1.topological_sort()
         # Let's say graph 2 is a stochastic intervention where Y is a function of W and Z,
         # but not X.
         graph_2 = NxMixedGraph.from_edges(
@@ -3661,7 +3666,7 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             ],
             undirected=[],
         )
-        graph_2_topo = list(graph_2.topological_sort())
+        graph_2_topo = graph_2.topological_sort()
         domain_data = [(set(), PP[Pi1](W, X, Y, Z, R)), ({Y}, PP[Pi2](W, X, Y, Z, R))]
         query_result = transport_conditional_counterfactual_query(
             outcomes=[(Y @ -X, -Y), (X, -X)],
@@ -4915,17 +4920,20 @@ class TestTransportConditionalCounterfactualQueryUtils(cases.GraphTestCase):
 class TestTransportUnconditionalCounterfactualQueryPreprocessing(cases.GraphTestCase):
     """Test input validation for [correa22a]_'s unconditional counterfactual transportability algorithm."""
 
-    event = [(Y @ -X, -Y), (X, -X)]
-    domain_graphs = [
-        (
-            figure_2_graph_domain_1_with_interventions,
-            figure_2_graph_domain_1_with_interventions_topo,
-        ),
-        (
-            figure_2_graph_domain_2,
-            figure_2_graph_domain_2_topo,
-        ),
-    ]
+    @classmethod
+    def setUpClass(cls):
+        """Set up the class."""
+        cls.event = [(Y @ -X, -Y), (X, -X)]
+        cls.domain_graphs = [
+            (
+                figure_2_graph_domain_1_with_interventions,
+                figure_2_graph_domain_1_with_interventions_topo,
+            ),
+            (
+                figure_2_graph_domain_2,
+                figure_2_graph_domain_2_topo,
+            ),
+        ]
 
     def test_unconditional_counterfactual_query_preprocessing(self):
         """Tests of input validation for transport_conditional_counterfactual_query() [correa22a].

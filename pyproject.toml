@@ -193,7 +193,7 @@ extend-select = [
     "N", # pep8 naming
     #"ERA", # eradicate commented out code
     #"NPY", # numpy checks
-    #"RUF", # ruff rules
+    "RUF", # ruff rules
 ]
 ignore = [
     "D105", # Missing docstring in magic method
@@ -207,6 +207,8 @@ ignore = [
 "docs/source/conf.py" = ["ERA001"]
 # Prints are okay in notebooks
 "notebooks/**/*.ipynb" = ["T201", "S101", "N811", "N802", "N803"]
+"src/y0/algorithm/separation/sigma_separation.py" = ["RUF002", "RUF003"]
+"src/y0/algorithm/separation/__init__.py" = ["RUF002", "RUF003"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

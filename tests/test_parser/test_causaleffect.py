@@ -27,7 +27,7 @@ class TestCausaleffectGrammar(unittest.TestCase):
                 self.assertEqual(
                     expr,
                     result_expression,
-                    msg=f"Mismatch\nExpected: {repr(expr)}\nActual:   {repr(result_expression)}",
+                    msg=f"Mismatch\nExpected: {expr!r}\nActual:   {result_expression!r}",
                 )
 
     def test_parse(self):

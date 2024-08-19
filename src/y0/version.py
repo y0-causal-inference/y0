@@ -4,7 +4,7 @@ Run with ``python -m y0.version``
 """
 
 import os
-from subprocess import CalledProcessError, check_output  # noqa: S404
+from subprocess import CalledProcessError, check_output
 
 __all__ = [
     "VERSION",
@@ -19,7 +19,7 @@ def get_git_hash() -> str:
     """Get the :mod:`y0` git hash."""
     with open(os.devnull, "w") as devnull:
         try:
-            ret = check_output(  # noqa: S603,S607
+            ret = check_output(
                 ["git", "rev-parse", "HEAD"],  # noqa: S603,S607
                 cwd=os.path.dirname(__file__),
                 stderr=devnull,

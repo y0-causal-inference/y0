@@ -52,8 +52,8 @@ def main(seed: int = 1, num_samples: int = 1000, bootstraps: int = 500):
             )
 
         query = queries[0]
-        treatment = list(query.treatments)[0]
-        outcome = list(query.outcomes)[0]
+        treatment = next(iter(query.treatments))
+        outcome = next(iter(query.outcomes))
         treatment_name = treatment.name.lower().replace("-", "").replace("_", "")
 
         df_treat_1 = example.generate_data(num_samples, seed=seed, treatments={treatment: 1})

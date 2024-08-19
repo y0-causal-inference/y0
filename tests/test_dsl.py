@@ -1,6 +1,7 @@
 """Test the probability DSL."""
 
 import unittest
+from typing import ClassVar
 
 from y0.dsl import (
     A,
@@ -10,6 +11,7 @@ from y0.dsl import (
     D,
     Distribution,
     Element,
+    Expression,
     Intervention,
     One,
     P,
@@ -54,7 +56,7 @@ class TestDSL(unittest.TestCase):
         self.assertIsInstance(expression.to_text(), str)
         self.assertIsInstance(expression.to_latex(), str)
         self.assertIsInstance(expression._repr_latex_(), str)
-        self.assertEqual(s, expression.to_text(), msg=f"Expression: {repr(expression)}")
+        self.assertEqual(s, expression.to_text(), msg=f"Expression: {expression!r}")
         if not isinstance(expression, Distribution | Intervention):
             self.assert_exp(expression)
 
@@ -371,7 +373,7 @@ class TestCounterfactual(unittest.TestCase):
                 self.assertIsInstance(expr, CounterfactualVariable)
                 self.assertEqual(counterfactual_star, expr.star)
                 self.assertEqual(1, len(expr.interventions))
-                self.assertEqual(intervention_star, list(expr.interventions)[0].star)
+                self.assertEqual(intervention_star, next(iter(expr.interventions)).star)
 
     def test_event_failures(self):
         """Check for failure to determine tautology/inconsistent."""
@@ -546,7 +548,7 @@ zero = Zero()
 class TestZero(unittest.TestCase):
     """Tests for zero."""
 
-    exprs = [
+    exprs: ClassVar[list[Expression]] = [
         One(),
         Zero(),
         P(A),

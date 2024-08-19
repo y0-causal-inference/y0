@@ -686,7 +686,7 @@ def get_counterfactual_factors_retaining_variable_values(
             "Supposed to trigger ValueError in get_counterfactual_factors_retaining_variable_values()."
         )
         # FIXME please replace all instances of concatenating str() with usage of f strings
-        logger.debug(f"    Event = {str(event)}")
+        logger.debug(f"    Event = {event!s}")
         raise ValueError(
             "In get_counterfactual_factors_retaining_variable_values(): the event %s is not"
             + " in counterfactual factor form.",

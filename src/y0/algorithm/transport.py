@@ -577,14 +577,14 @@ def trso(query: TRSOQuery) -> Expression | None:  # noqa:C901
                 )
                 expressions[domain] = expression
         if len(expressions) == 1:
-            return canonicalize(list(expressions.values())[0])
+            return canonicalize(next(iter(expressions.values())))
         elif len(expressions) > 1:
             # TODO need full integration test to trso() function that covers this branch
             #  or change to ``raise RuntimeError`` if it's not possible to reach in practice
             logger.warning("more than one expression were non-none")
             # What if more than 1 expression doesn't fail?
             # Is it non-deterministic or can we prove it will be length 1?
-            return canonicalize(list(expressions.values())[0])
+            return canonicalize(next(iter(expressions.values())))
         else:
             # if there are no expressions, then we move on to line 8
             pass
