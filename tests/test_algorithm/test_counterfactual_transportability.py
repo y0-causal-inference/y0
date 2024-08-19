@@ -92,7 +92,6 @@ from y0.graph import NxMixedGraph
 
 logger = logging.getLogger(__name__)
 
-
 # [correa22a]_, Figure 1, without the transportability node.
 # (This graph represents the target domain, so there is no
 # transportability node. Figure 1 may include a transportability
@@ -141,7 +140,6 @@ figure_2_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
 figure_2_graph_domain_1_with_interventions_topo = list(
     figure_2_graph_domain_1_with_interventions.topological_sort()
 )
-
 
 # From [correa22a]_, Figure 3a.
 figure_2_graph_domain_1 = NxMixedGraph.from_edges(
@@ -6055,47 +6053,3 @@ class TestMergeFrozenSetsWithCommonElements(cases.GraphTestCase):
         self.assertSetEqual(result_2, frozenset([X]))
         test_3_input = frozenset([])
         self.assertSetEqual(get_base_variables(test_3_input), frozenset([]))
-
-
-class TestConditionalCounterfactualTransportabilityEdgeCases(cases.GraphTestCase):
-    """Test a few edge cases dealing with different ways to condition on an outcome variable."""
-
-    def test_conditional_counterfactual_transportability_edge_cases_1(self):
-        r"""Test an edge case for counterfactual outcome variables.
-
-        For this case we have a nonreflexive outcome counterfactual variable conditioned
-        on a second nonreflexive outcome counterfactual variable.
-
-        Source: JZ
-        """
-
-    # conditions = [(Y @ -X, -Y)]
-    # outcomes = [(Y @ -W, -Y)]
-    # domain_data = [(set(), PP[TARGET_DOMAIN](W, X, Y, Z))]
-    # domain_graphs = [
-    #     (
-    #         figure_2a_graph,
-    #         figure_2a_graph.topological_sort(),
-    #     ),
-    # ]
-    # self.assertRaises(
-    #    NotImplementedError,
-    #    transport_conditional_counterfactual_query,
-    #    outcomes=outcomes,
-    #    conditions=conditions,
-    #    target_domain_graph=figure_2a_graph,
-    #    domain_graphs=domain_graphs,
-    #    domain_data=domain_data,
-    # )
-    # Once we implement the case for which we can condition on outcome base variables,
-    # the below should pass:
-    # expected_result_expr, _ = (Zero(), None)
-    # result_expr, result_event = transport_conditional_counterfactual_query(
-    #    outcomes=outcomes,
-    #    conditions=conditions,
-    #    target_domain_graph=figure_2a_graph,
-    #    domain_graphs=domain_graphs,
-    #    domain_data=domain_data,
-    # )
-    # self.assert_expr_equal(result_expr, expected_result_expr)
-    # self.assertIsNone(result_event)
