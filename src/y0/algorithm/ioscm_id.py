@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Implementation of the ID algorithm for input-output structural causal models (ioSCMs).
 
 .. [forré20a] http://proceedings.mlr.press/v115/forre20a/forre20a.pdf.
@@ -8,7 +6,7 @@
 
 import copy
 import logging
-from typing import Callable, Collection, Iterable
+from collections.abc import Callable, Collection, Iterable
 
 import networkx as nx
 
@@ -202,13 +200,13 @@ def _convert_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph:
         if component_dictionary[ego] == component_dictionary[alter]:
             edges_to_convert.add((ego, alter))
 
-    logger.warning(f"edges_to_convert: {str(edges_to_convert)}")
+    logger.warning(f"edges_to_convert: {edges_to_convert!s}")
     for ego, alter in edges_to_convert:
         new_graph.directed.remove_edge(ego, alter)
         new_graph.undirected.add_edge(ego, alter)
 
-    logger.warning(f"In _convert_strongly_connected_components: graph = {str(new_graph)}")
-    logger.warning(f"In _convert_strongly_connected_components: sccs = {str(sccs)}")
+    logger.warning(f"In _convert_strongly_connected_components: graph = {new_graph!s}")
+    logger.warning(f"In _convert_strongly_connected_components: sccs = {sccs!s}")
     return new_graph
 
 
@@ -247,9 +245,9 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
     # 1.
     new_graph, node_to_component = _simplify_strongly_connected_components(graph)
     components = [sorted(node_to_component[v]) for v in new_graph.topological_sort()]
-    logger.warning(f"In get_apt_order: original vertex list, not flattened = {str(components)}")
+    logger.warning(f"In get_apt_order: original vertex list, not flattened = {components!s}")
     nodes = [node for component in components for node in component]
-    logger.warning(f"In get_apt_order: flattened output vertex list = {str(nodes)}")
+    logger.warning(f"In get_apt_order: flattened output vertex list = {nodes!s}")
     return nodes
 
 

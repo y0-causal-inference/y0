@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Tests for the ID algorithm for input-output structural causal models (ioSCMs).
 
 .. [forré20a] http://proceedings.mlr.press/v115/forre20a/forre20a.pdf.
@@ -96,13 +94,13 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
     def test_get_vertex_consolidated_district_1(self):
         """First test for getting the consolidated district for a single vertex."""
         result_1 = get_vertex_consolidated_district(simple_cyclic_graph_2, X)
-        logger.warning(f"In test_get_vertex_consolidated_district_1: result_1 = {str(result_1)}")
+        logger.warning(f"In test_get_vertex_consolidated_district_1: result_1 = {result_1!s}")
         self.assertSetEqual(result_1, {X, W, Z, R})
         result_2 = get_vertex_consolidated_district(simple_cyclic_graph_2, R)
-        logger.warning(f"In test_get_vertex_consolidated_district_1: result_2 = {str(result_2)}")
+        logger.warning(f"In test_get_vertex_consolidated_district_1: result_2 = {result_2!s}")
         self.assertSetEqual(result_2, {X, W, Z, R})
         result_3 = get_vertex_consolidated_district(simple_cyclic_graph_2, Y)
-        logger.warning(f"In test_get_vertex_consolidated_district_1: result_3 = {str(result_3)}")
+        logger.warning(f"In test_get_vertex_consolidated_district_1: result_3 = {result_3!s}")
         self.assertSetEqual(result_3, {Y})
 
     def test_get_consolidated_district_1(self):
@@ -111,13 +109,13 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
         Testing inputs that are single vertices.
         """
         result_1 = get_consolidated_district(simple_cyclic_graph_2, {X})
-        logger.warning(f"In test_get_consolidated_district_1: result_1 = {str(result_1)}")
+        logger.warning(f"In test_get_consolidated_district_1: result_1 = {result_1!s}")
         self.assertSetEqual(result_1, {X, W, Z, R})
         result_2 = get_consolidated_district(simple_cyclic_graph_2, {R})
-        logger.warning(f"In test_get_consolidated_district_1: result_2 = {str(result_2)}")
+        logger.warning(f"In test_get_consolidated_district_1: result_2 = {result_2!s}")
         self.assertSetEqual(result_2, {X, W, Z, R})
         result_3 = get_consolidated_district(simple_cyclic_graph_2, {Y})
-        logger.warning(f"In test_get_consolidated_district_1: result_3 = {str(result_3)}")
+        logger.warning(f"In test_get_consolidated_district_1: result_3 = {result_3!s}")
         self.assertSetEqual(result_3, {Y})
 
     def test_get_consolidated_district_2(self):
@@ -135,13 +133,13 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
     def test_get_graph_consolidated_district_1(self):
         """First test for getting the consolidated districts for a graph."""
         result_1 = get_graph_consolidated_districts(simple_cyclic_graph_1)
-        logger.warning(f"In test_get_graph_consolidated_district_1: result_1 = {str(result_1)}")
+        logger.warning(f"In test_get_graph_consolidated_district_1: result_1 = {result_1!s}")
         self.assertSetEqual(result_1, {frozenset({R}), frozenset({X, W, Z}), frozenset({Y})})
 
     def test_get_graph_consolidated_district_2(self):
         """Second test for getting the consolidated districts for a graph."""
         result_2 = get_graph_consolidated_districts(simple_cyclic_graph_2)
-        logger.warning(f"In test_get_graph_consolidated_district_1: result_2 = {str(result_2)}")
+        logger.warning(f"In test_get_graph_consolidated_district_1: result_2 = {result_2!s}")
         self.assertSetEqual(result_2, {frozenset({R, X, W, Z}), frozenset({Y})})
 
 
