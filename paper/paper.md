@@ -10,12 +10,14 @@ tags:
 authors:
   - name: Charles Tapley Hoyt
     orcid: 0000-0003-4423-4370
-    affiliation: 1
+    affiliation: "1,*"
     equal-contrib: true
   - name: Jeremy Zucker
     orcid: 0000-0002-7276-9009
-    affiliation: 2
+    affiliation: "2,*"
     equal-contrib: true
+  - name: Olga Vitek
+    affiliation: 3
 
 # TODO contact remaining contributors to ask if they want to be
 # co-authors when paper is almost done
@@ -25,6 +27,8 @@ affiliations:
     index: 1
   - name: Pacific Northwest National Laboratory
     index: 2
+  - name: Northeastern University
+    index: 3
 
 date: 19 August 2024
 bibliography: paper.bib
@@ -33,84 +37,77 @@ repository: y0-causal-inference/y0
 
 # Summary
 
-Causal inference is the process of determining whether and how one variable influences another.
-Given a graphical model representing causal dependencies between variables, causal inference
-enables asking interventional and counterfactual questions on observational data, even in scenarios where acquiring
-interventional data might be either unethical or intractable.
-Causal inference workflows can be divided in two parts: 1) identifying an estimand for the causal query and 2) estimating the estimand using interventional and/or observational data.
+Causal inference is the process of determining if and how one variable influences another.
+Many algorithms take a graphical model representing causal dependencies between variables
+and enable asking counterfactual questions on observational data.
+This is useful when acquiring interventional data might be unethical or otherwise intractable.
 
-> For example, <insert description of epidemiology use cases for causal inference>
-
-We implemented $Y_0$, a Python software package that contains data structures and algorithms that can be used to ask
-such questions.
-While new causal inference algorithms are regularly published, they often lack reusable reference implementations.
-Therefore, we implemented $Y_0$ in a modular and extensible way to support the implementation of new algorithms.
+The $Y_0$ Python package implements a domain-specific language for representing probabilistic
+expressions, a generic data structure for representing graphical models, several _identification_
+algorithms that return an estimand for different kinds of causal queries (i.e., what is the effect of treatment $X$ on
+outcome $Y$?) that serve as the core of causal inference workflows, and an assortment of related algorithms and
+workflows useful for doing causal inference.
 
 # State of the field
 
-New causal inference algorithms are regularly published, but they often lack reusable reference implementations.
-[@JSSv099i05:] provide a good overview of several key identification algorithms, but only some of them have corresponding first- or third-party implementations.
+Several open source packages in the Python programming language have implemented the most simple
+identification algorithm [@shpitser2006id].
+[Ananke](https://gitlab.com/causal/ananke) [@lee2023ananke], [pgmpy](https://github.com/pgmpy/pgmpy) [@ankan2015pgmpy],
+and [DoWhy](https://github.com/py-why/dowhy) [@sharma2020dowhy],
+and [causaleffect-py](https://github.com/pedemonte96/causaleffect) [@pedemonte2021causalefffectpy].
+Further, Ananke and DoWhy implement algorithms that consume the estimand returned by `ID`
+and observational data in order to estimate the average causal effect of an intervention on the outcome.
+However, these methods are limited in their generalization to causal queries that include multiple interventions,
+multiple outcomes, conditionals, or interventions.
 
-[Ananke](https://gitlab.com/causal/ananke) [@lee2023ananke], [pgmpy](https://github.com/pgmpy/pgmpy) [@ankan2015pgmpy], and [DoWhy](https://github.com/py-why/dowhy) [@sharma2020dowhy], and [causaleffect-py](https://github.com/pedemonte96/causaleffect) [@pedemonte2021causalefffectpy] are Python packges that implement the `ID` algorithm [@shpitser2006id] - the most simple identification.
-Further, Ananke and DoWhy implement several estimators that work well with estimands from the `ID` algorithm.
+In the R programming language, [causaleffect](https://github.com/santikka/causaleffect)
+package [@tikka2017causaleffectr]
+implements `ID`, `IDC` [@shpitser2007idc], surrogate outcomes (`TRSO`) [@tikka2019trso],
+and transport [@correa2020transport].
+The [cfid](https://github.com/santikka/cfid) package from the same authors [@RJ-2023-053]
+implements `ID*` [@shpitser2012idstar]
+and `IDC*` [@shpitser2012idstar].
+However, these packages are challenging to use and extend.
 
-[causaleffect](https://github.com/santikka/causaleffect) [@tikka2017causaleffectr] implements `ID`, `IDC` [@shpitser2007idc], surrogate outcomes (`TRSO`) [@tikka2019trso],
-transport [@correa2020transport], and several other key algorithms and subroutines.
-Similarly, [cfid](https://github.com/santikka/cfid) package [@RJ-2023-053] implements `ID*` [@shpitser2012idstar] and `IDC*` [@shpitser2012idstar].
-However, these two packages are difficult to understand.
+Finally, [CausalFusion](https://www.causalfusion.net) is a web application that implements many identification and
+estimation algorithms,
+but is neither open source, has open registration, nor provides documentation.
 
-[CausalFusion](https://www.causalfusion.net) is an interactive web application that provides the implementation of many identification and estimation algorithms, but it requires approved registration, is closed source, and doesn't have public-facing documentation.
-
-Most work in causal inference is focused on _acyclic_ graphs, which is often not an appropriate constraint for real-world causal models such as biological networks.
-Algorithms such as cyclic identification (`ioID`) [@forré2019causalcalculuspresencecycles].
-Further, estimation of estimands produced by algorithms more sophisticated than `ID` is an open problem.
+Causal inference remains an active research area where new identification algorithms are regularly published
+(see a recent review from [@JSSv099i05]), but often without a reference implementation.
+This motivates the implementation of a modular framework with reusable data structures and workflows to support
+the implementation of both previously published and future algorithms and workflows.
 
 # Implementation
 
-> A summary describing the high-level functionality and purpose of the software for a diverse, non-specialist audience.
+**Probabilistic Expressions** $Y_0$ implements an internal domain-specific language that can
+capture variables, counterfactual variables, population variables, and probabilistic expressions in which
+they appear.
+It covers three levels of Pearl's Causal Hierarchy [@bareinboim2022], including the probability
+of sufficient causation $P(Y_X \mid X^*, Y^*)$, necessary causation $P(Y^*_{X^*} \mid X, Y)$,
+and necessary and sufficient causation $P(Y_X, Y^*_{X^*})$.
+Expressions can be converted to SymPy [@meurer2017sympy] and LaTeX expressions and render in Jupyter notebooks.
 
-We implemented an internal domain-specific language (DSL) that represents variables and probability expressions
+**Data Structure** $Y_0$ builds on NetworkX [@hagberg2008networkx] to implement an (acyclic) directed mixed graph
+data structure, used in many identification algorithms, and the latent variable graph structure described
+in [@evans2016simplification].
+It includes a suite of generic graph operations, graph simplification workflows such as the one propsed by Evans,
+and conversion utilities for Ananke, CausalFusion, pgmpy, and causaleffect.
 
-and can fully capture all levels of Pearl's Causal Hierarchy [@bareinboim2022].
-Notably, it can express the probabilities of:
+**Falsification** $Y_0$ implements several workflows for checking the consistency of graphical models against
+observational data.
+First, it implements D-separation [@Pearl_2009], M-separation [@drton2004mseparation],
+$\sigma$-separation [@forre2018sigmaseparation] that are applicable to increasingly more generic mixed graphs.
+Then, it implements a workflow for identifying conditional independencies [@Pearl1989], and
+falsification [@eulig2023falsifyingcausalgraphsusing].
+Finally, it provides a wrapper around `causaleffect` through [`rpy2`](https://github.com/rpy2/rpy2) for calculating
+Verma constraints [@tian2012verma].
 
-- sufficient causation $P(Y_X \mid X^*, Y^*)$
-- necessary causation $P(Y^*_{X^*} \mid X, Y)$
-- necessary and sufficient causation $P(Y_X, Y^*_{X^*})$
-
-[@meurer2017sympy]
-
-These can include conditionals, counterfactual variables, and other domain-specific glyphs that
-are not supported out of the box.
-
-- DSL
-    - Sympy isn't sufficient for operations
-    - Represent L1, L2, and L3 expressions from
-    - Probability of necessary and sufficient causation
-    - Simplify algorithm TBD [@tikka2017causaleffectr]
-    - Novel complexity measurement
-- Graph Data Structures
-    - Mixed Directed Graph (acyclic for many algorithms)
-    - Latent Variable Graph [@evans2016simplification]
-- Graph algorithms and methods
-    - Verma constraints [@tian2012verma] (not fully implemented), conditional independencies [@Pearl1989], and
-      falsification [@eulig2023falsifyingcausalgraphsusing]
-    - Separation (D-Separation [@Pearl_2009], M-Separation [@drton2004mseparation],
-      Sigma-Separation [@forre2018sigmaseparation])
-    - Graph simplification via LV-dag with Evans' rules [@evans2016simplification]
-    - I/O with Ananke, Causal Fusion, NetworkX, Pgmpy [@ankan2015pgmpy], causaleffect
-- Identification
-    - ID [@shpitser2006id]
-    - IDC [@shpitser2007idc]
-    - ID* [@shpitser2012idstar]
-    - IDC\* [@shpitser2012idstar]
-    - Surrogate Outcomes (TRSO) [@tikka2019trso]
-    - Tian ID [@tian2010identifying]
-    - Transport [@correa2020transport]
-    - Counterfactual Transport [@correa2022cftransport]
-- Estimation
-    - Wrapper around ananke for automation
-    - Implementation of linear SCM (skip this, simpler to leave as later work.)
+**Identification** $Y_0$ has the most complete suite of identification algorithms of any causal inference package.
+It implements `ID` [@shpitser2006id], `IDC` [@shpitser2007idc], `ID*` [@shpitser2012idstar],
+`IDC*` [@shpitser2012idstar], surrogate outcomes (`TRSO`) [@tikka2019trso],
+`tian-ID` [@tian2010identifying], transport [@correa2020transport], and
+counterfactual transport [@correa2022cftransport].
 
 # Case Study
 
@@ -122,7 +119,8 @@ First, we construct a graphical model (\autoref{cancer}A) representing the follo
 3. Smoking itself also increases the risk of cancer
 
 ![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking an cancer and **B
-**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
+**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf)
+{#cancer height="100pt"}
 
 The ID algorithm [@shpitser2006id] estimates the effect of smoking on the risk of cancer in \autoref{cancer}A as
 $\sum_{Tar} P(Cancer | Smoking, Tar) P(Tar | Smoking)$.
@@ -142,35 +140,31 @@ We provide a second case study demonstrating the transport [@correa2020transport
 transport [@correa2022cftransport] algorithms for epidemiological studies in COVID-19 in
 this [Jupyter notebook](https://github.com/y0-causal-inference/y0/blob/main/notebooks/Counterfactual%20Transportability.ipynb).
 
-# Use Cases
+We highlight several which used (and motivated further development of) $Y_0$:
 
-> Mention (if applicable) a representative set of past or ongoing research projects using the software and recent
-> scholarly publications enabled by it.
-
-We also refer to previously published uses of $Y_0$:
-
-- [@taheri2022partial]
-- [@mohammadtaheri2022experimentaldesigncausalquery]
-- [@taheri2023adjustment]
-- [@taheri2024eliater]
-- Reference other PNNL use cases (even if they're not published)
-- Altdeep.ai (https://github.com/altdeep/causalML) course
-- what was the other book robert was publishing?
+- [@mohammadtaheri2022experimentaldesigncausalquery] used $Y_0$ to develop an automated experimental design workflow.
+- [@taheri2023adjustment] used $Y_0$ for falsification against experimental and simulated data for several biological
+  signaling pathways.
+- [@taheri2024eliater] used $Y_0$ and Ananke to implement an automated causal workflow for simple causal queries
+  compatible with `ID`.
+- [@ness_causal_2024] uses $Y_0$ as a teaching tool for identification and the causal hierarchy
+- TODO @JZ reference other PNNL use cases (even if they're not published)
 
 # Future direction
 
-1. What are some algorithmic limitations that need more research? E.g., estimation of multiple outcomes
-2. What are some parts of a fully automatable causal workflow we haven't been able to do?
-    - We can do identification and generation of an estimand, but only estimate the estimand in a small number of cases.
-      What are some forward-looking ways to overcome this?
-        - Pyro [@bingham2018pyro] and ChiRho [https://github.com/BasisResearch/chirho]
-        - Tractable Circuits [@darwiche2022causalinferenceusingtractable]
-3. What are some high-priority algorithms to implement on our to-do list, and why are they important?
-    - cyclic ID (ioID) [@forré2019causalcalculuspresencecycles]
-    - gID [@lee2019general]
-    - gID* [@correa2021counterfactual]
-    - Data ID [@nabi2020dataid]
-    - Good and bad controls [@cinelli2022crash]
+There remain several high value identification algorithms to include in $Y_0$ in the future.
+For example, the generalized ID (`gID`) [@lee2019general] and generalized counterfactual
+ID (`gID*`) [@correa2021counterfactual] are important because... TODO @JZ!
+The cyclic ID (`ioID`) [@forré2019causalcalculuspresencecycles] is important to work with more realistic graphs that
+contain cycles, such as how biomolecular signaling pathways often contain feedback loops.
+
+Similarly, it remains an open research question on how to estimate the causal effect for an arbitrary
+estimand produced by an algorithm more sophistocated than `ID`.
+Two potential avenues for overcoming this might be a combination of the Pyro probabilistic programming langauge
+[@bingham2018pyro] and its causal inference extension ChiRho [https://github.com/BasisResearch/chirho].
+Tractable circuits [@darwiche2022causalinferenceusingtractable] also present a new paradigm for generic estimation.
+Such a generalization would be a lofty achievement and enable the automation of downstream applications in
+experimental design.
 
 # Availability and usage
 
