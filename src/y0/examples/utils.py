@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Callable, Optional, Sequence
 
 import pandas as pd
 
@@ -24,15 +24,15 @@ class Example:
     name: str
     reference: str
     graph: NxMixedGraph
-    description: Optional[str] = None
-    verma_constraints: Optional[Sequence[VermaConstraint]] = None
-    conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
-    data: Optional[pd.DataFrame] = None
-    identifications: Optional[list[dict[str, list[Identification]]]] = None
+    description: str | None = None
+    verma_constraints: Sequence[VermaConstraint] | None = None
+    conditional_independencies: Sequence[DSeparationJudgement] | None = None
+    data: pd.DataFrame | None = None
+    identifications: list[dict[str, list[Identification]]] | None = None
     #: Example queries are just to give an idea to a new user
     #: what might be interesting to use in the ID algorithm
-    example_queries: Optional[list[Query]] = None
-    generate_data: Optional[Callable[[int, Optional[dict[Variable, float]]], pd.DataFrame]] = None
+    example_queries: list[Query] | None = None
+    generate_data: Callable[[int, dict[Variable, float] | None], pd.DataFrame] | None = None
 
     def generate_ate(
         self,

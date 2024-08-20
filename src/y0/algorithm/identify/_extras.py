@@ -6,7 +6,8 @@ identified with this algorithm.
 """
 
 import logging
-from typing import Collection, Set, Tuple, cast
+from collections.abc import Collection
+from typing import cast
 
 from y0.algorithm.identify.cg import is_not_self_intervened, make_counterfactual_graph
 from y0.algorithm.identify.id_star import (
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 def original_id_star_line_6(
     graph: NxMixedGraph, event: Event
-) -> Tuple[Collection[Variable], DistrictInterventions]:
+) -> tuple[Collection[Variable], DistrictInterventions]:
     r"""Run line 6 of the ID* algorithm.
 
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes
@@ -94,7 +95,7 @@ def get_district_interventions(graph: NxMixedGraph, event: Event) -> DistrictInt
     }
 
 
-def intervene_on_district(district: District, interventions: Set[Variable], event: Event) -> Event:
+def intervene_on_district(district: District, interventions: set[Variable], event: Event) -> Event:
     """Intervene on the variables not in the district.
 
     Each variable in the district takes its value in the event if it has one.
@@ -165,7 +166,8 @@ def original_id_star(
     if not cf_subgraph.is_connected():
         summand, events_of_each_district = original_id_star_line_6(cf_graph, new_event)
         logger.debug("[%d] summand: %s", _number_recursions, summand)
-        assert 1 < len(events_of_each_district)
+        if 1 >= len(events_of_each_district):
+            raise RuntimeError
         logger.debug(
             "[%d] recurring on each district: %s ", _number_recursions, events_of_each_district
         )

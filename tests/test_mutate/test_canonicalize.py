@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 """Tests for the canonicalization algorithm."""
 
 import itertools as itt
 import unittest
-from typing import Sequence
+from collections.abc import Sequence
 
 from y0.dsl import (
     A,
@@ -44,7 +42,7 @@ class TestCanonicalize(unittest.TestCase):
             self.assertEqual(
                 expected,
                 actual,
-                msg=f"\nExpected: {str(expected)}\nActual:   {str(actual)}",
+                msg=f"\nExpected: {expected!s}\nActual:   {actual!s}",
             )
 
     def test_invalid_ordering(self):

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from contextlib import redirect_stdout
-from typing import List, Optional, Union
 
 import pandas as pd
 
@@ -21,16 +20,16 @@ __all__ = [
 ]
 
 
-def estimate_ace(
+def estimate_ace(  # noqa:C901
     graph: NxMixedGraph,
-    treatments: Union[Variable, List[Variable]],
-    outcomes: Union[Variable, List[Variable]],
+    treatments: Variable | list[Variable],
+    outcomes: Variable | list[Variable],
     data: pd.DataFrame,
     *,
-    conditions: Optional[List[Variable]] = None,
+    conditions: list[Variable] | None = None,
     bootstraps: int | None = None,
     alpha: float | None = None,
-    estimator: Optional[str] = None,
+    estimator: str | None = None,
 ) -> float:
     """Estimate the average treatment effect."""
     if conditions is not None:

@@ -6,7 +6,7 @@
 """
 
 import logging
-from typing import Collection
+from collections.abc import Collection
 
 from y0.dsl import (
     Distribution,
@@ -34,7 +34,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def identify_district_variables(
+def identify_district_variables(  # noqa:C901
     *,
     input_variables: frozenset[Variable],
     input_district: frozenset[Variable],
@@ -85,7 +85,7 @@ def identify_district_variables(
         )
     if (not isinstance(district_probability, Expression)) | isinstance(
         district_probability, Expression
-    ) and not (isinstance(district_probability, (Sum, Product, Fraction, Probability))):
+    ) and not (isinstance(district_probability, Sum | Product | Fraction | Probability)):
         raise TypeError(
             "In identify_district_variables: the district probability must be an expression that is a "
             "Sum, Product, Fraction, or Probability."
@@ -125,7 +125,7 @@ def identify_district_variables(
         #             input_variables.intersect(district)==input_variables][0]
         # ordered_t_prime_vertices = [v for v in topo if v in t_prime]
         # t_one = t_prime.intersection(ancestral_set) # RC: This line is in Tikka
-        if isinstance(district_probability, (Fraction, Product, Sum)):  # Compute Q[A] from Lemma 3
+        if isinstance(district_probability, Fraction | Product | Sum):  # Compute Q[A] from Lemma 3
             ancestral_set_probability = compute_ancestral_set_q_value(
                 ancestral_set=ancestral_set,
                 subgraph_variables=input_district,
@@ -437,7 +437,7 @@ def compute_c_factor(
     subgraph_topo = [v for v in graph_topo if v in subgraph_variables]
     logger.debug("In _compute_c_factor: graph_topo = " + str(graph_topo))
     logger.debug("In _compute_c_factor: subgraph_topo = " + str(subgraph_topo))
-    if isinstance(subgraph_probability, (Fraction, Product, Sum)):
+    if isinstance(subgraph_probability, Fraction | Product | Sum):
         logger.debug(
             "In _compute_c_factor: calling _compute_c_factor_marginalizing_over_topological_successors"
         )

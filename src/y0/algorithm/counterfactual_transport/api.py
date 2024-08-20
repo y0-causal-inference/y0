@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Implementation of counterfactual transportability.
 
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
@@ -9,8 +7,9 @@
 import itertools as itt
 import logging
 from collections import defaultdict
+from collections.abc import Collection
 from dataclasses import dataclass, field
-from typing import Collection, NamedTuple
+from typing import NamedTuple
 
 from networkx import is_directed_acyclic_graph
 
@@ -332,7 +331,7 @@ def _split_event_by_reflexivity(event: Event) -> tuple[Event, Event]:
 
 
 def _reduce_reflexive_counterfactual_variables_to_interventions(
-    variables: dict[Variable, set[Intervention | None]]
+    variables: dict[Variable, set[Intervention | None]],
 ) -> dict[Variable, set[Intervention | None]]:
     r"""Simplify counterfactual variables intervening on themselves to Intervention objects with the same base.
 
@@ -687,7 +686,7 @@ def get_counterfactual_factors_retaining_variable_values(
             "Supposed to trigger ValueError in get_counterfactual_factors_retaining_variable_values()."
         )
         # FIXME please replace all instances of concatenating str() with usage of f strings
-        logger.debug(f"    Event = {str(event)}")
+        logger.debug(f"    Event = {event!s}")
         raise ValueError(
             "In get_counterfactual_factors_retaining_variable_values(): the event %s is not"
             + " in counterfactual factor form.",
@@ -852,7 +851,7 @@ def _remove_transportability_vertices(*, vertices: Collection[Variable]) -> set[
     return {v for v in vertices if not is_transport_node(v)}
 
 
-def validate_inputs_for_transport_district_intervening_on_parents(
+def validate_inputs_for_transport_district_intervening_on_parents(  # noqa:C901
     *,
     district: Collection[Variable],
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
@@ -895,9 +894,9 @@ def validate_inputs_for_transport_district_intervening_on_parents(
         )
     if not all(
         isinstance(g, NxMixedGraph)
-        and isinstance(l, list)
-        and all(isinstance(v, Variable) for v in l)
-        for g, l in domain_graphs
+        and isinstance(l_variables, list)
+        and all(isinstance(v, Variable) for v in l_variables)
+        for g, l_variables in domain_graphs
     ):
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: the input domain "
@@ -1247,7 +1246,7 @@ def _transport_unconditional_counterfactual_query_line_2(
 
 
 def _any_variable_values_inconsistent_with_interventions(
-    event: Collection[tuple[Variable, Intervention | None]]
+    event: Collection[tuple[Variable, Intervention | None]],
 ) -> bool:
     r"""Determine whether a counterfactual factor has a variable value inconsistent with any intervention value.
 
@@ -1291,7 +1290,7 @@ def _any_variable_values_inconsistent_with_interventions(
 
 
 def _any_inconsistent_intervention_values(
-    event: Collection[tuple[Variable, Intervention | None]]
+    event: Collection[tuple[Variable, Intervention | None]],
 ) -> bool:
     r"""Determine whether a counterfactual factor has two inconsistent intervention values.
 
@@ -1316,7 +1315,7 @@ def _any_inconsistent_intervention_values(
 
 
 def _counterfactual_factor_is_inconsistent(
-    event: Collection[tuple[Variable, Intervention | None]]
+    event: Collection[tuple[Variable, Intervention | None]],
 ) -> bool:
     r"""Determine whether a counterfactual factor is inconsistent.
 
@@ -1449,9 +1448,9 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
         )
     if not all(
         isinstance(g, NxMixedGraph)
-        and isinstance(l, list)
-        and all(isinstance(v, Variable) for v in l)
-        for g, l in domain_graphs
+        and isinstance(l_variables, list)
+        and all(isinstance(v, Variable) for v in l_variables)
+        for g, l_variables in domain_graphs
     ):
         raise TypeError(
             "In _validate_transport_unconditional_counterfactual_query_input: the input domain "
@@ -2575,9 +2574,9 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
         )
     if not all(
         isinstance(g, NxMixedGraph)
-        and isinstance(l, list)
-        and all(isinstance(v, Variable) for v in l)
-        for g, l in domain_graphs
+        and isinstance(l_variables, list)
+        and all(isinstance(v, Variable) for v in l_variables)
+        for g, l_variables in domain_graphs
     ):
         raise TypeError(
             "In _validate_transport_conditional_counterfactual_query_input: the input domain "

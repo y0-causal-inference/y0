@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 """Test cases."""
 
 import unittest
 from collections import Counter
-from typing import Collection
+from collections.abc import Collection
 
 from y0.dsl import Expression, Variable, get_outcomes_and_treatments
 from y0.graph import NxMixedGraph
@@ -48,7 +46,7 @@ class GraphTestCase(unittest.TestCase):
         self.assertEqual(
             expected_canonical,
             actual_canonical,
-            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
+            msg=f"\nExpected: {expected_canonical!s}\nActual:   {actual_canonical!s}",
         )
 
     def assert_collection_of_set_equal(
