@@ -8,13 +8,13 @@ import logging
 import unittest
 
 from y0.algorithm.ioscm_id import (
-    _convert_strongly_connected_components,
     _simplify_strongly_connected_components,
     get_apt_order,
     get_consolidated_district,
     get_graph_consolidated_districts,
     get_vertex_consolidated_district,
     is_apt_order,
+    scc_to_bidirected,
 )
 from y0.dsl import R, W, X, Y, Z
 from y0.graph import NxMixedGraph
@@ -50,13 +50,13 @@ class TestConvertStronglyConnectedComponents(unittest.TestCase):
 
     def test_convert_strongly_connected_components_1(self):
         """First test converting strongly connected components in a graph to bidirected edges."""
-        result_1 = _convert_strongly_connected_components(simple_cyclic_graph_1)
+        result_1 = scc_to_bidirected(simple_cyclic_graph_1)
         self.assertSetEqual({edge for edge in result_1.undirected.edges}, {(X, W), (W, Z), (X, Z)})
         self.assertSetEqual({edge for edge in result_1.directed.edges}, {(R, X), (W, Y)})
 
     def test_convert_strongly_connected_components_2(self):
         """Second test converting strongly connected components in a graph to bidirected edges."""
-        result_2 = _convert_strongly_connected_components(simple_cyclic_graph_2)
+        result_2 = scc_to_bidirected(simple_cyclic_graph_2)
         self.assertSetEqual(
             {edge for edge in result_2.undirected.edges}, {(X, R), (X, W), (W, Z), (X, Z)}
         )

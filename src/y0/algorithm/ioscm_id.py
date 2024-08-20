@@ -11,7 +11,7 @@ from collections.abc import Callable, Collection, Iterable
 import networkx as nx
 
 from y0.algorithm.separation.sigma_separation import get_equivalence_classes
-from y0.dsl import Variable  # P,; R,; W,; X,; Y,; Z,
+from y0.dsl import Variable
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -74,7 +74,7 @@ def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozen
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
     # 3. Get the district for the new graph that contains the target vertex in question using get_district().
     # 4. Return the resulting set.
-    converted_graph = _convert_strongly_connected_components(graph)
+    converted_graph = scc_to_bidirected(graph)
     result = converted_graph.get_district(v)
     return result
 
@@ -109,7 +109,7 @@ def get_consolidated_district(graph: NxMixedGraph, vertices: Collection[Variable
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
     # 3. Get all the consolidated districts.
     # 4. Return the union of all of them as one set.
-    converted_graph = _convert_strongly_connected_components(graph)
+    converted_graph = scc_to_bidirected(graph)
     result: set[Variable] = set()
     for vertex in vertices:
         district = converted_graph.get_district(vertex)
@@ -140,7 +140,7 @@ def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Varia
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
     # 3. Get each consolidated district as a frozen set.
     # 4. Return all of them as a set of frozen sets.
-    converted_graph = _convert_strongly_connected_components(graph)
+    converted_graph = scc_to_bidirected(graph)
     result: set[frozenset[Variable]] = set()
     for node in graph.nodes():
         if node not in result:
@@ -148,9 +148,8 @@ def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Varia
     return result
 
 
-# Utility function
-def _convert_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph:
-    r"""Replace every edge in a strongly-connected component with a bidirected edge."""
+def scc_to_bidirected(graph: NxMixedGraph) -> NxMixedGraph:
+    """Replace every edge in a strongly-connected component with a bidirected edge."""
     new_graph = copy.deepcopy(graph)
 
     node_to_component = get_equivalence_classes(graph)
@@ -161,7 +160,6 @@ def _convert_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph:
         if node_to_component[ego] == node_to_component[alter]
     }
 
-    logger.warning(f"edges_to_convert: {edges_to_convert!s}")
     for ego, alter in edges_to_convert:
         new_graph.directed.remove_edge(ego, alter)
         new_graph.undirected.add_edge(ego, alter)
