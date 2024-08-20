@@ -13,7 +13,6 @@ from y0.algorithm.ioscm_id import (
     get_apt_order,
     get_consolidated_district,
     get_graph_consolidated_districts,
-    get_strongly_connected_component,
     get_vertex_consolidated_district,
     is_apt_order,
 )
@@ -62,26 +61,6 @@ class TestConvertStronglyConnectedComponents(unittest.TestCase):
             {edge for edge in result_2.undirected.edges}, {(X, R), (X, W), (W, Z), (X, Z)}
         )
         self.assertSetEqual({edge for edge in result_2.directed.edges}, {(W, Y)})
-
-
-class TestGetStronglyConnectedComponent(unittest.TestCase):
-    """Test retrieving a strongly connected component in a graph with or without cycles."""
-
-    # TODO: Implement type checking on the graph and the input variable.
-    # TODO: Also check that we can't pass in multiple vertices or an empty graph.
-
-    def test_get_strongly_connected_component_1(self):
-        """First test for strongly connected components.
-
-        This is a simple graph with a cycle.
-        """
-        result_1 = get_strongly_connected_component(simple_cyclic_graph_1, X)
-        self.assertSetEqual(result_1, {X, W, Z})
-        result_2 = get_strongly_connected_component(simple_cyclic_graph_1, R)
-        self.assertSetEqual(result_2, {R})
-        result_3 = get_strongly_connected_component(simple_cyclic_graph_1, Y)
-        self.assertSetEqual(result_3, {Y})
-        # self.assertSetEqual(result_3, {R})
 
 
 class TestGetConsolidatedDistrict(unittest.TestCase):

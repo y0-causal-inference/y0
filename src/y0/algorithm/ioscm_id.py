@@ -10,12 +10,12 @@ from collections.abc import Callable, Collection, Iterable
 
 import networkx as nx
 
+from y0.algorithm.separation.sigma_separation import get_equivalence_classes
 from y0.dsl import Variable  # P,; R,; W,; X,; Y,; Z,
 from y0.graph import NxMixedGraph
 
 __all__ = [
     # TODO do a proper audit of which of these a user should ever have to import
-    "get_strongly_connected_component",
     "get_strongly_connected_components",
     "get_vertex_consolidated_district",
     "get_consolidated_district",
@@ -29,37 +29,6 @@ logger = logging.getLogger(__name__)
 #: Variable to component mapping
 NodeToComponent = dict[Variable, frozenset[Variable]]
 ComponentToNode = dict[frozenset[Variable], Variable]
-
-
-def get_strongly_connected_component(graph: NxMixedGraph, v: Variable) -> set[Variable]:
-    r"""Return the strongly-connected component within which a graph vertex lies.
-
-    :math: The strongly connected component of $v$ in $G$ is defined to be:
-    $\text{Sc}^{G}(v):= \text{Anc}^{G}(v)\cap \text{Desc}^{G}(v)$.
-
-    :param graph:
-        The corresponding graph.
-    :param v:
-        The vertex for which the strongly connected component is to be retrieved.
-    :returns:
-        The set of variables comprising the strongly connected component $\text{Sc}^{G}(v)$.
-    """
-    # logger.warning(
-    #    f"In get_strongly_connected_component: directed edges = {str(graph.directed.edges)}"
-    # )
-    # logger.warning(
-    #    f"In get_strongly_connected_component: undirected edges = {str(graph.undirected.edges)}"
-    # )
-    # ancestors = graph.ancestors_inclusive(v)
-    # descendents = graph.descendants_inclusive(v)
-    # logger.warning(f"In get_strongly_connected_component: ancestors = {str(ancestors)}")
-    # logger.warning(f"In get_strongly_connected_component: descendents = {str(descendents)}")
-    # result = ancestors.intersection(descendents)
-    # logger.warning(f"In get_strongly_connected_component: returning {str(result)}")
-    # TODO: It might be faster to use strongly_connected_components:
-    # return result
-    # https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.components.strongly_connected_components.html#networkx.algorithms.components.strongly_connected_components
-    return graph.ancestors_inclusive(v).intersection(graph.descendants_inclusive(v))
 
 
 def get_strongly_connected_components(graph: NxMixedGraph) -> set[frozenset[Variable]]:
@@ -182,23 +151,15 @@ def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Varia
 # Utility function
 def _convert_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph:
     r"""Replace every edge in a strongly-connected component with a bidirected edge."""
-    # undirected: nx.Graph = field(default_factory=nx.Graph)
-
     new_graph = copy.deepcopy(graph)
 
-    sccs: set[frozenset[Variable]] = get_strongly_connected_components(new_graph)
-    # Need a dictionary mapping vertices to strongly connected components. O(V) to create
-    component_dictionary = dict()
-    for component in sccs:
-        for vertex in component:
-            component_dictionary[vertex] = component
+    node_to_component = get_equivalence_classes(graph)
 
-    edges_to_convert = set()
-    for edge in new_graph.directed.edges:
-        ego = edge[0]
-        alter = edge[1]
-        if component_dictionary[ego] == component_dictionary[alter]:
-            edges_to_convert.add((ego, alter))
+    edges_to_convert = {
+        (ego, alter)
+        for ego, alter in new_graph.directed.edges
+        if node_to_component[ego] == node_to_component[alter]
+    }
 
     logger.warning(f"edges_to_convert: {edges_to_convert!s}")
     for ego, alter in edges_to_convert:
@@ -206,7 +167,6 @@ def _convert_strongly_connected_components(graph: NxMixedGraph) -> NxMixedGraph:
         new_graph.undirected.add_edge(ego, alter)
 
     logger.warning(f"In _convert_strongly_connected_components: graph = {new_graph!s}")
-    logger.warning(f"In _convert_strongly_connected_components: sccs = {sccs!s}")
     return new_graph
 
 
