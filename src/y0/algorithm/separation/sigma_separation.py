@@ -1,6 +1,6 @@
 """Implementation of sigma-separation from [forre2018]_."""
 
-from typing import Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
 
 import networkx as nx
 from more_itertools import triplewise
@@ -20,8 +20,8 @@ def are_sigma_separated(
     left: Variable,
     right: Variable,
     *,
-    conditions: Optional[Iterable[Variable]] = None,
-    cutoff: Optional[int] = None,
+    conditions: Iterable[Variable] | None = None,
+    cutoff: int | None = None,
 ) -> bool:
     """Test if two variables are sigma-separated.
 
@@ -64,7 +64,7 @@ def is_z_sigma_open(
     path: Sequence[Variable],
     *,
     sigma: dict[Variable, set[Variable]],
-    conditions: Optional[set[Variable]] = None,
+    conditions: set[Variable] | None = None,
 ) -> bool:
     r"""Check if a path is Z-sigma-open.
 

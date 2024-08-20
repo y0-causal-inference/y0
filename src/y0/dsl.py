@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 r"""An internal domain-specific language for probability expressions.
 
 =======================  ====================================================================
@@ -31,24 +29,10 @@ from __future__ import annotations
 import functools
 import itertools as itt
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from operator import attrgetter
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Protocol,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Protocol, TypeVar, cast
 
 if TYPE_CHECKING:
     import sympy
@@ -140,7 +124,7 @@ __all__ = [
 T_co = TypeVar("T_co", covariant=True)
 
 
-def _to_interventions(variables: Sequence[Variable]) -> Tuple[Intervention, ...]:
+def _to_interventions(variables: Sequence[Variable]) -> tuple[Intervention, ...]:
     return tuple(
         (
             variable
@@ -179,7 +163,7 @@ class Element(ABC):
     def _iter_variables(self) -> Iterable[Variable]:
         """Iterate over variables."""
 
-    def get_variables(self) -> Set[Variable]:
+    def get_variables(self) -> set[Variable]:
         """Get the set of variables used in this expression."""
         return set(self._iter_variables())
 
@@ -193,7 +177,7 @@ class Variable(Element):
     #: The star status of the variable. None means it's a variable,
     #: False means it's the same as the value for the variable,
     #: and True means it's a different value from the variable.
-    star: Optional[bool] = None
+    star: bool | None = None
 
     def __post_init__(self):
         if not isinstance(self.name, str):
@@ -210,7 +194,7 @@ class Variable(Element):
             return "^{-}" if latex else "-"
 
     @classmethod
-    def norm(cls, name: Union[str, Variable]) -> Variable:
+    def norm(cls, name: str | Variable) -> Variable:
         """Automatically upgrade a string to a variable."""
         if isinstance(name, str):
             return Variable(name)
@@ -228,7 +212,7 @@ class Variable(Element):
         sign = self._get_sign()
         return sign + self.name
 
-    def to_sympy(self) -> "sympy.Symbol":
+    def to_sympy(self) -> sympy.Symbol:
         """Get the object for sympy."""
         import sympy
 
@@ -286,7 +270,7 @@ class Variable(Element):
     def __matmul__(self, variables: VariableHint) -> CounterfactualVariable:
         return self.intervene(variables)
 
-    def given(self, parents: Union[VariableHint, Distribution]) -> Distribution:
+    def given(self, parents: VariableHint | Distribution) -> Distribution:
         """Create a distribution in which this variable is conditioned on the given variable(s).
 
         The new distribution is a Markov Kernel.
@@ -312,7 +296,7 @@ class Variable(Element):
                 parents=parents.children,  # don't think about this too hard
             )
 
-    def __or__(self, parents: Union[VariableHint, Distribution]) -> Distribution:
+    def __or__(self, parents: VariableHint | Distribution) -> Distribution:
         return self.given(parents)
 
     def joint(self, children: VariableHint) -> Distribution:
@@ -355,7 +339,7 @@ class Variable(Element):
         yield self
 
 
-VariableHint = Union[str, Variable, Iterable[Union[str, Variable]]]
+VariableHint = str | Variable | Iterable[str | Variable]
 
 
 @dataclass(frozen=True, order=True, repr=False)
@@ -424,7 +408,7 @@ class CounterfactualVariable(Variable):
         """Output this counterfactual variable instance as y0 internal DSL code."""
         sign = self._get_sign()
         if len(self.interventions) == 1:
-            return f"{sign}{self.name} @ {list(self.interventions)[0].to_y0()}"
+            return f"{sign}{self.name} @ {next(iter(self.interventions)).to_y0()}"
         else:
             ins = ", ".join(i.to_y0() for i in _sort_interventions(self.interventions))
             return f"{sign}{self.name} @ ({ins})"
@@ -525,13 +509,13 @@ class Distribution(Element):
     P(X | Y) means that X is a child and Y is a parent.
     """
 
-    children: Tuple[Variable, ...]
-    parents: Tuple[Variable, ...] = field(default_factory=tuple)
+    children: tuple[Variable, ...]
+    parents: tuple[Variable, ...] = field(default_factory=tuple)
 
     def __post_init__(self):
-        if isinstance(self.children, (list, Variable)):
+        if isinstance(self.children, list | Variable):
             raise TypeError(f"children of wrong type: {type(self.children)}")
-        if isinstance(self.parents, (list, Variable)):
+        if isinstance(self.parents, list | Variable):
             raise TypeError
         if not self.children:
             raise ValueError("distribution must have at least one child")
@@ -539,8 +523,8 @@ class Distribution(Element):
     @classmethod
     def safe(
         cls,
-        distribution: Union[VariableHint, Distribution],
-        *args: Union[str, Variable, Distribution],
+        distribution: VariableHint | Distribution,
+        *args: str | Variable | Distribution,
     ) -> Distribution:
         """Create a distribution the given variable(s) or distribution.
 
@@ -552,7 +536,7 @@ class Distribution(Element):
         :returns: A Distribution object
         :raises ValueError: If invalid combination of arguments are given.
         """
-        if isinstance(distribution, (str, Variable, Distribution)):
+        if isinstance(distribution, str | Variable | Distribution):
             extended_args = [distribution, *args]
             dist_pos = [i for i, e in enumerate(extended_args) if isinstance(e, Distribution)]
 
@@ -566,9 +550,9 @@ class Distribution(Element):
             # as child variables, and everything after as parent variables.
             elif 1 == len(dist_pos):
                 i = dist_pos[0]
-                pre = cast(Iterable[Union[str, Variable]], extended_args[:i])
+                pre = cast(Iterable[str | Variable], extended_args[:i])
                 dist = cast(Distribution, extended_args[i])
-                post = cast(Iterable[Union[str, Variable]], extended_args[i + 1 :])
+                post = cast(Iterable[str | Variable], extended_args[i + 1 :])
                 return Distribution(
                     children=_sorted_variables((*_upgrade_ordering(pre), *dist.children)),
                     parents=_sorted_variables((*dist.parents, *_upgrade_ordering(post))),
@@ -644,7 +628,7 @@ class Distribution(Element):
     def __and__(self, children: VariableHint) -> Distribution:
         return self.joint(children)
 
-    def given(self, parents: Union[VariableHint, Distribution]) -> Distribution:
+    def given(self, parents: VariableHint | Distribution) -> Distribution:
         """Create a new mixed distribution additionally conditioned on the given parent variables.
 
         :param parents: The variable(s) with which this distribution's parents are extended
@@ -672,7 +656,7 @@ class Distribution(Element):
                 ),  # don't think about this too hard
             )
 
-    def __or__(self, parents: Union[VariableHint, Distribution]) -> Distribution:
+    def __or__(self, parents: VariableHint | Distribution) -> Distribution:
         return self.given(parents)
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -754,8 +738,8 @@ class Probability(Expression):
     def safe(
         cls,
         distribution: DistributionHint,
-        *args: Union[str, Variable],
-        interventions: Optional[VariableHint] = None,
+        *args: str | Variable,
+        interventions: VariableHint | None = None,
     ) -> Probability:
         """Create a distribution the given variable(s) or distribution.
 
@@ -819,12 +803,12 @@ class Probability(Expression):
         return f"P_{{{intervention_str}}}({unintervened_distribution.to_latex()})"
 
     @property
-    def parents(self) -> Tuple[Variable, ...]:
+    def parents(self) -> tuple[Variable, ...]:
         """Get the distribution's parents."""
         return self.distribution.parents
 
     @property
-    def children(self) -> Tuple[Variable, ...]:
+    def children(self) -> tuple[Variable, ...]:
         """Get the distribution's children."""
         return self.distribution.children
 
@@ -890,7 +874,7 @@ class Probability(Expression):
         yield from self.distribution._iter_variables()
 
 
-DistributionHint = Union[VariableHint, Distribution]
+DistributionHint = VariableHint | Distribution
 
 
 class ProbabilityBuilderType:
@@ -899,8 +883,8 @@ class ProbabilityBuilderType:
     def __call__(
         self,
         distribution: DistributionHint,
-        *args: Union[str, Variable],
-        interventions: Optional[VariableHint] = None,
+        *args: str | Variable,
+        interventions: VariableHint | None = None,
     ) -> Probability:
         return Probability.safe(distribution, *args, interventions=interventions)
 
@@ -1021,14 +1005,14 @@ Multiple interventions  on multiple children:
 class Product(Expression):
     """Represent the product of several probability expressions."""
 
-    expressions: Tuple[Expression, ...]
+    expressions: tuple[Expression, ...]
 
     def __post_init__(self):
         if len(self.expressions) < 2:
             raise ValueError("Product() must two or more expressions")
 
     @classmethod
-    def safe(cls, expressions: Union[Expression, Iterable[Expression]]) -> Expression:
+    def safe(cls, expressions: Expression | Iterable[Expression]) -> Expression:
         """Construct a product from any iterable of expressions.
 
         :param expressions: An expression or iterable of expressions which should be multiplied
@@ -1123,14 +1107,14 @@ class Sum(Expression):
         if not self.ranges:
             raise ValueError("Sum must have ranges")
         for r in self.ranges:
-            if isinstance(r, (CounterfactualVariable, Intervention)):
+            if isinstance(r, CounterfactualVariable | Intervention):
                 raise TypeError("Ranges must not be counterfactuals nor interventions")
 
     @classmethod
     def safe(
         cls,
         expression: Expression,
-        ranges: Union[str, Variable, Iterable[Union[str, Variable]]],
+        ranges: str | Variable | Iterable[str | Variable],
         *,
         simplify: bool = False,
     ) -> Expression:
@@ -1383,7 +1367,7 @@ class Fraction(Expression):
     def _simplify_parts_helper(
         numerator: Sequence[Expression],
         denominator: Sequence[Expression],
-    ) -> Tuple[Tuple[Expression, ...], Tuple[Expression, ...]]:
+    ) -> tuple[tuple[Expression, ...], tuple[Expression, ...]]:
         numerator_cancelled = set()
         denominator_cancelled = set()
         for i, n_expr in enumerate(numerator):
@@ -1472,7 +1456,7 @@ class Zero(Expression):
 class QBuilder(Protocol[T_co]):
     """A protocol for annotating the special class getitem functionality of the :class:`QFactor` class."""
 
-    def __call__(self, arg: VariableHint, *args: Union[str, Variable]) -> T_co: ...
+    def __call__(self, arg: VariableHint, *args: str | Variable) -> T_co: ...
 
 
 @dataclass(frozen=True, repr=False)
@@ -1486,7 +1470,7 @@ class QFactor(Expression):
     def safe(
         cls,
         domain: VariableHint,
-        *args: Union[str, Variable],
+        *args: str | Variable,
         codomain: VariableHint,
     ) -> QFactor:
         """Create a Q factor with various input types."""
@@ -1498,17 +1482,17 @@ class QFactor(Expression):
     @staticmethod
     def _prepare_domain(
         arg: VariableHint,
-        *args: Union[str, Variable],
+        *args: str | Variable,
     ) -> frozenset[Variable]:
         """Prepare a list of variables from a potentially unruly set of args and variadic args."""
-        if isinstance(arg, (str, Variable)):
+        if isinstance(arg, str | Variable):
             return frozenset((Variable.norm(arg), *_upgrade_ordering(args)))
         if args:
             raise ValueError("can not use variadic arguments with combination of first arg")
         return frozenset(_sorted_variables(_upgrade_ordering(arg)))
 
     @classmethod
-    def __class_getitem__(cls, codomain: Union[Variable, Iterable[Variable]]) -> QBuilder[QFactor]:
+    def __class_getitem__(cls, codomain: Variable | Iterable[Variable]) -> QBuilder[QFactor]:
         """Create a partial Q Factor object over the given codomain.
 
         :param codomain: The variables over which the partial Q Factor will be done
@@ -1570,17 +1554,18 @@ Q = QFactor
 
 AA = Variable("AA")
 A, B, C, D, E, F, G, M, R, S, T, U, W, X, Y, Z = map(Variable, "ABCDEFGMRSTUWXYZ")  # type: ignore
-U1, U2, U3, U4, U5, U6 = [Variable(f"U{i}") for i in range(1, 7)]
-V1, V2, V3, V4, V5, V6 = [Variable(f"V{i}") for i in range(1, 7)]
-W0, W1, W2, W3, W4, W5, W6 = [Variable(f"W{i}") for i in range(7)]
-M0, M1, M2, M3, M4, M5, M6 = [Variable(f"M{i}") for i in range(7)]
-X1, X2, X3, X4, X5, X6 = [Variable(f"X{i}") for i in range(1, 7)]
-Y1, Y2, Y3, Y4, Y5, Y6 = [Variable(f"Y{i}") for i in range(1, 7)]
-Z1, Z2, Z3, Z4, Z5, Z6 = [Variable(f"Z{i}") for i in range(1, 7)]
-π1, π2, π3, π4, π5, π6 = Pi1, Pi2, Pi3, Pi4, Pi5, Pi6 = [Variable(f"π{i}") for i in range(1, 7)]
+U1, U2, U3, U4, U5, U6 = (Variable(f"U{i}") for i in range(1, 7))
+V1, V2, V3, V4, V5, V6 = (Variable(f"V{i}") for i in range(1, 7))
+W0, W1, W2, W3, W4, W5, W6 = (Variable(f"W{i}") for i in range(7))
+M0, M1, M2, M3, M4, M5, M6 = (Variable(f"M{i}") for i in range(7))
+X1, X2, X3, X4, X5, X6 = (Variable(f"X{i}") for i in range(1, 7))
+Y1, Y2, Y3, Y4, Y5, Y6 = (Variable(f"Y{i}") for i in range(1, 7))
+Z1, Z2, Z3, Z4, Z5, Z6 = (Variable(f"Z{i}") for i in range(1, 7))
+Pi1, Pi2, Pi3, Pi4, Pi5, Pi6 = (Variable(f"π{i}") for i in range(1, 7))
+π1, π2, π3, π4, π5, π6 = Pi1, Pi2, Pi3, Pi4, Pi5, Pi6
 
 
-def _sort_interventions(interventions: Iterable[Intervention]) -> Tuple[Intervention, ...]:
+def _sort_interventions(interventions: Iterable[Intervention]) -> tuple[Intervention, ...]:
     return tuple(sorted(interventions, key=lambda i: (i.name, i.star)))
 
 
@@ -1593,11 +1578,11 @@ def _variable_sort_key(variable: Variable) -> tuple[str, str]:
         return variable.name, ""
 
 
-def _sorted_variables(variables: Iterable[Variable]) -> Tuple[Variable, ...]:
+def _sorted_variables(variables: Iterable[Variable]) -> tuple[Variable, ...]:
     return tuple(sorted(variables, key=_variable_sort_key))
 
 
-def _upgrade_variables(variables: VariableHint) -> Tuple[Variable, ...]:
+def _upgrade_variables(variables: VariableHint) -> tuple[Variable, ...]:
     if isinstance(variables, str):
         return (Variable(variables),)
     elif isinstance(variables, Variable):
@@ -1606,11 +1591,11 @@ def _upgrade_variables(variables: VariableHint) -> Tuple[Variable, ...]:
         return tuple(Variable.norm(variable) for variable in variables)
 
 
-def _upgrade_ordering(variables: VariableHint) -> Tuple[Variable, ...]:
+def _upgrade_ordering(variables: VariableHint) -> tuple[Variable, ...]:
     return _sorted_variables(set(_upgrade_variables(variables)))
 
 
-OrderingHint = Optional[Iterable[Union[str, Variable]]]
+OrderingHint = None | Iterable[str | Variable]
 
 
 def ensure_ordering(
@@ -1651,7 +1636,7 @@ def get_outcomes_and_treatments(*, query: Expression) -> tuple[set[Variable], se
 
 
 def outcomes_and_treatments_to_query(
-    *, outcomes: set[Variable], treatments: Optional[set[Variable]] = None
+    *, outcomes: set[Variable], treatments: set[Variable] | None = None
 ) -> Expression:
     """Create a query expression from a set of outcome and treatment variables."""
     if not treatments:
@@ -1659,7 +1644,7 @@ def outcomes_and_treatments_to_query(
     return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
 
 
-def vmap_pairs(edges: Iterable[Tuple[str, str]]) -> List[Tuple[Variable, Variable]]:
+def vmap_pairs(edges: Iterable[tuple[str, str]]) -> list[tuple[Variable, Variable]]:
     """Map pair of strings to pairs of variables."""
     return [(Variable(source), Variable(target)) for source, target in edges]
 
@@ -1673,7 +1658,7 @@ def vmap_adj(adjacency_dict):
 
 
 #: A conjunction of factual and counterfactual events
-Event = Dict[Variable, Intervention]
+Event = dict[Variable, Intervention]
 
 Population = Variable
 
@@ -1740,11 +1725,11 @@ class PopulationProbabilityBuilderType(ProbabilityBuilderType):
         self.population = population
 
     @classmethod
-    def __class_getitem__(cls, population: Population) -> "PopulationProbabilityBuilderType":
+    def __class_getitem__(cls, population: Population) -> PopulationProbabilityBuilderType:
         """Get a population probability builder class initialized with the given population."""
         return cls(population)
 
-    def __call__(self, *args, **kwargs) -> PopulationProbability:  # noqa:D102
+    def __call__(self, *args, **kwargs) -> PopulationProbability:
         probability = super().__call__(*args, **kwargs)
         return PopulationProbability(
             population=self.population, distribution=probability.distribution
@@ -1753,6 +1738,6 @@ class PopulationProbabilityBuilderType(ProbabilityBuilderType):
 
 # We need to declare a type for this alias to avoid false MyPy errors.
 # See https://github.com/python/mypy/issues/7568
-PP: Type[PopulationProbabilityBuilderType] = PopulationProbabilityBuilderType
+PP: type[PopulationProbabilityBuilderType] = PopulationProbabilityBuilderType
 
 TARGET_DOMAIN = Population("pi*")

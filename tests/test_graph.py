@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-
 """Test graph construction and conversion."""
 
 import unittest
 from textwrap import dedent
-from typing import Set, Tuple
 
 import networkx as nx
 from pgmpy.models import BayesianNetwork
@@ -62,7 +59,7 @@ class TestGraph(unittest.TestCase):
         self.assertEqual(expected, verma_1.to_causaleffect_str())
 
     def assert_labeled_convertable(
-        self, graph: NxMixedGraph, labeled_edges: Set[Tuple[str, str]]
+        self, graph: NxMixedGraph, labeled_edges: set[tuple[str, str]]
     ) -> None:
         """Test that the graph can be converted to a DAG, then back to an ADMG."""
         prefix = DEFULT_PREFIX

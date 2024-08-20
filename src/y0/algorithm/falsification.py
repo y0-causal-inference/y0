@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 """Causal graphs have implications that can be tested in the context of a specific dataset.
 
 This module includes algorithms to perform those tests.
 """
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, Optional, Union
 
 import pandas as pd
 import statsmodels.stats.multitest
@@ -43,11 +41,11 @@ def get_graph_falsifications(
     graph: NxMixedGraph,
     df: pd.DataFrame,
     *,
-    significance_level: Optional[float] = None,
-    max_given: Optional[int] = None,
+    significance_level: float | None = None,
+    max_given: int | None = None,
     verbose: bool = False,
-    method: Optional[CITest] = None,
-    sep: Optional[str] = None,
+    method: CITest | None = None,
+    sep: str | None = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a graph.
 
@@ -73,14 +71,14 @@ def get_graph_falsifications(
 
 
 def get_falsifications(
-    judgements: Union[NxMixedGraph, Iterable[DSeparationJudgement]],
+    judgements: NxMixedGraph | Iterable[DSeparationJudgement],
     df: pd.DataFrame,
     *,
-    significance_level: Optional[float] = None,
+    significance_level: float | None = None,
     verbose: bool = False,
-    method: Optional[CITest] = None,
-    correction: Optional[str] = None,
-    sep: Optional[str] = None,
+    method: CITest | None = None,
+    correction: str | None = None,
+    sep: str | None = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a list of D-separation judgements.
 

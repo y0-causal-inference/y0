@@ -44,7 +44,10 @@ def get_single_door(
 
 def evaluate_admg(graph, data: pd.DataFrame):
     """Evaluate an acyclic directed mixed graph (ADMG)."""
-    params = {sympy_nested("\\beta", l, r): v for (l, r), v in get_single_door(graph, data).items()}
+    params = {
+        sympy_nested("\\beta", source, target): mean
+        for (source, target), mean in get_single_door(graph, data).items()
+    }
     lscm = graph.to_linear_scm_sympy()
     return evaluate_lscm(lscm, params)
 

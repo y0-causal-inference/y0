@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 """Test getting conditional independencies (and related)."""
 
 import typing
 import unittest
-from typing import Iterable, Set
+from collections.abc import Iterable
 
 from pgmpy.estimators import CITests
 
@@ -195,7 +193,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
                 )
 
     def assert_valid_judgements(
-        self, graph: NxMixedGraph, judgements: Set[DSeparationJudgement]
+        self, graph: NxMixedGraph, judgements: set[DSeparationJudgement]
     ) -> None:
         """Check that a set of judgments are valid with respect to a graph."""
         self.assertIsInstance(graph, NxMixedGraph)

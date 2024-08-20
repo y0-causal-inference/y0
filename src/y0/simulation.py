@@ -1,22 +1,13 @@
-# -*- coding: utf-8 -*-
-
 """Generate data using a linear structural causal model."""
 
 from __future__ import annotations
 
 import itertools as itt
+from collections.abc import Callable, Mapping, MutableMapping
 from functools import partial
 from typing import (
     Any,
-    Callable,
-    Dict,
-    FrozenSet,
-    Mapping,
-    MutableMapping,
     NamedTuple,
-    Optional,
-    Tuple,
-    Union,
     cast,
 )
 
@@ -64,10 +55,10 @@ class FitTuple(NamedTuple):
     slope: float
     intercept: float
     r2: float
-    d_separation: Optional[DSeparationJudgement]
+    d_separation: DSeparationJudgement | None
 
 
-FitsDict = Dict[FrozenSet[Variable], FitTuple]
+FitsDict = dict[frozenset[Variable], FitTuple]
 
 
 def simulate(
@@ -75,12 +66,12 @@ def simulate(
     trials: int = 200,
     return_fits: bool = True,
     progress: bool = False,
-    tqdm_kwargs: Optional[Mapping[str, Any]] = None,
+    tqdm_kwargs: Mapping[str, Any] | None = None,
     **kwargs,
-) -> Union[pd.DataFrame, Tuple[pd.DataFrame, FitsDict]]:
+) -> pd.DataFrame | tuple[pd.DataFrame, FitsDict]:
     """Simulate a graph using a linear structural causal model."""
     judgements = get_conditional_independencies(graph)
-    cis: Mapping[FrozenSet[Variable], DSeparationJudgement] = {
+    cis: Mapping[frozenset[Variable], DSeparationJudgement] = {
         frozenset((judgement.left, judgement.right)): judgement for judgement in judgements
     }
 
@@ -161,15 +152,15 @@ class LinearSCM:
     generators: Mapping[Variable, Generator]
 
     #: Weights corresponding to each edge
-    weights: Mapping[Tuple[Variable, Variable], float]
+    weights: Mapping[tuple[Variable, Variable], float]
 
     def __init__(
         self,
         graph: NxMixedGraph,
         *,
-        generators: Optional[Mapping[Variable, Generator]] = None,
-        data: Optional[pd.DataFrame] = None,
-        weights: Optional[Mapping[Tuple[Variable, Variable], float]] = None,
+        generators: Mapping[Variable, Generator] | None = None,
+        data: pd.DataFrame | None = None,
+        weights: Mapping[tuple[Variable, Variable], float] | None = None,
     ) -> None:
         """Prepare a simulation.
 

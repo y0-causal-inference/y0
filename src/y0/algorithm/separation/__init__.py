@@ -14,7 +14,7 @@ m-separation [drton2003]_  A generalization of d-separation in an acyclic direct
       <https://stat.uw.edu/sites/default/files/files/reports/2003/tr437.pdf>`_
 .. [pearl2009] `Causality: Models, Reasoning and Inference: Models, Reasoning and Inference
       <https://doi.org/10.1017/CBO9780511803161>`_
-"""  # noqa:E501
+"""
 
 from .sigma_separation import are_sigma_separated
 from ..conditional_independencies import are_d_separated
