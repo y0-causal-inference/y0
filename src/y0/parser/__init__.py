@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Parsers for various probability expression grammars."""
 
 from .ce.grammar import parse_causaleffect  # noqa:F401

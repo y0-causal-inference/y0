@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Operations for mutating and simplifying expressions."""
 
 import warnings

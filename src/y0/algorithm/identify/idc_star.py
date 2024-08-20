@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 """Implementation of the IDC* algorithm."""
 
 import logging
-from typing import Iterable, Tuple
+from collections.abc import Iterable
 
 from .cg import is_not_self_intervened, make_counterfactual_graph
 from .id_star import id_star
@@ -21,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def get_new_outcomes_and_conditions(
     new_event: Event, outcomes: Event, conditions: Event
-) -> Tuple[Event, Event]:
+) -> tuple[Event, Event]:
     """Get the new outcomes and conditions."""
     remaining_outcomes, missing_outcomes = get_remaining_and_missing_events(new_event, outcomes)
     remaining_conditions, missing_conditions = get_remaining_and_missing_events(
@@ -48,7 +46,7 @@ def get_new_outcomes_and_conditions(
         return remaining_outcomes, remaining_conditions
 
 
-def get_remaining_and_missing_events(new_event: Event, old_event: Event) -> Tuple[Event, Event]:
+def get_remaining_and_missing_events(new_event: Event, old_event: Event) -> tuple[Event, Event]:
     """Get the outcome from the event."""
     remaining = {k: v for k, v in old_event.items() if k in new_event}
     missing = {k: v for k, v in old_event.items() if k not in new_event}

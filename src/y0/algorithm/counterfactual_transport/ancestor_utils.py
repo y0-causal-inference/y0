@@ -2,8 +2,8 @@
 
 import logging
 from collections import defaultdict
+from collections.abc import Iterable
 from itertools import combinations_with_replacement
-from typing import Iterable
 
 from y0.dsl import CounterfactualVariable, Intervention, Variable
 from y0.graph import NxMixedGraph
@@ -523,7 +523,7 @@ def _merge_frozen_sets_with_common_vertices(
     return result
 
 
-def _merge_frozen_sets_linked_by_bidirectional_edges(
+def _merge_frozen_sets_linked_by_bidirectional_edges(  # noqa:C901
     input_sets: set[frozenset[Variable]],
     graph: NxMixedGraph,
 ) -> set[frozenset[Variable]]:

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Test falsification of testable implications given a graph."""
 
 import unittest

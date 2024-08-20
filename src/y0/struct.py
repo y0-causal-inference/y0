@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
-
 """Data structures."""
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Callable, Iterable, Literal, NamedTuple, Optional, Tuple, Union, cast
+from typing import Literal, NamedTuple, cast
 
 import pandas as pd
 
@@ -27,7 +26,7 @@ class VermaConstraint(NamedTuple):
     lhs_expr: Expression
     rhs_cfactor: Expression
     rhs_expr: Expression
-    variables: Tuple[Variable, ...]
+    variables: tuple[Variable, ...]
 
     @classmethod
     def from_element(cls, element) -> VermaConstraint:
@@ -98,10 +97,10 @@ class CITestTuple(NamedTuple):
 
     statistic: float
     p_value: float
-    dof: Optional[float] = None
+    dof: float | None = None
 
 
-CITestResult = Union[CITestTuple, bool]
+CITestResult = CITestTuple | bool
 
 
 @dataclass(frozen=True)
@@ -115,14 +114,14 @@ class DSeparationJudgement:
     separated: bool
     left: Variable
     right: Variable
-    conditions: Tuple[Variable, ...]
+    conditions: tuple[Variable, ...]
 
     @classmethod
     def create(
         cls,
         left: Variable,
         right: Variable,
-        conditions: Optional[Iterable[Variable]] = None,
+        conditions: Iterable[Variable] | None = None,
         *,
         separated: bool = True,
     ) -> DSeparationJudgement:
@@ -150,10 +149,10 @@ class DSeparationJudgement:
         df: pd.DataFrame,
         *,
         boolean: bool = False,
-        method: Optional[CITest] = None,
-        significance_level: Optional[float] = None,
+        method: CITest | None = None,
+        significance_level: float | None = None,
         _method_checked: bool = False,
-    ) -> Union[bool, CITestTuple]:
+    ) -> bool | CITestTuple:
         """Test for conditional independence, given some data.
 
         :param df: A dataframe.
@@ -219,7 +218,7 @@ class DSeparationJudgement:
         return CITestTuple(statistic=statistic, p_value=p_value, dof=dof)
 
 
-def _ensure_method(method: Optional[CITest], df: pd.DataFrame, skip: bool = False) -> CITest:
+def _ensure_method(method: CITest | None, df: pd.DataFrame, skip: bool = False) -> CITest:
     if skip:
         if method is None:
             raise RuntimeError

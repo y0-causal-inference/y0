@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Resources for y0."""
 
 import os

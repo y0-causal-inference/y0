@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Interface to the R causaleffect package via :mod:`rpy2` described in [tian2012]_ and [bhattacharya2022]_.
 
 .. [tian2012] `On the Testable Implications of Causal Models with Hidden Variables
@@ -11,7 +9,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from rpy2 import robjects
 
@@ -23,9 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @uses_r
-def r_get_verma_constraints(
-    graph: Union[NxMixedGraph, CausalEffectGraph]
-) -> Sequence[VermaConstraint]:
+def r_get_verma_constraints(graph: NxMixedGraph | CausalEffectGraph) -> Sequence[VermaConstraint]:
     """Calculate the verma constraints on the graph using ``causaleffect``."""
     if isinstance(graph, NxMixedGraph):
         graph = graph.to_causaleffect()
