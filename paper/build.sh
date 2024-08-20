@@ -4,3 +4,5 @@ docker run --rm \
   --user $(id -u):$(id -g) \
   --env JOURNAL=joss \
   openjournals/paperdraft
+
+open paper.pdf

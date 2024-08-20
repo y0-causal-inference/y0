@@ -126,6 +126,19 @@
   url     = {http://jmlr.org/papers/v25/22-1258.html}
 }
 
+
+@article{shpitser2007idc,
+  author  = {Ilya Shpitser and Judea Pearl},
+  title   = {Complete Identification Methods for the Causal Hierarchy},
+  journal = {Journal of Machine Learning Research},
+  year    = {2008},
+  volume  = {9},
+  number  = {64},
+  pages   = {1941--1979},
+  url     = {http://jmlr.org/papers/v9/shpitser08a.html}
+}
+
+
 @inproceedings{shpitser2006id,
     author = {Shpitser, Ilya and Pearl, Judea},
     title = {Identification of joint interventional distributions in recursive semi-Markovian causal models},
@@ -140,29 +153,14 @@
     series = {AAAI'06}
 }
 
-@article{shpitser2007idc,
-  author  = {Ilya Shpitser and Judea Pearl},
-  title   = {Complete Identification Methods for the Causal Hierarchy},
-  journal = {Journal of Machine Learning Research},
-  year    = {2008},
-  volume  = {9},
-  number  = {64},
-  pages   = {1941--1979},
-  url     = {http://jmlr.org/papers/v9/shpitser08a.html}
-}
-
-@inproceedings{shpitser2012idstar,
-author = {Shpitser, Ilya and Pearl, Judea},
-title = {Identification of joint interventional distributions in recursive semi-Markovian causal models},
-year = {2006},
-isbn = {9781577352815},
-publisher = {AAAI Press},
-abstract = {This paper is concerned with estimating the effects of actions from causal assumptions, represented concisely as a directed graph, and statistical knowledge, given as a probability distribution. We provide a necessary and sufficient graphical condition for the cases when the causal effect of an arbitrary set of variables on another arbitrary set can be determined uniquely from the available information, as well as an algorithm which computes the effect whenever this condition holds. Furthermore, we use our results to prove completeness of do-calculus [Pearl, 1995], and a version of an identification algorithm in [Tian, 2002] for the same identification problem. Finally, we derive a complete characterization of semi-Markovian models in which all causal effects are identifiable.},
-booktitle = {Proceedings of the 21st National Conference on Artificial Intelligence - Volume 2},
-pages = {1219–1226},
-numpages = {8},
-location = {Boston, Massachusetts},
-series = {AAAI'06}
+@misc{shpitser2012idstar,
+      title={What Counterfactuals Can Be Tested},
+      author={Ilya Shpitser and Judea Pearl},
+      year={2012},
+      eprint={1206.5294},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/1206.5294},
 }
 
 @article{tian2010identifying,
@@ -395,4 +393,30 @@ numpages = {50}
   journal={Sociological Methods \& Research},
   year={2022},
   publisher={SAGE Publications Sage CA: Los Angeles, CA}
+}
+
+@article{RJ-2023-053,
+  author = {Tikka, Santtu},
+  title = {Identifying Counterfactual Queries with the R Package cfid},
+  journal = {The R Journal},
+  year = {2023},
+  note = {https://doi.org/10.32614/RJ-2023-053},
+  doi = {10.32614/RJ-2023-053},
+  volume = {15},
+  issue = {2},
+  issn = {2073-4859},
+  pages = {330-343}
+}
+
+@article{JSSv099i05,
+ title={Causal Effect Identification from Multiple Incomplete Data Sources: A General Search-Based Approach},
+ volume={99},
+ url={https://www.jstatsoft.org/index.php/jss/article/view/v099i05},
+ doi={10.18637/jss.v099.i05},
+ abstract={Causal effect identification considers whether an interventional probability distribution can be uniquely determined without parametric assumptions from measured source distributions and structural knowledge on the generating system. While complete graphical criteria and procedures exist for many identification problems, there are still challenging but important extensions that have not been considered in the literature such as combined transportability and selection bias, or multiple sources of selection bias. To tackle these new settings, we present a search algorithm directly over the rules of do-calculus. Due to the generality of do-calculus, the search is capable of taking more advanced datagenerating mechanisms into account along with an arbitrary type of both observational and experimental source distributions. The search is enhanced via a heuristic and search space reduction techniques. The approach, called do-search, is provably sound, and it is complete with respect to identifiability problems that have been shown to be completely characterized by do-calculus. When extended with additional rules, the search is capable of handling missing data problems as well. With the versatile search, we are able to approach new problems for which no other algorithmic solutions exist. We perform a systematic analysis of bivariate missing data problems and study causal inference under case-control design. We also present the R package dosearch that provides an interface for a C++ implementation of the search.},
+ number={5},
+ journal={Journal of Statistical Software},
+ author={Tikka, Santtu and Hyttinen, Antti and Karvanen, Juha},
+ year={2021},
+ pages={1–40}
 }
