@@ -64,6 +64,7 @@ dependencies = [
     "pandas",
     "scikit-learn",
     "statsmodels",
+    "scipy",
 ]
 
 [project.optional-dependencies]
@@ -203,6 +204,8 @@ ignore = [
 
 # See https://docs.astral.sh/ruff/settings/#per-file-ignores
 [tool.ruff.lint.per-file-ignores]
+# Ignore security issues in the version.py, which are inconsistent
+"src/y0/version.py" = ["S603", "S607"]
 # Ignore commented out code in Sphinx configuration file
 "docs/source/conf.py" = ["ERA001"]
 # Prints are okay in notebooks
