@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-
 """Utilities."""
 
 import math
+from collections.abc import Collection, Iterable, Mapping
 from itertools import chain, combinations
-from typing import Any, Collection, Iterable, Mapping, Optional, TypeVar
+from typing import Any, TypeVar
 
 from tqdm import tqdm
 
@@ -18,11 +17,11 @@ X = TypeVar("X")
 def powerset(
     iterable: Iterable[X],
     start: int = 0,
-    stop: Optional[int] = None,
+    stop: int | None = None,
     *,
     reverse: bool = False,
-    use_tqdm: Optional[bool] = False,
-    tqdm_kwargs: Optional[Mapping[str, Any]] = None,
+    use_tqdm: bool | None = False,
+    tqdm_kwargs: Mapping[str, Any] | None = None,
 ) -> Iterable[Collection[X]]:
     """Get successively longer combinations of the source.
 

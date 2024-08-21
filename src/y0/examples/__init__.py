@@ -1,21 +1,26 @@
-# -*- coding: utf-8 -*-
 # type: ignore
 
 """Examples from CausalFusion."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional, Sequence
-
+import numpy as np
 import pandas as pd
 
-from .algorithm.identify import Identification, Query
-from .dsl import (
+from .backdoor import generate_data_for_backdoor
+from .frontdoor import generate_data_for_frontdoor
+from .frontdoor_backdoor import generate_data_for_frontdoor_backdoor
+from .sars import generate_data_for_covid_case_study
+from .smoke_cancer import generate_data_for_smoke_cancer
+from .utils import Example
+from ..algorithm.identify import Identification, Query
+from ..dsl import (
     AA,
     W0,
     W1,
     W2,
+    X1,
+    X2,
     Y1,
     Y2,
     Z1,
@@ -33,34 +38,20 @@ from .dsl import (
     M,
     P,
     Q,
+    S,
     Sum,
+    T,
     Variable,
     W,
     X,
     Y,
     Z,
 )
-from .graph import NxMixedGraph
-from .resources import ASIA_PATH
-from .struct import DSeparationJudgement, VermaConstraint
+from ..graph import NxMixedGraph
+from ..resources import ASIA_PATH
+from ..struct import DSeparationJudgement, VermaConstraint
 
-
-@dataclass
-class Example:
-    """An example graph packaged with certain pre-calculated data structures."""
-
-    name: str
-    reference: str
-    graph: NxMixedGraph
-    description: Optional[str] = None
-    verma_constraints: Optional[Sequence[VermaConstraint]] = None
-    conditional_independencies: Optional[Sequence[DSeparationJudgement]] = None
-    data: Optional[pd.DataFrame] = None
-    identifications: Optional[list[dict[str, list[Identification]]]] = None
-    #: Example queries are just to give an idea to a new user
-    #: what might be interesting to use in the ID algorithm
-    example_queries: Optional[list[Query]] = None
-
+x, y, z, w = -X, -Y, -Z, -W
 
 u_2 = Variable("u_2")
 u_3 = Variable("u_3")
@@ -81,6 +72,8 @@ backdoor_example = Example(
     reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
     ' 2nd ed." Cambridge University Press, p. 178.',
     graph=backdoor,
+    generate_data=generate_data_for_backdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
 )
 
 #: Treatment: X
@@ -100,6 +93,27 @@ frontdoor_example = Example(
     reference='J. Pearl. 2009. "Causality: Models, Reasoning and Inference.'
     ' 2nd ed." Cambridge University Press, p. 81.',
     graph=frontdoor,
+    generate_data=generate_data_for_frontdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
+)
+
+#: Treatment: X
+#: Outcome: Y
+#: Adjusted: N/A
+frontdoor_backdoor = NxMixedGraph.from_edges(
+    directed=[
+        (X, Z),
+        (Z, Y),
+        (W, X),
+        (W, Y),
+    ],
+)
+frontdoor_backdoor_example = Example(
+    name="Frontdoor / Backdoor",
+    reference="https://github.com/y0-causal-inference/y0/pull/183",
+    graph=frontdoor_backdoor,
+    generate_data=generate_data_for_frontdoor_backdoor,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
 )
 
 #: Treatment: X
@@ -133,11 +147,77 @@ napkin = NxMixedGraph.from_edges(
         (Z2, Y),
     ],
 )
+
+
+def generate_napkin_data(
+    num_samples: int, treatments: dict[Variable, float] | None = None, *, seed: int | None = None
+) -> pd.DataFrame:
+    """Generate testing data for the napkin graph.
+
+    :param num_samples: The number of samples to generate. Try 1000.
+    :param treatments: An optional dictionary of the values to fix each variable
+        to. The keys in this dictionary must correspond to variables in the
+        napkin graph as defined in :data:`y0.examples.napkin` (i.e.,
+        with :data:`y0.dsl.Z1`, :data:`y0.dsl.Z2`, :data:`y0.dsl.X`,
+        and :data:`y0.dsl.Y`).
+    :param seed: An optional random seed for reproducibility purposes
+    :returns: A pandas Dataframe with columns corresponding to the four
+        variable names in the Napkin graph (i.e., ``Z1``, ``Z2``, ``X``,
+        and ``Y``)
+
+    Generate _observational_ data with the following:
+
+    >>> from y0.examples.napkin_example
+    >>> napkin_example.generate_data(1000)
+
+    Generate interventional data on $X=1$ with the following:
+
+    >>> from y0.dsl import X
+    >>> napkin_example.generate_data(1000, treatments={X: 1})
+
+    Multiple treatments can be specified:
+
+    >>> from y0.dsl import X, Z1
+    >>> napkin_example.generate_data(1000, treatments={X: 1, Z1: 0})
+    """
+    if treatments is None:
+        treatments = {}
+    generator = np.random.default_rng(seed)
+    # U1 is the latent variable that is a common cause of W and X
+    u1 = generator.normal(loc=3, scale=1, size=num_samples)
+    # U2 is the latent variable that is a common cause of W and Y
+    u2 = generator.normal(loc=5, scale=1, size=num_samples)
+    if Z2 in treatments:
+        z2 = np.full(num_samples, treatments[Z2])
+    else:
+        u_linear_combination = 0.3 * u1 + 0.5 * u2
+        z2 = generator.gamma(
+            shape=u_linear_combination**-2,
+            scale=5 * u_linear_combination,
+            size=num_samples,
+        )
+    if Z1 in treatments:
+        z1 = np.full(num_samples, treatments[Z1])
+    else:
+        z1 = generator.normal(loc=z2 * 0.7, scale=6, size=num_samples)
+    if X in treatments:
+        x = np.full(num_samples, treatments[X])
+    else:
+        x = generator.binomial(n=1, p=1 / (1 + np.exp(-2 - 0.23 * u1 - 0.1 * z1)), size=num_samples)
+    if Y in treatments:
+        y = np.full(num_samples, treatments[Y])
+    else:
+        y = generator.normal(loc=u2 * 0.5 + x * 3, scale=6)
+    return pd.DataFrame({Z2.name: z2, Z1.name: z1, X.name: x, Y.name: y})
+
+
 napkin_example = Example(
     name="Napkin",
     reference='J. Pearl and D. Mackenzie. 2018. "The Book of Why: The New Science of Cause and Effect."'
     " Basic Books, p. 240.",
     graph=napkin,
+    generate_data=generate_napkin_data,
+    example_queries=[Query.from_str(treatments="X", outcomes="Y")],
     verma_constraints=[
         VermaConstraint(
             lhs_cfactor=Q[X, Y](Z1, X, Y) / Sum[Y](Q[X, Y](Z1, X, Y)),
@@ -202,7 +282,7 @@ line_1_example = Example(
             id_out=[
                 Identification.from_expression(
                     query=P(Y),
-                    estimand=Sum(P(Y, Z), (Z,)),
+                    estimand=Sum[Z](P(Y, Z)),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
@@ -218,7 +298,7 @@ line_1_example = Example(
             id_out=[
                 Identification.from_expression(
                     query=P(Y, Z),
-                    estimand=Sum(P(Y, Z)),
+                    estimand=P(Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
@@ -243,7 +323,7 @@ line_2_example = Example(
             id_out=[
                 Identification.from_expression(
                     query=P(Y),
-                    estimand=Sum(P(Y, X, Z), (X,)),
+                    estimand=Sum[X](P(Y, X, Z)),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
@@ -362,7 +442,27 @@ line_6_example = Example(
                     ),
                 )
             ],
-        )
+        ),
+        dict(
+            id_in=[
+                Identification.from_expression(
+                    query=P(Y @ X),
+                    estimand=P(X, Y),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[(X, Y)],
+                    ),
+                )
+            ],
+            id_out=[
+                Identification.from_expression(
+                    query=P(Y @ X),
+                    estimand=P(Y | X),
+                    graph=NxMixedGraph.from_edges(
+                        directed=[(X, Y)],
+                    ),
+                )
+            ],
+        ),
     ],
 )
 
@@ -418,6 +518,24 @@ figure_6a = Example(
     ],
 )
 
+tikka_unidentifiable_graph = Example(
+    name="Tikka's unidentifiable example",
+    reference="Tikka, S. (2020). Identifying Counterfactual Queries with the R Package cfid",
+    graph=NxMixedGraph.from_edges(
+        directed=[(X, W), (W, Y), (D, Z), (Z, Y), (X, Y)], undirected=[(X, Y)]
+    ),
+)
+
+tikka_unidentifiable_cfgraph = Example(
+    name="Tikka's unidentifiable example",
+    reference="Tikka, S. (2020). Identifying Counterfactual Queries with the R Package cfid",
+    graph=NxMixedGraph.from_edges(
+        directed=[(X @ -x, W @ -x), (W @ -x, Y @ -x), (D, Z), (Z, Y @ -x), (X, Y)],
+        undirected=[(X, Y @ -x)],
+    ),
+)
+
+
 figure_9a = Example(
     name="Original causal diagram",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
@@ -429,10 +547,10 @@ figure_9b = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(
         directed=[
-            (X @ ~X, W @ ~X),
-            (W @ ~X, Y @ ~X),
-            (D @ ~X, Z @ ~X),
-            (Z @ ~X, Y @ ~X),
+            (X @ -X, W @ -X),
+            (W @ -X, Y @ -X),
+            (D @ -X, Z @ -X),
+            (Z @ -X, Y @ -X),
             (X, W),
             (W, Y),
             (D, Z),
@@ -445,21 +563,21 @@ figure_9b = Example(
         undirected=[
             (X, Y),
             (X @ D, X),
-            (Y @ ~X, Y),
+            (Y @ -X, Y),
             (Y, Y @ D),
-            (Y @ D, Y @ ~X),
-            (X, Y @ ~X),
+            (Y @ D, Y @ -X),
+            (X, Y @ -X),
             (X @ D, Y),
             (X, Y @ D),
-            (X @ D, Y @ ~X),
+            (X @ D, Y @ -X),
             (X @ D, Y @ D),
-            (D @ ~X, D),
-            (W @ ~X, W),
+            (D @ -X, D),
+            (W @ -X, W),
             (W, W @ D),
-            (W @ D, W @ ~X),
-            (Z @ ~X, Z),
+            (W @ D, W @ -X),
+            (Z @ -X, Z),
             (Z, Z @ D),
-            (Z @ ~X, Z @ D),
+            (Z @ -X, Z @ D),
         ],
     ),
 )
@@ -468,8 +586,50 @@ figure_9c = Example(
     name="Counterfactual graph for :math:`P(y_x | x', z_d, d)`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(
-        directed=[(X @ ~X, W @ ~X), (W @ ~X, Y @ ~X), (D, Z), (Z, Y @ ~X)],
-        undirected=[(X, Y @ ~X)],
+        directed=[(X @ -X, W @ -X), (W @ -X, Y @ -X), (D, Z), (Z, Y @ -X)],
+        undirected=[(X, Y @ -X)],
+    ),
+)
+
+tikka_figure_2 = Example(
+    name=r"Figure 2: A graph for the example on identifiability of a conditional counterfacual "
+    r"query :math:`P(y_x|z_x\wedge x')`",
+    reference="Tikka, S (2022) Identifiying Counterfactual Queries with the R package cfid",
+    graph=NxMixedGraph.from_edges(directed=[(X, Z), (X, Y), (Z, Y)], undirected=[(X, Z)]),
+)
+
+tikka_figure_5 = Example(
+    name=r"Figure 5: Counterfactual graph :math:`G'` for :math:`y_x\wedge x'\wedge z_d\wedge d`",
+    reference="Tikka, S (2022) Identifiying Counterfactual Queries with the R package cfid",
+    graph=NxMixedGraph.from_edges(
+        nodes=(X, Y @ -x, D, Z, X @ -x, W @ -x),
+        directed=[(D, Z), (Z, Y @ -x), (X @ -x, W @ -x), (W @ -x, Y @ -x)],
+        undirected=[(X, Y @ -x)],
+    ),
+)
+
+
+tikka_figure_6a = Example(
+    name=r"Figure 6a: Parallel worlds graph for :math:`y_x\wedge z_x\wedge x'` (the counterfactual graph)",
+    reference="Tikka, S (2022) Identifiying Counterfactual Queries with the R package cfid",
+    graph=NxMixedGraph.from_edges(
+        directed=[(X, Z), (Z, Y), (X, Y), (X @ -x, Z @ -x), (Z @ -x, Y @ -x), (X @ -x, Y @ -x)],
+        undirected=[(X, Z), (X, Z @ -x), (Z, Z @ -x), (Y, Y @ -x)],
+    ),
+)
+
+tikka_figure_6b = Example(
+    name=r"Figure 6b: Parallel worlds graph for :math:`y_{x,z}\wedge x'` (the counterfactual graph)",
+    reference="Tikka, S (2022) Identifiying Counterfactual Queries with the R package cfid",
+    graph=NxMixedGraph.from_edges(
+        directed=[
+            (X, Z),
+            (Z, Y),
+            (X, Y),
+            (Z @ (-x, -z), Y @ (-x, -z)),
+            (X @ (-x, -z), Y @ (-x, -z)),
+        ],
+        undirected=[(X, Z), (Y, Y @ (-x, -z))],
     ),
 )
 
@@ -478,13 +638,13 @@ figure_9d = Example(
     " joint distribution from which :math:`P(y_{x,z}|x')` is derived, namely  :math:`P(y_{x,z}, x')`",
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(
-        nodes=(X, X @ (Z, ~X), Z @ (Z, ~X), W @ (Z, ~X), Y @ (Z, ~X)),
+        nodes=(X, X @ (-X, -Z), Z @ (-X, -Z), W @ (-X, -Z), Y @ (-X, -Z)),
         directed=[
-            (X @ (Z, ~X), W @ (Z, ~X)),
-            (Z @ (Z, ~X), Y @ (Z, ~X)),
-            (W @ (Z, ~X), Y @ (Z, ~X)),
+            (X @ (-X, -Z), W @ (-X, -Z)),
+            (Z @ (-X, -Z), Y @ (-X, -Z)),
+            (W @ (-X, -Z), Y @ (-X, -Z)),
         ],
-        undirected=[(X, Y @ (Z, ~X))],
+        undirected=[(X, Y @ (-X, -Z))],
     ),
 )
 
@@ -504,10 +664,10 @@ figure_11a = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(
         directed=[
-            (X @ ~X, W @ ~X),
-            (W @ ~X, Y @ ~X),
-            (D, Z @ ~X),
-            (Z @ ~X, Y @ ~X),
+            (X @ -X, W @ -X),
+            (W @ -X, Y @ -X),
+            (D, Z @ -X),
+            (Z @ -X, Y @ -X),
             (X, W),
             (W, Y),
             (D, Z),
@@ -519,17 +679,17 @@ figure_11a = Example(
         ],
         undirected=[
             (X, Y),
-            (Y @ ~X, Y),
+            (Y @ -X, Y),
             (Y, Y @ D),
             (Y @ D, X),
-            (X, Y @ ~X),
-            (Y @ D, Y @ ~X),
-            (W @ ~X, W),
+            (X, Y @ -X),
+            (Y @ D, Y @ -X),
+            (W @ -X, W),
             (W, W @ D),
-            (W @ D, W @ ~X),
-            (Z @ ~X, Z),
+            (W @ D, W @ -X),
+            (Z @ -X, Z),
             (Z, Z @ D),
-            (Z @ ~X, Z @ D),
+            (Z @ -X, Z @ D),
         ],
     ),
 )
@@ -540,10 +700,10 @@ figure_11b = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(
         directed=[
-            (X @ ~X, W @ ~X),
-            (W @ ~X, Y @ ~X),
+            (X @ -X, W @ -X),
+            (W @ -X, Y @ -X),
             (D, Z),
-            (Z, Y @ ~X),
+            (Z, Y @ -X),
             (Z, Y @ D),
             (Z, Y),
             (X, W),
@@ -552,13 +712,13 @@ figure_11b = Example(
         ],
         undirected=[
             (X, Y),
-            (Y @ ~X, Y),
+            (Y @ -X, Y),
             (Y, Y @ D),
             (Y @ D, X),
-            (Y @ D, Y @ ~X),
-            (X, Y @ ~X),
+            (Y @ D, Y @ -X),
+            (X, Y @ -X),
             (X, Y @ D),
-            (W @ ~X, W),
+            (W @ -X, W),
         ],
     ),
 )
@@ -569,19 +729,19 @@ figure_11c = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(
         directed=[
-            (X @ ~X, W @ ~X),
-            (W @ ~X, Y @ ~X),
+            (X @ -X, W @ -X),
+            (W @ -X, Y @ -X),
             (D, Z),
-            (Z, Y @ ~X),
+            (Z, Y @ -X),
             (Z, Y),
             (X, W),
             (W, Y),
         ],
         undirected=[
             (X, Y),
-            (Y @ ~X, Y),
-            (X, Y @ ~X),
-            (W @ ~X, W),
+            (Y @ -X, Y),
+            (X, Y @ -X),
+            (W @ -X, W),
         ],
     ),
 )
@@ -1008,6 +1168,10 @@ d_separation_example = Example(
     ],
 )
 
+
+asia_df = pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1})
+del asia_df[asia_df.columns[0]]
+
 asia_example = Example(
     name="Asia dataset",
     reference="https://www.bnlearn.com/documentation/man/asia.html",
@@ -1026,7 +1190,7 @@ asia_example = Example(
             ]
         ],
     ),
-    data=pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1}),
+    data=asia_df,
 )
 
 figure_2a_example = Example(
@@ -1099,9 +1263,35 @@ complete_hierarchy_figure_3a_example = Example(
     ),
 )
 
+id_sir_example = Example(
+    name="Identifiable SIR",
+    reference="ASKEM",
+    graph=NxMixedGraph.from_str_edges(
+        directed=[
+            ("Infected", "Hospitalized"),
+            ("Hospitalized", "Died"),
+        ],
+        undirected=[("Infected", "Died")],
+    ),
+)
+
+nonid_sir_example = Example(
+    name="Non-Identifiable SIR",
+    reference="ASKEM",
+    graph=NxMixedGraph.from_str_edges(
+        directed=[
+            ("Infected", "Died"),
+        ],
+        undirected=[("Infected", "Died")],
+    ),
+)
+
 igf_example = Example(
     name="IGF Graph",
-    reference="...",  # TODO
+    reference="Jeremy Zucker, Sara Mohammad-Taheri, Kaushal Paneri, Somya Bhargava, Pallavi Kolambkar"
+    ", Craig Bakker, Jeremy Teuton, Charles Tapley Hoyt, Kristie Oxford, Robert Ness, and Olga Vitek. 2021."
+    "Leveraging Structured Biological Knowledge for Counterfactual Inference: a Case Study of Viral Pathogenesis"
+    "- IEEE Journals & Magazine. IEEE Transactions on Big Data (January 2021).",
     graph=NxMixedGraph.from_str_edges(
         nodes=["SOS", "Ras", "Raf", "AKT", "Mek", "Erk", "PI3K"],
         directed=[
@@ -1118,9 +1308,12 @@ igf_example = Example(
     example_queries=[Query.from_str(treatments="SOS", outcomes="Erk")],
 )
 
-sars_example = Example(
+sars_large_example = Example(
     name="SARS-CoV-2 Graph",
-    reference="...",  # TODO
+    reference="Jeremy Zucker, Sara Mohammad-Taheri, Kaushal Paneri, Somya Bhargava, Pallavi Kolambkar"
+    ", Craig Bakker, Jeremy Teuton, Charles Tapley Hoyt, Kristie Oxford, Robert Ness, and Olga Vitek. 2021."
+    "Leveraging Structured Biological Knowledge for Counterfactual Inference: a Case Study of Viral Pathogenesis"
+    "- IEEE Journals & Magazine. IEEE Transactions on Big Data (January 2021).",
     graph=NxMixedGraph.from_str_edges(
         nodes=[
             "SARS_COV2",
@@ -1174,5 +1367,60 @@ sars_example = Example(
         Query.from_str(treatments="EGFR", outcomes="cytok"),
     ],
 )
+
+SARS_SMALL_GRAPH = NxMixedGraph.from_str_edges(
+    directed=[
+        ("ADAM17", "EGFR"),
+        ("ADAM17", "TNF"),
+        ("ADAM17", "Sil6r"),
+        ("EGFR", "cytok"),
+        ("TNF", "cytok"),
+        ("Sil6r", "IL6STAT3"),
+        ("IL6STAT3", "cytok"),
+    ],
+    undirected=[
+        ("ADAM17", "cytok"),
+        ("ADAM17", "Sil6r"),
+        ("EGFR", "TNF"),
+        ("EGFR", "IL6STAT3"),
+    ],
+)
+
+sars_small_example = Example(
+    name="SARS-CoV-2 Small Graph",
+    reference="Sara!",  # FIXME
+    graph=SARS_SMALL_GRAPH,
+    generate_data=generate_data_for_covid_case_study,
+    example_queries=[Query.from_str(outcomes="cytok", treatments="EGFR")],
+)
+
+tikka_trso_figure_8_graph = NxMixedGraph.from_edges(
+    undirected=[(X1, Y1), (Z, W), (Z, X2)],
+    directed=[
+        (X1, Y1),
+        (X1, Y2),
+        (W, Y1),
+        (W, Y2),
+        (Z, Y1),
+        (Z, X2),
+        (X2, Y2),
+        (Z, Y2),
+    ],
+)
+tikka_trso_figure_8 = Example(
+    name="Tikka TRSO Figure 8",
+    reference="https://arxiv.org/abs/1806.07172",
+    graph=tikka_trso_figure_8_graph,
+)
+
+
+cancer_example = Example(
+    name="Smoking and Cancer",
+    reference="https://github.com/y0-causal-inference/y0/pull/183",
+    graph=NxMixedGraph.from_edges(directed=[(S, T), (T, C), (S, C)], undirected=[(S, T)]),
+    generate_data=generate_data_for_smoke_cancer,
+    example_queries=[Query.from_str(outcomes="C", treatments="S")],
+)
+
 
 examples = [v for name, v in locals().items() if name.endswith("_example")]

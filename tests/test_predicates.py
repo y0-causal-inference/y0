@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Tests for expression predicates."""
 
 import unittest

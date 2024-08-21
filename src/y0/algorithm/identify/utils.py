@@ -1,23 +1,22 @@
-# -*- coding: utf-8 -*-
-
 """Utilities for identification algorithms."""
 
 from __future__ import annotations
 
-from typing import Any, Iterable, Optional, Union
+from collections.abc import Iterable
+from typing import Any
 
 import networkx as nx
-from ananke.graphs import ADMG
 
 from y0.dsl import (
     CounterfactualVariable,
+    Distribution,
     Expression,
     Intervention,
     P,
     Probability,
     Variable,
 )
-from y0.graph import NxMixedGraph
+from y0.graph import NxMixedGraph, _ensure_set
 from y0.mutate.canonicalize_expr import canonical_expr_equal
 
 __all__ = [
@@ -41,39 +40,19 @@ class Query:
 
     def __init__(
         self,
-        outcomes: set[Variable],
-        treatments: set[Variable],
-        conditions: Optional[set[Variable]] = None,
+        outcomes: Variable | set[Variable],
+        treatments: Variable | set[Variable],
+        conditions: None | Variable | set[Variable] = None,
     ) -> None:
         """Instantiate an identification.
 
         :param outcomes: The outcomes in the query
         :param treatments: The treatments in the query (e.g., counterfactual variables)
         :param conditions: The conditions in the query (e.g., coming after the bar)
-        :raises TypeError: If any of the outcomes, treatements, or conditions are not vanilla variables
         """
-        if not all(isinstance(v, Variable) for v in outcomes):
-            raise TypeError
-        elif any(isinstance(v, CounterfactualVariable) for v in outcomes):
-            raise TypeError
-        else:
-            self.outcomes = outcomes
-
-        if not all(isinstance(v, Variable) for v in treatments):
-            raise TypeError
-        elif any(isinstance(v, CounterfactualVariable) for v in treatments):
-            raise TypeError
-        else:
-            self.treatments = treatments
-
-        if conditions is None:
-            self.conditions = set()
-        elif not all(isinstance(v, Variable) for v in conditions):
-            raise TypeError
-        elif any(isinstance(v, CounterfactualVariable) for v in conditions):
-            raise TypeError
-        else:
-            self.conditions = conditions
+        self.outcomes = _ensure_set(outcomes)
+        self.treatments = _ensure_set(treatments)
+        self.conditions = _ensure_set(conditions or set())
 
     def __eq__(self, other: Any) -> bool:
         """Check if the outcomes, treatments, and conditions are equal."""
@@ -87,25 +66,29 @@ class Query:
     @classmethod
     def from_str(
         cls,
-        outcomes: Union[str, Iterable[str]],
-        treatments: Union[str, Iterable[str]],
-        conditions: Optional[Iterable[str]] = None,
+        outcomes: str | Iterable[str],
+        treatments: str | Iterable[str],
+        conditions: Iterable[str] | None = None,
     ) -> Query:
         """Construct a query from text variable names."""
         return cls(
-            outcomes={Variable(outcomes)}
-            if isinstance(outcomes, str)
-            else {Variable(n) for n in outcomes},
-            treatments={Variable(treatments)}
-            if isinstance(treatments, str)
-            else {Variable(n) for n in treatments},
+            outcomes=(
+                {Variable(outcomes)}
+                if isinstance(outcomes, str)
+                else {Variable(n) for n in outcomes}
+            ),
+            treatments=(
+                {Variable(treatments)}
+                if isinstance(treatments, str)
+                else {Variable(n) for n in treatments}
+            ),
             conditions=None if conditions is None else {Variable(n) for n in conditions},
         )
 
     @classmethod
     def from_expression(
         cls,
-        query: Probability,
+        query: Probability | Distribution,
     ) -> Query:
         """Instantiate an identification.
 
@@ -113,8 +96,8 @@ class Query:
         :returns: An identification tuple
         :raises ValueError: If there are ragged counterfactual variables in the query
         """
-        outcomes = {Variable(v.name) for v in query.children}  # clean counterfactuals
-        conditions = {Variable(v.name) for v in query.parents}
+        outcomes = {child.get_base() for child in query.children}  # clean counterfactuals
+        conditions = {parent.get_base() for parent in query.parents}
 
         first_child = query.children[0]
         if not isinstance(first_child, CounterfactualVariable):
@@ -127,7 +110,7 @@ class Query:
                 query.parents, interventions
             ):
                 raise ValueError("Inconsistent usage of interventions")
-            treatments = {Variable(i.name) for i in first_child.interventions}
+            treatments = {intervention.get_base() for intervention in first_child.interventions}
 
         return Query(
             outcomes=outcomes,
@@ -135,9 +118,7 @@ class Query:
             conditions=conditions,
         )
 
-    def exchange_observation_with_action(
-        self, variables: Union[Variable, Iterable[Variable]]
-    ) -> Query:
+    def exchange_observation_with_action(self, variables: Variable | Iterable[Variable]) -> Query:
         """Move the condition variable(s) to the treatments."""
         if isinstance(variables, Variable):
             variables = {variables}
@@ -151,9 +132,7 @@ class Query:
             conditions=self.conditions - variables,
         )
 
-    def exchange_action_with_observation(
-        self, variables: Union[Variable, Iterable[Variable]]
-    ) -> Query:
+    def exchange_action_with_observation(self, variables: Variable | Iterable[Variable]) -> Query:
         """Move the treatment variable(s) to the conditions."""
         if isinstance(variables, Variable):
             variables = {variables}
@@ -217,20 +196,17 @@ class Identification:
     def __init__(
         self,
         query: Query,
-        graph: Union[ADMG, NxMixedGraph],
-        estimand: Optional[Expression] = None,
+        graph: NxMixedGraph,
+        estimand: Expression | None = None,
     ) -> None:
         """Instantiate an identification.
 
-        :param query: The generalizd identification query (outcomes/treatments/conditions)
+        :param query: The generalized identification query (outcomes/treatments/conditions)
         :param graph: The graph
         :param estimand: If none is given, will use the joint distribution over all variables in the graph.
         """
         self.query = query
-        if isinstance(graph, ADMG):
-            self.graph = str_nodes_to_variable_nodes(NxMixedGraph.from_admg(graph))
-        else:
-            self.graph = str_nodes_to_variable_nodes(graph)
+        self.graph = str_nodes_to_variable_nodes(graph)
         self.estimand = P(self.graph.nodes()) if estimand is None else estimand
 
     @classmethod
@@ -238,9 +214,9 @@ class Identification:
         cls,
         outcomes: set[Variable],
         treatments: set[Variable],
-        graph: Union[ADMG, NxMixedGraph],
-        estimand: Optional[Expression] = None,
-        conditions: Optional[set[Variable]] = None,
+        graph: NxMixedGraph,
+        estimand: Expression | None = None,
+        conditions: set[Variable] | None = None,
     ) -> Identification:
         """Instantiate an identification.
 
@@ -261,9 +237,9 @@ class Identification:
     def from_expression(
         cls,
         *,
-        query: Probability,
-        graph: Union[ADMG, NxMixedGraph],
-        estimand: Optional[Expression] = None,
+        query: Probability | Distribution,
+        graph: NxMixedGraph,
+        estimand: Expression | None = None,
     ) -> Identification:
         """Instantiate an identification.
 
@@ -294,7 +270,7 @@ class Identification:
         return self.query.conditions
 
     def exchange_observation_with_action(
-        self, variables: Union[Variable, Iterable[Variable]]
+        self, variables: Variable | Iterable[Variable]
     ) -> Identification:
         """Move the condition variable(s) to the treatments."""
         return Identification(
@@ -304,7 +280,7 @@ class Identification:
         )
 
     def exchange_action_with_observation(
-        self, variables: Union[Variable, Iterable[Variable]]
+        self, variables: Variable | Iterable[Variable]
     ) -> Identification:
         """Move the treatment variable(s) to the conditions."""
         return Identification(

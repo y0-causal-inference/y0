@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """A parser for Craig-like probability expressions based on :mod:`pyparsing`."""
 
 import logging
@@ -17,7 +15,7 @@ from pyparsing import (
 )
 
 from .utils import probability_pe, qfactor_pe, variables_pe
-from ...dsl import Expression, Fraction, Product, Sum, _sorted_variables
+from ...dsl import Expression, Fraction, Product, Sum
 
 __all__ = [
     "parse_causaleffect",
@@ -28,9 +26,9 @@ logger = logging.getLogger(__name__)
 expr = Forward()
 
 
-def _make_sum(_s, _l, tokens: ParseResults) -> Sum:
-    return Sum(
-        ranges=_sorted_variables(tokens["ranges"].asList() if "ranges" in tokens else []),
+def _make_sum(_s, _l, tokens: ParseResults) -> Expression:
+    return Sum.safe(
+        ranges=tokens["ranges"].asList() if "ranges" in tokens else [],
         expression=tokens["expression"],
     )
 
@@ -43,11 +41,7 @@ def _make_frac(_s, _l, tokens: ParseResults) -> Fraction:
 
 
 def _make_product(_s, _l, tokens: ParseResults) -> Expression:
-    tokens = tokens.asList()
-    if len(tokens) == 1:
-        return tokens[0]
-    else:
-        return Product(tuple(tokens))
+    return Product.safe(tokens.asList())
 
 
 # auto-product

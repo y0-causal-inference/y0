@@ -1,23 +1,28 @@
-# -*- coding: utf-8 -*-
-
 """Causal graphs have implications that can be tested in the context of a specific dataset.
 
 This module includes algorithms to perform those tests.
 """
 
-from collections import abc
-from typing import Iterable, Optional, Union
+from collections.abc import Iterable
+from dataclasses import dataclass
 
 import pandas as pd
-from tqdm import tqdm
+import statsmodels.stats.multitest
+from tqdm.auto import tqdm
 
 from .conditional_independencies import get_conditional_independencies
 from ..graph import NxMixedGraph
-from ..struct import DSeparationJudgement
-from ..util.stat_utils import cressie_read
+from ..struct import CITest, DSeparationJudgement, _ensure_method
+
+__all__ = [
+    "get_graph_falsifications",
+    "get_falsifications",
+    "Falsifications",
+]
 
 
-class Falsifications(abc.Sequence):
+@dataclass
+class Falsifications:
     """A list of variables pairs that failed the D-separation and covariance test.
 
     Has an extra 'evidence' property that is a dictionary.
@@ -26,75 +31,106 @@ class Falsifications(abc.Sequence):
     - Values are the covariances measured between them.
     """
 
-    def __init__(self, failures, evidence: pd.DataFrame):
-        """Create Falsifications result.
-
-        :param failures: Sequence of implications that did not pass
-        :param evidence: Collection of all implications tested
-        """
-        self._failures = failures
-        self.evidence = evidence
-
-    def __getitem__(self, i):
-        return self._failures[i]
-
-    def __len__(self):
-        return len(self._failures)
-
-    def __repr__(self):
-        return repr(self._failures) + "+evidence"
+    #: Sequence of implications that did not pass
+    failures: pd.Series
+    #: Collection of all implications tested
+    evidence: pd.DataFrame
 
 
-def falsifications(
-    to_test: Union[NxMixedGraph, Iterable[DSeparationJudgement]],
+def get_graph_falsifications(
+    graph: NxMixedGraph,
     df: pd.DataFrame,
-    significance_level: float = 0.05,
-    max_given: Optional[int] = None,
+    *,
+    significance_level: float | None = None,
+    max_given: int | None = None,
     verbose: bool = False,
+    method: CITest | None = None,
+    sep: str | None = None,
 ) -> Falsifications:
     """Test conditional independencies implied by a graph.
 
-    :param to_test: Either a graph to generate d-separation from or a list of D-separations to check.
+    :param graph: An ADMG
     :param df: Data to check for consistency with a causal implications
     :param significance_level: Significance for p-value test
     :param max_given: The maximum set size in the power set of the vertices minus the d-separable pairs
     :param verbose: If true, use tqdm for status updates.
+    :param method: Conditional independence from :mod:`pgmpy` to use. If none,
+        defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
+    :param sep: The separator between givens when outputting the dataframe
     :return: Falsifications report
     """
-    if isinstance(to_test, NxMixedGraph):
-        to_test = get_conditional_independencies(to_test, max_conditions=max_given, verbose=verbose)
-
-    variances = {
-        (judgement.left, judgement.right, judgement.conditions): cressie_read(
-            judgement.left.name,
-            judgement.right.name,
-            {c.name for c in judgement.conditions},
-            df,
-            boolean=False,
-        )
-        for judgement in tqdm(to_test, disable=not verbose, desc="Checking conditionals")
-    }
-
-    rows = [
-        (left, right, given, chi, p, dof)
-        for (left, right, given), (chi, dof, p) in variances.items()
-    ]
-
-    evidence = (
-        pd.DataFrame(rows, columns=["left", "right", "given", "chi^2", "p", "dof"])
-        .sort_values("p")
-        .assign(
-            **{"Holm–Bonferroni level": significance_level / pd.Series(range(len(rows) + 1, 0, -1))}
-        )
-        .pipe(_assign_flags)
-        .sort_values(["flagged", "dof"], ascending=False)
+    judgements = get_conditional_independencies(graph, max_conditions=max_given, verbose=verbose)
+    return get_falsifications(
+        judgements=judgements,
+        df=df,
+        significance_level=significance_level,
+        verbose=verbose,
+        method=method,
+        sep=sep,
     )
 
-    failures = evidence[evidence["flagged"]][["left", "right", "given"]].apply(
-        tuple, axis="columns"
+
+def get_falsifications(
+    judgements: NxMixedGraph | Iterable[DSeparationJudgement],
+    df: pd.DataFrame,
+    *,
+    significance_level: float | None = None,
+    verbose: bool = False,
+    method: CITest | None = None,
+    correction: str | None = None,
+    sep: str | None = None,
+) -> Falsifications:
+    """Test conditional independencies implied by a list of D-separation judgements.
+
+    :param judgements: A list of D-separation judgements to check.
+    :param df: Data to check for consistency with a causal implications
+    :param verbose: If true, use tqdm for status updates.
+    :param method: Conditional independence from :mod:`pgmpy` to use. If none,
+        defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
+    :param correction: Method used for multiple hypothesis test correction. Defaults to ``holm``.
+        See :func:`statsmodels.stats.multitest.multipletests` for possible methods.
+    :param significance_level: Significance for p-value test, applied after multiple hypothesis testing correction
+    :param sep: The separator between givens when outputting the dataframe
+    :return: Falsifications report
+    """
+    if significance_level is None:
+        significance_level = 0.05
+    if correction is None:
+        correction = "holm"
+    if sep is None:
+        sep = "|"
+    # Make this loop explicit for clarity
+    results = []
+    method = _ensure_method(method, df)
+    for judgement in tqdm(judgements, disable=not verbose, desc="Checking conditionals"):
+        result = judgement.test(df, method=method, boolean=False)
+        results.append(
+            (
+                judgement.left.name,
+                judgement.right.name,
+                sep.join(c.name for c in judgement.conditions),
+                result.statistic,
+                result.p_value,
+                result.dof,
+            )
+        )
+    evidence_df = pd.DataFrame(
+        results,
+        columns=["left", "right", "given", "stats", "p", "dof"],
     )
-    return Falsifications(failures, evidence)
-
-
-def _assign_flags(df: pd.DataFrame) -> pd.DataFrame:
-    return df.assign(flagged=(df["p"] < df["Holm–Bonferroni level"]))
+    if not results:
+        reject = []
+        p_adj = []
+    else:
+        reject, p_adj, _, _ = statsmodels.stats.multitest.multipletests(
+            evidence_df["p"],
+            alpha=significance_level,
+            method=correction,
+        )
+    evidence_df["p_adj"] = p_adj
+    evidence_df["p_adj_significant"] = reject
+    evidence_df.sort_values("p_adj", ascending=True, inplace=True)
+    evidence_df = evidence_df.sort_values("p_adj")
+    failures_df = evidence_df.loc[evidence_df["p_adj_significant"], ["left", "right", "given"]]
+    failures = failures_df.apply(tuple, axis="columns")
+    return Falsifications(failures, evidence_df)

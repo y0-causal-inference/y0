@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-
 """Implementation of the canonicalization algorithm."""
 
-from operator import attrgetter
-from typing import Iterable, Mapping, Optional, Sequence, Tuple, Union
+from collections.abc import Collection, Iterable, Mapping, Sequence
 
 from ..dsl import (
-    CounterfactualVariable,
     Distribution,
     Expression,
     Fraction,
@@ -15,6 +11,8 @@ from ..dsl import (
     Product,
     Sum,
     Variable,
+    Zero,
+    _variable_sort_key,
     ensure_ordering,
 )
 
@@ -25,7 +23,7 @@ __all__ = [
 
 
 def canonicalize(
-    expression: Expression, ordering: Optional[Sequence[Union[str, Variable]]] = None
+    expression: Expression, ordering: Sequence[str | Variable] | None = None
 ) -> Expression:
     """Canonicalize an expression that meets the markov condition with respect to the given ordering.
 
@@ -35,10 +33,6 @@ def canonicalize(
     """
     canonicalizer = Canonicalizer(ensure_ordering(expression, ordering=ordering))
     return canonicalizer.canonicalize(expression)
-
-
-def _sort_probability_key(probability: Probability) -> Tuple[str, ...]:
-    return tuple(child.name for child in probability.children)
 
 
 class Canonicalizer:
@@ -61,30 +55,18 @@ class Canonicalizer:
         self.ordering_level = {variable.name: level for level, variable in enumerate(self.ordering)}
 
     def _canonicalize_probability(self, expression: Probability) -> Probability:
-        return Probability(
+        return expression._new(
             Distribution(
                 children=self._sorted(expression.children),
                 parents=self._sorted(expression.parents),
             )
         )
 
-    def _sorted(self, variables: Tuple[Variable, ...]) -> Tuple[Variable, ...]:
-        return tuple(
-            sorted(
-                (self._canonicalize_variable(variable) for variable in variables),
-                key=self._sorted_key,
-            )
-        )
+    def _sorted(self, variables: Collection[Variable]) -> tuple[Variable, ...]:
+        return tuple(sorted(variables, key=self._sorted_key))
 
     def _canonicalize_variable(self, variable: Variable) -> Variable:
-        if isinstance(variable, CounterfactualVariable):
-            return CounterfactualVariable(
-                name=variable.name,
-                star=variable.star,
-                interventions=tuple(sorted(variable.interventions)),
-            )
-        else:
-            return variable
+        return variable
 
     def _sorted_key(self, variable: Variable) -> int:
         return self.ordering_level[variable.name]
@@ -99,60 +81,27 @@ class Canonicalizer:
         if isinstance(expression, Probability):  # atomic
             return self._canonicalize_probability(expression)
         elif isinstance(expression, Sum):
-            if not expression.ranges:  # flatten unnecessary sum
-                return self.canonicalize(expression.expression)
-            return Sum(
+            return Sum.safe(
                 expression=self.canonicalize(expression.expression),
-                ranges=self._sorted(expression.ranges),
+                ranges=expression.ranges,
+                simplify=True,
             )
         elif isinstance(expression, Product):
-            if 1 == len(expression.expressions):  # flatten unnecessary product
-                return self.canonicalize(expression.expressions[0])
-
-            probabilities = []
-            other = []
-            for subexpr in _flatten_product(expression):
-                subexpr = self.canonicalize(subexpr)
-                if isinstance(subexpr, Probability):
-                    probabilities.append(subexpr)
-                else:
-                    other.append(subexpr)
-            probabilities = sorted(probabilities, key=_sort_probability_key)
-
-            # If other is empty, this is also atomic
-            other = sorted(other, key=self._nonatomic_key)
-            return Product((*probabilities, *other))
-        elif isinstance(expression, Fraction):
-            return Fraction(
-                numerator=self.canonicalize(expression.numerator),
-                denominator=self.canonicalize(expression.denominator),
+            # note: safe already sorts
+            return Product.safe(
+                self.canonicalize(subexpr) for subexpr in _flatten_product(expression)
             )
-        elif isinstance(expression, One):
+        elif isinstance(expression, Fraction):
+            numerator = self.canonicalize(expression.numerator)
+            # TODO check if there's a zero in numerator, then return zero if so
+            denominator = self.canonicalize(expression.denominator)
+            if isinstance(denominator, One):
+                return numerator
+            if numerator == denominator:
+                return One()
+            return numerator / denominator  # TODO
+        elif isinstance(expression, One | Zero):
             return expression
-        else:
-            raise TypeError
-
-    def _nonatomic_key(self, expression: Expression):
-        """Generate a sort key for a *canonical* expression.
-
-        :param expression: A canonical expression
-        :returns: A tuple in which the first element is the integer priority for the expression
-            and the rest depends on the expression type.
-        :raises TypeError: if an invalid expression type is given
-        """
-        if isinstance(expression, Probability):
-            return 0, expression.children[0].name
-        elif isinstance(expression, Sum):
-            return 1, *self._nonatomic_key(expression.expression)
-        elif isinstance(expression, Product):
-            inner_keys = (self._nonatomic_key(sexpr) for sexpr in expression.expressions)
-            return 2, *inner_keys
-        elif isinstance(expression, Fraction):
-            return (
-                3,
-                self._nonatomic_key(expression.numerator),
-                self._nonatomic_key(expression.denominator),
-            )
         else:
             raise TypeError
 
@@ -167,5 +116,5 @@ def _flatten_product(product: Product) -> Iterable[Expression]:
 
 def canonical_expr_equal(left: Expression, right: Expression) -> bool:
     """Return True if two expressions are equal after canonicalization."""
-    ordering = sorted(left.get_variables() | right.get_variables(), key=attrgetter("name"))
+    ordering = sorted(left.get_variables() | right.get_variables(), key=_variable_sort_key)
     return canonicalize(left, ordering) == canonicalize(right, ordering)

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Tests for canceling fractions."""
 
 import unittest
@@ -17,7 +15,7 @@ class TestCancel(unittest.TestCase):
         for label, frac in [
             ("one", Fraction(one, one)),
             ("prob", P(A) / P(A)),
-            ("sum", Sum(P(A)) / Sum(P(A))),
+            ("sum", Sum.safe(P(A), ranges=[B]) / Sum.safe(P(A), ranges=[B])),
             ("product", (P(A) * P(B)) / (P(A) * P(B))),
         ]:
             with self.subTest(type=label):
@@ -33,7 +31,7 @@ class TestCancel(unittest.TestCase):
             ("canonical", one / P(A), one / P(A)),
             ("flipper", P(A), Fraction(one, Fraction(one, P(A)))),
             ("prob-redundant-one", P(A), Fraction(P(A), one)),
-            ("sum-redundant-one", Sum(P(A)), Fraction(Sum(P(A)), one)),
+            ("sum-redundant-one", Sum[B](P(A)), Fraction(Sum[B](P(A)), one)),
             ("frac-redundant-one", P(A) / P(B), Fraction(Fraction(P(A), P(B)), one)),
             ("prod-redundant-one", P(A) * P(B), Fraction(P(A) * P(B), one)),
         ]:
