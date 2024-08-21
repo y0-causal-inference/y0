@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 """Implementation of the IDC* algorithm."""
 
 import logging
-from typing import Iterable, Tuple
+from collections.abc import Iterable
 
 from .cg import is_not_self_intervened, make_counterfactual_graph
 from .id_star import id_star
@@ -21,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def get_new_outcomes_and_conditions(
     new_event: Event, outcomes: Event, conditions: Event
-) -> Tuple[Event, Event]:
+) -> tuple[Event, Event]:
     """Get the new outcomes and conditions."""
     remaining_outcomes, missing_outcomes = get_remaining_and_missing_events(new_event, outcomes)
     remaining_conditions, missing_conditions = get_remaining_and_missing_events(
@@ -48,7 +46,7 @@ def get_new_outcomes_and_conditions(
         return remaining_outcomes, remaining_conditions
 
 
-def get_remaining_and_missing_events(new_event: Event, old_event: Event) -> Tuple[Event, Event]:
+def get_remaining_and_missing_events(new_event: Event, old_event: Event) -> tuple[Event, Event]:
     """Get the outcome from the event."""
     remaining = {k: v for k, v in old_event.items() if k in new_event}
     missing = {k: v for k, v in old_event.items() if k not in new_event}
@@ -58,7 +56,7 @@ def get_remaining_and_missing_events(new_event: Event, old_event: Event) -> Tupl
 def idc_star(
     graph: NxMixedGraph, outcomes: Event, conditions: Event, *, _number_recursions: int = 0
 ) -> Expression:
-    r"""Run the IDC* algorithm.
+    r"""Run the IDC* algorithm from [shpitser2012]_.
 
     :param graph: The causal graph
     :param outcomes: The outcome events corresponds to :math:`\gamma`
@@ -122,12 +120,14 @@ def idc_star(
         if cf_rule_2_of_do_calculus_applies(cf_graph, new_outcomes, condition):
             logger.debug(
                 f"\t[{_number_recursions}]: line 4 IDC* algorithm: rule 2 of do calculus applies:\n\t\t{outcomes} "
-                f"""is D-separated from {condition} in G{"'"*(_number_recursions + 1)} ({condition}_bar)"""
+                f"""is D-separated from {condition} in G{"'" * (_number_recursions + 1)} ({condition}_bar)"""
             )
             new_outcomes = {
-                outcome.intervene(condition)
-                if condition in cf_graph.ancestors_inclusive(outcome)
-                else outcome: value
+                (
+                    outcome.intervene(condition)
+                    if condition in cf_graph.ancestors_inclusive(outcome)
+                    else outcome
+                ): value
                 for outcome, value in new_outcomes.items()
             }
             new_conditions = {k: v for k, v in new_conditions.items() if k != condition}

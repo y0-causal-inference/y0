@@ -1,17 +1,16 @@
-# -*- coding: utf-8 -*-
-#
-# Configuration file for the Sphinx documentation builder.
-#
-# This file does only contain a selection of the most common options. For a
-# full list see the documentation:
-# http://www.sphinx-doc.org/en/master/config
+"""
+Configuration file for the Sphinx documentation builder.
 
-# -- Path setup --------------------------------------------------------------
+This file does only contain a selection of the most common options. For a
+full list see the documentation:
+http://www.sphinx-doc.org/en/master/config
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+-- Path setup --------------------------------------------------------------
+
+If extensions (or modules to document with autodoc) are in another directory,
+add these directories to ``sys.path`` here. If the directory is relative to the
+documentation root, use ``os.path.abspath`` to make it absolute, like shown here.
+"""
 
 import os
 import re
@@ -27,17 +26,17 @@ copyright = f"{date.today().year}, Jeremy Zucker and Charles Tapley Hoyt"
 author = "Jeremy Zucker and Charles Tapley Hoyt"
 
 # The full version, including alpha/beta/rc tags.
-release = "0.2.1-dev"
+release = "0.2.12-dev"
 
 # The short X.Y version.
 parsed_version = re.match(
-    "(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:-(?P<release>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+(?P<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?",
+    r"(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)(?:-(?P<release>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+(?P<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?",
     release,
 )
-version = parsed_version.expand("\g<major>.\g<minor>.\g<patch>")
+version = parsed_version.expand(r"\g<major>.\g<minor>.\g<patch>")
 
 if parsed_version.group("release"):
-    tags.add("prerelease")
+    tags.add("prerelease")  # noqa: F821
 
 # -- General configuration ---------------------------------------------------
 
@@ -135,7 +134,7 @@ if os.path.exists("logo.png"):
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "y0doc"
+htmlhelp_basename = "y0_doc"
 
 # -- Options for LaTeX output ------------------------------------------------
 
@@ -196,7 +195,7 @@ texinfo_documents = [
         "y0 Documentation",
         author,
         "Jeremy Zucker and Charles Tapley Hoyt",
-        "Python code for causal modeling",
+        "Causal inference in Python.",
         "Miscellaneous",
     ),
 ]
@@ -223,11 +222,23 @@ texinfo_documents = [
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
+# Note: don't add trailing slashes, since sphinx adds "/objects.inv" to the end
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "networkx": ("https://networkx.org/documentation/latest/", None),
+    "networkx": ("https://networkx.org/documentation/latest", None),
     "ananke": ("https://ananke.readthedocs.io/en/latest", None),
+    "pgmpy": ("https://pgmpy.org/", None),
+    "pandas": ("https://pandas.pydata.org/docs", None),
+    "sklearn": ("https://scikit-learn.org/stable", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy", None),
 }
 
 autoclass_content = "both"
+
+# Don't sort alphabetically, explained at:
+# https://stackoverflow.com/questions/37209921/python-how-not-to-sort-sphinx-output-in-alphabetical-order
 autodoc_member_order = "bysource"
+
+todo_include_todos = True
+todo_emit_warnings = True

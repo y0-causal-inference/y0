@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Tests for the CausalEffect wrapper."""
 
 import unittest
@@ -38,7 +36,7 @@ class TestCausalEffect(unittest.TestCase):
             importr(CAUSALEFFECT)
             importr(IGRAPH)
         except PackageNotInstalledError:
-            raise unittest.SkipTest("R packages not properly installed.")
+            raise unittest.SkipTest("R packages not properly installed.") from None
 
     def test_verma_constraint(self):
         """Test getting the single Verma constraint from the Figure 1A graph."""

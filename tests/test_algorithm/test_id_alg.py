@@ -1,12 +1,17 @@
-# -*- coding: utf-8 -*-
-
 """Tests for the identify algorithm."""
 
 import itertools as itt
 import unittest
 
 import y0.examples
-from y0.algorithm.identify import Identification, Query, Unidentifiable, idc, identify
+from y0.algorithm.identify import (
+    Identification,
+    Query,
+    Unidentifiable,
+    idc,
+    identify,
+    identify_outcomes,
+)
 from y0.algorithm.identify.id_std import (
     line_1,
     line_2,
@@ -69,7 +74,7 @@ class TestIdentify(unittest.TestCase):
         self.assertEqual(
             expected_canonical,
             actual_canonical,
-            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
+            msg=f"\nExpected: {expected_canonical!s}\nActual:   {actual_canonical!s}",
         )
 
     def test_idc(self):
@@ -81,6 +86,12 @@ class TestIdentify(unittest.TestCase):
                 expected=id_out.estimand,
                 actual=idc(id_in),
             )
+
+        estimand = identify_outcomes(graph=figure_6a.graph, treatments=X, outcomes=Y, conditions=Z)
+        self.assertEqual(
+            P(Y | (X, Z)) / Sum.safe(expression=P(Y | (X, Z)), ranges=Y),
+            estimand,
+        )
 
     def test_line_1(self):
         r"""Test that line 1 of ID algorithm works correctly.

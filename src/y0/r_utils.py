@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 """General utilities for :mod:`rpy2`."""
 
 import logging
+from collections.abc import Iterable
 from functools import lru_cache, wraps
-from typing import Iterable, Tuple
 
 from rpy2.robjects.packages import importr, isinstalled
 from rpy2.robjects.vectors import StrVector
@@ -67,7 +65,7 @@ def uses_r(f):
     return _wrapped
 
 
-def _parse_vars(element) -> Tuple[Variable, ...]:
+def _parse_vars(element) -> tuple[Variable, ...]:
     _vars = element.rx("vars")
     return tuple(Variable(name) for name in sorted(_vars[0]))
 

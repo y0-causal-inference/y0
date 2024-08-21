@@ -1,20 +1,10 @@
-# -*- coding: utf-8 -*-
-
-"""Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172.
-
-.. todo::
-
-    high level documentation
-
-    1. What problem are we trying to solve here?
-    2. What's the difference between surrogate outcomes nad transportability?
-    3. Real world example
-"""
+"""Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172."""
 
 import logging
+from collections.abc import Collection, Iterable
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Collection, Dict, FrozenSet, Iterable, Optional, Set, Union, cast
+from typing import cast
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import (
@@ -48,10 +38,10 @@ logger = logging.getLogger(__name__)
 
 def get_nodes_to_transport(
     *,
-    surrogate_interventions: Union[Set[Variable], Variable],
-    surrogate_outcomes: Union[Set[Variable], Variable],
+    surrogate_interventions: set[Variable] | Variable,
+    surrogate_outcomes: set[Variable] | Variable,
     graph: NxMixedGraph,
-) -> Set[Variable]:
+) -> set[Variable]:
     """Identify which nodes the transport nodes should point to.
 
     :param surrogate_interventions: The interventions performed in an experiment.
@@ -63,7 +53,7 @@ def get_nodes_to_transport(
     surrogate_outcomes = set(_upgrade_variables(surrogate_outcomes))
 
     # Find the c_component with surrogate_outcomes
-    c_component_surrogate_outcomes: Set[Variable] = set()
+    c_component_surrogate_outcomes: set[Variable] = set()
     for component in graph.districts():
         # Check if surrogate_outcomes is present in the current set
         if surrogate_outcomes.intersection(component):
@@ -91,7 +81,7 @@ def transport_variable(variable: Variable) -> Variable:
     :returns: Variable with _TRANSPORT_PREFIX and variable name
     :raises TypeError: If a non-standard variable is passed
     """
-    if isinstance(variable, (CounterfactualVariable, Intervention)):
+    if isinstance(variable, CounterfactualVariable | Intervention):
         raise TypeError
     return Variable(_TRANSPORT_PREFIX + variable.name)
 
@@ -102,12 +92,12 @@ def is_transport_node(node: Variable) -> bool:
     :param node: A node to evaluate.
     :returns: boolean True if node is a transport node, False otherwise.
     """
-    return not isinstance(node, (CounterfactualVariable, Intervention)) and node.name.startswith(
+    return not isinstance(node, CounterfactualVariable | Intervention) and node.name.startswith(
         _TRANSPORT_PREFIX
     )
 
 
-def get_transport_nodes(graph: NxMixedGraph) -> Set[Variable]:
+def get_transport_nodes(graph: NxMixedGraph) -> set[Variable]:
     """Find all the transport nodes in a graph.
 
     :param graph: an NxMixedGraph which may have transport nodes
@@ -116,7 +106,7 @@ def get_transport_nodes(graph: NxMixedGraph) -> Set[Variable]:
     return {node for node in graph.nodes() if is_transport_node(node)}
 
 
-def get_regular_nodes(graph: NxMixedGraph) -> Set[Variable]:
+def get_regular_nodes(graph: NxMixedGraph) -> set[Variable]:
     """Find all the nodes in a graph which are not transport nodes.
 
     :param graph: an NxMixedGraph
@@ -159,35 +149,35 @@ def create_transport_diagram(
 class TransportQuery:
     """A query used as output for surrogate_to_transport."""
 
-    target_interventions: Set[Variable]
-    target_outcomes: Set[Variable]
-    graphs: Dict[Population, NxMixedGraph]
-    domains: Set[Population]
-    surrogate_interventions: Dict[Population, Set[Variable]]
-    target_experiments: Set[Variable]
+    target_interventions: set[Variable]
+    target_outcomes: set[Variable]
+    graphs: dict[Population, NxMixedGraph]
+    domains: set[Population]
+    surrogate_interventions: dict[Population, set[Variable]]
+    target_experiments: set[Variable]
 
 
 @dataclass
 class TRSOQuery:
     """A query used for TRSO input."""
 
-    target_interventions: Set[Variable]
-    target_outcomes: Set[Variable]
+    target_interventions: set[Variable]
+    target_outcomes: set[Variable]
     expression: Expression
-    active_interventions: Set[Variable]
+    active_interventions: set[Variable]
     domain: Population
-    domains: Set[Population]
-    graphs: Dict[Population, NxMixedGraph]
-    surrogate_interventions: Dict[Population, Set[Variable]]
+    domains: set[Population]
+    graphs: dict[Population, NxMixedGraph]
+    surrogate_interventions: dict[Population, set[Variable]]
 
 
 def surrogate_to_transport(
     *,
     graph: NxMixedGraph,
-    target_outcomes: Set[Variable],
-    target_interventions: Set[Variable],
-    surrogate_outcomes: Dict[Population, Set[Variable]],
-    surrogate_interventions: Dict[Population, Set[Variable]],
+    target_outcomes: set[Variable],
+    target_interventions: set[Variable],
+    surrogate_outcomes: dict[Population, set[Variable]],
+    surrogate_interventions: dict[Population, set[Variable]],
 ) -> TransportQuery:
     """Create transportability diagrams and query from a surrogate outcome problem.
 
@@ -226,7 +216,7 @@ def surrogate_to_transport(
 
 
 def trso_line1(
-    target_outcomes: Set[Variable],
+    target_outcomes: set[Variable],
     expression: Expression,
     graph: NxMixedGraph,
 ) -> Expression:
@@ -242,13 +232,14 @@ def trso_line1(
 
 def trso_line2(
     query: TRSOQuery,
-    outcomes_ancestors: Set[Variable],
+    outcomes_ancestors: set[Variable],
 ) -> TRSOQuery:
     """Restrict the interventions and diagram to only include ancestors of target variables.
 
     :param query: A TRSO query
     :param outcomes_ancestors: the ancestors of target variables in transportability_diagram
     :returns: A TRSO query with modified attributes.
+    :raises TypeError: if the new query's expression is not a population probability
     """
     new_query = deepcopy(query)
     new_query.target_interventions.intersection_update(outcomes_ancestors)
@@ -263,7 +254,8 @@ def trso_line2(
         simplify=True,
     )
     if isinstance(new_query.expression, Probability):
-        assert isinstance(new_query.expression, PopulationProbability)
+        if not isinstance(new_query.expression, PopulationProbability):
+            raise TypeError
         # it might be the case that these two are not the same, but
         # other parts of the algorithm clean it up. This isn't so
         # satisfying. Sorry!
@@ -278,7 +270,7 @@ def trso_line2(
     return new_query
 
 
-def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> TRSOQuery:
+def trso_line3(query: TRSOQuery, additional_interventions: set[Variable]) -> TRSOQuery:
     """Add nodes that will affect the outcome to the interventions of the query.
 
     :param query: A TRSO query
@@ -292,8 +284,8 @@ def trso_line3(query: TRSOQuery, additional_interventions: Set[Variable]) -> TRS
 
 def trso_line4(
     query: TRSOQuery,
-    components: Iterable[FrozenSet[Variable]],
-) -> Dict[FrozenSet[Variable], TRSOQuery]:
+    components: Iterable[frozenset[Variable]],
+) -> dict[frozenset[Variable], TRSOQuery]:
     """Find the trso inputs for each C-component.
 
     :param query: A TRSO query
@@ -310,7 +302,7 @@ def trso_line4(
     return rv
 
 
-def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
+def trso_line6(query: TRSOQuery) -> dict[Population, TRSOQuery]:
     """Find the active interventions for each domain, remove available experiments from interventions.
 
     :param query: A TRSO query
@@ -326,9 +318,7 @@ def trso_line6(query: TRSOQuery) -> Dict[Population, TRSOQuery]:
     return expressions
 
 
-def _line_6_helper(
-    query: TRSOQuery, domain: Population, graph: NxMixedGraph
-) -> Optional[TRSOQuery]:
+def _line_6_helper(query: TRSOQuery, domain: Population, graph: NxMixedGraph) -> TRSOQuery | None:
     """Perform d-separation check and then modify query active interventions.
 
     :param query: A TRSO query
@@ -356,7 +346,7 @@ def _line_6_helper(
 
 
 def activate_domain_and_interventions(
-    expression: Expression, interventions: Set[Variable], domain: Population
+    expression: Expression, interventions: set[Variable], domain: Population
 ) -> Expression:
     """Intervene on the target variables of expression using the active interventions.
 
@@ -365,9 +355,11 @@ def activate_domain_and_interventions(
     :param domain: A given population
     :returns: A new expression, intervened
     :raises NotImplementedError: If an expression type that is not handled gets passed
+    :raises TypeError: if the expression is a probability but not a population probability
     """
     if isinstance(expression, Probability):
-        assert isinstance(expression, PopulationProbability)
+        if not isinstance(expression, PopulationProbability):
+            raise TypeError
         return PopulationProbability(
             population=domain,
             distribution=Distribution.safe(set(expression.children) - interventions),
@@ -421,7 +413,7 @@ def all_transports_d_separated(graph, target_interventions, target_outcomes) -> 
 
 
 def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
-    """Return the probability in the case with exactly one districts_without_interventions and it is present in districts.
+    """Get the probability in the case with exactly one districts_without_interventions and it is present in districts.
 
     :param query: A TRSO query
     :param district: The C-component present in both districts_without_interventions and districts
@@ -461,7 +453,7 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
 def trso_line10(
     query: TRSOQuery,
     district: set[Variable],
-    new_surrogate_interventions: Dict[Population, Set[Variable]],
+    new_surrogate_interventions: dict[Population, set[Variable]],
 ) -> TRSOQuery:
     """Update the TRSO query to restrict interventions and graph to district.
 
@@ -489,7 +481,7 @@ def trso_line10(
     return new_query
 
 
-def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
+def trso(query: TRSOQuery) -> Expression | None:  # noqa:C901
     """Run the TRSO algorithm to evaluate a transport problem.
 
     :param query: A TRSO query, which contains 8 instance variables needed for TRSO
@@ -570,7 +562,7 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
 
     # line 6
     if not query.active_interventions and query.surrogate_interventions:
-        expressions: Dict[Population, Expression] = {}
+        expressions: dict[Population, Expression] = {}
         for domain, subquery in trso_line6(query).items():
             logger.debug("Calling trso algorithm line 6 for domain %s", domain)
             expression = trso(subquery)
@@ -585,14 +577,14 @@ def trso(query: TRSOQuery) -> Optional[Expression]:  # noqa:C901
                 )
                 expressions[domain] = expression
         if len(expressions) == 1:
-            return canonicalize(list(expressions.values())[0])
+            return canonicalize(next(iter(expressions.values())))
         elif len(expressions) > 1:
             # TODO need full integration test to trso() function that covers this branch
             #  or change to ``raise RuntimeError`` if it's not possible to reach in practice
             logger.warning("more than one expression were non-none")
             # What if more than 1 expression doesn't fail?
             # Is it non-deterministic or can we prove it will be length 1?
-            return canonicalize(list(expressions.values())[0])
+            return canonicalize(next(iter(expressions.values())))
         else:
             # if there are no expressions, then we move on to line 8
             pass
@@ -674,10 +666,10 @@ def check_and_raise_missing(nodes: set[Variable], graph: NxMixedGraph, name: str
 def identify_target_outcomes(
     graph: NxMixedGraph,
     *,
-    target_outcomes: Set[Variable],
-    target_interventions: Set[Variable],
-    surrogate_outcomes: Dict[Population, Set[Variable]],
-    surrogate_interventions: Dict[Population, Set[Variable]],
+    target_outcomes: set[Variable],
+    target_interventions: set[Variable],
+    surrogate_outcomes: dict[Population, set[Variable]],
+    surrogate_interventions: dict[Population, set[Variable]],
 ) -> Expression | None:
     r"""Get the estimand for the target outcome givne the surrogate outcomes.
 

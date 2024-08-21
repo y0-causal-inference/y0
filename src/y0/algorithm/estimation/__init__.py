@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import redirect_stdout
-from typing import List, Literal, Optional, Union
+from typing import List, Literal, Optional
 
 import pandas as pd
 
@@ -45,22 +45,30 @@ def estimate_causal_effect(
         raise TypeError
 
 
-def estimate_ace(
+def estimate_ace(  # noqa:C901
     graph: NxMixedGraph,
-    treatments: Union[Variable, List[Variable]],
-    outcomes: Union[Variable, List[Variable]],
+    treatments: Variable | list[Variable],
+    outcomes: Variable | list[Variable],
     data: pd.DataFrame,
     *,
-    conditions: Optional[List[Variable]] = None,
+    conditions: list[Variable] | None = None,
     bootstraps: int | None = None,
     alpha: float | None = None,
-    estimator: Optional[str] = None,
+    estimator: str | None = None,
 ) -> float:
     """Estimate the average treatment effect."""
     if conditions is not None:
         raise NotImplementedError("can not yet handle conditional queries")
-    if isinstance(treatments, list) or isinstance(outcomes, list):
-        raise NotImplementedError("can not yet handle multiple treatments nor outcomes")
+    if isinstance(treatments, list):
+        if len(treatments) == 1:
+            treatments = treatments[0]
+        else:
+            raise NotImplementedError(f"can not yet handle multiple treatments: {treatments}")
+    if isinstance(outcomes, list):
+        if len(outcomes) == 1:
+            outcomes = outcomes[0]
+        else:
+            raise NotImplementedError(f"can not yet handle multiple outcomes: {outcomes}")
     if isinstance(treatments, CounterfactualVariable) or isinstance(
         outcomes, CounterfactualVariable
     ):

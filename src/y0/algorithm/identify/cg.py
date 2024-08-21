@@ -1,11 +1,16 @@
-# -*- coding: utf-8 -*-
-
 """Utilities for parallel world graphs and counterfactual graphs."""
 
+from collections.abc import Iterable
 from itertools import combinations
-from typing import FrozenSet, Iterable, Optional, Set, Tuple, cast
+from typing import cast
 
-from y0.dsl import CounterfactualVariable, Event, Intervention, Variable
+from y0.dsl import (
+    CounterfactualVariable,
+    Event,
+    Intervention,
+    Variable,
+    _variable_sort_key,
+)
 from y0.graph import NxMixedGraph
 
 __all__ = [
@@ -19,7 +24,7 @@ __all__ = [
 ]
 
 
-class World(FrozenSet[Intervention]):
+class World(frozenset[Intervention]):
     """A set of interventions corresponding to a "world"."""
 
     def __contains__(self, item) -> bool:
@@ -30,7 +35,7 @@ class World(FrozenSet[Intervention]):
         return super().__contains__(item)
 
 
-Worlds = Set[World]
+Worlds = set[World]
 
 
 def has_same_confounders(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
@@ -48,7 +53,7 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
     ) == is_not_self_intervened(node2)
 
 
-def nodes_attain_same_value(graph: NxMixedGraph, event: Event, a: Variable, b: Variable) -> bool:
+def nodes_attain_same_value(graph: NxMixedGraph, event: Event, a: Variable, b: Variable) -> bool:  # noqa:C901
     """Check if the two nodes attain the same value."""
     if a == b:
         return True
@@ -91,6 +96,7 @@ def parents_attain_same_values(graph: NxMixedGraph, event: Event, a: Variable, b
         for parent_a, parent_b in zip(
             sorted(remainder_a, key=lambda x: x.get_base()),
             sorted(remainder_b, key=lambda x: x.get_base()),
+            strict=False,
         )
     )
 
@@ -120,6 +126,7 @@ def is_pw_equivalent(graph: NxMixedGraph, event: Event, node1: Variable, node2: 
     :param node1: A node in the graph
     :param node2: Another node in the graph
     :returns: If the two nodes are equivalent under the parallel worlds assumption
+    :raises KeyError: if one or both of the nodes are not in the graph
 
     Let :math:`M` be a model inducing :math:`G` containing variables
     :math:`\alpha`, :math:`\beta` with the following properties:
@@ -147,7 +154,10 @@ def is_pw_equivalent(graph: NxMixedGraph, event: Event, node1: Variable, node2: 
     """
     # Rather than all n choose 2 combinations, we can restrict ourselves to the original
     # graph variables and their counterfactual versions
-    assert (node1 in graph.nodes()) and (node2 in graph.nodes()), "Nodes must be in the graph"
+    if node1 not in graph:
+        raise KeyError(f"{node1} is not in graph")
+    if node2 not in graph:
+        raise KeyError(f"{node2} is not in graph")
     return (
         has_same_function(node1, node2)
         and parents_attain_same_values(graph, event, node1, node2)
@@ -172,7 +182,7 @@ def nodes_have_same_domain_of_values(
     return False
 
 
-def value_of_self_intervention(a: Variable) -> Optional[Intervention]:
+def value_of_self_intervention(a: Variable) -> Intervention | None:
     """Get the value of the self-intervention."""
     if not isinstance(a, CounterfactualVariable):
         return None
@@ -186,7 +196,7 @@ def value_of_self_intervention(a: Variable) -> Optional[Intervention]:
 
 def merge_pw(
     graph: NxMixedGraph, node1: Variable, node2: Variable
-) -> Tuple[NxMixedGraph, Variable, Variable]:
+) -> tuple[NxMixedGraph, Variable, Variable]:
     r"""Merge node1 and node2 and return the reduced graph and query.
 
     :param graph: A parallel worlds graph
@@ -207,7 +217,7 @@ def merge_pw(
     Complete Identification Methods for the Causal Hierarchy.
     Journal of Machine Learning Research (2008).
     """
-    # If a we are going to merge two nodes, we want to keep the factual variable.
+    # If we are going to merge two nodes, we want to keep the factual variable.
     if isinstance(node1, CounterfactualVariable) and not isinstance(node2, CounterfactualVariable):
         node1, node2 = node2, node1
     elif not isinstance(node1, CounterfactualVariable) and isinstance(
@@ -215,7 +225,7 @@ def merge_pw(
     ):
         pass
     else:  # both are counterfactual or both are factual, so keep the variable with the lower name
-        node1, node2 = sorted([node1, node2])
+        node1, node2 = sorted([node1, node2], key=_variable_sort_key)
     directed = [(u, v) for u, v in graph.directed.edges() if node2 not in (u, v)]
     directed += [(node1, v) for u, v in graph.directed.edges() if node2 == u]
     # directed += [(u, node1) for u, v in graph.directed.edges() if node2 == v]
@@ -275,7 +285,7 @@ def update_event(event: Event, preferred_node: Variable, eliminated_node: Variab
 
 def make_counterfactual_graph(
     graph: NxMixedGraph, event: Event
-) -> Tuple[NxMixedGraph, Optional[Event]]:
+) -> tuple[NxMixedGraph, Event | None]:
     r"""Make counterfactual graph.
 
     :param graph: A causal graph :math:`G`
@@ -337,7 +347,7 @@ def make_counterfactual_graph(
 
 def node_not_an_intervention_in_world(world: World, node: Variable) -> bool:
     """Confirm that node is not an intervention in a given world."""
-    if isinstance(node, (Intervention, CounterfactualVariable)):
+    if isinstance(node, Intervention | CounterfactualVariable):
         raise TypeError(
             "this shouldn't happen since the graph should not have interventions as nodes"
         )
@@ -346,7 +356,7 @@ def node_not_an_intervention_in_world(world: World, node: Variable) -> bool:
 
 def stitch_factual_and_dopplegangers(
     graph: NxMixedGraph, worlds: Worlds
-) -> Set[Tuple[Variable, CounterfactualVariable]]:
+) -> set[tuple[Variable, CounterfactualVariable]]:
     """Stitch together a node and its counterfactual doppleganger in each world."""
     return {
         (u, u @ world)
@@ -358,7 +368,7 @@ def stitch_factual_and_dopplegangers(
 
 def stitch_factual_and_doppleganger_neighbors(
     graph: NxMixedGraph, worlds: Worlds
-) -> Set[Tuple[Variable, CounterfactualVariable]]:
+) -> set[tuple[Variable, CounterfactualVariable]]:
     """Stitch together a node with the dopplegangers of its neighbors in each world."""
     return {
         (u, v @ world)
@@ -372,7 +382,7 @@ def stitch_factual_and_doppleganger_neighbors(
 
 def stitch_counterfactual_and_dopplegangers(
     graph: NxMixedGraph, worlds: Worlds
-) -> Set[Tuple[CounterfactualVariable, CounterfactualVariable]]:
+) -> set[tuple[CounterfactualVariable, CounterfactualVariable]]:
     """Stitch together a counterfactual variable with its doppelganger.
 
     Unless the counterfactual is intervened upon in one of the worlds.
@@ -401,7 +411,7 @@ def _both_ways(s):
 
 def stitch_counterfactual_and_doppleganger_neighbors(
     graph: NxMixedGraph, worlds: Worlds
-) -> Set[Tuple[CounterfactualVariable, CounterfactualVariable]]:
+) -> set[tuple[CounterfactualVariable, CounterfactualVariable]]:
     """Stitch together a counterfactual variable with the dopplegangers of its neighbors in each world."""
     rv = {
         frozenset({u @ world_1, v @ world_2})
@@ -417,7 +427,7 @@ def stitch_counterfactual_and_doppleganger_neighbors(
 
 def stitch_counterfactual_and_neighbors(
     graph: NxMixedGraph, worlds: Worlds
-) -> Set[Tuple[CounterfactualVariable, CounterfactualVariable]]:
+) -> set[tuple[CounterfactualVariable, CounterfactualVariable]]:
     """Stitch together a counterfactual variable with its neighbors in each world."""
     rv = {
         (u @ world, v @ world)
@@ -433,7 +443,7 @@ def stitch_counterfactual_and_neighbors(
 
 def _get_directed_edges(
     graph: NxMixedGraph, worlds: Worlds
-) -> Set[Tuple[CounterfactualVariable, CounterfactualVariable]]:
+) -> set[tuple[CounterfactualVariable, CounterfactualVariable]]:
     """Get the directed edges in the parallel worlds graph.
 
     Except for those where the target node was intervened upon.
@@ -461,7 +471,7 @@ def make_parallel_worlds_graph(
     :returns: A combine parallel world graph
     """
     # Get the undirected edges
-    undirected: Set[Tuple[Variable, Variable]] = set()
+    undirected: set[tuple[Variable, Variable]] = set()
     # get all the undirected edges in all the parallel worlds
     undirected |= stitch_counterfactual_and_neighbors(graph, worlds)
     # Stitch together factual variables with their dopplegangers in other worlds

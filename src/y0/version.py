@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 """Version information for :mod:`y0`.
 
 Run with ``python -m y0.version``
 """
 
 import os
-from subprocess import CalledProcessError, check_output  # noqa: S404
+from subprocess import CalledProcessError, check_output
 
 __all__ = [
     "VERSION",
@@ -14,14 +12,14 @@ __all__ = [
     "get_git_hash",
 ]
 
-VERSION = "0.2.1-dev"
+VERSION = "0.2.12-dev"
 
 
 def get_git_hash() -> str:
     """Get the :mod:`y0` git hash."""
     with open(os.devnull, "w") as devnull:
         try:
-            ret = check_output(  # noqa: S603,S607
+            ret = check_output(
                 ["git", "rev-parse", "HEAD"],
                 cwd=os.path.dirname(__file__),
                 stderr=devnull,

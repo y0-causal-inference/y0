@@ -1,6 +1,6 @@
-"""Implementation of sigma-separation."""
+"""Implementation of sigma-separation from [forre2018]_."""
 
-from typing import Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
 
 import networkx as nx
 from more_itertools import triplewise
@@ -20,15 +20,15 @@ def are_sigma_separated(
     left: Variable,
     right: Variable,
     *,
-    conditions: Optional[Iterable[Variable]] = None,
-    cutoff: Optional[int] = None,
+    conditions: Iterable[Variable] | None = None,
+    cutoff: int | None = None,
 ) -> bool:
     """Test if two variables are sigma-separated.
 
     Sigma separation is a generalization of d-separation that
     works not only for directed acyclic graphs, but also for
     directed graphs containing cycles. It was originally introduced
-    in https://arxiv.org/abs/1807.03024.
+    in [forre2018]_.
 
     We say that X and Y are σ-connected by Z or not
     σ-separated by Z if there exists a path π (with some
@@ -64,14 +64,14 @@ def is_z_sigma_open(
     path: Sequence[Variable],
     *,
     sigma: dict[Variable, set[Variable]],
-    conditions: Optional[set[Variable]] = None,
+    conditions: set[Variable] | None = None,
 ) -> bool:
     r"""Check if a path is Z-sigma-open.
 
     :param graph: A mixed graph
     :param path: A path in the graph. Denoted as $\pi$ in the paper. The
         node in position $i$ in the path is denoted with $v_i$.
-    :param conditions : A set of nodes chosen as conditions, denoted by $Z$ in the paper
+    :param conditions: A set of nodes chosen as conditions, denoted by $Z$ in the paper
     :param sigma: The set of equivalence classes. Can be calculated with
         :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
     :returns: If the path is Z-sigma-open
@@ -79,7 +79,8 @@ def is_z_sigma_open(
     A path is $Z-\sigma-\text{open}$ if:
 
     1. The end nodes $v_1, v_n \notin Z$
-    2. Every triple of adjacent nodes in the path is of the form:
+    2. Every triple of adjacent nodes in the path is of the form
+
        1. Collider (:func:`is_collider`)
        2. (non-collider) left chain (:func:`is_non_collider_left_chain`)
        3. (non-collider) right chain (:func:`is_non_collider_left_chain`)

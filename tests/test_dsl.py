@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 """Test the probability DSL."""
 
 import unittest
-from typing import Optional
+from typing import ClassVar
 
 from y0.dsl import (
     A,
@@ -13,6 +11,7 @@ from y0.dsl import (
     D,
     Distribution,
     Element,
+    Expression,
     Intervention,
     One,
     P,
@@ -28,6 +27,7 @@ from y0.dsl import (
     Y,
     Z,
     Zero,
+    _variable_sort_key,
 )
 from y0.parser import parse_y0
 
@@ -37,7 +37,7 @@ V = Variable("V")
 class TestDSL(unittest.TestCase):
     """Tests for the stringifying instances of the probability DSL."""
 
-    def assert_exp(self, expression: Element, s: Optional[str] = None):
+    def assert_exp(self, expression: Element, s: str | None = None):
         """Test an element can be parsed, serialized, then again."""
         e = expression.to_y0()
         if s:
@@ -56,8 +56,8 @@ class TestDSL(unittest.TestCase):
         self.assertIsInstance(expression.to_text(), str)
         self.assertIsInstance(expression.to_latex(), str)
         self.assertIsInstance(expression._repr_latex_(), str)
-        self.assertEqual(s, expression.to_text(), msg=f"Expression: {repr(expression)}")
-        if not isinstance(expression, (Distribution, Intervention)):
+        self.assertEqual(s, expression.to_text(), msg=f"Expression: {expression!r}")
+        if not isinstance(expression, Distribution | Intervention):
             self.assert_exp(expression)
 
     def test_variable(self):
@@ -74,45 +74,56 @@ class TestDSL(unittest.TestCase):
 
     def test_intervention(self):
         """Test the invervention DSL object."""
-        self.assert_text("W*", Intervention("W", star=True))
-        self.assert_text("W", Intervention("W", star=False))
+        self.assert_text("+W", Intervention("W", star=True))
+        self.assert_text("-W", Intervention("W", star=False))
         self.assert_text("W", W)  # shorthand for testing purposes
-        self.assert_text("W", -W)  # An intervention from variable W
+        self.assert_text("-W", -W)  # An intervention from variable W
 
         # inversions using the unary ~ operator
-        self.assert_text("W", ~Intervention("W", star=True))
-        self.assert_text("W*", ~Intervention("W", star=False))
-        self.assert_text("W*", ~W)
+        self.assert_text("-W", ~Intervention("W", star=True))
+        self.assert_text("+W", ~Intervention("W", star=False))
+        self.assert_text("+W", ~W)
+
+        self.assertEqual(
+            2,
+            len({Intervention("W", star=True), Intervention("W", star=False)}),
+            msg="Interventions' stars aren't hashed correctly",
+        )
 
     def test_counterfactual_variable(self):
         """Test the Counterfactual Variable DSL object."""
         # Normal instantiation
-        self.assert_text("Y_{W}", CounterfactualVariable("Y", interventions=(-W,)))
-        self.assert_text("Y_{W*}", CounterfactualVariable("Y", interventions=(~W,)))
+        self.assert_text("Y_{-W}", CounterfactualVariable("Y", interventions=frozenset([-W])))
+        self.assert_text("Y_{+W}", CounterfactualVariable("Y", interventions=frozenset([~W])))
 
         # Instantiation with list-based operand to matmul @ operator
-        self.assert_text("Y_{W}", Variable("Y") @ [W])
-        self.assert_text("Y_{W}", Y @ [W])
-        self.assert_text("Y_{W*}", Variable("Y") @ [~W])
-        self.assert_text("Y_{W*}", Y @ [~W])
+        self.assert_text("Y_{-W}", Variable("Y") @ [W])
+        self.assert_text("Y_{-W}", Y @ [W])
+        self.assert_text("Y_{+W}", Variable("Y") @ [~W])
+        self.assert_text("Y_{+W}", Y @ [~W])
 
         # Instantiation with two variables
         self.assert_text(
-            "Y_{W*, X}",
+            "Y_{+W, -X}",
             CounterfactualVariable(
-                "Y", interventions=(~Intervention("W", star=False), Intervention("X", star=False))
+                "Y",
+                interventions=frozenset(
+                    (~Intervention("W", star=False), Intervention("X", star=False))
+                ),
             ),
         )
 
         # Instantiation with matmul @ operator and single operand
-        self.assert_text("Y_{W}", Y @ Intervention("W", star=False))
-        self.assert_text("Y_{W*}", Y @ ~Intervention("W", star=False))
+        self.assert_text("Y_{-W}", Y @ Intervention("W", star=False))
+        self.assert_text("Y_{+W}", Y @ ~Intervention("W", star=False))
 
         # Instantiation with matmul @ operator and list operand
-        self.assert_text("Y_{W*, X}", Y @ [X, ~W])
+        self.assert_text("Y_{+W, -X}", Y @ [X, ~W])
 
         # Instantiation with matmul @ operator (chained)
-        self.assert_text("Y_{W*, X}", Y @ X @ ~W)
+        self.assert_text("Y_{+W, -X}", Y @ X @ ~W)
+
+        self.assertEqual(2, len({Y @ -X, Y @ +X}))
 
     def test_star_counterfactual(self):
         """Tests for generalized counterfactual variables."""
@@ -184,11 +195,13 @@ class TestDSL(unittest.TestCase):
 
         # Counterfactual uses work basically the same.
         #  Note: @ binds more tightly than |, but it's probably better to use parentheses
-        self.assert_text("Y_{W} | B", (Y @ W) | B)
-        self.assert_text("Y_{W} | B", Y @ W | B)
-        self.assert_text("Y_{W} | B, C", Y @ W | B | C)
-        self.assert_text("Y_{W, X*} | B, C", Y @ W @ ~X | B | C)
-        self.assert_text("Y_{W, X*} | B_{N*}, C", Y @ W @ ~X | B @ Intervention("N", star=True) | C)
+        self.assert_text("Y_{-W} | B", (Y @ W) | B)
+        self.assert_text("Y_{-W} | B", Y @ W | B)
+        self.assert_text("Y_{-W} | B, C", Y @ W | B | C)
+        self.assert_text("Y_{-W, +X} | B, C", Y @ W @ ~X | B | C)
+        self.assert_text(
+            "Y_{-W, +X} | B_{+N}, C", Y @ W @ ~X | B @ Intervention("N", star=True) | C
+        )
 
     def test_joint_distribution(self):
         """Test the JointProbability DSL object."""
@@ -230,9 +243,9 @@ class TestDSL(unittest.TestCase):
         self.assert_text("P(A, B, C)", P(A & B & C))
         self.assert_text("P(A, B, C)", P("A", "B", "C"))
         self.assert_text("P(A, B, C)", P(["A", "B", "C"]))
-        self.assert_text("P(A, B, C)", P((name for name in "ABC")))
         self.assert_text("P(A, B, C)", P(name for name in "ABC"))
-        self.assert_text("P(A, B, C)", P((Variable(name) for name in "ABC")))
+        self.assert_text("P(A, B, C)", P(name for name in "ABC"))
+        self.assert_text("P(A, B, C)", P(Variable(name) for name in "ABC"))
         self.assert_text("P(A, B, C)", P(Variable(name) for name in "ABC"))
 
         # Test mixed with single conditional
@@ -312,17 +325,17 @@ class TestDSL(unittest.TestCase):
     def test_jeremy(self):
         """Test assorted complicated objects from Jeremy."""
         self.assert_text(
-            "[ sum_{W} P(D) P(W_{X*}) P(X, Y_{W, Z*}) P(Z_{D}) ]",
+            "[ sum_{W} P(D) P(W_{+X}) P(X, Y_{-W, +Z}) P(Z_{-D}) ]",
             Sum[W](P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X)),
         )
 
         self.assert_text(
-            "[ sum_{W} P(W_{X*}) P(X, Y_{W, Z*}) ]",
+            "[ sum_{W} P(W_{+X}) P(X, Y_{-W, +Z}) ]",
             Sum[W](P(X, Y @ ~Z @ W) * P(W @ ~X)),
         )
 
         self.assert_text(
-            "[ sum_{D} P(D) P(W_{X*}) P(X, Y_{W, Z*}) P(Z_{D}) ]",
+            "[ sum_{D} P(D) P(W_{+X}) P(X, Y_{-W, +Z}) P(Z_{-D}) ]",
             Sum[D](P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X)),
         )
 
@@ -360,7 +373,7 @@ class TestCounterfactual(unittest.TestCase):
                 self.assertIsInstance(expr, CounterfactualVariable)
                 self.assertEqual(counterfactual_star, expr.star)
                 self.assertEqual(1, len(expr.interventions))
-                self.assertEqual(intervention_star, list(expr.interventions)[0].star)
+                self.assertEqual(intervention_star, next(iter(expr.interventions)).star)
 
     def test_event_failures(self):
         """Check for failure to determine tautology/inconsistent."""
@@ -462,6 +475,15 @@ class TestCounterfactual(unittest.TestCase):
         self.assertEqual("P(Y @ -X, Z @ -A)", P(Y @ X, Z @ A).to_y0())
         self.assertEqual("P(Y @ -X, Z @ +Z)", P(Y @ -X, Z @ +Z).to_y0())
 
+    def test_counterfactual_sort(self):
+        """Test sorting counterfactual variables."""
+        left = W @ -D
+        right = W @ -X
+        self.assertEqual(
+            sorted([left, right], key=_variable_sort_key),
+            sorted([right, left], key=_variable_sort_key),
+        )
+
 
 class TestSafeConstructors(unittest.TestCase):
     """Test that the .safe() constructors work properly."""
@@ -526,7 +548,7 @@ zero = Zero()
 class TestZero(unittest.TestCase):
     """Tests for zero."""
 
-    exprs = [
+    exprs: ClassVar[list[Expression]] = [
         One(),
         Zero(),
         P(A),
