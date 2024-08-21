@@ -8,6 +8,7 @@ from y0.algorithm.estimation import ananke_average_causal_effect, df_covers_grap
 from y0.algorithm.estimation.estimators import get_primal_ipw_ace, get_state_space_map
 from y0.dsl import Variable
 from y0.examples import examples, frontdoor, napkin, napkin_example
+from y0.graph import is_p_fixable
 
 
 class TestEstimation(unittest.TestCase):
@@ -21,18 +22,32 @@ class TestEstimation(unittest.TestCase):
 
     def test_beta_primal(self):
         """Test beta primal on example graphs that have data generators."""
-        xx = [
-            example
-            for example in examples
-            if example.generate_data and example.simple_example_queries
-        ]
-        self.assertNotEqual([], xx, msg="No examples had a simple query and a generator")
-        for example in xx:
+        usable_examples = []
+        for example in examples:
+            if example.generate_data is None:
+                continue
+            queries = [
+                query
+                for query in example.example_queries or []
+                if 1 == len(query.treatments)
+                and 1 == len(query.outcomes)
+                and 0 == len(query.conditions)
+                and is_p_fixable(example.graph, next(iter(query.treatments)))
+            ]
+            if not queries:
+                continue
+            usable_examples.append(example)
+        self.assertNotEqual(
+            [], usable_examples, msg="No examples had a simple query and a generator"
+        )
+        for example in usable_examples:
             data = example.generate_data(1000)
-            for query in example.simple_example_queries:
-                with self.subTest(name=example.name, query=str(query)):
-                    treatment = query.treatments[0]
-                    outcome = query.outcomes[0]
+            for query in example.example_queries or []:
+                treatment = next(iter(query.treatments))
+                outcome = next(iter(query.outcomes))
+                with self.subTest(
+                    name=example.name, treatment=treatment.name, outcome=outcome.name
+                ):
                     ananke_results = ananke_average_causal_effect(
                         graph=example.graph,
                         treatment=treatment,

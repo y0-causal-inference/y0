@@ -9,7 +9,7 @@ from statsmodels.genmod.families import Binomial, Gaussian
 from statsmodels.genmod.generalized_linear_model import GLM
 
 from y0.dsl import Variable
-from y0.graph import NxMixedGraph, get_district_and_predecessors
+from y0.graph import NxMixedGraph, get_district_and_predecessors, is_p_fixable
 
 __all__ = [
     "get_primal_ipw_ace",
@@ -42,6 +42,8 @@ def get_primal_ipw_ace(
     report_log_odds: bool = False,
 ) -> float:
     """Get ACE using the primal IPW estimator."""
+    if not is_p_fixable(graph, treatment):
+        raise ValueError(f"graph must be p-fixable under treatment {treatment} to run Primal IPW")
     point_estimate_t1 = get_primal_ipw_point_estimate(
         graph=graph, data=data, treatment_value=1, treatment=treatment, outcome=outcome
     )

@@ -51,12 +51,3 @@ class Example:
         data_1 = self.generate_data(num_samples, {treatment: treatment_1}, **kwargs)
         data_0 = self.generate_data(num_samples, {treatment: treatment_0}, **kwargs)
         return data_1.mean()[outcome.name] - data_0.mean()[outcome.name]
-
-    @property
-    def simple_example_queries(self) -> list[Query]:
-        """Get all simple example queries, just having a single treatment and outcome."""
-        return [
-            query
-            for query in self.example_queries or []
-            if (len(query.treatments) != 1 or len(query.outcomes) != 1 or len(query.conditions) > 0)
-        ]

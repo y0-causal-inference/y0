@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from scipy.special import expit
 
 from .backdoor import generate_data_for_backdoor
 from .frontdoor import generate_data_for_frontdoor
@@ -1420,6 +1421,68 @@ cancer_example = Example(
     graph=NxMixedGraph.from_edges(directed=[(S, T), (T, C), (S, C)], undirected=[(S, T)]),
     generate_data=generate_data_for_smoke_cancer,
     example_queries=[Query.from_str(outcomes="C", treatments="S")],
+)
+
+
+p_ipw_graph = NxMixedGraph.from_str_edges(
+    directed=[
+        ("C1", "T"),
+        ("C1", "L"),
+        ("C2", "T"),
+        ("C2", "M"),
+        ("C2", "L"),
+        ("C2", "Y"),
+        ("T", "M"),
+        ("M", "L"),
+        ("L", "Y"),
+    ],
+    undirected=[("Z1", "C1"), ("Z2", "C2"), ("T", "L")],
+)
+
+
+def _generate_p_ipw(size: int, interventions=None) -> pd.DataFrame:
+    if interventions is not None:
+        raise NotImplementedError
+    u1 = np.random.binomial(1, 0.4, size)
+    u2 = np.random.uniform(0, 1.5, size)
+    u3 = np.random.binomial(1, 0.6, size)
+    u4 = np.random.uniform(-1, 0.2, size)
+    u5 = np.random.binomial(1, 0.3, size)
+    u6 = np.random.uniform(0.5, 1.5, size)
+
+    p_z1 = expit(0.4 - u1 + u2)
+    z1 = np.random.binomial(1, p_z1, size)
+
+    p_c1 = expit(-0.1 + u1 - u2)  # + 0.5*Z1)
+    c1 = np.random.binomial(1, p_c1, size)
+
+    c2 = 1 + u3 - u4 + np.random.normal(0, 1, size)
+
+    z2 = -0.5 + u3 - u4 + np.random.normal(0, 1, size)
+
+    p_t = expit(0.5 + 0.5 * c1 - 0.4 * c2 - 0.4 * u5 + 0.4 * u6)
+    t = np.random.binomial(1, p_t, size)
+
+    p_m = expit(-0.3 + 1.5 * t - 0.3 * c2)
+    m = np.random.binomial(1, p_m, size)
+
+    p_l = expit(0.75 - 0.8 * m - 0.4 * c1 - 0.3 * c2 - 0.4 * u5 + 0.5 * u6)
+    l_values = np.random.binomial(1, p_l, size)
+
+    y_values = 1 + 1 * l_values + c2 + np.random.normal(0, 1, size)
+
+    return pd.DataFrame(
+        {"C1": c1, "C2": c2, "Z1": z1, "Z2": z2, "T": t, "M": m, "L": l_values, "Y": y_values}
+    )
+
+
+p_ipw_example = Example(
+    name="Primal IPW Example",
+    description="This was borrowed from the Ananke unit tests",
+    reference="https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_counterfactual_mean.py#L215",
+    graph=p_ipw_graph,
+    example_queries=[Query.from_str(outcomes="Y", treatments="T")],
+    generate_data=_generate_p_ipw,
 )
 
 
