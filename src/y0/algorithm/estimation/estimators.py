@@ -17,6 +17,21 @@ __all__ = [
     "get_beta_primal",
 ]
 
+#: The list of Ananke estimators implemented in
+#: :class:`ananke.estimation.counterfactual_mean.CausalEffect`
+ANANKE_ESTIMATORS = Literal[
+    "ipw",
+    "gformula",
+    "aipw",
+    "eff-aipw",
+    "p-ipw",
+    "d-ipw",
+    "apipw",
+    "eff-apipw",
+    "n-ipw",
+    "anipw",
+]
+
 
 def get_primal_ipw_ace(
     graph: NxMixedGraph,
@@ -36,11 +51,8 @@ def get_primal_ipw_ace(
     state_space_map = get_state_space_map(data)
     if not report_log_odds:
         return point_estimate_t1 - point_estimate_t0
-
     if state_space_map[outcome] != "binary":
         raise ValueError(f"can not report log odds ratio on non-binary outcome {outcome}")
-
-    # if Y is binary report log of odds ration, if Y is continuous report ACE
     return _log_odd_ratio(point_estimate_t1, point_estimate_t0)
 
 
