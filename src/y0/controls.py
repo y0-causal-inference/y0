@@ -1,4 +1,7 @@
-"""Predicates for good, bad, and neutral controls."""
+"""Predicates for good, bad, and neutral controls from [cinelli2022]_.
+
+.. [cinelli2022]: `A Crash Course in Good and Bad Controls <https://ftp.cs.ucla.edu/pub/stat_ser/r493.pdf>`_
+"""
 
 from .algorithm.conditional_independencies import are_d_separated
 from .algorithm.identify import identify_outcomes
