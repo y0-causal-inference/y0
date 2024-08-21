@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-
 """Predicates for good, bad, and neutral controls."""
 
 from .algorithm.conditional_independencies import are_d_separated
-from .dsl import Expression, Variable
+from .algorithm.identify import identify_outcomes
+from .dsl import Expression, Fraction, One, Probability, Product, Sum, Variable, Zero
 from .graph import NxMixedGraph
 
 __all__ = [
@@ -14,7 +13,9 @@ __all__ = [
 ]
 
 
-def _control_precondition(graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable):
+def _control_precondition(
+    graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable
+):
     if cause not in graph.nodes():
         raise ValueError(f"Cause variable missing: {variable}")
     if effect not in graph.nodes():
@@ -25,19 +26,14 @@ def _control_precondition(graph: NxMixedGraph, cause: Variable, effect: Variable
     #  query and variable aren't counterfactual?
 
 
-def is_bad_control(graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable) -> bool:
+def is_bad_control(
+    graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable
+) -> bool:
     """Return if the variable is a bad control.
 
     A bad control is a variable that does not appear in the estimand produced
     by :func:`y0.algorithm.identify.identify` when applied to a given graph
     and query.
-
-    Strategy for implementation:
-
-    1. Get estimand using :func:`y0.algorithm.identify.identify`
-    2. Check if ``variable`` appears in estimand, a recursive function might be appropriate!
-       Implement this below in :func:`_is_variable_in_expression`.
-    3. Return if ``variable`` appears in estimand
 
     :param graph: An ADMG
     :param cause: The intervention in the causal query
@@ -46,14 +42,29 @@ def is_bad_control(graph: NxMixedGraph, cause: Variable, effect: Variable, varia
     :return: If the variable is a bad control
     """
     _control_precondition(graph, cause, effect, variable)
+    estimand = identify_outcomes(graph, cause, effect)
+    return estimand is None or not _in_expression(variable, estimand)
+
+
+def _in_expression(var: Variable, expr: Expression) -> bool:
+    if isinstance(expr, Variable):
+        return expr == var
+    elif isinstance(expr, Probability):
+        return var in expr.children or var in expr.parents
+    elif isinstance(expr, Fraction):
+        return _in_expression(var, expr.numerator) or _in_expression(var, expr.denominator)
+    elif isinstance(expr, Zero | One):
+        return False
+    elif isinstance(expr, Sum):
+        return _in_expression(var, expr.expression)
+    elif isinstance(expr, Product):
+        return any(_in_expression(var, subexpr) for subexpr in expr.expressions)
     raise NotImplementedError
 
 
-def _is_variable_in_expression(variable: Variable, expr: Expression) -> bool
-    raise NotImplementedError
-
-
-def is_good_control(graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable) -> bool:
+def is_good_control(
+    graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable
+) -> bool:
     """Return if the variable is a good control.
 
     :param graph: An ADMG
@@ -90,10 +101,8 @@ def is_outcome_ancestor(
     return judgement.separated and variable in graph.ancestors_inclusive(effect)
 
 
-def is_middle_mediator(
-    graph: NxMixedGraph, cause: Variable, effect: Variable, variable: Variable
-) -> bool:
-    """
+def is_middle_mediator(graph: NxMixedGraph, x: Variable, y: Variable, z: Variable) -> bool:
+    """Check if the variable Z is a middle mediator.
 
     > At first look, Model 13 might seem similar to Model 12, and one may think that
     adjusting for Z would bias the effect estimate, by restricting variations of th
@@ -118,10 +127,29 @@ def is_middle_mediator(
     2. Check if the helper returns true for any possible mediator M (loop over all variables, naive implementation ftw)
     3. Big Profit
     """
-    raise NotImplementedError
+    _control_precondition(graph, x, y, z)
+    return any(_middle_mediator_helper(graph, x, y, z, mediator) for mediator in graph)
 
 
 def _middle_mediator_helper(
-    graph: NxMixedGraph, cause: Variable, effect: Variable, mediator: Variable, variable: Variable
+    graph: NxMixedGraph, x: Variable, y: Variable, z: Variable, m: Variable
 ) -> bool:
-    raise NotImplementedError
+    """Help check for mediator M.
+
+    :param x: The cause/intervention
+    :param y: The effect/outcome
+    :param z: The variable we're checking if it's a good control
+    :param m: The mediator
+    """
+    x_ancestor_m = graph.is_ancestor_of(x, m)
+    m_ancestor_y = graph.is_ancestor_of(m, y)
+    z_ancestor_m = graph.is_ancestor_of(z, m)
+    yz_are_d_separated_given_m = are_d_separated(graph, y, z, conditions=[m])
+    xz_are_d_separated = are_d_separated(graph, x, z)
+    return (
+        x_ancestor_m
+        and m_ancestor_y
+        and z_ancestor_m
+        and yz_are_d_separated_given_m
+        and xz_are_d_separated
+    )

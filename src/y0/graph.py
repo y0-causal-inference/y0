@@ -560,6 +560,10 @@ class NxMixedGraph:
         sources = _ensure_set(sources)
         return _ancestors_inclusive(self.directed, sources)
 
+    def is_ancestor_of(self, ancestor: Variable, descendant: Variable) -> bool:
+        """Check if one variable is an ancestor of another."""
+        return ancestor in self.ancestors_inclusive(descendant)
+
     def descendants_inclusive(self, sources: Variable | Iterable[Variable]) -> set[Variable]:
         """Descendants of a set include the set itself."""
         sources = _ensure_set(sources)
