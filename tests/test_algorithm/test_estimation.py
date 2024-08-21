@@ -21,25 +21,18 @@ class TestEstimation(unittest.TestCase):
 
     def test_beta_primal(self):
         """Test beta primal on example graphs that have data generators."""
-        for example in examples:
-            if not example.generate_data:
-                continue
-            queries = [
-                query
-                for query in example.example_queries or []
-                if (
-                    len(query.treatments) != 1
-                    or len(query.outcomes) != 1
-                    or len(query.conditions) > 0
-                )
-            ]
-            if not queries:
-                continue
+        xx = [
+            example
+            for example in examples
+            if example.generate_data and example.simple_example_queries
+        ]
+        self.assertNotEqual([], xx, msg="No examples had a simple query and a generator")
+        for example in xx:
             data = example.generate_data(1000)
-            for example_query in queries:
-                with self.subTest(name=example.name, query=str(example_query)):
-                    treatment = example_query.treatments[0]
-                    outcome = example_query.outcomes[0]
+            for query in example.simple_example_queries:
+                with self.subTest(name=example.name, query=str(query)):
+                    treatment = query.treatments[0]
+                    outcome = query.outcomes[0]
                     ananke_results = ananke_average_causal_effect(
                         graph=example.graph,
                         treatment=treatment,
