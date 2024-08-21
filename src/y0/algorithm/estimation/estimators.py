@@ -1,6 +1,6 @@
 """Implementation of ACE estimators."""
 
-from typing import Dict, Literal
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -203,7 +203,7 @@ def get_conditional_probability_formula_for_node(graph: NxMixedGraph, node: Vari
     return formula
 
 
-def get_state_space_map(data: pd.DataFrame) -> Dict[Variable, Literal["binary", "continuous"]]:
+def get_state_space_map(data: pd.DataFrame) -> dict[Variable, Literal["binary", "continuous"]]:
     """Get a dictionary from each variable to its type."""
     binary_set = {0, 1}
     return {

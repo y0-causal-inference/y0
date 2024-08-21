@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import redirect_stdout
-from typing import List, Literal, Optional
+from typing import Literal
 
 import pandas as pd
 
@@ -30,7 +30,7 @@ def estimate_causal_effect(
     data: pd.DataFrame,
     *,
     query_type: Literal["ate", "expectation", "probability"],
-    conditions: Optional[List[Variable]] = None,
+    conditions: list[Variable] | None = None,
 ) -> float:
     """Estimate the causal effect of a treatment on an outcome."""
     if query_type == "ate":
