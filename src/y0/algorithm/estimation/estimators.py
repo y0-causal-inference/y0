@@ -23,7 +23,8 @@ def get_primal_ipw_ace(
     data: pd.DataFrame,
     treatment: Variable,
     outcome: Variable,
-    report_log_odds: bool = True,
+    *,
+    report_log_odds: bool = False,
 ) -> float:
     """Get ACE using the primal IPW estimator."""
     point_estimate_t1 = get_primal_ipw_point_estimate(
@@ -33,11 +34,14 @@ def get_primal_ipw_ace(
         graph=graph, data=data, treatment_value=0, treatment=treatment, outcome=outcome
     )
     state_space_map = get_state_space_map(data)
-    # if Y is binary report log of odds ration, if Y is continuous report ACE
-    if report_log_odds and state_space_map[outcome] == "binary":
-        return _log_odds(point_estimate_t1, point_estimate_t0)
-    else:
+    if not report_log_odds:
         return point_estimate_t1 - point_estimate_t0
+
+    if state_space_map[outcome] != "binary":
+        raise ValueError(f"can not report log odds ratio on non-binary outcome {outcome}")
+
+    # if Y is binary report log of odds ration, if Y is continuous report ACE
+    return _log_odd_ratio(point_estimate_t1, point_estimate_t0)
 
 
 def get_primal_ipw_point_estimate(
@@ -45,7 +49,7 @@ def get_primal_ipw_point_estimate(
     data: pd.DataFrame,
     graph: NxMixedGraph,
     treatment: Variable,
-    treatment_value,
+    treatment_value: int | float,
     outcome: Variable,
 ) -> float:
     """Estimate the counterfactual mean E[Y(t)] with the Primal IPW estimator on p-fixable graphs."""
@@ -65,7 +69,7 @@ def get_beta_primal(
     graph: NxMixedGraph,
     treatment: Variable,
     outcome: Variable,
-    treatment_value,
+    treatment_value: int | float,
 ) -> np.array:
     """Return the beta primal value for each row in the data.
 
@@ -212,7 +216,7 @@ def get_state_space_map(data: pd.DataFrame) -> dict[Variable, Literal["binary", 
     }
 
 
-def _log_odds(point_estimate_t1, point_estimate_t0) -> float:
+def _log_odd_ratio(point_estimate_t1: float, point_estimate_t0: float) -> float:
     return np.log(
         (point_estimate_t1 / (1 - point_estimate_t1))
         / (point_estimate_t0 / (1 - point_estimate_t0))
