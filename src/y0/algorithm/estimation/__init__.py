@@ -35,7 +35,7 @@ def estimate_causal_effect(
     """Estimate the causal effect of a treatment on an outcome."""
     if query_type == "ate":
         return estimate_ace(
-            graph=graph, treatment=treatment, outcome=outcome, data=data, conditions=conditions
+            graph=graph, treatments=treatment, outcomes=outcome, data=data, conditions=conditions
         )
     elif query_type == "expectation":
         raise NotImplementedError
