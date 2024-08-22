@@ -5,7 +5,11 @@ tags:
   - causal inference
   - network science
   - causal artificial intelligence
+  - causal machine learning
   - mathematics
+  - experimental design
+  - interventional trials
+  - observational trials
 
 has-equal-contributors: true
 authors:
