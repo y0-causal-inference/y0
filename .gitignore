@@ -318,3 +318,10 @@ $RECYCLE.BIN/
 
 scratch/
 paper/paper.pdf
+/paper/jats
+paper/paper.crossref
+paper/paper.preprint.aux
+paper/paper.preprint.fls
+paper/paper.preprint.pdf
+paper/paper.preprint.tex
+paper/paper.preprint.fdb_latexmk

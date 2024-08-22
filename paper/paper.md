@@ -7,17 +7,21 @@ tags:
   - causal artificial intelligence
   - mathematics
 
+has-equal-contributors: true
 authors:
   - name: Charles Tapley Hoyt
     orcid: 0000-0003-4423-4370
-    affiliation: "1,*"
+    affiliation: [ 1 ]
     equal-contrib: true
+    corresponding: true
+    email: cthoyt@gmail.com
   - name: Jeremy Zucker
     orcid: 0000-0002-7276-9009
-    affiliation: "2,*"
+    affiliation: [ 2 ]
     equal-contrib: true
   - name: Olga Vitek
     affiliation: 3
+    orcid: 0000-0003-1728-1104
 
 # TODO contact remaining contributors to ask if they want to be
 # co-authors when paper is almost done
@@ -124,10 +128,10 @@ First, we construct a graphical model (\autoref{cancer}A) representing the follo
 
 The ID algorithm [@shpitser2006id] estimates the effect of smoking on the risk of cancer in \autoref{cancer}A as
 $\sum_{Tar} P(Cancer | Smoking, Tar) P(Tar | Smoking)$.
-The model in \autoref{cancer}A is inaccurate because it does not represent confounders between smoking and tar
+However, the model in \autoref{cancer}A is inaccurate because it does not represent confounders between smoking and tar
 accumulation, such as the choice to smoke tar-free cigarettes.
 Therefore, we add a _bidirected_ edge in \autoref{cancer}B.
-Unfortunately, the ID algorithm can not make an estimant for \autoref{cancer}B, which motivates the usage of an
+Unfortunately, the ID algorithm can not produce an estimand for \autoref{cancer}B, which motivates the usage of an
 alternative algorithm that incorporates observational and/or interventional data.
 For example, if data from an observational trial ($\pi^{\ast}$) and data from an interventional trial on smoking (
 $\pi_1$) are available, the TRSO algorithm [@tikka2019trso] estimates the effect of smoking on the risk of cancer in
