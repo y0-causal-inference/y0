@@ -68,7 +68,7 @@ This is useful when acquiring interventional data might be unethical or otherwis
 
 The $Y_0$ Python package implements a domain-specific language for representing probabilistic
 expressions, a generic data structure for representing graphical models, several _identification_
-algorithms that return an estimand for different kinds of causal queries (i.e., what is the effect of treatment $X$ on
+algorithms that return an estimand for different kinds of causal queries (e.g., what is the effect of treatment $X$ on
 outcome $Y$?) that serve as the core of causal inference workflows, and an assortment of related algorithms and
 workflows useful for doing causal inference.
 
