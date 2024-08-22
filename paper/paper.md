@@ -32,6 +32,7 @@ authors:
   - name: Pruthvi Navada
     affiliation: 3
   - name: Marc-Antoine Parent
+    affiliation: 4
   - name: Olga Vitek
     affiliation: 3
     orcid: 0000-0003-1728-1104
@@ -46,6 +47,8 @@ affiliations:
     index: 2
   - name: Northeastern University
     index: 3
+  - name: Conversence
+    index: 4
 
 date: 19 August 2024
 bibliography: paper.bib
