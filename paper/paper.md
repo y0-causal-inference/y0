@@ -189,7 +189,7 @@ contain cycles, such as how biomolecular signaling pathways often contain feedba
 Similarly, it remains an open research question on how to estimate the causal effect for an arbitrary
 estimand produced by an algorithm more sophistocated than `ID`.
 Two potential avenues for overcoming this might be a combination of the Pyro probabilistic programming langauge
-[@bingham2018pyro] and its causal inference extension ChiRho [https://github.com/BasisResearch/chirho].
+[@bingham2018pyro] and its causal inference extension [ChiRho](https://github.com/BasisResearch/chirho).
 Tractable circuits [@darwiche2022causalinferenceusingtractable] also present a new paradigm for generic estimation.
 Such a generalization would be a lofty achievement and enable the automation of downstream applications in
 experimental design.
