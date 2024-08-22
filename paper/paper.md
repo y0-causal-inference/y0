@@ -22,16 +22,20 @@ authors:
   - name: Richard J. Callahan
     affiliation: [ 2 ]
   - name: Joseph Cottam
+    orcid: 0000-0002-3097-5998
     affiliation: [ 2 ]
   - name: Benjamin M. Gyori
+    orcid: 0000-0001-9439-5346
     affiliation: 3
   - name: Nathaniel Merrill
     affiliation: [ 2 ]
   - name: Sara Mohammad Taheri
+    orcid: 0000-0002-6554-9083
     affiliation: 3
-  - name: Pruthvi Navada
+  - name: Pruthvi Prakash Navada
     affiliation: 3
   - name: Marc-Antoine Parent
+    orcid: 0000-0003-4159-7678
     affiliation: 4
   - name: Olga Vitek
     affiliation: 3
