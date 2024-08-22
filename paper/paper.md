@@ -192,8 +192,8 @@ experimental design.
 # Availability and usage
 
 `y0` is available as a package on [PyPI](https://pypi.org/project/y0) with the source code available
-at [https://github.com/y0-causal-inference/y0](https://github.com/y0-causal-inference/y0) archived to Zenodo
-at [doi:10.5281/zenodo.4432901](https://zenodo.org/doi/10.5281/zenodo.4432901) and documentation available
+at [https://github.com/y0-causal-inference/y0](https://github.com/y0-causal-inference/y0), archived to Zenodo
+at [doi:10.5281/zenodo.4432901](https://zenodo.org/doi/10.5281/zenodo.4432901), and documentation available
 at [https://y0.readthedocs.io](https://y0.readthedocs.io).
 The repository also contains an interactive Jupyter notebook tutorial and notebooks for the case studies described
 above.
