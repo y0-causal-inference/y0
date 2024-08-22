@@ -28,6 +28,7 @@ authors:
     orcid: 0000-0001-9439-5346
     affiliation: 3
   - name: Nathaniel Merrill
+    orcid: 0000-0002-1998-0980
     affiliation: [ 2 ]
   - name: Sara Mohammad Taheri
     orcid: 0000-0002-6554-9083
