@@ -54,7 +54,7 @@ affiliations:
   - name: Conversence
     index: 4
 
-date: 19 August 2024
+date: 22 August 2024
 bibliography: paper.bib
 repository: y0-causal-inference/y0
 ---
