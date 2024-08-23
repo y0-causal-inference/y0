@@ -42,9 +42,10 @@ authors:
   - name: Marc-Antoine Parent
     orcid: 0000-0003-4159-7678
     affiliation: 4
-  - name: Olga Vitek
-    affiliation: 3
-    orcid: 0000-0003-1728-1104
+# Olga doesn't _really_ fall into the JOSS definition of an author
+#  - name: Olga Vitek
+#    affiliation: 3
+#    orcid: 0000-0003-1728-1104
 
 # TODO contact remaining contributors to ask if they want to be
 # co-authors when paper is almost done
