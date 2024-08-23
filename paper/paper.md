@@ -55,8 +55,10 @@ affiliations:
     index: 1
   - name: Pacific Northwest National Laboratory
     index: 2
+    ror: 05h992307
   - name: Northeastern University
     index: 3
+    ror: 04t5xt781
   - name: Conversence
     index: 4
 
