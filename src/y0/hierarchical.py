@@ -4,6 +4,18 @@ from IPython.display import SVG
 from y0.graph import NxMixedGraph
 from y0.dsl import Variable
 
+__all__ = [
+    "get_observed",
+    "HCM_from_lists",
+    "get_unobserved", 
+    "get_subunits",
+    "get_units",
+    "parents",
+    "node_string",
+    "create_Qvar",
+    "direct_unit_descendents",
+    "collapse_HCM"]
+
 def HCM_from_lists(*, obs_subunits=[], unobs_subunits=[], obs_units=[], unobs_units=[], edges=[]):
     HCM = pgv.AGraph(directed=True)
     for obs in (obs_subunits+obs_units):
