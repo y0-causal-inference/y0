@@ -20,7 +20,12 @@ __all__ = [
     "direct_unit_descendents",
     "collapse_HCM"]
 
-def HCM_from_lists(*, obs_subunits=[], unobs_subunits=[], obs_units=[], unobs_units=[], edges=[]):
+def HCM_from_lists(*, 
+                   obs_subunits: list[str] | None = None, 
+                   unobs_subunits: list[str] | None = None, 
+                   obs_units: list[str] | None = None, 
+                   unobs_units: list[str] | None = None, 
+                   edges: list[str] | None = None):
     """Create a hierarchical causal model from the given node and edge lists.
 
     :param obs_subunits: a list of names for the observed subunit variables
@@ -30,12 +35,20 @@ def HCM_from_lists(*, obs_subunits=[], unobs_subunits=[], obs_units=[], unobs_un
     :param edges: a list of edges
     :returns: a pygraphviz AGraph with subunit variables in the 'cluster_subunits' subgraph
     """
+    if obs_subunits is None:
+        obs_subunits = []
+    if unobs_subunits is None:
+        unobs_subunits = []
+    if obs_units is None:
+        obs_units = []
+    if unobs_units is None:
+        unobs_units = []
     HCM = pgv.AGraph(directed=True)
     for obs in (obs_subunits+obs_units):
         HCM.add_node(obs, style="filled", color="lightgrey")
     for unobs in (unobs_subunits+unobs_units):
         HCM.add_node(unobs)
-    for edge in edges:
+    for edge in edges or []:
         HCM.add_edge(edge)
     HCM.add_subgraph(obs_subunits+unobs_subunits, name="cluster_subunits", style="dashed", label="m")
     return HCM
