@@ -107,6 +107,7 @@ def test_get_subunits_instrument(instrument_HCM_pygraphviz: pgv.AGraph):
 
 class TestFromListsConfounder:
     """Test HCM construction from lists for Confounder fixture."""
+
     @pytest.fixture(autouse=True)
     def HCM_fixt(self):
         """Pytest fixture from lists, to compare against 'by-hand' fixture."""
@@ -137,6 +138,7 @@ class TestFromListsConfounder:
 
 class TestFromListsConfounderInterference:
     """Test HCM construction from lists for Confounder Interference fixture."""
+
     @pytest.fixture(autouse=True)
     def HCM_fixt(self):
         """Pytest fixture from lists, to compre against 'by-hand' fixture."""
@@ -169,6 +171,7 @@ class TestFromListsConfounderInterference:
 
 class TestFromListsInstrument:
     """Test HCM construction from lists for Instrument fixture."""
+
     @pytest.fixture(autouse=True)
     def HCM_fixt(self):
         """Pytest fixture from lists, to compare against 'by-hand' fixture."""
