@@ -1,7 +1,4 @@
-"""
-Implementation of algorithms from 
-Hierarchical Causal Models by E.N. Weinstein and D.M. Blei
-"""
+"""Implementation of algorithms from Hierarchical Causal Models by E.N. Weinstein and D.M. Blei."""
 
 import pygraphviz as pgv
 
@@ -15,16 +12,15 @@ __all__ = [
     "get_subunits",
     "get_units",
     "parents",
-    "node_string",
     "create_Qvar",
     "direct_unit_descendents",
     "collapse_HCM"]
 
-def HCM_from_lists(*, 
-                   obs_subunits: list[str] | None = None, 
-                   unobs_subunits: list[str] | None = None, 
-                   obs_units: list[str] | None = None, 
-                   unobs_units: list[str] | None = None, 
+def HCM_from_lists(*,
+                   obs_subunits: list[str] | None = None,
+                   unobs_subunits: list[str] | None = None,
+                   obs_units: list[str] | None = None,
+                   unobs_units: list[str] | None = None,
                    edges: list[str] | None = None):
     """Create a hierarchical causal model from the given node and edge lists.
 

@@ -1,3 +1,5 @@
+"""Test hierarchical graphical model creation and manipulation."""
+
 import pygraphviz as pgv
 import pytest
 
