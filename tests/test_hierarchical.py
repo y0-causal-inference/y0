@@ -1,17 +1,20 @@
-import pytest
 import pygraphviz as pgv
-from y0.graph import NxMixedGraph
+import pytest
+
 from y0.dsl import Variable
-from y0.hierarchical import (get_observed,
+from y0.graph import NxMixedGraph
+from y0.hierarchical import (
     HCM_from_lists,
-    get_unobserved, 
-    get_subunits,
-    get_units,
-    parents,
-    node_string,
+    collapse_HCM,
     create_Qvar,
     direct_unit_descendents,
-    collapse_HCM)
+    get_observed,
+    get_subunits,
+    get_units,
+    get_unobserved,
+    parents,
+)
+
 
 @pytest.fixture
 def confounder_HCM_pygraphviz():
@@ -94,7 +97,7 @@ class TestFromListsConfounder:
         unobs_unit = ['U']
         edges = [('U','A'), ('A','Y'), ('U','Y')]
         self.HCM = HCM_from_lists(obs_subunits=obs_sub, unobs_units=unobs_unit, edges=edges)
-    
+
     def test_observed_nodes(self, confounder_HCM_pygraphviz):
         assert get_observed(self.HCM) == get_observed(confounder_HCM_pygraphviz)
 
@@ -106,7 +109,7 @@ class TestFromListsConfounder:
 
     def test_subunits(self, confounder_HCM_pygraphviz):
         assert get_subunits(self.HCM) == get_subunits(confounder_HCM_pygraphviz)
-         
+
     def test_edges(self, confounder_HCM_pygraphviz):
         assert set(self.HCM.edges()) == set(confounder_HCM_pygraphviz.edges())
 
@@ -117,9 +120,9 @@ class TestFromListsConfounderInterference:
         obs_units = ['Z']
         unobs_units = ['U']
         edges = [('U','A'), ('A','Y'), ('U','Y'), ('A','Z'), ('Z', 'Y')]
-        self.HCM = HCM_from_lists(obs_subunits=obs_sub, obs_units=obs_units, 
+        self.HCM = HCM_from_lists(obs_subunits=obs_sub, obs_units=obs_units,
                                   unobs_units=unobs_units, edges=edges)
-        
+
     def test_observed_nodes(self, confounder_interference_HCM_pygraphviz):
         assert get_observed(self.HCM) == get_observed(confounder_interference_HCM_pygraphviz)
 
@@ -134,7 +137,7 @@ class TestFromListsConfounderInterference:
 
     def test_edges(self, confounder_interference_HCM_pygraphviz):
         assert set(self.HCM.edges()) == set(confounder_interference_HCM_pygraphviz.edges())
-        
+
 class TestFromListsInstrument:
     @pytest.fixture(autouse=True)
     def HCM_fixt(self):
@@ -142,9 +145,9 @@ class TestFromListsInstrument:
         obs_units = ['Y']
         unobs_units = ['U']
         edges = [('Z','A'), ('A','Y'), ('U','Y'), ('U','A')]
-        self.HCM = HCM_from_lists(obs_subunits=obs_sub, obs_units=obs_units, 
+        self.HCM = HCM_from_lists(obs_subunits=obs_sub, obs_units=obs_units,
                                   unobs_units=unobs_units, edges=edges)
-        
+
     def test_observed_nodes(self, instrument_HCM_pygraphviz):
         assert get_observed(self.HCM) == get_observed(instrument_HCM_pygraphviz)
 
@@ -202,7 +205,7 @@ def test_parents_empty(confounder_interference_HCM_pygraphviz: pgv.AGraph):
 #     HCM = confounder_interference_HCM_pygraphviz
 #     assert create_Qvar(HCM, 'Y') == Variable('Q_{y|a}')
 def test_Qvar_with_parents():
-    HCM = HCM_from_lists(obs_subunits=['A','Y', 'Z'], 
+    HCM = HCM_from_lists(obs_subunits=['A','Y', 'Z'],
                      edges=[('A','Y'), ('Z','Y')])
     assert create_Qvar(HCM, 'Y') in (Variable('Q_{y|a,z}'), Variable('Q_{y|z,a}'))
 
@@ -225,7 +228,7 @@ def test_direct_unit_descends_empty(direct_unit_descendents_fixt):
 def test_collapse_confounder(confounder_HCM_pygraphviz, confounder_collapsed_nxmixedgraph):
     assert collapse_HCM(confounder_HCM_pygraphviz) == confounder_collapsed_nxmixedgraph
 
-def test_collapse_confounder_interference(confounder_interference_HCM_pygraphviz, 
+def test_collapse_confounder_interference(confounder_interference_HCM_pygraphviz,
                                           confounder_interference_collapsed_nxmixedgraph):
     assert collapse_HCM(confounder_interference_HCM_pygraphviz) == confounder_interference_collapsed_nxmixedgraph
 
