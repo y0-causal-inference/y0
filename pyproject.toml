@@ -65,6 +65,7 @@ dependencies = [
     "scikit-learn",
     "statsmodels",
     "scipy",
+    "pygraphviz",
 ]
 
 [project.optional-dependencies]
@@ -214,6 +215,8 @@ ignore = [
 "notebooks/**/*.ipynb" = ["T201", "S101", "N811", "N802", "N803"]
 "src/y0/algorithm/separation/sigma_separation.py" = ["RUF002", "RUF003"]
 "src/y0/algorithm/separation/__init__.py" = ["RUF002", "RUF003"]
+"tests/**/*.py" = ["S101"]
+"tests/test_hierarchical.py" = ["N803"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
