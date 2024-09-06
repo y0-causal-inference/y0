@@ -2,6 +2,7 @@
 
 import pygraphviz as pgv
 
+from typing import Iterable
 from y0.dsl import Variable
 from y0.graph import NxMixedGraph
 
@@ -21,7 +22,7 @@ def HCM_from_lists(*,
                    unobs_subunits: list[str] | None = None,
                    obs_units: list[str] | None = None,
                    unobs_units: list[str] | None = None,
-                   edges: list[str] | None = None):
+                   edges: list[str] | None = None) -> pgv.AGraph:
     """Create a hierarchical causal model from the given node and edge lists.
 
     :param obs_subunits: a list of names for the observed subunit variables
@@ -49,7 +50,7 @@ def HCM_from_lists(*,
     HCM.add_subgraph(obs_subunits+unobs_subunits, name="cluster_subunits", style="dashed", label="m")
     return HCM
 
-def get_observed(HCM):
+def get_observed(HCM: pgv.AGraph) -> set[pgv.Node]:
     """Return the set of observed variables (both unit and subunit) in the HCM."""
     observed_nodes = set()
     for node_name in HCM.nodes():
@@ -58,33 +59,33 @@ def get_observed(HCM):
             observed_nodes.add(node_name)
     return observed_nodes
 
-def get_unobserved(HCM):
+def get_unobserved(HCM: pgv.AGraph) -> set[pgv.Node]:
     """Return the set of unobserved variables (both unit and subunit) in the HCM."""
     all_nodes = set(HCM.nodes())
     return all_nodes - get_observed(HCM)
 
-def get_subunits(HCM):
+def get_subunits(HCM: pgv.AGraph) -> set[pgv.Node]:
     """Return the set of subunit variables in the HCM."""
     return set(HCM.get_subgraph('cluster_subunits').nodes())
 
-def get_units(HCM):
+def get_units(HCM: pgv.AGraph) -> set[pgv.Node]:
     """Return the set of unit variables in the HCM."""
     subunits = get_subunits(HCM)
     return set(HCM.nodes()) - subunits
 
-def parents(HCM, node):
+def parents(HCM: pgv.AGraph, node: pgv.Node) -> set[pgv.Node]:
     """Return the set of parent/predecessor variables of the given variable in the HCM."""
     parents = set(HCM.predecessors(node))
     return parents
 
-def _node_string(nodes):
+def _node_string(nodes: Iterable[pgv.Node]) -> str:
     """Return a formated string for use in creating Q variables for collapsed HCMs."""
     s = ""
     for node in nodes:
         s += node.get_name().lower() + ","
     return s[: -1]
 
-def create_Qvar(HCM, subunit_node):
+def create_Qvar(HCM: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
     """Return a y0 Variable for the unit-level Q variable of the given subunit variable in the HCM."""
     subunit_parents = parents(HCM, subunit_node) & get_subunits(HCM)
     parent_str = _node_string(subunit_parents)
@@ -94,7 +95,7 @@ def create_Qvar(HCM, subunit_node):
         Q_str = 'Q_{'+subunit_node.lower()+'|'+parent_str+'}'
     return Variable(Q_str)
 
-def direct_unit_descendents(HCM, subunit_node):
+def direct_unit_descendents(HCM: pgv.AGraph, subunit_node: pgv.Node) -> set[pgv.Node]:
     """Return the set of direct unit descendents of the given subunit variable in the HCM."""
     units = get_units(HCM)
     subunits = get_subunits(HCM)
@@ -120,7 +121,7 @@ def direct_unit_descendents(HCM, subunit_node):
             descendents = list(descendents)
     return duds
 
-def collapse_HCM(HCM):
+def collapse_HCM(HCM: pgv.AGraph) -> NxMixedGraph:
     """Return a collapsed hierarchical causal model.
 
     :param HCM: pygraphviz AGraph of the hierarchical causal model to be collapsed
