@@ -1,13 +1,12 @@
 import pygraphviz as pgv
-import networkx as nx
-from IPython.display import SVG
-from y0.graph import NxMixedGraph
+
 from y0.dsl import Variable
+from y0.graph import NxMixedGraph
 
 __all__ = [
     "get_observed",
     "HCM_from_lists",
-    "get_unobserved", 
+    "get_unobserved",
     "get_subunits",
     "get_units",
     "parents",
@@ -100,7 +99,7 @@ def collapse_HCM(HCM):
     observed = get_observed(HCM)
     for s in subunits:
         Q = create_Qvar(HCM, s)
-        parents_set = set(parents(HCM, s)) 
+        parents_set = set(parents(HCM, s))
         if (s in observed) & ((parents_set & subunits) <= observed):
             for unit_parent in (parents_set & units):
                 if unit_parent in observed:
@@ -120,7 +119,7 @@ def collapse_HCM(HCM):
                     else:
                         edge = (Q, Variable(other_descend))
                     undirected_edges.append(edge)
-                        
+
             for dud in direct_unit_descendents(HCM, s):
                 edge = (Q, Variable(dud))
                 directed_edges.append(edge)
