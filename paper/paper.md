@@ -80,6 +80,7 @@ authors:
       - type: software
         degree: supporting
 # Olga doesn't _really_ fall into the JOSS definition of an author
+# See pre-submission inquiry https://github.com/openjournals/joss/issues/1363
 #  - name: Olga Vitek
 #    affiliation: 3
 #    orcid: 0000-0003-1728-1104
