@@ -12,6 +12,7 @@ tags:
   - observational trials
 
 has-equal-contributors: true
+# see credit taxonomy at https://credit.niso.org/
 authors:
   - name: Charles Tapley Hoyt
     orcid: 0000-0003-4423-4370
@@ -19,29 +20,64 @@ authors:
     equal-contrib: true
     corresponding: true
     email: cthoyt@gmail.com
+    roles:
+      - type: software
+        degree: equal
+      - type: conceptualization
+        degree: equal
+      - type: writing-original-draft
+        degree: lead
   - name: Jeremy Zucker
     orcid: 0000-0002-7276-9009
     affiliation: [ 2 ]
     equal-contrib: true
+    roles:
+      - type: software
+        degree: equal
+      - type: conceptualization
+        degree: equal
+      - type: writing-original-draft
+        degree: supporting
   - name: Richard J. Callahan
     affiliation: [ 2 ]
+    roles:
+      - type: software
+        degree: supporting
   - name: Joseph Cottam
     orcid: 0000-0002-3097-5998
     affiliation: [ 2 ]
+    roles:
+      - type: software
+        degree: supporting
   - name: Benjamin M. Gyori
     orcid: 0000-0001-9439-5346
     affiliation: 3
+    roles:
+      - type: software
+        degree: supporting
   - name: Nathaniel Merrill
     orcid: 0000-0002-1998-0980
     affiliation: [ 2 ]
+    roles:
+      - type: software
+        degree: supporting
   - name: Sara Mohammad Taheri
     orcid: 0000-0002-6554-9083
     affiliation: 3
+    roles:
+      - type: software
+        degree: supporting
   - name: Pruthvi Prakash Navada
     affiliation: 3
+    roles:
+      - type: software
+        degree: supporting
   - name: Marc-Antoine Parent
     orcid: 0000-0003-4159-7678
     affiliation: 4
+    roles:
+      - type: software
+        degree: supporting
 # Olga doesn't _really_ fall into the JOSS definition of an author
 #  - name: Olga Vitek
 #    affiliation: 3
