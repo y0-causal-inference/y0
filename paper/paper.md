@@ -27,18 +27,6 @@ authors:
         degree: equal
       - type: writing-original-draft
         degree: lead
-  - name: Jeremy Zucker
-    orcid: 0000-0002-7276-9009
-    affiliation: [ 2 ]
-    equal-contrib: true
-    email: jeremy.zucker@pnnl.gov
-    roles:
-      - type: software
-        degree: equal
-      - type: conceptualization
-        degree: equal
-      - type: writing-original-draft
-        degree: supporting
   - name: Richard J. Callahan
     affiliation: [ 2 ]
     roles:
@@ -79,14 +67,25 @@ authors:
     roles:
       - type: software
         degree: supporting
-# Olga doesn't _really_ fall into the JOSS definition of an author
-# See pre-submission inquiry https://github.com/openjournals/joss/issues/1363
-#  - name: Olga Vitek
-#    affiliation: 3
-#    orcid: 0000-0003-1728-1104
-
-# TODO contact remaining contributors to ask if they want to be
-# co-authors when paper is almost done
+  - name: Olga Vitek
+    affiliation: 3
+    orcid: 0000-0003-1728-1104
+    roles:
+      # See pre-submission inquiry https://github.com/openjournals/joss/issues/1363
+      - type: supervision
+        degree: supporting
+  - name: Jeremy Zucker
+    orcid: 0000-0002-7276-9009
+    affiliation: [ 2 ]
+    equal-contrib: true
+    email: jeremy.zucker@pnnl.gov
+    roles:
+      - type: software
+        degree: equal
+      - type: conceptualization
+        degree: equal
+      - type: writing-original-draft
+        degree: supporting
 
 affiliations:
   - name: Independent Researcher
@@ -255,7 +254,7 @@ The development of $Y_0$ has been partially supported by the following grants:
 - DARPA award
   HR00112220036 ([Automating Scientific Knowledge Extraction and Modeling](https://www.darpa.mil/program/automating-scientific-knowledge-extraction-and-modeling))
 
-The authorship of this manuscript lists the primary contributors first as equal contributors
+The authorship of this manuscript lists the primary contributors as the first and last authors
 and all remaining authors in alphabetical order by family name.
 
 # References
