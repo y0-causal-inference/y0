@@ -78,6 +78,7 @@ authors:
     orcid: 0000-0002-7276-9009
     affiliation: [ 2 ]
     equal-contrib: true
+    corresponding: true
     email: jeremy.zucker@pnnl.gov
     roles:
       - type: software
