@@ -197,8 +197,8 @@ accumulation, such as the choice to smoke tar-free cigarettes.
 Therefore, we add a _bidirected_ edge in \autoref{cancer}B.
 Unfortunately, the ID algorithm can not produce an estimand for \autoref{cancer}B, which motivates the usage of an
 alternative algorithm that incorporates observational and/or interventional data.
-For example, if data from an observational trial ($\pi^{\ast}$) and data from an interventional trial on smoking (
-$\pi_1$) are available, the TRSO algorithm [@tikka2019trso] estimates the effect of smoking on the risk of cancer in
+For example, if data from an observational trial ($\pi^{\ast}$) and data from an interventional trial on smoking
+($\pi_1$) are available, the TRSO algorithm [@tikka2019trso] estimates the effect of smoking on the risk of cancer in
 \autoref{cancer}B as
 $\sum_{Tar} P^{\pi^{\ast}}(Cancer | Smoking, Tar) P_{\text{Smoking}}^{{\pi_1}}(Tar)$.
 Code and a more detailed description of this case study can be found in the
@@ -227,7 +227,7 @@ The cyclic ID (`ioID`) [@forré2019causalcalculuspresencecycles] is important to
 contain cycles, such as how biomolecular signaling pathways often contain feedback loops.
 
 Similarly, it remains an open research question on how to estimate the causal effect for an arbitrary
-estimand produced by an algorithm more sophistocated than `ID`.
+estimand produced by an algorithm more sophisticated than `ID`.
 Two potential avenues for overcoming this might be a combination of the Pyro probabilistic programming langauge
 [@bingham2018pyro] and its causal inference extension [ChiRho](https://github.com/BasisResearch/chirho).
 Tractable circuits [@darwiche2022causalinferenceusingtractable] also present a new paradigm for generic estimation.
