@@ -1,0 +1,8 @@
+diff a/docs/source/conf.py b/docs/source/conf.py	(rejected hunks)
+@@ -240,3 +240,6 @@ autoclass_content = "both"
+ # Don't sort alphabetically, explained at:
+ # https://stackoverflow.com/questions/37209921/python-how-not-to-sort-sphinx-output-in-alphabetical-order
+ autodoc_member_order = "bysource"
++
++todo_include_todos = True
++todo_emit_warnings = True

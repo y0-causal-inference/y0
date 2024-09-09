@@ -1,0 +1,10 @@
+diff a/tox.ini b/tox.ini	(rejected hunks)
+@@ -117,7 +117,7 @@ deps =
+     mypy
+     pydantic
+ skip_install = true
+-commands = mypy --install-types --non-interactive --ignore-missing-imports src/
++commands = mypy --install-types --non-interactive --ignore-missing-imports --strict src/
+ 
+ [testenv:doc8]
+ skip_install = true
