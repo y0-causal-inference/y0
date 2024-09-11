@@ -126,6 +126,8 @@ def collapse_HCM(HCM: pgv.AGraph) -> NxMixedGraph:
     """Return a collapsed hierarchical causal model.
 
     :param HCM: pygraphviz AGraph of the hierarchical causal model to be collapsed
+    :raises ValueError: Latent variables in the input HCM must have exactly 2 descendents
+    :raises ValueError: Unobserved Q variables in the collapsed model not currently supported
     :returns: NxMixedGraph
     """
     # unobs_Qs = set()
