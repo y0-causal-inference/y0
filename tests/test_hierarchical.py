@@ -273,7 +273,7 @@ def test_direct_unit_descends_empty(direct_unit_descendents_fixt: pgv.AGraph):
     """Test case when there are no direct unit descendents."""
     assert direct_unit_descendents(direct_unit_descendents_fixt, '6') == set()
 
-def test_collapse_confounder(confounder_HCM_pygraphviz: pgv.AGraph, 
+def test_collapse_confounder(confounder_HCM_pygraphviz: pgv.AGraph,
                              confounder_collapsed_nxmixedgraph: NxMixedGraph):
     """Test that collapsing Figure 2 (a) HCM fixture gives Figure 2 (c) fixture."""
     assert collapse_HCM(confounder_HCM_pygraphviz) == confounder_collapsed_nxmixedgraph
@@ -283,7 +283,7 @@ def test_collapse_confounder_interference(confounder_interference_HCM_pygraphviz
     """Test that collapsing Figure 2 (e) HCM fixture gives Figure 2 (g) fixture."""
     assert collapse_HCM(confounder_interference_HCM_pygraphviz) == confounder_interference_collapsed_nxmixedgraph
 
-def test_collapse_instrument(instrument_HCM_pygraphviz: pgv.AGraph, 
+def test_collapse_instrument(instrument_HCM_pygraphviz: pgv.AGraph,
                              instrument_collapsed_nxmixedgraph: NxMixedGraph):
     """Test that collapsing Figure 2 (i) HCM fixture gives Figure 2 (k) fixture."""
     assert collapse_HCM(instrument_HCM_pygraphviz) == instrument_collapsed_nxmixedgraph

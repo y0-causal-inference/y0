@@ -1,8 +1,9 @@
 """Implementation of algorithms from Hierarchical Causal Models by E.N. Weinstein and D.M. Blei."""
 
+from collections.abc import Iterable
+
 import pygraphviz as pgv
 
-from typing import Iterable
 from y0.dsl import Variable
 from y0.graph import NxMixedGraph
 
