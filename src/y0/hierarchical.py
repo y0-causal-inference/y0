@@ -166,3 +166,29 @@ def collapse_HCM(HCM: pgv.AGraph) -> NxMixedGraph:
             raise ValueError("Unobserved Q variables not currently supported")
 
     return NxMixedGraph.from_edges(directed=directed_edges, undirected=undirected_edges)
+
+def augment_collapsed_model(collapsed: NxMixedGraph,
+                            augmentation_variable: Variable,
+                            mechanism: Iterable[Variable]):
+    """Augment a collapsed model with a given augmentation variable and its mechanism.
+
+    :param collapsed: NxMixedGraph of the input collapsed model
+    :param augmentation_variable: new variable to add into the collapsed model
+    :param mechanism: collection of variables in the collapsed model that determine the augmentation_variable
+    :raises ValueError: The input mechanism variables must be contained in the collapsed model
+    :returns: NxMixedGraph of the augmented model
+    """
+    mechanism = set(mechanism)
+    if not mechanism <= collapsed.nodes():
+        raise ValueError("The input mechanism must be contained in the collapsed model.")
+    aug = augmentation_variable
+    collapsed.add_node(aug)
+    for var in mechanism:
+        collapsed.add_directed_edge(var, aug)
+    for var in set(collapsed.nodes()) - set([aug]):
+        parents = set(collapsed.directed.predecessors(var))
+        if mechanism <= parents:
+            collapsed.add_directed_edge(aug, var)
+            for parent in parents:
+                collapsed.directed.remove_edge(parent, var)
+    return collapsed

@@ -311,7 +311,7 @@ def confounder_interference_augmented_nxmixedgraph():
 
 @pytest.fixture
 def instrument_augmented_nxmixedgraph():
-    """Pytest fixture for augmented Instrument HCM in Figure A2 """
+    """Pytest fixture for augmented Instrument HCM in Figure A2."""
     Qaz = Variable("Q_{a|z}")
     Qa = Variable("Q_a")
     Y = Variable("Y")
