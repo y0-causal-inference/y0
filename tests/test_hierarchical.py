@@ -204,6 +204,8 @@ class TestFromListsInstrument:
         """Test for correct edges."""
         assert set(self.HCM.edges()) == set(instrument_HCM_pygraphviz.edges())
 
+# For Algorithm 1
+
 @pytest.fixture
 def confounder_collapsed_nxmixedgraph():
     """Pytest fixture for collapsed Confounder HCM in Figure 2 (c)."""
@@ -287,3 +289,31 @@ def test_collapse_instrument(instrument_HCM_pygraphviz: pgv.AGraph,
                              instrument_collapsed_nxmixedgraph: NxMixedGraph):
     """Test that collapsing Figure 2 (i) HCM fixture gives Figure 2 (k) fixture."""
     assert collapse_HCM(instrument_HCM_pygraphviz) == instrument_collapsed_nxmixedgraph
+
+# For Algorithm 2
+
+@pytest.fixture
+def confounder_augmented_nxmixedgraph():
+    """Pytest fixture for augmented Confounder HCM in Figure 2 (d)."""
+    Qa = Variable("Q_a")
+    Qya = Variable("Q_{y|a}")
+    Qy = Variable("Q_y")
+    return NxMixedGraph.from_edges(undirected=[(Qa, Qya)], directed=[(Qa, Qy), (Qya, Qy)])
+
+@pytest.fixture
+def confounder_interference_augmented_nxmixedgraph():
+    """Pytest fixture for augmented Confounder Interference HCM in Figure 2 (h)."""
+    Qa = Variable("Q_a")
+    Qya = Variable("Q_{y|a}")
+    Z = Variable("Z")
+    Qy = Variable("Q_y")
+    return NxMixedGraph.from_edges(undirected=[(Qa, Qya)], directed=[(Qa, Qy), (Qya, Qy), (Qa,Z), (Z,Qya)])
+
+@pytest.fixture
+def instrument_augmented_nxmixedgraph():
+    """Pytest fixture for augmented Instrument HCM in Figure A2 """
+    Qaz = Variable("Q_{a|z}")
+    Qa = Variable("Q_a")
+    Y = Variable("Y")
+    Qz = Variable("Q_z")
+    return NxMixedGraph.from_edges(undirected=[(Qaz, Y)], directed=[(Qaz,Qa), (Qz,Qa), (Qa,Y)])
