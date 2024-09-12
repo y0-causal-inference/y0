@@ -15,6 +15,7 @@ from y0.hierarchical import (
     get_subunits,
     get_units,
     get_unobserved,
+    marginalize_augmented_model,
     parents,
 )
 
@@ -407,4 +408,29 @@ def test_augment_instrument(
             (Variable("Q_z"), Variable("Q_{a|z}")),
         )
         == instrument_augmented_nxmixedgraph
+    )
+
+
+# For Algorithm 3
+
+
+@pytest.fixture
+def instrument_marginalized_nxmixedgraph():
+    """Pytest fixture for augmented Instrument HCM in Figure 2 (l)."""
+    Qaz = Variable("Q_{a|z}")
+    Qa = Variable("Q_a")
+    Y = Variable("Y")
+    return NxMixedGraph.from_edges(undirected=[(Qaz, Y)], directed=[(Qaz, Qa), (Qa, Y)])
+
+
+def test_marginalized_instrument(
+    instrument_augmented_nxmixedgraph: NxMixedGraph,
+    instrument_marginalized_nxmixedgraph: NxMixedGraph,
+):
+    """Test that marginalizing the Figure A2 fixture gives the Figure 2 (l) fixture."""
+    assert (
+        marginalize_augmented_model(
+            instrument_augmented_nxmixedgraph, Variable("Q_a"), [Variable("Q_z")]
+        )
+        == instrument_marginalized_nxmixedgraph
     )
