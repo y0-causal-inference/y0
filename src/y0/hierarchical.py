@@ -16,14 +16,18 @@ __all__ = [
     "parents",
     "create_Qvar",
     "direct_unit_descendents",
-    "collapse_HCM"]
+    "collapse_HCM",
+]
 
-def HCM_from_lists(*,
-                   obs_subunits: list[str] | None = None,
-                   unobs_subunits: list[str] | None = None,
-                   obs_units: list[str] | None = None,
-                   unobs_units: list[str] | None = None,
-                   edges: list[str] | None = None) -> pgv.AGraph:
+
+def HCM_from_lists(
+    *,
+    obs_subunits: list[str] | None = None,
+    unobs_subunits: list[str] | None = None,
+    obs_units: list[str] | None = None,
+    unobs_units: list[str] | None = None,
+    edges: list[str] | None = None,
+) -> pgv.AGraph:
     """Create a hierarchical causal model from the given node and edge lists.
 
     :param obs_subunits: a list of names for the observed subunit variables
@@ -42,59 +46,69 @@ def HCM_from_lists(*,
     if unobs_units is None:
         unobs_units = []
     HCM = pgv.AGraph(directed=True)
-    for obs in (obs_subunits+obs_units):
+    for obs in obs_subunits + obs_units:
         HCM.add_node(obs, style="filled", color="lightgrey")
-    for unobs in (unobs_subunits+unobs_units):
+    for unobs in unobs_subunits + unobs_units:
         HCM.add_node(unobs)
     for edge in edges or []:
         HCM.add_edge(edge)
-    HCM.add_subgraph(obs_subunits+unobs_subunits, name="cluster_subunits", style="dashed", label="m")
+    HCM.add_subgraph(
+        obs_subunits + unobs_subunits, name="cluster_subunits", style="dashed", label="m"
+    )
     return HCM
+
 
 def get_observed(HCM: pgv.AGraph) -> set[pgv.Node]:
     """Return the set of observed variables (both unit and subunit) in the HCM."""
     observed_nodes = set()
     for node_name in HCM.nodes():
         node = HCM.get_node(node_name)
-        if node.attr.get('style') == 'filled':
+        if node.attr.get("style") == "filled":
             observed_nodes.add(node_name)
     return observed_nodes
+
 
 def get_unobserved(HCM: pgv.AGraph) -> set[pgv.Node]:
     """Return the set of unobserved variables (both unit and subunit) in the HCM."""
     all_nodes = set(HCM.nodes())
     return all_nodes - get_observed(HCM)
 
+
 def get_subunits(HCM: pgv.AGraph) -> set[pgv.Node]:
     """Return the set of subunit variables in the HCM."""
-    return set(HCM.get_subgraph('cluster_subunits').nodes())
+    return set(HCM.get_subgraph("cluster_subunits").nodes())
+
 
 def get_units(HCM: pgv.AGraph) -> set[pgv.Node]:
     """Return the set of unit variables in the HCM."""
     subunits = get_subunits(HCM)
     return set(HCM.nodes()) - subunits
 
+
 def parents(HCM: pgv.AGraph, node: pgv.Node) -> set[pgv.Node]:
     """Return the set of parent/predecessor variables of the given variable in the HCM."""
     parents = set(HCM.predecessors(node))
     return parents
+
 
 def _node_string(nodes: Iterable[pgv.Node]) -> str:
     """Return a formated string for use in creating Q variables for collapsed HCMs."""
     s = ""
     for node in nodes:
         s += node.get_name().lower() + ","
-    return s[: -1]
+    return s[:-1]
+
 
 def create_Qvar(HCM: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
     """Return a y0 Variable for the unit-level Q variable of the given subunit variable in the HCM."""
     subunit_parents = parents(HCM, subunit_node) & get_subunits(HCM)
     parent_str = _node_string(subunit_parents)
-    if parent_str == '':
-        Q_str = 'Q_'+subunit_node.lower()
+    if parent_str == "":
+        Q_str = "Q_" + subunit_node.lower()
     else:
-        Q_str = 'Q_{'+subunit_node.lower()+'|'+parent_str+'}'
+        Q_str = "Q_{" + subunit_node.lower() + "|" + parent_str + "}"
     return Variable(Q_str)
+
 
 def direct_unit_descendents(HCM: pgv.AGraph, subunit_node: pgv.Node) -> set[pgv.Node]:
     """Return the set of direct unit descendents of the given subunit variable in the HCM."""
@@ -122,6 +136,7 @@ def direct_unit_descendents(HCM: pgv.AGraph, subunit_node: pgv.Node) -> set[pgv.
             descendents = list(descendents)
     return duds
 
+
 def collapse_HCM(HCM: pgv.AGraph) -> NxMixedGraph:
     """Return a collapsed hierarchical causal model.
 
@@ -140,7 +155,7 @@ def collapse_HCM(HCM: pgv.AGraph) -> NxMixedGraph:
         Q = create_Qvar(HCM, s)
         parents_set = set(parents(HCM, s))
         if (s in observed) & ((parents_set & subunits) <= observed):
-            for unit_parent in (parents_set & units):
+            for unit_parent in parents_set & units:
                 if unit_parent in observed:
                     edge = (Variable(unit_parent), Q)
                     directed_edges.append(edge)
@@ -167,9 +182,10 @@ def collapse_HCM(HCM: pgv.AGraph) -> NxMixedGraph:
 
     return NxMixedGraph.from_edges(directed=directed_edges, undirected=undirected_edges)
 
-def augment_collapsed_model(collapsed: NxMixedGraph,
-                            augmentation_variable: Variable,
-                            mechanism: Iterable[Variable]):
+
+def augment_collapsed_model(
+    collapsed: NxMixedGraph, augmentation_variable: Variable, mechanism: Iterable[Variable]
+):
     """Augment a collapsed model with a given augmentation variable and its mechanism.
 
     :param collapsed: NxMixedGraph of the input collapsed model
