@@ -1,6 +1,7 @@
 """Implementation of sigma-separation from [forre2018]_."""
 
 from collections.abc import Iterable, Sequence
+from typing import cast
 
 import networkx as nx
 from more_itertools import triplewise
@@ -138,11 +139,11 @@ def _triple_helper(
     )
 
 
-def _has_either_edge(graph: NxMixedGraph, u, v) -> bool:
-    return graph.directed.has_edge(u, v) or graph.undirected.has_edge(u, v)
+def _has_either_edge(graph: NxMixedGraph, u: Variable, v: Variable) -> bool:
+    return cast(bool, graph.directed.has_edge(u, v)) or cast(bool, graph.undirected.has_edge(u, v))
 
 
-def _only_directed_edge(graph, u, v) -> bool:
+def _only_directed_edge(graph: NxMixedGraph, u: Variable, v: Variable) -> bool:
     return graph.directed.has_edge(u, v) and not graph.undirected.has_edge(u, v)
 
 

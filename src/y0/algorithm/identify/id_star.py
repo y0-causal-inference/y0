@@ -13,7 +13,6 @@ from ...dsl import (
     Expression,
     Intervention,
     One,
-    P,
     Probability,
     Product,
     Sum,
@@ -225,10 +224,12 @@ def get_events_of_each_district(graph: NxMixedGraph, event: Event) -> DistrictIn
     }
 
 
-def get_events_of_district(graph, district, event) -> Event:
+def get_events_of_district(
+    graph: NxMixedGraph, district: Collection[Variable], event: Event
+) -> Event:
     """Create new events by intervening each node on the Markov pillow of the district.
 
-    If the node in in the original event, then the value of the new event is the same as the original event.
+    If the node in the original event, then the value of the new event is the same as the original event.
 
     :param graph: an NxMixedGraph
     :param district: a district of the graph
@@ -310,6 +311,6 @@ def id_star_line_9(cf_graph: NxMixedGraph) -> Probability:
     interventions = get_cf_interventions(cf_graph.nodes())
     bases = [node.get_base() for node in cf_graph.nodes()]
     if len(interventions) > 0:
-        return P[interventions](bases)
+        return Probability.safe(bases, interventions=interventions)
     else:
-        return P(bases)
+        return Probability.safe(bases)

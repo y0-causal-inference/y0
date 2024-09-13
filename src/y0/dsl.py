@@ -29,10 +29,10 @@ from __future__ import annotations
 import functools
 import itertools as itt
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from operator import attrgetter
-from typing import TYPE_CHECKING, Protocol, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar, cast
 
 if TYPE_CHECKING:
     import sympy
@@ -179,7 +179,7 @@ class Variable(Element):
     #: and True means it's a different value from the variable.
     star: bool | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not isinstance(self.name, str):
             raise TypeError(f"Names must be strings: {self.name}")
         if self.name in {"P", "Q", "PP"}:
@@ -331,7 +331,7 @@ class Variable(Element):
         return self._intervention(False)
 
     @classmethod
-    def __class_getitem__(cls, item) -> Variable:
+    def __class_getitem__(cls, item: str) -> Variable:
         return Variable(item)
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -349,7 +349,7 @@ class Intervention(Variable):
     An intervention variable is usually used as a subscript in a :class:`CounterfactualVariable`.
     """
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.star is None:
             raise ValueError("Intervention must have a non-None star")
 
@@ -366,7 +366,7 @@ class CounterfactualVariable(Variable):
     #: The interventions on the variable. Should be non-empty
     interventions: frozenset[Intervention] = field(default_factory=frozenset)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.interventions:
             raise ValueError("should give at least one intervention")
         for intervention in self.interventions:
@@ -512,7 +512,7 @@ class Distribution(Element):
     children: tuple[Variable, ...]
     parents: tuple[Variable, ...] = field(default_factory=tuple)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.children, list | Variable):
             raise TypeError(f"children of wrong type: {type(self.children)}")
         if isinstance(self.parents, list | Variable):
@@ -665,15 +665,21 @@ class Distribution(Element):
             yield from variable._iter_variables()
 
 
+class SupportsLessThan(Protocol):
+    """A protocol for sortable objects."""
+
+    def __lt__(self, other: SupportsLessThan) -> bool: ...
+
+
 class Expression(Element, ABC):
     """The abstract class representing all expressions."""
 
     @abstractmethod
-    def __mul__(self, other):
-        pass
+    def __mul__(self, other: Expression) -> Expression:
+        raise NotImplementedError
 
     @abstractmethod
-    def _get_key(self) -> tuple:
+    def _get_key(self) -> SupportsLessThan:
         """Generate a sort key for a *canonical* expression.
 
         :returns: A tuple in which the first element is the integer priority for the expression
@@ -681,7 +687,7 @@ class Expression(Element, ABC):
         """
         raise NotImplementedError
 
-    def __lt__(self, other: Expression):
+    def __lt__(self, other: Expression) -> bool:
         return self._get_key() < other._get_key()
 
     def __truediv__(self, expression: Expression) -> Expression:
@@ -756,7 +762,7 @@ class Probability(Expression):
             distribution = distribution.intervene(interventions)
         return Probability(distribution)
 
-    def _get_key(self):
+    def _get_key(self):  # type:ignore
         # TODO incorporate more information from children and parents
         return 0, self.children[0].name
 
@@ -764,10 +770,12 @@ class Probability(Expression):
         """Output this probability in the internal string format."""
         return f"P({self.distribution.to_text()})"
 
-    def _help_level_2_distribution(self):
+    def _help_level_2_distribution(
+        self,
+    ) -> tuple[frozenset[Intervention], Distribution] | tuple[None, None]:
         # if all parts of distribution have same intervention set, then put it out front
-        intervention_sets = {
-            x.interventions if isinstance(x, CounterfactualVariable) else tuple()
+        intervention_sets: set[frozenset[Intervention]] = {
+            x.interventions if isinstance(x, CounterfactualVariable) else frozenset([])
             for x in itt.chain(self.children, self.parents)
         }
         # check that there's only one intervention set and that it's not an empty one
@@ -783,7 +791,7 @@ class Probability(Expression):
     def to_y0(self) -> str:
         """Output this probability instance as y0 internal DSL code."""
         interventions, unintervened_distribution = self._help_level_2_distribution()
-        if not interventions:
+        if not interventions or not unintervened_distribution:
             return f"P({self.distribution.to_y0()})"
 
         # only keep the + if necessary, otherwise show regular
@@ -796,7 +804,7 @@ class Probability(Expression):
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
         interventions, unintervened_distribution = self._help_level_2_distribution()
-        if not interventions:
+        if not interventions or not unintervened_distribution:
             return f"P({self.distribution.to_latex()})"
 
         intervention_str = ",".join(intervention.to_latex() for intervention in interventions)
@@ -832,7 +840,7 @@ class Probability(Expression):
         else:
             return Product.safe((self, other))
 
-    def _new(self, distribution: Distribution):
+    def _new(self, distribution: Distribution) -> Probability:
         # This is implemented this way to make overriding easier
         return Probability(distribution)
 
@@ -877,6 +885,12 @@ class Probability(Expression):
 DistributionHint = VariableHint | Distribution
 
 
+class ProbabilityMetaBuilder(Protocol):
+    """A protocol for the partial object from a probability builder."""
+
+    def __call__(self, distribution: DistributionHint, *args: str | Variable) -> Probability: ...
+
+
 class ProbabilityBuilderType:
     """A base class for building probability distributions."""
 
@@ -888,7 +902,7 @@ class ProbabilityBuilderType:
     ) -> Probability:
         return Probability.safe(distribution, *args, interventions=interventions)
 
-    def __getitem__(self, interventions: VariableHint):
+    def __getitem__(self, interventions: VariableHint) -> ProbabilityMetaBuilder:
         """Generate a probability builder closure.
 
         :param interventions: A variable or variables to intervene on using the do-calculus level 2
@@ -1007,7 +1021,7 @@ class Product(Expression):
 
     expressions: tuple[Expression, ...]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if len(self.expressions) < 2:
             raise ValueError("Product() must two or more expressions")
 
@@ -1048,11 +1062,11 @@ class Product(Expression):
             return expressions[0]
         return cls(expressions=tuple(sorted(expressions)))
 
-    def _get_key(self):
+    def _get_key(self):  # type:ignore
         inner_keys = (sexpr._get_key() for sexpr in self.expressions)
         return 2, *inner_keys
 
-    def to_text(self):
+    def to_text(self) -> str:
         """Output this product in the internal string format."""
         return " ".join(expression.to_text() for expression in self.expressions)
 
@@ -1060,11 +1074,11 @@ class Product(Expression):
         """Output this product instance as y0 internal DSL code."""
         return " * ".join(expr.to_y0() for expr in self.expressions)
 
-    def to_latex(self):
+    def to_latex(self) -> str:
         """Output this product in the LaTeX string format."""
         return " ".join(expression.to_latex() for expression in self.expressions)
 
-    def __mul__(self, other: Expression):
+    def __mul__(self, other: Expression) -> Expression:
         if isinstance(other, Zero):
             return other
         if isinstance(other, Product):
@@ -1101,7 +1115,7 @@ class Sum(Expression):
     #: The variables over which the sum is done. Defaults to an empty list, meaning no variables.
     ranges: frozenset[Variable]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not isinstance(self.ranges, frozenset):
             raise TypeError
         if not self.ranges:
@@ -1194,8 +1208,8 @@ class Sum(Expression):
                 )
         return self
 
-    def _get_key(self):
-        return 1, *self.expression._get_key()
+    def _get_key(self):  # type:ignore
+        return 1, *self.expression._get_key()  # type:ignore
 
     def _get_sorted_ranges(self) -> Sequence[Variable]:
         return sorted(self.ranges, key=attrgetter("name"))
@@ -1210,7 +1224,7 @@ class Sum(Expression):
         ranges = _list_to_latex(self._get_sorted_ranges())
         return rf"\sum\limits_{{{ranges}}} {self.expression.to_latex()}"
 
-    def to_y0(self):
+    def to_y0(self) -> str:
         """Output this sum instance as y0 internal DSL code."""
         if isinstance(self.expression, Fraction):
             s = self.expression.to_y0(parens=False)
@@ -1221,7 +1235,7 @@ class Sum(Expression):
         ranges = _list_to_y0(self._get_sorted_ranges())
         return f"Sum[{ranges}]({s})"
 
-    def __mul__(self, expression: Expression):
+    def __mul__(self, expression: Expression) -> Expression:
         if isinstance(expression, Zero):
             return expression
         elif isinstance(expression, Product):
@@ -1264,11 +1278,11 @@ class Fraction(Expression):
     #: The expression in the denominator of the fraction
     denominator: Expression
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.denominator, Zero):
             raise ZeroDivisionError
 
-    def _get_key(self):
+    def _get_key(self):  # type:ignore
         return (
             3,
             self.numerator._get_key(),
@@ -1399,7 +1413,7 @@ class One(Expression):
         """Output this identity instance as y0 internal DSL code."""
         return "One()"
 
-    def _get_key(self):
+    def _get_key(self):  # type:ignore
         return 4, self.to_text()
 
     def __rmul__(self, expression: Expression) -> Expression:
@@ -1408,7 +1422,7 @@ class One(Expression):
     def __mul__(self, expression: Expression) -> Expression:
         return expression
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return isinstance(other, One)  # all ones are equal
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -1431,7 +1445,7 @@ class Zero(Expression):
         """Output this identity instance as y0 internal DSL code."""
         return "Zero()"
 
-    def _get_key(self):
+    def _get_key(self):  # type:ignore
         return 4, self.to_text()
 
     def __rmul__(self, expression: Expression) -> Expression:
@@ -1445,7 +1459,7 @@ class Zero(Expression):
             raise ZeroDivisionError
         return self
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return isinstance(other, Zero)  # all zeros are equal
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -1510,13 +1524,13 @@ class QFactor(Expression):
         """
         return functools.partial(cls.safe, codomain=codomain)
 
-    def _get_key(self) -> tuple:
+    def _get_key(self):  # type:ignore
         return -5, min(v.name for v in self.domain), min(v.name for v in self.codomain)
 
-    def _sorted_codomain(self):
+    def _sorted_codomain(self) -> list[Variable]:
         return sorted(self.codomain, key=attrgetter("name"))
 
-    def _sorted_domain(self):
+    def _sorted_domain(self) -> list[Variable]:
         return sorted(self.domain, key=attrgetter("name"))
 
     def to_text(self) -> str:
@@ -1537,7 +1551,7 @@ class QFactor(Expression):
         domain = _list_to_y0(self._sorted_domain())
         return f"Q[{codomain}]({domain})"
 
-    def __mul__(self, other: Expression):
+    def __mul__(self, other: Expression) -> Expression:
         if isinstance(other, Product):
             return Product.safe((self, *other.expressions))
         elif isinstance(other, Fraction):
@@ -1553,7 +1567,7 @@ class QFactor(Expression):
 Q = QFactor
 
 AA = Variable("AA")
-A, B, C, D, E, F, G, M, R, S, T, U, W, X, Y, Z = map(Variable, "ABCDEFGMRSTUWXYZ")  # type: ignore
+A, B, C, D, E, F, G, M, R, S, T, U, W, X, Y, Z = map(Variable, "ABCDEFGMRSTUWXYZ")
 U1, U2, U3, U4, U5, U6 = (Variable(f"U{i}") for i in range(1, 7))
 V1, V2, V3, V4, V5, V6 = (Variable(f"V{i}") for i in range(1, 7))
 W0, W1, W2, W3, W4, W5, W6 = (Variable(f"W{i}") for i in range(7))
@@ -1645,11 +1659,11 @@ def outcomes_and_treatments_to_query(
 
 
 def vmap_pairs(edges: Iterable[tuple[str, str]]) -> list[tuple[Variable, Variable]]:
-    """Map pair of strings to pairs of variables."""
+    """Map a pair of strings to pairs of variables."""
     return [(Variable(source), Variable(target)) for source, target in edges]
 
 
-def vmap_adj(adjacency_dict):
+def vmap_adj(adjacency_dict: Mapping[str, Iterable[str]]) -> dict[Variable, list[Variable]]:
     """Map an adjacency dictionary of strings to variables."""
     return {
         Variable(source): [Variable(target) for target in targets]
@@ -1679,16 +1693,16 @@ class PopulationProbability(Probability):
 
     population: Population
 
-    def _new(self, distribution) -> PopulationProbability:
+    def _new(self, distribution: Distribution) -> PopulationProbability:
         return PopulationProbability(population=self.population, distribution=distribution)
 
-    def _get_key(self):
+    def _get_key(self):  # type:ignore
         return -1, self.population, self.children[0].name
 
     def to_y0(self) -> str:
         """Output this probability instance as y0 internal DSL code."""
         interventions, unintervened_distribution = self._help_level_2_distribution()
-        if not interventions:
+        if not interventions or not unintervened_distribution:
             return f"PP[{self.population.to_y0()}]({self.distribution.to_y0()})"
 
         # only keep the + if necessary, otherwise show regular
@@ -1710,7 +1724,7 @@ class PopulationProbability(Probability):
         else:
             pop_latex = self.population.to_latex()
 
-        if not interventions:
+        if not interventions or not unintervened_distribution:
             return f"P^{{{pop_latex}}}({self.distribution.to_latex()})"
 
         intervention_str = ",".join(intervention.to_latex() for intervention in interventions)
@@ -1720,7 +1734,7 @@ class PopulationProbability(Probability):
 class PopulationProbabilityBuilderType(ProbabilityBuilderType):
     """A magical type for building population probabilities."""
 
-    def __init__(self, population: Population):
+    def __init__(self, population: Population) -> None:
         """Initialize the builder with a given population."""
         self.population = population
 
@@ -1729,7 +1743,7 @@ class PopulationProbabilityBuilderType(ProbabilityBuilderType):
         """Get a population probability builder class initialized with the given population."""
         return cls(population)
 
-    def __call__(self, *args, **kwargs) -> PopulationProbability:
+    def __call__(self, *args: Any, **kwargs: Any) -> PopulationProbability:
         probability = super().__call__(*args, **kwargs)
         return PopulationProbability(
             population=self.population, distribution=probability.distribution

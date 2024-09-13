@@ -1,6 +1,6 @@
 """Implementation of ACE estimators."""
 
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -74,7 +74,7 @@ def get_primal_ipw_point_estimate(
         treatment_value=treatment_value,
         outcome=outcome,
     )
-    return np.mean(beta_primal).item()
+    return cast(float, np.mean(beta_primal).item())
 
 
 def get_beta_primal(
@@ -194,23 +194,21 @@ def get_beta_primal(
     return beta_primal
 
 
-def fit_binary_model(data, formula, weights=None) -> GLM:
+def fit_binary_model(data: pd.DataFrame, formula: str) -> GLM:
     """Fit a binary general linear model."""
     return GLM.from_formula(
         formula,
         data=data,
         family=Binomial(),
-        freq_weights=weights,
     ).fit()
 
 
-def fit_continuous_glm(data, formula, weights=None) -> GLM:
+def fit_continuous_glm(data: pd.DataFrame, formula: str) -> GLM:
     """Fit a continuous general linear model."""
     return GLM.from_formula(
         formula,
         data=data,
         family=Gaussian(),
-        freq_weights=weights,
     ).fit()
 
 
@@ -231,7 +229,10 @@ def get_state_space_map(data: pd.DataFrame) -> dict[Variable, Literal["binary", 
 
 
 def _log_odd_ratio(point_estimate_t1: float, point_estimate_t0: float) -> float:
-    return np.log(
-        (point_estimate_t1 / (1 - point_estimate_t1))
-        / (point_estimate_t0 / (1 - point_estimate_t0))
+    return cast(
+        float,
+        np.log(
+            (point_estimate_t1 / (1 - point_estimate_t1))
+            / (point_estimate_t0 / (1 - point_estimate_t0))
+        ),
     )

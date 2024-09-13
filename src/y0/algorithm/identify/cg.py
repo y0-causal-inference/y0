@@ -2,7 +2,7 @@
 
 from collections.abc import Iterable
 from itertools import combinations
-from typing import cast
+from typing import Any, cast
 
 from y0.dsl import (
     CounterfactualVariable,
@@ -27,7 +27,7 @@ __all__ = [
 class World(frozenset[Intervention]):
     """A set of interventions corresponding to a "world"."""
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item: Any) -> bool:
         if not isinstance(item, Intervention):
             raise TypeError(
                 f"can not check if non-intervention is in a world: ({type(item)}) {item}"
@@ -53,7 +53,9 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
     ) == is_not_self_intervened(node2)
 
 
-def nodes_attain_same_value(graph: NxMixedGraph, event: Event, a: Variable, b: Variable) -> bool:  # noqa:C901
+def nodes_attain_same_value(  # noqa:C901
+    graph: NxMixedGraph, event: Event, a: Variable, b: Variable
+) -> bool:
     """Check if the two nodes attain the same value."""
     if a == b:
         return True
@@ -402,8 +404,10 @@ def stitch_counterfactual_and_dopplegangers(
     return _both_ways(rv)
 
 
-def _both_ways(s):
-    rv = set()
+def _both_ways(
+    s: Iterable[tuple[CounterfactualVariable, CounterfactualVariable]],
+) -> set[tuple[CounterfactualVariable, CounterfactualVariable]]:
+    rv: set[tuple[CounterfactualVariable, CounterfactualVariable]] = set()
     for a, b in s:
         rv.add((b, a))
     return rv
@@ -414,7 +418,7 @@ def stitch_counterfactual_and_doppleganger_neighbors(
 ) -> set[tuple[CounterfactualVariable, CounterfactualVariable]]:
     """Stitch together a counterfactual variable with the dopplegangers of its neighbors in each world."""
     rv = {
-        frozenset({u @ world_1, v @ world_2})
+        (u @ world_1, v @ world_2)
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)

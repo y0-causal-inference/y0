@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Literal, NamedTuple, cast
+from typing import Any, Literal, NamedTuple, cast
 
 import pandas as pd
 
@@ -29,7 +29,7 @@ class VermaConstraint(NamedTuple):
     variables: tuple[Variable, ...]
 
     @classmethod
-    def from_element(cls, element) -> VermaConstraint:
+    def from_element(cls, element: Any) -> VermaConstraint:
         """Extract content from each element in the vector returned by `verma.constraint`.
 
         :param element: An element in the vector returned by `verma.constraint`
@@ -63,7 +63,7 @@ CITest = Literal[
 DEFAULT_CONTINUOUS_CI_TEST: CITest = "pearson"
 DEFAULT_DISCRETE_CI_TEST: CITest = "cressie_read"
 
-CITestFunc = Callable
+CITestFunc = Callable[..., Any]
 
 
 @lru_cache
@@ -241,7 +241,7 @@ def _ensure_method(method: CITest | None, df: pd.DataFrame, skip: bool = False) 
     return method
 
 
-def _summarize_df(df: pd.DataFrame):
+def _summarize_df(df: pd.DataFrame) -> dict[str, set[str]]:
     return {column: set(df[column].unique()) for column in df.columns}
 
 
@@ -250,6 +250,6 @@ def _is_binary(df: pd.DataFrame) -> bool:
     return all(column_to_type.values())
 
 
-def _is_two_values(series):
+def _is_two_values(series: pd.Series) -> bool:
     values = set(series.unique())
     return values == {True, False} or values == {1, 0} or values == {1, -1}
