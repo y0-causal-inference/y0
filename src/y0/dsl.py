@@ -666,6 +666,8 @@ class Distribution(Element):
 
 
 class SupportsLessThan(Protocol):
+    """A protocol for sortable objects."""
+
     def __lt__(self, other: SupportsLessThan) -> bool: ...
 
 
@@ -884,6 +886,8 @@ DistributionHint = VariableHint | Distribution
 
 
 class ProbabilityMetaBuilder(Protocol):
+    """A protocol for the partial object from a probability builder."""
+
     def __call__(self, distribution: DistributionHint, *args: str | Variable) -> Probability: ...
 
 
