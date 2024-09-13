@@ -63,7 +63,7 @@ CITest = Literal[
 DEFAULT_CONTINUOUS_CI_TEST: CITest = "pearson"
 DEFAULT_DISCRETE_CI_TEST: CITest = "cressie_read"
 
-CITestFunc = Callable
+CITestFunc = Callable[..., Any]
 
 
 @lru_cache

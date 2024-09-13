@@ -673,7 +673,7 @@ class Expression(Element, ABC):
     """The abstract class representing all expressions."""
 
     @abstractmethod
-    def __mul__(self, other: Expression) -> None:
+    def __mul__(self, other: Expression) -> Expression:
         raise NotImplementedError
 
     @abstractmethod
@@ -768,7 +768,9 @@ class Probability(Expression):
         """Output this probability in the internal string format."""
         return f"P({self.distribution.to_text()})"
 
-    def _help_level_2_distribution(self):
+    def _help_level_2_distribution(
+        self,
+    ) -> tuple[frozenset[Intervention], Distribution] | tuple[None, None]:
         # if all parts of distribution have same intervention set, then put it out front
         intervention_sets = {
             x.interventions if isinstance(x, CounterfactualVariable) else tuple()
@@ -787,7 +789,7 @@ class Probability(Expression):
     def to_y0(self) -> str:
         """Output this probability instance as y0 internal DSL code."""
         interventions, unintervened_distribution = self._help_level_2_distribution()
-        if not interventions:
+        if not interventions or not unintervened_distribution:
             return f"P({self.distribution.to_y0()})"
 
         # only keep the + if necessary, otherwise show regular
@@ -800,7 +802,7 @@ class Probability(Expression):
     def to_latex(self) -> str:
         """Output this probability in the LaTeX string format."""
         interventions, unintervened_distribution = self._help_level_2_distribution()
-        if not interventions:
+        if not interventions or not unintervened_distribution:
             return f"P({self.distribution.to_latex()})"
 
         intervention_str = ",".join(intervention.to_latex() for intervention in interventions)
@@ -881,6 +883,10 @@ class Probability(Expression):
 DistributionHint = VariableHint | Distribution
 
 
+class ProbabilityMetaBuilder(Protocol):
+    def __call__(self, distribution: DistributionHint, *args: str | Variable) -> Probability: ...
+
+
 class ProbabilityBuilderType:
     """A base class for building probability distributions."""
 
@@ -892,7 +898,7 @@ class ProbabilityBuilderType:
     ) -> Probability:
         return Probability.safe(distribution, *args, interventions=interventions)
 
-    def __getitem__(self, interventions: VariableHint):
+    def __getitem__(self, interventions: VariableHint) -> ProbabilityMetaBuilder:
         """Generate a probability builder closure.
 
         :param interventions: A variable or variables to intervene on using the do-calculus level 2
@@ -1052,7 +1058,7 @@ class Product(Expression):
             return expressions[0]
         return cls(expressions=tuple(sorted(expressions)))
 
-    def _get_key(self):
+    def _get_key(self):  # type:ignore
         inner_keys = (sexpr._get_key() for sexpr in self.expressions)
         return 2, *inner_keys
 
@@ -1198,7 +1204,7 @@ class Sum(Expression):
                 )
         return self
 
-    def _get_key(self):
+    def _get_key(self):  # type:ignore
         return 1, *self.expression._get_key()
 
     def _get_sorted_ranges(self) -> Sequence[Variable]:
@@ -1272,7 +1278,7 @@ class Fraction(Expression):
         if isinstance(self.denominator, Zero):
             raise ZeroDivisionError
 
-    def _get_key(self) -> tuple[int, SupportsLessThan, SupportsLessThan]:
+    def _get_key(self):  # type:ignore
         return (
             3,
             self.numerator._get_key(),
@@ -1403,7 +1409,7 @@ class One(Expression):
         """Output this identity instance as y0 internal DSL code."""
         return "One()"
 
-    def _get_key(self) -> tuple[int, str]:
+    def _get_key(self):  # type:ignore
         return 4, self.to_text()
 
     def __rmul__(self, expression: Expression) -> Expression:
@@ -1435,7 +1441,7 @@ class Zero(Expression):
         """Output this identity instance as y0 internal DSL code."""
         return "Zero()"
 
-    def _get_key(self):
+    def _get_key(self):  # type:ignore
         return 4, self.to_text()
 
     def __rmul__(self, expression: Expression) -> Expression:
@@ -1514,7 +1520,7 @@ class QFactor(Expression):
         """
         return functools.partial(cls.safe, codomain=codomain)
 
-    def _get_key(self) -> tuple[int, str, str]:
+    def _get_key(self):  # type:ignore
         return -5, min(v.name for v in self.domain), min(v.name for v in self.codomain)
 
     def _sorted_codomain(self) -> list[Variable]:
@@ -1557,7 +1563,7 @@ class QFactor(Expression):
 Q = QFactor
 
 AA = Variable("AA")
-A, B, C, D, E, F, G, M, R, S, T, U, W, X, Y, Z = map(Variable, "ABCDEFGMRSTUWXYZ")  # type: ignore
+A, B, C, D, E, F, G, M, R, S, T, U, W, X, Y, Z = map(Variable, "ABCDEFGMRSTUWXYZ")
 U1, U2, U3, U4, U5, U6 = (Variable(f"U{i}") for i in range(1, 7))
 V1, V2, V3, V4, V5, V6 = (Variable(f"V{i}") for i in range(1, 7))
 W0, W1, W2, W3, W4, W5, W6 = (Variable(f"W{i}") for i in range(7))
@@ -1686,13 +1692,13 @@ class PopulationProbability(Probability):
     def _new(self, distribution: Distribution) -> PopulationProbability:
         return PopulationProbability(population=self.population, distribution=distribution)
 
-    def _get_key(self) -> tuple[int, Population, str]:
+    def _get_key(self):  # type:ignore
         return -1, self.population, self.children[0].name
 
     def to_y0(self) -> str:
         """Output this probability instance as y0 internal DSL code."""
         interventions, unintervened_distribution = self._help_level_2_distribution()
-        if not interventions:
+        if not interventions or not unintervened_distribution:
             return f"PP[{self.population.to_y0()}]({self.distribution.to_y0()})"
 
         # only keep the + if necessary, otherwise show regular
@@ -1714,7 +1720,7 @@ class PopulationProbability(Probability):
         else:
             pop_latex = self.population.to_latex()
 
-        if not interventions:
+        if not interventions or not unintervened_distribution:
             return f"P^{{{pop_latex}}}({self.distribution.to_latex()})"
 
         intervention_str = ",".join(intervention.to_latex() for intervention in interventions)

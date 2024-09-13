@@ -1,6 +1,7 @@
 """A parser for Craig-like probability expressions based on :mod:`pyparsing`."""
 
 import logging
+from typing import cast
 
 from pyparsing import (
     Forward,
@@ -82,4 +83,4 @@ def parse_causaleffect(s: str) -> Expression:
         logger.warning("could not parse %s", s)
         raise
     else:
-        return x.asList()[0]
+        return cast(Expression, x.asList()[0])
