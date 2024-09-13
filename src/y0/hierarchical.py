@@ -209,20 +209,21 @@ def augment_collapsed_model(
     :raises ValueError: input mechanism variables must be contained in the collapsed model
     :returns: NxMixedGraph of the augmented model
     """
+    augmented = collapsed.copy()
     mechanism = set(mechanism)
     if not mechanism <= collapsed.nodes():
         raise ValueError("The input mechanism must be contained in the collapsed model.")
     aug = augmentation_variable
-    collapsed.add_node(aug)
+    augmented.add_node(aug)
     for var in mechanism:
-        collapsed.add_directed_edge(var, aug)
-    for var in set(collapsed.nodes()) - {aug}:
-        parents = set(collapsed.directed.predecessors(var))
+        augmented.add_directed_edge(var, aug)
+    for var in set(augmented.nodes()) - {aug}:
+        parents = set(augmented.directed.predecessors(var))
         if mechanism <= parents:
-            collapsed.add_directed_edge(aug, var)
+            augmented.add_directed_edge(aug, var)
             for parent in parents:
-                collapsed.directed.remove_edge(parent, var)
-    return collapsed
+                augmented.directed.remove_edge(parent, var)
+    return augmented
 
 
 def marginalize_augmented_model(
@@ -238,6 +239,7 @@ def marginalize_augmented_model(
     :raises ValueError: augmentation_variable must be the only child of the each marginal parent
     :returns: NxMixedGraph of the marginaled model
     """
+    marginalized = augmented.copy()
     check_set = {augmentation_variable}
     mechanism = set(augmented.directed.predecessors(augmentation_variable))
     if augmentation_variable not in augmented.nodes():
@@ -245,13 +247,13 @@ def marginalize_augmented_model(
     if set(marginal_parents) == mechanism:
         raise ValueError("Cannot marginalize all parents of the augmentation varaible.")
     for parent in marginal_parents:
-        if set(augmented.directed.successors(parent)) == check_set:
-            grandparents = augmented.directed.predecessors(parent)
+        if set(marginalized.directed.successors(parent)) == check_set:
+            grandparents = marginalized.directed.predecessors(parent)
             for gp in grandparents:
-                augmented.add_directed_edge(gp, augmentation_variable)
-            augmented.directed.remove_node(parent)
+                marginalized.add_directed_edge(gp, augmentation_variable)
+            marginalized.directed.remove_node(parent)
         else:
             raise ValueError(
                 "The augmentation variable must be the only child of the marginalized parents."
             )
-    return augmented
+    return marginalized
