@@ -2,7 +2,7 @@
 
 from collections.abc import Iterable
 from itertools import combinations
-from typing import cast
+from typing import Any, cast
 
 from y0.dsl import (
     CounterfactualVariable,
@@ -27,7 +27,7 @@ __all__ = [
 class World(frozenset[Intervention]):
     """A set of interventions corresponding to a "world"."""
 
-    def __contains__(self, item) -> bool:
+    def __contains__(self, item: Any) -> bool:
         if not isinstance(item, Intervention):
             raise TypeError(
                 f"can not check if non-intervention is in a world: ({type(item)}) {item}"

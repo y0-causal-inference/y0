@@ -760,7 +760,7 @@ class Probability(Expression):
             distribution = distribution.intervene(interventions)
         return Probability(distribution)
 
-    def _get_key(self) -> tuple[int, str]:
+    def _get_key(self):  # type:ignore
         # TODO incorporate more information from children and parents
         return 0, self.children[0].name
 
@@ -772,8 +772,8 @@ class Probability(Expression):
         self,
     ) -> tuple[frozenset[Intervention], Distribution] | tuple[None, None]:
         # if all parts of distribution have same intervention set, then put it out front
-        intervention_sets = {
-            x.interventions if isinstance(x, CounterfactualVariable) else tuple()
+        intervention_sets: set[frozenset[Intervention]] = {
+            x.interventions if isinstance(x, CounterfactualVariable) else frozenset([])
             for x in itt.chain(self.children, self.parents)
         }
         # check that there's only one intervention set and that it's not an empty one
@@ -1205,7 +1205,7 @@ class Sum(Expression):
         return self
 
     def _get_key(self):  # type:ignore
-        return 1, *self.expression._get_key()
+        return 1, *self.expression._get_key()  # type:ignore
 
     def _get_sorted_ranges(self) -> Sequence[Variable]:
         return sorted(self.ranges, key=attrgetter("name"))
