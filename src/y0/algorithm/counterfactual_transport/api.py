@@ -1705,7 +1705,7 @@ class UnconditionalCFTResult(NamedTuple):
         """Display this result."""
         from IPython.display import display
 
-        display(event_to_probability(self.event))
+        display(event_to_probability(self.event))  # type:ignore
         display(self.expression)
 
 
@@ -2275,7 +2275,7 @@ class ConditionalCFTResult(NamedTuple):
         """Display this result."""
         from IPython.display import display
 
-        display(event_to_probability(self.event))
+        display(event_to_probability(self.event))  # type:ignore
         display(self.expression)
 
 
