@@ -153,6 +153,7 @@ def collapse_HCM(HCM: pgv.AGraph) -> NxMixedGraph:
     units = get_units(HCM)
     subunits = get_subunits(HCM)
     observed = get_observed(HCM)
+    unobserved = get_unobserved(HCM)
     for s in subunits:
         Q = create_Qvar(HCM, s)
         parents_set = set(parents(HCM, s))
@@ -181,6 +182,18 @@ def collapse_HCM(HCM: pgv.AGraph) -> NxMixedGraph:
                 directed_edges.append(edge)
         else:
             raise ValueError("Unobserved Q variables not currently supported")
+    for u in (units & observed):
+        descends = HCM.successors(u)
+        for d in descends:
+            if d in (units & observed):
+                directed_edges.append((Variable(u), Variable(d)))
+    for u in (units & unobserved):
+        descends = HCM.successors(u)
+        if len(descends) != 2:
+            raise ValueError("Latent variables must have exactly 2 descendentts")
+        elif set(descends) <= (units & observed):
+            undirected_edges.append((Variable(descends[0]), Variable(descends[1])))
+
 
     return NxMixedGraph.from_edges(directed=directed_edges, undirected=undirected_edges)
 
