@@ -75,7 +75,7 @@ def id_star(graph: NxMixedGraph, event: Event, *, _number_recursions: int = 0) -
         return Zero()
 
     # Line 6:
-    nodes = set(node for node in cf_graph.nodes() if is_not_self_intervened(node))
+    nodes = {node for node in cf_graph.nodes() if is_not_self_intervened(node)}
     cf_subgraph = cf_graph.subgraph(nodes)
     if not cf_subgraph.is_connected():
         summand, events_of_each_district = id_star_line_6(cf_graph, new_event)

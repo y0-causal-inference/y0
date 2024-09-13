@@ -118,7 +118,7 @@ class TestGraph(unittest.TestCase):
 
     def test_from_adj(self):
         """Test the adjacency graph is not a multigraph."""
-        directed = dict([("a", ["b", "c"]), ("b", ["a"]), ("c", [])])
+        directed = {"a": ["b", "c"], "b": ["a"], "c": []}
         expected = NxMixedGraph.from_str_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
         self.assertEqual(expected, NxMixedGraph.from_str_adj(directed=directed))
 

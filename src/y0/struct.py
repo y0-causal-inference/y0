@@ -128,7 +128,7 @@ class DSeparationJudgement:
         """Create a d-separation judgement in canonical form."""
         left, right = sorted([left, right], key=str)
         if conditions is None:
-            conditions = tuple()
+            conditions = ()
         conditions = tuple(sorted(set(conditions), key=str))
         return cls(separated, left, right, conditions)
 

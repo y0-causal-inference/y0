@@ -113,11 +113,11 @@ def is_not_self_intervened(node: Variable) -> bool:
 
 def extract_interventions(variables: Iterable[Variable]) -> Worlds:
     """Extract the set of interventions for each counterfactual variable that corresponds to a world."""
-    return set(
+    return {
         World(variable.interventions)
         for variable in variables
         if isinstance(variable, CounterfactualVariable)
-    )
+    }
 
 
 def is_pw_equivalent(graph: NxMixedGraph, event: Event, node1: Variable, node2: Variable) -> bool:
@@ -231,13 +231,15 @@ def merge_pw(
     directed = [(u, v) for u, v in graph.directed.edges() if node2 not in (u, v)]
     directed += [(node1, v) for u, v in graph.directed.edges() if node2 == u]
     # directed += [(u, node1) for u, v in graph.directed.edges() if node2 == v]
-    undirected = [frozenset({u, v}) for u, v in graph.undirected.edges() if node2 not in (u, v)]
-    undirected += [
+    undirected: set[frozenset[Variable]] = {
+        frozenset({u, v}) for u, v in graph.undirected.edges() if node2 not in (u, v)
+    }
+    undirected.update(
         frozenset({node1, v}) for u, v in graph.undirected.edges() if node2 == u and node1 != v
-    ]
-    undirected += [
+    )
+    undirected.update(
         frozenset({u, node1}) for u, v in graph.undirected.edges() if node2 == v and node1 != u
-    ]
+    )
     parents_of_node1 = [u for u, v in graph.directed.edges() if v == node1]
     parents_of_node2_not_node1 = [
         u for u, v in graph.directed.edges() if v == node2 and u not in parents_of_node1
@@ -250,7 +252,7 @@ def merge_pw(
                 if node != node2 and node not in parents_of_node2_not_node1
             ],
             directed=list(set(directed)),
-            undirected=[(u, v) for u, v in set(undirected)],
+            undirected=cast(list[tuple[Variable, Variable]], [tuple(fz) for fz in undirected]),
         ),
         node1,
         node2,

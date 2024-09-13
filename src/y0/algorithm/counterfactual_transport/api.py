@@ -403,7 +403,7 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     #       set star to None. Putting the check here means that we don't need separate checks
     #       in functions such as get_counterfactual_ancestors(), because the ctfTRu and ctfTR
     #       algorithms all call SIMPLIFY early in their processing.
-    if any([len(tup) != 2 for tup in event]):
+    if any(len(tup) != 2 for tup in event):
         raise TypeError(
             "Improperly formatted inputs for simplify(): an event element is a tuple with length not equal to 2."
         )
@@ -1209,7 +1209,7 @@ def _transport_unconditional_counterfactual_query_line_2(
     # $W_{\ast}$
     for variable, _ in event:
         ancestral_set.update(get_ancestors_of_counterfactual(variable, graph))
-    outcome_value_dict = {variable: value for variable, value in event}
+    outcome_value_dict = dict(event)
     ancestral_set_with_values: set[tuple[Variable, Intervention | None]] = {
         (
             (variable, outcome_value_dict[variable])
@@ -1895,7 +1895,7 @@ def transport_unconditional_counterfactual_query(
             )  # district_without_interventions
             for variable in district_without_interventions:
                 district_variables_and_their_parents.update(
-                    {v for v in target_domain_graph.directed.predecessors(variable.get_base())}
+                    set(target_domain_graph.directed.predecessors(variable.get_base()))
                 )
             district_variables_and_their_parents.update(district_without_interventions)
             logger.debug(

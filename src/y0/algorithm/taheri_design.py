@@ -234,7 +234,7 @@ def iterate_lvdags(
             stop=stop,
             reverse=True,
             use_tqdm=True,
-            tqdm_kwargs=dict(desc="LV powerset"),
+            tqdm_kwargs={"desc": "LV powerset"},
         ),
     )
 

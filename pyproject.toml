@@ -195,6 +195,7 @@ extend-select = [
     #"ERA", # eradicate commented out code
     #"NPY", # numpy checks
     "RUF", # ruff rules
+    "C4", # comprehensions
 ]
 ignore = [
     "D105", # Missing docstring in magic method

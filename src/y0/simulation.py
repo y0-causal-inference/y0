@@ -75,7 +75,7 @@ def simulate(
         frozenset((judgement.left, judgement.right)): judgement for judgement in judgements
     }
 
-    _tqdm_kwargs = dict(desc="Simulation", unit="trial", unit_scale=True)
+    _tqdm_kwargs = {"desc": "Simulation", "unit": "trial", "unit_scale": True}
     if tqdm_kwargs:
         _tqdm_kwargs.update(tqdm_kwargs)
 

@@ -272,38 +272,38 @@ line_1_example = Example(
         ]
     ),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y),
                     estimand=P(Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y),
                     estimand=Sum[Z](P(Y, Z)),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
-        ),
-        dict(
-            id_in=[
+        },
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y, Z),
                     estimand=P(Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y, Z),
                     estimand=P(Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
-        ),
+        },
     ],
 )
 
@@ -313,22 +313,22 @@ line_2_example = Example(
     reference="out of the mind of JZ",
     graph=NxMixedGraph.from_edges(directed=[(Z, Y), (Y, X)], undirected=[(Z, X)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y), (Y, X)], undirected=[(Z, X)]),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y),
                     estimand=Sum[X](P(Y, X, Z)),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
-        )
+        }
     ],
 )
 
@@ -337,22 +337,22 @@ line_3_example = Example(
     reference="out of the mind of JZ",
     graph=NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)], undirected=[(Z, X)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)], undirected=[(Z, X)]),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y @ {X, Z}),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)], undirected=[(Z, X)]),
                 )
             ],
-        ),
+        },
     ],
 )
 
@@ -364,8 +364,8 @@ line_4_example = Example(
         undirected=[(Z, X), (M, Y)],
     ),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(M, X, Y, Z),
@@ -375,7 +375,7 @@ line_4_example = Example(
                     ),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(M @ {X, Z}, Y @ {X, Z}),
                     estimand=P(M, X, Y, Z),
@@ -393,7 +393,7 @@ line_4_example = Example(
                     ),
                 ),
             ],
-        ),
+        },
     ],
 )
 
@@ -402,15 +402,15 @@ line_5_example = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y),
                     graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
                 )
             ],
-        )
+        }
     ],
 )
 
@@ -422,8 +422,8 @@ line_6_example = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(directed=[(X, Y), (X, Z), (Z, Y)], undirected=[(X, Z)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ [X, Z]),
                     estimand=P(X, Y, Z),
@@ -433,7 +433,7 @@ line_6_example = Example(
                     ),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y @ {X, Z}),
                     estimand=P(Y | [X, Z]),
@@ -443,9 +443,9 @@ line_6_example = Example(
                     ),
                 )
             ],
-        ),
-        dict(
-            id_in=[
+        },
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y),
@@ -454,7 +454,7 @@ line_6_example = Example(
                     ),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(Y | X),
@@ -463,7 +463,7 @@ line_6_example = Example(
                     ),
                 )
             ],
-        ),
+        },
     ],
 )
 
@@ -472,8 +472,8 @@ line_7_example = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(directed=[(X, Y1), (W1, Y1)], undirected=[(W1, Y1)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y1 @ [X, W1]),
                     estimand=P(X, Y1, W1),
@@ -482,14 +482,14 @@ line_7_example = Example(
                     ),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y1 @ W1),
                     estimand=P(Y1 | [X, W1]) * P(W1),
                     graph=NxMixedGraph.from_edges(undirected=[(W1, Y1)]),
                 )
             ],
-        )
+        }
     ],
 )
 
@@ -498,8 +498,8 @@ figure_6a = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=[(X, Z)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_parts(
                     outcomes={Y},
                     treatments={X},
@@ -508,14 +508,14 @@ figure_6a = Example(
                     graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=[(X, Z)]),
                 ),
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y @ (X, Z)),
                     estimand=P(Y | (X, Z)) / Sum.safe(expression=P(Y | (X, Z)), ranges=(Y,)),
-                    graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=list()),
+                    graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=[]),
                 ),
             ],
-        )
+        }
     ],
 )
 

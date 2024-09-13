@@ -710,7 +710,7 @@ class Expression(Element, ABC):
         >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
         """
         ranges = _upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)])
-        ranges_complement = set([c.get_base() for c in self._iter_variables()]) - set(ranges)
+        ranges_complement = {c.get_base() for c in self._iter_variables()} - set(ranges)
         return self.normalize_marginalize(ranges_complement)
 
     def normalize_marginalize(self, ranges: VariableHint) -> Expression:
@@ -872,9 +872,9 @@ class Probability(Expression):
         >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
         """
         ranges = _upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)])
-        ranges_complement = set(
-            [c.get_base() for c in self._iter_variables() if not isinstance(c, Intervention)]
-        ) - set(ranges)
+        ranges_complement = {
+            c.get_base() for c in self._iter_variables() if not isinstance(c, Intervention)
+        } - set(ranges)
         return self.normalize_marginalize(ranges_complement)
 
     def _iter_variables(self) -> Iterable[Variable]:

@@ -775,7 +775,7 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
 
         Source: RJC's mind.
         """
-        topo = [variable for variable in figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()]
+        topo = list(figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort())
         result = compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=W,
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
@@ -798,7 +798,7 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
 
         Source: RJC's mind.
         """
-        topo = [variable for variable in figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()]
+        topo = list(figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort())
         result = compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=None,
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
