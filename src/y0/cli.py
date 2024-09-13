@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 @click.group()
 @click.version_option()
-def main():
+def main() -> None:
     """CLI for y0."""
 
 

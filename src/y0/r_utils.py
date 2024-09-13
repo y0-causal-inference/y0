@@ -1,17 +1,16 @@
 """General utilities for :mod:`rpy2`."""
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from functools import lru_cache, wraps
+from typing import Any, ParamSpec, TypeVar
 
 from rpy2.robjects.packages import importr, isinstalled
 from rpy2.robjects.vectors import StrVector
 
 from .dsl import Variable
 
-__all__ = [
-    "uses_r",
-]
+__all__ = ["uses_r"]
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +20,11 @@ R_REQUIREMENTS = [
     CAUSALEFFECT,
     IGRAPH,
 ]
+
+
+P = ParamSpec("P")
+T = TypeVar("T")
+Func = Callable[P, T]
 
 
 def prepare_renv(requirements: Iterable[str]) -> None:
@@ -54,11 +58,11 @@ def prepare_default_renv() -> bool:
     return True
 
 
-def uses_r(f):
+def uses_r(f: Func) -> Func:
     """Decorate functions that use R."""
 
     @wraps(f)
-    def _wrapped(*args, **kwargs):
+    def _wrapped(*args: Any, **kwargs: Any):
         prepare_default_renv()
         return f(*args, **kwargs)
 
@@ -70,5 +74,5 @@ def _parse_vars(element) -> tuple[Variable, ...]:
     return tuple(Variable(name) for name in sorted(_vars[0]))
 
 
-def _extract(element, key):
+def _extract(element, key: str) -> Any:
     return element.rx(key)[0][0]

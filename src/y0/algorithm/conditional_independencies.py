@@ -3,6 +3,7 @@
 from collections.abc import Callable, Iterable, Sequence
 from functools import partial
 from itertools import combinations, groupby
+from typing import Any
 
 import networkx as nx
 import pandas as pd
@@ -111,12 +112,15 @@ def test_conditional_independencies(
     ]
 
 
+Policy = Callable[[DSeparationJudgement], Any]
+
+
 def get_conditional_independencies(
     graph: NxMixedGraph,
     *,
-    policy=None,
+    policy: Policy | None = None,
     max_conditions: int | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
 
@@ -139,7 +143,9 @@ def get_conditional_independencies(
     )
 
 
-def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> set[DSeparationJudgement]:
+def minimal(
+    judgements: Iterable[DSeparationJudgement], policy: Policy | None = None
+) -> set[DSeparationJudgement]:
     r"""Given some d-separations, reduces to a 'minimal' collection.
 
     For independencies of the form $A \perp B | {C_1, C_2, ...}$, the minimal collection will

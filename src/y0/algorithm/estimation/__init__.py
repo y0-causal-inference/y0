@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import redirect_stdout
+from typing import cast
 
 import pandas as pd
 
@@ -109,6 +110,9 @@ def ananke_average_causal_effect(
         # care of that explicitly below
         causal_effect = CausalEffect(ananke_graph, treatment.name, outcome.name)
 
-    return causal_effect.compute_effect(
-        data, estimator=estimator, n_bootstraps=bootstraps or 0, alpha=alpha or 0.05
+    return cast(
+        float,
+        causal_effect.compute_effect(
+            data, estimator=estimator, n_bootstraps=bootstraps or 0, alpha=alpha or 0.05
+        ),
     )

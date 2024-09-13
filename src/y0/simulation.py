@@ -67,7 +67,7 @@ def simulate(
     return_fits: bool = True,
     progress: bool = False,
     tqdm_kwargs: Mapping[str, Any] | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> pd.DataFrame | tuple[pd.DataFrame, FitsDict]:
     """Simulate a graph using a linear structural causal model."""
     judgements = get_conditional_independencies(graph)

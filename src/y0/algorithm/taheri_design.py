@@ -7,6 +7,7 @@ import itertools as itt
 import logging
 import textwrap
 from collections.abc import Collection, Iterable
+from io import StringIO
 from pathlib import Path
 from typing import NamedTuple
 
@@ -246,7 +247,7 @@ def iterate_lvdags(
         yv = graph.copy()
         for node in inducible_nodes:
             yv.nodes[node][tag] = node in induced_latents
-        yield induced_latents, inducible_nodes - induced_latents, yv  # type:ignore
+        yield induced_latents, inducible_nodes - induced_latents, yv
 
 
 def draw_results(
@@ -294,7 +295,7 @@ def draw_results(
         fig.savefig(_path, dpi=400)
 
 
-def print_results(results: list[Result], file=None) -> None:
+def print_results(results: list[Result], file: StringIO | None = None) -> None:
     """Print a set of results."""
     rows = [
         (
@@ -314,12 +315,12 @@ def print_results(results: list[Result], file=None) -> None:
 
 
 @click.command()
-@verbose_option
-def main():
+@verbose_option  # type:ignore
+def main() -> None:
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
     import pystow
 
-    from y0.examples import igf_example
+    from y0.examples import igf_example  # type:ignore
 
     results = taheri_design_dag(igf_example.graph.directed, cause="PI3K", effect="Erk", stop=3)
     # print_results(results)
