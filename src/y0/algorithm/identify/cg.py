@@ -418,7 +418,7 @@ def stitch_counterfactual_and_doppleganger_neighbors(
 ) -> set[tuple[CounterfactualVariable, CounterfactualVariable]]:
     """Stitch together a counterfactual variable with the dopplegangers of its neighbors in each world."""
     rv = {
-        frozenset({u @ world_1, v @ world_2})
+        (u @ world_1, v @ world_2)
         for world_1, world_2 in combinations(worlds, 2)
         for u in graph.nodes()
         for v in graph.undirected.neighbors(u)
