@@ -66,62 +66,62 @@ def instrument_HCM_pygraphviz():
 
 def test_get_observed_confounder(confounder_HCM_pygraphviz: pgv.AGraph):
     """Test observed variables in Confounder HCM fixture."""
-    assert get_observed(confounder_HCM_pygraphviz) == set(["A", "Y"])
+    assert get_observed(confounder_HCM_pygraphviz) == {"A", "Y"}
 
 
 def test_get_observed_confounder_interference(confounder_interference_HCM_pygraphviz: pgv.AGraph):
     """Test observed variables in Confounder Interference HCM fixture."""
-    assert get_observed(confounder_interference_HCM_pygraphviz) == set(["A", "Y", "Z"])
+    assert get_observed(confounder_interference_HCM_pygraphviz) == {"A", "Y", "Z"}
 
 
 def test_get_observed_instrument(instrument_HCM_pygraphviz: pgv.AGraph):
     """Test observed variables in Instrument HCM fixture."""
-    assert get_observed(instrument_HCM_pygraphviz) == set(["A", "Y", "Z"])
+    assert get_observed(instrument_HCM_pygraphviz) == {"A", "Y", "Z"}
 
 
 def test_get_unobserved_confounder(confounder_HCM_pygraphviz: pgv.AGraph):
     """Test unobserved variables in Confounder HCM fixture."""
-    assert get_unobserved(confounder_HCM_pygraphviz) == set(["U"])
+    assert get_unobserved(confounder_HCM_pygraphviz) == {"U"}
 
 
 def test_get_unobserved_confounder_interference(confounder_interference_HCM_pygraphviz: pgv.AGraph):
     """Test unobserved variables in Confounder Interference HCM fixture."""
-    assert get_unobserved(confounder_interference_HCM_pygraphviz) == set(["U"])
+    assert get_unobserved(confounder_interference_HCM_pygraphviz) == {"U"}
 
 
 def test_get_unobserved_instrument(instrument_HCM_pygraphviz: pgv.AGraph):
     """Test unobserved variables in Instrument HCM fixture."""
-    assert get_unobserved(instrument_HCM_pygraphviz) == set(["U"])
+    assert get_unobserved(instrument_HCM_pygraphviz) == {"U"}
 
 
 def test_get_units_confounder(confounder_HCM_pygraphviz: pgv.AGraph):
     """Test unit variables in Confounder HCM fixture."""
-    assert get_units(confounder_HCM_pygraphviz) == set(["U"])
+    assert get_units(confounder_HCM_pygraphviz) == {"U"}
 
 
 def test_get_units_confounder_interference(confounder_interference_HCM_pygraphviz: pgv.AGraph):
     """Test unit variables in Confounder Interference HCM fixture."""
-    assert get_units(confounder_interference_HCM_pygraphviz) == set(["U", "Z"])
+    assert get_units(confounder_interference_HCM_pygraphviz) == {"U", "Z"}
 
 
 def test_get_units_instrument(instrument_HCM_pygraphviz: pgv.AGraph):
     """Test unit variables in Instrument HCM fixture."""
-    assert get_units(instrument_HCM_pygraphviz) == set(["U", "Y"])
+    assert get_units(instrument_HCM_pygraphviz) == {"U", "Y"}
 
 
 def test_get_subunits_confounder(confounder_HCM_pygraphviz: pgv.AGraph):
     """Test subunit variables in Confounder HCM fixture."""
-    assert get_subunits(confounder_HCM_pygraphviz) == set(["A", "Y"])
+    assert get_subunits(confounder_HCM_pygraphviz) == {"A", "Y"}
 
 
 def test_get_subunits_confounder_interference(confounder_interference_HCM_pygraphviz: pgv.AGraph):
     """Test subunit variables in Confounder Interference HCM fixture."""
-    assert get_subunits(confounder_interference_HCM_pygraphviz) == set(["A", "Y"])
+    assert get_subunits(confounder_interference_HCM_pygraphviz) == {"A", "Y"}
 
 
 def test_get_subunits_instrument(instrument_HCM_pygraphviz: pgv.AGraph):
     """Test subunit variables in Instrument HCM fixture."""
-    assert get_subunits(instrument_HCM_pygraphviz) == set(["A", "Z"])
+    assert get_subunits(instrument_HCM_pygraphviz) == {"A", "Z"}
 
 
 class TestFromListsConfounder:

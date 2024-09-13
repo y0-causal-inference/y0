@@ -203,7 +203,7 @@ def augment_collapsed_model(
     collapsed.add_node(aug)
     for var in mechanism:
         collapsed.add_directed_edge(var, aug)
-    for var in set(collapsed.nodes()) - set([aug]):
+    for var in set(collapsed.nodes()) - {aug}:
         parents = set(collapsed.directed.predecessors(var))
         if mechanism <= parents:
             collapsed.add_directed_edge(aug, var)
@@ -225,7 +225,7 @@ def marginalize_augmented_model(
     :raises ValueError: augmentation_variable must be the only child of the each marginal parent
     :returns: NxMixedGraph of the marginaled model
     """
-    check_set = set([augmentation_variable])
+    check_set = {augmentation_variable}
     mechanism = set(augmented.directed.predecessors(augmentation_variable))
     if augmentation_variable not in augmented.nodes():
         raise ValueError("Augmentation variable must be in the input augmented model.")
