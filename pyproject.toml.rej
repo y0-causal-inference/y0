@@ -1,0 +1,9 @@
+diff a/pyproject.toml b/pyproject.toml	(rejected hunks)
+@@ -185,6 +185,7 @@ extend-select = [
+     "ERA", # eradicate commented out code
+     "NPY", # numpy checks
+     "RUF", # ruff rules
++    "C4", # comprehensions
+ ]
+ ignore = [
+     "D105", # Missing docstring in magic method
