@@ -125,6 +125,21 @@ def create_Qvar(HCM: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
         Q_str = "Q_{" + subunit_node.lower() + "|" + parent_str + "}"
     return Variable(Q_str)
 
+def convert_to_HCGM(HCM: pgv.AGraph) -> pgv.AGraph:
+    """Convert an HCM to an HCGM with promoted Q variables"""
+    HCGM = copy_HCM(HCM)
+    subunits = get_subunits(HCM)
+    for s in subunits:
+        Q = create_Qvar(HCGM, s)
+        HCGM.add_node(Q, color="blue")
+        parent_set = set(parents(HCGM, s))
+        for unit_parent in (parent_set & get_units(HCGM)):
+            HCGM.delete_edge(unit_parent, s)
+            HCGM.add_edge(unit_parent, Q)
+        HCGM.add_edge(Q, s)
+    HCGM.subgraphs()[0].graph_attr['style'] = 'solid'
+    return HCGM
+
 
 def direct_unit_descendents(HCM: pgv.AGraph, subunit_node: pgv.Node) -> set[pgv.Node]:
     """Return the set of direct unit descendents of the given subunit variable in the HCM."""
