@@ -9,6 +9,7 @@ from y0.hierarchical import (
     HCM_from_lists,
     augment_collapsed_model,
     collapse_HCM,
+    copy_HCM,
     create_Qvar,
     direct_unit_descendents,
     get_observed,
@@ -204,6 +205,90 @@ class TestFromListsInstrument:
         self.HCM = HCM_from_lists(
             obs_subunits=obs_sub, obs_units=obs_units, unobs_units=unobs_units, edges=edges
         )
+
+    def test_observed_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct observed variables."""
+        assert get_observed(self.HCM) == get_observed(instrument_HCM_pygraphviz)
+
+    def test_unobserved_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct unobserved variables."""
+        assert get_unobserved(self.HCM) == get_unobserved(instrument_HCM_pygraphviz)
+
+    def test_units(self, instrument_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct unit variables."""
+        assert get_units(self.HCM) == get_units(instrument_HCM_pygraphviz)
+
+    def test_subunits(self, instrument_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct subunit variables."""
+        assert get_subunits(self.HCM) == get_subunits(instrument_HCM_pygraphviz)
+
+    def test_edges(self, instrument_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct edges."""
+        assert set(self.HCM.edges()) == set(instrument_HCM_pygraphviz.edges())
+
+class TestCopyConfounder:
+    """Test copy HCM for Confounder fixture."""
+
+    @pytest.fixture(autouse=True)
+    def HCM_fixt(self, confounder_HCM_pygraphviz: pgv.AGraph):
+        """Pytest fixture from lists, to compare against 'by-hand' fixture."""
+        self.HCM = copy_HCM(confounder_HCM_pygraphviz)
+
+    def test_observed_nodes(self, confounder_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct observed variables."""
+        assert get_observed(self.HCM) == get_observed(confounder_HCM_pygraphviz)
+
+    def test_unobserved_nodes(self, confounder_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct unobserved variables."""
+        assert get_unobserved(self.HCM) == get_unobserved(confounder_HCM_pygraphviz)
+
+    def test_units(self, confounder_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct unit variables."""
+        assert get_units(self.HCM) == get_units(confounder_HCM_pygraphviz)
+
+    def test_subunits(self, confounder_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct subunit variables."""
+        assert get_subunits(self.HCM) == get_subunits(confounder_HCM_pygraphviz)
+
+    def test_edges(self, confounder_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct edges."""
+        assert set(self.HCM.edges()) == set(confounder_HCM_pygraphviz.edges())
+
+class TestCopyConfounderInterference:
+    """Test copy HCM for Confounder Interference fixture."""
+
+    @pytest.fixture(autouse=True)
+    def HCM_fixt(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+        """Pytest fixture from lists, to compare against 'by-hand' fixture."""
+        self.HCM = copy_HCM(confounder_interference_HCM_pygraphviz)
+
+    def test_observed_nodes(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct observed variables."""
+        assert get_observed(self.HCM) == get_observed(confounder_interference_HCM_pygraphviz)
+
+    def test_unobserved_nodes(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct unobserved variables."""
+        assert get_unobserved(self.HCM) == get_unobserved(confounder_interference_HCM_pygraphviz)
+
+    def test_units(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct unit variables."""
+        assert get_units(self.HCM) == get_units(confounder_interference_HCM_pygraphviz)
+
+    def test_subunits(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct subunit variables."""
+        assert get_subunits(self.HCM) == get_subunits(confounder_interference_HCM_pygraphviz)
+
+    def test_edges(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+        """Test for correct edges."""
+        assert set(self.HCM.edges()) == set(confounder_interference_HCM_pygraphviz.edges())
+
+class TestCopyInstrument:
+    """Test copy HCM for Instrument fixture."""
+
+    @pytest.fixture(autouse=True)
+    def HCM_fixt(self, instrument_HCM_pygraphviz: pgv.AGraph):
+        """Pytest fixture from lists, to compare against 'by-hand' fixture."""
+        self.HCM = copy_HCM(instrument_HCM_pygraphviz)
 
     def test_observed_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph):
         """Test for correct observed variables."""
