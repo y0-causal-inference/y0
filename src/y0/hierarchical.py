@@ -92,6 +92,20 @@ def parents(HCM: pgv.AGraph, node: pgv.Node) -> set[pgv.Node]:
     parents = set(HCM.predecessors(node))
     return parents
 
+def copy_HCM(HCM: pgv.AGraph) -> pgv.AGraph:
+    """Return a copy of the HCM."""
+    obs = get_observed(HCM)
+    unobs = get_unobserved(HCM)
+    units = get_units(HCM)
+    subunits = get_subunits(HCM)
+    copy = HCM_from_lists(
+        obs_subunits = list(obs & subunits),
+        unobs_subunits = list(unobs & subunits),
+        obs_units = list(obs & units),
+        unobs_units = list(unobs & units),
+        edges = HCM.edges()
+    )
+    return copy
 
 def _node_string(nodes: Iterable[pgv.Node]) -> str:
     """Return a formated string for use in creating Q variables for collapsed HCMs."""
