@@ -126,7 +126,7 @@ def create_Qvar(HCM: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
     return Variable(Q_str)
 
 def convert_to_HCGM(HCM: pgv.AGraph) -> pgv.AGraph:
-    """Convert an HCM to an HCGM with promoted Q variables"""
+    """Convert an HCM to an HCGM with promoted Q variables."""
     HCGM = copy_HCM(HCM)
     subunits = get_subunits(HCM)
     for s in subunits:
