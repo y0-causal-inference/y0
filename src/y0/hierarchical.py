@@ -130,11 +130,15 @@ def create_Qvar(HCM: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
 def convert_to_HCGM(HCM: pgv.AGraph) -> pgv.AGraph:
     """Convert an HCM to an HCGM with promoted Q variables."""
     HCGM = copy_HCM(HCM)
+    observed = get_observed(HCM)
     subunits = get_subunits(HCM)
     for s in subunits:
         Q = create_Qvar(HCGM, s)
-        HCGM.add_node(Q, style="filled", color="lightgrey")
-        parent_set = set(parents(HCGM, s))
+        parent_set = set(parents(HCM, s))
+        if (s in observed) & ((parent_set & subunits) <= observed):
+            HCGM.add_node(Q, style="filled", color="lightgrey")
+        else:
+            HCGM.add_node(Q)
         for unit_parent in (parent_set & get_units(HCGM)):
             HCGM.delete_edge(unit_parent, s)
             HCGM.add_edge(unit_parent, Q)
