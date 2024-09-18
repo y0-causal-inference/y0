@@ -15,6 +15,8 @@ __all__ = [
     "get_units",
     "parents",
     "create_Qvar",
+    "convert_to_HCGM",
+    "copy_HCM",
     "direct_unit_descendents",
     "collapse_HCM",
     "augment_collapsed_model",
@@ -131,7 +133,7 @@ def convert_to_HCGM(HCM: pgv.AGraph) -> pgv.AGraph:
     subunits = get_subunits(HCM)
     for s in subunits:
         Q = create_Qvar(HCGM, s)
-        HCGM.add_node(Q, color="blue")
+        HCGM.add_node(Q, style="filled", color="lightgrey")
         parent_set = set(parents(HCGM, s))
         for unit_parent in (parent_set & get_units(HCGM)):
             HCGM.delete_edge(unit_parent, s)
