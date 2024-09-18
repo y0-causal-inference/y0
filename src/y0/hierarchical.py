@@ -194,64 +194,29 @@ def direct_unit_descendents(HCM: pgv.AGraph, subunit_node: pgv.Node) -> set[pgv.
             descendents = list(descendents)
     return duds
 
-
-def collapse_HCM(HCM: pgv.AGraph) -> NxMixedGraph:
+def collapse_HCM(HCM: pgv.AGraph, return_HCGM: bool = False) -> NxMixedGraph:
     """Return a collapsed hierarchical causal model.
 
     :param HCM: pygraphviz AGraph of the hierarchical causal model to be collapsed
-    :raises ValueError: Latent variables in the input HCM must have exactly 2 descendents
-    :raises ValueError: Unobserved Q variables in the collapsed model not currently supported
+    :param return_HCGM: if True, returns the intermediate HCGM with subunits and promoted Q variables
     :returns: NxMixedGraph
     """
-    # unobs_Qs = set()
-    directed_edges = []
-    undirected_edges = []
-    units = get_units(HCM)
+    HCGM = convert_to_HCGM(HCM)
+    if return_HCGM:
+        HCGM_original = copy_HCM(HCGM)
     subunits = get_subunits(HCM)
-    observed = get_observed(HCM)
-    unobserved = get_unobserved(HCM)
     for s in subunits:
         Q = create_Qvar(HCM, s)
-        parents_set = set(parents(HCM, s))
-        if (s in observed) & ((parents_set & subunits) <= observed):
-            for unit_parent in parents_set & units:
-                if unit_parent in observed:
-                    edge = (Variable(unit_parent), Q)
-                    directed_edges.append(edge)
-                else:
-                    descends = HCM.successors(unit_parent)
-                    if len(descends) != 2:
-                        raise ValueError("Latent variables must have exactly 2 descendents")
-                    for d in descends:
-                        if d == s:
-                            pass
-                        else:
-                            other_descend = d
-                    if other_descend in subunits:
-                        edge = (Q, create_Qvar(HCM, other_descend))
-                    else:
-                        edge = (Q, Variable(other_descend))
-                    undirected_edges.append(edge)
-
-            for dud in direct_unit_descendents(HCM, s):
-                edge = (Q, Variable(dud))
-                directed_edges.append(edge)
-        else:
-            raise ValueError("Unobserved Q variables not currently supported")
-    for u in (units & observed):
-        descends = HCM.successors(u)
-        for d in descends:
-            if d in (units & observed):
-                directed_edges.append((Variable(u), Variable(d)))
-    for u in (units & unobserved):
-        descends = HCM.successors(u)
-        if len(descends) != 2:
-            raise ValueError("Latent variables must have exactly 2 descendentts")
-        elif set(descends) <= (units & observed):
-            undirected_edges.append((Variable(descends[0]), Variable(descends[1])))
-
-
-    return NxMixedGraph.from_edges(directed=directed_edges, undirected=undirected_edges)
+        for dud in direct_unit_descendents(HCM, s):
+            HCGM.add_edge(Q, dud)
+        HCGM.delete_node(s)
+    undirected = get_undirected_edges(HCGM)
+    directed = get_directed_edges(HCGM)
+    collapsed = NxMixedGraph.from_edges(directed=directed, undirected=undirected)
+    if return_HCGM:
+        return (collapsed, HCGM_original)
+    else:
+        return collapsed
 
 
 def augment_collapsed_model(
