@@ -34,6 +34,7 @@ def confounder_HCM_pygraphviz():
     HCM.add_subgraph(["A", "Y"], name="cluster_subunits", style="dashed", label="m")
     return HCM
 
+
 @pytest.fixture
 def confounder_HCGM_pygraphviz():
     """Pytest fixture for the Confounder HCGM in Figure 2 (b)."""
@@ -50,6 +51,7 @@ def confounder_HCGM_pygraphviz():
     HCM.add_subgraph(["A", "Y"], name="cluster_subunits", label="m")
     return HCM
 
+
 @pytest.fixture
 def confounder_interference_HCM_pygraphviz():
     """Pytest fixture for the Confounder Interference HCM in Figure 2 (e)."""
@@ -64,6 +66,7 @@ def confounder_interference_HCM_pygraphviz():
     HCM.add_edge("Z", "Y")
     HCM.add_subgraph(["A", "Y"], name="cluster_subunits", style="dashed", label="m")
     return HCM
+
 
 @pytest.fixture
 def confounder_interference_HCGM_pygraphviz():
@@ -84,6 +87,7 @@ def confounder_interference_HCGM_pygraphviz():
     HCM.add_subgraph(["A", "Y"], name="cluster_subunits", label="m")
     return HCM
 
+
 @pytest.fixture
 def instrument_HCM_pygraphviz():
     """Pytest fixture for the Instrument HCM in Figure 2 (i)."""
@@ -97,6 +101,7 @@ def instrument_HCM_pygraphviz():
     HCM.add_edge("Z", "A")
     HCM.add_subgraph(["A", "Z"], name="cluster_subunits", style="dashed", label="m")
     return HCM
+
 
 @pytest.fixture
 def instrument_HCGM_pygraphviz():
@@ -278,6 +283,7 @@ class TestFromListsInstrument:
         """Test for correct edges."""
         assert set(self.HCM.edges()) == set(instrument_HCM_pygraphviz.edges())
 
+
 class TestCopyConfounder:
     """Test copy HCM for Confounder fixture."""
 
@@ -306,6 +312,7 @@ class TestCopyConfounder:
         """Test for correct edges."""
         assert set(self.HCM.edges()) == set(confounder_HCM_pygraphviz.edges())
 
+
 class TestCopyConfounderInterference:
     """Test copy HCM for Confounder Interference fixture."""
 
@@ -333,6 +340,7 @@ class TestCopyConfounderInterference:
     def test_edges(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
         """Test for correct edges."""
         assert set(self.HCM.edges()) == set(confounder_interference_HCM_pygraphviz.edges())
+
 
 class TestCopyInstrument:
     """Test copy HCM for Instrument fixture."""
@@ -425,90 +433,117 @@ def test_Qvar_no_parents(confounder_interference_HCM_pygraphviz: pgv.AGraph):
     HCM = confounder_interference_HCM_pygraphviz
     assert create_Qvar(HCM, "A") == Variable("Q_a")
 
+
 def test_confounder_convert_HCGM_units(
-        confounder_HCM_pygraphviz: pgv.AGraph,
-        confounder_HCGM_pygraphviz: pgv.AGraph
+    confounder_HCM_pygraphviz: pgv.AGraph, confounder_HCGM_pygraphviz: pgv.AGraph
 ):
     """Test that unit variables match between Figure 2(a) conversion and Figure 2 (b)."""
-    assert get_units(convert_to_HCGM(confounder_HCM_pygraphviz)) == get_units(confounder_HCGM_pygraphviz)
+    assert get_units(convert_to_HCGM(confounder_HCM_pygraphviz)) == get_units(
+        confounder_HCGM_pygraphviz
+    )
+
 
 def test_confounder_convert_HCGM_subunits(
-        confounder_HCM_pygraphviz: pgv.AGraph,
-        confounder_HCGM_pygraphviz: pgv.AGraph
+    confounder_HCM_pygraphviz: pgv.AGraph, confounder_HCGM_pygraphviz: pgv.AGraph
 ):
     """Test that subunit variables match between Figure 2(a) conversion and Figure 2 (b)."""
-    assert get_subunits(convert_to_HCGM(confounder_HCM_pygraphviz)) == get_subunits(confounder_HCGM_pygraphviz)
+    assert get_subunits(convert_to_HCGM(confounder_HCM_pygraphviz)) == get_subunits(
+        confounder_HCGM_pygraphviz
+    )
+
 
 def test_confounder_convert_HCGM_observed(
-        confounder_HCM_pygraphviz: pgv.AGraph,
-        confounder_HCGM_pygraphviz: pgv.AGraph
+    confounder_HCM_pygraphviz: pgv.AGraph, confounder_HCGM_pygraphviz: pgv.AGraph
 ):
     """Test that observed variables match between Figure 2(a) conversion and Figure 2 (b)."""
-    assert get_observed(convert_to_HCGM(confounder_HCM_pygraphviz)) == get_observed(confounder_HCGM_pygraphviz)
+    assert get_observed(convert_to_HCGM(confounder_HCM_pygraphviz)) == get_observed(
+        confounder_HCGM_pygraphviz
+    )
+
 
 def test_confounder_convert_HCGM_edges(
-        confounder_HCM_pygraphviz: pgv.AGraph,
-        confounder_HCGM_pygraphviz: pgv.AGraph
+    confounder_HCM_pygraphviz: pgv.AGraph, confounder_HCGM_pygraphviz: pgv.AGraph
 ):
     """Test that edges match between Figure 2(a) conversion and Figure 2 (b)."""
-    assert set((convert_to_HCGM(confounder_HCM_pygraphviz)).edges()) == set(confounder_HCGM_pygraphviz.edges())
+    assert set((convert_to_HCGM(confounder_HCM_pygraphviz)).edges()) == set(
+        confounder_HCGM_pygraphviz.edges()
+    )
 
 
 def test_confounder_interference_convert_HCGM_units(
-        confounder_interference_HCM_pygraphviz: pgv.AGraph,
-        confounder_interference_HCGM_pygraphviz: pgv.AGraph
+    confounder_interference_HCM_pygraphviz: pgv.AGraph,
+    confounder_interference_HCGM_pygraphviz: pgv.AGraph,
 ):
     """Test that unit variables match between Figure 2(e) conversion and Figure 2 (f)."""
-    assert get_units(convert_to_HCGM(confounder_interference_HCM_pygraphviz)) == get_units(confounder_interference_HCGM_pygraphviz)
+    assert get_units(convert_to_HCGM(confounder_interference_HCM_pygraphviz)) == get_units(
+        confounder_interference_HCGM_pygraphviz
+    )
+
 
 def test_confounder_interference_convert_HCGM_subunits(
-        confounder_interference_HCM_pygraphviz: pgv.AGraph,
-        confounder_interference_HCGM_pygraphviz: pgv.AGraph
+    confounder_interference_HCM_pygraphviz: pgv.AGraph,
+    confounder_interference_HCGM_pygraphviz: pgv.AGraph,
 ):
     """Test that subunit variables match between Figure 2(e) conversion and Figure 2 (f)."""
-    assert get_subunits(convert_to_HCGM(confounder_interference_HCM_pygraphviz)) == get_subunits(confounder_interference_HCGM_pygraphviz)
+    assert get_subunits(convert_to_HCGM(confounder_interference_HCM_pygraphviz)) == get_subunits(
+        confounder_interference_HCGM_pygraphviz
+    )
+
 
 def test_confounder_interference_convert_HCGM_observed(
-        confounder_interference_HCM_pygraphviz: pgv.AGraph,
-        confounder_interference_HCGM_pygraphviz: pgv.AGraph
+    confounder_interference_HCM_pygraphviz: pgv.AGraph,
+    confounder_interference_HCGM_pygraphviz: pgv.AGraph,
 ):
     """Test that observed variables match between Figure 2(e) conversion and Figure 2 (f)."""
-    assert get_observed(convert_to_HCGM(confounder_interference_HCM_pygraphviz)) == get_observed(confounder_interference_HCGM_pygraphviz)
+    assert get_observed(convert_to_HCGM(confounder_interference_HCM_pygraphviz)) == get_observed(
+        confounder_interference_HCGM_pygraphviz
+    )
+
 
 def test_confounder_interference_convert_HCGM_edges(
-        confounder_interference_HCM_pygraphviz: pgv.AGraph,
-        confounder_interference_HCGM_pygraphviz: pgv.AGraph
+    confounder_interference_HCM_pygraphviz: pgv.AGraph,
+    confounder_interference_HCGM_pygraphviz: pgv.AGraph,
 ):
     """Test that edges match between Figure 2(e) conversion and Figure 2 (f)."""
-    assert set((convert_to_HCGM(confounder_interference_HCM_pygraphviz)).edges()) == set(confounder_interference_HCGM_pygraphviz.edges())
+    assert set((convert_to_HCGM(confounder_interference_HCM_pygraphviz)).edges()) == set(
+        confounder_interference_HCGM_pygraphviz.edges()
+    )
+
 
 def test_instrument_convert_HCGM_units(
-        instrument_HCM_pygraphviz: pgv.AGraph,
-        instrument_HCGM_pygraphviz: pgv.AGraph
+    instrument_HCM_pygraphviz: pgv.AGraph, instrument_HCGM_pygraphviz: pgv.AGraph
 ):
     """Test that unit variables match between Figure 2(i) conversion and Figure 2 (j)."""
-    assert get_units(convert_to_HCGM(instrument_HCM_pygraphviz)) == get_units(instrument_HCGM_pygraphviz)
+    assert get_units(convert_to_HCGM(instrument_HCM_pygraphviz)) == get_units(
+        instrument_HCGM_pygraphviz
+    )
+
 
 def test_instrument_convert_HCGM_subunits(
-        instrument_HCM_pygraphviz: pgv.AGraph,
-        instrument_HCGM_pygraphviz: pgv.AGraph
+    instrument_HCM_pygraphviz: pgv.AGraph, instrument_HCGM_pygraphviz: pgv.AGraph
 ):
     """Test that subunit variables match between Figure 2(i) conversion and Figure 2 (j)."""
-    assert get_subunits(convert_to_HCGM(instrument_HCM_pygraphviz)) == get_subunits(instrument_HCGM_pygraphviz)
+    assert get_subunits(convert_to_HCGM(instrument_HCM_pygraphviz)) == get_subunits(
+        instrument_HCGM_pygraphviz
+    )
+
 
 def test_instrument_convert_HCGM_observed(
-        instrument_HCM_pygraphviz: pgv.AGraph,
-        instrument_HCGM_pygraphviz: pgv.AGraph
+    instrument_HCM_pygraphviz: pgv.AGraph, instrument_HCGM_pygraphviz: pgv.AGraph
 ):
     """Test that observed variables match between Figure 2(i) conversion and Figure 2 (j)."""
-    assert get_observed(convert_to_HCGM(instrument_HCM_pygraphviz)) == get_observed(instrument_HCGM_pygraphviz)
+    assert get_observed(convert_to_HCGM(instrument_HCM_pygraphviz)) == get_observed(
+        instrument_HCGM_pygraphviz
+    )
+
 
 def test_instrument_convert_HCGM_edges(
-        instrument_HCM_pygraphviz: pgv.AGraph,
-        instrument_HCGM_pygraphviz: pgv.AGraph
+    instrument_HCM_pygraphviz: pgv.AGraph, instrument_HCGM_pygraphviz: pgv.AGraph
 ):
     """Test that edges match between Figure 2(i) conversion and Figure 2 (j)."""
-    assert set((convert_to_HCGM(instrument_HCM_pygraphviz)).edges()) == set(instrument_HCGM_pygraphviz.edges())
+    assert set((convert_to_HCGM(instrument_HCM_pygraphviz)).edges()) == set(
+        instrument_HCGM_pygraphviz.edges()
+    )
 
 
 def test_direct_unit_descends_multi(direct_unit_descendents_fixt: pgv.AGraph):
