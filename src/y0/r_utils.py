@@ -1,11 +1,13 @@
 """General utilities for :mod:`rpy2`."""
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Callable, Iterable
 from functools import lru_cache, wraps
 from typing import Any, TypeVar, cast
 
-from rpy2.robjects.packages import importr, isinstalled
+from rpy2.robjects.packages import InstalledPackage, InstalledSTPackage, importr, isinstalled
 from rpy2.robjects.vectors import StrVector
 
 from .dsl import Variable
@@ -26,10 +28,11 @@ T = TypeVar("T")
 Func = Callable[..., T]
 
 
-def prepare_renv(requirements: Iterable[str]) -> None:
+def prepare_renv(requirements: Iterable[str]) -> list[InstalledSTPackage | InstalledPackage]:
     """Ensure the given R packages are installed.
 
-    :param requirements: A list of R packages to ensure are installed
+    :param requirements: A list of R package names to ensure are installed
+    :returns: A list of R packages
 
     .. seealso:: https://rpy2.github.io/doc/v3.4.x/html/introduction.html#installing-packages
     """
