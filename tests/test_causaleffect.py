@@ -9,7 +9,7 @@ from y0.examples import examples, verma_1
 
 try:
     from y0.causaleffect import r_get_verma_constraints
-    from y0.r_utils import CAUSALEFFECT, IGRAPH
+    from y0.r_utils import CAUSALEFFECT, IGRAPH, prepare_renv
     from y0.struct import VermaConstraint
 except ImportError:  # rpy2 is not installed
     missing_rpy2 = True
@@ -30,13 +30,10 @@ class TestCausalEffect(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         """Make imports for the class."""
-        from rpy2.robjects.packages import PackageNotInstalledError, importr
-
         try:
-            importr(CAUSALEFFECT)
-            importr(IGRAPH)
-        except PackageNotInstalledError:
-            raise unittest.SkipTest("R packages not properly installed.") from None
+            prepare_renv([CAUSALEFFECT, IGRAPH])
+        except Exception as e:
+            raise unittest.SkipTest(f"R packages not properly installed.\n\n{e}") from None
 
     def test_verma_constraint(self):
         """Test getting the single Verma constraint from the Figure 1A graph."""
