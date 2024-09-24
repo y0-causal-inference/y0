@@ -30,11 +30,9 @@ class TestCausalEffect(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         """Make imports for the class."""
-        from rpy2.robjects.packages import PackageNotInstalledError
-
         try:
             prepare_renv([CAUSALEFFECT, IGRAPH])
-        except PackageNotInstalledError as e:
+        except Exception as e:
             raise unittest.SkipTest(f"R packages not properly installed.\n\n{e}") from None
 
     def test_verma_constraint(self):
