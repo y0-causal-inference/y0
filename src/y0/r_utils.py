@@ -46,8 +46,7 @@ def prepare_renv(requirements: Iterable[str]) -> None:
         logger.warning("installing R packages: %s", uninstalled_requirements)
         utils.install_packages(StrVector(uninstalled_requirements))
 
-    for requirement in requirements:
-        importr(requirement)
+    return [importr(requirement) for requirement in requirements]
 
 
 @lru_cache(maxsize=1)

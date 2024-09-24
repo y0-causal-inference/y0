@@ -1,6 +1,7 @@
 """Test falsification of testable implications given a graph."""
 
 import unittest
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -19,7 +20,8 @@ class TestFalsification(unittest.TestCase):
         for method in [None, *get_conditional_independence_tests()]:
             if method == "pearson":
                 continue
-            with self.subTest(method=method):
+            with self.subTest(method=method), warnings.catch_warnings():
+                warnings.simplefilter(action="ignore", category=FutureWarning)
                 issues = get_graph_falsifications(
                     asia_example.graph, asia_example.data, method=method
                 )

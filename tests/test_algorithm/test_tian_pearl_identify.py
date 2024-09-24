@@ -240,7 +240,7 @@ class TestIdentify(cases.GraphTestCase):
             graph=soft_interventions_figure_1b_graph,
             topo=list(soft_interventions_figure_1b_graph.topological_sort()),
         )
-        logger.warning("Result of identify() call for test_identify_1 is " + result.to_latex())
+        logger.debug("Result of identify() call for test_identify_1 is " + result.to_latex())
         self.assert_expr_equal(result, PP[Pi1](Z | X1))
 
     def test_identify_2(self):
@@ -259,7 +259,7 @@ class TestIdentify(cases.GraphTestCase):
             graph=soft_interventions_figure_2a_graph,
             topo=list(soft_interventions_figure_2a_graph.topological_sort()),
         )
-        logger.warning("Result of identify() call for test_identify_2 part 1 is " + str(result1))
+        logger.debug("Result of identify() call for test_identify_2 part 1 is " + str(result1))
         self.assertIsNone(result1)
         result2 = identify_district_variables(
             input_variables=frozenset({Z, R}),
@@ -285,7 +285,7 @@ class TestIdentify(cases.GraphTestCase):
             graph=soft_interventions_figure_2d_graph,
             topo=list(soft_interventions_figure_2d_graph.topological_sort()),
         )
-        logger.warning("Result of identify() call for test_identify_3 is " + str(result1))
+        logger.debug("Result of identify() call for test_identify_3 is " + str(result1))
         self.assertIsNone(result1)
         result2 = identify_district_variables(
             input_variables=frozenset({Z, R}),
@@ -294,7 +294,7 @@ class TestIdentify(cases.GraphTestCase):
             graph=soft_interventions_figure_3_graph,
             topo=list(soft_interventions_figure_3_graph.topological_sort()),
         )
-        logger.warning("Result of identify() call for test_identify_3 is " + str(result2))
+        logger.debug("Result of identify() call for test_identify_3 is " + str(result2))
         self.assertIsNone(result2)
 
     def test_identify_4(self):
@@ -381,8 +381,8 @@ class TestIdentify(cases.GraphTestCase):
             graph=tian_pearl_figure_9a_graph,
             topo=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
-        logger.warning("Result from identify_district_variables: " + result_4.to_latex())
-        logger.warning("  Expected result: " + expected_result.to_latex())
+        logger.debug("Result from identify_district_variables: " + result_4.to_latex())
+        logger.debug("  Expected result: " + expected_result.to_latex())
         self.assert_expr_equal(result_4, expected_result)
 
 
@@ -523,11 +523,11 @@ class TestComputeCFactor(cases.GraphTestCase):
             subgraph_probability=subgraph_probability,
             graph_topo=topo,
         )
-        logger.warning(
+        logger.debug(
             "In test_compute_c_factor_5_with_population_probabilities: expected_result = "
             + expected_result_5.to_latex()
         )
-        logger.warning(
+        logger.debug(
             "In test_compute_c_factor_5_with_population_probabilities: result = "
             + result_5.to_latex()
         )
@@ -711,7 +711,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
             graph_probability=Sum.safe(self.result_piece, [W3]),
             topo=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
         )
-        logger.warning(
+        logger.debug(
             "In first test of Lemma 4(ii): expecting this result: " + str(self.expected_result_1)
         )
         self.assert_expr_equal(result, self.expected_result_1)
@@ -721,10 +721,10 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
         """
-        logger.warning(
+        logger.debug(
             "In second test of Lemma 4(ii): expecting this result: " + str(self.expected_result_2)
         )
-        logger.warning("Expected_result_1 = " + str(self.expected_result_1))
+        logger.debug("Expected_result_1 = " + str(self.expected_result_1))
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1, [W1]),
@@ -742,7 +742,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
             graph_probability=Sum.safe(self.result_piece_pp, [W3]),
             topo=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
         )
-        logger.warning(
+        logger.debug(
             "In first test of Lemma 4(ii): expecting this result: "
             + self.expected_result_1_pp.to_latex()
         )
@@ -753,17 +753,17 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
 
         Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
         """
-        logger.warning(
+        logger.debug(
             "In second test of Lemma 4(ii): expecting this result: "
             + self.expected_result_2.to_latex()
         )
-        logger.warning("Expected_result_1 = " + self.expected_result_1_pp.to_latex())
+        logger.debug("Expected_result_1 = " + self.expected_result_1_pp.to_latex())
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1_pp, [W1]),
             topo=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
         )
-        logger.warning("Expected result = " + self.expected_result_2_pp.to_latex())
+        logger.debug("Expected result = " + self.expected_result_2_pp.to_latex())
         self.assert_expr_equal(result, self.expected_result_2_pp)
 
 

@@ -460,7 +460,7 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
         test7_in = W @ +X
         test7_out = {W @ +X}
         result = get_ancestors_of_counterfactual(event=test7_in, graph=figure_2a_graph)
-        logger.warning("In test_7: result = " + str(result))
+        logger.debug("In test_7: result = " + str(result))
         self.assertTrue(variable in test7_out for variable in result)
 
 
@@ -506,7 +506,7 @@ class TestSimplify(cases.GraphTestCase):
         """
         event = [(Y @ -X, -Y), (Y @ -X, +Y)]
         result = simplify(event=event, graph=figure_2a_graph)
-        logger.warning("Result for test_inconsistent_1 is " + str(result))
+        logger.debug("Result for test_inconsistent_1 is " + str(result))
         self.assertIsNone(simplify(event=event, graph=figure_2a_graph))
 
     def test_inconsistent_2(self):
@@ -630,11 +630,11 @@ class TestSimplify(cases.GraphTestCase):
         nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
         nonreflexive_variable_to_value_mappings[Y @ -X].add(+Y)
 
-        logger.warning(
+        logger.debug(
             "In test_line_2_1: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_1: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -652,11 +652,11 @@ class TestSimplify(cases.GraphTestCase):
         nonreflexive_variable_to_value_mappings = defaultdict(set)
         nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
         nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
-        logger.warning(
+        logger.debug(
             "In test_line_2_2: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_2: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -674,11 +674,11 @@ class TestSimplify(cases.GraphTestCase):
         nonreflexive_variable_to_value_mappings = defaultdict(set)
         nonreflexive_variable_to_value_mappings[Y @ -X].add(None)
         nonreflexive_variable_to_value_mappings[Y @ -X].add(None)
-        logger.warning(
+        logger.debug(
             "In test_line_2_10: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_10: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -695,11 +695,11 @@ class TestSimplify(cases.GraphTestCase):
         reflexive_variable_to_value_mappings[Y @ -Y].add(+Y)
 
         nonreflexive_variable_to_value_mappings = defaultdict(set)
-        logger.warning(
+        logger.debug(
             "In test_line_2_3: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_3: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -721,11 +721,11 @@ class TestSimplify(cases.GraphTestCase):
         reflexive_variable_to_value_mappings[Y @ -Y].add(None)
 
         nonreflexive_variable_to_value_mappings = defaultdict(set)
-        logger.warning(
+        logger.debug(
             "In test_line_2_11: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_11: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -743,11 +743,11 @@ class TestSimplify(cases.GraphTestCase):
 
         nonreflexive_variable_to_value_mappings = defaultdict(set)
 
-        logger.warning(
+        logger.debug(
             "In test_line_2_4: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_4: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -764,11 +764,11 @@ class TestSimplify(cases.GraphTestCase):
         reflexive_variable_to_value_mappings[Y @ +Y].add(-Y)
 
         nonreflexive_variable_to_value_mappings = defaultdict(set)
-        logger.warning(
+        logger.debug(
             "In test_line_2_5: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_5: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -786,11 +786,11 @@ class TestSimplify(cases.GraphTestCase):
         nonreflexive_variable_to_value_mappings = defaultdict(set)
         nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
         nonreflexive_variable_to_value_mappings[Y @ -Z].add(+Y)
-        logger.warning(
+        logger.debug(
             "In test_line_2_6: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_6: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -810,11 +810,11 @@ class TestSimplify(cases.GraphTestCase):
 
         nonreflexive_variable_to_value_mappings = defaultdict(set)
 
-        logger.warning(
+        logger.debug(
             "In test_line_2_7: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_7: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -841,11 +841,11 @@ class TestSimplify(cases.GraphTestCase):
         nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
         nonreflexive_variable_to_value_mappings[Y @ -X].add(None)
 
-        logger.warning(
+        logger.debug(
             "In test_line_2_8: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_8: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -869,11 +869,11 @@ class TestSimplify(cases.GraphTestCase):
         nonreflexive_variable_to_value_mappings = defaultdict(set)
         nonreflexive_variable_to_value_mappings[Y @ -X].add(-Y)
 
-        logger.warning(
+        logger.debug(
             "In test_line_2_9: nonreflexive_variable_to_value_mappings = "
             + str(nonreflexive_variable_to_value_mappings)
         )
-        logger.warning(
+        logger.debug(
             "In test_line_2_9: reflexive_variable_to_value_mappings = "
             + str(reflexive_variable_to_value_mappings)
         )
@@ -1777,7 +1777,7 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
         ]
         domain_data = [({X}, PP[Pi1](W, X, Y, Z)), (set(), PP[Pi2](W, X, Y, Z))]
         expected_result = PP[Pi2](X | Z) * PP[Pi2](Z)
-        logger.warning(
+        logger.debug(
             "In test_transport_district_intervening_on_parents_2: expected_result is "
             + expected_result.to_latex()
         )
@@ -2485,8 +2485,8 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
             domain_graphs=domain_graphs,
             domain_data=domain_data,
         )
-        logger.warning("Result_expr = " + result_expr.to_latex())
-        logger.warning("Result_event = " + str(result_event))
+        logger.debug("Result_expr = " + result_expr.to_latex())
+        logger.debug("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result, result_expr)
 
     def test_transport_unconditional_counterfactual_query_2(self):
@@ -2550,8 +2550,8 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
             domain_graphs=domain_graphs,
             domain_data=domain_data,
         )
-        logger.warning("Result_expr = " + result_expr.to_latex())
-        logger.warning("Result_event = " + str(result_event))
+        logger.debug("Result_expr = " + result_expr.to_latex())
+        logger.debug("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result, result_expr)
         self.assertCountEqual(event, result_event)
         # Test sending variables with a value of None into this algorithm
@@ -3185,10 +3185,10 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             domain_graphs=self.example_1_domain_graphs,
             domain_data=domain_data,
         )
-        logger.warning("expected_result_expr = " + expected_result_expr.to_latex())
-        logger.warning("expected_result_event = " + str(expected_result_event))
-        logger.warning("Result_expr = " + result_expr.to_latex())
-        logger.warning("Result_event = " + str(result_event))
+        logger.debug("expected_result_expr = " + expected_result_expr.to_latex())
+        logger.debug("expected_result_event = " + str(expected_result_event))
+        logger.debug("Result_expr = " + result_expr.to_latex())
+        logger.debug("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result_expr, result_expr)
         self.assertCountEqual(expected_result_event, result_event)
 
@@ -3239,10 +3239,10 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             domain_graphs=self.example_2_domain_graphs,
             domain_data=domain_data,
         )
-        logger.warning("expected_result_expr = " + expected_result_expr.to_latex())
-        logger.warning("expected_result_event = " + str(expected_result_event))
-        logger.warning("Result_expr = " + result_expr.to_latex())
-        logger.warning("Result_event = " + str(result_event))
+        logger.debug("expected_result_expr = " + expected_result_expr.to_latex())
+        logger.debug("expected_result_event = " + str(expected_result_event))
+        logger.debug("Result_expr = " + result_expr.to_latex())
+        logger.debug("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result_expr, result_expr)
         self.assertCountEqual(expected_result_event, result_event)
 
@@ -3588,10 +3588,10 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             domain_graphs=self.example_1_domain_graphs,
             domain_data=domain_data,
         )
-        logger.warning("expected_result_expr = " + expected_result_expr.to_latex())
-        logger.warning("expected_result_event = " + str(expected_result_event))
-        logger.warning("Result_expr = " + result_expr.to_latex())
-        logger.warning("Result_event = " + str(result_event))
+        logger.debug("expected_result_expr = " + expected_result_expr.to_latex())
+        logger.debug("expected_result_event = " + str(expected_result_event))
+        logger.debug("Result_expr = " + result_expr.to_latex())
+        logger.debug("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result_expr, result_expr)
         self.assertCountEqual(expected_result_event, result_event)
 
@@ -3621,10 +3621,10 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             domain_graphs=self.example_1_domain_graphs,
             domain_data=domain_data,
         )
-        logger.warning("expected_result_expr = " + expected_result_expr.to_latex())
-        logger.warning("expected_result_event = " + str(expected_result_event))
-        logger.warning("Result_expr = " + result_expr.to_latex())
-        logger.warning("Result_event = " + str(result_event))
+        logger.debug("expected_result_expr = " + expected_result_expr.to_latex())
+        logger.debug("expected_result_event = " + str(expected_result_event))
+        logger.debug("Result_expr = " + result_expr.to_latex())
+        logger.debug("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result_expr, result_expr)
         self.assertCountEqual(expected_result_event, result_event)
 
@@ -6036,8 +6036,8 @@ class TestMergeFrozenSetsWithCommonElements(cases.GraphTestCase):
             input_sets=test_2_inputs, graph=graph_2
         )
         expected_result_2 = {frozenset([W, Y]), frozenset([X]), frozenset([W1]), frozenset([R, Z])}
-        logger.warning(str(expected_result_2))
-        logger.warning(str(result_2))
+        logger.debug(str(expected_result_2))
+        logger.debug(str(result_2))
         self.assertSetEqual(result_2, expected_result_2)
         graph_3 = NxMixedGraph.from_edges(directed=[], undirected=[(W, X), (X, Y), (R, Z), (W1, Y)])
         result_3 = _merge_frozen_sets_linked_by_bidirectional_edges(
