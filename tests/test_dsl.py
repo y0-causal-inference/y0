@@ -214,7 +214,7 @@ class TestDSL(unittest.TestCase):
         """Test generation of probabilities."""
         # Make sure there are children
         with self.assertRaises(ValueError):
-            Distribution(tuple())
+            Distribution(())
 
         self.assert_text("P(A)", P(A))
         self.assert_text("P(A)", P("A"))
@@ -284,7 +284,7 @@ class TestDSL(unittest.TestCase):
         with self.assertRaises(TypeError):
             Sum(P(A), (B @ C,))
         with self.assertRaises(TypeError):
-            Sum(P(A), tuple())
+            Sum(P(A), ())
         with self.assertRaises(ValueError):
             Sum(P(A), frozenset())
 

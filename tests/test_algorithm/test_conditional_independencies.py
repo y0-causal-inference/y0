@@ -81,7 +81,7 @@ class TestDSeparation(unittest.TestCase):
             nodes=("a", "b", "c"),
             directed=[("a", "c"), ("b", "c")],
         )
-        links = set(tuple(sorted(e)) for e in iter_moral_links(graph))
+        links = {tuple(sorted(e)) for e in iter_moral_links(graph)}
         self.assertEqual(
             {(Variable("a"), Variable("b"))},
             links,
@@ -92,7 +92,7 @@ class TestDSeparation(unittest.TestCase):
             nodes=("a", "b", "aa", "bb", "c"),
             directed=[("a", "c"), ("b", "c"), ("aa", "c"), ("bb", "c")],
         )
-        links = set(tuple(sorted(e)) for e in iter_moral_links(graph))
+        links = {tuple(sorted(e)) for e in iter_moral_links(graph)}
         self.assertEqual(
             {
                 (Variable("a"), Variable("b")),
@@ -110,7 +110,7 @@ class TestDSeparation(unittest.TestCase):
             nodes=("a", "b", "c", "d", "e"),
             directed=[("a", "c"), ("b", "c"), ("c", "e"), ("d", "e")],
         )
-        links = set(tuple(sorted(e)) for e in iter_moral_links(graph))
+        links = {tuple(sorted(e)) for e in iter_moral_links(graph)}
         self.assertEqual(
             {(Variable("a"), Variable("b")), (Variable("c"), Variable("d"))},
             links,

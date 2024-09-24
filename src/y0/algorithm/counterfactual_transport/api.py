@@ -403,7 +403,7 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     #       set star to None. Putting the check here means that we don't need separate checks
     #       in functions such as get_counterfactual_ancestors(), because the ctfTRu and ctfTR
     #       algorithms all call SIMPLIFY early in their processing.
-    if any([len(tup) != 2 for tup in event]):
+    if any(len(tup) != 2 for tup in event):
         raise TypeError(
             "Improperly formatted inputs for simplify(): an event element is a tuple with length not equal to 2."
         )
@@ -569,7 +569,7 @@ def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
     """
     if len(event) < 1:
         return True
-    visited_districts: set[frozenset] = {
+    visited_districts: set[frozenset[Variable]] = {
         graph.get_district(variable.get_base()) for variable in event
     }
     return len(visited_districts) == 1
@@ -1018,7 +1018,7 @@ def validate_inputs_for_transport_district_intervening_on_parents(  # noqa:C901
 
 def _no_intervention_variables_in_domain(
     *, district: Collection[Variable], interventions: Collection[Variable]
-):
+) -> bool:
     r"""Check that a district in a graph contains no intervention veriables.
 
     Helper function for the transport_district_intervening_on_parents algorithm
@@ -1033,7 +1033,7 @@ def _no_intervention_variables_in_domain(
 
 def _no_transportability_nodes_in_domain(
     *, district: Collection[Variable], domain_graph: NxMixedGraph
-):
+) -> bool:
     r"""Check that a district in a graph contains no transportability nodes.
 
     Helper function for the transport_district_intervening_on_parents algorithm from
@@ -1209,7 +1209,7 @@ def _transport_unconditional_counterfactual_query_line_2(
     # $W_{\ast}$
     for variable, _ in event:
         ancestral_set.update(get_ancestors_of_counterfactual(variable, graph))
-    outcome_value_dict = {variable: value for variable, value in event}
+    outcome_value_dict = dict(event)
     ancestral_set_with_values: set[tuple[Variable, Intervention | None]] = {
         (
             (variable, outcome_value_dict[variable])
@@ -1701,11 +1701,11 @@ class UnconditionalCFTResult(NamedTuple):
     expression: Expression
     event: Event | None
 
-    def display(self):
+    def display(self) -> None:
         """Display this result."""
         from IPython.display import display
 
-        display(event_to_probability(self.event))
+        display(event_to_probability(self.event))  # type:ignore
         display(self.expression)
 
 
@@ -1741,7 +1741,7 @@ def _event_from_counterfactuals_strict(
     return rv
 
 
-def _event_base(variable):
+def _event_base(variable: Variable) -> Variable:
     if isinstance(variable, CounterfactualVariable):
         return CounterfactualVariable(
             name=variable.name,
@@ -1895,7 +1895,7 @@ def transport_unconditional_counterfactual_query(
             )  # district_without_interventions
             for variable in district_without_interventions:
                 district_variables_and_their_parents.update(
-                    {v for v in target_domain_graph.directed.predecessors(variable.get_base())}
+                    set(target_domain_graph.directed.predecessors(variable.get_base()))
                 )
             district_variables_and_their_parents.update(district_without_interventions)
             logger.debug(
@@ -2271,11 +2271,11 @@ class ConditionalCFTResult(NamedTuple):
     expression: Expression
     event: list[tuple[Variable, Intervention]] | None
 
-    def display(self):
+    def display(self) -> None:
         """Display this result."""
         from IPython.display import display
 
-        display(event_to_probability(self.event))
+        display(event_to_probability(self.event))  # type:ignore
         display(self.expression)
 
 

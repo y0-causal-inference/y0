@@ -392,7 +392,9 @@ def activate_domain_and_interventions(
     raise NotImplementedError(f"Unhandled expression type: {type(expression)}")
 
 
-def all_transports_d_separated(graph, target_interventions, target_outcomes) -> bool:
+def all_transports_d_separated(
+    graph: NxMixedGraph, target_interventions: set[Variable], target_outcomes: set[Variable]
+) -> bool:
     """Check if all target_interventions are d-separated from target_outcomes.
 
     :param graph: The graph with transport nodes in this domain.
@@ -632,7 +634,7 @@ def trso(query: TRSOQuery) -> Expression | None:  # noqa:C901
     # district is C' districts should be D[C'], but we chose to return set of nodes instead of subgraph
     if len(query.active_interventions) == 0:
         # TRSO Line 6 could return an empty list and skip over the returns, allowing this line to be reached.
-        new_surrogate_interventions = dict()
+        new_surrogate_interventions = {}
     elif _pillow_has_transport(graph, target_district):
         return None
     else:

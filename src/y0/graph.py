@@ -30,6 +30,7 @@ from .dsl import (
 
 if TYPE_CHECKING:
     import ananke.graphs
+    import matplotlib.axes
     import pgmpy.inference.CausalInference
     import pgmpy.models
     import sympy
@@ -71,7 +72,7 @@ class NxMixedGraph:
     #: A undirected graph
     undirected: nx.Graph = field(default_factory=nx.Graph)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Process the graphs."""
         self.directed.graph[NO_SET_LATENT_FLAG] = True
         self.undirected.graph[NO_SET_LATENT_FLAG] = True
@@ -87,7 +88,7 @@ class NxMixedGraph:
 
     def __iter__(self) -> Iterable[Variable]:
         """Iterate over nodes in the graph."""
-        return iter(self.directed)
+        return iter(self.directed.nodes())  # type:ignore
 
     def __len__(self) -> int:
         """Count the nodes in the graph."""
@@ -97,7 +98,7 @@ class NxMixedGraph:
         """Check if the given item is a node in the graph."""
         return item in self.directed
 
-    def copy(self):
+    def copy(self) -> NxMixedGraph:
         """Get a copy of the graph."""
         return self.__class__(
             directed=self.directed.copy(),
@@ -122,7 +123,7 @@ class NxMixedGraph:
         self.directed.add_node(n)
         self.undirected.add_node(n)
 
-    def add_directed_edge(self, u: str | Variable, v: str | Variable, **attr) -> None:
+    def add_directed_edge(self, u: str | Variable, v: str | Variable, **attr: Any) -> None:
         """Add a directed edge from u to v."""
         u = Variable.norm(u)
         v = Variable.norm(v)
@@ -130,7 +131,7 @@ class NxMixedGraph:
         self.undirected.add_node(u)
         self.undirected.add_node(v)
 
-    def add_undirected_edge(self, u: str | Variable, v: str | Variable, **attr) -> None:
+    def add_undirected_edge(self, u: str | Variable, v: str | Variable, **attr: Any) -> None:
         """Add an undirected edge between u and v."""
         u = Variable.norm(u)
         v = Variable.norm(v)
@@ -217,7 +218,7 @@ class NxMixedGraph:
         return _LatexStr(r"\begin{align*}" + "\n ".join(latex_equations) + r"\end{align*}")
 
     @classmethod
-    def from_admg(cls, admg) -> NxMixedGraph:
+    def from_admg(cls, admg: ananke.graphs.ADMG) -> NxMixedGraph:
         """Create from an ananke ADMG."""
         return cls.from_str_edges(
             nodes=admg.vertices,
@@ -286,7 +287,7 @@ class NxMixedGraph:
         rv.add_edges_from(self.undirected.edges)
         return rv
 
-    def moralize(self):
+    def moralize(self) -> NxMixedGraph:
         """Moralize the graph.
 
         :returns: A moralized ADMG in which all nodes $U$ and $v$ that are parents of some
@@ -301,7 +302,11 @@ class NxMixedGraph:
         return rv
 
     def draw(
-        self, ax=None, title: str | None = None, prog: str | None = None, latex: bool = True
+        self,
+        ax: None | matplotlib.axes.Axes = None,
+        title: str | None = None,
+        prog: str | None = None,
+        latex: bool = True,
     ) -> None:
         """Render the graph using matplotlib.
 
@@ -374,7 +379,7 @@ class NxMixedGraph:
         ax.axis("off")
 
     @classmethod
-    def from_causaleffect(cls, graph) -> NxMixedGraph:
+    def from_causaleffect(cls, graph: Any) -> NxMixedGraph:
         """Construct an instance from a causaleffect R graph."""
         raise NotImplementedError
 
@@ -466,10 +471,11 @@ class NxMixedGraph:
         )
 
     @classmethod
-    @open_file(1)
+    @open_file(1)  # type:ignore
     def from_causalfusion_path(cls, file) -> NxMixedGraph:
         """Load a graph from a CausalFusion JSON file."""
-        return cls.from_causalfusion_json(json.load(file))
+        data = json.load(file)
+        return cls.from_causalfusion_json(data)
 
     @classmethod
     def from_causalfusion_json(cls, data: Mapping[str, Any]) -> NxMixedGraph:
@@ -511,7 +517,9 @@ class NxMixedGraph:
             undirected=_exclude_adjacent(self.undirected, vertices),
         )
 
-    def get_intervened_ancestors(self, interventions, outcomes) -> set[Variable]:
+    def get_intervened_ancestors(
+        self, interventions: Variable | set[Variable], outcomes: Variable | set[Variable]
+    ) -> set[Variable]:
         """Get the ancestors of outcomes in a graph that has been intervened on.
 
         :param interventions: a set of interventions in the graph
@@ -520,14 +528,20 @@ class NxMixedGraph:
         """
         return self.remove_in_edges(interventions).ancestors_inclusive(outcomes)
 
-    def get_no_effect_on_outcomes(self, interventions, outcomes) -> set[Variable]:
+    def get_no_effect_on_outcomes(
+        self, interventions: set[Variable], outcomes: set[Variable]
+    ) -> set[Variable]:
         """Find nodes in the graph which have no effect on the outcomes.
 
         :param interventions: a set of interventions in the graph
         :param outcomes: a set of outcomes in the graph
         :returns: Set of nodes
         """
-        return self.nodes() - interventions - self.get_intervened_ancestors(interventions, outcomes)
+        return (
+            set(self.nodes())
+            - interventions
+            - self.get_intervened_ancestors(interventions, outcomes)
+        )
 
     def remove_nodes_from(self, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
         """Return a subgraph that does not contain any of the specified vertices.
@@ -587,7 +601,7 @@ class NxMixedGraph:
 
     def is_connected(self) -> bool:
         """Return if there is only a single connected component in the undirected graph."""
-        return nx.is_connected(self.undirected)
+        return cast(bool, nx.is_connected(self.undirected))
 
     def intervene(self, variables: set[Intervention]) -> NxMixedGraph:
         """Intervene on the given variables.
@@ -670,7 +684,7 @@ class NxMixedGraph:
 
 
 class _LatexStr(str):
-    def _repr_latex_(self):
+    def _repr_latex_(self) -> str:
         return self
 
 
@@ -781,7 +795,7 @@ def set_latent(
         data[tag] = node in latent_nodes
 
 
-def _get_latex(node) -> str:
+def _get_latex(node: str | Variable) -> str:
     if isinstance(node, str):
         from y0.parser import parse_y0
 
@@ -806,21 +820,24 @@ def _ensure_set(vertices: Variable | Iterable[Variable]) -> set[Variable]:
     return rv
 
 
-def _layout(self, prog):
+LayoutDict = dict[Variable, tuple[float, float]]
+
+
+def _layout(self: NxMixedGraph, prog: str) -> LayoutDict:
     joint = self.joint()
     try:
-        layout = nx.nx_agraph.pygraphviz_layout(joint, prog=prog)
+        layout = cast(LayoutDict, nx.nx_agraph.pygraphviz_layout(joint, prog=prog))
     except ImportError:
         pass
     else:
         return layout
     try:
-        layout = nx.nx_pydot.pydot_layout(joint, prog=prog)
+        layout = cast(LayoutDict, nx.nx_pydot.pydot_layout(joint, prog=prog))
     except (ImportError, IndexError):
         pass
     else:
         return layout
-    return nx.spring_layout(joint)
+    return cast(LayoutDict, nx.spring_layout(joint))
 
 
 def is_a_fixable(graph: NxMixedGraph, treatments: Variable | Collection[Variable]) -> bool:
@@ -900,7 +917,7 @@ def get_district_and_predecessors(
     graph: NxMixedGraph,
     nodes: Iterable[Variable],
     topological_sort_order: Sequence[Variable] | None = None,
-):
+) -> set[Variable]:
     """Get the union of district, predecessors and predecessors of district for a given set of nodes.
 
     This code was adapted from :mod:`ananke` ananke code at:

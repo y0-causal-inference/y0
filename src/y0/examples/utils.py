@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Any, cast
 
 import pandas as pd
 
@@ -42,7 +43,7 @@ class Example:
         outcome: Variable,
         treatment_0: float = 0.0,
         treatment_1: float = 1.0,
-        **kwargs,
+        **kwargs: Any,
     ) -> float:
         """Calculate the ATE for a single treatment/outcome pair."""
         if self.generate_data is None:
@@ -50,4 +51,4 @@ class Example:
 
         data_1 = self.generate_data(num_samples, {treatment: treatment_1}, **kwargs)
         data_0 = self.generate_data(num_samples, {treatment: treatment_0}, **kwargs)
-        return data_1.mean()[outcome.name] - data_0.mean()[outcome.name]
+        return cast(float, data_1.mean()[outcome.name] - data_0.mean()[outcome.name])

@@ -1,6 +1,7 @@
 """Tests for chain mutations."""
 
 import unittest
+import warnings
 
 from y0.dsl import A, B, P, Sum, W, X, Y, Z
 from y0.mutate import bayes_expand, chain_expand, fraction_expand
@@ -42,7 +43,10 @@ class TestChain(unittest.TestCase):
 
     def test_bayes_expand(self):
         """Test expanding a conditional using extended Bayes' Theorem."""
-        self.assertEqual(P(A, X), bayes_expand(P(A, X)))
-        self.assertEqual(P(A, X) / Sum[A](P(A, X)), bayes_expand(P(A | X)))
-        self.assertEqual(P(A, X, Y) / Sum[A](P(A, X, Y)), bayes_expand(P(A | (X, Y))))
-        self.assertEqual(P(A, B, X, Y) / Sum[A, B](P(A, B, X, Y)), bayes_expand(P(A & B | (X, Y))))
+        with warnings.catch_warnings():
+            self.assertEqual(P(A, X), bayes_expand(P(A, X)))
+            self.assertEqual(P(A, X) / Sum[A](P(A, X)), bayes_expand(P(A | X)))
+            self.assertEqual(P(A, X, Y) / Sum[A](P(A, X, Y)), bayes_expand(P(A | (X, Y))))
+            self.assertEqual(
+                P(A, B, X, Y) / Sum[A, B](P(A, B, X, Y)), bayes_expand(P(A & B | (X, Y)))
+            )

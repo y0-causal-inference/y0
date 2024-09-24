@@ -10,8 +10,8 @@ __all__ = [
 ]
 
 
-def _r_exp(x):
-    return 1 / (1 + np.exp(x))
+def _r_exp(x: float) -> float:
+    return 1 / (1 + np.exp(x))  # type:ignore
 
 
 def generate_data_for_backdoor(

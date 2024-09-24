@@ -1,6 +1,7 @@
 """Utilities for structural causal models (SCMs)."""
 
 from statistics import fmean
+from typing import cast
 
 import pandas as pd
 import sympy
@@ -14,6 +15,8 @@ __all__ = [
     "evaluate_admg",
     "evaluate_lscm",
 ]
+
+EvalRv = dict[sympy.Symbol, sympy.core.numbers.Rational]
 
 
 def get_single_door(
@@ -42,7 +45,7 @@ def get_single_door(
     return rv
 
 
-def evaluate_admg(graph, data: pd.DataFrame):
+def evaluate_admg(graph: NxMixedGraph, data: pd.DataFrame) -> EvalRv:
     """Evaluate an acyclic directed mixed graph (ADMG)."""
     params = {
         sympy_nested("\\beta", source, target): mean
@@ -54,19 +57,19 @@ def evaluate_admg(graph, data: pd.DataFrame):
 
 def evaluate_lscm(
     linear_scm: dict[Variable, sympy.Expr], params: dict[sympy.Symbol, float]
-) -> dict[sympy.Symbol, sympy.core.numbers.Rational]:
+) -> EvalRv:
     """Assign values to the parameters and return variable assignments dictionary."""
     expressions: dict[sympy.Symbol, sympy.Expr] = {
         variable.to_sympy(): expression for variable, expression in linear_scm.items()
     }
     eqns = [sympy.Eq(lhs.subs(params), rhs.subs(params)) for lhs, rhs in expressions.items()]
-    return sympy.solve(eqns, list(expressions))
+    return cast(EvalRv, sympy.solve(eqns, list(expressions)))
 
 
-def _main():
+def _main() -> None:
     import warnings
 
-    from y0.examples import examples
+    from y0.examples import examples  # type:ignore[attr-defined]
 
     warnings.filterwarnings("ignore")
 

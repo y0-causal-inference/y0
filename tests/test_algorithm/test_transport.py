@@ -636,7 +636,7 @@ class TestTransport(_TestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
         district1 = {Y2}
-        new_surrogate_interventions = dict()
+        new_surrogate_interventions = {}
         line10_actual1 = trso_line10(line10_query1, district1, new_surrogate_interventions)
 
         ordering = list(line10_query1.graphs[Pi2].topological_sort())
@@ -657,7 +657,7 @@ class TestTransport(_TestCase):
                 Pi1: graph_1.subgraph({W, X1, Y2, Z}),
                 Pi2: graph_2.subgraph({Y2}),
             },
-            surrogate_interventions=dict(),
+            surrogate_interventions={},
         )
 
         self.assertEqual(line10_expected1, line10_actual1)

@@ -15,7 +15,7 @@ from pyparsing import (
 from ...dsl import Distribution, Probability, QFactor, Variable, _sorted_variables
 
 
-def _make_variable(_s, _l, tokens: ParseResults) -> Variable:
+def _make_variable(_s, _l, tokens: ParseResults) -> Variable:  # type:ignore[no-untyped-def]
     name = tokens["name"]
     if "subscript" in tokens:
         name += "_" + tokens["subscript"]
@@ -28,7 +28,7 @@ variable_pe.setParseAction(_make_variable)
 variable_pe.setName("variable")
 
 
-def _unpack(_s, _l, tokens: ParseResults):
+def _unpack(_s, _l, tokens: ParseResults):  # type:ignore[no-untyped-def]
     return tokens[0]
 
 
@@ -38,7 +38,7 @@ _parents_pe = Group(Optional(Suppress("|") + variables_pe)).setResultsName("pare
 probability_pe = Suppress("P(") + _children_pe + _parents_pe + Suppress(")")
 
 
-def _make_probability(_s, _l, tokens: ParseResults) -> Probability:
+def _make_probability(_s, _l, tokens: ParseResults) -> Probability:  # type:ignore[no-untyped-def]
     return Probability(
         Distribution(
             children=_sorted_variables(tokens["children"].asList()),
@@ -59,7 +59,7 @@ qfactor_pe = (
 )
 
 
-def _make_q(_s, _l, tokens: ParseResults) -> QFactor:
+def _make_q(_s, _l, tokens: ParseResults) -> QFactor:  # type:ignore[no-untyped-def]
     return QFactor(
         codomain=frozenset(tokens["codomain"].asList()),
         domain=frozenset(tokens["domain"].asList()),
