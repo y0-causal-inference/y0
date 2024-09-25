@@ -196,11 +196,6 @@ def direct_unit_descendents(HCM: pgv.AGraph, subunit_node: pgv.Node) -> set[pgv.
             descendents = set()
             for nd in next_descendents:
                 descendents.update(HCM.successors(nd))
-                # try:
-                #     descendents.add(*HCM.successors(nd))
-                # except TypeError:
-                #     pass
-            # descendents = list(descendents)
     return duds
 
 
@@ -245,14 +240,14 @@ def augment_collapsed_model(
     if not mechanism <= collapsed.nodes():
         raise ValueError("The input mechanism must be contained in the collapsed model.")
     aug = augmentation_variable
-    augmented.add_node(aug)
+    augmented.add_node(aug) 
     for var in mechanism:
         augmented.add_directed_edge(var, aug)
     for var in set(augmented.nodes()) - {aug}:
         parents = set(augmented.directed.predecessors(var))
         if mechanism <= parents:
             augmented.add_directed_edge(aug, var)
-            for parent in parents:
+            for parent in mechanism:
                 augmented.directed.remove_edge(parent, var)
     return augmented
 
