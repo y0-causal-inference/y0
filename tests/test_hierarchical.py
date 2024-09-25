@@ -424,8 +424,7 @@ def test_parents_empty(confounder_interference_HCM_pygraphviz: pgv.AGraph):
 def test_Qvar_with_parents():
     """Test generic case with multiple subunit parents."""
     HCM = HCM_from_lists(obs_subunits=["A", "Y", "Z"], edges=[("A", "Y"), ("Z", "Y")])
-    # don't care about order of a,z so include both because sets are unordered
-    assert create_Qvar(HCM, "Y") in (Variable("Q_{y|a,z}"), Variable("Q_{y|z,a}"))
+    assert create_Qvar(HCM, "Y") == Variable("Q_{y|a,z}")
 
 
 def test_Qvar_no_parents(confounder_interference_HCM_pygraphviz: pgv.AGraph):
