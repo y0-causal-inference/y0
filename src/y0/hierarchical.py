@@ -125,7 +125,7 @@ def _node_string(nodes: Iterable[pgv.Node]) -> str:
 def create_Qvar(HCM: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
     """Return a y0 Variable for the unit-level Q variable of the given subunit variable in the HCM."""
     subunit_parents = parents(HCM, subunit_node) & get_subunits(HCM)
-    parent_str = _node_string(subunit_parents)
+    parent_str = _node_string(sorted(subunit_parents))
     if parent_str == "":
         Q_str = "Q_" + subunit_node.lower()
     else:
