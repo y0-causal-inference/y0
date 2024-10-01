@@ -23,7 +23,7 @@ from y0.hierarchical import (
 
 
 @pytest.fixture
-def confounder_HCM_pygraphviz():
+def confounder_HCM_pygraphviz() -> pgv.AGraph:
     """Pytest fixture for the Confounder HCM in Figure 2 (a)."""
     HCM = pgv.AGraph(directed=True)
     HCM.add_node("A", style="filled", color="lightgrey")
@@ -36,7 +36,7 @@ def confounder_HCM_pygraphviz():
 
 
 @pytest.fixture
-def confounder_HCGM_pygraphviz():
+def confounder_HCGM_pygraphviz() -> pgv.AGraph:
     """Pytest fixture for the Confounder HCGM in Figure 2 (b)."""
     HCM = pgv.AGraph(directed=True)
     HCM.add_node("A", style="filled", color="lightgrey")
@@ -53,7 +53,7 @@ def confounder_HCGM_pygraphviz():
 
 
 @pytest.fixture
-def confounder_interference_HCM_pygraphviz():
+def confounder_interference_HCM_pygraphviz() -> pgv.AGraph:
     """Pytest fixture for the Confounder Interference HCM in Figure 2 (e)."""
     HCM = pgv.AGraph(directed=True)
     HCM.add_node("A", style="filled", color="lightgrey")
@@ -69,7 +69,7 @@ def confounder_interference_HCM_pygraphviz():
 
 
 @pytest.fixture
-def confounder_interference_HCGM_pygraphviz():
+def confounder_interference_HCGM_pygraphviz() -> pgv.AGraph:
     """Pytest fixture for the Confounder Interference HCGM in FIgure 2 (f)."""
     HCM = pgv.AGraph(directed=True)
     HCM.add_node("A", style="filled", color="lightgrey")
@@ -89,7 +89,7 @@ def confounder_interference_HCGM_pygraphviz():
 
 
 @pytest.fixture
-def instrument_HCM_pygraphviz():
+def instrument_HCM_pygraphviz() -> pgv.AGraph:
     """Pytest fixture for the Instrument HCM in Figure 2 (i)."""
     HCM = pgv.AGraph(directed=True)
     HCM.add_node("A", style="filled", color="lightgrey")
@@ -104,7 +104,7 @@ def instrument_HCM_pygraphviz():
 
 
 @pytest.fixture
-def instrument_HCGM_pygraphviz():
+def instrument_HCGM_pygraphviz() -> pgv.AGraph:
     """Pytest fixture for the Instrument HCGM in Figure 2(j)."""
     HCM = pgv.AGraph(directed=True)
     HCM.add_node("A", style="filled", color="lightgrey")
@@ -122,62 +122,70 @@ def instrument_HCGM_pygraphviz():
     return HCM
 
 
-def test_get_observed_confounder(confounder_HCM_pygraphviz: pgv.AGraph):
+def test_get_observed_confounder(confounder_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test observed variables in Confounder HCM fixture."""
     assert get_observed(confounder_HCM_pygraphviz) == {"A", "Y"}
 
 
-def test_get_observed_confounder_interference(confounder_interference_HCM_pygraphviz: pgv.AGraph):
+def test_get_observed_confounder_interference(
+    confounder_interference_HCM_pygraphviz: pgv.AGraph,
+) -> None:
     """Test observed variables in Confounder Interference HCM fixture."""
     assert get_observed(confounder_interference_HCM_pygraphviz) == {"A", "Y", "Z"}
 
 
-def test_get_observed_instrument(instrument_HCM_pygraphviz: pgv.AGraph):
+def test_get_observed_instrument(instrument_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test observed variables in Instrument HCM fixture."""
     assert get_observed(instrument_HCM_pygraphviz) == {"A", "Y", "Z"}
 
 
-def test_get_unobserved_confounder(confounder_HCM_pygraphviz: pgv.AGraph):
+def test_get_unobserved_confounder(confounder_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test unobserved variables in Confounder HCM fixture."""
     assert get_unobserved(confounder_HCM_pygraphviz) == {"U"}
 
 
-def test_get_unobserved_confounder_interference(confounder_interference_HCM_pygraphviz: pgv.AGraph):
+def test_get_unobserved_confounder_interference(
+    confounder_interference_HCM_pygraphviz: pgv.AGraph,
+) -> None:
     """Test unobserved variables in Confounder Interference HCM fixture."""
     assert get_unobserved(confounder_interference_HCM_pygraphviz) == {"U"}
 
 
-def test_get_unobserved_instrument(instrument_HCM_pygraphviz: pgv.AGraph):
+def test_get_unobserved_instrument(instrument_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test unobserved variables in Instrument HCM fixture."""
     assert get_unobserved(instrument_HCM_pygraphviz) == {"U"}
 
 
-def test_get_units_confounder(confounder_HCM_pygraphviz: pgv.AGraph):
+def test_get_units_confounder(confounder_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test unit variables in Confounder HCM fixture."""
     assert get_units(confounder_HCM_pygraphviz) == {"U"}
 
 
-def test_get_units_confounder_interference(confounder_interference_HCM_pygraphviz: pgv.AGraph):
+def test_get_units_confounder_interference(
+    confounder_interference_HCM_pygraphviz: pgv.AGraph,
+) -> None:
     """Test unit variables in Confounder Interference HCM fixture."""
     assert get_units(confounder_interference_HCM_pygraphviz) == {"U", "Z"}
 
 
-def test_get_units_instrument(instrument_HCM_pygraphviz: pgv.AGraph):
+def test_get_units_instrument(instrument_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test unit variables in Instrument HCM fixture."""
     assert get_units(instrument_HCM_pygraphviz) == {"U", "Y"}
 
 
-def test_get_subunits_confounder(confounder_HCM_pygraphviz: pgv.AGraph):
+def test_get_subunits_confounder(confounder_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test subunit variables in Confounder HCM fixture."""
     assert get_subunits(confounder_HCM_pygraphviz) == {"A", "Y"}
 
 
-def test_get_subunits_confounder_interference(confounder_interference_HCM_pygraphviz: pgv.AGraph):
+def test_get_subunits_confounder_interference(
+    confounder_interference_HCM_pygraphviz: pgv.AGraph,
+) -> None:
     """Test subunit variables in Confounder Interference HCM fixture."""
     assert get_subunits(confounder_interference_HCM_pygraphviz) == {"A", "Y"}
 
 
-def test_get_subunits_instrument(instrument_HCM_pygraphviz: pgv.AGraph):
+def test_get_subunits_instrument(instrument_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test subunit variables in Instrument HCM fixture."""
     assert get_subunits(instrument_HCM_pygraphviz) == {"A", "Z"}
 
@@ -186,30 +194,30 @@ class TestFromListsConfounder:
     """Test HCM construction from lists for Confounder fixture."""
 
     @pytest.fixture(autouse=True)
-    def HCM_fixt(self):
+    def HCM_fixt(self) -> None:
         """Pytest fixture from lists, to compare against 'by-hand' fixture."""
         obs_sub = ["A", "Y"]
         unobs_unit = ["U"]
         edges = [("U", "A"), ("A", "Y"), ("U", "Y")]
         self.HCM = HCM_from_lists(obs_subunits=obs_sub, unobs_units=unobs_unit, edges=edges)
 
-    def test_observed_nodes(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def test_observed_nodes(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct observed variables."""
         assert get_observed(self.HCM) == get_observed(confounder_HCM_pygraphviz)
 
-    def test_unobserved_nodes(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def test_unobserved_nodes(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unobserved variables."""
         assert get_unobserved(self.HCM) == get_unobserved(confounder_HCM_pygraphviz)
 
-    def test_units(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def test_units(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unit variables."""
         assert get_units(self.HCM) == get_units(confounder_HCM_pygraphviz)
 
-    def test_subunits(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def test_subunits(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct subunit variables."""
         assert get_subunits(self.HCM) == get_subunits(confounder_HCM_pygraphviz)
 
-    def test_edges(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def test_edges(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct edges."""
         assert set(self.HCM.edges()) == set(confounder_HCM_pygraphviz.edges())
 
@@ -218,7 +226,7 @@ class TestFromListsConfounderInterference:
     """Test HCM construction from lists for Confounder Interference fixture."""
 
     @pytest.fixture(autouse=True)
-    def HCM_fixt(self):
+    def HCM_fixt(self) -> None:
         """Pytest fixture from lists, to compre against 'by-hand' fixture."""
         obs_sub = ["A", "Y"]
         obs_units = ["Z"]
@@ -228,23 +236,23 @@ class TestFromListsConfounderInterference:
             obs_subunits=obs_sub, obs_units=obs_units, unobs_units=unobs_units, edges=edges
         )
 
-    def test_observed_nodes(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def test_observed_nodes(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct observed variables."""
         assert get_observed(self.HCM) == get_observed(confounder_interference_HCM_pygraphviz)
 
-    def test_unobserved_nodes(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def test_unobserved_nodes(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unobserved variables."""
         assert get_unobserved(self.HCM) == get_unobserved(confounder_interference_HCM_pygraphviz)
 
-    def test_units(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def test_units(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unit variables."""
         assert get_units(self.HCM) == get_units(confounder_interference_HCM_pygraphviz)
 
-    def test_subunits(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def test_subunits(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct subunit variables."""
         assert get_subunits(self.HCM) == get_subunits(confounder_interference_HCM_pygraphviz)
 
-    def test_edges(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def test_edges(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct edges."""
         assert set(self.HCM.edges()) == set(confounder_interference_HCM_pygraphviz.edges())
 
@@ -253,7 +261,7 @@ class TestFromListsInstrument:
     """Test HCM construction from lists for Instrument fixture."""
 
     @pytest.fixture(autouse=True)
-    def HCM_fixt(self):
+    def HCM_fixt(self) -> None:
         """Pytest fixture from lists, to compare against 'by-hand' fixture."""
         obs_sub = ["A", "Z"]
         obs_units = ["Y"]
@@ -263,23 +271,23 @@ class TestFromListsInstrument:
             obs_subunits=obs_sub, obs_units=obs_units, unobs_units=unobs_units, edges=edges
         )
 
-    def test_observed_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def test_observed_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct observed variables."""
         assert get_observed(self.HCM) == get_observed(instrument_HCM_pygraphviz)
 
-    def test_unobserved_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def test_unobserved_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unobserved variables."""
         assert get_unobserved(self.HCM) == get_unobserved(instrument_HCM_pygraphviz)
 
-    def test_units(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def test_units(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unit variables."""
         assert get_units(self.HCM) == get_units(instrument_HCM_pygraphviz)
 
-    def test_subunits(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def test_subunits(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct subunit variables."""
         assert get_subunits(self.HCM) == get_subunits(instrument_HCM_pygraphviz)
 
-    def test_edges(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def test_edges(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct edges."""
         assert set(self.HCM.edges()) == set(instrument_HCM_pygraphviz.edges())
 
@@ -288,27 +296,27 @@ class TestCopyConfounder:
     """Test copy HCM for Confounder fixture."""
 
     @pytest.fixture(autouse=True)
-    def HCM_fixt(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def HCM_fixt(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Pytest fixture from lists, to compare against 'by-hand' fixture."""
         self.HCM = copy_HCM(confounder_HCM_pygraphviz)
 
-    def test_observed_nodes(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def test_observed_nodes(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct observed variables."""
         assert get_observed(self.HCM) == get_observed(confounder_HCM_pygraphviz)
 
-    def test_unobserved_nodes(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def test_unobserved_nodes(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unobserved variables."""
         assert get_unobserved(self.HCM) == get_unobserved(confounder_HCM_pygraphviz)
 
-    def test_units(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def test_units(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unit variables."""
         assert get_units(self.HCM) == get_units(confounder_HCM_pygraphviz)
 
-    def test_subunits(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def test_subunits(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct subunit variables."""
         assert get_subunits(self.HCM) == get_subunits(confounder_HCM_pygraphviz)
 
-    def test_edges(self, confounder_HCM_pygraphviz: pgv.AGraph):
+    def test_edges(self, confounder_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct edges."""
         assert set(self.HCM.edges()) == set(confounder_HCM_pygraphviz.edges())
 
@@ -317,27 +325,27 @@ class TestCopyConfounderInterference:
     """Test copy HCM for Confounder Interference fixture."""
 
     @pytest.fixture(autouse=True)
-    def HCM_fixt(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def HCM_fixt(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Pytest fixture from lists, to compare against 'by-hand' fixture."""
         self.HCM = copy_HCM(confounder_interference_HCM_pygraphviz)
 
-    def test_observed_nodes(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def test_observed_nodes(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct observed variables."""
         assert get_observed(self.HCM) == get_observed(confounder_interference_HCM_pygraphviz)
 
-    def test_unobserved_nodes(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def test_unobserved_nodes(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unobserved variables."""
         assert get_unobserved(self.HCM) == get_unobserved(confounder_interference_HCM_pygraphviz)
 
-    def test_units(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def test_units(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unit variables."""
         assert get_units(self.HCM) == get_units(confounder_interference_HCM_pygraphviz)
 
-    def test_subunits(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def test_subunits(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct subunit variables."""
         assert get_subunits(self.HCM) == get_subunits(confounder_interference_HCM_pygraphviz)
 
-    def test_edges(self, confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    def test_edges(self, confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct edges."""
         assert set(self.HCM.edges()) == set(confounder_interference_HCM_pygraphviz.edges())
 
@@ -346,27 +354,27 @@ class TestCopyInstrument:
     """Test copy HCM for Instrument fixture."""
 
     @pytest.fixture(autouse=True)
-    def HCM_fixt(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def HCM_fixt(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Pytest fixture from lists, to compare against 'by-hand' fixture."""
         self.HCM = copy_HCM(instrument_HCM_pygraphviz)
 
-    def test_observed_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def test_observed_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct observed variables."""
         assert get_observed(self.HCM) == get_observed(instrument_HCM_pygraphviz)
 
-    def test_unobserved_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def test_unobserved_nodes(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unobserved variables."""
         assert get_unobserved(self.HCM) == get_unobserved(instrument_HCM_pygraphviz)
 
-    def test_units(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def test_units(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct unit variables."""
         assert get_units(self.HCM) == get_units(instrument_HCM_pygraphviz)
 
-    def test_subunits(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def test_subunits(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct subunit variables."""
         assert get_subunits(self.HCM) == get_subunits(instrument_HCM_pygraphviz)
 
-    def test_edges(self, instrument_HCM_pygraphviz: pgv.AGraph):
+    def test_edges(self, instrument_HCM_pygraphviz: pgv.AGraph) -> None:
         """Test for correct edges."""
         assert set(self.HCM.edges()) == set(instrument_HCM_pygraphviz.edges())
 
@@ -375,7 +383,7 @@ class TestCopyInstrument:
 
 
 @pytest.fixture
-def confounder_collapsed_nxmixedgraph():
+def confounder_collapsed_nxmixedgraph() -> NxMixedGraph:
     """Pytest fixture for collapsed Confounder HCM in Figure 2 (c)."""
     Qa = Variable("Q_a")
     Qya = Variable("Q_{y|a}")
@@ -383,7 +391,7 @@ def confounder_collapsed_nxmixedgraph():
 
 
 @pytest.fixture
-def confounder_interference_collapsed_nxmixedgraph():
+def confounder_interference_collapsed_nxmixedgraph() -> NxMixedGraph:
     """Pytest fixture for collapsed Confounder Interference HCM in Figure 2 (g)."""
     Qa = Variable("Q_a")
     Qya = Variable("Q_{y|a}")
@@ -392,7 +400,7 @@ def confounder_interference_collapsed_nxmixedgraph():
 
 
 @pytest.fixture
-def instrument_collapsed_nxmixedgraph():
+def instrument_collapsed_nxmixedgraph() -> NxMixedGraph:
     """Pytest fixture for collapsed Instrument HCM in Figure 2 (k)."""
     Qaz = Variable("Q_{a|z}")
     Y = Variable("Y")
@@ -401,7 +409,7 @@ def instrument_collapsed_nxmixedgraph():
 
 
 @pytest.fixture
-def direct_unit_descendents_fixt():
+def direct_unit_descendents_fixt() -> pgv.AGraph:
     """Pytest fixture to test generic and edge cases of direct unit descendents."""
     obs_sub = ["1", "2", "3", "4", "6", "7"]
     obs_units = ["5", "8"]
@@ -409,25 +417,25 @@ def direct_unit_descendents_fixt():
     return HCM_from_lists(obs_subunits=obs_sub, obs_units=obs_units, edges=edges)
 
 
-def test_parents_three(confounder_interference_HCM_pygraphviz: pgv.AGraph):
+def test_parents_three(confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test generic case with three parents."""
     HCM = confounder_interference_HCM_pygraphviz
     assert parents(HCM, "Y") == {"U", "A", "Z"}
 
 
-def test_parents_empty(confounder_interference_HCM_pygraphviz: pgv.AGraph):
+def test_parents_empty(confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test case for no parents."""
     HCM = confounder_interference_HCM_pygraphviz
     assert parents(HCM, "U") == set()
 
 
-def test_Qvar_with_parents():
+def test_Qvar_with_parents() -> None:
     """Test generic case with multiple subunit parents."""
     HCM = HCM_from_lists(obs_subunits=["A", "Y", "Z"], edges=[("A", "Y"), ("Z", "Y")])
     assert create_Qvar(HCM, "Y") == Variable("Q_{y|a,z}")
 
 
-def test_Qvar_no_parents(confounder_interference_HCM_pygraphviz: pgv.AGraph):
+def test_Qvar_no_parents(confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test case when there are no subunit parents."""
     HCM = confounder_interference_HCM_pygraphviz
     assert create_Qvar(HCM, "A") == Variable("Q_a")
@@ -435,7 +443,7 @@ def test_Qvar_no_parents(confounder_interference_HCM_pygraphviz: pgv.AGraph):
 
 def test_confounder_convert_HCGM_units(
     confounder_HCM_pygraphviz: pgv.AGraph, confounder_HCGM_pygraphviz: pgv.AGraph
-):
+) -> None:
     """Test that unit variables match between Figure 2(a) conversion and Figure 2 (b)."""
     assert get_units(convert_to_HCGM(confounder_HCM_pygraphviz)) == get_units(
         confounder_HCGM_pygraphviz
@@ -444,7 +452,7 @@ def test_confounder_convert_HCGM_units(
 
 def test_confounder_convert_HCGM_subunits(
     confounder_HCM_pygraphviz: pgv.AGraph, confounder_HCGM_pygraphviz: pgv.AGraph
-):
+) -> None:
     """Test that subunit variables match between Figure 2(a) conversion and Figure 2 (b)."""
     assert get_subunits(convert_to_HCGM(confounder_HCM_pygraphviz)) == get_subunits(
         confounder_HCGM_pygraphviz
@@ -453,7 +461,7 @@ def test_confounder_convert_HCGM_subunits(
 
 def test_confounder_convert_HCGM_observed(
     confounder_HCM_pygraphviz: pgv.AGraph, confounder_HCGM_pygraphviz: pgv.AGraph
-):
+) -> None:
     """Test that observed variables match between Figure 2(a) conversion and Figure 2 (b)."""
     assert get_observed(convert_to_HCGM(confounder_HCM_pygraphviz)) == get_observed(
         confounder_HCGM_pygraphviz
@@ -462,7 +470,7 @@ def test_confounder_convert_HCGM_observed(
 
 def test_confounder_convert_HCGM_edges(
     confounder_HCM_pygraphviz: pgv.AGraph, confounder_HCGM_pygraphviz: pgv.AGraph
-):
+) -> None:
     """Test that edges match between Figure 2(a) conversion and Figure 2 (b)."""
     assert set((convert_to_HCGM(confounder_HCM_pygraphviz)).edges()) == set(
         confounder_HCGM_pygraphviz.edges()
@@ -472,7 +480,7 @@ def test_confounder_convert_HCGM_edges(
 def test_confounder_interference_convert_HCGM_units(
     confounder_interference_HCM_pygraphviz: pgv.AGraph,
     confounder_interference_HCGM_pygraphviz: pgv.AGraph,
-):
+) -> None:
     """Test that unit variables match between Figure 2(e) conversion and Figure 2 (f)."""
     assert get_units(convert_to_HCGM(confounder_interference_HCM_pygraphviz)) == get_units(
         confounder_interference_HCGM_pygraphviz
@@ -482,7 +490,7 @@ def test_confounder_interference_convert_HCGM_units(
 def test_confounder_interference_convert_HCGM_subunits(
     confounder_interference_HCM_pygraphviz: pgv.AGraph,
     confounder_interference_HCGM_pygraphviz: pgv.AGraph,
-):
+) -> None:
     """Test that subunit variables match between Figure 2(e) conversion and Figure 2 (f)."""
     assert get_subunits(convert_to_HCGM(confounder_interference_HCM_pygraphviz)) == get_subunits(
         confounder_interference_HCGM_pygraphviz
@@ -492,7 +500,7 @@ def test_confounder_interference_convert_HCGM_subunits(
 def test_confounder_interference_convert_HCGM_observed(
     confounder_interference_HCM_pygraphviz: pgv.AGraph,
     confounder_interference_HCGM_pygraphviz: pgv.AGraph,
-):
+) -> None:
     """Test that observed variables match between Figure 2(e) conversion and Figure 2 (f)."""
     assert get_observed(convert_to_HCGM(confounder_interference_HCM_pygraphviz)) == get_observed(
         confounder_interference_HCGM_pygraphviz
@@ -502,7 +510,7 @@ def test_confounder_interference_convert_HCGM_observed(
 def test_confounder_interference_convert_HCGM_edges(
     confounder_interference_HCM_pygraphviz: pgv.AGraph,
     confounder_interference_HCGM_pygraphviz: pgv.AGraph,
-):
+) -> None:
     """Test that edges match between Figure 2(e) conversion and Figure 2 (f)."""
     assert set((convert_to_HCGM(confounder_interference_HCM_pygraphviz)).edges()) == set(
         confounder_interference_HCGM_pygraphviz.edges()
@@ -520,7 +528,7 @@ def test_instrument_convert_HCGM_units(
 
 def test_instrument_convert_HCGM_subunits(
     instrument_HCM_pygraphviz: pgv.AGraph, instrument_HCGM_pygraphviz: pgv.AGraph
-):
+) -> None:
     """Test that subunit variables match between Figure 2(i) conversion and Figure 2 (j)."""
     assert get_subunits(convert_to_HCGM(instrument_HCM_pygraphviz)) == get_subunits(
         instrument_HCGM_pygraphviz
@@ -529,7 +537,7 @@ def test_instrument_convert_HCGM_subunits(
 
 def test_instrument_convert_HCGM_observed(
     instrument_HCM_pygraphviz: pgv.AGraph, instrument_HCGM_pygraphviz: pgv.AGraph
-):
+) -> None:
     """Test that observed variables match between Figure 2(i) conversion and Figure 2 (j)."""
     assert get_observed(convert_to_HCGM(instrument_HCM_pygraphviz)) == get_observed(
         instrument_HCGM_pygraphviz
@@ -538,36 +546,36 @@ def test_instrument_convert_HCGM_observed(
 
 def test_instrument_convert_HCGM_edges(
     instrument_HCM_pygraphviz: pgv.AGraph, instrument_HCGM_pygraphviz: pgv.AGraph
-):
+) -> None:
     """Test that edges match between Figure 2(i) conversion and Figure 2 (j)."""
     assert set((convert_to_HCGM(instrument_HCM_pygraphviz)).edges()) == set(
         instrument_HCGM_pygraphviz.edges()
     )
 
 
-def test_direct_unit_descends_multi(direct_unit_descendents_fixt: pgv.AGraph):
+def test_direct_unit_descends_multi(direct_unit_descendents_fixt: pgv.AGraph) -> None:
     """Test case for multiple direct unit descendents."""
     assert direct_unit_descendents(direct_unit_descendents_fixt, "2") == {"5", "8"}
 
 
-def test_direct_unit_descends_no_unit_to_unit(direct_unit_descendents_fixt: pgv.AGraph):
+def test_direct_unit_descends_no_unit_to_unit(direct_unit_descendents_fixt: pgv.AGraph) -> None:
     """Test that non-direct unit descendents are excluded."""
     assert direct_unit_descendents(direct_unit_descendents_fixt, "1") == {"8"}
 
 
-def test_direct_unit_descends_multisub_path(direct_unit_descendents_fixt: pgv.AGraph):
+def test_direct_unit_descends_multisub_path(direct_unit_descendents_fixt: pgv.AGraph) -> None:
     """Test case for path to unit descendent goes through multiple subunit descendents."""
     assert direct_unit_descendents(direct_unit_descendents_fixt, "3") == {"5"}
 
 
-def test_direct_unit_descends_empty(direct_unit_descendents_fixt: pgv.AGraph):
+def test_direct_unit_descends_empty(direct_unit_descendents_fixt: pgv.AGraph) -> None:
     """Test case when there are no direct unit descendents."""
     assert direct_unit_descendents(direct_unit_descendents_fixt, "6") == set()
 
 
 def test_collapse_confounder(
     confounder_HCM_pygraphviz: pgv.AGraph, confounder_collapsed_nxmixedgraph: NxMixedGraph
-):
+) -> None:
     """Test that collapsing Figure 2 (a) HCM fixture gives Figure 2 (c) fixture."""
     assert collapse_HCM(confounder_HCM_pygraphviz) == confounder_collapsed_nxmixedgraph
 
@@ -575,7 +583,7 @@ def test_collapse_confounder(
 def test_collapse_confounder_interference(
     confounder_interference_HCM_pygraphviz: pgv.AGraph,
     confounder_interference_collapsed_nxmixedgraph: NxMixedGraph,
-):
+) -> None:
     """Test that collapsing Figure 2 (e) HCM fixture gives Figure 2 (g) fixture."""
     assert (
         collapse_HCM(confounder_interference_HCM_pygraphviz)
@@ -585,7 +593,7 @@ def test_collapse_confounder_interference(
 
 def test_collapse_instrument(
     instrument_HCM_pygraphviz: pgv.AGraph, instrument_collapsed_nxmixedgraph: NxMixedGraph
-):
+) -> None:
     """Test that collapsing Figure 2 (i) HCM fixture gives Figure 2 (k) fixture."""
     assert collapse_HCM(instrument_HCM_pygraphviz) == instrument_collapsed_nxmixedgraph
 
@@ -594,7 +602,7 @@ def test_collapse_instrument(
 
 
 @pytest.fixture
-def confounder_augmented_nxmixedgraph():
+def confounder_augmented_nxmixedgraph() -> NxMixedGraph:
     """Pytest fixture for augmented Confounder HCM in Figure 2 (d)."""
     Qa = Variable("Q_a")
     Qya = Variable("Q_{y|a}")
@@ -603,7 +611,7 @@ def confounder_augmented_nxmixedgraph():
 
 
 @pytest.fixture
-def confounder_interference_augmented_nxmixedgraph():
+def confounder_interference_augmented_nxmixedgraph() -> NxMixedGraph:
     """Pytest fixture for augmented Confounder Interference HCM in Figure 2 (h)."""
     Qa = Variable("Q_a")
     Qya = Variable("Q_{y|a}")
@@ -615,7 +623,7 @@ def confounder_interference_augmented_nxmixedgraph():
 
 
 @pytest.fixture
-def instrument_augmented_nxmixedgraph():
+def instrument_augmented_nxmixedgraph() -> NxMixedGraph:
     """Pytest fixture for augmented Instrument HCM in Figure A2."""
     Qaz = Variable("Q_{a|z}")
     Qa = Variable("Q_a")
@@ -626,7 +634,7 @@ def instrument_augmented_nxmixedgraph():
 
 def test_augment_confounder(
     confounder_collapsed_nxmixedgraph: NxMixedGraph, confounder_augmented_nxmixedgraph: NxMixedGraph
-):
+) -> None:
     """Test that augmenting Figure 2 (c) fixture gives Figure 2 (d) fixture."""
     assert (
         augment_collapsed_model(
@@ -641,7 +649,7 @@ def test_augment_confounder(
 def test_augment_confounder_interference(
     confounder_interference_collapsed_nxmixedgraph: NxMixedGraph,
     confounder_interference_augmented_nxmixedgraph: NxMixedGraph,
-):
+) -> None:
     """Test that augmenting Figure 2 (g) fixture gives Figure 2 (h)."""
     assert (
         augment_collapsed_model(
@@ -655,7 +663,7 @@ def test_augment_confounder_interference(
 
 def test_augment_instrument(
     instrument_collapsed_nxmixedgraph: NxMixedGraph, instrument_augmented_nxmixedgraph: NxMixedGraph
-):
+) -> None:
     """Test that augmenting Figure 2 (k) fixture gives Figure A2 fixture."""
     assert (
         augment_collapsed_model(
@@ -671,7 +679,7 @@ def test_augment_instrument(
 
 
 @pytest.fixture
-def instrument_marginalized_nxmixedgraph():
+def instrument_marginalized_nxmixedgraph() -> NxMixedGraph:
     """Pytest fixture for augmented Instrument HCM in Figure 2 (l)."""
     Qaz = Variable("Q_{a|z}")
     Qa = Variable("Q_a")
@@ -682,7 +690,7 @@ def instrument_marginalized_nxmixedgraph():
 def test_marginalized_instrument(
     instrument_augmented_nxmixedgraph: NxMixedGraph,
     instrument_marginalized_nxmixedgraph: NxMixedGraph,
-):
+) -> None:
     """Test that marginalizing the Figure A2 fixture gives the Figure 2 (l) fixture."""
     assert (
         marginalize_augmented_model(
