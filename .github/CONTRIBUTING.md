@@ -33,7 +33,7 @@ acceptance and merge into the main branch. This has several benefits:
 ### Code Style
 
 This project uses `tox` for running code quality checks. Start by installing
-it` with `pip install tox tox-uv`.
+it with `pip install tox tox-uv`.
 
 This project encourages the use of optional static typing. It
 uses [`mypy`](http://mypy-lang.org/) as a type checker. You can check if
