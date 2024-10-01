@@ -519,7 +519,7 @@ def test_confounder_interference_convert_HCGM_edges(
 
 def test_instrument_convert_HCGM_units(
     instrument_HCM_pygraphviz: pgv.AGraph, instrument_HCGM_pygraphviz: pgv.AGraph
-):
+) -> None:
     """Test that unit variables match between Figure 2(i) conversion and Figure 2 (j)."""
     assert get_units(convert_to_HCGM(instrument_HCM_pygraphviz)) == get_units(
         instrument_HCGM_pygraphviz
