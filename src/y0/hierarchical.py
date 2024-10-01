@@ -240,7 +240,7 @@ def augment_collapsed_model(
     if not mechanism <= collapsed.nodes():
         raise ValueError("The input mechanism must be contained in the collapsed model.")
     aug = augmentation_variable
-    augmented.add_node(aug) 
+    augmented.add_node(aug)
     for var in mechanism:
         augmented.add_directed_edge(var, aug)
     for var in set(augmented.nodes()) - {aug}:
