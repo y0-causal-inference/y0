@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/cthoyt/cookiecutter-snekpack",
-  "commit": "900ef65f0ad637bb02037d8cd66d0fa8436a236c",
+  "commit": "53cba47e589a0d3c0c1654cf2860036839d602a0",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -15,6 +15,7 @@
       "gitlab": false,
       "runner": "tox",
       "__runner": "tox -e",
+      "__runner_uv": "--with tox-uv tox -e",
       "__runner_pip": "tox tox-uv",
       "__runner_tests": "py",
       "__gh_slug": "y0-causal-inference/y0",
