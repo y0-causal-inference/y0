@@ -9,6 +9,7 @@ from y0.hierarchical import (
     HCM_from_lists,
     ancestors,
     augment_collapsed_model,
+    augment_from_mechanism,
     collapse_HCM,
     convert_to_HCGM,
     copy_HCM,
@@ -439,7 +440,8 @@ def test_Qvar_with_parents() -> None:
 def test_Qvar_no_parents(confounder_interference_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test case when there are no subunit parents."""
     HCM = confounder_interference_HCM_pygraphviz
-    assert create_Qvar(HCM, "A") == Variable("Q_a")
+    subgraph = HCM.subgraphs()[0]
+    assert create_Qvar(subgraph, "A") == Variable("Q_a")
 
 
 def test_confounder_convert_HCGM_units(
@@ -666,12 +668,12 @@ def test_subgraph_ancestors_chain(compl_subgraph_HCM: pgv.AGraph):
     assert ancestors(subgraph, "Y") == {"A", "B", "C"}
 
 
-def test_augment_confounder(
+def test_augment_confounder_from_mech(
     confounder_collapsed_nxmixedgraph: NxMixedGraph, confounder_augmented_nxmixedgraph: NxMixedGraph
 ) -> None:
     """Test that augmenting Figure 2 (c) fixture gives Figure 2 (d) fixture."""
     assert (
-        augment_collapsed_model(
+        augment_from_mechanism(
             confounder_collapsed_nxmixedgraph,
             Variable("Q_y"),
             (Variable("Q_a"), Variable("Q_{y|a}")),
@@ -680,13 +682,13 @@ def test_augment_confounder(
     )
 
 
-def test_augment_confounder_interference(
+def test_augment_confounder_interferenc_from_mech(
     confounder_interference_collapsed_nxmixedgraph: NxMixedGraph,
     confounder_interference_augmented_nxmixedgraph: NxMixedGraph,
 ) -> None:
     """Test that augmenting Figure 2 (g) fixture gives Figure 2 (h)."""
     assert (
-        augment_collapsed_model(
+        augment_from_mechanism(
             confounder_interference_collapsed_nxmixedgraph,
             Variable("Q_y"),
             (Variable("Q_a"), Variable("Q_{y|a}")),
@@ -695,12 +697,12 @@ def test_augment_confounder_interference(
     )
 
 
-def test_augment_instrument(
+def test_augment_instrument_from_mech(
     instrument_collapsed_nxmixedgraph: NxMixedGraph, instrument_augmented_nxmixedgraph: NxMixedGraph
 ) -> None:
     """Test that augmenting Figure 2 (k) fixture gives Figure A2 fixture."""
     assert (
-        augment_collapsed_model(
+        augment_from_mechanism(
             instrument_collapsed_nxmixedgraph,
             Variable("Q_a"),
             (Variable("Q_z"), Variable("Q_{a|z}")),
