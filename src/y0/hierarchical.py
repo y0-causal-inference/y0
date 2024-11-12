@@ -25,7 +25,7 @@ __all__ = [
     "augment_collapsed_model",
     "marginalize_augmented_model",
     "_node_string",
-    "ancestors"
+    "ancestors",
 ]
 
 
@@ -99,6 +99,7 @@ def parents(HCM: pgv.AGraph, node: pgv.Node) -> set[pgv.Node]:
     parents = set(HCM.predecessors(node))
     return parents
 
+
 def ancestors(graph: pgv.AGraph, start_node) -> set:
     """Perform a depth-first search to get all ancestors of a node in a pygraphviz AGraph.
 
@@ -121,6 +122,7 @@ def ancestors(graph: pgv.AGraph, start_node) -> set:
     # Remove the start_node from the visited set if you don't want to include it
     ancestors.remove(start_node)
     return ancestors
+
 
 def copy_HCM(HCM: pgv.AGraph) -> pgv.AGraph:
     """Return a copy of the HCM."""

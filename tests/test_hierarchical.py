@@ -7,6 +7,7 @@ from y0.dsl import Variable
 from y0.graph import NxMixedGraph
 from y0.hierarchical import (
     HCM_from_lists,
+    ancestors,
     augment_collapsed_model,
     collapse_HCM,
     convert_to_HCGM,
@@ -19,7 +20,6 @@ from y0.hierarchical import (
     get_unobserved,
     marginalize_augmented_model,
     parents,
-    ancestors
 )
 
 
@@ -601,21 +601,27 @@ def test_collapse_instrument(
 
 # For Algorithm 2
 
+
 @pytest.fixture
 def compl_subgraph_HCM() -> pgv.AGraph:
     """Pytest fixture for HCM with complicated subgraph structure."""
-    HCM = HCM_from_lists(obs_subunits=['A', 'B', 'C', 'Y'],
-                     obs_units=['D'],
-                     unobs_units=['U'], 
-                     edges=[('U','A'), 
-                            ('U','B'),
-                            ('U','C'),
-                            ('A','B'),
-                            ('B','Y'),
-                            ('C','Y'),
-                            ('A','D'),
-                            ('D','C')])
+    HCM = HCM_from_lists(
+        obs_subunits=["A", "B", "C", "Y"],
+        obs_units=["D"],
+        unobs_units=["U"],
+        edges=[
+            ("U", "A"),
+            ("U", "B"),
+            ("U", "C"),
+            ("A", "B"),
+            ("B", "Y"),
+            ("C", "Y"),
+            ("A", "D"),
+            ("D", "C"),
+        ],
+    )
     return HCM
+
 
 @pytest.fixture
 def confounder_augmented_nxmixedgraph() -> NxMixedGraph:
@@ -647,23 +653,18 @@ def instrument_augmented_nxmixedgraph() -> NxMixedGraph:
     Qz = Variable("Q_z")
     return NxMixedGraph.from_edges(undirected=[(Qaz, Y)], directed=[(Qaz, Qa), (Qz, Qa), (Qa, Y)])
 
-def test_subgraph_ancestors_direct_only(
-    compl_subgraph_HCM: pgv.AGraph        
-):
+
+def test_subgraph_ancestors_direct_only(compl_subgraph_HCM: pgv.AGraph):
     """Test that non-direct subunit ancestors are not included."""
     subgraph = compl_subgraph_HCM.subgraphs()[0]
-    assert (
-        ancestors(subgraph, 'C') == set()
-    )
+    assert ancestors(subgraph, "C") == set()
 
-def test_subgraph_ancestors_chain(
-    compl_subgraph_HCM: pgv.AGraph
-):
+
+def test_subgraph_ancestors_chain(compl_subgraph_HCM: pgv.AGraph):
     """Test that non-parent direct subunit ancestors are included."""
     subgraph = compl_subgraph_HCM.subgraphs()[0]
-    assert (
-        ancestors(subgraph, 'Y') == {'A','B','C'}
-    )
+    assert ancestors(subgraph, "Y") == {"A", "B", "C"}
+
 
 def test_augment_confounder(
     confounder_collapsed_nxmixedgraph: NxMixedGraph, confounder_augmented_nxmixedgraph: NxMixedGraph
