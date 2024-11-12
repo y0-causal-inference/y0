@@ -2,6 +2,7 @@
 
 from collections.abc import Iterable
 from itertools import combinations
+from typing import Optional
 
 import pygraphviz as pgv
 
@@ -22,6 +23,7 @@ __all__ = [
     "copy_HCM",
     "direct_unit_descendents",
     "collapse_HCM",
+    "augment_from_mechanism",
     "augment_collapsed_model",
     "marginalize_augmented_model",
     "_node_string",
@@ -148,9 +150,18 @@ def _node_string(nodes: Iterable[pgv.Node]) -> str:
     return s[:-1]
 
 
-def create_Qvar(HCM: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
+# def create_Qvar(HCM: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
+#     """Return a y0 Variable for the unit-level Q variable of the given subunit variable in the HCM."""
+#     subunit_parents = parents(HCM, subunit_node) & get_subunits(HCM)
+#     parent_str = _node_string(sorted(subunit_parents))
+#     if parent_str == "":
+#         Q_str = "Q_" + subunit_node.lower()
+#     else:
+#         Q_str = "Q_{" + subunit_node.lower() + "|" + parent_str + "}"
+#     return Variable(Q_str)
+def create_Qvar(subunit_graph: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
     """Return a y0 Variable for the unit-level Q variable of the given subunit variable in the HCM."""
-    subunit_parents = parents(HCM, subunit_node) & get_subunits(HCM)
+    subunit_parents = parents(subunit_graph, subunit_node)
     parent_str = _node_string(sorted(subunit_parents))
     if parent_str == "":
         Q_str = "Q_" + subunit_node.lower()
@@ -164,8 +175,9 @@ def convert_to_HCGM(HCM: pgv.AGraph) -> pgv.AGraph:
     HCGM = copy_HCM(HCM)
     observed = get_observed(HCM)
     subunits = get_subunits(HCM)
+    subunit_graph = HCM.subgraphs()[0]
     for s in subunits:
-        Q = create_Qvar(HCGM, s)
+        Q = create_Qvar(subunit_graph, s)
         parent_set = set(parents(HCM, s))
         if (s in observed) & ((parent_set & subunits) <= observed):
             HCGM.add_node(Q, style="filled", color="lightgrey")
@@ -236,8 +248,9 @@ def collapse_HCM(HCM: pgv.AGraph, return_HCGM: bool = False) -> NxMixedGraph:
     if return_HCGM:
         HCGM_original = convert_to_HCGM(HCM)
     subunits = get_subunits(HCM)
+    subunit_graph = HCM.subgraphs()[0]
     for s in subunits:
-        Q = create_Qvar(HCM, s)
+        Q = create_Qvar(subunit_graph, s)
         for dud in direct_unit_descendents(HCM, s):
             HCGM.add_edge(Q, dud)
         HCGM.delete_node(s)
@@ -250,7 +263,7 @@ def collapse_HCM(HCM: pgv.AGraph, return_HCGM: bool = False) -> NxMixedGraph:
         return collapsed
 
 
-def augment_collapsed_model(
+def augment_from_mechanism(
     collapsed: NxMixedGraph, augmentation_variable: Variable, mechanism: Iterable[Variable]
 ):
     """Augment a collapsed model with a given augmentation variable and its mechanism.
@@ -275,6 +288,35 @@ def augment_collapsed_model(
             augmented.add_directed_edge(aug, var)
             for parent in mechanism:
                 augmented.directed.remove_edge(parent, var)
+    return augmented
+
+def augmentation_mechanism(
+    subunit_graph:pgv.AGraph,
+    augmentation_variable: str
+):
+    """Generate augmentation mechanism."""
+    subg = subunit_graph
+    aug = augmentation_variable
+    if aug not in subg:
+        raise ValueError("Augmentation variable must be a variable of the input subunit graph")
+    mechanism = [create_Qvar(subg, aug)]
+    subunit_parents = parents(subg, aug)
+    for sp in subunit_parents:
+        mechanism.append(create_Qvar(subg, sp))
+    return mechanism
+
+
+def augment_collapsed_model(
+    model: NxMixedGraph, 
+    subunit_graph: pgv.AGraph,
+    augmentation_variable: Variable, # switch to str?
+    mechanism: Optional[Iterable[Variable]] = None
+) -> NxMixedGraph:
+    """Augment given variable into the given collapsed model."""
+    if mechanism is None:
+        mechanism = augmentation_mechanism(subunit_graph, augmentation_variable)
+    # aug = Variable("Q_" + augmentation_variable.lower())
+    augmented = augment_from_mechanism(model, augmentation_variable, mechanism) # use aug above
     return augmented
 
 
