@@ -8,8 +8,8 @@ from y0.graph import NxMixedGraph
 from y0.hierarchical import (
     HCM_from_lists,
     ancestors,
-    augment_collapsed_model,
     augment_from_mechanism,
+    augmentation_mechanism,
     collapse_HCM,
     convert_to_HCGM,
     copy_HCM,
@@ -682,7 +682,13 @@ def test_augment_confounder_from_mech(
     )
 
 
-def test_augment_confounder_interferenc_from_mech(
+def test_confounder_aug_mech(confounder_HCM_pygraphviz: pgv.AGraph):
+    """Test the augmentation mechanism for the confounder HCM."""
+    mechanism = augmentation_mechanism(confounder_HCM_pygraphviz.subgraphs()[0], "Y")
+    assert set(mechanism) == {Variable("Q_a"), Variable("Q_{y|a}")}
+
+
+def test_augment_confounder_interference_from_mech(
     confounder_interference_collapsed_nxmixedgraph: NxMixedGraph,
     confounder_interference_augmented_nxmixedgraph: NxMixedGraph,
 ) -> None:
@@ -697,6 +703,12 @@ def test_augment_confounder_interferenc_from_mech(
     )
 
 
+def test_confounder_interference_aug_mech(confounder_interference_HCM_pygraphviz: pgv.AGraph):
+    """Test the augmentation mechanism for the confounder interence HCM."""
+    mechanism = augmentation_mechanism(confounder_interference_HCM_pygraphviz.subgraphs()[0], "Y")
+    assert set(mechanism) == {Variable("Q_a"), Variable("Q_{y|a}")}
+
+
 def test_augment_instrument_from_mech(
     instrument_collapsed_nxmixedgraph: NxMixedGraph, instrument_augmented_nxmixedgraph: NxMixedGraph
 ) -> None:
@@ -709,6 +721,12 @@ def test_augment_instrument_from_mech(
         )
         == instrument_augmented_nxmixedgraph
     )
+
+
+def test_instrument_aug_mech(instrument_HCM_pygraphviz: pgv.AGraph):
+    """Test the augmentation mechanism for the instrument HCM."""
+    mechanism = augmentation_mechanism(instrument_HCM_pygraphviz.subgraphs()[0], "A")
+    assert set(mechanism) == {Variable("Q_z"), Variable("Q_{a|z}")}
 
 
 # For Algorithm 3
