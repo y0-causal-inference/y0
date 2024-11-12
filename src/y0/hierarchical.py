@@ -2,7 +2,6 @@
 
 from collections.abc import Iterable
 from itertools import combinations
-from typing import Optional
 
 import pygraphviz as pgv
 
@@ -24,6 +23,7 @@ __all__ = [
     "direct_unit_descendents",
     "collapse_HCM",
     "augment_from_mechanism",
+    "augmentation_mechanism",
     "augment_collapsed_model",
     "marginalize_augmented_model",
     "_node_string",
@@ -290,10 +290,8 @@ def augment_from_mechanism(
                 augmented.directed.remove_edge(parent, var)
     return augmented
 
-def augmentation_mechanism(
-    subunit_graph:pgv.AGraph,
-    augmentation_variable: str
-):
+
+def augmentation_mechanism(subunit_graph: pgv.AGraph, augmentation_variable: str):
     """Generate augmentation mechanism."""
     subg = subunit_graph
     aug = augmentation_variable
@@ -307,16 +305,16 @@ def augmentation_mechanism(
 
 
 def augment_collapsed_model(
-    model: NxMixedGraph, 
+    model: NxMixedGraph,
     subunit_graph: pgv.AGraph,
-    augmentation_variable: Variable, # switch to str?
-    mechanism: Optional[Iterable[Variable]] = None
+    augmentation_variable: Variable,  # switch to str?
+    mechanism: Iterable[Variable] | None = None,
 ) -> NxMixedGraph:
     """Augment given variable into the given collapsed model."""
     if mechanism is None:
         mechanism = augmentation_mechanism(subunit_graph, augmentation_variable)
     # aug = Variable("Q_" + augmentation_variable.lower())
-    augmented = augment_from_mechanism(model, augmentation_variable, mechanism) # use aug above
+    augmented = augment_from_mechanism(model, augmentation_variable, mechanism)  # use aug above
     return augmented
 
 
