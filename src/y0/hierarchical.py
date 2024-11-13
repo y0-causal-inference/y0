@@ -298,9 +298,9 @@ def augmentation_mechanism(subunit_graph: pgv.AGraph, augmentation_variable: str
     if aug not in subg:
         raise ValueError("Augmentation variable must be a variable of the input subunit graph")
     mechanism = [create_Qvar(subg, aug)]
-    subunit_parents = parents(subg, aug)
-    for sp in subunit_parents:
-        mechanism.append(create_Qvar(subg, sp))
+    direct_subunit_descendents = ancestors(subg, aug)
+    for dsd in direct_subunit_descendents:
+        mechanism.append(create_Qvar(subg, dsd))
     return mechanism
 
 
