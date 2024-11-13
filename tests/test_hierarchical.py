@@ -729,6 +729,17 @@ def test_instrument_aug_mech(instrument_HCM_pygraphviz: pgv.AGraph):
     assert set(mechanism) == {Variable("Q_z"), Variable("Q_{a|z}")}
 
 
+def test_compl_sub_aug_mech(compl_subgraph_HCM: pgv.AGraph):
+    """Test the augmentation mechanism for the complicated subgraph HCM."""
+    mechanism = augmentation_mechanism(compl_subgraph_HCM.subgraphs()[0], "Y")
+    assert set(mechanism) == {
+        Variable("Q_{y|b,c}"),
+        Variable("Q_c"),
+        Variable("Q_{b|a}"),
+        Variable("Q_a"),
+    }
+
+
 # For Algorithm 3
 
 
