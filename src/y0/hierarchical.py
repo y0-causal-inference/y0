@@ -307,14 +307,14 @@ def augmentation_mechanism(subunit_graph: pgv.AGraph, augmentation_variable: str
 def augment_collapsed_model(
     model: NxMixedGraph,
     subunit_graph: pgv.AGraph,
-    augmentation_variable: Variable,  # switch to str?
+    augmentation_variable: str,
     mechanism: Iterable[Variable] | None = None,
 ) -> NxMixedGraph:
     """Augment given variable into the given collapsed model."""
     if mechanism is None:
         mechanism = augmentation_mechanism(subunit_graph, augmentation_variable)
-    # aug = Variable("Q_" + augmentation_variable.lower())
-    augmented = augment_from_mechanism(model, augmentation_variable, mechanism)  # use aug above
+    aug = Variable("Q_" + augmentation_variable.lower())
+    augmented = augment_from_mechanism(model, aug, mechanism)
     return augmented
 
 
