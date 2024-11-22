@@ -264,9 +264,7 @@ def collapse_HCM(HCM: pgv.AGraph, return_HCGM: bool = False) -> NxMixedGraph:
         HCGM.delete_node(s)
     undirected = get_undirected_edges(HCGM)
     directed = get_directed_edges(HCGM)
-    collapsed = NxMixedGraph.from_edges(
-        directed=directed, undirected=undirected
-    ) 
+    collapsed = NxMixedGraph.from_edges(directed=directed, undirected=undirected)
     for Q in Qvars:  # loop to check for and add disconnected Q variables
         if Q not in collapsed:
             collapsed.add_node(Q)
@@ -353,10 +351,14 @@ def marginalize_augmented_model(
         raise ValueError("Cannot marginalize all parents of the augmentation varaible.")
     for parent in marginal_parents:
         if set(marginalized.directed.successors(parent)) == check_set:
-            grandparents = marginalized.directed.predecessors(parent)
-            for gp in grandparents:
+            directed_grandparents = marginalized.directed.predecessors(parent)
+            for gp in directed_grandparents:
                 marginalized.add_directed_edge(gp, augmentation_variable)
             marginalized.directed.remove_node(parent)
+            undirected_grandparents = marginalized.undirected.neighbors(parent)
+            for gp in undirected_grandparents:
+                marginalized.add_undirected_edge(gp, augmentation_variable)
+            marginalized.undirected.remove_node(parent)
         else:
             raise ValueError(
                 "The augmentation variable must be the only child of the marginalized parents."
