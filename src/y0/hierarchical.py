@@ -28,6 +28,7 @@ __all__ = [
     "marginalize_augmented_model",
     "_node_string",
     "ancestors",
+    "subunit_graph",
 ]
 
 
@@ -150,6 +151,11 @@ def _node_string(nodes: Iterable[pgv.Node]) -> str:
     return s[:-1]
 
 
+def subunit_graph(HCM: pgv.AGraph) -> pgv.AGraph:
+    """Return the subunit subgraph of the input HCM."""
+    return HCM.subgraphs()[0]
+
+
 # def create_Qvar(HCM: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
 #     """Return a y0 Variable for the unit-level Q variable of the given subunit variable in the HCM."""
 #     subunit_parents = parents(HCM, subunit_node) & get_subunits(HCM)
@@ -249,14 +255,21 @@ def collapse_HCM(HCM: pgv.AGraph, return_HCGM: bool = False) -> NxMixedGraph:
         HCGM_original = convert_to_HCGM(HCM)
     subunits = get_subunits(HCM)
     subunit_graph = HCM.subgraphs()[0]
+    Qvars = set()
     for s in subunits:
         Q = create_Qvar(subunit_graph, s)
+        Qvars.add(Q)
         for dud in direct_unit_descendents(HCM, s):
             HCGM.add_edge(Q, dud)
         HCGM.delete_node(s)
     undirected = get_undirected_edges(HCGM)
     directed = get_directed_edges(HCGM)
-    collapsed = NxMixedGraph.from_edges(directed=directed, undirected=undirected)
+    collapsed = NxMixedGraph.from_edges(
+        directed=directed, undirected=undirected
+    ) 
+    for Q in Qvars:  # loop to check for and add disconnected Q variables
+        if Q not in collapsed:
+            collapsed.add_node(Q)
     if return_HCGM:
         return (collapsed, HCGM_original)
     else:
