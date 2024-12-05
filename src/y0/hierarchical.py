@@ -176,6 +176,15 @@ def create_Qvar(subunit_graph: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
     return Variable(Q_str)
 
 
+def demote_Qvar(var: Variable) -> str:
+    """Return the base of the input Q variable as a string."""
+    Q_str = str(var)
+    if "|" in Q_str:
+        return Q_str[3:-1].upper()
+    else:
+        return Q_str[2:].upper()
+
+
 def convert_to_HCGM(HCM: pgv.AGraph) -> pgv.AGraph:
     """Convert an HCM to an HCGM with promoted Q variables."""
     HCGM = copy_HCM(HCM)
