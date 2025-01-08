@@ -18,6 +18,7 @@ __all__ = [
     "get_units",
     "parents",
     "create_Qvar",
+    "demote_Qvar",
     "convert_to_HCGM",
     "copy_HCM",
     "direct_unit_descendents",
@@ -156,15 +157,6 @@ def subunit_graph(HCM: pgv.AGraph) -> pgv.AGraph:
     return HCM.subgraphs()[0]
 
 
-# def create_Qvar(HCM: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
-#     """Return a y0 Variable for the unit-level Q variable of the given subunit variable in the HCM."""
-#     subunit_parents = parents(HCM, subunit_node) & get_subunits(HCM)
-#     parent_str = _node_string(sorted(subunit_parents))
-#     if parent_str == "":
-#         Q_str = "Q_" + subunit_node.lower()
-#     else:
-#         Q_str = "Q_{" + subunit_node.lower() + "|" + parent_str + "}"
-#     return Variable(Q_str)
 def create_Qvar(subunit_graph: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
     """Return a y0 Variable for the unit-level Q variable of the given subunit variable in the HCM."""
     subunit_parents = parents(subunit_graph, subunit_node)
@@ -176,13 +168,22 @@ def create_Qvar(subunit_graph: pgv.AGraph, subunit_node: pgv.Node) -> Variable:
     return Variable(Q_str)
 
 
-def demote_Qvar(var: Variable) -> str:
-    """Return the base of the input Q variable as a string."""
+def parse_Qvar(var: Variable) -> str:
+    """Return the subunit variables of the input Q variable, separated by the conditional."""
     Q_str = str(var)
     if "|" in Q_str:
-        return Q_str[3:-1].upper()
+        var_str = Q_str[3:-1].upper()
+        parse1 = var_str.split('|')
+        if len(parse1) != 2:
+            raise ValueError("Invalid format for input Q variable")
+        lhs = parse1[0]
+        rhs = parse1[1].split(',')
     else:
-        return Q_str[2:].upper()
+        lhs =  Q_str[2:].upper()
+        rhs = []
+    if len(lhs) > 1:
+        raise ValueError("Invalid format for input Q variable")
+    return (lhs, set(rhs))
 
 
 def convert_to_HCGM(HCM: pgv.AGraph) -> pgv.AGraph:
