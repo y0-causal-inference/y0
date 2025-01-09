@@ -684,7 +684,7 @@ def test_augment_confounder_from_mech(
 
 def test_confounder_aug_mech(confounder_HCM_pygraphviz: pgv.AGraph):
     """Test the augmentation mechanism for the confounder HCM."""
-    mechanism = augmentation_mechanism(confounder_HCM_pygraphviz.subgraphs()[0], "Y")
+    mechanism = augmentation_mechanism(confounder_HCM_pygraphviz.subgraphs()[0], Variable('Q_y'))
     assert set(mechanism) == {Variable("Q_a"), Variable("Q_{y|a}")}
 
 
@@ -705,7 +705,7 @@ def test_augment_confounder_interference_from_mech(
 
 def test_confounder_interference_aug_mech(confounder_interference_HCM_pygraphviz: pgv.AGraph):
     """Test the augmentation mechanism for the confounder interence HCM."""
-    mechanism = augmentation_mechanism(confounder_interference_HCM_pygraphviz.subgraphs()[0], "Y")
+    mechanism = augmentation_mechanism(confounder_interference_HCM_pygraphviz.subgraphs()[0], Variable('Q_y'))
     assert set(mechanism) == {Variable("Q_a"), Variable("Q_{y|a}")}
 
 
@@ -725,13 +725,13 @@ def test_augment_instrument_from_mech(
 
 def test_instrument_aug_mech(instrument_HCM_pygraphviz: pgv.AGraph):
     """Test the augmentation mechanism for the instrument HCM."""
-    mechanism = augmentation_mechanism(instrument_HCM_pygraphviz.subgraphs()[0], "A")
+    mechanism = augmentation_mechanism(instrument_HCM_pygraphviz.subgraphs()[0], Variable('Q_a'))
     assert set(mechanism) == {Variable("Q_z"), Variable("Q_{a|z}")}
 
 
 def test_compl_sub_aug_mech(compl_subgraph_HCM: pgv.AGraph):
     """Test the augmentation mechanism for the complicated subgraph HCM."""
-    mechanism = augmentation_mechanism(compl_subgraph_HCM.subgraphs()[0], "Y")
+    mechanism = augmentation_mechanism(compl_subgraph_HCM.subgraphs()[0], Variable('Q_y'))
     assert set(mechanism) == {
         Variable("Q_{y|b,c}"),
         Variable("Q_c"),
