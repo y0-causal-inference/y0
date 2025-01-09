@@ -14,6 +14,7 @@ from y0.hierarchical import (
     convert_to_HCGM,
     copy_HCM,
     create_Qvar,
+    parse_Qvar,
     direct_unit_descendents,
     get_observed,
     get_subunits,
@@ -602,6 +603,16 @@ def test_collapse_instrument(
 
 
 # For Algorithm 2
+
+
+def test_parse_Qvar_no_conditional() -> None:
+    """Test parse_Qvar for an unconditioned input Variable."""
+    assert parse_Qvar(Variable('Q_a')) == ('A', set([]))
+
+
+def test_parse_Qvar_conditional() -> None:
+    """Test parse_Qvar for conditional input Variable."""
+    assert parse_Qvar(Variable('Q_{a|x,y}')) == ('A', {'X', 'Y'})
 
 
 @pytest.fixture
