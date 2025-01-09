@@ -312,14 +312,14 @@ def augment_from_mechanism(
     return augmented
 
 
-def augmentation_mechanism(subunit_graph: pgv.AGraph, augmentation_variable: str):
+def augmentation_mechanism(subunit_graph: pgv.AGraph, augmentation_variable: Variable):
     """Generate augmentation mechanism."""
     subg = subunit_graph
-    aug = augmentation_variable
-    if aug not in subg:
+    lhs, rhs = parse_Qvar(augmentation_variable)
+    if not((rhs | {lhs}) < set(subg.nodes())):
         raise ValueError("Augmentation variable must be a variable of the input subunit graph")
-    mechanism = [create_Qvar(subg, aug)]
-    direct_subunit_descendents = ancestors(subg, aug)
+    mechanism = [create_Qvar(subg, lhs)]
+    direct_subunit_descendents = ancestors(subg, lhs) - rhs
     for dsd in direct_subunit_descendents:
         mechanism.append(create_Qvar(subg, dsd))
     return mechanism
@@ -328,14 +328,13 @@ def augmentation_mechanism(subunit_graph: pgv.AGraph, augmentation_variable: str
 def augment_collapsed_model(
     model: NxMixedGraph,
     subunit_graph: pgv.AGraph,
-    augmentation_variable: str,
+    augmentation_variable: Variable,
     mechanism: Iterable[Variable] | None = None,
 ) -> NxMixedGraph:
     """Augment given variable into the given collapsed model."""
     if mechanism is None:
         mechanism = augmentation_mechanism(subunit_graph, augmentation_variable)
-    aug = Variable("Q_" + augmentation_variable.lower())
-    augmented = augment_from_mechanism(model, aug, mechanism)
+    augmented = augment_from_mechanism(model, augmentation_variable, mechanism)
     return augmented
 
 
