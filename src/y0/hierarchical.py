@@ -18,7 +18,7 @@ __all__ = [
     "get_units",
     "parents",
     "create_Qvar",
-    "demote_Qvar",
+    "parse_Qvar",
     "convert_to_HCGM",
     "copy_HCM",
     "direct_unit_descendents",
