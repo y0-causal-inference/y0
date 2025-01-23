@@ -207,6 +207,21 @@ def convert_to_HCGM(HCM: pgv.AGraph) -> pgv.AGraph:
     return HCGM
 
 
+def convert_to_HSCM(HCM: pgv.AGraph) -> pgv.AGraph:
+    """Converts the input HCM to an explicit HSCM."""
+    hscm = copy_HCM(HCM)
+    subg = subunit_graph(hscm)
+    for node in hscm.nodes():
+        if node.attr.get("style") == "filled":
+            node.attr["shape"] = "square"
+            name = str(node)
+            subg.add_node("ϵ_"+name, shape="plaintext")
+            hscm.add_edge("ϵ_"+name, name)
+            hscm.add_node("γ_"+name, shape="plaintext")
+            hscm.add_edge("γ_"+name, name)
+    return hscm
+
+
 def get_directed_edges(HCM: pgv.AGraph) -> list[str]:
     """Return the list of directed edges in the HCM that do not contain latent variables."""
     edges = []
