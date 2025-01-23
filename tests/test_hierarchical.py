@@ -7,6 +7,7 @@ from y0.dsl import Variable
 from y0.graph import NxMixedGraph
 from y0.hierarchical import (
     HCM_from_lists,
+    subunit_graph,
     ancestors,
     augment_from_mechanism,
     augmentation_mechanism,
@@ -105,6 +106,15 @@ def instrument_HCM_pygraphviz() -> pgv.AGraph:
     HCM.add_subgraph(["A", "Z"], name="cluster_subunits", style="dashed", label="m")
     return HCM
 
+@pytest.fixture
+def instrument_subunit_graph() -> pgv.agraph:
+    """Pytest fixture for the Instrument HCM subunit graph."""
+    subg = pgv.AGraph(directed=True)
+    subg.add_node("A", style="filled", color="lightgrey")
+    subg.add_node("Z", style="filled", color="lightgrey")
+    subg.add_edge("Z", "A")
+    return subg
+
 
 @pytest.fixture
 def instrument_HCGM_pygraphviz() -> pgv.AGraph:
@@ -191,6 +201,13 @@ def test_get_subunits_confounder_interference(
 def test_get_subunits_instrument(instrument_HCM_pygraphviz: pgv.AGraph) -> None:
     """Test subunit variables in Instrument HCM fixture."""
     assert get_subunits(instrument_HCM_pygraphviz) == {"A", "Z"}
+
+def test_subunit_graph_instrument(
+        instrument_HCM_pygraphviz: pgv.AGraph,
+        instrument_subunit_graph: pgv.AGraph
+        ) -> None:
+    """Test subunit_graph function on instrument HCM."""
+    assert subunit_graph(instrument_HCM_pygraphviz) == instrument_subunit_graph
 
 
 class TestFromListsConfounder:
@@ -613,6 +630,20 @@ def test_parse_Qvar_no_conditional() -> None:
 def test_parse_Qvar_conditional() -> None:
     """Test parse_Qvar for conditional input Variable."""
     assert parse_Qvar(Variable('Q_{a|x,y}')) == ('A', {'X', 'Y'})
+
+
+def test_parse_Qvar_format_double_conditional() -> None:
+    """Test that a ValueError is raised for inputs with more than one conditional bar."""
+    with pytest.raises(ValueError) as excinfo:
+        parse_Qvar(Variable("Q^{a|b|c}"))
+    assert excinfo.type is ValueError
+
+
+def test_parse_Qvar_format_single_lhs_var() -> None:
+    """Test that a ValueError is raise for inputs with more than one variable on the lhs."""
+    with pytest.raises(ValueError) as excinfo:
+        parse_Qvar(Variable("Q^{ab|c}"))
+    assert excinfo.type is ValueError
 
 
 @pytest.fixture
