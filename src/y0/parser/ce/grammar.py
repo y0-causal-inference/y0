@@ -19,8 +19,8 @@ from .utils import probability_pe, qfactor_pe, variables_pe
 from ...dsl import Expression, Fraction, Product, Sum
 
 __all__ = [
-    "parse_causaleffect",
     "grammar",
+    "parse_causaleffect",
 ]
 
 logger = logging.getLogger(__name__)

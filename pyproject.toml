@@ -74,8 +74,9 @@ r = [
 tests = [
     "pytest",
     "coverage",
-    "ananke-causal",
+    # "ananke-causal",
     "pgmpy",
+    "torch",
 ]
 docs = [
     # waiting on https://github.com/readthedocs/sphinx_rtd_theme/issues/1582

@@ -8,7 +8,7 @@ from y0.algorithm.estimation import ananke_average_causal_effect, df_covers_grap
 from y0.algorithm.estimation.estimators import get_primal_ipw_ace, get_state_space_map
 from y0.dsl import Variable
 from y0.examples import examples, frontdoor, napkin, napkin_example
-from y0.graph import is_p_fixable
+from y0.graph import ANANKE_REQUIRED, is_p_fixable
 
 TOLERANCE = 0.1
 
@@ -22,6 +22,7 @@ class TestEstimation(unittest.TestCase):
         self.assertTrue(df_covers_graph(graph=napkin, data=df))
         self.assertFalse(df_covers_graph(graph=frontdoor, data=df))
 
+    @ANANKE_REQUIRED
     def test_beta_primal(self):
         """Test beta primal on example graphs that have data generators."""
         usable_examples = []

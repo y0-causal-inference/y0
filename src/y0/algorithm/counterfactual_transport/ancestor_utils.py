@@ -10,8 +10,8 @@ from y0.graph import NxMixedGraph
 
 __all__ = [
     "get_ancestors_of_counterfactual",
-    "minimize_counterfactual",
     "get_ancestral_components",
+    "minimize_counterfactual",
 ]
 
 logger = logging.getLogger(__file__)

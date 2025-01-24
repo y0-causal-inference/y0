@@ -12,7 +12,7 @@ from rpy2.robjects.vectors import StrVector
 
 from .dsl import Variable
 
-__all__ = ["uses_r", "prepare_renv", "prepare_default_renv"]
+__all__ = ["prepare_default_renv", "prepare_renv", "uses_r"]
 
 logger = logging.getLogger(__name__)
 

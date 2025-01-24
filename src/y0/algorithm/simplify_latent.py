@@ -15,13 +15,13 @@ from ..dsl import Variable
 from ..graph import DEFAULT_TAG, NxMixedGraph, _ensure_set
 
 __all__ = [
-    "evans_simplify",
-    "simplify_latent_dag",
     "SimplifyResults",
-    "remove_widow_latents",
-    "transform_latents_with_parents",
+    "evans_simplify",
     "remove_redundant_latents",
     "remove_unidirectional_latents",
+    "remove_widow_latents",
+    "simplify_latent_dag",
+    "transform_latents_with_parents",
 ]
 
 logger = logging.getLogger(__name__)

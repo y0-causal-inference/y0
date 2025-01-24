@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import importlib.util
 import itertools as itt
 import json
+import unittest
 import warnings
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -36,10 +38,10 @@ if TYPE_CHECKING:
     import sympy
 
 __all__ = [
-    "NxMixedGraph",
-    "CausalEffectGraph",
-    "DEFULT_PREFIX",
     "DEFAULT_TAG",
+    "DEFULT_PREFIX",
+    "CausalEffectGraph",
+    "NxMixedGraph",
     "set_latent",
 ]
 
@@ -52,6 +54,9 @@ DEFAULT_TAG = "hidden"
 #: there will be a number assigned that's incremented during construction.
 DEFULT_PREFIX = "u_"
 NO_SET_LATENT_FLAG = "no_set_latent"
+
+ANANKE_AVAILABLE = bool(importlib.util.find_spec("ananke"))
+ANANKE_REQUIRED = unittest.skipUnless(ANANKE_AVAILABLE, reason="Ananke is not installed")
 
 
 @dataclass
@@ -488,7 +493,7 @@ class NxMixedGraph:
             elif edge["type"] == "bidirected":
                 rv.add_undirected_edge(u, v)
             else:
-                raise ValueError(f'unhandled edge type: {edge["type"]}')
+                raise ValueError(f"unhandled edge type: {edge['type']}")
         return rv
 
     def subgraph(self, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:

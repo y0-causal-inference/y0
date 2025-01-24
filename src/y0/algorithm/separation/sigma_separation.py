@@ -11,8 +11,8 @@ from y0.graph import NxMixedGraph
 
 __all__ = [
     "are_sigma_separated",
-    "is_z_sigma_open",
     "get_equivalence_classes",
+    "is_z_sigma_open",
 ]
 
 
