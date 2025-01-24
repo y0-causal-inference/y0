@@ -74,7 +74,7 @@ r = [
 tests = [
     "pytest",
     "coverage",
-    "ananke-causal",
+    "ananke-causal>=0.4.0",
     "pgmpy",
 ]
 docs = [
