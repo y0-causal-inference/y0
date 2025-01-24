@@ -9,6 +9,8 @@ from pgmpy.models import BayesianNetwork
 from y0.dsl import V1, V2, V3, V4, A, B, C, D, M, Variable, X, Y, Z
 from y0.examples import SARS_SMALL_GRAPH, Example, examples, napkin, verma_1
 from y0.graph import (
+    ANANKE_AVAILABLE,
+    ANANKE_REQUIRED,
     DEFAULT_TAG,
     DEFULT_PREFIX,
     NxMixedGraph,
@@ -98,12 +100,10 @@ class TestGraph(unittest.TestCase):
         graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
         self.assertIsInstance(graph, NxMixedGraph)
 
+    @ANANKE_REQUIRED
     def test_from_admg(self):
         """Test that all ADMGs can be converted to NxMixedGraph."""
-        try:
-            from ananke.graphs import ADMG
-        except ImportError:
-            self.skipTest("ananke is not available")
+        from ananke.graphs import ADMG
 
         expected = NxMixedGraph.from_str_adj(
             directed={"W": [], "X": ["Y"], "Y": ["Z"], "Z": []},
@@ -370,12 +370,14 @@ class TestFixability(unittest.TestCase):
 
     def assert_a_fixable(self, graph: NxMixedGraph, treatment: Variable):
         """Assert that the graph is a-fixable."""
-        self.assertTrue(_ananke_a_fixable(graph, treatment))
+        if ANANKE_AVAILABLE:
+            self.assertTrue(_ananke_a_fixable(graph, treatment))
         self.assertTrue(is_a_fixable(graph, treatment))
 
     def assert_not_a_fixable(self, graph: NxMixedGraph, treatment: Variable):
         """Assert that the graph is not a-fixable."""
-        self.assertFalse(_ananke_a_fixable(graph, treatment))
+        if ANANKE_AVAILABLE:
+            self.assertFalse(_ananke_a_fixable(graph, treatment))
         self.assertFalse(is_a_fixable(graph, treatment))
 
     def test_is_a_fixable(self):
@@ -454,12 +456,14 @@ class TestFixability(unittest.TestCase):
 
     def assert_p_fixable(self, graph: NxMixedGraph, treatment: Variable):
         """Assert that the graph is p-fixable."""
-        self.assertTrue(_ananke_p_fixable(graph, treatment))
+        if ANANKE_AVAILABLE:
+            self.assertTrue(_ananke_p_fixable(graph, treatment))
         self.assertTrue(is_p_fixable(graph, treatment))
 
     def assert_not_p_fixable(self, graph: NxMixedGraph, treatment: Variable):
         """Assert that the graph is not p-fixable."""
-        self.assertFalse(_ananke_p_fixable(graph, treatment))
+        if ANANKE_AVAILABLE:
+            self.assertFalse(_ananke_p_fixable(graph, treatment))
         self.assertFalse(is_p_fixable(graph, treatment))
 
     def test_is_p_fixable(self):
