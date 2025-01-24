@@ -15,9 +15,9 @@ from ..graph import NxMixedGraph
 from ..struct import CITest, DSeparationJudgement, _ensure_method
 
 __all__ = [
-    "get_graph_falsifications",
-    "get_falsifications",
     "Falsifications",
+    "get_falsifications",
+    "get_graph_falsifications",
 ]
 
 

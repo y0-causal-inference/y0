@@ -26,10 +26,10 @@ from y0.mutate import canonicalize
 from y0.util.combinatorics import powerset
 
 __all__ = [
-    "taheri_design_admg",
-    "taheri_design_dag",
     "Result",
     "draw_results",
+    "taheri_design_admg",
+    "taheri_design_dag",
 ]
 
 logger = logging.getLogger(__name__)

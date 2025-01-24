@@ -12,8 +12,8 @@ import pandas as pd
 from .dsl import Expression, Variable
 
 __all__ = [
-    "VermaConstraint",
     "DSeparationJudgement",
+    "VermaConstraint",
 ]
 
 DEFAULT_SIGNIFICANCE = 0.01

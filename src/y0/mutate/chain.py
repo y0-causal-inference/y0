@@ -13,9 +13,9 @@ from ..dsl import (
 )
 
 __all__ = [
+    "bayes_expand",
     "chain_expand",
     "fraction_expand",
-    "bayes_expand",
 ]
 
 

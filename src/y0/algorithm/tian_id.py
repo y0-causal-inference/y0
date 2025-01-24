@@ -23,12 +23,12 @@ from y0.dsl import (
 from y0.graph import NxMixedGraph
 
 __all__ = [
-    "identify_district_variables",
-    "compute_c_factor_conditioning_on_topological_predecessors",
-    "compute_q_value_of_variables_with_low_topological_ordering_indices",
-    "compute_c_factor_marginalizing_over_topological_successors",
-    "compute_c_factor",
     "compute_ancestral_set_q_value",
+    "compute_c_factor",
+    "compute_c_factor_conditioning_on_topological_predecessors",
+    "compute_c_factor_marginalizing_over_topological_successors",
+    "compute_q_value_of_variables_with_low_topological_ordering_indices",
+    "identify_district_variables",
 ]
 
 logger = logging.getLogger(__name__)

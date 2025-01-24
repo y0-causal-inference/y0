@@ -58,15 +58,12 @@ from .idc_star import idc_star
 from .utils import Identification, Query, Unidentifiable
 
 __all__ = [
-    # Algorithms
-    "identify_outcomes",
-    "identify",
+    "Identification",
+    "Query",
+    "Unidentifiable",
     "id_star",
     "idc",
     "idc_star",
-    # Data Structures
-    "Query",
-    # Exceptions
-    "Unidentifiable",
-    "Identification",
+    "identify",
+    "identify_outcomes",
 ]

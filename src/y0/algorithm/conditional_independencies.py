@@ -21,11 +21,11 @@ from ..struct import (
 from ..util.combinatorics import powerset
 
 __all__ = [
-    "are_d_separated",
-    "minimal",
-    "get_conditional_independencies",
-    "test_conditional_independencies",
     "add_ci_undirected_edges",
+    "are_d_separated",
+    "get_conditional_independencies",
+    "minimal",
+    "test_conditional_independencies",
 ]
 
 
