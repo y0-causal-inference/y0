@@ -276,6 +276,7 @@ class TestGraph(unittest.TestCase):
         self.assertTrue(disoriented.has_edge(X, Y))
         self.assertTrue(disoriented.has_edge(Y, Z))
 
+    @ANANKE_REQUIRED
     def test_pre(self):
         """Test getting the pre-ordering for a given node or set of nodes."""
         g1 = NxMixedGraph.from_str_adj(
@@ -283,6 +284,7 @@ class TestGraph(unittest.TestCase):
         )
         g1_ananke = g1.to_admg()
         g1_y0_pre = set(g1.pre(Variable("4")))
+        # TODO hardcode expected
         g1_ananke_pre = set(g1_ananke.pre(vertices=["4"], top_order=g1_ananke.topological_sort()))
         g1_y0_pre = {node.name for node in g1_y0_pre}
         self.assertEqual(g1_y0_pre, g1_ananke_pre)
@@ -301,12 +303,14 @@ class TestFixability(unittest.TestCase):
 
     def assert_mb_shielded(self, graph: NxMixedGraph):
         """Assert the graph is mb-shielded."""
-        self.assertTrue(graph.to_admg().mb_shielded())
+        if ANANKE_AVAILABLE:
+            self.assertTrue(graph.to_admg().mb_shielded())
         self.assertTrue(is_markov_blanket_shielded(graph))
 
     def assert_mb_unshielded(self, graph: NxMixedGraph):
         """Assert the graph is not mb-shielded."""
-        self.assertFalse(graph.to_admg().mb_shielded())
+        if ANANKE_AVAILABLE:
+            self.assertFalse(graph.to_admg().mb_shielded())
         self.assertFalse(is_markov_blanket_shielded(graph))
 
     def test_is_mb_shielded(self):
