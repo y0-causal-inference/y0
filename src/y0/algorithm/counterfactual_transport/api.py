@@ -41,26 +41,24 @@ from .ancestor_utils import (
 )
 
 __all__ = [
-    # TODO do a proper audit of which of these a user should ever have to import
-    "unconditional_cft",
-    "conditional_cft",
-    "transport_unconditional_counterfactual_query",
-    "transport_conditional_counterfactual_query",
-    #
-    "Event",
     "CFTDomain",
     "ConditionalCFTResult",
+    "Event",
     "UnconditionalCFTResult",
-    # Utilities
-    "simplify",
+    "conditional_cft",
+    "convert_to_counterfactual_factor_form",
+    "counterfactual_factors_are_transportable",
+    "do_counterfactual_factor_factorization",
+    "get_counterfactual_factors",
+    "is_counterfactual_factor_form",
     "minimize_event",
     "same_district",
-    "is_counterfactual_factor_form",
-    "get_counterfactual_factors",
-    "convert_to_counterfactual_factor_form",
-    "do_counterfactual_factor_factorization",
-    "counterfactual_factors_are_transportable",
+    "simplify",
+    "transport_conditional_counterfactual_query",
     "transport_district_intervening_on_parents",
+    "transport_unconditional_counterfactual_query",
+    "unconditional_cft",
+    # TODO do a proper audit of which of these a user should ever have to import
     # TODO add functions/classes/variables you want to appear in the docs and be exposed to the user in this list
     #  Run tox -e docs then `open docs/build/html/index.html` to see docs
 ]

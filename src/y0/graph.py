@@ -36,10 +36,10 @@ if TYPE_CHECKING:
     import sympy
 
 __all__ = [
-    "NxMixedGraph",
-    "CausalEffectGraph",
-    "DEFULT_PREFIX",
     "DEFAULT_TAG",
+    "DEFULT_PREFIX",
+    "CausalEffectGraph",
+    "NxMixedGraph",
     "set_latent",
 ]
 
@@ -488,7 +488,7 @@ class NxMixedGraph:
             elif edge["type"] == "bidirected":
                 rv.add_undirected_edge(u, v)
             else:
-                raise ValueError(f'unhandled edge type: {edge["type"]}')
+                raise ValueError(f"unhandled edge type: {edge['type']}")
         return rv
 
     def subgraph(self, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:

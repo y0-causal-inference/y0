@@ -14,13 +14,13 @@ from y0.dsl import (
 from y0.graph import NxMixedGraph
 
 __all__ = [
-    "has_same_function",
     "extract_interventions",
+    "has_same_function",
+    "is_not_self_intervened",
     "is_pw_equivalent",
-    "merge_pw",
     "make_counterfactual_graph",
     "make_parallel_worlds_graph",
-    "is_not_self_intervened",
+    "merge_pw",
 ]
 
 
