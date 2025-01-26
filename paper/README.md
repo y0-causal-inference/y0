@@ -7,6 +7,12 @@ submission:
 1. [paper.md](paper.md): the main manuscript
 2. [paper.bib](paper.bib): BibTex citations for the manuscript
 
+## TODO
+
+- mention HCM data structure from [@weinstein2024hierarchicalcausalmodels]
+- @JZ reference other PNNL use cases (even if they're not published)
+- @JZ there's a note for you to fill in a sentence in the future work paragraph
+
 ## Build
 
 Follow the instructions
