@@ -9,7 +9,7 @@ tags:
   - mathematics
   - experimental design
   - interventional trials
-  - observational trials
+  - observational studies
 
 has-equal-contributors: true
 # see credit taxonomy at https://credit.niso.org/
@@ -198,7 +198,7 @@ accumulation, such as the choice to smoke tar-free cigarettes.
 Therefore, we add a _bidirected_ edge in \autoref{cancer}B.
 Unfortunately, the ID algorithm can not produce an estimand for \autoref{cancer}B, which motivates the usage of an
 alternative algorithm that incorporates observational and/or interventional data.
-For example, if data from an observational trial ($\pi^{\ast}$) and data from an interventional trial on smoking
+For example, if data from an observational study ($\pi^{\ast}$) and data from an interventional trial on smoking
 ($\pi_1$) are available, the TRSO algorithm [@tikka2019trso] estimates the effect of smoking on the risk of cancer in
 \autoref{cancer}B as
 $\sum_{Tar} P^{\pi^{\ast}}(Cancer | Smoking, Tar) P_{\text{Smoking}}^{{\pi_1}}(Tar)$.
