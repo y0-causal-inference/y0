@@ -12,6 +12,7 @@ submission:
 - mention HCM data structure from [@weinstein2024hierarchicalcausalmodels]
 - @JZ reference other PNNL use cases (even if they're not published)
 - @JZ there's a note for you to fill in a sentence in the future work paragraph
+- Get Richard and Pruthvi's ORCID
 
 ## Build
 
