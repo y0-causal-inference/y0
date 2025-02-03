@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/cthoyt/cookiecutter-snekpack",
-  "commit": "900ef65f0ad637bb02037d8cd66d0fa8436a236c",
+  "commit": "3257f18b9b5dc6922830dea64f9e0ab8b42a40e4",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -8,6 +8,7 @@
       "package_name_stylized": "Y0",
       "short_description": "Causal inference in Python.",
       "author_name": "Charles Tapley Hoyt",
+      "author_github": "",
       "author_email": "cthoyt@gmail.com",
       "github_organization_name": "y0-causal-inference",
       "github_repository_name": "y0",
@@ -15,10 +16,14 @@
       "gitlab": false,
       "runner": "tox",
       "__runner": "tox -e",
+      "__runner_uv": "--with tox-uv tox -e",
       "__runner_pip": "tox tox-uv",
+      "__runner_install_uv": "uv tool install tox --with tox-uv",
+      "__runner_install_pip": "python3 -m pip install tox tox-uv",
       "__runner_tests": "py",
       "__gh_slug": "y0-causal-inference/y0",
-      "_template": "https://github.com/cthoyt/cookiecutter-snekpack"
+      "_template": "https://github.com/cthoyt/cookiecutter-snekpack",
+      "_commit": "3257f18b9b5dc6922830dea64f9e0ab8b42a40e4"
     }
   },
   "directory": null
