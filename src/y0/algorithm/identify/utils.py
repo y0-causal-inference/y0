@@ -31,6 +31,23 @@ class Unidentifiable(Exception):  # noqa:N818
     """Raised on failure of the identification algorithm."""
 
 
+class ConnectedUnidentifiable(Unidentifiable):
+    """An unidentifiable exception when the graph is connected."""
+
+    def __init__(self, nodes: set[Variable], districts: set[frozenset[Variable]]) -> None:
+        """Initialize the exception."""
+        self.nodes = nodes
+        self.districts = districts
+
+    def __str__(self) -> str:
+        """Format a string for the exception."""
+        return (
+            f"Unidentifiable because the graph is connected, i.e., there's only "
+            f"1 c-component, and it encompasses all vertices."
+            f"\n\nNodes: {self.nodes}\nDistricts: {self.districts}"
+        )
+
+
 class Query:
     """An identification query."""
 

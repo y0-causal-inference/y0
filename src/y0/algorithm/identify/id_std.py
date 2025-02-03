@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 
-from .utils import Identification, Unidentifiable
+from .utils import ConnectedUnidentifiable, Identification, Unidentifiable
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
 from ...graph import NxMixedGraph
 
@@ -52,7 +52,7 @@ def identify(identification: Identification) -> Expression:
 
     # line 5
     if graph.is_connected():  # e.g., there's only 1 c-component, and it encompasses all vertices
-        raise Unidentifiable(graph.nodes(), graph_without_treatments.districts())
+        raise ConnectedUnidentifiable(set(graph.nodes()), graph_without_treatments.districts())
 
     # line 6
     district_without_treatment = _get_single_district(graph_without_treatments)
