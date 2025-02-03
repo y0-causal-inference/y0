@@ -142,25 +142,17 @@ class HierarchicalCausalModel:
 
     def get_direct_unit_descendants(self, subunit_node: VHint) -> set[Variable]:
         """Return the set of direct unit descendants of the given subunit variable in the HCM."""
-        units = self.get_units()
-        subunits = self.get_subunits()
-        descendants = set(self.successors(subunit_node))
-        duds = set()
-        go = True
-        while go:
-            if descendants == set():
-                go = False
-            else:
-                next_descendants = []
-                for d in descendants:
-                    if d in units:
-                        duds.add(d)
-                    elif d in subunits:  # TODO can this just be "else"?
-                        next_descendants.append(d)
-                descendants = set()
-                for nd in next_descendants:
-                    descendants.update(self.successors(nd))
-        return duds
+        descendants = set(self.successors(_upgrade(subunit_node)))
+        direct_unit_descendants = set()
+        while descendants:
+            new_descendants = set()
+            for descendant in descendants:
+                if descendant in self.subunits:
+                    new_descendants.update(self.successors(descendant))
+                else:
+                    direct_unit_descendants.add(descendant)
+            descendants = new_descendants
+        return direct_unit_descendants
 
     @classmethod
     def from_lists(
@@ -373,11 +365,12 @@ def get_ancestors(subunit_graph: SubunitGraph, start_node: VHint) -> set[Variabl
 
     while stack:
         node = stack.pop()
-        if node not in ancestors:
-            ancestors.add(node)
-            for predecessor in subunit_graph.predecessors(node):
-                if predecessor not in ancestors:
-                    stack.append(predecessor)
+        if node in ancestors:
+            continue
+        ancestors.add(node)
+        for predecessor in subunit_graph.predecessors(node):
+            if predecessor not in ancestors:
+                stack.append(predecessor)
 
     # Remove the start_node from the visited set if you don't want to include it
     ancestors.remove(start_node)
