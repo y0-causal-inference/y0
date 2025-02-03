@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import itertools as itt
 import typing
-import warnings
 from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
 from itertools import combinations
@@ -263,16 +262,19 @@ class HierarchicalCausalModel:
         hcgm = self.to_hcgm()
         if return_hcgm:
             hgcm_original = self.to_hcgm()
-        subunits = self.get_subunits()
         subunit_graph = self.get_subunit_graph()
         q_variables: set[QVariable] = set()
-        for subunit in subunits:
+        for subunit in self.get_subunits():
             q_variable = _create_qvar(subunit_graph, subunit)
             q_variables.add(q_variable)
             for dud in self.get_direct_unit_descendants(subunit):
                 hcgm.add_edge(q_variable, dud)
             hcgm.delete_node(subunit)
-        undirected = _get_undirected_edges(hcgm)
+        undirected = [
+            pair
+            for node in hcgm.get_unobserved()
+            for pair in combinations(hcgm.successors(node), r=2)
+        ]
         directed = [(source, target) for source, target in hcgm.edges() if source in hcgm.observed]
         collapsed = NxMixedGraph.from_edges(directed=directed, undirected=undirected)
         for q_variable in q_variables:  # loop to check for and add disconnected Q variables
@@ -313,46 +315,6 @@ class HierarchicalCausalModel:
         return rv
 
 
-def get_observed(hcm: HierarchicalCausalModel) -> set[Variable]:
-    """Return the set of observed variables (both unit and subunit) in the HCM."""
-    warnings.warn(
-        "use HierarchicalCausalModel.get_observed directly", DeprecationWarning, stacklevel=2
-    )
-    return hcm.get_observed()
-
-
-def get_unobserved(hcm: HierarchicalCausalModel) -> set[Variable]:
-    """Return the set of unobserved variables (both unit and subunit) in the HCM."""
-    warnings.warn(
-        "use HierarchicalCausalModel.get_unobserved directly", DeprecationWarning, stacklevel=2
-    )
-    return hcm.get_unobserved()
-
-
-def get_subunits(hcm: HierarchicalCausalModel) -> set[Variable]:
-    """Return the set of subunit variables in the HCM."""
-    warnings.warn(
-        "use HierarchicalCausalModel.get_subunits directly", DeprecationWarning, stacklevel=2
-    )
-    return hcm.get_subunits()
-
-
-def get_units(hcm: HierarchicalCausalModel) -> set[Variable]:
-    """Return the set of unit variables in the HCM."""
-    warnings.warn(
-        "use HierarchicalCausalModel.get_units directly", DeprecationWarning, stacklevel=2
-    )
-    return hcm.get_units()
-
-
-def get_parents(hcm: HierarchicalCausalModel, node: Variable) -> set[Variable]:
-    """Return the set of parent/predecessor variables of the given variable in the HCM."""
-    warnings.warn(
-        "use HierarchicalCausalModel.get_parents directly", DeprecationWarning, stacklevel=2
-    )
-    return hcm.get_parents(node)
-
-
 def get_ancestors(subunit_graph: SubunitGraph, start_node: VHint) -> set[Variable]:
     """Perform a depth-first search to get all ancestors of a node in a subunit graph.
 
@@ -376,12 +338,6 @@ def get_ancestors(subunit_graph: SubunitGraph, start_node: VHint) -> set[Variabl
     # Remove the start_node from the visited set if you don't want to include it
     ancestors.remove(start_node)
     return ancestors
-
-
-def copy_hcm(hcm: HierarchicalCausalModel) -> HierarchicalCausalModel:
-    """Return a copy of the HCM."""
-    warnings.warn("use HierarchicalCausalModel.copy_hcm directly", DeprecationWarning, stacklevel=2)
-    return hcm.copy_hcm()
 
 
 @dataclass(frozen=True, order=True, repr=False)
@@ -448,46 +404,11 @@ class QVariable(Variable):
         return cls(name=lhs, parents=frozenset(Variable(p) for p in rhs))
 
 
-def _create_qvar(subunit_graph: SubunitGraph, subunit_node: VHint) -> QVariable:
+def _create_qvar(subunit_graph: SubunitGraph, subunit_node: Variable) -> QVariable:
     """Return a y0 Variable for the unit-level Q variable of the given subunit variable in the HCM."""
-    sun = _upgrade(subunit_node)
-    subunit_parents = set(subunit_graph.predecessors(sun))
-    return QVariable(name=sun.name, parents=frozenset(subunit_parents))
-
-
-def convert_to_hcgm(hcm: HierarchicalCausalModel) -> HierarchicalCausalModel:
-    """Convert an HCM to a hierarchical causal graphical model (HCGM) with promoted Q variables."""
-    warnings.warn(
-        "use HierarchicalCausalModel.to_hcgm() directly", DeprecationWarning, stacklevel=2
+    return QVariable(
+        name=subunit_node.name, parents=frozenset(subunit_graph.predecessors(subunit_node))
     )
-    return hcm.to_hcgm()
-
-
-def convert_to_hscm(hcm: HierarchicalCausalModel) -> HierarchicalCausalModel:
-    """Convert the input HCM to an explicit hierarchical structural causal model (HSCM)."""
-    warnings.warn(
-        "use HierarchicalCausalModel.to_hscm() directly", DeprecationWarning, stacklevel=2
-    )
-    return hcm.to_hscm()
-
-
-def _get_undirected_edges(hcm: HierarchicalCausalModel) -> list[tuple[Variable, Variable]]:
-    """Return the list of undirected edges in the HCM generated by its latent variables."""
-    return [
-        pair for node in hcm.get_unobserved() for pair in combinations(hcm.successors(node), r=2)
-    ]
-
-
-def get_direct_unit_descendants(
-    hcm: HierarchicalCausalModel, subunit_node: Variable
-) -> set[Variable]:
-    """Return the set of direct unit descendants of the given subunit variable in the HCM."""
-    warnings.warn(
-        "use HierarchicalCausalModel.get_direct_unit_descendants directly",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return hcm.get_direct_unit_descendants(subunit_node)
 
 
 def _str_or_q(augmentation_variable: str | QVariable) -> QVariable:
