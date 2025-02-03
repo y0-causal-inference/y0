@@ -2,7 +2,7 @@
 
 import unittest
 
-from y0.dsl import A, Z
+from y0.dsl import A, B, C, D, E, F, G, M, U, Y, Z
 from y0.examples import hierarchical as hcm_examples
 from y0.examples.hierarchical import (
     get_compl_subgraph_hcm,
@@ -56,29 +56,29 @@ class TestStructure(unittest.TestCase):
     def test_instrument_hcm_from_list(self) -> None:
         """Test for correct observed variables."""
         hcm = HierarchicalCausalModel.from_lists(
-            observed_subunits=["A", "Z"],
-            observed_units=["Y"],
-            unobserved_units=["U"],
-            edges=[("Z", "A"), ("A", "Y"), ("U", "Y"), ("U", "A")],
+            observed_subunits=[A, Z],
+            observed_units=[Y],
+            unobserved_units=[U],
+            edges=[(Z, A), (A, Y), (U, Y), (U, A)],
         )
         self.assert_hcm_equal(instrument_hcm, hcm)
 
     def test_confounder_inference(self) -> None:
         """Pytest fixture from lists, to compre against 'by-hand' fixture."""
         hcm = HierarchicalCausalModel.from_lists(
-            observed_subunits=["A", "Y"],
-            observed_units=["Z"],
-            unobserved_units=["U"],
-            edges=[("U", "A"), ("A", "Y"), ("U", "Y"), ("A", "Z"), ("Z", "Y")],
+            observed_subunits=[A, Y],
+            observed_units=[Z],
+            unobserved_units=[U],
+            edges=[(U, A), (A, Y), (U, Y), (A, Z), (Z, Y)],
         )
         self.assert_hcm_equal(confounder_interference_hcm, hcm)
 
     def test_list_construction(self) -> None:
         """Test for correct observed variables."""
         hcm = HierarchicalCausalModel.from_lists(
-            observed_subunits=["A", "Y"],
-            unobserved_units=["U"],
-            edges=[("U", "A"), ("A", "Y"), ("U", "Y")],
+            observed_subunits=[A, Y],
+            unobserved_units=[U],
+            edges=[(U, A), (A, Y), (U, Y)],
         )
         self.assert_hcm_equal(hcm_examples.confounder_hcm, hcm)
 
@@ -93,50 +93,53 @@ class TestStructure(unittest.TestCase):
 
     def test_get_subunit_graph(self) -> None:
         """Test getting the subunit graph."""
-        self.assertEqual(instrument_subunit_graph.graph, instrument_hcm.get_subunit_graph())
+        expected = instrument_subunit_graph._graph
+        actual = instrument_hcm.get_subunit_graph()
+        self.assertEqual(set(expected.nodes()), set(actual.nodes()))
+        self.assertEqual(set(expected.edges()), set(actual.edges()))
 
     def test_get_observed(self) -> None:
         """Test getting observed nodes."""
         # Test observed variables in Confounder HCM fixture."""
-        self.assertEqual({"A", "Y"}, hcm_examples.confounder_hcm.get_observed())
+        self.assertEqual({A, Y}, hcm_examples.confounder_hcm.get_observed())
 
         # Test observed variables in Confounder Interference HCM fixture."""
-        self.assertEqual({"A", "Y", "Z"}, confounder_interference_hcm.get_observed())
+        self.assertEqual({A, Y, Z}, confounder_interference_hcm.get_observed())
 
         # Test observed variables in Instrument HCM fixture
-        self.assertEqual({"A", "Y", "Z"}, instrument_hcm.get_observed())
+        self.assertEqual({A, Y, Z}, instrument_hcm.get_observed())
 
     def test_get_unobserved(self) -> None:
         """Test unobserved variables in Confounder HCM fixture."""
-        self.assertEqual({"U"}, hcm_examples.confounder_hcm.get_unobserved())
-        self.assertEqual({"U"}, confounder_interference_hcm.get_unobserved())
-        self.assertEqual({"U"}, instrument_hcm.get_unobserved())
+        self.assertEqual({U}, hcm_examples.confounder_hcm.get_unobserved())
+        self.assertEqual({U}, confounder_interference_hcm.get_unobserved())
+        self.assertEqual({U}, instrument_hcm.get_unobserved())
 
     def test_get_units(self) -> None:
         """Test unit variables in Confounder HCM fixture."""
-        self.assertEqual({"U"}, hcm_examples.confounder_hcm.get_units())
-        self.assertEqual({"U", "Z"}, confounder_interference_hcm.get_units())
-        self.assertEqual({"U", "Y"}, instrument_hcm.get_units())
+        self.assertEqual({U}, hcm_examples.confounder_hcm.get_units())
+        self.assertEqual({U, Z}, confounder_interference_hcm.get_units())
+        self.assertEqual({U, Y}, instrument_hcm.get_units())
 
     def test_get_subunits(self) -> None:
         """Test subunit variables in Confounder HCM fixture."""
-        self.assertEqual({"A", "Y"}, hcm_examples.confounder_hcm.get_subunits())
-        self.assertEqual({"A", "Y"}, confounder_interference_hcm.get_subunits())
-        self.assertEqual({"A", "Z"}, instrument_hcm.get_subunits())
+        self.assertEqual({A, Y}, hcm_examples.confounder_hcm.get_subunits())
+        self.assertEqual({A, Y}, confounder_interference_hcm.get_subunits())
+        self.assertEqual({A, Z}, instrument_hcm.get_subunits())
 
     def test_get_parents(self) -> None:
         """Test getting parents."""
-        self.assertEqual({"U", "A", "Z"}, confounder_interference_hcm.get_parents("Y"))
-        self.assertEqual(set(), confounder_interference_hcm.get_parents("U"))
+        self.assertEqual({U, A, Z}, confounder_interference_hcm.get_parents(Y))
+        self.assertEqual(set(), confounder_interference_hcm.get_parents(U))
 
     def test_get_ancestors(self) -> None:
         """Test getting ancestors."""
         subgraph = compl_subgraph_hcm.get_subunit_graph()
 
         # non-direct subunit ancestors are not included
-        self.assertEqual(set(), get_ancestors(subgraph, "C"))
+        self.assertEqual(set(), get_ancestors(subgraph, C))
         # non-parent direct subunit ancestors are included
-        self.assertEqual({"A", "B", "C"}, get_ancestors(subgraph, "Y"))
+        self.assertEqual({A, B, C}, get_ancestors(subgraph, Y))
 
     def test_to_hgcm(self) -> None:
         """Test converting to hierarchical causal graphical models (HCGMs)."""
@@ -156,35 +159,35 @@ class TestStructure(unittest.TestCase):
 
     def test_duds(self) -> None:
         """Test case for multiple direct unit descendants."""
-        obs_sub = ["1", "2", "3", "4", "6", "7"]
-        obs_units = ["5", "8"]
-        edges = [("2", "3"), ("3", "4"), ("4", "5"), ("2", "8"), ("1", "8"), ("6", "7"), ("8", "5")]
+        obs_sub = [A, B, C, D, F, G]
+        obs_units = [E, M]
+        edges = [(B, C), (C, D), (D, E), (B, M), (A, M), (F, G), (M, E)]
         hcm = HierarchicalCausalModel.from_lists(
             observed_subunits=obs_sub, observed_units=obs_units, edges=edges
         )
 
-        self.assertEqual({"5", "8"}, hcm.get_direct_unit_descendants("2"))
+        self.assertEqual({E, M}, hcm.get_direct_unit_descendants(B))
 
         # Test that non-direct unit descendants are excluded
-        self.assertEqual({"8"}, hcm.get_direct_unit_descendants("1"))
+        self.assertEqual({M}, hcm.get_direct_unit_descendants(A))
 
         # Test case for path to unit descendant goes through multiple subunit descendants.
-        self.assertEqual({"5"}, hcm.get_direct_unit_descendants("3"))
+        self.assertEqual({E}, hcm.get_direct_unit_descendants(C))
 
         # Test case when there are no direct unit descendants.
-        self.assertEqual(set(), hcm.get_direct_unit_descendants("6"))
+        self.assertEqual(set(), hcm.get_direct_unit_descendants(F))
 
     def test_q_variables(self) -> None:
         """Test q-variable construction."""
         # Test generic case with multiple subunit parents
         hcm_1 = HierarchicalCausalModel.from_lists(
-            observed_subunits=["A", "Y", "Z"], edges=[("A", "Y"), ("Z", "Y")]
+            observed_subunits=[A, Y, Z], edges=[(A, Y), (Z, Y)]
         )
-        self.assertEqual(Q_Y_A_Z, _create_qvar(hcm_1, "Y"))
+        self.assertEqual(Q_Y_A_Z, _create_qvar(hcm_1, Y))
 
         # Test case when there are no subunit parents
         hcm_2 = confounder_interference_hcm.get_subunit_graph()
-        self.assertEqual(Q_A, _create_qvar(hcm_2, "A"))
+        self.assertEqual(Q_A, _create_qvar(hcm_2, A))
 
 
 class TestADMG(unittest.TestCase):

@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Any, TypeAlias
 
+import networkx as nx
 import pygraphviz
 import pygraphviz as pgv
 
@@ -29,113 +30,102 @@ __all__ = [
 ]
 
 SubunitGraph: TypeAlias = pgv.AGraph
-Node: TypeAlias = str
 
 SUBUNITS_KEY = "cluster_subunits"
 
 VHint: TypeAlias = typing.Union[str, Variable, "QVariable"]
 
 
-def _safe_q(v: VHint) -> str:
-    if isinstance(v, QVariable):
-        return v.pgv_str()
-    if isinstance(v, Variable):
-        return v.name
-    return v
+def _upgrade(v: VHint) -> Variable:
+    if not isinstance(v, str):
+        return v
+    if v.startswith("Q_"):
+        return QVariable.parse_str(v)
+    return Variable(v)
 
 
 class HierarchicalCausalModel:
     """A class that wraps HCM functionality."""
 
+    observed: set[Variable]
+    subunits: set[Variable]
+
     def __init__(self) -> None:
-        """Intialize the HCM."""
-        self.graph = pgv.AGraph(directed=True)
+        """Initialize the HCM."""
+        self._graph = nx.DiGraph()
+        self.observed = set()
+        self.subunits = set()
 
     def add_observed_node(self, node: VHint) -> None:
         """Add an observed node."""
-        self.graph.add_node(_safe_q(node), style="filled", color="lightgrey")
+        node = _upgrade(node)
+        self._graph.add_node(node)
+        self.observed.add(node)
 
     def add_unobserved_node(self, node: VHint) -> None:
         """Add an unobserved node."""
-        self.graph.add_node(_safe_q(node))
+        self._graph.add_node(_upgrade(node))
 
     def add_edge(
         self,
         u: VHint,
-        v: VHint | None = None,
-        *args: Any,
+        v: VHint,
         **kwargs: Any,
     ) -> None:
         """Add an edge."""
-        if v is None:
-            raise NotImplementedError("please use the unpacked interface")
-        self.graph.add_edge(_safe_q(u), _safe_q(v), *args, **kwargs)
+        self._graph.add_edge(_upgrade(u), _upgrade(v), **kwargs)
 
     def add_subunits(self, subunit_nodes: Iterable[VHint]) -> None:
         """Annotate the given nodes as the subunit graph."""
-        self.graph.add_subgraph(
-            [_safe_q(node) for node in subunit_nodes],
-            name=SUBUNITS_KEY,
-            style="dashed",
-            label="m",
-        )
+        self.subunits.update(_upgrade(x) for x in subunit_nodes)
 
     def is_node_observed(self, node: VHint) -> bool:
         """Check if the node is observed."""
-        return bool(self.graph.get_node(_safe_q(node)).attr.get("style") == "filled")
+        return _upgrade(node) in self.observed
 
-    def get_observed(self) -> set[Node]:
+    def get_observed(self) -> set[Variable]:
         """Return the set of observed variables (both unit and subunit) in the HCM."""
-        observed_nodes = set()
-        for node_name in self.graph.nodes():
-            if self.is_node_observed(node_name):
-                observed_nodes.add(node_name)
-        return observed_nodes
+        return self.observed
 
-    def get_unobserved(self) -> set[Node]:
+    def get_unobserved(self) -> set[Variable]:
         """Return the set of unobserved variables (both unit and subunit) in the HCM."""
-        all_nodes = set(self.graph.nodes())
-        return all_nodes - self.get_observed()
+        return set(self._graph.nodes()) - self.observed
 
-    def get_subunits(self) -> set[Node]:
+    def get_subunits(self) -> set[Variable]:
         """Return the set of subunit variables in the HCM."""
-        return set(self.graph.get_subgraph(SUBUNITS_KEY).nodes())
+        return self.subunits
 
-    def get_units(self) -> set[Node]:
+    def get_units(self) -> set[Variable]:
         """Return the set of unit variables in the HCM."""
-        subunits = self.get_subunits()
-        return set(self.graph.nodes()) - subunits
+        return set(self._graph.nodes()) - self.subunits
 
     def get_subunit_graph(self) -> SubunitGraph:
         """Return the subunit subgraph of the input HCM."""
-        subgraphs: list[pgv.AGraph] = self.graph.subgraphs()
-        if not subgraphs:
-            raise ValueError
-        return subgraphs[0]
+        return nx.subgraph(self._graph, self.subunits).copy()
 
-    def get_parents(self, node: VHint) -> set[Node]:
+    def get_parents(self, node: VHint) -> set[Variable]:
         """Return the set of parent/predecessor variables of the given variable in the HCM."""
-        return set(self.graph.predecessors(_safe_q(node)))
+        return set(self._graph.predecessors(_upgrade(node)))
 
     def delete_node(self, node: VHint) -> None:
         """Delete a node."""
-        self.graph.delete_node(_safe_q(node))
+        self._graph.remove_node(_upgrade(node))
 
     def delete_edge(self, u: VHint, v: VHint) -> None:
         """Delete an edge."""
-        self.graph.remove_edge(_safe_q(u), _safe_q(v))
+        self._graph.remove_edge(_upgrade(u), _upgrade(v))
 
-    def nodes(self) -> list[Node]:
+    def nodes(self) -> list[Variable]:
         """Get all nodes."""
-        return [str(n) for n in self.graph.nodes()]
+        return list(self._graph.nodes())
 
-    def predecessors(self, node: VHint) -> list[Node]:
+    def predecessors(self, node: VHint) -> list[Variable]:
         """Get predecessors."""
-        return [str(predecessor) for predecessor in self.graph.predecessors(_safe_q(node))]
+        return list(self._graph.predecessors(_upgrade(node)))
 
-    def successors(self, node: VHint) -> list[Node]:
+    def successors(self, node: VHint) -> list[Variable]:
         """Get successors."""
-        return [str(successor) for successor in self.graph.successors(_safe_q(node))]
+        return list(self._graph.successors(_upgrade(node)))
 
     # def set_subgraph_style(self, style: str) -> None:
     #     """Set the style on the subgraph."""
@@ -146,11 +136,11 @@ class HierarchicalCausalModel:
     #     node = self.graph.get_node(_safe_q(v))
     #     node.attr["shape"] = shape
 
-    def edges(self) -> list[tuple[Node, Node]]:
+    def edges(self) -> list[tuple[Variable, Variable]]:
         """Get all edges."""
-        return [(str(u), str(v)) for u, v in self.graph.edges()]
+        return list(self._graph.edges())
 
-    def get_direct_unit_descendants(self, subunit_node: VHint) -> set[Node]:
+    def get_direct_unit_descendants(self, subunit_node: VHint) -> set[Variable]:
         """Return the set of direct unit descendants of the given subunit variable in the HCM."""
         units = self.get_units()
         subunits = self.get_subunits()
@@ -165,7 +155,7 @@ class HierarchicalCausalModel:
                 for d in descendants:
                     if d in units:
                         duds.add(d)
-                    elif d in subunits:
+                    elif d in subunits:  # TODO can this just be "else"?
                         next_descendants.append(d)
                 descendants = set()
                 for nd in next_descendants:
@@ -220,7 +210,7 @@ class HierarchicalCausalModel:
             unobserved_subunits=list(unobs & subunits),
             observed_units=list(obs & units),
             unobserved_units=list(unobs & units),
-            edges=self.graph.edges(),
+            edges=self._graph.edges(),
         )
         return copy
 
@@ -264,7 +254,7 @@ class HierarchicalCausalModel:
             gamma_name = f"γ_{node}"  # noqa:RUF001
             # TODO is the gamma variable observed or unobserved?
             #  implicitly, this corresponds to being unobserved
-            hscm.graph.add_node(gamma_name, shape="plaintext")
+            hscm._graph.add_node(gamma_name, shape="plaintext")
             hscm.add_edge(gamma_name, node)
 
         return hscm
@@ -290,7 +280,7 @@ class HierarchicalCausalModel:
                 hcgm.add_edge(q_variable, dud)
             hcgm.delete_node(subunit)
         undirected = _get_undirected_edges(hcgm)
-        directed = _get_directed_edges(hcgm)
+        directed = [(source, target) for source, target in hcgm.edges() if source in hcgm.observed]
         collapsed = NxMixedGraph.from_edges(directed=directed, undirected=undirected)
         for q_variable in q_variables:  # loop to check for and add disconnected Q variables
             if q_variable not in collapsed:
@@ -302,10 +292,35 @@ class HierarchicalCausalModel:
 
     def to_pygraphviz(self) -> pygraphviz.AGraph:
         """Get a pygraphviz object."""
-        return self.graph
+        import pygraphviz as pgv
+
+        def _pgv(n: Variable) -> str:
+            if isinstance(n, QVariable):
+                return n.pgv_str()
+            else:
+                return n.name
+
+        rv = pgv.AGraph(directed=True)
+        for node in self._graph.nodes():
+            if node in self.observed:
+                rv.add_node(_pgv(node), style="filled", color="lightgrey")
+            else:
+                rv.add_node(_pgv(node))
+
+        rv.add_subgraph(
+            [_pgv(node) for node in self.subunits],
+            name=SUBUNITS_KEY,
+            style="dashed",
+            label="m",
+        )
+
+        for u, v in self._graph.edges():
+            rv.add_edge(_pgv(u), _pgv(v))
+
+        return rv
 
 
-def get_observed(hcm: HierarchicalCausalModel) -> set[str]:
+def get_observed(hcm: HierarchicalCausalModel) -> set[Variable]:
     """Return the set of observed variables (both unit and subunit) in the HCM."""
     warnings.warn(
         "use HierarchicalCausalModel.get_observed directly", DeprecationWarning, stacklevel=2
@@ -313,7 +328,7 @@ def get_observed(hcm: HierarchicalCausalModel) -> set[str]:
     return hcm.get_observed()
 
 
-def get_unobserved(hcm: HierarchicalCausalModel) -> set[str]:
+def get_unobserved(hcm: HierarchicalCausalModel) -> set[Variable]:
     """Return the set of unobserved variables (both unit and subunit) in the HCM."""
     warnings.warn(
         "use HierarchicalCausalModel.get_unobserved directly", DeprecationWarning, stacklevel=2
@@ -321,7 +336,7 @@ def get_unobserved(hcm: HierarchicalCausalModel) -> set[str]:
     return hcm.get_unobserved()
 
 
-def get_subunits(hcm: HierarchicalCausalModel) -> set[str]:
+def get_subunits(hcm: HierarchicalCausalModel) -> set[Variable]:
     """Return the set of subunit variables in the HCM."""
     warnings.warn(
         "use HierarchicalCausalModel.get_subunits directly", DeprecationWarning, stacklevel=2
@@ -329,7 +344,7 @@ def get_subunits(hcm: HierarchicalCausalModel) -> set[str]:
     return hcm.get_subunits()
 
 
-def get_units(hcm: HierarchicalCausalModel) -> set[str]:
+def get_units(hcm: HierarchicalCausalModel) -> set[Variable]:
     """Return the set of unit variables in the HCM."""
     warnings.warn(
         "use HierarchicalCausalModel.get_units directly", DeprecationWarning, stacklevel=2
@@ -337,7 +352,7 @@ def get_units(hcm: HierarchicalCausalModel) -> set[str]:
     return hcm.get_units()
 
 
-def get_parents(hcm: HierarchicalCausalModel, node: str) -> set[str]:
+def get_parents(hcm: HierarchicalCausalModel, node: Variable) -> set[Variable]:
     """Return the set of parent/predecessor variables of the given variable in the HCM."""
     warnings.warn(
         "use HierarchicalCausalModel.get_parents directly", DeprecationWarning, stacklevel=2
@@ -345,18 +360,14 @@ def get_parents(hcm: HierarchicalCausalModel, node: str) -> set[str]:
     return hcm.get_parents(node)
 
 
-def get_subunit_parents(subunit_graph: SubunitGraph, node: str) -> set[str]:
-    """Return the set of parent/predecessor variables of the given variable in the HCM."""
-    return set(subunit_graph.predecessors(node))
-
-
-def get_ancestors(subunit_graph: SubunitGraph, start_node: str) -> set[str]:
+def get_ancestors(subunit_graph: SubunitGraph, start_node: VHint) -> set[Variable]:
     """Perform a depth-first search to get all ancestors of a node in a subunit graph.
 
     :param subunit_graph: A subunit graph
     :param start_node: the node to start the search from
     :returns: set of all ancestor nodes
     """
+    start_node = _upgrade(start_node)
     stack = [start_node]
     ancestors = set()
 
@@ -443,12 +454,11 @@ class QVariable(Variable):
         return cls(name=lhs, parents=frozenset(Variable(p) for p in rhs))
 
 
-def _create_qvar(subunit_graph: SubunitGraph, subunit_node: str) -> QVariable:
+def _create_qvar(subunit_graph: SubunitGraph, subunit_node: VHint) -> QVariable:
     """Return a y0 Variable for the unit-level Q variable of the given subunit variable in the HCM."""
-    subunit_parents = get_subunit_parents(subunit_graph, subunit_node)
-    return QVariable(
-        name=str(subunit_node), parents=frozenset(Variable(parent) for parent in subunit_parents)
-    )
+    sun = _upgrade(subunit_node)
+    subunit_parents = set(subunit_graph.predecessors(sun))
+    return QVariable(name=sun.name, parents=frozenset(subunit_parents))
 
 
 def convert_to_hcgm(hcm: HierarchicalCausalModel) -> HierarchicalCausalModel:
@@ -467,35 +477,16 @@ def convert_to_hscm(hcm: HierarchicalCausalModel) -> HierarchicalCausalModel:
     return hcm.to_hscm()
 
 
-def _get_directed_edges(hcm: HierarchicalCausalModel) -> list[tuple[Variable, Variable]]:
-    """Return the list of directed edges in the HCM that do not contain latent variables."""
-    unobserved = hcm.get_unobserved()
-    return [
-        _clean_pair(source, target) for source, target in hcm.edges() if source not in unobserved
-    ]
-
-
 def _get_undirected_edges(hcm: HierarchicalCausalModel) -> list[tuple[Variable, Variable]]:
     """Return the list of undirected edges in the HCM generated by its latent variables."""
     return [
-        _clean_pair(*pair)
-        for node in hcm.get_unobserved()
-        for pair in combinations(hcm.successors(node), r=2)
+        pair for node in hcm.get_unobserved() for pair in combinations(hcm.successors(node), r=2)
     ]
 
 
-def _safe(source: str) -> Variable | QVariable:
-    if source.startswith("Q_"):
-        return QVariable.parse_str(source)
-    else:
-        return Variable(source)
-
-
-def _clean_pair(source: str, target: str) -> tuple[Variable, Variable]:
-    return _safe(source), _safe(target)
-
-
-def get_direct_unit_descendants(hcm: HierarchicalCausalModel, subunit_node: str) -> set[str]:
+def get_direct_unit_descendants(
+    hcm: HierarchicalCausalModel, subunit_node: Variable
+) -> set[Variable]:
     """Return the set of direct unit descendants of the given subunit variable in the HCM."""
     warnings.warn(
         "use HierarchicalCausalModel.get_direct_unit_descendants directly",
@@ -547,7 +538,7 @@ def augmentation_mechanism(
 ) -> list[QVariable]:
     """Generate augmentation mechanism."""
     augmentation_variable = _str_or_q(augmentation_variable)
-    nodes = {Variable(node) for node in subunit_graph.nodes()}
+    nodes = set(subunit_graph.nodes())
     lhs_var = augmentation_variable.get_lhs()
     if lhs_var not in nodes:
         raise KeyError(
@@ -557,10 +548,9 @@ def augmentation_mechanism(
         raise KeyError(
             f"Augmentation variable's right hand side {augmentation_variable.parents} are not all not in subunit graph: {nodes}"
         )
-    lhs_name = augmentation_variable.get_lhs().name
-    rhs = {p.name for p in augmentation_variable.parents}
-    mechanism = [_create_qvar(subunit_graph, lhs_name)]
-    direct_subunit_descendants = get_ancestors(subunit_graph, lhs_name) - rhs
+    rhs = augmentation_variable.parents
+    mechanism = [_create_qvar(subunit_graph, lhs_var)]
+    direct_subunit_descendants = get_ancestors(subunit_graph, lhs_var).difference(rhs)
     for dsd in direct_subunit_descendants:
         mechanism.append(_create_qvar(subunit_graph, dsd))
     return mechanism

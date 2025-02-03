@@ -65,7 +65,6 @@ dependencies = [
     "scikit-learn",
     "statsmodels",
     "scipy",
-    "pygraphviz",
 ]
 
 [project.optional-dependencies]
