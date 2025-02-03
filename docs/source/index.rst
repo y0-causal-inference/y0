@@ -18,6 +18,7 @@ y0 |release| Documentation
    tian_id
    transport
    lvdags
+   hierarchical
    struct
    cli
 
