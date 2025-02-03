@@ -11,14 +11,15 @@ import warnings
 from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
 from itertools import combinations
-from typing import Any, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import networkx as nx
-import pygraphviz
-import pygraphviz as pgv
 
 from y0.dsl import Variable
 from y0.graph import NxMixedGraph
+
+if TYPE_CHECKING:
+    import pygraphviz
 
 __all__ = [
     "HierarchicalCausalModel",
@@ -29,7 +30,7 @@ __all__ = [
     "marginalize_augmented_model",
 ]
 
-SubunitGraph: TypeAlias = pgv.AGraph
+SubunitGraph: TypeAlias = nx.DiGraph
 
 SUBUNITS_KEY = "cluster_subunits"
 
