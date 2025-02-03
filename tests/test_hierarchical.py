@@ -202,12 +202,12 @@ class TestADMG(unittest.TestCase):
     def test_to_admg(self) -> None:
         """Test conversion to ADMG."""
         for hcm, admg in [
-            (hcm_examples.confounder_hcm, hcm_examples.confounder_collapsed_nxmixedgraph),
+            (hcm_examples.confounder_hcm, hcm_examples.confounder_collapsed_admg),
             (
                 confounder_interference_hcm,
-                hcm_examples.confounder_interference_collapsed_nxmixedgraph,
+                hcm_examples.confounder_interference_collapsed_admg,
             ),
-            (instrument_hcm, hcm_examples.instrument_collapsed_nxmixedgraph),
+            (instrument_hcm, hcm_examples.instrument_collapsed_admg),
         ]:
             self.check_graph_equal(admg, hcm.to_admg())
 
@@ -216,9 +216,9 @@ class TestADMG(unittest.TestCase):
     def test_augment_confounder_from_mech(self) -> None:
         """Test that augmenting Figure 2 (c) fixture gives Figure 2 (d) fixture."""
         self.check_graph_equal(
-            hcm_examples.confounder_augmented_nxmixedgraph,
+            hcm_examples.confounder_augmented_admg,
             augment_from_mechanism(
-                hcm_examples.confounder_collapsed_nxmixedgraph,
+                hcm_examples.confounder_collapsed_admg,
                 Q_Y,
                 (Q_A, Q_Y_A),
             ),
@@ -232,9 +232,9 @@ class TestADMG(unittest.TestCase):
     def test_augment_confounder_interference_from_mech(self) -> None:
         """Test that augmenting Figure 2 (g) fixture gives Figure 2 (h)."""
         self.check_graph_equal(
-            hcm_examples.confounder_interference_augmented_nxmixedgraph,
+            hcm_examples.confounder_interference_augmented_admg,
             augment_from_mechanism(
-                hcm_examples.confounder_interference_collapsed_nxmixedgraph,
+                hcm_examples.confounder_interference_collapsed_admg,
                 Q_Y,
                 (Q_A, Q_Y_A),
             ),
@@ -248,9 +248,9 @@ class TestADMG(unittest.TestCase):
     def test_augment_instrument_from_mech(self) -> None:
         """Test that augmenting Figure 2 (k) fixture gives Figure A2 fixture."""
         self.check_graph_equal(
-            hcm_examples.instrument_augmented_nxmixedgraph,
+            hcm_examples.instrument_augmented_admg,
             augment_from_mechanism(
-                hcm_examples.instrument_collapsed_nxmixedgraph,
+                hcm_examples.instrument_collapsed_admg,
                 Q_A,
                 [Q_Z, Q_A_Z],
             ),
@@ -279,6 +279,6 @@ class TestADMG(unittest.TestCase):
     def test_marginalized_instrument(self) -> None:
         """Test that marginalizing the Figure A2 fixture gives the Figure 2 (l) fixture."""
         self.check_graph_equal(
-            hcm_examples.instrument_marginalized_nxmixedgraph,
-            marginalize_augmented_model(hcm_examples.instrument_augmented_nxmixedgraph, Q_A, [Q_Z]),
+            hcm_examples.instrument_marginalized_admg,
+            marginalize_augmented_model(hcm_examples.instrument_augmented_admg, Q_A, [Q_Z]),
         )
