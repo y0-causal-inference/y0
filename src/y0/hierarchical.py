@@ -515,7 +515,7 @@ def marginalize_augmented_model(
     if augmentation_variable not in augmented.nodes():
         raise ValueError("Augmentation variable must be in the input augmented model.")
     if set(marginal_parents) == mechanism:
-        raise ValueError("Cannot marginalize all parents of the augmentation varaible.")
+        raise ValueError("Cannot marginalize all parents of the augmentation variable.")
     for parent in marginal_parents:
         if set(marginalized.directed.successors(parent)) != check_set:
             raise ValueError(
