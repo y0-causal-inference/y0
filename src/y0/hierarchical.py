@@ -50,11 +50,16 @@ class HierarchicalCausalModel:
     observed: set[Variable]
     subunits: set[Variable]
 
+    #: Keep track of which variables are stochastic, which happens
+    #: when making an HSCM. See https://github.com/y0-causal-inference/y0/issues/271
+    stochastic: set[Variable]
+
     def __init__(self) -> None:
         """Initialize the HCM."""
         self._graph = nx.DiGraph()
         self.observed = set()
         self.subunits = set()
+        self.stochastic = set()
 
     def add_observed_node(self, node: VHint) -> None:
         """Add an observed node."""
@@ -233,8 +238,7 @@ class HierarchicalCausalModel:
         hscm = self.copy_hcm()
         subunit_graph = hscm.get_subunit_graph()
         for node in hscm.get_unobserved():
-            # TODO what's this for? Is it used besides making diagrams?
-            # hscm.set_shape(node, "square")
+            hscm.stochastic.add(node)
 
             # TODO give a better name to epsilon_name that explains what it is representing
             epsilon_name = f"ϵ_{node}"
@@ -301,6 +305,9 @@ class HierarchicalCausalModel:
                 rv.add_node(_pgv(node), style="filled", color="lightgrey")
             else:
                 rv.add_node(_pgv(node))
+
+        for node in self.stochastic:
+            rv.get_node(_pgv(node)).attr['shape'] = 'square'
 
         rv.add_subgraph(
             [_pgv(node) for node in self.subunits],
