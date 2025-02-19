@@ -60,6 +60,7 @@ class HierarchicalCausalModel:
         self.observed = set()
         self.subunits = set()
         self.deterministic = set()
+        self._exogenous_noise = set() # for hscm, if we decide to keep
 
     def add_observed_node(self, node: VHint) -> None:
         """Add an observed node."""
@@ -236,22 +237,25 @@ class HierarchicalCausalModel:
         """Convert the input HCM to an explicit hierarchical structural causal model (HSCM)."""
         # TODO add unit tests
         hscm = self.copy_hcm()
-        subunit_graph = hscm.get_subunit_graph()
-        for node in hscm.get_unobserved():
-            hscm.stochastic.add(node) # TODO update / correct this
+        # subunit_graph = hscm.get_subunit_graph()
+        for node in hscm.get_observed():
+            hscm.deterministic.add(node) # TODO update / correct this
 
             # TODO give a better name to epsilon_name that explains what it is representing
-            epsilon_name = f"ϵ_{node}"
+            subunit_exogenous = _upgrade(f"ϵ_{node}")
             # TODO is this epsilon variable observed or unobserved?
-            subunit_graph.add_node(epsilon_name, shape="plaintext")
-            hscm.add_edge(epsilon_name, node)
+            # subunit_graph.add_node(subunit_exogenous, shape="plaintext")
+            hscm.add_subunits([subunit_exogenous])
+            hscm._exogenous_noise.add(subunit_exogenous)
+            hscm.add_edge(subunit_exogenous, node)
 
             # TODO give a better name to gamma_name that explains what it is representing
-            gamma_name = f"γ_{node}"  # noqa:RUF001
+            unit_exogenous = _upgrade(f"γ_{node}")  # noqa:RUF001
             # TODO is the gamma variable observed or unobserved?
             #  implicitly, this corresponds to being unobserved
-            hscm._graph.add_node(gamma_name, shape="plaintext")
-            hscm.add_edge(gamma_name, node)
+            # hscm._graph.add_node(unit_exogenous, shape="plaintext")
+            hscm._exogenous_noise.add(unit_exogenous)
+            hscm.add_edge(unit_exogenous, node)
 
         return hscm
 
@@ -308,6 +312,9 @@ class HierarchicalCausalModel:
 
         for node in self.deterministic:
             rv.get_node(_pgv(node)).attr['shape'] = 'square'
+
+        for node in self._exogenous_noise:
+            rv.get_node(_pgv(node)).attr['shape'] = 'plaintext'
 
         rv.add_subgraph(
             [_pgv(node) for node in self.subunits],
@@ -444,6 +451,7 @@ def augment_from_mechanism(
     if not mechanism <= collapsed.nodes():
         raise ValueError("The input mechanism must be contained in the collapsed model.")
     augmented.add_node(aug)
+    # augmented.deterministic.add(aug)
     for var in mechanism:
         augmented.add_directed_edge(var, aug)
     for var in set(augmented.nodes()) - {aug}:
