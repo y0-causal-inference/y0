@@ -239,7 +239,7 @@ class HierarchicalCausalModel:
         hscm = self.copy_hcm()
         # subunit_graph = hscm.get_subunit_graph()
         for node in hscm.get_observed():
-            hscm.deterministic.add(node) # TODO update / correct this
+            hscm.deterministic.add(node) 
 
             # TODO give a better name to epsilon_name that explains what it is representing
             subunit_exogenous = _upgrade(f"ϵ_{node}")
@@ -484,6 +484,11 @@ def augmentation_mechanism(
     for dsd in direct_subunit_descendants:
         mechanism.append(_create_qvar(subunit_graph, dsd))
     return mechanism
+
+
+def collapse_hcm(model: HierarchicalCausalModel) -> NxMixedGraph:
+    """Collapse the given hierarchical model according to Algorithm 1 of the HCM paper."""
+    return model.to_admg
 
 
 def augment_collapsed_model(
