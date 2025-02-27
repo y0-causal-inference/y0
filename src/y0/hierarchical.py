@@ -306,11 +306,11 @@ class HierarchicalCausalModel:
             rv.add_edge(_pgv(u), _pgv(v))
 
         return rv
-    
+
 
 class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
-    """A subclass of HCM that wraps HSCM functionality"""
-    
+    """A subclass of HCM that wraps HSCM functionality."""
+
     exogenous_noise: set[Variable]
 
     def __init__(self) -> None:
@@ -322,7 +322,9 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
         """Add an unobserved node and its exogenous noise."""
         node = _upgrade(node)
         unit_exogenous = _upgrade(f"y_i^{node}")
-        subunit_exogenous = _upgrade(f"e_ij^{node}") # TODO how to do e_{ij} while also formatting {node}?
+        subunit_exogenous = _upgrade(
+            f"e_ij^{node}"
+        )  # TODO how to do e_{ij} while also formatting {node}?
         self._graph.add_node(node)
         self._graph.add_edge(unit_exogenous, node)
         self._graph.add_edge(subunit_exogenous, node)
@@ -342,7 +344,7 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
         **kwargs: Any,
     ) -> None:
         """Add an edge."""
-        if any (node in self.exogenous_noise for node in {u, v}):
+        if any(node in self.exogenous_noise for node in {u, v}):
             raise ValueError("Cannot add an edge to or from exogenous noise variables.")
         else:
             HierarchicalCausalModel.add_edge(self, u, v, **kwargs)
@@ -360,19 +362,19 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
         units = self.get_units() & endogenous
         subunits = self.get_subunits() & endogenous
         hcm = HierarchicalCausalModel.from_lists(
-            observed_subunits = list(obs & subunits),
-            unobserved_subunits = list(unobs & subunits),
-            observed_units = list(obs & units),
-            unobserved_units = list(unobs & units),
-            edges = self._graph.edges(nbunch=list(endogenous))
+            observed_subunits=list(obs & subunits),
+            unobserved_subunits=list(unobs & subunits),
+            observed_units=list(obs & units),
+            unobserved_units=list(unobs & units),
+            edges=self._graph.edges(nbunch=list(endogenous)),
         )
         return hcm
-    
+
     def to_hcgm(self: HierarchicalCausalModel) -> HierarchicalCausalModel:
         """Convert an HSCM to a hierarchical causal graphical model (HCGM) with promoted Q variables."""
         hcm = self.to_hcm()
         return hcm.to_hcgm()
-    
+
     def to_admg(self, *, return_hcgm: bool = False) -> NxMixedGraph:
         """Return a collapsed hierarchical causal model.
 
@@ -403,9 +405,9 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
 
         for node in self.nodes():
             if node in self.get_exogenous_noise():
-                rv.get_node(_pgv(node)).attr['shape'] = 'plaintext'
+                rv.get_node(_pgv(node)).attr["shape"] = "plaintext"
             else:
-                rv.get_node(_pgv(node)).attr['shape'] = 'square'
+                rv.get_node(_pgv(node)).attr["shape"] = "square"
 
         rv.add_subgraph(
             [_pgv(node) for node in self.subunits],
@@ -579,7 +581,7 @@ def augmentation_mechanism(
 
 def collapse_hcm(model: HierarchicalCausalModel) -> NxMixedGraph:
     """Collapse the given hierarchical model according to Algorithm 1 of the HCM paper."""
-    return model.to_admg # TODO handle input HSCM class as well?
+    return model.to_admg  # TODO handle input HSCM class as well?
 
 
 def augment_collapsed_model(

@@ -173,7 +173,7 @@ class TestStructure(unittest.TestCase):
         for hcm, hscm in [
             (hcm_examples.confounder_hcm, confounder_hscm),
             (confounder_interference_hcm, confounder_interference_hscm),
-            (instrument_hcm, instrument_hscm)
+            (instrument_hcm, instrument_hscm),
         ]:
             self.assert_hscm_equal(hscm, hcm.to_hscm())
 
@@ -182,7 +182,7 @@ class TestStructure(unittest.TestCase):
         for hcm, hscm in [
             (hcm_examples.confounder_hcm, confounder_hscm),
             (confounder_interference_hcm, confounder_interference_hscm),
-            (instrument_hcm, instrument_hscm)
+            (instrument_hcm, instrument_hscm),
         ]:
             self.assert_hcm_equal(hscm.to_hcm(), hcm)
 

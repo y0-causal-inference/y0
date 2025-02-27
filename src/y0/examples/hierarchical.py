@@ -95,7 +95,7 @@ def get_confounder_interference_hcgm() -> HierarchicalCausalModel:
 
 
 def get_confounder_interference_hscm() -> HierarchicalStructuralCausalModel:
-    """Pytest fixture for the Confounder Interference HSCM in Sec. 2.3 Eqn. (9)"""
+    """Pytest fixture for the Confounder Interference HSCM in Sec. 2.3 Eqn. (9)."""
     hscm = HierarchicalStructuralCausalModel()
     hscm.add_observed_node(A)
     hscm.add_observed_node(Y)
