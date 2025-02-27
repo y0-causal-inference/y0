@@ -370,7 +370,7 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
         )
         return hcm
 
-    def to_hcgm(self: HierarchicalCausalModel) -> HierarchicalCausalModel:
+    def to_hcgm(self: HierarchicalStructuralCausalModel) -> HierarchicalCausalModel:
         """Convert an HSCM to a hierarchical causal graphical model (HCGM) with promoted Q variables."""
         hcm = self.to_hcm()
         return hcm.to_hcgm()
@@ -579,9 +579,9 @@ def augmentation_mechanism(
     return mechanism
 
 
-def collapse_hcm(model: HierarchicalCausalModel) -> NxMixedGraph:
+def collapse_hcm(model: HierarchicalCausalModel, return_hcgm: bool = False) -> NxMixedGraph:
     """Collapse the given hierarchical model according to Algorithm 1 of the HCM paper."""
-    return model.to_admg  # TODO handle input HSCM class as well?
+    return model.to_admg(return_hcgm)  # TODO handle input HSCM class as well?
 
 
 def augment_collapsed_model(
