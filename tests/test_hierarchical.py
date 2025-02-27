@@ -7,15 +7,19 @@ from y0.examples import hierarchical as hcm_examples
 from y0.examples.hierarchical import (
     get_compl_subgraph_hcm,
     get_confounder_hcgm,
+    get_confounder_hscm,
     get_confounder_interference_hcgm,
     get_confounder_interference_hcm,
+    get_confounder_interference_hscm,
     get_instrument_hcgm,
     get_instrument_hcm,
+    get_instrument_hscm,
     get_instrument_subunit_graph,
 )
 from y0.graph import NxMixedGraph
 from y0.hierarchical import (
     HierarchicalCausalModel,
+    HierarchicalStructuralCausalModel,
     QVariable,
     _create_qvar,
     augment_from_mechanism,
@@ -32,11 +36,14 @@ Q_Z = QVariable(name="Z")
 Q_Y_A_Z = QVariable(name="Y", parents=frozenset([A, Z]))
 
 confounder_hcgm = get_confounder_hcgm()
+confounder_hscm = get_confounder_hscm()
 confounder_interference_hcm = get_confounder_interference_hcm()
 confounder_interference_hcgm = get_confounder_interference_hcgm()
+confounder_interference_hscm = get_confounder_interference_hscm()
 instrument_hcm = get_instrument_hcm()
 instrument_subunit_graph = get_instrument_subunit_graph()
 instrument_hcgm = get_instrument_hcgm()
+instrument_hscm = get_instrument_hscm()
 compl_subgraph_hcm = get_compl_subgraph_hcm()
 
 
@@ -52,6 +59,17 @@ class TestStructure(unittest.TestCase):
         self.assertEqual(expected.get_units(), actual.get_units())
         self.assertEqual(expected.get_subunits(), actual.get_subunits())
         self.assertEqual(set(expected.edges()), set(actual.edges()))
+
+    def assert_hscm_equal(
+        self, expected: HierarchicalStructuralCausalModel, actual: HierarchicalStructuralCausalModel
+    ) -> None:
+        """Test all parts of two HSCMs are equal."""
+        self.assertEqual(expected.get_observed(), actual.get_observed())
+        self.assertEqual(expected.get_unobserved(), actual.get_unobserved())
+        self.assertEqual(expected.get_units(), actual.get_units())
+        self.assertEqual(expected.get_subunits(), actual.get_subunits())
+        self.assertEqual(set(expected.edges()), set(actual.edges()))
+        self.assertEqual(expected.get_exogenous_noise(), actual.get_exogenous_noise())
 
     def test_instrument_hcm_from_list(self) -> None:
         """Test for correct observed variables."""
@@ -152,10 +170,21 @@ class TestStructure(unittest.TestCase):
 
     def test_to_hscm(self) -> None:
         """Test converting to hierarchical structural causal models (HSCMs)."""
-        pairs: list[tuple[HierarchicalCausalModel, HierarchicalCausalModel]] = []
-        self.assertLess(0, len(pairs), msg="Need some HSCM test cases")
-        for hcm, hscm in pairs:
-            self.assert_hcm_equal(hscm, hcm.to_hscm())
+        for hcm, hscm in [
+            (hcm_examples.confounder_hcm, confounder_hscm),
+            (confounder_interference_hcm, confounder_interference_hscm),
+            (instrument_hcm, instrument_hscm)
+        ]:
+            self.assert_hscm_equal(hscm, hcm.to_hscm())
+
+    def test_to_hcm(self) -> None:
+        """Test converting to hierarchical structural causal models (HSCMs)."""
+        for hcm, hscm in [
+            (hcm_examples.confounder_hcm, confounder_hscm),
+            (confounder_interference_hcm, confounder_interference_hscm),
+            (instrument_hcm, instrument_hscm)
+        ]:
+            self.assert_hcm_equal(hscm.to_hcm(), hcm)
 
     def test_duds(self) -> None:
         """Test case for multiple direct unit descendants."""
