@@ -2,7 +2,7 @@
 
 from y0.dsl import A, B, C, D, U, Y, Z
 from y0.graph import NxMixedGraph
-from y0.hierarchical import HierarchicalCausalModel, QVariable
+from y0.hierarchical import HierarchicalCausalModel, HierarchicalStructuralCausalModel, QVariable
 
 __all__ = [
     "confounder_hcm",
@@ -47,6 +47,19 @@ def get_confounder_hcgm() -> HierarchicalCausalModel:
     return hcm
 
 
+def get_confounder_hscm() -> HierarchicalStructuralCausalModel:
+    """Pytest fixture for Confounder HSCM in Section 2.3 Eqn. (8)."""
+    hscm = HierarchicalStructuralCausalModel()
+    hscm.add_observed_node(A)
+    hscm.add_observed_node(Y)
+    hscm.add_unobserved_node(U)
+    hscm.add_edge(U, A)
+    hscm.add_edge(A, Y)
+    hscm.add_edge(U, Y)
+    hscm.add_subunits([A, Y])
+    return hscm
+
+
 def get_confounder_interference_hcm() -> HierarchicalCausalModel:
     """Pytest fixture for the Confounder Interference HCM in Figure 2 (e)."""
     hcm = HierarchicalCausalModel()
@@ -79,6 +92,22 @@ def get_confounder_interference_hcgm() -> HierarchicalCausalModel:
     hcm.add_edge(Z, Q_Y_A)
     hcm.add_subunits([A, Y])
     return hcm
+
+
+def get_confounder_interference_hscm() -> HierarchicalStructuralCausalModel:
+    """Pytest fixture for the Confounder Interference HSCM in Sec. 2.3 Eqn. (9)"""
+    hscm = HierarchicalStructuralCausalModel()
+    hscm.add_observed_node(A)
+    hscm.add_observed_node(Y)
+    hscm.add_observed_node(Z)
+    hscm.add_unobserved_node(U)
+    hscm.add_edge(U, A)
+    hscm.add_edge(A, Y)
+    hscm.add_edge(U, Y)
+    hscm.add_edge(A, Z)
+    hscm.add_edge(Z, Y)
+    hscm.add_subunits([A, Y])
+    return hscm
 
 
 def get_instrument_hcm() -> HierarchicalCausalModel:
@@ -120,6 +149,21 @@ def get_instrument_hcgm() -> HierarchicalCausalModel:
     hcm.add_edge(Z, A)
     hcm.add_subunits([A, Z])
     return hcm
+
+
+def get_instrument_hscm() -> HierarchicalStructuralCausalModel:
+    """Pytest fixture for the Instrument HSCM in Section 2.3 Eqn. (10)."""
+    hscm = HierarchicalStructuralCausalModel()
+    hscm.add_observed_node(A)
+    hscm.add_observed_node(Y)
+    hscm.add_observed_node(Z)
+    hscm.add_unobserved_node(U)
+    hscm.add_edge(U, A)
+    hscm.add_edge(A, Y)
+    hscm.add_edge(U, Y)
+    hscm.add_edge(Z, A)
+    hscm.add_subunits([A, Z])
+    return hscm
 
 
 def get_compl_subgraph_hcm() -> HierarchicalCausalModel:
