@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "HierarchicalCausalModel",
+    "HierarchicalStructuralCausalModel",
     "QVariable",
     "augment_collapsed_model",
     "augment_from_mechanism",
@@ -50,17 +51,11 @@ class HierarchicalCausalModel:
     observed: set[Variable]
     subunits: set[Variable]
 
-    #: Keep track of which variables are deterministic, which happens
-    #: when augmenting an HSCM. See https://github.com/y0-causal-inference/y0/issues/271
-    deterministic: set[Variable]
-
     def __init__(self) -> None:
         """Initialize the HCM."""
         self._graph = nx.DiGraph()
         self.observed = set()
         self.subunits = set()
-        self.deterministic = set()
-        self._exogenous_noise = set() # for hscm, if we decide to keep
 
     def add_observed_node(self, node: VHint) -> None:
         """Add an observed node."""
@@ -233,30 +228,20 @@ class HierarchicalCausalModel:
         # hcgm.set_subgraph_style("solid")
         return hcgm
 
-    def to_hscm(self: HierarchicalCausalModel) -> HierarchicalCausalModel:
+    def to_hscm(self: HierarchicalCausalModel) -> HierarchicalStructuralCausalModel:
         """Convert the input HCM to an explicit hierarchical structural causal model (HSCM)."""
-        # TODO add unit tests
-        hscm = self.copy_hcm()
-        # subunit_graph = hscm.get_subunit_graph()
-        for node in hscm.get_observed():
-            hscm.deterministic.add(node) 
-
-            # TODO give a better name to epsilon_name that explains what it is representing
-            subunit_exogenous = _upgrade(f"ϵ_{node}")
-            # TODO is this epsilon variable observed or unobserved?
-            # subunit_graph.add_node(subunit_exogenous, shape="plaintext")
-            hscm.add_subunits([subunit_exogenous])
-            hscm._exogenous_noise.add(subunit_exogenous)
-            hscm.add_edge(subunit_exogenous, node)
-
-            # TODO give a better name to gamma_name that explains what it is representing
-            unit_exogenous = _upgrade(f"γ_{node}")  # noqa:RUF001
-            # TODO is the gamma variable observed or unobserved?
-            #  implicitly, this corresponds to being unobserved
-            # hscm._graph.add_node(unit_exogenous, shape="plaintext")
-            hscm._exogenous_noise.add(unit_exogenous)
-            hscm.add_edge(unit_exogenous, node)
-
+        obs = self.get_observed()
+        unobs = self.get_unobserved()
+        units = self.get_units()
+        subunits = self.get_subunits()
+        edges = self.edges()
+        hscm = HierarchicalStructuralCausalModel.from_lists(
+            observed_subunits=list(obs & subunits),
+            unobserved_subunits=list(unobs & subunits),
+            observed_units=list(obs & units),
+            unobserved_units=list(unobs & units),
+            edges=edges,
+        )
         return hscm
 
     def to_admg(self, *, return_hcgm: bool = False) -> NxMixedGraph:
@@ -310,11 +295,117 @@ class HierarchicalCausalModel:
             else:
                 rv.add_node(_pgv(node))
 
-        for node in self.deterministic:
-            rv.get_node(_pgv(node)).attr['shape'] = 'square'
+        rv.add_subgraph(
+            [_pgv(node) for node in self.subunits],
+            name=SUBUNITS_KEY,
+            style="dashed",
+            label="m",
+        )
 
-        for node in self._exogenous_noise:
-            rv.get_node(_pgv(node)).attr['shape'] = 'plaintext'
+        for u, v in self._graph.edges():
+            rv.add_edge(_pgv(u), _pgv(v))
+
+        return rv
+    
+
+class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
+    """A subclass of HCM that wraps HSCM functionality"""
+    
+    exogenous_noise: set[Variable]
+
+    def __init__(self) -> None:
+        """Initialize the HSCM."""
+        self.exogenous_noise = set()
+        super().__init__()
+
+    def add_unobserved_node(self, node: VHint) -> None:
+        """Add an unobserved node and its exogenous noise."""
+        node = _upgrade(node)
+        unit_exogenous = _upgrade(f"y_i^{node}")
+        subunit_exogenous = _upgrade(f"e_ij^{node}") # TODO how to do e_{ij} while also formatting {node}?
+        self._graph.add_node(node)
+        self._graph.add_edge(unit_exogenous, node)
+        self._graph.add_edge(subunit_exogenous, node)
+        self.add_subunits([subunit_exogenous])
+        self.exogenous_noise.update({unit_exogenous, subunit_exogenous})
+
+    def add_observed_node(self, node: VHint) -> None:
+        """Add an observed node and its exogenous noise."""
+        node = _upgrade(node)
+        self.add_unobserved_node(node)
+        self.observed.add(node)
+
+    def add_edge(
+        self,
+        u: VHint,
+        v: VHint,
+        **kwargs: Any,
+    ) -> None:
+        """Add an edge."""
+        if any (node in self.exogenous_noise for node in {u, v}):
+            raise ValueError("Cannot add an edge to or from exogenous noise variables.")
+        else:
+            HierarchicalCausalModel.add_edge(self, u, v, **kwargs)
+            # self._graph.add_edge(_upgrade(u), _upgrade(v), **kwargs)
+
+    def get_exogenous_noise(self) -> set[Variable]:
+        """Return the set of exogenous noise variables in the HSCM."""
+        return self.exogenous_noise
+
+    def to_hcm(self) -> HierarchicalCausalModel:
+        """Convert the HSCM to a hierarchical causal model (HCM)."""
+        endogenous = set(self.nodes()) - self.get_exogenous_noise()
+        obs = self.get_observed() & endogenous
+        unobs = self.get_unobserved() & endogenous
+        units = self.get_units() & endogenous
+        subunits = self.get_subunits() & endogenous
+        hcm = HierarchicalCausalModel.from_lists(
+            observed_subunits = list(obs & subunits),
+            unobserved_subunits = list(unobs & subunits),
+            observed_units = list(obs & units),
+            unobserved_units = list(unobs & units),
+            edges = self._graph.edges(nbunch=list(endogenous))
+        )
+        return hcm
+    
+    def to_hcgm(self: HierarchicalCausalModel) -> HierarchicalCausalModel:
+        """Convert an HSCM to a hierarchical causal graphical model (HCGM) with promoted Q variables."""
+        hcm = self.to_hcm()
+        return hcm.to_hcgm()
+    
+    def to_admg(self, *, return_hcgm: bool = False) -> NxMixedGraph:
+        """Return a collapsed hierarchical causal model.
+
+        :param return_hcgm:
+            if True, returns the intermediate hierarchical causal
+            graphical models (HCGM) with subunits and promoted Q variables
+        :returns: a mixed graph
+        """
+        hcm = self.to_hcm()
+        return hcm.to_admg(return_hcgm=return_hcgm)
+
+    def to_pygraphviz(self) -> pygraphviz.AGraph:
+        """Get a pygraphviz object."""
+        import pygraphviz as pgv
+
+        def _pgv(n: Variable) -> str:
+            if isinstance(n, QVariable):
+                return n.pgv_str()
+            else:
+                return n.name
+
+        rv = pgv.AGraph(directed=True)
+        for node in self._graph.nodes():
+            if node in self.observed:
+                rv.add_node(_pgv(node), style="filled", color="lightgrey")
+            else:
+                rv.add_node(_pgv(node))
+
+        for node in self.nodes():
+            if node in self.get_exogenous_noise():
+                rv.get_node(_pgv(node)).attr['shape'] = 'plaintext'
+            else:
+                rv.get_node(_pgv(node)).attr['shape'] = 'square'
 
         rv.add_subgraph(
             [_pgv(node) for node in self.subunits],
@@ -488,7 +579,7 @@ def augmentation_mechanism(
 
 def collapse_hcm(model: HierarchicalCausalModel) -> NxMixedGraph:
     """Collapse the given hierarchical model according to Algorithm 1 of the HCM paper."""
-    return model.to_admg
+    return model.to_admg # TODO handle input HSCM class as well?
 
 
 def augment_collapsed_model(
