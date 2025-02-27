@@ -581,7 +581,7 @@ def augmentation_mechanism(
 
 def collapse_hcm(model: HierarchicalCausalModel, return_hcgm: bool = False) -> NxMixedGraph:
     """Collapse the given hierarchical model according to Algorithm 1 of the HCM paper."""
-    return model.to_admg(return_hcgm)  # TODO handle input HSCM class as well?
+    return model.to_admg(return_hcgm=return_hcgm)  # TODO handle input HSCM class as well?
 
 
 def augment_collapsed_model(
