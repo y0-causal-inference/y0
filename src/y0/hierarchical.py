@@ -242,7 +242,7 @@ class HierarchicalCausalModel:
             unobserved_units=list(unobs & units),
             edges=edges,
         )
-        return hscm
+        return typing.cast(HierarchicalStructuralCausalModel, hscm)
 
     def to_admg(self, *, return_hcgm: bool = False) -> NxMixedGraph:
         """Return a collapsed hierarchical causal model.
@@ -278,7 +278,7 @@ class HierarchicalCausalModel:
         else:
             return collapsed
 
-    def to_pygraphviz(self) -> pygraphviz.AGraph:
+    def to_pygraphviz(self) -> pygraphviz.AGraph: # TODO make style configurable with defaults
         """Get a pygraphviz object."""
         import pygraphviz as pgv
 
@@ -321,9 +321,9 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
     def add_unobserved_node(self, node: VHint) -> None:
         """Add an unobserved node and its exogenous noise."""
         node = _upgrade(node)
-        unit_exogenous = _upgrade(f"y_i^{node}")
+        unit_exogenous = _upgrade(f"y_i^{node}") # TODO make "y_i" part configurable, but default to "y_i"
         subunit_exogenous = _upgrade(
-            f"e_ij^{node}"
+            f"e_ij^{node}" # TODO same as above; make configurable with default
         )  # TODO how to do e_{ij} while also formatting {node}?
         self._graph.add_node(node)
         self._graph.add_edge(unit_exogenous, node)
@@ -349,6 +349,33 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
         else:
             HierarchicalCausalModel.add_edge(self, u, v, **kwargs)
             # self._graph.add_edge(_upgrade(u), _upgrade(v), **kwargs)
+
+    @classmethod
+    def from_lists(
+        cls,
+        *,
+        observed_subunits: Sequence[VHint] | None = None,
+        unobserved_subunits: Sequence[VHint] | None = None,
+        observed_units: Sequence[VHint] | None = None,
+        unobserved_units: Sequence[VHint] | None = None,
+        edges: Sequence[tuple[VHint, VHint]] | None = None,
+    ) -> HierarchicalStructuralCausalModel:
+        """Create a hierarchical causal model from the given node and edge lists.
+
+        :param observed_subunits: a list of names for the observed subunit variables
+        :param unobserved_subunits: a list of names for the unobserved subunit variables
+        :param observed_units: a list of names for the observed unit variables
+        :param unobserved_units: a list of names for the unobserved unit variables
+        :param edges: a list of edges
+        :returns: a hierarchical causal model with subunit variables in the :data:`SUBUNITS_KEY` subgraph
+        """
+        return HierarchicalCausalModel.from_lists(
+            observed_subunits = observed_subunits,
+            observed_units = observed_units,
+            unobserved_units = unobserved_units,
+            unobserved_subunits=unobserved_subunits,
+            edges=edges
+        )
 
     def get_exogenous_noise(self) -> set[Variable]:
         """Return the set of exogenous noise variables in the HSCM."""
@@ -386,7 +413,7 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
         hcm = self.to_hcm()
         return hcm.to_admg(return_hcgm=return_hcgm)
 
-    def to_pygraphviz(self) -> pygraphviz.AGraph:
+    def to_pygraphviz(self) -> pygraphviz.AGraph: # TODO make style configurable with defaults
         """Get a pygraphviz object."""
         import pygraphviz as pgv
 
