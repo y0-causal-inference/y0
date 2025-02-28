@@ -352,33 +352,6 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
             HierarchicalCausalModel.add_edge(self, u, v, **kwargs)
             # self._graph.add_edge(_upgrade(u), _upgrade(v), **kwargs)
 
-    @classmethod
-    def from_lists(
-        cls,
-        *,
-        observed_subunits: Sequence[VHint] | None = None,
-        unobserved_subunits: Sequence[VHint] | None = None,
-        observed_units: Sequence[VHint] | None = None,
-        unobserved_units: Sequence[VHint] | None = None,
-        edges: Sequence[tuple[VHint, VHint]] | None = None,
-    ) -> HierarchicalStructuralCausalModel:
-        """Create a hierarchical causal model from the given node and edge lists.
-
-        :param observed_subunits: a list of names for the observed subunit variables
-        :param unobserved_subunits: a list of names for the unobserved subunit variables
-        :param observed_units: a list of names for the observed unit variables
-        :param unobserved_units: a list of names for the unobserved unit variables
-        :param edges: a list of edges
-        :returns: a hierarchical causal model with subunit variables in the :data:`SUBUNITS_KEY` subgraph
-        """
-        return HierarchicalCausalModel.from_lists(
-            observed_subunits=observed_subunits,
-            observed_units=observed_units,
-            unobserved_units=unobserved_units,
-            unobserved_subunits=unobserved_subunits,
-            edges=edges,
-        )
-
     def get_exogenous_noise(self) -> set[Variable]:
         """Return the set of exogenous noise variables in the HSCM."""
         return self.exogenous_noise
