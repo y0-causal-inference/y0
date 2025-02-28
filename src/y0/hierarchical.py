@@ -374,8 +374,7 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
 
     def to_hcgm(self: HierarchicalStructuralCausalModel) -> HierarchicalCausalModel:
         """Convert an HSCM to a hierarchical causal graphical model (HCGM) with promoted Q variables."""
-        hcm = self.to_hcm()
-        return hcm.to_hcgm()
+        return self.to_hcm().to_hcgm()
 
     def to_admg(self, *, return_hcgm: bool = False) -> NxMixedGraph:
         """Return a collapsed hierarchical causal model.
@@ -385,8 +384,7 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
             graphical models (HCGM) with subunits and promoted Q variables
         :returns: a mixed graph
         """
-        hcm = self.to_hcm()
-        return hcm.to_admg(return_hcgm=return_hcgm)
+        return self.to_hcm().to_admg(return_hcgm=return_hcgm)
 
     def to_pygraphviz(self) -> pygraphviz.AGraph:  # TODO make style configurable with defaults
         """Get a pygraphviz object."""
