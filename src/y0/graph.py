@@ -477,7 +477,7 @@ class NxMixedGraph:
 
     @classmethod
     @open_file(1)  # type:ignore
-    def from_causalfusion_path(cls, file) -> NxMixedGraph:
+    def from_causalfusion_path(cls, file) -> NxMixedGraph:  # type:ignore[no-untyped-def]
         """Load a graph from a CausalFusion JSON file."""
         data = json.load(file)
         return cls.from_causalfusion_json(data)
