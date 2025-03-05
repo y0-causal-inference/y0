@@ -24,6 +24,7 @@ __all__ = [
     "HierarchicalCausalModel",
     "HierarchicalStructuralCausalModel",
     "QVariable",
+    "collapse_hcm",
     "augment_collapsed_model",
     "augment_from_mechanism",
     "augmentation_mechanism",
@@ -252,6 +253,8 @@ class HierarchicalCausalModel:
             graphical models (HCGM) with subunits and promoted Q variables
         :returns: a mixed graph
         """
+        if (self.get_unobserved() & self.get_subunits()) != set():
+            raise ValueError("Currently cannot handle unobserved subunit variables.")
         hcgm = self.to_hcgm()
         if return_hcgm:
             hgcm_original = self.to_hcgm()
@@ -544,7 +547,6 @@ def augment_from_mechanism(
     if not mechanism <= collapsed.nodes():
         raise ValueError("The input mechanism must be contained in the collapsed model.")
     augmented.add_node(aug)
-    # augmented.deterministic.add(aug)
     for var in mechanism:
         augmented.add_directed_edge(var, aug)
     for var in set(augmented.nodes()) - {aug}:
