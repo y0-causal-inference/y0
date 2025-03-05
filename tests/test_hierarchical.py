@@ -22,6 +22,7 @@ from y0.hierarchical import (
     HierarchicalStructuralCausalModel,
     QVariable,
     _create_qvar,
+    augment_collapsed_model,
     augment_from_mechanism,
     augmentation_mechanism,
     get_ancestors,
@@ -273,6 +274,29 @@ class TestADMG(unittest.TestCase):
         """Test the augmentation mechanism for the confounder interence HCM."""
         mechanism = augmentation_mechanism(confounder_interference_hcm.get_subunit_graph(), Q_Y)
         self.assertEqual({Q_A, Q_Y_A}, set(mechanism))
+
+    def test_augment_confounder_interference_no_mech(self) -> None:
+        """Test augmenting Figure 2 (g) fixture with no mechanism provided."""
+        self.check_graph_equal(
+            hcm_examples.confounder_interference_augmented_admg,
+            augment_collapsed_model(
+                hcm_examples.confounder_interference_collapsed_admg,
+                confounder_interference_hcm.get_subunit_graph(),
+                Q_Y,
+            ),
+        )
+
+    def test_augment_confounder_interference_with_mech(self) -> None:
+        """Test augmenting Figure 2 (h) fixture with mechanism provided."""
+        self.check_graph_equal(
+            hcm_examples.confounder_interference_augmented_admg,
+            augment_collapsed_model(
+                hcm_examples.confounder_interference_collapsed_admg,
+                confounder_interference_hcm.get_subunit_graph(),
+                Q_Y,
+                (Q_A, Q_Y_A),
+            ),
+        )
 
     def test_augment_instrument_from_mech(self) -> None:
         """Test that augmenting Figure 2 (k) fixture gives Figure A2 fixture."""

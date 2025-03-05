@@ -251,6 +251,7 @@ class HierarchicalCausalModel:
         :param return_hcgm:
             if True, returns the intermediate hierarchical causal
             graphical models (HCGM) with subunits and promoted Q variables
+        :raises NotImplementedError: currently cannot handle unobserved subunit variables
         :returns: a mixed graph
         """
         if (self.get_unobserved() & self.get_subunits()) != set():
