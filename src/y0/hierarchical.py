@@ -254,7 +254,7 @@ class HierarchicalCausalModel:
         :returns: a mixed graph
         """
         if (self.get_unobserved() & self.get_subunits()) != set():
-            raise ValueError("Currently cannot handle unobserved subunit variables.")
+            raise NotImplementedError("Currently cannot handle unobserved subunit variables.")
         hcgm = self.to_hcgm()
         if return_hcgm:
             hgcm_original = self.to_hcgm()
@@ -604,7 +604,7 @@ def augment_collapsed_model(
 def marginalize_augmented_model(
     augmented: NxMixedGraph,
     augmentation_variable: str | QVariable,
-    marginal_parents: Collection[QVariable],
+    marginal_parents: Collection[str | QVariable],
 ) -> NxMixedGraph:
     """Marginalize out a given collection of variables from an augmented model.
 
@@ -617,6 +617,7 @@ def marginalize_augmented_model(
     :returns: NxMixedGraph of the marginalized model
     """
     augmentation_variable = _str_or_q(augmentation_variable)
+    marginal_parents = [_str_or_q(mp) for mp in marginal_parents]
     marginalized = augmented.copy()
     check_set = {augmentation_variable}
     mechanism = set(augmented.directed.predecessors(augmentation_variable))
