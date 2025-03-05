@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
-
 """A parser for Craig-like probability expressions based on :mod:`pyparsing`."""
 
 import logging
+from typing import cast
 
 from pyparsing import (
     Forward,
@@ -17,37 +16,33 @@ from pyparsing import (
 )
 
 from .utils import probability_pe, qfactor_pe, variables_pe
-from ...dsl import Expression, Fraction, Product, Sum, _sorted_variables
+from ...dsl import Expression, Fraction, Product, Sum
 
 __all__ = [
-    "parse_causaleffect",
     "grammar",
+    "parse_causaleffect",
 ]
 
 logger = logging.getLogger(__name__)
 expr = Forward()
 
 
-def _make_sum(_s, _l, tokens: ParseResults) -> Sum:
-    return Sum(
-        ranges=_sorted_variables(tokens["ranges"].asList() if "ranges" in tokens else []),
+def _make_sum(_s, _l, tokens: ParseResults) -> Expression:  # type:ignore[no-untyped-def]
+    return Sum.safe(
+        ranges=tokens["ranges"].asList() if "ranges" in tokens else [],
         expression=tokens["expression"],
     )
 
 
-def _make_frac(_s, _l, tokens: ParseResults) -> Fraction:
+def _make_frac(_s, _l, tokens: ParseResults) -> Fraction:  # type:ignore[no-untyped-def]
     return Fraction(
         numerator=tokens["numerator"],
         denominator=tokens["denominator"],
     )
 
 
-def _make_product(_s, _l, tokens: ParseResults) -> Expression:
-    tokens = tokens.asList()
-    if len(tokens) == 1:
-        return tokens[0]
-    else:
-        return Product(tuple(tokens))
+def _make_product(_s, _l, tokens: ParseResults) -> Expression:  # type:ignore[no-untyped-def]
+    return Product.safe(tokens.asList())
 
 
 # auto-product
@@ -88,4 +83,4 @@ def parse_causaleffect(s: str) -> Expression:
         logger.warning("could not parse %s", s)
         raise
     else:
-        return x.asList()[0]
+        return cast(Expression, x.asList()[0])

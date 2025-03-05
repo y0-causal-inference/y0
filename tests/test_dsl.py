@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 """Test the probability DSL."""
 
 import unittest
-from typing import Optional
+from typing import ClassVar
 
 from y0.dsl import (
     A,
@@ -13,7 +11,7 @@ from y0.dsl import (
     D,
     Distribution,
     Element,
-    Fraction,
+    Expression,
     Intervention,
     One,
     P,
@@ -29,6 +27,7 @@ from y0.dsl import (
     Y,
     Z,
     Zero,
+    _variable_sort_key,
 )
 from y0.parser import parse_y0
 
@@ -38,7 +37,7 @@ V = Variable("V")
 class TestDSL(unittest.TestCase):
     """Tests for the stringifying instances of the probability DSL."""
 
-    def assert_exp(self, expression: Element, s: Optional[str] = None):
+    def assert_exp(self, expression: Element, s: str | None = None):
         """Test an element can be parsed, serialized, then again."""
         e = expression.to_y0()
         if s:
@@ -57,8 +56,8 @@ class TestDSL(unittest.TestCase):
         self.assertIsInstance(expression.to_text(), str)
         self.assertIsInstance(expression.to_latex(), str)
         self.assertIsInstance(expression._repr_latex_(), str)
-        self.assertEqual(s, expression.to_text(), msg=f"Expression: {repr(expression)}")
-        if not isinstance(expression, (Distribution, Intervention)):
+        self.assertEqual(s, expression.to_text(), msg=f"Expression: {expression!r}")
+        if not isinstance(expression, Distribution | Intervention):
             self.assert_exp(expression)
 
     def test_variable(self):
@@ -75,69 +74,80 @@ class TestDSL(unittest.TestCase):
 
     def test_intervention(self):
         """Test the invervention DSL object."""
-        self.assert_text("W*", Intervention("W", star=True))
-        self.assert_text("W", Intervention("W", star=False))
+        self.assert_text("+W", Intervention("W", star=True))
+        self.assert_text("-W", Intervention("W", star=False))
         self.assert_text("W", W)  # shorthand for testing purposes
-        self.assert_text("W", -W)  # An intervention from variable W
+        self.assert_text("-W", -W)  # An intervention from variable W
 
         # inversions using the unary ~ operator
-        self.assert_text("W", ~Intervention("W", star=True))
-        self.assert_text("W*", ~Intervention("W", star=False))
-        self.assert_text("W*", ~W)
+        self.assert_text("-W", ~Intervention("W", star=True))
+        self.assert_text("+W", ~Intervention("W", star=False))
+        self.assert_text("+W", ~W)
+
+        self.assertEqual(
+            2,
+            len({Intervention("W", star=True), Intervention("W", star=False)}),
+            msg="Interventions' stars aren't hashed correctly",
+        )
 
     def test_counterfactual_variable(self):
         """Test the Counterfactual Variable DSL object."""
         # Normal instantiation
-        self.assert_text("Y_{W}", CounterfactualVariable("Y", interventions=(-W,)))
-        self.assert_text("Y_{W*}", CounterfactualVariable("Y", interventions=(~W,)))
+        self.assert_text("Y_{-W}", CounterfactualVariable("Y", interventions=frozenset([-W])))
+        self.assert_text("Y_{+W}", CounterfactualVariable("Y", interventions=frozenset([~W])))
 
         # Instantiation with list-based operand to matmul @ operator
-        self.assert_text("Y_{W}", Variable("Y") @ [W])
-        self.assert_text("Y_{W}", Y @ [W])
-        self.assert_text("Y_{W*}", Variable("Y") @ [~W])
-        self.assert_text("Y_{W*}", Y @ [~W])
+        self.assert_text("Y_{-W}", Variable("Y") @ [W])
+        self.assert_text("Y_{-W}", Y @ [W])
+        self.assert_text("Y_{+W}", Variable("Y") @ [~W])
+        self.assert_text("Y_{+W}", Y @ [~W])
 
         # Instantiation with two variables
         self.assert_text(
-            "Y_{W*, X}",
+            "Y_{+W, -X}",
             CounterfactualVariable(
-                "Y", interventions=(~Intervention("W", star=False), Intervention("X", star=False))
+                "Y",
+                interventions=frozenset(
+                    (~Intervention("W", star=False), Intervention("X", star=False))
+                ),
             ),
         )
 
         # Instantiation with matmul @ operator and single operand
-        self.assert_text("Y_{W}", Y @ Intervention("W", star=False))
-        self.assert_text("Y_{W*}", Y @ ~Intervention("W", star=False))
+        self.assert_text("Y_{-W}", Y @ Intervention("W", star=False))
+        self.assert_text("Y_{+W}", Y @ ~Intervention("W", star=False))
 
         # Instantiation with matmul @ operator and list operand
-        self.assert_text("Y_{W*, X}", Y @ [X, ~W])
+        self.assert_text("Y_{+W, -X}", Y @ [X, ~W])
 
         # Instantiation with matmul @ operator (chained)
-        self.assert_text("Y_{W*, X}", Y @ X @ ~W)
+        self.assert_text("Y_{+W, -X}", Y @ X @ ~W)
+
+        self.assertEqual(2, len({Y @ -X, Y @ +X}))
 
     def test_star_counterfactual(self):
         """Tests for generalized counterfactual variables."""
         for expr, expected in [
             # Single variable
-            (P(Y @ X), "P(Y @ -X)"),
-            (P(Y @ -X), "P(Y @ -X)"),
-            (P(Y @ ~X), "P(Y @ +X)"),
-            (P(Y @ +X), "P(Y @ +X)"),
+            (P(Y @ X), "P[X](Y)"),
+            (P(Y @ -X), "P[X](Y)"),
+            (P(Y @ ~X), "P[+X](Y)"),
+            (P(Y @ +X), "P[+X](Y)"),
             #
-            (P(-Y @ X), "P(-Y @ -X)"),
-            (P(-Y @ -X), "P(-Y @ -X)"),
-            (P(-Y @ ~X), "P(-Y @ +X)"),
-            (P(-Y @ +X), "P(-Y @ +X)"),
+            (P(-Y @ X), "P[X](-Y)"),
+            (P(-Y @ -X), "P[X](-Y)"),
+            (P(-Y @ ~X), "P[+X](-Y)"),
+            (P(-Y @ +X), "P[+X](-Y)"),
             #
-            (P(~Y @ X), "P(+Y @ -X)"),
-            (P(~Y @ -X), "P(+Y @ -X)"),
-            (P(~Y @ ~X), "P(+Y @ +X)"),
-            (P(~Y @ +X), "P(+Y @ +X)"),
+            (P(~Y @ X), "P[X](+Y)"),
+            (P(~Y @ -X), "P[X](+Y)"),
+            (P(~Y @ ~X), "P[+X](+Y)"),
+            (P(~Y @ +X), "P[+X](+Y)"),
             #
-            (P(+Y @ X), "P(+Y @ -X)"),
-            (P(+Y @ -X), "P(+Y @ -X)"),
-            (P(+Y @ ~X), "P(+Y @ +X)"),
-            (P(+Y @ +X), "P(+Y @ +X)"),
+            (P(+Y @ X), "P[X](+Y)"),
+            (P(+Y @ -X), "P[X](+Y)"),
+            (P(+Y @ ~X), "P[+X](+Y)"),
+            (P(+Y @ +X), "P[+X](+Y)"),
             # Interventions can live inside the conditions
             (P(Y @ X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
             (P(Y @ -X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
@@ -185,11 +195,13 @@ class TestDSL(unittest.TestCase):
 
         # Counterfactual uses work basically the same.
         #  Note: @ binds more tightly than |, but it's probably better to use parentheses
-        self.assert_text("Y_{W} | B", (Y @ W) | B)
-        self.assert_text("Y_{W} | B", Y @ W | B)
-        self.assert_text("Y_{W} | B, C", Y @ W | B | C)
-        self.assert_text("Y_{W, X*} | B, C", Y @ W @ ~X | B | C)
-        self.assert_text("Y_{W, X*} | B_{N*}, C", Y @ W @ ~X | B @ Intervention("N", star=True) | C)
+        self.assert_text("Y_{-W} | B", (Y @ W) | B)
+        self.assert_text("Y_{-W} | B", Y @ W | B)
+        self.assert_text("Y_{-W} | B, C", Y @ W | B | C)
+        self.assert_text("Y_{-W, +X} | B, C", Y @ W @ ~X | B | C)
+        self.assert_text(
+            "Y_{-W, +X} | B_{+N}, C", Y @ W @ ~X | B @ Intervention("N", star=True) | C
+        )
 
     def test_joint_distribution(self):
         """Test the JointProbability DSL object."""
@@ -202,7 +214,7 @@ class TestDSL(unittest.TestCase):
         """Test generation of probabilities."""
         # Make sure there are children
         with self.assertRaises(ValueError):
-            Distribution(tuple())
+            Distribution(())
 
         self.assert_text("P(A)", P(A))
         self.assert_text("P(A)", P("A"))
@@ -231,9 +243,9 @@ class TestDSL(unittest.TestCase):
         self.assert_text("P(A, B, C)", P(A & B & C))
         self.assert_text("P(A, B, C)", P("A", "B", "C"))
         self.assert_text("P(A, B, C)", P(["A", "B", "C"]))
-        self.assert_text("P(A, B, C)", P((name for name in "ABC")))
         self.assert_text("P(A, B, C)", P(name for name in "ABC"))
-        self.assert_text("P(A, B, C)", P((Variable(name) for name in "ABC")))
+        self.assert_text("P(A, B, C)", P(name for name in "ABC"))
+        self.assert_text("P(A, B, C)", P(Variable(name) for name in "ABC"))
         self.assert_text("P(A, B, C)", P(Variable(name) for name in "ABC"))
 
         # Test mixed with single conditional
@@ -267,20 +279,24 @@ class TestDSL(unittest.TestCase):
 
     def test_sum(self):
         """Test the Sum DSL object."""
-        # Sum with no variables
-        self.assert_text(
-            "[ sum_{} P(A | B) P(C | D) ]",
-            Sum(P(A | B) * P(C | D)),
-        )
+        with self.assertRaises(TypeError):
+            Sum(P(A), (~B,))
+        with self.assertRaises(TypeError):
+            Sum(P(A), (B @ C,))
+        with self.assertRaises(TypeError):
+            Sum(P(A), ())
+        with self.assertRaises(ValueError):
+            Sum(P(A), frozenset())
+
         # Sum with one variable
         self.assert_text(
             "[ sum_{S} P(A | B) P(C | D) ]",
-            Sum(P(A | B) * P(C | D), (S,)),
+            Sum[S](P(A | B) * P(C | D)),
         )
         # Sum with two variables
         self.assert_text(
             "[ sum_{S, T} P(A | B) P(C | D) ]",
-            Sum(P(A | B) * P(C | D), (S, T)),
+            Sum[S, T](P(A | B) * P(C | D)),
         )
 
         # CRAZY sum syntax! pycharm doesn't like this usage of __class_getitem__ though so idk if we'll keep this
@@ -296,7 +312,7 @@ class TestDSL(unittest.TestCase):
         # Sum with sum inside
         self.assert_text(
             "[ sum_{S, T} P(A | B) [ sum_{R} P(C | D) ] ]",
-            Sum(P(A | B) * Sum(P(C | D), (R,)), (S, T)),
+            Sum[S, T](P(A | B) * Sum[R](P(C | D))),
         )
 
     def test_q(self):
@@ -309,39 +325,18 @@ class TestDSL(unittest.TestCase):
     def test_jeremy(self):
         """Test assorted complicated objects from Jeremy."""
         self.assert_text(
-            "[ sum_{W} P(X, Y_{W, Z*}) P(D) P(Z_{D}) P(W_{X*}) ]",
-            Sum(P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X), (W,)),
+            "[ sum_{W} P(D) P(W_{+X}) P(X, Y_{-W, +Z}) P(Z_{-D}) ]",
+            Sum[W](P(X, (Y @ ~Z @ W)) * P(D) * P(Z @ D) * P(W @ ~X)),
         )
 
         self.assert_text(
-            "[ sum_{W} P(X, Y_{W, Z*}) P(W_{X*}) ]",
-            Sum(P(X, Y @ ~Z @ W) * P(W @ ~X), (W,)),
+            "[ sum_{W} P(W_{+X}) P(X, Y_{-W, +Z}) ]",
+            Sum[W](P(X, Y @ ~Z @ W) * P(W @ ~X)),
         )
 
         self.assert_text(
-            "frac_{[ sum_{W} P(X, Y_{W, Z}) P(W_{X*}) ]}{[ sum_{Y} [ sum_{W} P(X, Y_{W, Z}) P(W_{X*}) ] ]}",
-            Fraction(
-                Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)),
-                Sum(Sum(P(X, Y @ Z @ W) * P(W @ ~X), (W,)), (Y,)),
-            ),
-        )
-
-        self.assert_text(
-            "[ sum_{D} P(X, Y_{W, Z*}) P(D) P(Z_{D}) P(W_{X*}) ]",
-            Sum(P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X), (D,)),
-        )
-
-        self.assert_text(
-            "[ sum_{D, V, W, Z} [ sum_{} P(W | X) ] [ sum_{} [ sum_{V, W, X, Y, Z} P(D, V, W, X, Y, Z) ] ]"
-            " [ sum_{} P(Z | D, V) ] [ sum_{} [ sum_{X} P(Y | D, V, W, X, Z) P(X) ] ]"
-            " [ sum_{} [ sum_{D, W, X, Y, Z} P(D, V, W, X, Y, Z) ] ] ]",
-            Sum[W, D, Z, V](
-                Sum(P(W | X))
-                * Sum(Sum[X, W, Z, Y, V](P(D, V, W, X, Y, Z)))
-                * Sum(P(Z | D, V))
-                * Sum(Sum[X](P(Y | D, V, W, X, Z) * P(X)))
-                * Sum(Sum[X, W, D, Z, Y](P(X, W, D, Z, Y, V))),
-            ),
+            "[ sum_{D} P(D) P(W_{+X}) P(X, Y_{-W, +Z}) P(Z_{-D}) ]",
+            Sum[D](P(X, Y @ ~Z @ W) * P(D) * P(Z @ D) * P(W @ ~X)),
         )
 
     def test_api(self):
@@ -378,7 +373,7 @@ class TestCounterfactual(unittest.TestCase):
                 self.assertIsInstance(expr, CounterfactualVariable)
                 self.assertEqual(counterfactual_star, expr.star)
                 self.assertEqual(1, len(expr.interventions))
-                self.assertEqual(intervention_star, expr.interventions[0].star)
+                self.assertEqual(intervention_star, next(iter(expr.interventions)).star)
 
     def test_event_failures(self):
         """Check for failure to determine tautology/inconsistent."""
@@ -456,6 +451,39 @@ class TestCounterfactual(unittest.TestCase):
                 self.assertTrue(expr.is_event())
                 self.assertEqual(status, expr.is_inconsistent())
 
+    def test_counterfactual_y0(self):
+        """Test compressed output."""
+        self.assertEqual("P[X](Y)", P(Y @ X).to_y0())
+        self.assertEqual("P[X](Y)", P[X](Y).to_y0())
+        self.assertEqual("P[X](Y)", P(Y @ -X).to_y0())
+        self.assertEqual("P[X](Y)", P[-X](Y).to_y0())
+        self.assertEqual("P[+X](Y)", P(Y @ ~X).to_y0())
+        self.assertEqual("P[+X](Y)", P[~X](Y).to_y0())
+
+        self.assertEqual("P[+X](Y)", P(Y @ +X).to_y0())
+        self.assertEqual("P[+X](Y)", P[+X](Y).to_y0())
+
+        # Two variables, same intervention
+        self.assertEqual("P[X](Y, Z)", P(Y @ X, Z @ X).to_y0())
+        self.assertEqual("P[X](Y, Z)", P[X](Y, Z).to_y0())
+        self.assertEqual("P[X](Y, Z)", P(Y @ -X, Z @ -X).to_y0())
+        self.assertEqual("P[X](Y, Z)", P[-X](Y, Z).to_y0())
+        self.assertEqual("P[+X](Y, Z)", P(Y @ ~X, Z @ ~X).to_y0())
+        self.assertEqual("P[+X](Y, Z)", P[~X](Y, Z).to_y0())
+
+        # Two variables, mixed intervention
+        self.assertEqual("P(Y @ -X, Z @ -A)", P(Y @ X, Z @ A).to_y0())
+        self.assertEqual("P(Y @ -X, Z @ +Z)", P(Y @ -X, Z @ +Z).to_y0())
+
+    def test_counterfactual_sort(self):
+        """Test sorting counterfactual variables."""
+        left = W @ -D
+        right = W @ -X
+        self.assertEqual(
+            sorted([left, right], key=_variable_sort_key),
+            sorted([right, left], key=_variable_sort_key),
+        )
+
 
 class TestSafeConstructors(unittest.TestCase):
     """Test that the .safe() constructors work properly."""
@@ -474,22 +502,44 @@ class TestSafeConstructors(unittest.TestCase):
 
     def test_sum(self):
         """Test the :meth:`Sum.safe` constructor."""
-        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), (X,)))
-        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), [X]))
-        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), {X}))
-        self.assertEqual(Sum(P(X, Y), (X,)), Sum.safe(P(X, Y), X))
+        self.assertEqual(Sum(P(X, Y), frozenset([X])), Sum.safe(P(X, Y), (X,)))
+        self.assertEqual(Sum(P(X, Y), frozenset([X])), Sum.safe(P(X, Y), [X]))
+        self.assertEqual(Sum(P(X, Y), frozenset([X])), Sum.safe(P(X, Y), {X}))
+        self.assertEqual(Sum(P(X, Y), frozenset([X])), Sum.safe(P(X, Y), X))
 
-        self.assertEqual(Sum(P(X, Y, Z), (X, Y)), Sum.safe(P(X, Y, Z), (v for v in [X, Y])))
+        self.assertEqual(
+            Sum(P(X, Y, Z), frozenset([X, Y])), Sum.safe(P(X, Y, Z), (v for v in [X, Y]))
+        )
 
     def test_product(self):
         """Test the :meth:`Product.safe` constructor."""
-        p = P(X, Y)
-        self.assertEqual(Product((p,)), Product.safe(p))
-        self.assertEqual(Product((p,)), Product.safe((p,)))
-        self.assertEqual(Product((p,)), Product.safe([p]))
-        self.assertEqual(Product((p,)), Product.safe({p}))
-
+        p1 = P(X, Y)
+        p2 = P(Z)
+        self.assertEqual(p1, Product.safe(p1))
+        self.assertEqual(p1, Product.safe([p1]))
+        self.assertEqual(Product((p1, p2)), Product.safe((p1, p2)))
+        self.assertEqual(Product((p1, p2)), Product.safe([p1, p2]))
         self.assertEqual(Product((P(X), P(Y))), Product.safe(P(v) for v in [X, Y]))
+
+        self.assertEqual(One(), Product.safe([]))
+        self.assertEqual(One(), Product.safe([One()]))
+        self.assertEqual(One(), Product.safe([One(), One()]))
+
+        self.assertEqual(Product((P(X), P(Y))), Product.safe((One(), P(X), P(Y))))
+        self.assertEqual(Product((P(X), P(Y))), Product.safe((P(X), P(Y))))
+        self.assertEqual(Product((P(X), P(Y))), Product.safe((P(X), One(), P(Y))))
+        self.assertEqual(Product((P(X), P(Y))), Product.safe((P(X), P(Y), One(), One())))
+        self.assertEqual(Product((P(X), P(Y))), Product.safe((P(X), One(), P(Y), One(), One())))
+
+        self.assertEqual(P(X), Product.safe((One(), P(X))))
+        self.assertEqual(P(X), Product.safe((P(X),)))
+        self.assertEqual(P(X), Product.safe((P(X), One())))
+        self.assertEqual(P(X), Product.safe((P(X), One(), One())))
+        self.assertEqual(P(X), Product.safe((P(X), One(), One(), One())))
+
+        self.assertEqual(Zero(), Product.safe((P(X), Zero())))
+        self.assertEqual(Zero(), Product.safe((P(X), Zero(), One())))
+        self.assertEqual(Zero(), Product.safe((Zero(), One())))
 
 
 zero = Zero()
@@ -498,7 +548,7 @@ zero = Zero()
 class TestZero(unittest.TestCase):
     """Tests for zero."""
 
-    exprs = [
+    exprs: ClassVar[list[Expression]] = [
         One(),
         Zero(),
         P(A),

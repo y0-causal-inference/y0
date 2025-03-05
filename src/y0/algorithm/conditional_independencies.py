@@ -1,33 +1,127 @@
-# -*- coding: utf-8 -*-
+"""An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
-"""An implementation to get conditional independencies of an ADMG."""
-
-import copy
+from collections.abc import Callable, Iterable, Sequence
 from functools import partial
-from itertools import chain, combinations, groupby
-from typing import Callable, Iterable, List, Optional, Sequence, Set, Tuple
+from itertools import combinations, groupby
+from typing import Any
 
 import networkx as nx
+import pandas as pd
 from tqdm.auto import tqdm
 
 from ..dsl import Variable
 from ..graph import NxMixedGraph
-from ..struct import DSeparationJudgement
+from ..struct import (
+    DEFAULT_SIGNIFICANCE,
+    CITest,
+    CITestTuple,
+    DSeparationJudgement,
+    _ensure_method,
+)
 from ..util.combinatorics import powerset
 
 __all__ = [
+    "add_ci_undirected_edges",
     "are_d_separated",
-    "minimal",
     "get_conditional_independencies",
+    "minimal",
+    "test_conditional_independencies",
 ]
+
+
+def add_ci_undirected_edges(
+    graph: NxMixedGraph,
+    data: pd.DataFrame,
+    *,
+    method: CITest | None = None,
+    significance_level: float | None = None,
+    max_conditions: int | None = None,
+) -> NxMixedGraph:
+    """Add undirected edges between d-separated nodes that fail a data-driven conditional independency test.
+
+    Inspired by [taheri2024]_.
+
+    :param graph: An acyclic directed mixed graph
+    :param data: observational data corresponding to the graph
+    :param method:
+        The conditional independency test to use. If None, defaults to
+        :data:`y0.struct.DEFAULT_CONTINUOUS_CI_TEST` for continuous data
+        or :data:`y0.struct.DEFAULT_DISCRETE_CI_TEST` for discrete data.
+    :param significance_level: The statistical tests employ this value for
+        comparison with the p-value of the test to determine the independence of
+        the tested variables. If none, defaults to 0.05.
+    :param max_conditions: Longest set of conditions to investigate
+    :returns: A copy of the input graph potentially with new undirected edges added
+    """
+    rv = graph.copy()
+    for judgement, result in test_conditional_independencies(
+        graph=graph,
+        data=data,
+        method=method,
+        boolean=True,
+        significance_level=significance_level,
+        max_conditions=max_conditions,
+    ):
+        if not result:
+            rv.add_undirected_edge(judgement.left, judgement.right)
+    return rv
+
+
+def test_conditional_independencies(
+    graph: NxMixedGraph,
+    data: pd.DataFrame,
+    *,
+    method: CITest | None = None,
+    boolean: bool = False,
+    significance_level: float | None = None,
+    _method_checked: bool = False,
+    max_conditions: int | None = None,
+) -> list[tuple[DSeparationJudgement, bool | CITestTuple]]:
+    """Gets CIs with :func:`get_conditional_independencies` then tests them against data.
+
+    :param graph: An acyclic directed mixed graph
+    :param data: observational data corresponding to the graph
+    :param method:
+        The conditional independency test to use. If None, defaults to
+        :data:`y0.struct.DEFAULT_CONTINUOUS_CI_TEST` for continuous data
+        or :data:`y0.struct.DEFAULT_DISCRETE_CI_TEST` for discrete data.
+    :param boolean:
+        If set to true, switches the test return type to be a pre-computed
+        boolean based on the significance level (see parameter below)
+    :param significance_level: The statistical tests employ this value for
+        comparison with the p-value of the test to determine the independence of
+        the tested variables. If none, defaults to 0.05.
+    :param max_conditions: Longest set of conditions to investigate
+    :returns: A copy of the input graph potentially with new undirected edges added
+    """
+    if significance_level is None:
+        significance_level = DEFAULT_SIGNIFICANCE
+    method = _ensure_method(method, data, skip=_method_checked)
+    return [
+        (
+            judgement,
+            judgement.test(
+                data,
+                boolean=boolean,
+                method=method,
+                significance_level=significance_level,
+                _method_checked=True,
+            ),
+        )
+        for judgement in get_conditional_independencies(graph, max_conditions=max_conditions)
+    ]
+
+
+Policy = Callable[[DSeparationJudgement], Any]
 
 
 def get_conditional_independencies(
     graph: NxMixedGraph,
     *,
-    policy=None,
-    **kwargs,
-) -> Set[DSeparationJudgement]:
+    policy: Policy | None = None,
+    max_conditions: int | None = None,
+    **kwargs: Any,
+) -> set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
 
     Conditional independencies is the minimal set of d-separation judgements to cover
@@ -35,6 +129,7 @@ def get_conditional_independencies(
 
     :param graph: An acyclic directed mixed graph
     :param policy: Retention policy when more than one conditional independency option exists (see minimal for details)
+    :param max_conditions: Longest set of conditions to investigate
     :param kwargs: Other keyword arguments are passed to :func:`d_separations`
     :return: A set of conditional dependencies
 
@@ -43,15 +138,17 @@ def get_conditional_independencies(
     if policy is None:
         policy = get_topological_policy(graph)
     return minimal(
-        d_separations(graph, **kwargs),
+        d_separations(graph, max_conditions=max_conditions, **kwargs),
         policy=policy,
     )
 
 
-def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSeparationJudgement]:
-    """Given some d-separations, reduces to a 'minimal' collection.
+def minimal(
+    judgements: Iterable[DSeparationJudgement], policy: Policy | None = None
+) -> set[DSeparationJudgement]:
+    r"""Given some d-separations, reduces to a 'minimal' collection.
 
-    For independencies of the form A _||_ B | {C1, C2, ...} the minimal collection will::
+    For independencies of the form $A \perp B | {C_1, C_2, ...}$, the minimal collection will
 
     - Have only one independency with the same A/B nodes.
     - If there are multiples sets of C-nodes, the kept d-separation will be the first/minimal
@@ -71,10 +168,10 @@ def minimal(judgements: Iterable[DSeparationJudgement], policy=None) -> Set[DSep
 
 def get_topological_policy(
     graph: NxMixedGraph,
-) -> Callable[[DSeparationJudgement], Tuple[int, int]]:
+) -> Callable[[DSeparationJudgement], tuple[int, int]]:
     """Sort d-separations by condition length and topological order.
 
-    This policy will prefers small collections, and collections with variables earlier
+    This policy prefers small collections, and collections with variables earlier
     in topological order for collections of the same size.
 
     :param graph: a mixed graph
@@ -86,47 +183,21 @@ def get_topological_policy(
 
 def _topological_policy(
     judgement: DSeparationJudgement, order: Sequence[Variable]
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     return (
         len(judgement.conditions),
-        sum((order.index(v) for v in judgement.conditions)),
+        sum(order.index(v) for v in judgement.conditions),
     )
 
 
-def _judgement_grouper(judgement: DSeparationJudgement) -> Tuple[Variable, Variable]:
+def _judgement_grouper(judgement: DSeparationJudgement) -> tuple[Variable, Variable]:
     """Simplify d-separation to just left & right element (for grouping left/right pairs)."""
     return judgement.left, judgement.right
 
 
-def _len_lex(judgement: DSeparationJudgement) -> Tuple[int, str]:
+def _len_lex(judgement: DSeparationJudgement) -> tuple[int, str]:
     """Sort by length of conditions & the lexicography a d-separation."""
     return len(judgement.conditions), ",".join(c.name for c in judgement.conditions)
-
-
-def disorient(graph: NxMixedGraph) -> nx.Graph:
-    """Convert an ADMG into a undirected (networkx) graph.
-
-    :param graph: An ADMG
-    :returns: A disoriented graph
-    """
-    rv = nx.Graph()
-    rv.add_nodes_from(graph.nodes())
-    rv.add_edges_from(graph.directed.edges())
-    rv.add_edges_from(graph.undirected.edges())
-    return rv
-
-
-def get_moral_links(graph: NxMixedGraph) -> List[Tuple[Variable, Variable]]:
-    """Generate links to ensure all co-parents in a graph are linked.
-
-    May generate links that already exist as we assume we are not working on a multi-graph.
-
-    :param graph: Graph to process
-    :return: An collection of edges to add.
-    """
-    parents = [graph.directed.predecessors(node) for node in graph.nodes()]
-    moral_links = [*chain(*[combinations(nodes, 2) for nodes in parents if len(parents) > 1])]
-    return moral_links
 
 
 def are_d_separated(
@@ -134,12 +205,12 @@ def are_d_separated(
     a: Variable,
     b: Variable,
     *,
-    conditions: Optional[Iterable[Variable]] = None,
+    conditions: Iterable[Variable] | None = None,
 ) -> DSeparationJudgement:
-    """Test if nodes named by a & b are d-separated in G.
+    """Test if nodes named by a & b are d-separated in G as described in [pearl2009]_.
 
     a & b can be provided in either order and the order of conditions does not matter.
-    However DSeparationJudgement may put things in canonical order.
+    However, DSeparationJudgement may put things in canonical order.
 
     :param graph: Graph to test
     :param a: A node in the graph
@@ -148,31 +219,35 @@ def are_d_separated(
     :return: T/F and the final graph (as evidence)
     :raises TypeError: if the left/right arguments or any conditions are
         not Variable instances
+    :raises KeyError: if the left/right arguments or any conditions are
+        not in the graph
+
+    .. seealso:: NetworkX implementation :func:`nx.d_separated`
     """
     if conditions is None:
         conditions = set()
+    conditions = set(conditions)
     if not isinstance(a, Variable):
         raise TypeError(f"left argument is not given as a Variable: {type(a)}: {a}")
     if not isinstance(b, Variable):
         raise TypeError(f"right argument is not given as a Variable: {type(b)}: {b}")
     if not all(isinstance(c, Variable) for c in conditions):
         raise TypeError(f"some conditions are not variables: {conditions}")
+    if a not in graph:
+        raise KeyError(f"left argument is not in graph: {a}")
+    if b not in graph:
+        raise KeyError(f"right argument is not in graph: {b}")
+    missing_conditions = {condition for condition in conditions if condition not in graph}
+    if missing_conditions:
+        raise KeyError(f"conditions missing from graph: {missing_conditions}")
 
-    condition_names = {c for c in conditions}
-    named = {a, b}.union(condition_names)
+    named = {a, b}.union(conditions)
 
     # Filter to ancestors
     keep = graph.ancestors_inclusive(named)
-    sg = copy.deepcopy(graph.subgraph(keep))
+    evidence_graph = graph.subgraph(keep).moralize().disorient()
 
-    # Moralize (link parents of mentioned nodes)
-    for u, v in get_moral_links(sg):
-        sg.add_undirected_edge(u, v)
-
-    # disorient & remove conditions
-    evidence_graph = disorient(sg)
-
-    keep = set(evidence_graph.nodes) - set(condition_names)
+    keep = set(evidence_graph.nodes) - set(conditions)
     evidence_graph = evidence_graph.subgraph(keep)
 
     # check for path....
@@ -184,9 +259,9 @@ def are_d_separated(
 def d_separations(
     graph: NxMixedGraph,
     *,
-    max_conditions: Optional[int] = None,
-    verbose: Optional[bool] = False,
-    return_all: Optional[bool] = False,
+    max_conditions: int | None = None,
+    verbose: bool | None = False,
+    return_all: bool | None = False,
 ) -> Iterable[DSeparationJudgement]:
     """Generate d-separations in the provided graph.
 

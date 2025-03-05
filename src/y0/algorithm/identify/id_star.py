@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-
 """Implementation of the ID* algorithm."""
 
 import itertools as itt
 import logging
-from typing import Collection, FrozenSet, Iterable, Mapping, Set, Tuple, cast
+from collections.abc import Collection, Iterable, Mapping
+from typing import cast
 
 from .cg import is_not_self_intervened, make_counterfactual_graph
 from .utils import Unidentifiable
@@ -14,7 +13,6 @@ from ...dsl import (
     Expression,
     Intervention,
     One,
-    P,
     Probability,
     Product,
     Sum,
@@ -27,14 +25,14 @@ __all__ = [
     "id_star",
 ]
 
-District = FrozenSet[Variable]
+District = frozenset[Variable]
 DistrictInterventions = Mapping[District, Event]
 
 logger = logging.getLogger(__name__)
 
 
 def id_star(graph: NxMixedGraph, event: Event, *, _number_recursions: int = 0) -> Expression:
-    """Apply the ``ID*`` algorithm to the graph."""
+    """Apply the ``ID*`` algorithm to the graph from [shpitser2012]_."""
     logger.debug(
         "[%d]: Calling ID* algorithm with graph G with\n\t nodes: %s\n"
         "\t directed: %s\n\t undirected %s\n"
@@ -77,12 +75,13 @@ def id_star(graph: NxMixedGraph, event: Event, *, _number_recursions: int = 0) -
         return Zero()
 
     # Line 6:
-    nodes = set(node for node in cf_graph.nodes() if is_not_self_intervened(node))
+    nodes = {node for node in cf_graph.nodes() if is_not_self_intervened(node)}
     cf_subgraph = cf_graph.subgraph(nodes)
     if not cf_subgraph.is_connected():
         summand, events_of_each_district = id_star_line_6(cf_graph, new_event)
         logger.debug("[%d] summand: %s", _number_recursions, summand)
-        assert 1 < len(events_of_each_district)
+        if len(events_of_each_district) <= 1:
+            raise RuntimeError
         logger.debug(
             "[%d] recurring on each district: %s ", _number_recursions, events_of_each_district
         )
@@ -103,7 +102,7 @@ def id_star(graph: NxMixedGraph, event: Event, *, _number_recursions: int = 0) -
     return id_star_line_9(cf_subgraph)
 
 
-class ConflictUnidentifiable(Unidentifiable):  # noqa:N818
+class ConflictUnidentifiable(Unidentifiable):
     """An exception raised when line 8 of the ID* algorithm determines that the query is not identifiable.
 
     This happens because the event contains a conflict, i.e., an inconsistent value
@@ -122,7 +121,7 @@ class ConflictUnidentifiable(Unidentifiable):  # noqa:N818
         self.conflicts = conflicts
 
 
-def get_free_variables(cf_graph: NxMixedGraph, event: Event) -> Set[Variable]:
+def get_free_variables(cf_graph: NxMixedGraph, event: Event) -> set[Variable]:
     """Get the possible values of the counterfactual variables in the graph that are "free".
 
     i.e. that don't have values fixed by the event or a self-intervention.
@@ -182,7 +181,7 @@ def is_redundant_counterfactual(variable: Variable, value: Intervention) -> bool
 
 def id_star_line_6(
     cf_graph: NxMixedGraph, event: Event
-) -> Tuple[Collection[Variable], DistrictInterventions]:
+) -> tuple[Collection[Variable], DistrictInterventions]:
     r"""Run line 6 of the ID* algorithm.
 
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
@@ -221,14 +220,16 @@ def get_events_of_each_district(graph: NxMixedGraph, event: Event) -> DistrictIn
     subgraph = graph.subgraph(nodes)
     return {
         district: get_events_of_district(graph, district, event)
-        for district in subgraph.get_c_components()
+        for district in subgraph.districts()
     }
 
 
-def get_events_of_district(graph, district, event) -> Event:
+def get_events_of_district(
+    graph: NxMixedGraph, district: Collection[Variable], event: Event
+) -> Event:
     """Create new events by intervening each node on the Markov pillow of the district.
 
-    If the node in in the original event, then the value of the new event is the same as the original event.
+    If the node in the original event, then the value of the new event is the same as the original event.
 
     :param graph: an NxMixedGraph
     :param district: a district of the graph
@@ -267,7 +268,7 @@ def get_conflicts(cf_graph: NxMixedGraph, event: Event) -> list[tuple[Interventi
     ]
 
 
-def get_cf_interventions(nodes: Iterable[Variable]) -> Set[Intervention]:
+def get_cf_interventions(nodes: Iterable[Variable]) -> set[Intervention]:
     """For the graph, get the set of interventions in each counterfactual variable (all the subscripts).
 
     .. note:: This was called ``sub()`` in the paper
@@ -283,7 +284,7 @@ def get_cf_interventions(nodes: Iterable[Variable]) -> Set[Intervention]:
     }
 
 
-def get_evidence(event: Event) -> Set[Intervention]:
+def get_evidence(event: Event) -> set[Intervention]:
     """Get the evidence (interventions and values) of the counterfactual conjunction.
 
     The evidence (either set or observed) appearing in a given counterfactual conjunction
@@ -310,6 +311,6 @@ def id_star_line_9(cf_graph: NxMixedGraph) -> Probability:
     interventions = get_cf_interventions(cf_graph.nodes())
     bases = [node.get_base() for node in cf_graph.nodes()]
     if len(interventions) > 0:
-        return P[interventions](bases)
+        return Probability.safe(bases, interventions=interventions)
     else:
-        return P(bases)
+        return Probability.safe(bases)
