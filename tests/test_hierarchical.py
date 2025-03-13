@@ -320,9 +320,9 @@ class TestADMG(unittest.TestCase):
         self.assertEqual(
             set(mechanism),
             {
-                QVariable.parse_str("Q_{y|b,c}".upper()),
-                QVariable.parse_str("Q_c".upper()),
-                QVariable.parse_str("Q_{b|a}".upper()),
+                QVariable.parse_str("Q^{y|b,c}".upper()),
+                QVariable.parse_str("Q^c".upper()),
+                QVariable.parse_str("Q^{b|a}".upper()),
                 Q_A,
             },
         )

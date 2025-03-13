@@ -41,7 +41,7 @@ VHint: TypeAlias = typing.Union[str, Variable, "QVariable"]
 def _upgrade(v: VHint) -> Variable:
     if not isinstance(v, str):
         return v
-    if v.startswith("Q_"):
+    if v.startswith("Q^"):
         return QVariable.parse_str(v)
     return Variable(v)
 
@@ -469,9 +469,9 @@ class QVariable(Variable):
         """Get a string compatible with the V1 implementation."""
         child_name = self.name
         if not self.parents:
-            return f"Q_{child_name}"
+            return f"Q^{child_name}"
         parent_str = ",".join(sorted(p.name for p in self.parents))
-        return f"Q_{{{child_name}|{parent_str}}}"
+        return f"Q^{{{child_name}|{parent_str}}}"
 
     def _iter_variables(self) -> Iterable[Variable]:
         yield self.get_lhs()
@@ -493,8 +493,8 @@ class QVariable(Variable):
     @classmethod
     def parse_str(cls, s: str) -> QVariable:
         """Return the subunit variables of the input Q variable, separated by the conditional."""
-        if not s.startswith("Q_"):
-            raise ValueError(f"Q-variable string should start with `Q_`: {s}")
+        if not s.startswith("Q^"):
+            raise ValueError(f"Q-variable string should start with `Q^`: {s}")
         if "|" not in s:
             lhs = s[2:]
             if len(lhs) > 1:
