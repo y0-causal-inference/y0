@@ -92,7 +92,7 @@ jobs:
         uses: r-lib/actions/setup-r@v2
       - name: Install dependencies
         run: |
-          sudo apt-get install graphviz
+          sudo apt-get install graphviz libgraphviz-dev
       - name: Test with pytest and generate coverage file
         run:
           uvx -p ${{ matrix.python-version }} --with tox-uv tox -e py
