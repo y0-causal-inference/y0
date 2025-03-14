@@ -60,16 +60,16 @@ P(A, B).marginalize(A) == Sum[A](P(A, B))
 P(A, B).conditional(A) == P(A, B) / Sum[A](P(A, B))
 ```
 
-DSL objects can be converted into strings with `str()` and parsed back
-using `y0.parser.parse_y0()`.
+DSL objects can be converted into strings with `str()` and parsed back using
+`y0.parser.parse_y0()`.
 
 A full demo of the DSL can be found in this
 [Jupyter Notebook](https://github.com/y0-causal-inference/y0/blob/main/notebooks/DSL%20Demo.ipynb)
 
 ### Representing Causality
 
-`y0` has a notion of acyclic directed mixed graphs built on top of
-`networkx` that can be used to model causality:
+`y0` has a notion of acyclic directed mixed graphs built on top of `networkx`
+that can be used to model causality:
 
 ```python
 from y0.graph import NxMixedGraph
@@ -101,11 +101,11 @@ Bareinboim, and others.
 unimplemented for the last 15 years of publications including:
 
 | Algorithm          | Reference                                                                   |
-|--------------------|-----------------------------------------------------------------------------|
+| ------------------ | --------------------------------------------------------------------------- |
 | ID                 | [Shpitser and Pearl, 2006](https://dl.acm.org/doi/10.5555/1597348.1597382)  |
 | IDC                | [Shpitser and Pearl, 2008](https://www.jmlr.org/papers/v9/shpitser08a.html) |
-| ID*                | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
-| IDC*               | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
+| ID Star            | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
+| IDC Star           | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
 | Surrogate Outcomes | [Tikka and Karvanen, 2018](https://arxiv.org/abs/1806.07172)                |
 
 Apply an algorithm to an ADMG and a causal query to generate an estimand
@@ -160,13 +160,13 @@ for more information on getting involved.
 
 ### ⚖️ License
 
-The code in this package is licensed under the [BSD-3-Clause
-license](https://github.com/y0-causal-inference/y0/blob/master/LICENSE).
+The code in this package is licensed under the
+[BSD-3-Clause license](https://github.com/y0-causal-inference/y0/blob/master/LICENSE).
 
 ### 📖 Citation
 
-Before we publish an application note on `y0`, you can cite this software
-via our Zenodo record (also see the badge above):
+Before we publish an application note on `y0`, you can cite this software via
+our Zenodo record (also see the badge above):
 
 ```bibtex
 @software{y0,
@@ -185,7 +185,8 @@ via our Zenodo record (also see the badge above):
 
 ### 🎁 Support
 
-This project has been supported by several organizations (in alphabetical order):
+This project has been supported by several organizations (in alphabetical
+order):
 
 - [Biopragmatics Lab](https://biopragmatics.github.io)
 - [Harvard Program in Therapeutic Science - Laboratory of Systems Pharmacology](https://hits.harvard.edu/the-program/laboratory-of-systems-pharmacology/)
@@ -196,7 +197,7 @@ This project has been supported by several organizations (in alphabetical order)
 This project has been supported by the following grants:
 
 | Funding Body                           | Program                                                                                                                                                                        | Grant         |
-|----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
 | DARPA                                  | [Automating Scientific Knowledge Extraction (ASKE)](https://www.darpa.mil/program/automating-scientific-knowledge-extraction)                                                  | HR00111990009 |
 | PNNL Data Model Convergence Initiative | [Causal Inference and Machine Learning Methods for Analysis of Security Constrained Unit Commitment (SCY0)](https://www.pnnl.gov/projects/dmc/converged-applications-projects) | 90001         |
 | DARPA                                  | [Automating Scientific Knowledge Extraction and Modeling (ASKEM)](https://www.darpa.mil/program/automating-scientific-knowledge-extraction-and-modeling)                       | HR00112220036 |
