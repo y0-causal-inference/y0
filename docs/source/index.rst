@@ -6,21 +6,21 @@ y0 |release| Documentation
    :caption: Getting Started
    :name: start
 
-   installation
-   dsl
-   parser
-   graph
-   graph_mutation
-   examples
-   mutation
-   conditional_independence
-   identification
-   tian_id
-   transport
-   lvdags
-   hierarchical
-   struct
-   cli
+    installation
+    dsl
+    parser
+    graph
+    graph_mutation
+    examples
+    mutation
+    conditional_independence
+    identification
+    tian_id
+    transport
+    lvdags
+    hierarchical
+    struct
+    cli
 
 Indices and Tables
 ------------------
