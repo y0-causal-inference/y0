@@ -100,18 +100,18 @@ Bareinboim, and others.
 `y0` provides _actual_ implementations of many algorithms that have remained
 unimplemented for the last 15 years of publications including:
 
-| Algorithm          | Reference                                                                   |
-| ------------------ | --------------------------------------------------------------------------- |
-| ID                 | [Shpitser and Pearl, 2006](https://dl.acm.org/doi/10.5555/1597348.1597382)  |
-| IDC                | [Shpitser and Pearl, 2008](https://www.jmlr.org/papers/v9/shpitser08a.html) |
-| ID Star            | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
-| IDC Star           | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                 |
-| Surrogate Outcomes | [Tikka and Karvanen, 2018](https://arxiv.org/abs/1806.07172)                |
+| Algorithm                       | Reference                                                                           |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| ID                              | [Shpitser and Pearl, 2006](https://dl.acm.org/doi/10.5555/1597348.1597382)          |
+| IDC                             | [Shpitser and Pearl, 2008](https://www.jmlr.org/papers/v9/shpitser08a.html)         |
+| ID Star                         | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                         |
+| IDC Star                        | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                         |
+| Surrogate Outcomes              | [Tikka and Karvanen, 2018](https://arxiv.org/abs/1806.07172)                        |
 | Counterfactual Transportability | [Correia, Lee, Bareinboim, 2022](https://proceedings.mlr.press/v162/correa22a.html) |
-| Hierarchical Causal Models | [Weinstein and Blei, 2024](https://arxiv.org/abs/2401.05330) | 
+| Hierarchical Causal Models      | [Weinstein and Blei, 2024](https://arxiv.org/abs/2401.05330)                        |
 
-Apply an algorithm to an Acyclic Directed Mixed Graph (ADMG) and a causal query to generate an estimand
-represented in the DSL like:
+Apply an algorithm to an Acyclic Directed Mixed Graph (ADMG) and a causal query
+to generate an estimand represented in the DSL like:
 
 ```python
 from y0.dsl import P, X, Y
