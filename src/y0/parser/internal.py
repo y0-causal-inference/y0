@@ -44,9 +44,9 @@ def parse_y0(s: str) -> Expression:
 
     >>> from y0.parser import parse_y0
     >>> from y0.dsl import P, PP, A, B, Sum, Pi1
-    >>> parse_y0('Sum[B](P(A|B) * P(B))') == Sum[B](P(A|B) * P(B))
+    >>> parse_y0("Sum[B](P(A|B) * P(B))") == Sum[B](P(A | B) * P(B))
     True
-    >>> parse_y0('PP[π1](A)') == PP[Pi1](A)
+    >>> parse_y0("PP[π1](A)") == PP[Pi1](A)
     True
     """
     return cast(Expression, eval(s, {}, LOCALS))  # noqa:S307
