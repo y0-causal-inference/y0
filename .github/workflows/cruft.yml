@@ -2,9 +2,7 @@
 
 name: Update repository with Cruft
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: { }
 
 on:
   workflow_dispatch:
@@ -13,6 +11,9 @@ on:
 
 jobs:
   update:
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
