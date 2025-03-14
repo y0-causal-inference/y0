@@ -223,17 +223,17 @@ class Variable(Element):
 
         :returns: The LaTeX representaton of this variable.
 
-        >>> Variable('X').to_latex()
+        >>> Variable("X").to_latex()
         'X'
-        >>> Variable('X', star=True).to_latex()
+        >>> Variable("X", star=True).to_latex()
         'X^{+}'
-        >>> Variable('X', star=False).to_latex()
+        >>> Variable("X", star=False).to_latex()
         'X^{-}'
-        >>> Variable('X1').to_latex()
+        >>> Variable("X1").to_latex()
         '{X_{1}}'
-        >>> Variable('X1', star=True).to_latex()
+        >>> Variable("X1", star=True).to_latex()
         '{X_{1}}^{+}'
-        >>> Variable('X12').to_latex()
+        >>> Variable("X12").to_latex()
         '{X_{12}}'
         """
         # if it ends with a number, use that as a subscript
@@ -386,19 +386,19 @@ class CounterfactualVariable(Variable):
 
         :returns: A latex representation of this counterfactual variable
 
-        >>> (Variable('X') @ Variable('Y')).to_latex()
+        >>> (Variable("X") @ Variable("Y")).to_latex()
         'X_{Y^{-}}'
-        >>> (Variable('X1') @ Variable('Y')).to_latex()
+        >>> (Variable("X1") @ Variable("Y")).to_latex()
         '{X_{1}}_{Y^{-}}'
-        >>> (Variable('X12') @ Variable('Y')).to_latex()
+        >>> (Variable("X12") @ Variable("Y")).to_latex()
         '{X_{12}}_{Y^{-}}'
-        >>> (+Variable('X') @ Variable('Y')).to_latex()
+        >>> (+Variable("X") @ Variable("Y")).to_latex()
         'X^{+}_{Y^{-}}'
-        >>> (+Variable('X1') @ Variable('Y')).to_latex()
+        >>> (+Variable("X1") @ Variable("Y")).to_latex()
         '{X_{1}}^{+}_{Y^{-}}'
-        >>> (+Variable('X12') @ Variable('Y')).to_latex()
+        >>> (+Variable("X12") @ Variable("Y")).to_latex()
         '{X_{12}}^{+}_{Y^{-}}'
-        >>> (+Variable('X12') @ Variable('Y') @ Variable('Z')).to_latex()
+        >>> (+Variable("X12") @ Variable("Y") @ Variable("Z")).to_latex()
         '{X_{12}}^{+}_{Y^{-}, Z^{-}}'
         """
         intervention_latex = _list_to_latex(_sort_interventions(self.interventions))
@@ -1035,7 +1035,7 @@ class Product(Expression):
         Standard usage, same as the normal ``__init__``:
 
         >>> from y0.dsl import Product, X, Y, A, P
-        >>> Product.safe((P(X, Y), ))
+        >>> Product.safe((P(X, Y),))
 
         Use a list or other iterable:
 

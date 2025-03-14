@@ -68,8 +68,8 @@ class NxMixedGraph:
     .. code-block:: python
 
         graph = NxMixedGraph()
-        graph.add_directed_edge('X', 'Y')
-        graph.add_undirected_edge('X', 'Y')
+        graph.add_directed_edge("X", "Y")
+        graph.add_undirected_edge("X", "Y")
     """
 
     #: A directed graph

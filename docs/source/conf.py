@@ -1,15 +1,13 @@
-"""
-Configuration file for the Sphinx documentation builder.
+"""Configuration file for the Sphinx documentation builder.
 
-This file does only contain a selection of the most common options. For a
-full list see the documentation:
-http://www.sphinx-doc.org/en/master/config
+This file does only contain a selection of the most common options. For a full list see
+the documentation: http://www.sphinx-doc.org/en/master/config
 
 -- Path setup --------------------------------------------------------------
 
-If extensions (or modules to document with autodoc) are in another directory,
-add these directories to ``sys.path`` here. If the directory is relative to the
-documentation root, use ``os.path.abspath`` to make it absolute, like shown here.
+If extensions (or modules to document with autodoc) are in another directory, add these
+directories to ``sys.path`` here. If the directory is relative to the documentation
+root, use ``os.path.abspath`` to make it absolute, like shown here.
 """
 
 import os
@@ -36,7 +34,7 @@ parsed_version = re.match(
 version = parsed_version.expand(r"\g<major>.\g<minor>.\g<patch>")
 
 if parsed_version.group("release"):
-    tags.add("prerelease")  # noqa: F821
+    tags.add("prerelease")  # noqa:F821
 
 
 # See https://about.readthedocs.com/blog/2024/07/addons-by-default/
@@ -257,3 +255,6 @@ autodoc_member_order = "bysource"
 
 todo_include_todos = True
 todo_emit_warnings = True
+
+# Output SVG inheritance diagrams
+graphviz_output_format = "svg"

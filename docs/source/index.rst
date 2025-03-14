@@ -2,9 +2,9 @@ y0 |release| Documentation
 ==========================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Getting Started
-   :name: start
+    :maxdepth: 2
+    :caption: Getting Started
+    :name: start
 
     installation
     dsl
@@ -24,6 +24,7 @@ y0 |release| Documentation
 
 Indices and Tables
 ------------------
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+
+- :ref:`genindex`
+- :ref:`modindex`
+- :ref:`search`
