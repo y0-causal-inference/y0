@@ -24,10 +24,10 @@ __all__ = [
     "HierarchicalCausalModel",
     "HierarchicalStructuralCausalModel",
     "QVariable",
-    "collapse_hcm",
     "augment_collapsed_model",
     "augment_from_mechanism",
     "augmentation_mechanism",
+    "collapse_hcm",
     "marginalize_augmented_model",
 ]
 
