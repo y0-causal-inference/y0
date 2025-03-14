@@ -94,6 +94,9 @@ jobs:
       - name: Run doctests
         run:
           uvx -p ${{ matrix.python-version }} --with tox-uv tox -e doctests
+      - name: Run notebook tests
+        run:
+          uvx -p ${{ matrix.python-version }} --with tox-uv tox -e treon
       - name: Upload coverage report to codecov
         uses: codecov/codecov-action@v4
         if: success()
