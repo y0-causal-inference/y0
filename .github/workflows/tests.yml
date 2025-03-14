@@ -4,6 +4,10 @@
 
 name: Tests
 
+# by default, give the GITHUB_TOKEN no permissions
+# See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token
+permissions: { }
+
 on:
   push:
     branches: [ main ]
@@ -13,74 +17,85 @@ on:
 jobs:
   lint:
     name: Code Quality
+    permissions:
+      # give only read-only access to the contents of the repository
+      # this is the only permission this job requires, so keep it to the least privilege
+      # i.e., not to issues, discussions, actions, etc.
+      contents: read
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.12", "3.10" ]
-        tox-command: ["manifest", "lint", "pyroma", "mypy"]
+        python-version: [ "3.13", "3.10" ]
+        tox-command: [ "lint", "pyroma", "mypy" ]
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - name: "Install uv"
+        uses: "astral-sh/setup-uv@v3"
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+      - name: "Run command"
         run: |
-          pip install tox tox-uv
-      - name: Run command
-        run: tox -e ${{ matrix.tox-command }}
+          uvx -p ${{ matrix.python-version }} --with tox-uv tox -e ${{ matrix.tox-command }}
+
   docs:
     name: Documentation
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.12", "3.10" ]
+        # We only test documentation on the latest version
+        # sphinx 8.0 / sphinx-rtd-theme 3.0 discontinued Python 3.9 support
+        # a year early, which prompted re-thinking about this.
+        python-version: [ "3.13" ]
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - name: "Install uv"
+        uses: "astral-sh/setup-uv@v3"
         with:
-          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - name: Install dependencies
         run: |
-          pip install tox tox-uv
-          sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
+          sudo apt-get install graphviz
       - name: Check RST conformity with doc8
-        run: tox -e doc8
+        run: uvx -p ${{ matrix.python-version }} --with tox-uv tox -e doc8
       - name: Check docstring coverage
-        run: tox -e docstr-coverage
+        run: uvx -p ${{ matrix.python-version }} --with tox-uv tox -e docstr-coverage
       - name: Check documentation build with Sphinx
-        run: tox -e docs-test
+        run: uvx -p ${{ matrix.python-version }} --with tox-uv tox -e docs-test
+
+      # Check all markdown files are properly formatted
+      # inspired by https://github.com/astral-sh/uv/blob/98523e2014e9a5c69706623344026d76296e178f/.github/workflows/ci.yml#L67C1-L70C61
+      - name: Check markdown formatting
+        run: |
+          npx --yes prettier --prose-wrap always --check "**/*.md"
+
   tests:
     name: Tests
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        python-version: [ "3.12", "3.10" ]
+        python-version: [ "3.13", "3.10" ]
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - name: "Install uv"
+        uses: "astral-sh/setup-uv@v3"
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-      - name: Install dependencies
-        run: |
-          pip install tox tox-uv
-          sudo apt-get install python3-dev graphviz libgraphviz-dev pkg-config
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
       - name: Test with pytest and generate coverage file
         run:
-          tox -e py
-      - name: Doctests
+          uvx -p ${{ matrix.python-version }} --with tox-uv tox -e py
+      - name: Run doctests
         run:
-          tox -e doctests
-      - name: Notebook tests
-        run:
-          tox -e treon
+          uvx -p ${{ matrix.python-version }} --with tox-uv tox -e doctests
       - name: Upload coverage report to codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v4
         if: success()
         with:
           file: coverage.xml
