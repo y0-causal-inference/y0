@@ -29,7 +29,7 @@ Follow the instructions at https://joss.theoj.org/papers/new.
 
 ## Authorship Concept
 
-- All material contributors to the Y0 package are eligible for authorship.
+- All material contributors to the $Y_0$ package are eligible for authorship.
 - Lead authorship will be shared between Charles Tapley Hoyt and Jeremy Zucker
 - Remaining authors will be listed alphabetically by last name
 - JOSS's [authorship policy](https://joss.readthedocs.io/en/latest/submitting.html#authorship) states:

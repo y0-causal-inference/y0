@@ -44,6 +44,8 @@ authors:
     roles:
       - type: software
         degree: supporting
+      - type: supervision
+        degree: supporting
   - name: Nathaniel Merrill
     orcid: 0000-0002-1998-0980
     affiliation: [ 2 ]
@@ -87,10 +89,13 @@ authors:
         degree: equal
       - type: writing-original-draft
         degree: supporting
+      - type: supervision
+        degree: lead
 
 affiliations:
-  - name: Independent Researcher
+  - name: RWTH Aachen University
     index: 1
+    ror: 04xfq0f34
   - name: Pacific Northwest National Laboratory
     index: 2
     ror: 05h992307
