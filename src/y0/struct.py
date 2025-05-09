@@ -77,12 +77,11 @@ def get_conditional_independence_tests() -> dict[CITest, CITestFunc]:
     return {
         "pearson": CITests.pearsonr,
         "chi-square": CITests.chi_square,
-        "cressie_read": CITests.cressie_read,
+        "cressie_read": CITests.power_divergence,  # default is cressie read
         "freeman_tuckey": CITests.freeman_tuckey,
         "g_sq": CITests.g_sq,
         "log_likelihood": CITests.log_likelihood,
         "modified_log_likelihood": CITests.modified_log_likelihood,
-        "power_divergence": CITests.power_divergence,
         "neyman": CITests.neyman,
     }
 
