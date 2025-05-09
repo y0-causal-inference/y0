@@ -1,4 +1,10 @@
-"""Interface to the R causaleffect package via :mod:`rpy2`."""
+"""Interface to the R causaleffect package via :mod:`rpy2` described in [tian2012]_ and [bhattacharya2022]_.
+
+.. [tian2012] `On the Testable Implications of Causal Models with Hidden Variables
+      <https://arxiv.org/abs/1301.0608>`_
+.. [bhattacharya2022] `On Testability of the Front-Door Model via Verma Constraints
+      <https://arxiv.org/abs/2203.00161>`_
+"""
 
 from __future__ import annotations
 
