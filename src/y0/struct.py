@@ -53,12 +53,13 @@ CITest = Literal[
     "pearson",
     "chi-square",
     "cressie_read",
-    "freeman_tuckey",
+    "freeman_tukey",
     "g_sq",
     "log_likelihood",
     "modified_log_likelihood",
     "power_divergence",
     "neyman",
+    "pillai",
 ]
 DEFAULT_CONTINUOUS_CI_TEST: CITest = "pearson"
 DEFAULT_DISCRETE_CI_TEST: CITest = "cressie_read"
@@ -80,10 +81,10 @@ def get_conditional_independence_tests() -> dict[CITest, CITestFunc]:
         "log_likelihood": CITests.log_likelihood,
         "modified_log_likelihood": CITests.modified_log_likelihood,
         "pearson": CITests.pearsonr,  # deprecate
-        # TODO add pillai
+        "pillai": CITests.pillai_trace,
         # wrappers
         "cressie_read": partial(CITests.power_divergence, lambda_="cressie-read"),
-        "freeman_tuckey": partial(CITests.power_divergence, lambda_="freeman-tuckey"),
+        "freeman_tukey": partial(CITests.power_divergence, lambda_="freeman-tukey"),
         "power_divergence": CITests.power_divergence,
         "neyman": partial(CITests.power_divergence, lambda_="neyman"),
     }
