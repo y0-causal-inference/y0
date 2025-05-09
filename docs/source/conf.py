@@ -1,15 +1,13 @@
-"""
-Configuration file for the Sphinx documentation builder.
+"""Configuration file for the Sphinx documentation builder.
 
-This file does only contain a selection of the most common options. For a
-full list see the documentation:
-http://www.sphinx-doc.org/en/master/config
+This file does only contain a selection of the most common options. For a full list see
+the documentation: http://www.sphinx-doc.org/en/master/config
 
 -- Path setup --------------------------------------------------------------
 
-If extensions (or modules to document with autodoc) are in another directory,
-add these directories to ``sys.path`` here. If the directory is relative to the
-documentation root, use ``os.path.abspath`` to make it absolute, like shown here.
+If extensions (or modules to document with autodoc) are in another directory, add these
+directories to ``sys.path`` here. If the directory is relative to the documentation
+root, use ``os.path.abspath`` to make it absolute, like shown here.
 """
 
 import os
@@ -36,7 +34,20 @@ parsed_version = re.match(
 version = parsed_version.expand(r"\g<major>.\g<minor>.\g<patch>")
 
 if parsed_version.group("release"):
-    tags.add("prerelease")  # noqa: F821
+    tags.add("prerelease")  # noqa:F821
+
+
+# See https://about.readthedocs.com/blog/2024/07/addons-by-default/
+# Define the canonical URL if you are using a custom domain on Read the Docs
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
+
+# See https://about.readthedocs.com/blog/2024/07/addons-by-default/
+# Tell Jinja2 templates the build is running on Read the Docs
+if os.environ.get("READTHEDOCS", "") == "True":
+    if "html_context" not in globals():
+        html_context = {}
+    html_context["READTHEDOCS"] = True
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -77,7 +88,9 @@ templates_path = ["_templates"]
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = ".rst"
+source_suffix = {
+    ".rst": "restructuredtext",
+}
 
 # The master toctree document.
 master_doc = "index"
@@ -242,3 +255,6 @@ autodoc_member_order = "bysource"
 
 todo_include_todos = True
 todo_emit_warnings = True
+
+# Output SVG inheritance diagrams
+graphviz_output_format = "svg"

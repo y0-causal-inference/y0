@@ -38,36 +38,8 @@ if TYPE_CHECKING:
     import sympy
 
 __all__ = [
-    "Element",
-    "Variable",
-    "Intervention",
-    "CounterfactualVariable",
-    "Distribution",
-    "Event",
-    "P",
-    "Probability",
-    "Sum",
-    "Product",
-    "Fraction",
-    "Expression",
-    "One",
-    "Zero",
-    "Q",
-    "QFactor",
-    "A",
     "AA",
-    "B",
-    "C",
-    "D",
-    "M",
-    "R",
-    "S",
-    "T",
-    "U",
-    "W",
-    "X",
-    "Y",
-    "Z",
+    "PP",
     "U1",
     "U2",
     "U3",
@@ -99,26 +71,54 @@ __all__ = [
     "Z4",
     "Z5",
     "Z6",
-    # Helpers
-    "ensure_ordering",
-    "vmap_adj",
-    "vmap_pairs",
-    # Transport
-    "PopulationProbability",
-    "PP",
+    "A",
+    "B",
+    "C",
+    "CounterfactualVariable",
+    "D",
+    "Distribution",
+    "Element",
+    "Event",
+    "Expression",
+    "Fraction",
+    "Intervention",
+    "M",
+    "One",
+    "P",
     "Pi1",
     "Pi2",
     "Pi3",
     "Pi4",
     "Pi5",
     "Pi6",
+    "Population",
+    # Transport
+    "PopulationProbability",
+    "Probability",
+    "Product",
+    "Q",
+    "QFactor",
+    "R",
+    "S",
+    "Sum",
+    "T",
+    "U",
+    "Variable",
+    "W",
+    "X",
+    "Y",
+    "Z",
+    "Zero",
+    # Helpers
+    "ensure_ordering",
+    "vmap_adj",
+    "vmap_pairs",
     "π1",
     "π2",
     "π3",
     "π4",
     "π5",
     "π6",
-    "Population",
 ]
 
 T_co = TypeVar("T_co", covariant=True)
@@ -223,17 +223,17 @@ class Variable(Element):
 
         :returns: The LaTeX representaton of this variable.
 
-        >>> Variable('X').to_latex()
+        >>> Variable("X").to_latex()
         'X'
-        >>> Variable('X', star=True).to_latex()
+        >>> Variable("X", star=True).to_latex()
         'X^{+}'
-        >>> Variable('X', star=False).to_latex()
+        >>> Variable("X", star=False).to_latex()
         'X^{-}'
-        >>> Variable('X1').to_latex()
+        >>> Variable("X1").to_latex()
         '{X_{1}}'
-        >>> Variable('X1', star=True).to_latex()
+        >>> Variable("X1", star=True).to_latex()
         '{X_{1}}^{+}'
-        >>> Variable('X12').to_latex()
+        >>> Variable("X12").to_latex()
         '{X_{12}}'
         """
         # if it ends with a number, use that as a subscript
@@ -386,19 +386,19 @@ class CounterfactualVariable(Variable):
 
         :returns: A latex representation of this counterfactual variable
 
-        >>> (Variable('X') @ Variable('Y')).to_latex()
+        >>> (Variable("X") @ Variable("Y")).to_latex()
         'X_{Y^{-}}'
-        >>> (Variable('X1') @ Variable('Y')).to_latex()
+        >>> (Variable("X1") @ Variable("Y")).to_latex()
         '{X_{1}}_{Y^{-}}'
-        >>> (Variable('X12') @ Variable('Y')).to_latex()
+        >>> (Variable("X12") @ Variable("Y")).to_latex()
         '{X_{12}}_{Y^{-}}'
-        >>> (+Variable('X') @ Variable('Y')).to_latex()
+        >>> (+Variable("X") @ Variable("Y")).to_latex()
         'X^{+}_{Y^{-}}'
-        >>> (+Variable('X1') @ Variable('Y')).to_latex()
+        >>> (+Variable("X1") @ Variable("Y")).to_latex()
         '{X_{1}}^{+}_{Y^{-}}'
-        >>> (+Variable('X12') @ Variable('Y')).to_latex()
+        >>> (+Variable("X12") @ Variable("Y")).to_latex()
         '{X_{12}}^{+}_{Y^{-}}'
-        >>> (+Variable('X12') @ Variable('Y') @ Variable('Z')).to_latex()
+        >>> (+Variable("X12") @ Variable("Y") @ Variable("Z")).to_latex()
         '{X_{12}}^{+}_{Y^{-}, Z^{-}}'
         """
         intervention_latex = _list_to_latex(_sort_interventions(self.interventions))
@@ -1035,7 +1035,7 @@ class Product(Expression):
         Standard usage, same as the normal ``__init__``:
 
         >>> from y0.dsl import Product, X, Y, A, P
-        >>> Product.safe((P(X, Y), ))
+        >>> Product.safe((P(X, Y),))
 
         Use a list or other iterable:
 

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import importlib.util
 import itertools as itt
 import json
+import unittest
 import warnings
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -36,10 +38,10 @@ if TYPE_CHECKING:
     import sympy
 
 __all__ = [
-    "NxMixedGraph",
-    "CausalEffectGraph",
-    "DEFULT_PREFIX",
     "DEFAULT_TAG",
+    "DEFULT_PREFIX",
+    "CausalEffectGraph",
+    "NxMixedGraph",
     "set_latent",
 ]
 
@@ -53,6 +55,9 @@ DEFAULT_TAG = "hidden"
 DEFULT_PREFIX = "u_"
 NO_SET_LATENT_FLAG = "no_set_latent"
 
+ANANKE_AVAILABLE = bool(importlib.util.find_spec("ananke"))
+ANANKE_REQUIRED = unittest.skipUnless(ANANKE_AVAILABLE, reason="Ananke is not installed")
+
 
 @dataclass
 class NxMixedGraph:
@@ -63,8 +68,8 @@ class NxMixedGraph:
     .. code-block:: python
 
         graph = NxMixedGraph()
-        graph.add_directed_edge('X', 'Y')
-        graph.add_undirected_edge('X', 'Y')
+        graph.add_directed_edge("X", "Y")
+        graph.add_undirected_edge("X", "Y")
     """
 
     #: A directed graph
@@ -472,7 +477,7 @@ class NxMixedGraph:
 
     @classmethod
     @open_file(1)  # type:ignore
-    def from_causalfusion_path(cls, file) -> NxMixedGraph:
+    def from_causalfusion_path(cls, file) -> NxMixedGraph:  # type:ignore[no-untyped-def]
         """Load a graph from a CausalFusion JSON file."""
         data = json.load(file)
         return cls.from_causalfusion_json(data)
@@ -488,7 +493,7 @@ class NxMixedGraph:
             elif edge["type"] == "bidirected":
                 rv.add_undirected_edge(u, v)
             else:
-                raise ValueError(f'unhandled edge type: {edge["type"]}')
+                raise ValueError(f"unhandled edge type: {edge['type']}")
         return rv
 
     def subgraph(self, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:

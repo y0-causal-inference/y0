@@ -17,8 +17,8 @@ from ..dsl import (
 )
 
 __all__ = [
-    "canonicalize",
     "canonical_expr_equal",
+    "canonicalize",
 ]
 
 

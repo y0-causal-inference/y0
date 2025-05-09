@@ -31,9 +31,9 @@ from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import canonicalize
 
 __all__ = [
+    "TransportQuery",
     "identify_target_outcomes",
     "trso",
-    "TransportQuery",
 ]
 
 logger = logging.getLogger(__name__)

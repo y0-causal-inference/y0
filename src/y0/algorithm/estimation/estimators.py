@@ -12,9 +12,9 @@ from y0.dsl import Variable
 from y0.graph import NxMixedGraph, get_district_and_predecessors, is_p_fixable
 
 __all__ = [
+    "get_beta_primal",
     "get_primal_ipw_ace",
     "get_primal_ipw_point_estimate",
-    "get_beta_primal",
 ]
 
 #: The list of Ananke estimators implemented in

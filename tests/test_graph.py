@@ -9,6 +9,8 @@ from pgmpy.models import BayesianNetwork
 from y0.dsl import V1, V2, V3, V4, A, B, C, D, M, Variable, X, Y, Z
 from y0.examples import SARS_SMALL_GRAPH, Example, examples, napkin, verma_1
 from y0.graph import (
+    ANANKE_AVAILABLE,
+    ANANKE_REQUIRED,
     DEFAULT_TAG,
     DEFULT_PREFIX,
     NxMixedGraph,
@@ -98,12 +100,10 @@ class TestGraph(unittest.TestCase):
         graph = NxMixedGraph.from_causalfusion_path(VIRAL_PATHOGENESIS_PATH)
         self.assertIsInstance(graph, NxMixedGraph)
 
+    @ANANKE_REQUIRED
     def test_from_admg(self):
         """Test that all ADMGs can be converted to NxMixedGraph."""
-        try:
-            from ananke.graphs import ADMG
-        except ImportError:
-            self.skipTest("ananke is not available")
+        from ananke.graphs import ADMG
 
         expected = NxMixedGraph.from_str_adj(
             directed={"W": [], "X": ["Y"], "Y": ["Z"], "Z": []},
@@ -276,6 +276,7 @@ class TestGraph(unittest.TestCase):
         self.assertTrue(disoriented.has_edge(X, Y))
         self.assertTrue(disoriented.has_edge(Y, Z))
 
+    @ANANKE_REQUIRED
     def test_pre(self):
         """Test getting the pre-ordering for a given node or set of nodes."""
         g1 = NxMixedGraph.from_str_adj(
@@ -283,6 +284,7 @@ class TestGraph(unittest.TestCase):
         )
         g1_ananke = g1.to_admg()
         g1_y0_pre = set(g1.pre(Variable("4")))
+        # TODO hardcode expected
         g1_ananke_pre = set(g1_ananke.pre(vertices=["4"], top_order=g1_ananke.topological_sort()))
         g1_y0_pre = {node.name for node in g1_y0_pre}
         self.assertEqual(g1_y0_pre, g1_ananke_pre)
@@ -301,12 +303,14 @@ class TestFixability(unittest.TestCase):
 
     def assert_mb_shielded(self, graph: NxMixedGraph):
         """Assert the graph is mb-shielded."""
-        self.assertTrue(graph.to_admg().mb_shielded())
+        if ANANKE_AVAILABLE:
+            self.assertTrue(graph.to_admg().mb_shielded())
         self.assertTrue(is_markov_blanket_shielded(graph))
 
     def assert_mb_unshielded(self, graph: NxMixedGraph):
         """Assert the graph is not mb-shielded."""
-        self.assertFalse(graph.to_admg().mb_shielded())
+        if ANANKE_AVAILABLE:
+            self.assertFalse(graph.to_admg().mb_shielded())
         self.assertFalse(is_markov_blanket_shielded(graph))
 
     def test_is_mb_shielded(self):
@@ -370,12 +374,14 @@ class TestFixability(unittest.TestCase):
 
     def assert_a_fixable(self, graph: NxMixedGraph, treatment: Variable):
         """Assert that the graph is a-fixable."""
-        self.assertTrue(_ananke_a_fixable(graph, treatment))
+        if ANANKE_AVAILABLE:
+            self.assertTrue(_ananke_a_fixable(graph, treatment))
         self.assertTrue(is_a_fixable(graph, treatment))
 
     def assert_not_a_fixable(self, graph: NxMixedGraph, treatment: Variable):
         """Assert that the graph is not a-fixable."""
-        self.assertFalse(_ananke_a_fixable(graph, treatment))
+        if ANANKE_AVAILABLE:
+            self.assertFalse(_ananke_a_fixable(graph, treatment))
         self.assertFalse(is_a_fixable(graph, treatment))
 
     def test_is_a_fixable(self):
@@ -454,12 +460,14 @@ class TestFixability(unittest.TestCase):
 
     def assert_p_fixable(self, graph: NxMixedGraph, treatment: Variable):
         """Assert that the graph is p-fixable."""
-        self.assertTrue(_ananke_p_fixable(graph, treatment))
+        if ANANKE_AVAILABLE:
+            self.assertTrue(_ananke_p_fixable(graph, treatment))
         self.assertTrue(is_p_fixable(graph, treatment))
 
     def assert_not_p_fixable(self, graph: NxMixedGraph, treatment: Variable):
         """Assert that the graph is not p-fixable."""
-        self.assertFalse(_ananke_p_fixable(graph, treatment))
+        if ANANKE_AVAILABLE:
+            self.assertFalse(_ananke_p_fixable(graph, treatment))
         self.assertFalse(is_p_fixable(graph, treatment))
 
     def test_is_p_fixable(self):
