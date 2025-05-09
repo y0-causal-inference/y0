@@ -79,6 +79,7 @@ tests = [
     "coverage[toml]",
     # "ananke-causal",
     "pgmpy",
+    "xgboost", # for pillai
     "torch",
 ]
 docs = [
