@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import lru_cache, partial
 from typing import Any, Literal, NamedTuple, cast
 
 import pandas as pd
@@ -53,12 +53,13 @@ CITest = Literal[
     "pearson",
     "chi-square",
     "cressie_read",
-    "freeman_tuckey",
+    "freeman_tukey",
     "g_sq",
     "log_likelihood",
     "modified_log_likelihood",
     "power_divergence",
     "neyman",
+    "pillai",
 ]
 DEFAULT_CONTINUOUS_CI_TEST: CITest = "pearson"
 DEFAULT_DISCRETE_CI_TEST: CITest = "cressie_read"
@@ -75,15 +76,17 @@ def get_conditional_independence_tests() -> dict[CITest, CITestFunc]:
         raise ImportError("Calculating falsifications requires `pip install pgmpy`.") from e
 
     return {
-        "pearson": CITests.pearsonr,
         "chi-square": CITests.chi_square,
-        "cressie_read": CITests.cressie_read,
-        "freeman_tuckey": CITests.freeman_tuckey,
         "g_sq": CITests.g_sq,
         "log_likelihood": CITests.log_likelihood,
         "modified_log_likelihood": CITests.modified_log_likelihood,
+        "pearson": CITests.pearsonr,  # deprecate
+        "pillai": CITests.pillai_trace,
+        # wrappers
+        "cressie_read": partial(CITests.power_divergence, lambda_="cressie-read"),
+        "freeman_tukey": partial(CITests.power_divergence, lambda_="freeman-tukey"),
         "power_divergence": CITests.power_divergence,
-        "neyman": CITests.neyman,
+        "neyman": partial(CITests.power_divergence, lambda_="neyman"),
     }
 
 
@@ -210,7 +213,7 @@ class DSeparationJudgement:
         # and the second being the p-value. The other methods return a triple with the first element
         # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of
         # freedom.
-        if method == "pearson":
+        if method in {"pearson", "pillai"}:
             statistic, p_value = result
             dof = None
         else:
