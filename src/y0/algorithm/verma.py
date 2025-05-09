@@ -11,9 +11,9 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 
-from .graph import CausalEffectGraph, NxMixedGraph
-from .r_utils import uses_r
-from .struct import VermaConstraint
+from ..graph import CausalEffectGraph, NxMixedGraph
+from ..r_utils import uses_r
+from ..struct import VermaConstraint
 
 __all__ = [
     "r_get_verma_constraints",
