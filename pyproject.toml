@@ -78,7 +78,8 @@ tests = [
     "pytest",
     "coverage[toml]",
     # "ananke-causal",
-    "pgmpy",
+    "pgmpy>=1.0.0",
+    "xgboost", # for pillai
     "torch",
 ]
 docs = [

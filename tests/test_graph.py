@@ -4,7 +4,7 @@ import unittest
 from textwrap import dedent
 
 import networkx as nx
-from pgmpy.models import BayesianNetwork
+from pgmpy.models import DiscreteBayesianNetwork
 
 from y0.dsl import V1, V2, V3, V4, A, B, C, D, M, Variable, X, Y, Z
 from y0.examples import SARS_SMALL_GRAPH, Example, examples, napkin, verma_1
@@ -642,26 +642,28 @@ def _ananke_p_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
 
 
 class TestToBayesianNetwork(unittest.TestCase):
-    """Tests converting a mixed graph to an equivalent :class:`pgmpy.BayesianNetwork`."""
+    """Tests converting a mixed graph to an equivalent :class:`pgmpy.DiscreteBayesianNetwork`."""
 
-    def assert_bayesian_equal(self, expected: BayesianNetwork, actual: BayesianNetwork) -> None:
-        """Compare two instances of :class:`pgmpy.BayesianNetwork`."""
+    def assert_bayesian_equal(
+        self, expected: DiscreteBayesianNetwork, actual: DiscreteBayesianNetwork
+    ) -> None:
+        """Compare two instances of :class:`pgmpy.DiscreteBayesianNetwork`."""
         self.assertEqual(set(expected.edges), set(actual.edges))
         self.assertEqual(expected.latents, actual.latents)
 
     def test_graph_with_latents(self):
-        """Tests converting a mixed graph with latents to an equivalent :class:`pgmpy.BayesianNetwork`."""
+        """Tests converting a mixed graph with latents to an equivalent :class:`pgmpy.DiscreteBayesianNetwork`."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)])
-        expected = BayesianNetwork(
+        expected = DiscreteBayesianNetwork(
             ebunch=[("X", "Y"), ("U_X_Y", "X"), ("U_X_Y", "Y")], latents=["U_X_Y"]
         )
         actual = graph.to_pgmpy_bayesian_network()
         self.assert_bayesian_equal(expected, actual)
 
     def test_graph_without_latents(self):
-        """Tests converting a mixed graph without latents to an equivalent :class:`pgmpy.BayesianNetwork`."""
+        """Tests converting a mixed graph without latents to an equivalent :class:`pgmpy.DiscreteBayesianNetwork`."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)])
-        expected = BayesianNetwork(ebunch=[("X", "Y")])
+        expected = DiscreteBayesianNetwork(ebunch=[("X", "Y")])
         actual = graph.to_pgmpy_bayesian_network()
         self.assert_bayesian_equal(expected, actual)
 

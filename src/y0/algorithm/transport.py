@@ -1,4 +1,4 @@
-"""Implement of surrogate outcomes and transportability from https://arxiv.org/abs/1806.07172."""
+"""Implement of surrogate outcomes and transportability from [tikka2018]_."""
 
 import logging
 from collections.abc import Collection, Iterable

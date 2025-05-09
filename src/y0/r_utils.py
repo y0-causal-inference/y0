@@ -5,12 +5,13 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Iterable
 from functools import lru_cache, wraps
-from typing import Any, TypeVar, cast
-
-from rpy2.robjects.packages import InstalledPackage, InstalledSTPackage, importr, isinstalled
-from rpy2.robjects.vectors import StrVector
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from .dsl import Variable
+
+if TYPE_CHECKING:
+    from rpy2.robjects.packages import InstalledPackage, InstalledSTPackage
+
 
 __all__ = ["prepare_default_renv", "prepare_renv", "uses_r"]
 
@@ -36,6 +37,9 @@ def prepare_renv(requirements: Iterable[str]) -> list[InstalledSTPackage | Insta
 
     .. seealso:: https://rpy2.github.io/doc/v3.4.x/html/introduction.html#installing-packages
     """
+    from rpy2.robjects.packages import importr, isinstalled
+    from rpy2.robjects.vectors import StrVector
+
     # import R's utility package
     utils = importr("utils")
 
