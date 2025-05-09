@@ -58,6 +58,8 @@ NO_SET_LATENT_FLAG = "no_set_latent"
 ANANKE_AVAILABLE = bool(importlib.util.find_spec("ananke"))
 ANANKE_REQUIRED = unittest.skipUnless(ANANKE_AVAILABLE, reason="Ananke is not installed")
 
+LayoutDict = dict[Variable, tuple[float, float]]
+
 
 @dataclass
 class NxMixedGraph:
@@ -306,12 +308,37 @@ class NxMixedGraph:
             rv.add_undirected_edge(u, v)
         return rv
 
+    def _layout(self, prog: str) -> LayoutDict:
+        joint = self.joint()
+        try:
+            layout = nx.nx_agraph.pygraphviz_layout(joint, prog=prog)
+        except ImportError:
+            pass
+        else:
+            return cast(LayoutDict, layout)
+        try:
+            layout = nx.nx_pydot.pydot_layout(joint, prog=prog)
+        except (ImportError, IndexError):
+            pass
+        else:
+            return cast(LayoutDict, layout)
+
+        return cast(LayoutDict, nx.spring_layout(joint))
+
     def draw(
         self,
         ax: None | matplotlib.axes.Axes = None,
         title: str | None = None,
         prog: str | None = None,
         latex: bool = True,
+        layout: LayoutDict | None = None,
+        node_size: int = 1_500,
+        node_size_offset: int = 500,
+        line_widths: int = 2,
+        margins: float = 0.3,
+        font_size: int = 20,
+        arrow_size: int = 20,
+        radius: float = 0.3,
     ) -> None:
         """Render the graph using matplotlib.
 
@@ -319,6 +346,13 @@ class NxMixedGraph:
         :param title: The optional title to show with the graph
         :param prog: The pydot program to use, like dot, neato, osage, etc.
             If none is given, uses osage for small graphs and dot for larger ones.
+        :param node_size: node size
+        :param node_size_offset: node size offset
+        :param line_widths: line widths
+        :param margins: margins
+        :param font_size: node text font size
+        :param arrow_size: edge arrow size
+        :param radius: bidirectional edge radius
         :param latex: Parse string variables as y0 if possible to make pretty latex output
         """
         import matplotlib.pyplot as plt
@@ -329,7 +363,8 @@ class NxMixedGraph:
             else:
                 prog = "osage"
 
-        layout = _layout(self, prog=prog)
+        if layout is None:
+            layout = self._layout(prog=prog)
         u_proxy = nx.DiGraph(self.undirected.edges)
         labels = None if not latex else {node: _get_latex(node) for node in self.directed}
 
@@ -337,13 +372,6 @@ class NxMixedGraph:
             ax = plt.gca()
 
         # TODO choose sizes based on size of axis
-        node_size = 1_500
-        node_size_offset = 500
-        line_widths = 2
-        margins = 0.3
-        font_size = 20
-        arrow_size = 20
-        radius = 0.3
 
         nx.draw_networkx_nodes(
             self.directed,
@@ -823,26 +851,6 @@ def _ensure_set(vertices: Variable | Iterable[Variable]) -> set[Variable]:
     if any(isinstance(v, Intervention) for v in rv):
         raise TypeError("can not use interventions here")
     return rv
-
-
-LayoutDict = dict[Variable, tuple[float, float]]
-
-
-def _layout(self: NxMixedGraph, prog: str) -> LayoutDict:
-    joint = self.joint()
-    try:
-        layout = cast(LayoutDict, nx.nx_agraph.pygraphviz_layout(joint, prog=prog))
-    except ImportError:
-        pass
-    else:
-        return layout
-    try:
-        layout = cast(LayoutDict, nx.nx_pydot.pydot_layout(joint, prog=prog))
-    except (ImportError, IndexError):
-        pass
-    else:
-        return layout
-    return cast(LayoutDict, nx.spring_layout(joint))
 
 
 def is_a_fixable(graph: NxMixedGraph, treatments: Variable | Collection[Variable]) -> bool:
