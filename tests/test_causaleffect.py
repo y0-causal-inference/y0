@@ -8,13 +8,16 @@ from y0.dsl import P, Q, Sum, Variable
 from y0.examples import examples, verma_1
 
 try:
+    from rpy2 import robjects
+
     from y0.causaleffect import r_get_verma_constraints
     from y0.r_utils import CAUSALEFFECT, IGRAPH, prepare_renv
     from y0.struct import VermaConstraint
-except ImportError:  # rpy2 is not installed
+except Exception:  # rpy2 is not installed/R is not compatible
     missing_rpy2 = True
 else:
     missing_rpy2 = False
+
 
 u_1 = Variable("u_1")
 V1 = Variable("V1")
@@ -34,6 +37,8 @@ class TestCausalEffect(unittest.TestCase):
             prepare_renv([CAUSALEFFECT, IGRAPH])
         except Exception as e:
             raise unittest.SkipTest(f"R packages not properly installed.\n\n{e}") from None
+
+        cls.assertIsNotNone(robjects, msg="make sure this was imported correctly.")
 
     def test_verma_constraint(self):
         """Test getting the single Verma constraint from the Figure 1A graph."""
