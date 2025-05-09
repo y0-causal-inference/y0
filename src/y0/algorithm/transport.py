@@ -1,7 +1,4 @@
-"""Implement of surrogate outcomes and transportability from [tikka2018]_.
-
-.. [tikka2018] `Surrogate Outcomes and Transportability <https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf>`_
-"""
+"""Implement of surrogate outcomes and transportability from [tikka2018]_."""
 
 import logging
 from collections.abc import Collection, Iterable
