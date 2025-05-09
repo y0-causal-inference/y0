@@ -10,7 +10,7 @@ from y0.examples import examples, verma_1
 try:
     from rpy2 import robjects
 
-    from y0.causaleffect import r_get_verma_constraints
+    from y0.algorithm.verma import r_get_verma_constraints
     from y0.r_utils import CAUSALEFFECT, IGRAPH, prepare_renv
     from y0.struct import VermaConstraint
 except Exception:  # rpy2 is not installed/R is not compatible
