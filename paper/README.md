@@ -6,7 +6,7 @@ This folder contains source material for a
 1. [paper.md](paper.md): the main manuscript
 2. [paper.bib](paper.bib): BibTex citations for the manuscript
 
-Target submission date: June 20th, 2025
+Target submission date: June 20th, 2025.
 
 ## TODO
 
