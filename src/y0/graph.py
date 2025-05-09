@@ -165,9 +165,9 @@ class NxMixedGraph:
             bi_edges=[(u.name, v.name) for u, v in self.undirected.edges()],
         )
 
-    def to_pgmpy_bayesian_network(self) -> pgmpy.models.BayesianNetwork:
-        """Convert a mixed graph to an equivalent :class:`pgmpy.BayesianNetwork`."""
-        from pgmpy.models import BayesianNetwork
+    def to_pgmpy_bayesian_network(self) -> pgmpy.models.DiscreteBayesianNetwork:
+        """Convert a mixed graph to an equivalent :class:`pgmpy.DiscreteBayesianNetwork`."""
+        from pgmpy.models import DiscreteBayesianNetwork
 
         edges = [(u.name, v.name) for u, v in self.directed.edges()]
         latents = set()
@@ -176,7 +176,7 @@ class NxMixedGraph:
             latents.add(latent)
             edges.append((latent, u.name))
             edges.append((latent, v.name))
-        model = BayesianNetwork(ebunch=edges, latents=latents)
+        model = DiscreteBayesianNetwork(ebunch=edges, latents=latents)
         return model
 
     def to_pgmpy_causal_inference(self) -> pgmpy.inference.CausalInference.CausalInference:
