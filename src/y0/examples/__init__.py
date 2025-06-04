@@ -168,7 +168,7 @@ def generate_napkin_data(
 
     Generate _observational_ data with the following:
 
-    >>> from y0.examples.napkin_example
+    >>> from y0.examples import napkin_example
     >>> napkin_example.generate_data(1000)
 
     Generate interventional data on $X=1$ with the following:
@@ -1169,8 +1169,11 @@ d_separation_example = Example(
     ],
 )
 
+asia_df = (
+    pd.read_csv(ASIA_PATH).replace({"yes": "1", "no": "-1"}).astype(int)
+)  # direct downcasting is getting deprecated in Pandas 3
 
-asia_df = pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1})
+
 del asia_df[asia_df.columns[0]]
 
 asia_example = Example(
