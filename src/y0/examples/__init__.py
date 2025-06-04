@@ -168,7 +168,7 @@ def generate_napkin_data(
 
     Generate _observational_ data with the following:
 
-    >>> from y0.examples.napkin_example
+    >>> from y0.examples import napkin_example
     >>> napkin_example.generate_data(1000)
 
     Generate interventional data on $X=1$ with the following:
