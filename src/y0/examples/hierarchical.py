@@ -74,9 +74,22 @@ def get_confounder_interference_hcm() -> HierarchicalCausalModel:
     hcm.add_subunits([A, Y])
     return hcm
 
+def get_confounder_interference_hcm() -> HierarchicalCausalModel:
+    """Pytest fixture for the Confounder Interference HCM in Figure 2 (e)."""
+    hcm = HierarchicalCausalModel()
+    hcm.add_observed_node(A)
+    hcm.add_observed_node(Y)
+    hcm.add_observed_node(Z)
+    hcm.add_edge(U, A)
+    hcm.add_edge(A, Y)
+    hcm.add_edge(U, Y)
+    hcm.add_edge(A, Z)
+    hcm.add_edge(Z, Y)
+    hcm.add_subunits([A, Y])
+    return hcm
 
-def get_confounder_interference_hcgm() -> HierarchicalCausalModel:
-    """Pytest fixture for the Confounder Interference HCGM in FIgure 2 (f)."""
+def get_school_confounder_interference_hcgm() -> HierarchicalCausalModel:
+    """Pytest School fixture for the Confounder Interference HCGM in Hierarchical Causal Models notebook."""
     hcm = HierarchicalCausalModel()
     hcm.add_observed_node(A)
     hcm.add_observed_node(Y)
@@ -96,17 +109,18 @@ def get_confounder_interference_hcgm() -> HierarchicalCausalModel:
 
 def get_confounder_interference_hscm() -> HierarchicalStructuralCausalModel:
     """Pytest fixture for the Confounder Interference HSCM in Sec. 2.3 Eqn. (9)."""
+    StudentTutoring, StudentTestScore, SchoolStudySession, SchoolBudget = A, Y, Z, U
     hscm = HierarchicalStructuralCausalModel()
-    hscm.add_observed_node(A)
-    hscm.add_observed_node(Y)
-    hscm.add_observed_node(Z)
-    hscm.add_unobserved_node(U)
-    hscm.add_edge(U, A)
-    hscm.add_edge(A, Y)
-    hscm.add_edge(U, Y)
-    hscm.add_edge(A, Z)
-    hscm.add_edge(Z, Y)
-    hscm.add_subunits([A, Y])
+    hscm.add_observed_node(StudentTutoring)
+    hscm.add_observed_node(StudentTutoring)
+    hscm.add_observed_node(StudentTestScore)
+    hscm.add_unobserved_node(SchoolBudget)
+    hscm.add_edge(SchoolBudget, StudentTutoring)
+    hscm.add_edge(StudentTutoring, StudentTutoring)
+    hscm.add_edge(SchoolBudget, StudentTutoring)
+    hscm.add_edge(StudentTutoring, StudentTestScore)
+    hscm.add_edge(StudentTestScore, StudentTutoring)
+    hscm.add_subunits([StudentTutoring, StudentTutoring])
     return hscm
 
 
