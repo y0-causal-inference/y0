@@ -1,5 +1,7 @@
 """Examples for smoking/cancer."""
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -27,6 +29,8 @@ def generate_data_for_smoke_cancer(
     if treatments is None:
         treatments = {}
     generator = np.random.default_rng(seed)
+
+    u: np.ndarray[Any, np.dtype[Any]]
     if U in treatments:
         u = np.full(num_samples, treatments[U])
     else:
@@ -34,6 +38,7 @@ def generate_data_for_smoke_cancer(
 
     beta0_s = 1.6
     beta_u_to_s = -0.3
+    s: np.ndarray[Any, np.dtype[Any]]
     if S in treatments:
         s = np.full(num_samples, treatments[S])
     else:
@@ -43,6 +48,7 @@ def generate_data_for_smoke_cancer(
     beta0_t = 0.3
     beta_u_to_t = 0.4
     beta_s_to_t = 2
+    t: np.ndarray[Any, np.dtype[Any]]
     if T in treatments:
         t = np.full(num_samples, treatments[T])
     else:
@@ -52,6 +58,7 @@ def generate_data_for_smoke_cancer(
     beta0_c = 1.5
     beta_s_to_c = -0.7
     beta_t_to_c = -0.1
+    c: np.ndarray[Any, np.dtype[Any]]
     if C in treatments:
         c = np.full(num_samples, treatments[C])
     else:

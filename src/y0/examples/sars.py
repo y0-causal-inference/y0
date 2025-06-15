@@ -1,5 +1,7 @@
 """Examples for SARS-CoV-2 and COVID19."""
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -10,7 +12,7 @@ __all__ = [
 ]
 
 
-def _r_exp(x: float) -> float:
+def _r_exp(x: float | np.ndarray[Any, np.dtype[Any]]) -> float:
     return 1 / (1 + np.exp(x))  # type:ignore
 
 
@@ -74,6 +76,7 @@ def generate_data_for_covid_case_study(
     beta_adam17_egfr = 0.03
     beta_u_il6_stat_egfr = -0.04
     beta_u_tnf_egfr = 0.02
+    egfr: np.ndarray[Any, np.dtype[Any]]
     if Variable("EGFR") in treatments:
         egfr = np.full(num_samples, treatments[Variable("EGFR")])
     else:

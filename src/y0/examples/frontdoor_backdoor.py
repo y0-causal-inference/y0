@@ -1,5 +1,7 @@
 """Genrate date for the frontdoor graph."""
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -27,6 +29,7 @@ def generate_data_for_frontdoor_backdoor(
     if treatments is None:
         treatments = {}
     generator = np.random.default_rng(seed)
+    w: np.ndarray[Any, np.dtype[Any]]
     if W in treatments:
         w = np.full(num_samples, treatments[W])
     else:
@@ -34,6 +37,7 @@ def generate_data_for_frontdoor_backdoor(
 
     beta0_x = 0.1
     beta_w_to_x = 0.5
+    x: np.ndarray[Any, np.dtype[Any]]
     if X in treatments:
         x = np.full(num_samples, treatments[X])
     else:
@@ -42,6 +46,7 @@ def generate_data_for_frontdoor_backdoor(
 
     beta0_z = 0.5
     beta_x_to_z = 0.4
+    z: np.ndarray[Any, np.dtype[Any]]
     if Z in treatments:
         z = np.full(num_samples, treatments[Z])
     else:
@@ -51,6 +56,7 @@ def generate_data_for_frontdoor_backdoor(
     beta0_y = 0.1
     beta_z_to_y = 0.7
     beta_w_to_y = 0.1
+    y: np.ndarray[Any, np.dtype[Any]]
     if Y in treatments:
         y = np.full(num_samples, treatments[Y])
     else:
