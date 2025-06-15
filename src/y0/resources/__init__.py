@@ -1,7 +1,7 @@
 """Resources for y0."""
 
-import os
+from pathlib import Path
 
-HERE = os.path.abspath(os.path.dirname(__file__))
-ASIA_PATH = os.path.join(HERE, "asia.csv")
-VIRAL_PATHOGENESIS_PATH = os.path.join(HERE, "viral_pathogenesis.json")
+HERE = Path(__file__).parent.resolve()
+ASIA_PATH = HERE.joinpath("asia.tsv")
+VIRAL_PATHOGENESIS_PATH = HERE.joinpath("viral_pathogenesis.json")
