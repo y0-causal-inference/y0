@@ -12,6 +12,7 @@ docker run --rm \
   paper.md
 
 latexmk -pdf paper.preprint.tex
+rm paper.bib.blg
 rm paper.preprint.aux
 rm paper.preprint.fdb_latexmk
 rm paper.preprint.fls

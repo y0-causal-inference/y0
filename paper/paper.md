@@ -204,9 +204,7 @@ following prior knowledge:
 3. Smoking itself also increases the risk of cancer
 
 ![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B
-**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf)
-{#cancer
-height="100pt"}
+**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
 
 The ID algorithm [@shpitser2006id] estimates the effect of smoking on the risk
 of cancer in \autoref{cancer}A as
