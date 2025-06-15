@@ -28,6 +28,7 @@ authors:
         degree: lead
   - name: Richard J. Callahan
     affiliation: [2]
+    orcid: 0009-0006-6041-5517
     roles:
       - type: software
         degree: supporting
