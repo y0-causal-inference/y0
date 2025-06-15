@@ -17,7 +17,7 @@ has-equal-contributors: true
 authors:
   - name: Charles Tapley Hoyt
     orcid: 0000-0003-4423-4370
-    affiliation: [1]
+    affiliation: 1
     equal-contrib: true
     corresponding: true
     email: cthoyt@gmail.com
@@ -29,14 +29,14 @@ authors:
       - type: writing-original-draft
         degree: lead
   - name: Richard J. Callahan
-    affiliation: [2]
+    affiliation: 2
     orcid: 0009-0006-6041-5517
     roles:
       - type: software
         degree: supporting
   - name: Joseph Cottam
     orcid: 0000-0002-3097-5998
-    affiliation: [2]
+    affiliation: 2
     roles:
       - type: software
         degree: supporting
@@ -50,7 +50,7 @@ authors:
         degree: supporting
   - name: Nathaniel Merrill
     orcid: 0000-0002-1998-0980
-    affiliation: [2]
+    affiliation: 2
     roles:
       - type: software
         degree: supporting
@@ -79,8 +79,7 @@ authors:
       - type: supervision
         degree: supporting
   - name: Jeremy Zucker
-    orcid: 0000-0002-7276-9009
-    affiliation: [2]
+    affiliation: 2
     equal-contrib: true
     corresponding: true
     email: jeremy.zucker@pnnl.gov
@@ -205,7 +204,8 @@ following prior knowledge:
 3. Smoking itself also increases the risk of cancer
 
 ![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B
-**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer
+**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf)
+{#cancer
 height="100pt"}
 
 The ID algorithm [@shpitser2006id] estimates the effect of smoking on the risk
