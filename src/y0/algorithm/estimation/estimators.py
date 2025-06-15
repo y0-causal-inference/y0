@@ -1,6 +1,6 @@
 """Implementation of ACE estimators."""
 
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -84,7 +84,7 @@ def get_beta_primal(
     treatment: Variable,
     outcome: Variable,
     treatment_value: int | float,
-) -> np.ndarray:
+) -> np.ndarray[Any, np.dtype[Any]]:
     """Return the beta primal value for each row in the data.
 
     This code was adapted from :mod:`ananke` ananke code at:
@@ -171,6 +171,7 @@ def get_beta_primal(
         prob_t1 *= prob_v_t1
         prob_t0 *= prob_v_t0
 
+    beta_primal: np.ndarray[Any, np.dtype[Any]]
     # special case when the outcome is in l
     if outcome in post_treatment_vars_in_district:
         # fit a binary/continuous model for y | mp(y)
@@ -191,7 +192,7 @@ def get_beta_primal(
         prob_sumt = prob_t1 + prob_t0
         beta_primal = indices * (prob_sumt / prob) * y
 
-    return cast(np.ndarray, beta_primal)
+    return beta_primal
 
 
 def fit_binary_model(data: pd.DataFrame, formula: str) -> GLM:

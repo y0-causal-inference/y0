@@ -1,5 +1,7 @@
 """Examples for backdoor."""
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -10,7 +12,7 @@ __all__ = [
 ]
 
 
-def _r_exp(x: float | np.ndarray) -> float:
+def _r_exp(x: float | np.ndarray[Any, np.dtype[Any]]) -> float:
     return 1 / (1 + np.exp(x))  # type:ignore
 
 
@@ -29,6 +31,7 @@ def generate_data_for_backdoor(
         treatments = {}
     generator = np.random.default_rng(seed)
 
+    z: np.ndarray[Any, np.dtype[Any]]
     if Z in treatments:
         z = np.full(num_samples, treatments[Z])
     else:
@@ -36,7 +39,7 @@ def generate_data_for_backdoor(
 
     beta0_x = -1
     beta_z_to_x = 0.05
-
+    x: np.ndarray[Any, np.dtype[Any]]
     if X in treatments:
         x = np.full(num_samples, treatments[X])
     else:
@@ -46,6 +49,7 @@ def generate_data_for_backdoor(
     beta0_y = -1.8
     beta_z_to_y = 0.05
     beta_x_to_y = 0.06
+    y: np.ndarray[Any, np.dtype[Any]]
     if Y in treatments:
         y = np.full(num_samples, treatments[Y])
     else:
