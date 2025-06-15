@@ -16,7 +16,7 @@ Target submission date: June 20th, 2025.
 - @Jeremy reference other PNNL use cases (even if they're not published)
 - @Jeremy there's a note for you to fill in a sentence in the future work
   paragraph
-- Get Richard and Pruthvi's ORCIDs
+- Get Pruthvi's ORCID
 
 ## Linting
 
