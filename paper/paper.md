@@ -13,9 +13,44 @@ tags:
   - interventional trials
   - observational studies
 
-authors: [ ]
+has-equal-contributors: true
+authors:
+  - name: Charles Tapley Hoyt
+    orcid: 0000-0003-4423-4370
+    affiliation: 1
+    equal-contrib: true
+    corresponding: true
+    email: cthoyt@gmail.com
+    roles:
+      - type: software
+        degree: equal
+      - type: conceptualization
+        degree: equal
+      - type: writing-original-draft
+        degree: lead
+  - name: Jeremy Zucker
+    orcid: 0000-0002-7276-9009
+    affiliation: 2
+    equal-contrib: true
+    corresponding: true
+    email: jeremy.zucker@pnnl.gov
+    roles:
+      - type: software
+        degree: equal
+      - type: conceptualization
+        degree: equal
+      - type: writing-original-draft
+        degree: supporting
+      - type: supervision
+        degree: lead
 
-affiliations: [ ]
+affiliations:
+  - name: RWTH Aachen University
+    index: 1
+    ror: 04xfq0f34
+  - name: Pacific Northwest National Laboratory
+    index: 2
+    ror: 05h992307
 ---
 
 # Availability and usage
