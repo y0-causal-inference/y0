@@ -22,17 +22,16 @@ Target submission date: June 20th, 2025.
 
 The markdown files here are linted with:
 
-```shell
-npx prettier --prose-wrap always --check "**/*.md" --write
+```console
+$ npx prettier --prose-wrap always --check "**/*.md" --write
 ```
 
 ## Build
 
-Follow the instructions at
-https://joss.readthedocs.io/en/latest/submitting.html#docker:
+The submission and preprint PDFs can be built by running the following:
 
-```shell
-sh build.sh
+```console
+$ sh build.sh
 ```
 
 ## Submission
