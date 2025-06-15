@@ -84,7 +84,7 @@ def get_beta_primal(
     treatment: Variable,
     outcome: Variable,
     treatment_value: int | float,
-) -> np.array:
+) -> np.ndarray:
     """Return the beta primal value for each row in the data.
 
     This code was adapted from :mod:`ananke` ananke code at:
@@ -191,7 +191,7 @@ def get_beta_primal(
         prob_sumt = prob_t1 + prob_t0
         beta_primal = indices * (prob_sumt / prob) * y
 
-    return beta_primal
+    return cast(np.ndarray, beta_primal)
 
 
 def fit_binary_model(data: pd.DataFrame, formula: str) -> GLM:

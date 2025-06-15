@@ -10,7 +10,7 @@ __all__ = [
 ]
 
 
-def _r_exp(x: float) -> float:
+def _r_exp(x: float | np.ndarray) -> float:
     return 1 / (1 + np.exp(x))  # type:ignore
 
 
