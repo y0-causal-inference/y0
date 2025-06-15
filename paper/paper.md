@@ -13,6 +13,9 @@ tags:
   - interventional trials
   - observational studies
 
+authors: [ ]
+
+affiliations: [ ]
 ---
 
 # Availability and usage
