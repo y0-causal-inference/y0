@@ -1,5 +1,7 @@
 ---
 title: Causal inference with $Y_0$
+bibliography: paper.bib
+repository: y0-causal-inference/y0
 
 tags:
   - causal inference
@@ -106,8 +108,6 @@ affiliations:
     index: 4
 
 date: 9 May 2025
-bibliography: paper.bib
-repository: y0-causal-inference/y0
 ---
 
 # Summary
