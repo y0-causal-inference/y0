@@ -79,6 +79,7 @@ authors:
       - type: supervision
         degree: supporting
   - name: Jeremy Zucker
+    orcid: 0000-0002-7276-9009
     affiliation: 2
     equal-contrib: true
     corresponding: true
