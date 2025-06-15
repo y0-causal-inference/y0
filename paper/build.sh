@@ -1,13 +1,6 @@
-# old way
-# see https://joss.readthedocs.io/en/latest/submitting.html#docker
-# docker run --rm \
-#  --volume $PWD:/data \
-#  --user $(id -u):$(id -g) \
-#  --env JOURNAL=joss \
-#  openjournals/paperdraft
+# sort the bib file
+biber --tool --output_align --output_indent=2 --output_fieldcase=lower paper.bib -O paper.bib
 
-# new way using `inara`, not documented by JOSS yet
-# see https://github.com/openjournals/inara/tree/main
 docker run --rm \
   --volume $PWD:/data \
   --user $(id -u):$(id -g) \
