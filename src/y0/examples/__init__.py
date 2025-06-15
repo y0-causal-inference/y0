@@ -1169,7 +1169,7 @@ d_separation_example = Example(
     ],
 )
 
-asia_df = pd.read_csv(ASIA_PATH, sep='\t')
+asia_df = pd.read_csv(ASIA_PATH, sep="\t")
 
 
 asia_example = Example(
