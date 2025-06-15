@@ -1,6 +1,8 @@
 # sort the bib file
 biber --tool --output_align --output_indent=2 --output_fieldcase=lower paper.bib -O paper.bib
 
+# see the instructions at
+# https://joss.readthedocs.io/en/latest/submitting.html#docker
 docker run --rm \
   --volume $PWD:/data \
   --user $(id -u):$(id -g) \

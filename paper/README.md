@@ -6,33 +6,20 @@ This folder contains source material for a
 1. [paper.md](paper.md): the main manuscript
 2. [paper.bib](paper.bib): BibTex citations for the manuscript
 
-Target submission date: June 20th, 2025.
-
-## TODO
-
-- mention HCM data structure from `[@weinstein2024hierarchicalcausalmodels]`,
-  _only after_ https://github.com/y0-causal-inference/y0/pull/236 is finished
-  and merged
-- @Jeremy reference other PNNL use cases (even if they're not published)
-- @Jeremy there's a note for you to fill in a sentence in the future work
-  paragraph
-- Get Pruthvi's ORCID
-
 ## Linting
 
 The markdown files here are linted with:
 
-```shell
-npx prettier --prose-wrap always --check "**/*.md" --write
+```console
+$ npx prettier --prose-wrap always --check "**/*.md" --write
 ```
 
 ## Build
 
-Follow the instructions at
-https://joss.readthedocs.io/en/latest/submitting.html#docker:
+The submission and preprint PDFs can be built by running the following:
 
-```shell
-sh build.sh
+```console
+$ sh build.sh
 ```
 
 ## Submission
@@ -52,9 +39,3 @@ Follow the instructions at https://joss.theoj.org/papers/new.
   > as general supervision of a research group) contributions are not considered
   > sufficient for co-authorship of JOSS submissions, but active project
   > direction and other forms of non-code contributions are.
-
-## Extras
-
-Some references that didn't make it into the manuscript:
-
-- Good and bad controls [@cinelli2022crash] (could go in future work)
