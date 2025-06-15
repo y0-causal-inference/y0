@@ -37,7 +37,6 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3 :: Only",
     "Typing :: Typed",
-    # TODO add your topics from the Trove controlled vocabulary (see https://pypi.org/classifiers)
 ]
 keywords = [
     "snekpack",
@@ -80,6 +79,7 @@ tests = [
     "pgmpy>=1.0.0",
     "xgboost", # for pillai
     "torch",
+    "y0[r]",
 ]
 docs = [
     "sphinx>=8",
