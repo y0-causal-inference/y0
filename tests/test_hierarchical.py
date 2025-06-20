@@ -8,13 +8,13 @@ from y0.examples.hierarchical import (
     get_compl_subgraph_hcm,
     get_confounder_hcgm,
     get_confounder_hscm,
-    get_confounder_interference_hcgm,
-    get_confounder_interference_hcm,
-    get_confounder_interference_hscm,
     get_instrument_hcgm,
     get_instrument_hcm,
     get_instrument_hscm,
     get_instrument_subunit_graph,
+    get_school_confounder_interference_hcgm,
+    get_school_confounder_interference_hcm,
+    get_school_confounder_interference_hscm,
 )
 from y0.graph import NxMixedGraph
 from y0.hierarchical import (
@@ -38,9 +38,9 @@ Q_Y_A_Z = QVariable(name="Y", parents=frozenset([A, Z]))
 
 confounder_hcgm = get_confounder_hcgm()
 confounder_hscm = get_confounder_hscm()
-confounder_interference_hcm = get_confounder_interference_hcm()
-confounder_interference_hcgm = get_confounder_interference_hcgm()
-confounder_interference_hscm = get_confounder_interference_hscm()
+confounder_interference_hcm = get_school_confounder_interference_hcm()
+confounder_interference_hcgm = get_school_confounder_interference_hcgm()
+confounder_interference_hscm = get_school_confounder_interference_hscm()
 instrument_hcm = get_instrument_hcm()
 instrument_subunit_graph = get_instrument_subunit_graph()
 instrument_hcgm = get_instrument_hcgm()
