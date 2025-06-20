@@ -2,7 +2,9 @@
 
 .. [tikka20a] https://github.com/santikka/causaleffect/blob/master/R/compute.c.factor.R.
 .. [tikka20b] https://github.com/santikka/causaleffect/blob/master/R/identify.R.
-.. [tian03a] https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf
+.. [tian03a] Tian J, Pearl J (2003). `On the Identification of Causal Effects
+    <https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf>`_. Technical report, Department
+    of Computer Science, University of California, Los Angeles. R-290-L
 """
 
 import logging
