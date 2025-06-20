@@ -19,7 +19,7 @@ from tabulate import tabulate
 from tqdm import tqdm, trange
 
 from y0.algorithm.estimation import estimate_ace
-from y0.examples import examples
+from y0.examples import examples  # type: ignore[attr-defined]
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 

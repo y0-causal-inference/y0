@@ -36,8 +36,12 @@ jobs:
         with:
           python-version: "3.10"
 
+      # cf. https://github.com/astral-sh/setup-uv?tab=readme-ov-file#usage
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Install Cruft
-        run: pip3 install cruft
+        run: uv tool install cruft
 
       - name: Check if update is available
         continue-on-error: false

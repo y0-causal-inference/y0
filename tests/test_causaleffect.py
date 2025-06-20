@@ -5,7 +5,7 @@ import unittest
 import pyparsing
 
 from y0.dsl import P, Q, Sum, Variable
-from y0.examples import examples, verma_1
+from y0.examples import examples, verma_1  # type: ignore[attr-defined]
 
 try:
     from rpy2 import robjects
@@ -38,7 +38,11 @@ class TestCausalEffect(unittest.TestCase):
         except Exception as e:
             raise unittest.SkipTest(f"R packages not properly installed.\n\n{e}") from None
 
-        cls.assertIsNotNone(robjects, msg="make sure this was imported correctly.")
+        cls.assertIsNotNone(
+            unittest.TestCase(), robjects, msg="make sure this was imported correctly."
+        )
+        # callahanr: @cthoyt Please take a look at this, adding the first parameter is a fix to correct a mypy error:
+        #            error: Missing positional argument "obj" in call to "assertIsNotNone" of "TestCase"  [call-arg]
 
     def test_verma_constraint(self):
         """Test getting the single Verma constraint from the Figure 1A graph."""

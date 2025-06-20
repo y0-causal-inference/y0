@@ -67,8 +67,8 @@ dependencies = [
     "scikit-learn",
     "statsmodels",
     "scipy",
+    "typing-extensions",
 ]
-
 
 # see https://peps.python.org/pep-0735/ and https://docs.astral.sh/uv/concepts/dependencies/#dependency-groups
 [dependency-groups]

@@ -1564,7 +1564,9 @@ class QFactor(Expression):
         yield from self.domain
 
 
-Q = QFactor
+# We need to declare a type for this alias to avoid false MyPy errors.
+# See https://github.com/python/mypy/issues/7568
+Q: type[QFactor] = QFactor
 
 AA = Variable("AA")
 A, B, C, D, E, F, G, M, R, S, T, U, W, X, Y, Z = map(Variable, "ABCDEFGMRSTUWXYZ")
