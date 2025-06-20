@@ -48,6 +48,12 @@ authors:
         degree: supporting
       - type: supervision
         degree: supporting
+  - name: Haley Hummel
+    orcid: 0009-0004-5405-946X
+    affiliation: 4
+    roles:
+      - type: software
+        degree: supporting
   - name: Nathaniel Merrill
     orcid: 0000-0002-1998-0980
     affiliation: 2
@@ -67,7 +73,13 @@ authors:
         degree: supporting
   - name: Marc-Antoine Parent
     orcid: 0000-0003-4159-7678
-    affiliation: 4
+    affiliation: 5
+    roles:
+      - type: software
+        degree: supporting
+  - name: Adam Rupe
+    affiliation: 2
+    orcid: 0000-0003-0105-8987
     roles:
       - type: software
         degree: supporting
@@ -104,8 +116,11 @@ affiliations:
   - name: Northeastern University
     index: 3
     ror: 04t5xt781
-  - name: Conversence
+  - name: Oregon State University
     index: 4
+    ror: 00ysfqy60
+  - name: Conversence
+    index: 5
 
 date: 9 May 2025
 ---
@@ -191,8 +206,9 @@ Verma constraints [@tian2012verma].
 algorithms of any causal inference package. It implements `ID`
 [@shpitser2006id], `IDC` [@shpitser2007idc], `ID*` [@shpitser2012idstar], `IDC*`
 [@shpitser2012idstar], surrogate outcomes (`TRSO`) [@tikka2019trso], `tian-ID`
-[@tian2010identifying], transport [@correa2020transport], and counterfactual
-transport [@correa2022cftransport].
+[@tian2010identifying], transport [@correa2020transport], counterfactual
+transport [@correa2022cftransport], and identification for causal queries over
+hierarchical causal models [@weinstein2024hierarchicalcausalmodels].
 
 # Case Study
 
@@ -204,9 +220,7 @@ following prior knowledge:
 2. Accumulation of tar in the lungs increase the risk of cancer
 3. Smoking itself also increases the risk of cancer
 
-![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B
-**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer
-height="100pt"}
+![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
 
 The ID algorithm [@shpitser2006id] estimates the effect of smoking on the risk
 of cancer in \autoref{cancer}A as
@@ -240,27 +254,33 @@ We highlight several which used (and motivated further development of) $Y_0$:
   workflow for simple causal queries compatible with `ID`.
 - [@ness_causal_2024] uses $Y_0$ as a teaching tool for identification and the
   causal hierarchy
-- TODO Jeremy reference other PNNL use cases (even if they're not published)
 
 # Future direction
 
 There remain several high value identification algorithms to include in $Y_0$ in
-the future. For example, the generalized ID (`gID`) [@lee2019general] and
-generalized counterfactual ID (`gID*`) [@correa2021counterfactual] are important
-because TODO Jeremy. The cyclic ID (`ioID`)
+the future. For example, the cyclic ID (`ioID`)
 [@forré2019causalcalculuspresencecycles] is important to work with more
 realistic graphs that contain cycles, such as how biomolecular signaling
-pathways often contain feedback loops.
+pathways often contain feedback loops. Further, missing data identification
+algorithms can handle when data is missing not at random (MNAR) by modeling the
+underlying missingness mechanism [@mohan2021]. Many algorithms covered by the
+review by [@JSSv099i05], such as generalized ID (`gID`) [@lee2019general] and
+generalized counterfactual ID (`gID*`) [@correa2021counterfactual] can be
+formulated as special cases of counterfactual transportability. Therefore, we
+also plan to improve the user experience to using more powerful algorithms like
+counterfactual transport through a simplified API.
 
-Similarly, it remains an open research question on how to estimate the causal
-effect for an arbitrary estimand produced by an algorithm more sophisticated
-than `ID`. Two potential avenues for overcoming this might be a combination of
-the Pyro probabilistic programming langauge [@bingham2018pyro] and its causal
-inference extension [ChiRho](https://github.com/BasisResearch/chirho). Tractable
-circuits [@darwiche2022causalinferenceusingtractable] also present a new
-paradigm for generic estimation. Such a generalization would be a lofty
-achievement and enable the automation of downstream applications in experimental
-design.
+Similarly, we would like to implement probabilistic expression simplification
+described by [@tikka2017b] to make reading estimands easier.
+
+It remains an open research question on how to estimate the causal effect for an
+arbitrary estimand produced by an algorithm more sophisticated than `ID`. Two
+potential avenues for overcoming this might be a combination of the Pyro
+probabilistic programming langauge [@bingham2018pyro] and its causal inference
+extension [ChiRho](https://github.com/BasisResearch/chirho). Tractable circuits
+[@darwiche2022causalinferenceusingtractable] also present a new paradigm for
+generic estimation. Such a generalization would be a lofty achievement and
+enable the automation of downstream applications in experimental design.
 
 # Availability and usage
 

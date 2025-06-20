@@ -10,12 +10,6 @@ Target submission date: June 20th, 2025.
 
 ## TODO
 
-- mention HCM data structure from `[@weinstein2024hierarchicalcausalmodels]`,
-  _only after_ https://github.com/y0-causal-inference/y0/pull/236 is finished
-  and merged
-- @Jeremy reference other PNNL use cases (even if they're not published)
-- @Jeremy there's a note for you to fill in a sentence in the future work
-  paragraph
 - Get Pruthvi's ORCID
 
 ## Linting
