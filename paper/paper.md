@@ -28,68 +28,6 @@ authors:
         degree: equal
       - type: writing-original-draft
         degree: lead
-  - name: Richard J. Callahan
-    affiliation: 2
-    orcid: 0009-0006-6041-5517
-    roles:
-      - type: software
-        degree: supporting
-  - name: Joseph Cottam
-    orcid: 0000-0002-3097-5998
-    affiliation: 2
-    roles:
-      - type: software
-        degree: supporting
-  - name: Benjamin M. Gyori
-    orcid: 0000-0001-9439-5346
-    affiliation: 3
-    roles:
-      - type: software
-        degree: supporting
-      - type: supervision
-        degree: supporting
-  - name: Haley Hummel
-    orcid: 0009-0004-5405-946X
-    affiliation: 4
-    roles:
-      - type: software
-        degree: supporting
-  - name: Nathaniel Merrill
-    orcid: 0000-0002-1998-0980
-    affiliation: 2
-    roles:
-      - type: software
-        degree: supporting
-  - name: Sara Mohammad Taheri
-    orcid: 0000-0002-6554-9083
-    affiliation: 3
-    roles:
-      - type: software
-        degree: supporting
-  - name: Pruthvi Prakash Navada
-    affiliation: 3
-    roles:
-      - type: software
-        degree: supporting
-  - name: Marc-Antoine Parent
-    orcid: 0000-0003-4159-7678
-    affiliation: 5
-    roles:
-      - type: software
-        degree: supporting
-  - name: Adam Rupe
-    affiliation: 2
-    orcid: 0000-0003-0105-8987
-    roles:
-      - type: software
-        degree: supporting
-  - name: Olga Vitek
-    affiliation: 3
-    orcid: 0000-0003-1728-1104
-    roles:
-      # See pre-submission inquiry https://github.com/openjournals/joss/issues/1363
-      - type: supervision
-        degree: supporting
   - name: Jeremy Zucker
     orcid: 0000-0002-7276-9009
     affiliation: 2
@@ -122,7 +60,7 @@ affiliations:
   - name: Conversence
     index: 5
 
-date: 9 May 2025
+date: 21 June 2025
 ---
 
 # Summary
@@ -220,7 +158,9 @@ following prior knowledge:
 2. Accumulation of tar in the lungs increase the risk of cancer
 3. Smoking itself also increases the risk of cancer
 
-![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
+![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B
+**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf)
+{#cancer height="100pt"}
 
 The ID algorithm [@shpitser2006id] estimates the effect of smoking on the risk
 of cancer in \autoref{cancer}A as
