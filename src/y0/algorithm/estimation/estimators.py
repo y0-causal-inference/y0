@@ -65,8 +65,12 @@ def get_primal_ipw_point_estimate(
     treatment: Variable,
     treatment_value: int | float,
     outcome: Variable,
-) -> float:
+) -> float | Any:
     """Estimate the counterfactual mean E[Y(t)] with the Primal IPW estimator on p-fixable graphs."""
+    # TODO: This function currently returns type Any to conform with mypy requirements.
+    #       That's not the best reason to make a return type less restrictive.
+    #       Consider warning the user if the type of the return value cannot be
+    #       coerced to a float. See Issue #294. -callahanr
     beta_primal = get_beta_primal(
         data=data,
         graph=graph,
@@ -74,7 +78,7 @@ def get_primal_ipw_point_estimate(
         treatment_value=treatment_value,
         outcome=outcome,
     )
-    return cast(float, np.mean(beta_primal).item())
+    return np.mean(beta_primal).item()
 
 
 def get_beta_primal(
