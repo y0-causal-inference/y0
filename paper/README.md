@@ -39,3 +39,9 @@ Follow the instructions at https://joss.theoj.org/papers/new.
   > as general supervision of a research group) contributions are not considered
   > sufficient for co-authorship of JOSS submissions, but active project
   > direction and other forms of non-code contributions are.
+
+## Extras
+
+Some references that didn't make it into the manuscript:
+
+- Good and bad controls [@cinelli2022crash] (could go in future work)
