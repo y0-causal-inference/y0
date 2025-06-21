@@ -144,9 +144,9 @@ inference.
 # State of the field
 
 Several open source packages in the Python programming language have implemented
-the most simple identification algorithm [@shpitser2006id].
+the most simple identification algorithm (`ID`) from @shpitser2006id including
 [Ananke](https://gitlab.com/causal/ananke) [@lee2023ananke],
-[pgmpy](https://github.com/pgmpy/pgmpy) [@ankan2015pgmpy], and
+[pgmpy](https://github.com/pgmpy/pgmpy) [@ankan2015pgmpy],
 [DoWhy](https://github.com/py-why/dowhy) [@sharma2020dowhy], and
 [causaleffect-py](https://github.com/pedemonte96/causaleffect)
 [@pedemonte2021causalefffectpy]. Further, Ananke and DoWhy implement algorithms
@@ -155,7 +155,7 @@ estimate the average causal effect of an intervention on the outcome. However,
 these methods are limited in their generalization to causal queries that include
 multiple interventions, multiple outcomes, conditionals, or interventions.
 
-In the R programming language,
+In the R programming language, the
 [causaleffect](https://github.com/santikka/causaleffect) package
 [@tikka2017causaleffectr] implements `ID`, `IDC` [@shpitser2007idc], surrogate
 outcomes (`TRSO`) [@tikka2019trso], and transport [@correa2020transport]. The
@@ -169,7 +169,7 @@ implements many identification and estimation algorithms, but is neither open
 source, has open registration, nor provides documentation.
 
 Causal inference remains an active research area where new identification
-algorithms are regularly published (see a recent review from [@JSSv099i05]), but
+algorithms are regularly published (see the recent review from @JSSv099i05), but
 often without a reference implementation. This motivates the implementation of a
 modular framework with reusable data structures and workflows to support the
 implementation of both previously published and future algorithms and workflows.
@@ -182,14 +182,14 @@ variables, and probabilistic expressions in which they appear. It covers three
 levels of Pearl's Causal Hierarchy [@bareinboim2022], including the probability
 of sufficient causation $P(Y_X \mid X^*, Y^*)$, necessary causation
 $P(Y^*_{X^*} \mid X, Y)$, and necessary and sufficient causation
-$P(Y_X, Y^*_{X^*})$. Expressions can be converted to SymPy [@meurer2017sympy]
-and LaTeX expressions and render in Jupyter notebooks.
+$P(Y_X, Y^*_{X^*})$. Expressions can be converted to SymPy [@meurer2017sympy],
+LaTeX expressions, and be rendered in Jupyter notebooks.
 
 **Data Structure** $Y_0$ builds on NetworkX [@hagberg2008networkx] to implement
 an (acyclic) directed mixed graph data structure, used in many identification
-algorithms, and the latent variable graph structure described in
-[@evans2016simplification]. It includes a suite of generic graph operations,
-graph simplification workflows such as the one propsed by Evans, and conversion
+algorithms, and the latent variable graph structure described by
+@evans2016simplification. It includes a suite of generic graph operations, graph
+simplification workflows such as the one proposed by Evans, and conversion
 utilities for Ananke, CausalFusion, pgmpy, and causaleffect.
 
 **Falsification** $Y_0$ implements several workflows for checking the
@@ -197,7 +197,7 @@ consistency of graphical models against observational data. First, it implements
 D-separation [@Pearl_2009], M-separation [@drton2004mseparation],
 $\sigma$-separation [@forre2018sigmaseparation] that are applicable to
 increasingly more generic mixed graphs. Then, it implements a workflow for
-identifying conditional independencies [@Pearl1989], and falsification
+identifying conditional independencies [@Pearl1989] and falsification
 [@eulig2023falsifyingcausalgraphsusing]. Finally, it provides a wrapper around
 `causaleffect` through [`rpy2`](https://github.com/rpy2/rpy2) for calculating
 Verma constraints [@tian2012verma].
@@ -246,13 +246,13 @@ algorithms for epidemiological studies in COVID-19 in this
 
 We highlight several which used (and motivated further development of) $Y_0$:
 
-- [@mohammadtaheri2022experimentaldesigncausalquery] used $Y_0$ to develop an
+- @mohammadtaheri2022experimentaldesigncausalquery used $Y_0$ to develop an
   automated experimental design workflow.
-- [@taheri2023adjustment] used $Y_0$ for falsification against experimental and
+- @taheri2023adjustment used $Y_0$ for falsification against experimental and
   simulated data for several biological signaling pathways.
-- [@taheri2024eliater] used $Y_0$ and Ananke to implement an automated causal
+- @taheri2024eliater used $Y_0$ and Ananke to implement an automated causal
   workflow for simple causal queries compatible with `ID`.
-- [@ness_causal_2024] uses $Y_0$ as a teaching tool for identification and the
+- @ness_causal_2024 used $Y_0$ as a teaching tool for identification and the
   causal hierarchy
 
 # Future direction
@@ -263,15 +263,15 @@ the future. For example, the cyclic ID (`ioID`)
 realistic graphs that contain cycles, such as how biomolecular signaling
 pathways often contain feedback loops. Further, missing data identification
 algorithms can handle when data is missing not at random (MNAR) by modeling the
-underlying missingness mechanism [@mohan2021]. Many algorithms covered by the
-review by [@JSSv099i05], such as generalized ID (`gID`) [@lee2019general] and
-generalized counterfactual ID (`gID*`) [@correa2021counterfactual] can be
+underlying missingness mechanism [@mohan2021]. Several algorithms noted in the
+review by @JSSv099i05, such as generalized ID (`gID`) [@lee2019general] and
+generalized counterfactual ID (`gID*`) [@correa2021counterfactual], can be
 formulated as special cases of counterfactual transportability. Therefore, we
-also plan to improve the user experience to using more powerful algorithms like
-counterfactual transport through a simplified API.
-
-Similarly, we would like to implement probabilistic expression simplification
-described by [@tikka2017b] to make reading estimands easier.
+plan to improve the user experience by exposing more powerful algorithms like
+counterfactual transport through a simplified APIs corresponding to special
+cases like `gID` and `gID*`. Similarly, we plan to implement probabilistic
+expression simplification [@tikka2017b] to improve the consistency of the
+estimands output from identification algorithms.
 
 It remains an open research question on how to estimate the causal effect for an
 arbitrary estimand produced by an algorithm more sophisticated than `ID`. Two
