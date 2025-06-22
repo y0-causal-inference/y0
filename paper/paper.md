@@ -67,6 +67,7 @@ authors:
       - type: software
         degree: supporting
   - name: Pruthvi Prakash Navada
+    orcid: 0009-0008-8505-1670
     affiliation: 3
     roles:
       - type: software
