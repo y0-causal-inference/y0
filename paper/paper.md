@@ -64,7 +64,7 @@ authors:
         degree: supporting
   - name: Nathaniel Merrill
     orcid: 0000-0002-1998-0980
-    affiliation: 6
+    affiliation: 5
     roles:
       - type: software
         degree: supporting
@@ -82,7 +82,7 @@ authors:
         degree: supporting
   - name: Marc-Antoine Parent
     orcid: 0000-0003-4159-7678
-    affiliation: 5
+    affiliation: 6
     roles:
       - type: software
         degree: supporting
@@ -128,28 +128,28 @@ affiliations:
   - name: Oregon State University
     index: 4
     ror: 00ysfqy60
-  - name: Conversence
-    index: 5
   - name: Battelle Memorial Institute
-    index: 6
+    index: 5
     ror: 01h5tnr73
+  - name: Conversence
+    index: 6
 
 date: 21 June 2025
 ---
 
 # Summary
 
-Scientists and researchers often want to know whether one thing causes
-another—for example, does a new medication reduce symptoms, or does education
-improve income? While randomized controlled experiments provide the most direct
-evidence for causal relationships, they are often impossible, unethical, or
-prohibitively expensive to conduct for the specific questions researchers want
-to answer. Causal inference provides statistical methods to answer
-cause-and-effect questions using whatever data is available—whether
-observational data (collected by observing the world as it naturally occurs),
-experimental data from controlled studies, or a combination of both. However,
-determining causation is challenging because correlation does not imply
-causation, and many confounding factors can create misleading associations.
+Researchers often want to know whether one thing causes another—for example,
+does a new medication reduce symptoms, or does education improve income? While
+randomized controlled experiments provide the most direct evidence for causal
+relationships, they are often impossible, unethical, or prohibitively expensive
+to conduct for the specific questions researchers want to answer. Causal
+inference provides statistical methods to answer cause-and-effect questions
+using whatever data is available—whether observational data (collected by
+observing the world as it naturally occurs), experimental data from controlled
+studies, or a combination of both. However, determining causation is challenging
+because correlation does not imply causation, and many confounding factors can
+create misleading associations.
 
 A key step in any causal analysis is **causal identification**—determining
 whether it's theoretically possible to estimate a causal effect from available
@@ -175,12 +175,7 @@ experimental, or mixed) before attempting to estimate _how strong_ that
 relationship is. $Y_0$ provides a domain-specific language for expressing causal
 queries, tools for representing graphical causal models that incorporate various
 data types from single or multiple populations, and implementations of numerous
-identification algorithms from the causal inference literature. Scientists and
-researchers often want to know whether one thing causes another—for example,
-does a new medication reduce symptoms, or does education improve income? While
-the gold standard for answering such questions is a randomized controlled
-experiment, these are often impossible, unethical, or prohibitively expensive to
-conduct.
+identification algorithms from the causal inference literature.
 
 # State of the Field
 
@@ -207,7 +202,7 @@ extend.
 
 Finally, [CausalFusion](https://www.causalfusion.net) is a web application that
 implements many identification and estimation algorithms, but is neither open
-source, has open registration, nor provides documentation.
+source, available for registration of new users, nor provides documentation.
 
 Causal inference remains an active research area where new identification
 algorithms are regularly published (see the recent review from @JSSv099i05), but
@@ -219,9 +214,9 @@ implementation of both previously published and future algorithms and workflows.
 
 **Probabilistic Expressions** $Y_0$ implements an internal domain-specific
 language that can capture variables, counterfactual variables, population
-variables, and probabilistic expressions in which they appear. It covers three
-levels of Pearl's Causal Hierarchy [@bareinboim2022], including the probability
-of sufficient causation $P(Y_X \mid X^*, Y^*)$, necessary causation
+variables, and probabilistic expressions in which they appear. It covers the
+three levels of Pearl's Causal Hierarchy [@bareinboim2022], including the
+probability of sufficient causation $P(Y_X \mid X^*, Y^*)$, necessary causation
 $P(Y^*_{X^*} \mid X, Y)$, and necessary and sufficient causation
 $P(Y_X, Y^*_{X^*})$. Expressions can be converted to SymPy [@meurer2017sympy],
 LaTeX expressions, and be rendered in Jupyter notebooks.
@@ -263,18 +258,18 @@ following prior knowledge:
 
 ![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
 
-The ID algorithm [@shpitser2006id] estimates the effect of smoking on the risk
-of cancer in \autoref{cancer}A as
+The identification algorithm (`ID`) [@shpitser2006id] estimates the effect of
+smoking on the risk of cancer in \autoref{cancer}A as
 $\sum_{Tar} P(Cancer | Smoking, Tar) P(Tar | Smoking)$. However, the model in
 \autoref{cancer}A is inaccurate because it does not represent confounders
 between smoking and tar accumulation, such as the choice to smoke tar-free
 cigarettes. Therefore, we add a _bidirected_ edge in \autoref{cancer}B.
-Unfortunately, the ID algorithm can not produce an estimand for
-\autoref{cancer}B, which motivates the usage of an alternative algorithm that
-incorporates observational and/or interventional data. For example, if data from
-an observational study ($\pi^{\ast}$) and data from an interventional trial on
-smoking ($\pi_1$) are available, the TRSO algorithm [@tikka2019trso] estimates
-the effect of smoking on the risk of cancer in \autoref{cancer}B as
+Unfortunately, `ID` can not produce an estimand for \autoref{cancer}B, which
+motivates the usage of an alternative algorithm that incorporates observational
+and/or interventional data. For example, if data from an observational study
+($\pi^{\ast}$) and data from an interventional trial on smoking ($\pi_1$) are
+available, the TRSO algorithm [@tikka2019trso] estimates the effect of smoking
+on the risk of cancer in \autoref{cancer}B as
 $\sum_{Tar} P^{\pi^{\ast}}(Cancer | Smoking, Tar) P_{\text{Smoking}}^{{\pi_1}}(Tar)$.
 Code and a more detailed description of this case study can be found in the
 following
@@ -299,20 +294,21 @@ We highlight several which used (and motivated further development of) $Y_0$:
 # Future Directions
 
 There remain several high value identification algorithms to include in $Y_0$ in
-the future. For example, the cyclic ID (`ioID`)
+the future. For example, the cyclic identification algorithm (`ioID`)
 [@forré2019causalcalculuspresencecycles] is important to work with more
 realistic graphs that contain cycles, such as how biomolecular signaling
 pathways often contain feedback loops. Further, missing data identification
 algorithms can account for data that is missing not at random (MNAR) by modeling
 the underlying missingness mechanism [@mohan2021]. Several algorithms noted in
-the review by @JSSv099i05, such as generalized ID (`gID`) [@lee2019general] and
-generalized counterfactual ID (`gID*`) [@correa2021counterfactual], can be
-formulated as special cases of counterfactual transportability. Therefore, we
-plan to improve the user experience by exposing more powerful algorithms like
-counterfactual transport through a simplified APIs corresponding to special
-cases like `gID` and `gID*`. Similarly, we plan to implement probabilistic
-expression simplification [@tikka2017b] to improve the consistency of the
-estimands output from identification algorithms.
+the review by @JSSv099i05, such as generalized identification (`gID`)
+[@lee2019general] and generalized counterfactual identification (`gID*`)
+[@correa2021counterfactual], can be formulated as special cases of
+counterfactual transportability. Therefore, we plan to improve the user
+experience by exposing more powerful algorithms like counterfactual transport
+through a simplified APIs corresponding to special cases like `gID` and `gID*`.
+Similarly, we plan to implement probabilistic expression simplification
+[@tikka2017b] to improve the consistency of the estimands output from
+identification algorithms.
 
 It remains an open research question on how to estimate the causal effect for an
 arbitrary estimand produced by an algorithm more sophisticated than `ID`. Two
