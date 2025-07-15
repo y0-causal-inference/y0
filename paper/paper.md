@@ -1,10 +1,12 @@
 ---
-title: Causal inference with $Y_0$
+title: Causal identification with $Y_0$
 bibliography: paper.bib
 repository: y0-causal-inference/y0
 
 tags:
   - causal inference
+  - causal identification
+  - causal estimation
   - network science
   - causal artificial intelligence
   - causal machine learning
@@ -34,6 +36,18 @@ authors:
     roles:
       - type: software
         degree: supporting
+  - name: Nathaniel Merrill
+    orcid: 0000-0002-1998-0980
+    affiliation: 6
+    roles:
+      - type: software
+        degree: supporting
+  - name: Adam Rupe
+    affiliation: 2
+    orcid: 0000-0003-0105-8987
+    roles:
+      - type: software
+        degree: supporting
   - name: Joseph Cottam
     orcid: 0000-0002-3097-5998
     affiliation: 2
@@ -48,15 +62,15 @@ authors:
         degree: supporting
       - type: supervision
         degree: supporting
-  - name: Haley Hummel
-    orcid: 0009-0004-5405-946X
-    affiliation: 4
+  - name: August George
+    orcid: 0000-0001-7876-4359
+    affiliation: 2
     roles:
       - type: software
         degree: supporting
-  - name: Nathaniel Merrill
-    orcid: 0000-0002-1998-0980
-    affiliation: 2
+  - name: Haley Hummel
+    orcid: 0009-0004-5405-946X
+    affiliation: 4
     roles:
       - type: software
         degree: supporting
@@ -75,12 +89,6 @@ authors:
   - name: Marc-Antoine Parent
     orcid: 0000-0003-4159-7678
     affiliation: 5
-    roles:
-      - type: software
-        degree: supporting
-  - name: Adam Rupe
-    affiliation: 2
-    orcid: 0000-0003-0105-8987
     roles:
       - type: software
         degree: supporting
@@ -122,25 +130,57 @@ affiliations:
     ror: 00ysfqy60
   - name: Conversence
     index: 5
+  - name: Battelle Memorial Institute
+    index: 6
+    ror: 01h5tnr73
 
 date: 21 June 2025
 ---
 
 # Summary
 
-Causal inference is the process of determining if and how one variable
-influences another. Many algorithms take a graphical model representing causal
-dependencies between variables and enable asking counterfactual questions on
-observational data. This is useful when acquiring interventional data might be
-unethical or otherwise intractable.
+Scientists and researchers often want to know whether one thing causes
+another—for example, does a new medication reduce symptoms, or does education
+improve income? While randomized controlled experiments provide the most direct
+evidence for causal relationships, they are often impossible, unethical, or
+prohibitively expensive to conduct for the specific questions researchers want
+to answer. Causal inference provides statistical methods to answer
+cause-and-effect questions using whatever data is available—whether
+observational data (collected by observing the world as it naturally occurs),
+experimental data from controlled studies, or a combination of both. However,
+determining causation is challenging because correlation does not imply
+causation, and many confounding factors can create misleading associations.
 
-The $Y_0$ Python package implements a domain-specific language for representing
-probabilistic expressions, a generic data structure for representing graphical
-models, several _identification_ algorithms that return an estimand for
-different kinds of causal queries (e.g., what is the effect of treatment $X$ on
-outcome $Y$?) that serve as the core of causal inference workflows, and an
-assortment of related algorithms and workflows useful for doing causal
-inference.
+A key step in any causal analysis is **causal identification**—determining
+whether it's theoretically possible to estimate a causal effect from available
+data, given assumptions about relationships between variables. Causal questions
+exist at different levels: **interventional queries** ask "What would happen if
+we intervene?" (e.g., "What would be the average effect if everyone received
+treatment?"), while **counterfactual queries** ask "What would have happened to
+specific individuals in an alternative scenario?" (e.g., "Would this patient who
+recovered have recovered anyway without treatment?"). Modern causal
+identification also addresses **transportability**—determining when causal
+findings from one population can be validly applied to another, and how to
+combine evidence from multiple studies or populations to draw conclusions about
+a target group of interest.
+
+The $Y_0$ Python package addresses a gap in the current software ecosystem by
+providing causal identification algorithms that handle interventional queries,
+counterfactual queries, and transportability challenges across different types
+of data. While several excellent packages exist for estimating causal effects
+once identification is established, $Y_0$ focuses specifically on the
+identification step—helping researchers determine _whether_ a causal
+relationship can be estimated from their available data (observational,
+experimental, or mixed) before attempting to estimate _how strong_ that
+relationship is. $Y_0$ provides a domain-specific language for expressing causal
+queries, tools for representing graphical causal models that incorporate various
+data types from single or multiple populations, and implementations of numerous
+identification algorithms from the causal inference literature. Scientists and
+researchers often want to know whether one thing causes another—for example,
+does a new medication reduce symptoms, or does education improve income? While
+the gold standard for answering such questions is a randomized controlled
+experiment, these are often impossible, unethical, or prohibitively expensive to
+conduct.
 
 # State of the field
 
@@ -153,7 +193,7 @@ the most simple identification algorithm (`ID`) from @shpitser2006id including
 [@pedemonte2021causalefffectpy]. Further, Ananke and DoWhy implement algorithms
 that consume the estimand returned by `ID` and observational data in order to
 estimate the average causal effect of an intervention on the outcome. However,
-these methods are limited in their generalization to causal queries that include
+these methods are limited in their generalization when causal queries include
 multiple interventions, multiple outcomes, conditionals, or interventions.
 
 In the R programming language, the
@@ -263,9 +303,9 @@ the future. For example, the cyclic ID (`ioID`)
 [@forré2019causalcalculuspresencecycles] is important to work with more
 realistic graphs that contain cycles, such as how biomolecular signaling
 pathways often contain feedback loops. Further, missing data identification
-algorithms can handle when data is missing not at random (MNAR) by modeling the
-underlying missingness mechanism [@mohan2021]. Several algorithms noted in the
-review by @JSSv099i05, such as generalized ID (`gID`) [@lee2019general] and
+algorithms can account for data that is missing not at random (MNAR) by modeling
+the underlying missingness mechanism [@mohan2021]. Several algorithms noted in
+the review by @JSSv099i05, such as generalized ID (`gID`) [@lee2019general] and
 generalized counterfactual ID (`gID*`) [@correa2021counterfactual], can be
 formulated as special cases of counterfactual transportability. Therefore, we
 plan to improve the user experience by exposing more powerful algorithms like
