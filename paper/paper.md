@@ -182,7 +182,7 @@ the gold standard for answering such questions is a randomized controlled
 experiment, these are often impossible, unethical, or prohibitively expensive to
 conduct.
 
-# State of the field
+# State of the Field
 
 Several open source packages in the Python programming language have implemented
 the most simple identification algorithm (`ID`) from @shpitser2006id including
@@ -296,7 +296,7 @@ We highlight several which used (and motivated further development of) $Y_0$:
 - @ness_causal_2024 used $Y_0$ as a teaching tool for identification and the
   causal hierarchy
 
-# Future direction
+# Future Directions
 
 There remain several high value identification algorithms to include in $Y_0$ in
 the future. For example, the cyclic ID (`ioID`)
@@ -323,7 +323,7 @@ extension [ChiRho](https://github.com/BasisResearch/chirho). Tractable circuits
 generic estimation. Such a generalization would be a lofty achievement and
 enable the automation of downstream applications in experimental design.
 
-# Availability and usage
+# Availability and Usage
 
 `y0` is available as a package on [PyPI](https://pypi.org/project/y0) with the
 source code available at
