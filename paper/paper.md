@@ -36,20 +36,14 @@ authors:
     roles:
       - type: software
         degree: supporting
-  - name: Nathaniel Merrill
-    orcid: 0000-0002-1998-0980
-    affiliation: 6
-    roles:
-      - type: software
-        degree: supporting
-  - name: Adam Rupe
-    affiliation: 2
-    orcid: 0000-0003-0105-8987
-    roles:
-      - type: software
-        degree: supporting
   - name: Joseph Cottam
     orcid: 0000-0002-3097-5998
+    affiliation: 2
+    roles:
+      - type: software
+        degree: supporting
+  - name: August George
+    orcid: 0000-0001-7876-4359
     affiliation: 2
     roles:
       - type: software
@@ -62,15 +56,15 @@ authors:
         degree: supporting
       - type: supervision
         degree: supporting
-  - name: August George
-    orcid: 0000-0001-7876-4359
-    affiliation: 2
-    roles:
-      - type: software
-        degree: supporting
   - name: Haley Hummel
     orcid: 0009-0004-5405-946X
     affiliation: 4
+    roles:
+      - type: software
+        degree: supporting
+  - name: Nathaniel Merrill
+    orcid: 0000-0002-1998-0980
+    affiliation: 6
     roles:
       - type: software
         degree: supporting
@@ -89,6 +83,12 @@ authors:
   - name: Marc-Antoine Parent
     orcid: 0000-0003-4159-7678
     affiliation: 5
+    roles:
+      - type: software
+        degree: supporting
+  - name: Adam Rupe
+    affiliation: 2
+    orcid: 0000-0003-0105-8987
     roles:
       - type: software
         degree: supporting
