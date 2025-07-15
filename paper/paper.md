@@ -1,10 +1,12 @@
 ---
-title: Causal inference with $Y_0$
+title: Causal identification with $Y_0$
 bibliography: paper.bib
 repository: y0-causal-inference/y0
 
 tags:
   - causal inference
+  - causal identification
+  - causal estimation
   - network science
   - causal artificial intelligence
   - causal machine learning
@@ -57,8 +59,11 @@ affiliations:
   - name: Oregon State University
     index: 4
     ror: 00ysfqy60
-  - name: Conversence
+  - name: Battelle Memorial Institute
     index: 5
+    ror: 01h5tnr73
+  - name: Conversence
+    index: 6
 
 date: 21 June 2025
 ---
@@ -79,7 +84,7 @@ outcome $Y$?) that serve as the core of causal inference workflows, and an
 assortment of related algorithms and workflows useful for doing causal
 inference.
 
-# State of the field
+# State of the Field
 
 Several open source packages in the Python programming language have implemented
 the most simple identification algorithm (`ID`) from @shpitser2006id including
@@ -90,7 +95,7 @@ the most simple identification algorithm (`ID`) from @shpitser2006id including
 [@pedemonte2021causalefffectpy]. Further, Ananke and DoWhy implement algorithms
 that consume the estimand returned by `ID` and observational data in order to
 estimate the average causal effect of an intervention on the outcome. However,
-these methods are limited in their generalization to causal queries that include
+these methods are limited in their generalization when causal queries include
 multiple interventions, multiple outcomes, conditionals, or interventions.
 
 In the R programming language, the
@@ -104,7 +109,7 @@ extend.
 
 Finally, [CausalFusion](https://www.causalfusion.net) is a web application that
 implements many identification and estimation algorithms, but is neither open
-source, has open registration, nor provides documentation.
+source, available for registration of new users, nor provides documentation.
 
 Causal inference remains an active research area where new identification
 algorithms are regularly published (see the recent review from @JSSv099i05), but
@@ -116,9 +121,9 @@ implementation of both previously published and future algorithms and workflows.
 
 **Probabilistic Expressions** $Y_0$ implements an internal domain-specific
 language that can capture variables, counterfactual variables, population
-variables, and probabilistic expressions in which they appear. It covers three
-levels of Pearl's Causal Hierarchy [@bareinboim2022], including the probability
-of sufficient causation $P(Y_X \mid X^*, Y^*)$, necessary causation
+variables, and probabilistic expressions in which they appear. It covers the
+three levels of Pearl's Causal Hierarchy [@bareinboim2022], including the
+probability of sufficient causation $P(Y_X \mid X^*, Y^*)$, necessary causation
 $P(Y^*_{X^*} \mid X, Y)$, and necessary and sufficient causation
 $P(Y_X, Y^*_{X^*})$. Expressions can be converted to SymPy [@meurer2017sympy],
 LaTeX expressions, and be rendered in Jupyter notebooks.
@@ -160,17 +165,17 @@ following prior knowledge:
 
 ![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
 
-The ID algorithm [@shpitser2006id] estimates the effect of smoking on the risk
-of cancer in \autoref{cancer}A as
+The identification algorithm (`ID`) [@shpitser2006id] estimates the effect of
+smoking on the risk of cancer in \autoref{cancer}A as
 $\sum_{Tar} P(Cancer | Smoking, Tar) P(Tar | Smoking)$. However, the model in
 \autoref{cancer}A is inaccurate because it does not represent confounders
 between smoking and tar accumulation, such as the choice to smoke tar-free
 cigarettes. Therefore, we add a _bidirected_ edge in \autoref{cancer}B.
-Unfortunately, the ID algorithm can not produce an estimand for
-\autoref{cancer}B, which motivates the usage of an alternative algorithm that
-incorporates observational and/or interventional data. For example, if data from
-an observational study ($\pi^{\ast}$) and data from an interventional trial on
-smoking ($\pi_1$) are available, the TRSO algorithm [@tikka2019trso] estimates
+Unfortunately, `ID` can not produce an estimand for \autoref{cancer}B, which
+motivates the usage of an alternative algorithm that incorporates observational
+and/or interventional data. For example, if data from an observational study
+($\pi^{\ast}$) and data from an interventional trial on smoking ($\pi_1$) are
+available, the surrogate outcomes algorithm (`TRSO`) [@tikka2019trso] estimates
 the effect of smoking on the risk of cancer in \autoref{cancer}B as
 $\sum_{Tar} P^{\pi^{\ast}}(Cancer | Smoking, Tar) P_{\text{Smoking}}^{{\pi_1}}(Tar)$.
 Code and a more detailed description of this case study can be found in the
@@ -193,23 +198,24 @@ We highlight several which used (and motivated further development of) $Y_0$:
 - @ness_causal_2024 used $Y_0$ as a teaching tool for identification and the
   causal hierarchy
 
-# Future direction
+# Future Directions
 
 There remain several high value identification algorithms to include in $Y_0$ in
-the future. For example, the cyclic ID (`ioID`)
+the future. For example, the cyclic identification algorithm (`ioID`)
 [@forré2019causalcalculuspresencecycles] is important to work with more
 realistic graphs that contain cycles, such as how biomolecular signaling
 pathways often contain feedback loops. Further, missing data identification
-algorithms can handle when data is missing not at random (MNAR) by modeling the
-underlying missingness mechanism [@mohan2021]. Several algorithms noted in the
-review by @JSSv099i05, such as generalized ID (`gID`) [@lee2019general] and
-generalized counterfactual ID (`gID*`) [@correa2021counterfactual], can be
-formulated as special cases of counterfactual transportability. Therefore, we
-plan to improve the user experience by exposing more powerful algorithms like
-counterfactual transport through a simplified APIs corresponding to special
-cases like `gID` and `gID*`. Similarly, we plan to implement probabilistic
-expression simplification [@tikka2017b] to improve the consistency of the
-estimands output from identification algorithms.
+algorithms can account for data that is missing not at random (MNAR) by modeling
+the underlying missingness mechanism [@mohan2021]. Several algorithms noted in
+the review by @JSSv099i05, such as generalized identification (`gID`)
+[@lee2019general] and generalized counterfactual identification (`gID*`)
+[@correa2021counterfactual], can be formulated as special cases of
+counterfactual transportability. Therefore, we plan to improve the user
+experience by exposing more powerful algorithms like counterfactual transport
+through a simplified APIs corresponding to special cases like `gID` and `gID*`.
+Similarly, we plan to implement probabilistic expression simplification
+[@tikka2017b] to improve the consistency of the estimands output from
+identification algorithms.
 
 It remains an open research question on how to estimate the causal effect for an
 arbitrary estimand produced by an algorithm more sophisticated than `ID`. Two
@@ -220,7 +226,7 @@ extension [ChiRho](https://github.com/BasisResearch/chirho). Tractable circuits
 generic estimation. Such a generalization would be a lofty achievement and
 enable the automation of downstream applications in experimental design.
 
-# Availability and usage
+# Availability and Usage
 
 `y0` is available as a package on [PyPI](https://pypi.org/project/y0) with the
 source code available at
@@ -234,7 +240,9 @@ studies described above.
 
 # Acknowledgements
 
-The development of $Y_0$ has been partially supported by the following grants:
+The authors would like to thank the German NFDI4Chem Consortium for support.
+Additionally, the development of $Y_0$ has been partially supported by the
+following grants:
 
 - DARPA award HR00111990009
   ([Automating Scientific Knowledge Extraction](https://www.darpa.mil/program/automating-scientific-knowledge-extraction))
