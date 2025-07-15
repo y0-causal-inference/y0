@@ -268,8 +268,8 @@ Unfortunately, `ID` can not produce an estimand for \autoref{cancer}B, which
 motivates the usage of an alternative algorithm that incorporates observational
 and/or interventional data. For example, if data from an observational study
 ($\pi^{\ast}$) and data from an interventional trial on smoking ($\pi_1$) are
-available, the TRSO algorithm [@tikka2019trso] estimates the effect of smoking
-on the risk of cancer in \autoref{cancer}B as
+available, the surrogate outcomes algorithm (`TRSO`) [@tikka2019trso] estimates
+the effect of smoking on the risk of cancer in \autoref{cancer}B as
 $\sum_{Tar} P^{\pi^{\ast}}(Cancer | Smoking, Tar) P_{\text{Smoking}}^{{\pi_1}}(Tar)$.
 Code and a more detailed description of this case study can be found in the
 following
