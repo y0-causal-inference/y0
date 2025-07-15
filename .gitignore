@@ -320,7 +320,6 @@ scratch/
 /docs/source/api
 
 # JOSS manuscript-related
-paper/paper.pdf
 /paper/jats
 paper/paper.crossref
 paper/paper.preprint.aux
