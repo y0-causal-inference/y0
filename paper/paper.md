@@ -150,20 +150,20 @@ date: 21 June 2025
 
 # Summary
 
-Researchers often are interested in investigating whether one thing causes
+Researchers are often interested in investigating whether one thing causes
 another, such as whether a medication effectively treats a disease or whether
-education improves income. Randomized controlled trials can be used to
-accumulate the most direct evidence for causal relationships, but they are often
-logistically impossible, unethical, or prohibitively expensive to conduct.
-Causal inference comprises statistical methods that provide indirect evidence
-for causal relationships based on whatever data is available, whether it comes
-from a (randomized) controlled trial, an observational study, or a combination
-of both. However, both the qualitative and quantitative investigation of
-causation remains challenging in the presence of (unknown) confounding
-variables—a converse to the old adage that correlation does not imply causation.
+education improves income. Randomized controlled trials provide the most direct
+evidence for causal relationships, but they are often logistically impossible,
+unethical, or prohibitively expensive to conduct. Causal inference comprises
+statistical methods that provide indirect evidence for causal relationships
+based on whatever data is available, whether it comes from a (randomized)
+controlled trial, an observational study, or a combination of both. However,
+both the qualitative and quantitative investigation of causation remains
+challenging in the presence of (unknown) confounding variables—a converse to the
+old adage that correlation does not imply causation.
 
-A key step in causal inference is **causal identification** during which it's
-determined whether it's theoretically possible to estimate a causal effect from
+A key step in causal inference is **causal identification** during which it is
+determined whether it is theoretically possible to estimate a causal effect from
 available data, given prior knowledge about relationships between variables and
 a causal query, such as a:
 
@@ -191,8 +191,8 @@ from the recent causal inference literature.
 
 # State of the Field
 
-Several open source packages in the Python programming language have implemented
-the most simple identification algorithm (`ID`) from @shpitser2006id including
+Several open source Python packages have implemented the simplest identification
+algorithm (`ID`) from @shpitser2006id including
 [Ananke](https://gitlab.com/causal/ananke) [@lee2023ananke],
 [pgmpy](https://github.com/pgmpy/pgmpy) [@ankan2015pgmpy],
 [DoWhy](https://github.com/py-why/dowhy) [@sharma2020dowhy], and
@@ -201,7 +201,7 @@ the most simple identification algorithm (`ID`) from @shpitser2006id including
 that consume the estimand returned by `ID` and observational data in order to
 estimate the average causal effect of an intervention on the outcome. However,
 these methods are limited in their generalization when causal queries include
-multiple interventions, multiple outcomes, conditionals, or interventions.
+multiple outcomes, conditionals, or interventions.
 
 In the R programming language, the
 [causaleffect](https://github.com/santikka/causaleffect) package
@@ -218,7 +218,7 @@ source, available for registration of new users, nor provides documentation.
 
 Causal inference remains an active research area where new identification
 algorithms are regularly published (see the recent review from @JSSv099i05), but
-often without a reference implementation. This motivates the implementation of a
+often without a reference implementation. This motivates the development of a
 modular framework with reusable data structures and workflows to support the
 implementation of both previously published and future algorithms and workflows.
 
@@ -230,8 +230,8 @@ variables, and probabilistic expressions in which they appear. It covers the
 three levels of Pearl's Causal Hierarchy [@bareinboim2022], including the
 probability of sufficient causation $P(Y_X \mid X^*, Y^*)$, necessary causation
 $P(Y^*_{X^*} \mid X, Y)$, and necessary and sufficient causation
-$P(Y_X, Y^*_{X^*})$. Expressions can be converted to SymPy [@meurer2017sympy],
-LaTeX expressions, and be rendered in Jupyter notebooks.
+$P(Y_X, Y^*_{X^*})$. Expressions can be converted to SymPy [@meurer2017sympy] or
+LaTeX expressions and be rendered in Jupyter notebooks.
 
 **Data Structure** $Y_0$ builds on NetworkX [@hagberg2008networkx] to implement
 an (acyclic) directed mixed graph data structure, used in many identification
@@ -265,8 +265,8 @@ First, we construct a graphical model (\autoref{cancer}A) representing the
 following prior knowledge:
 
 1. Smoking causes an accumulation of tar in the lungs.
-2. Accumulation of tar in the lungs increase the risk of cancer.
-3. Smoking itself also increases the risk of cancer.
+2. Accumulation of tar in the lungs increases the risk of cancer.
+3. Smoking also increases the risk of cancer directly.
 
 ![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
 
@@ -292,7 +292,8 @@ We provide a second case study demonstrating the transport
 algorithms for epidemiological studies in COVID-19 in this
 [Jupyter notebook](https://github.com/y0-causal-inference/y0/blob/main/notebooks/Counterfactual%20Transportability.ipynb).
 
-We highlight several which used (and motivated further development of) $Y_0$:
+$Y_0$ has already been used in several scientific studies which also motivated
+its further development:
 
 - @mohammadtaheri2022experimentaldesigncausalquery used $Y_0$ to develop an
   automated experimental design workflow.
@@ -322,7 +323,7 @@ Similarly, we plan to implement probabilistic expression simplification
 [@tikka2017b] to improve the consistency of the estimands output from
 identification algorithms.
 
-It remains an open research question on how to estimate the causal effect for an
+It remains an open research question how to estimate the causal effect for an
 arbitrary estimand produced by an algorithm more sophisticated than `ID`. Two
 potential avenues for overcoming this might be a combination of the Pyro
 probabilistic programming langauge [@bingham2018pyro] and its causal inference
@@ -335,8 +336,8 @@ enable the automation of downstream applications in experimental design.
 
 `y0` is available as a package on [PyPI](https://pypi.org/project/y0) with the
 source code available at
-[https://github.com/y0-causal-inference/y0](https://github.com/y0-causal-inference/y0),
-archived to Zenodo at
+[https://github.com/y0-causal-inference/y0](https://github.com/y0-causal-inference/y0)
+under a BSD 3-clause license, archived to Zenodo at
 [doi:10.5281/zenodo.4432901](https://zenodo.org/doi/10.5281/zenodo.4432901), and
 documentation available at
 [https://y0.readthedocs.io](https://y0.readthedocs.io). The repository also
