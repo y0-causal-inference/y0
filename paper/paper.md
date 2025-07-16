@@ -172,10 +172,10 @@ a causal query, such as a:
 2. **Counterfactual Query**, which asks: _what would have happened to specific
    individuals in an alternative scenario?_ For example, would a given patient,
    who did recover, have recovered anyway without treatment?.
-3. **Transportability Query**, which asks whether causal findings from one
-   population can be validly applied to another, and if so, how to combine
-   evidence from multiple studies or populations to draw conclusions about a
-   target group of interest.
+3. **Transportability Query**, which asks: _can causal findings from one
+   population be validly applied to another, and if so, how can evidence from
+   multiple studies or populations be combined to draw conclusions about a
+   target group of interest?_
 
 We present the $Y_0$ Python package, which addresses a gap in the current
 software ecosystem by implementing causal identification algorithms that apply
