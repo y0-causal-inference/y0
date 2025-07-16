@@ -117,10 +117,9 @@ from y0.dsl import P, X, Y
 from y0.examples import napkin
 from y0.algorithm.identify import Identification, identify
 
-# TODO after ID* and IDC* are done, we'll update this interface
 query = Identification.from_expression(graph=napkin, query=P(Y @ X))
 estimand = identify(query)
-assert estimand == P(Y @ X)
+assert estimand == P(Y | X)
 ```
 
 ## 🚀 Installation
