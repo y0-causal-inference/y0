@@ -101,7 +101,7 @@ Bareinboim, and others.
 unimplemented for the last 15 years of publications including:
 
 | Algorithm                       | Reference                                                                           |
-|---------------------------------|-------------------------------------------------------------------------------------|
+| ------------------------------- | ----------------------------------------------------------------------------------- |
 | ID                              | [Shpitser and Pearl, 2006](https://dl.acm.org/doi/10.5555/1597348.1597382)          |
 | IDC                             | [Shpitser and Pearl, 2008](https://www.jmlr.org/papers/v9/shpitser08a.html)         |
 | ID Star                         | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                         |
@@ -197,7 +197,7 @@ order):
 This project has been supported by the following grants:
 
 | Funding Body                           | Program                                                                                                                                                                        | Grant         |
-|----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
 | DARPA                                  | [Automating Scientific Knowledge Extraction (ASKE)](https://www.darpa.mil/program/automating-scientific-knowledge-extraction)                                                  | HR00111990009 |
 | PNNL Data Model Convergence Initiative | [Causal Inference and Machine Learning Methods for Analysis of Security Constrained Unit Commitment (SCY0)](https://www.pnnl.gov/projects/dmc/converged-applications-projects) | 90001         |
 | DARPA                                  | [Automating Scientific Knowledge Extraction and Modeling (ASKEM)](https://www.darpa.mil/program/automating-scientific-knowledge-extraction-and-modeling)                       | HR00112220036 |
