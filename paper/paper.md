@@ -157,10 +157,10 @@ accumulate the most direct evidence for causal relationships, but they are often
 logistically impossible, unethical, or prohibitively expensive to conduct.
 Causal inference comprises statistical methods that provide indirect evidence
 for causal relationships based on whatever data is available, whether it comes
-from a (randomized) controlled trial, observation study, or a combination of
-both. However, both the qualitative and quantitative investigation of causation
-remains challenging in the presence of (unknown) confounding variables—a
-converse to the old adage that correlation does not imply causation.
+from a (randomized) controlled trial, an observational study, or a combination
+of both. However, both the qualitative and quantitative investigation of
+causation remains challenging in the presence of (unknown) confounding
+variables—a converse to the old adage that correlation does not imply causation.
 
 A key step in causal inference is **causal identification** during which it's
 determined whether it's theoretically possible to estimate a causal effect from
