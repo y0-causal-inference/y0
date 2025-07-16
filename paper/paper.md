@@ -264,9 +264,9 @@ We present a case study regarding the effect of how smoking relates to cancer.
 First, we construct a graphical model (\autoref{cancer}A) representing the
 following prior knowledge:
 
-1. Smoking causes an accumulation of tar in the lungs
-2. Accumulation of tar in the lungs increase the risk of cancer
-3. Smoking itself also increases the risk of cancer
+1. Smoking causes an accumulation of tar in the lungs.
+2. Accumulation of tar in the lungs increase the risk of cancer.
+3. Smoking itself also increases the risk of cancer.
 
 ![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
 
@@ -301,7 +301,7 @@ We highlight several which used (and motivated further development of) $Y_0$:
 - @taheri2024eliater used $Y_0$ and Ananke to implement an automated causal
   workflow for simple causal queries compatible with `ID`.
 - @ness_causal_2024 used $Y_0$ as a teaching tool for identification and the
-  causal hierarchy
+  causal hierarchy.
 
 # Future Directions
 
