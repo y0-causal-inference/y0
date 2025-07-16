@@ -356,6 +356,7 @@ following grants:
   ([Causal Inference and Machine Learning Methods for Analysis of Security Constrained Unit Commitment](https://web.archive.org/web/20240518030340/https://www.pnnl.gov/projects/dmc/converged-applications))
 - DARPA award HR00112220036
   ([Automating Scientific Knowledge Extraction and Modeling](https://www.darpa.mil/program/automating-scientific-knowledge-extraction-and-modeling))
+- Award number DE-SC0023091 under the DOE Biosystems Design program
 
 The authorship of this manuscript lists the primary contributors as the first
 and last authors and all remaining authors in alphabetical order by family name.
