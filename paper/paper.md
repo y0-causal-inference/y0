@@ -32,11 +32,13 @@ authors:
         degree: lead
   - name: Richard J. Callahan
     affiliation: 2
+    email: richardcallahan@protonmail.com
     orcid: 0009-0006-6041-5517
     roles:
       - type: software
         degree: supporting
   - name: Joseph Cottam
+    email: joseph.cottam@pnnl.gov
     orcid: 0000-0002-3097-5998
     affiliation: 2
     roles:
@@ -45,10 +47,12 @@ authors:
   - name: August George
     orcid: 0000-0001-7876-4359
     affiliation: 2
+    email: august.george@pnnl.gov
     roles:
       - type: software
         degree: supporting
   - name: Benjamin M. Gyori
+    email: b.gyori@northeastern.edu
     orcid: 0000-0001-9439-5346
     affiliation: 3
     roles:
@@ -57,6 +61,7 @@ authors:
       - type: supervision
         degree: supporting
   - name: Haley Hummel
+    email: hummelha@oregonstate.edu
     orcid: 0009-0004-5405-946X
     affiliation: 4
     roles:
@@ -64,35 +69,41 @@ authors:
         degree: supporting
   - name: Nathaniel Merrill
     orcid: 0000-0002-1998-0980
+    email: merrill@battelle.org
     affiliation: 5
     roles:
       - type: software
         degree: supporting
   - name: Sara Mohammad Taheri
+    email: srtaheri66@gmail.com
     orcid: 0000-0002-6554-9083
     affiliation: 3
     roles:
       - type: software
         degree: supporting
   - name: Pruthvi Prakash Navada
+    email: navada.p@northeastern.edu
     orcid: 0009-0008-8505-1670
     affiliation: 3
     roles:
       - type: software
         degree: supporting
   - name: Marc-Antoine Parent
+    email: maparent@acm.org
     orcid: 0000-0003-4159-7678
     affiliation: 6
     roles:
       - type: software
         degree: supporting
   - name: Adam Rupe
+    email: adam.rupe@pnnl.gov
     affiliation: 2
     orcid: 0000-0003-0105-8987
     roles:
       - type: software
         degree: supporting
   - name: Olga Vitek
+    email: o.vitek@northeastern.edu
     affiliation: 3
     orcid: 0000-0003-1728-1104
     roles:
