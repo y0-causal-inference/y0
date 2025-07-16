@@ -30,6 +30,86 @@ authors:
         degree: equal
       - type: writing-original-draft
         degree: lead
+  - name: Richard J. Callahan
+    affiliation: 2
+    email: richardcallahan@protonmail.com
+    orcid: 0009-0006-6041-5517
+    roles:
+      - type: software
+        degree: supporting
+  - name: Joseph Cottam
+    email: joseph.cottam@pnnl.gov
+    orcid: 0000-0002-3097-5998
+    affiliation: 2
+    roles:
+      - type: software
+        degree: supporting
+  - name: August George
+    orcid: 0000-0001-7876-4359
+    affiliation: 2
+    email: august.george@pnnl.gov
+    roles:
+      - type: software
+        degree: supporting
+  - name: Benjamin M. Gyori
+    email: b.gyori@northeastern.edu
+    orcid: 0000-0001-9439-5346
+    affiliation: 3
+    roles:
+      - type: software
+        degree: supporting
+      - type: supervision
+        degree: supporting
+  - name: Haley Hummel
+    email: hummelha@oregonstate.edu
+    orcid: 0009-0004-5405-946X
+    affiliation: 4
+    roles:
+      - type: software
+        degree: supporting
+  - name: Nathaniel Merrill
+    orcid: 0000-0002-1998-0980
+    email: merrill@battelle.org
+    affiliation: 5
+    roles:
+      - type: software
+        degree: supporting
+  - name: Sara Mohammad Taheri
+    email: srtaheri66@gmail.com
+    orcid: 0000-0002-6554-9083
+    affiliation: 3
+    roles:
+      - type: software
+        degree: supporting
+  - name: Pruthvi Prakash Navada
+    email: navada.p@northeastern.edu
+    orcid: 0009-0008-8505-1670
+    affiliation: 3
+    roles:
+      - type: software
+        degree: supporting
+  - name: Marc-Antoine Parent
+    email: maparent@acm.org
+    orcid: 0000-0003-4159-7678
+    affiliation: 6
+    roles:
+      - type: software
+        degree: supporting
+  - name: Adam Rupe
+    email: adam.rupe@pnnl.gov
+    affiliation: 2
+    orcid: 0000-0003-0105-8987
+    roles:
+      - type: software
+        degree: supporting
+  - name: Olga Vitek
+    email: o.vitek@northeastern.edu
+    affiliation: 3
+    orcid: 0000-0003-1728-1104
+    roles:
+      # See pre-submission inquiry https://github.com/openjournals/joss/issues/1363
+      - type: supervision
+        degree: supporting
   - name: Jeremy Zucker
     orcid: 0000-0002-7276-9009
     affiliation: 2
@@ -70,19 +150,44 @@ date: 21 June 2025
 
 # Summary
 
-Causal inference is the process of determining if and how one variable
-influences another. Many algorithms take a graphical model representing causal
-dependencies between variables and enable asking counterfactual questions on
-observational data. This is useful when acquiring interventional data might be
-unethical or otherwise intractable.
+Researchers often are interested in investigating whether one thing causes
+another, such as whether a medication effectively treats a disease or whether
+education improves income. Randomized controlled trials can be used to
+accumulate the most direct evidence for causal relationships, but they are often
+logistically impossible, unethical, or prohibitively expensive to conduct.
+Causal inference comprises statistical methods that provide indirect evidence
+for causal relationships based on whatever data is available, whether it comes
+from a (randomized) controlled trial, observation study, or a combination of
+both. However, both the qualitative and quantitative investigation of causation
+remains challenging in the presence of (unknown) confounding variables—a
+converse to the old adage that correlation does not imply causation.
 
-The $Y_0$ Python package implements a domain-specific language for representing
-probabilistic expressions, a generic data structure for representing graphical
-models, several _identification_ algorithms that return an estimand for
-different kinds of causal queries (e.g., what is the effect of treatment $X$ on
-outcome $Y$?) that serve as the core of causal inference workflows, and an
-assortment of related algorithms and workflows useful for doing causal
-inference.
+A key step in causal inference is **causal identification** during which it's
+determined whether it's theoretically possible to estimate a causal effect from
+available data, given prior knowledge about relationships between variables and
+a causal query, such as a:
+
+1. **Interventional Query**, which asks: _what would happen if we intervene?_
+   For example, what would be the average effect if everyone received treatment?
+2. **Counterfactual Query**, which asks: _what would have happened to specific
+   individuals in an alternative scenario?_ For example, would a given patient,
+   who did recover, have recovered anyway without treatment?.
+3. **Transportability Query**, which asks whether causal findings from one
+   population can be validly applied to another, and if so, how to combine
+   evidence from multiple studies or populations to draw conclusions about a
+   target group of interest.
+
+We present the $Y_0$ Python package, which addresses a gap in the current
+software ecosystem by implementing causal identification algorithms that apply
+interventional, counterfactual, and transportability queries to data from
+(randomized) controlled trials, observational studies, or mixtures thereof.
+$Y_0$ focuses on the qualitative investigation of causation, helping researchers
+determine _whether_ a causal relationship can be estimated from available data
+before attempting to estimate _how strong_ that relationship is. $Y_0$ provides
+a domain-specific language for expressing causal queries, tools for representing
+graphical causal models that represent prior knowledge about either single or
+multiple populations, and implementations of numerous identification algorithms
+from the recent causal inference literature.
 
 # State of the Field
 
@@ -159,9 +264,9 @@ We present a case study regarding the effect of how smoking relates to cancer.
 First, we construct a graphical model (\autoref{cancer}A) representing the
 following prior knowledge:
 
-1. Smoking causes an accumulation of tar in the lungs
-2. Accumulation of tar in the lungs increase the risk of cancer
-3. Smoking itself also increases the risk of cancer
+1. Smoking causes an accumulation of tar in the lungs.
+2. Accumulation of tar in the lungs increase the risk of cancer.
+3. Smoking itself also increases the risk of cancer.
 
 ![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
 
@@ -196,7 +301,7 @@ We highlight several which used (and motivated further development of) $Y_0$:
 - @taheri2024eliater used $Y_0$ and Ananke to implement an automated causal
   workflow for simple causal queries compatible with `ID`.
 - @ness_causal_2024 used $Y_0$ as a teaching tool for identification and the
-  causal hierarchy
+  causal hierarchy.
 
 # Future Directions
 
