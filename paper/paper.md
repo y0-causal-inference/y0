@@ -139,43 +139,44 @@ date: 21 June 2025
 
 # Summary
 
-Researchers often want to know whether one thing causes another—for example,
-does a new medication reduce symptoms, or does education improve income? While
-randomized controlled experiments provide the most direct evidence for causal
-relationships, they are often impossible, unethical, or prohibitively expensive
-to conduct for the specific questions researchers want to answer. Causal
-inference provides statistical methods to answer cause-and-effect questions
-using whatever data is available—whether observational data (collected by
-observing the world as it naturally occurs), experimental data from controlled
-studies, or a combination of both. However, determining causation is challenging
-because correlation does not imply causation, and many confounding factors can
-create misleading associations.
+Researchers often are interested in investigating whether one thing causes
+another, such as whether a medication effectively treats a disease or whether
+education improves income. Randomized controlled trials can be used to
+accumulate the most direct evidence for causal relationships, but they are often
+logistically impossible, unethical, or prohibitively expensive to conduct.
+Causal inference comprises statistical methods that provide indirect evidence
+for causal relationships based on whatever data is available, whether it comes
+from a (randomized) controlled trial, observation study, or a combination of
+both. However, both the qualitative and quantitative investigation of causation
+remains challenging in the presence of (unknown) confounding variables—a
+converse to the old adage that correlation does not imply causation.
 
-A key step in any causal analysis is **causal identification**—determining
-whether it's theoretically possible to estimate a causal effect from available
-data, given assumptions about relationships between variables. Causal questions
-exist at different levels: **interventional queries** ask "What would happen if
-we intervene?" (e.g., "What would be the average effect if everyone received
-treatment?"), while **counterfactual queries** ask "What would have happened to
-specific individuals in an alternative scenario?" (e.g., "Would this patient who
-recovered have recovered anyway without treatment?"). Modern causal
-identification also addresses **transportability**—determining when causal
-findings from one population can be validly applied to another, and how to
-combine evidence from multiple studies or populations to draw conclusions about
-a target group of interest.
+A key step in causal inference is **causal identification** during which it's
+determined whether it's theoretically possible to estimate a causal effect from
+available data, given prior knowledge about relationships between variables and
+a causal query, such as a:
 
-The $Y_0$ Python package addresses a gap in the current software ecosystem by
-providing causal identification algorithms that handle interventional queries,
-counterfactual queries, and transportability challenges across different types
-of data. While several excellent packages exist for estimating causal effects
-once identification is established, $Y_0$ focuses specifically on the
-identification step—helping researchers determine _whether_ a causal
-relationship can be estimated from their available data (observational,
-experimental, or mixed) before attempting to estimate _how strong_ that
-relationship is. $Y_0$ provides a domain-specific language for expressing causal
-queries, tools for representing graphical causal models that incorporate various
-data types from single or multiple populations, and implementations of numerous
-identification algorithms from the causal inference literature.
+1. **Interventional Query**, which asks: _what would happen if we intervene?_
+   For example, what would be the average effect if everyone received treatment?
+2. **Counterfactual Query**, which asks: _what would have happened to specific
+   individuals in an alternative scenario?_ For example, would a given patient,
+   who did recover, have recovered anyway without treatment?.
+3. **Transportability Query**, which asks whether causal findings from one
+   population can be validly applied to another, and if so, how to combine
+   evidence from multiple studies or populations to draw conclusions about a
+   target group of interest.
+
+We present the $Y_0$ Python package, which addresses a gap in the current
+software ecosystem by implementing causal identification algorithms that apply
+interventional, counterfactual, and transportability queries to data from
+(randomized) controlled trials, observational studies, or mixtures thereof.
+$Y_0$ focuses on the qualitative investigation of causation, helping researchers
+determine _whether_ a causal relationship can be estimated from available data
+before attempting to estimate _how strong_ that relationship is. $Y_0$ provides
+a domain-specific language for expressing causal queries, tools for representing
+graphical causal models that represent prior knowledge about either single or
+multiple populations, and implementations of numerous identification algorithms
+from the recent causal inference literature.
 
 # State of the Field
 
