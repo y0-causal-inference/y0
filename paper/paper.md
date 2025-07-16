@@ -159,8 +159,8 @@ statistical methods that provide indirect evidence for causal relationships
 based on whatever data is available, whether it comes from a (randomized)
 controlled trial, an observational study, or a combination of both. However,
 both the qualitative and quantitative investigation of causation remains
-challenging in the presence of (unknown) confounding variables—a converse to
-the old adage that correlation does not imply causation.
+challenging in the presence of (unknown) confounding variables—a converse to the
+old adage that correlation does not imply causation.
 
 A key step in causal inference is **causal identification** during which it is
 determined whether it is theoretically possible to estimate a causal effect from
@@ -191,8 +191,8 @@ from the recent causal inference literature.
 
 # State of the Field
 
-Several open source Python packages have implemented
-the simplest identification algorithm (`ID`) from @shpitser2006id including
+Several open source Python packages have implemented the simplest identification
+algorithm (`ID`) from @shpitser2006id including
 [Ananke](https://gitlab.com/causal/ananke) [@lee2023ananke],
 [pgmpy](https://github.com/pgmpy/pgmpy) [@ankan2015pgmpy],
 [DoWhy](https://github.com/py-why/dowhy) [@sharma2020dowhy], and
