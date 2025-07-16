@@ -22,6 +22,10 @@ The submission and preprint PDFs can be built by running the following:
 $ sh build.sh
 ```
 
+GitHub Actions rebuilds the PDF on all changes to `paper.md` - see the artifacts
+attached to the most recent run of
+https://github.com/y0-causal-inference/y0/actions/workflows/draft-pdf.yml.
+
 ## Submission
 
 Follow the instructions at https://joss.theoj.org/papers/new.
