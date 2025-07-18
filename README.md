@@ -57,7 +57,7 @@ It can also be used to manipulate expressions:
 from y0.dsl import P, A, B, Sum
 
 P(A, B).marginalize(A) == Sum[A](P(A, B))
-P(A, B).conditional(A) == P(A, B) / Sum[A](P(A, B))
+P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
 ```
 
 DSL objects can be converted into strings with `str()` and parsed back using
@@ -115,12 +115,10 @@ to generate an estimand represented in the DSL like:
 ```python
 from y0.dsl import P, X, Y
 from y0.examples import napkin
-from y0.algorithm.identify import Identification, identify
+from y0.algorithm.identify import identify_outcomes
 
-# TODO after ID* and IDC* are done, we'll update this interface
-query = Identification.from_expression(graph=napkin, query=P(Y @ X))
-estimand = identify(query)
-assert estimand == P(Y @ X)
+estimand = identify_outcomes(napkin, treatments=X, outcomes=Y)
+assert estimand == P(Y | X)
 ```
 
 ## 🚀 Installation
@@ -190,6 +188,7 @@ This project has been supported by several organizations (in alphabetical
 order):
 
 - [Biopragmatics Lab](https://biopragmatics.github.io)
+- [Gyori Lab for Computational Biomedicine](https://gyorilab.github.io/)
 - [Harvard Program in Therapeutic Science - Laboratory of Systems Pharmacology](https://hits.harvard.edu/the-program/laboratory-of-systems-pharmacology/)
 - [Pacific Northwest National Laboratory](https://www.pnnl.org/)
 
