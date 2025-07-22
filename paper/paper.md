@@ -63,7 +63,7 @@ authors:
   - name: Haley M. Hummel
     email: haley.hummel@oregonstate.edu
     orcid: 0009-0004-5405-946X
-    affiliation: 4
+    affiliation: [ 2, 4 ]
     roles:
       - type: software
         degree: supporting
