@@ -60,8 +60,8 @@ authors:
         degree: supporting
       - type: supervision
         degree: supporting
-  - name: Haley Hummel
-    email: hummelha@oregonstate.edu
+  - name: Haley M. Hummel
+    email: haley.hummel@oregonstate.edu
     orcid: 0009-0004-5405-946X
     affiliation: 4
     roles:
