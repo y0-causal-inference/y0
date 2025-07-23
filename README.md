@@ -216,7 +216,7 @@ template.
 <details>
   <summary>See developer instructions</summary>
 
-The final section of the README is for if you want to get involved by making a
+This section of the README is for if you want to get involved by making a
 code contribution.
 
 ### Development Installation
@@ -234,20 +234,6 @@ Alternatively, install using pip:
 ```console
 $ python3 -m pip install -e .
 ```
-
-### Updating Package Boilerplate
-
-This project uses `cruft` to keep boilerplate (i.e., configuration, contribution
-guidelines, documentation configuration) up-to-date with the upstream
-cookiecutter package. Install cruft with either `uv tool install cruft` or
-`python3 -m pip install cruft` then run:
-
-```console
-$ cruft update
-```
-
-More info on Cruft's update command is available
-[here](https://github.com/cruft/cruft?tab=readme-ov-file#updating-a-project).
 
 ### 🥼 Testing
 
@@ -383,5 +369,30 @@ This script does the following:
 4. Click the big green "Publish Release" button
 
 This will trigger Zenodo to assign a DOI to your release as well.
+
+</details>
+
+
+## 🚧 For Maintainers
+
+<details>
+  <summary>See maintainer instructions</summary>
+
+This final section of the README is reserved for those who are assigned as a maintainer of the code repository.
+
+### Updating Package Boilerplate
+
+This project uses `cruft` to keep boilerplate (i.e., configuration, contribution
+guidelines, documentation configuration) up-to-date with the upstream
+cookiecutter package. Install cruft with either `uv tool install cruft` or
+`python3 -m pip install cruft` then run:
+
+```console
+$ cruft update
+```
+
+More info on Cruft's update command is available
+[here](https://github.com/cruft/cruft?tab=readme-ov-file#updating-a-project).
+
 
 </details>
