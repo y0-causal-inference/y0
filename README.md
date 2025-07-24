@@ -216,8 +216,8 @@ template.
 <details>
   <summary>See developer instructions</summary>
 
-This section of the README is for if you want to get involved by making a
-code contribution.
+This section of the README is for if you want to get involved by making a code
+contribution.
 
 ### Development Installation
 
@@ -372,13 +372,13 @@ This will trigger Zenodo to assign a DOI to your release as well.
 
 </details>
 
-
 ## 🚧 For Maintainers
 
 <details>
   <summary>See maintainer instructions</summary>
 
-This final section of the README is reserved for those who are assigned as a maintainer of the code repository.
+This final section of the README is reserved for those who are assigned as a
+maintainer of the code repository.
 
 ### Updating Package Boilerplate
 
@@ -393,6 +393,5 @@ $ cruft update
 
 More info on Cruft's update command is available
 [here](https://github.com/cruft/cruft?tab=readme-ov-file#updating-a-project).
-
 
 </details>
