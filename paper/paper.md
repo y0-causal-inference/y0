@@ -63,7 +63,7 @@ authors:
   - name: Haley M. Hummel
     email: haley.hummel@oregonstate.edu
     orcid: 0009-0004-5405-946X
-    affiliation: [ 2, 4 ]
+    affiliation: [2, 4]
     roles:
       - type: software
         degree: supporting
@@ -150,24 +150,49 @@ date: 21 June 2025
 
 # Summary
 
-The $Y_0$ Python package provides a comprehensive collection of causal identification algorithms for determining whether causal relationships can be estimated from available data. 
-$Y_0$ handles different types of causal queries: **interventional queries** that ask "What would happen if we intervene?" (e.g., "What would be the average effect if everyone received treatment?"), and **counterfactual queries** that ask "What would have happened to specific individuals in an alternative scenario?" (e.g., "Would this patient who recovered have recovered anyway without treatment?"). 
-The package also addresses **transportability**—determining when causal findings from one population can be validly applied to another, and how to combine evidence from multiple studies or populations to draw conclusions about a target group of interest.
+The $Y_0$ Python package provides a comprehensive collection of causal
+identification algorithms for determining whether causal relationships can be
+estimated from available data. $Y_0$ handles different types of causal queries:
+**interventional queries** that ask "What would happen if we intervene?" (e.g.,
+"What would be the average effect if everyone received treatment?"), and
+**counterfactual queries** that ask "What would have happened to specific
+individuals in an alternative scenario?" (e.g., "Would this patient who
+recovered have recovered anyway without treatment?"). The package also addresses
+**transportability**—determining when causal findings from one population can be
+validly applied to another, and how to combine evidence from multiple studies or
+populations to draw conclusions about a target group of interest.
 
-$Y_0$ provides a user-friendly domain-specific language for expressing causal queries, tools for representing graphical causal models, and implementations of numerous identification algorithms in the literature that incorporate observational and experimental data from single or multiple populations.
-The package focuses specifically on the identification step of causal analysis—helping researchers determine *whether* a causal relationship can be estimated from their available data before attempting to estimate *how strong* that relationship is.
+$Y_0$ provides a user-friendly domain-specific language for expressing causal
+queries, tools for representing graphical causal models, and implementations of
+numerous identification algorithms in the literature that incorporate
+observational and experimental data from single or multiple populations. The
+package focuses specifically on the identification step of causal
+analysis—helping researchers determine _whether_ a causal relationship can be
+estimated from their available data before attempting to estimate _how strong_
+that relationship is.
 
 # Statement of Need
 
-Scientists and researchers often want to know whether one thing causes another—for example, does a new medication reduce symptoms, or does education improve income? 
-While randomized controlled experiments provide the most direct evidence for causal relationships, they are often logistically impossible, unethical, or prohibitively expensive to conduct for the specific questions researchers want to answer. 
-Causal inference provides statistical methods to answer cause-and-effect questions using whatever data is available, but determining causation is challenging because correlation does not imply causation, and many confounding factors can create misleading associations.
+Scientists and researchers often want to know whether one thing causes
+another—for example, does a new medication reduce symptoms, or does education
+improve income? While randomized controlled experiments provide the most direct
+evidence for causal relationships, they are often logistically impossible,
+unethical, or prohibitively expensive to conduct for the specific questions
+researchers want to answer. Causal inference provides statistical methods to
+answer cause-and-effect questions using whatever data is available, but
+determining causation is challenging because correlation does not imply
+causation, and many confounding factors can create misleading associations.
 
-A critical step in any causal analysis is **causal identification**—determining whether it's theoretically possible to estimate a causal effect from available data, given assumptions about relationships between variables. 
-This step must be completed before attempting to estimate any causal effects. 
-$Y_0$ addresses a significant gap in the current software ecosystem: while several excellent packages exist for estimating causal effects once identification is established, few provide comprehensive collections of identification algorithms. 
-$Y_0$ fills this need by focusing specifically on the identification step, offering researchers a systematic way to evaluate whether their causal questions can be answered given their data and assumptions.
-
+A critical step in any causal analysis is **causal identification**—determining
+whether it's theoretically possible to estimate a causal effect from available
+data, given assumptions about relationships between variables. This step must be
+completed before attempting to estimate any causal effects. $Y_0$ addresses a
+significant gap in the current software ecosystem: while several excellent
+packages exist for estimating causal effects once identification is established,
+few provide comprehensive collections of identification algorithms. $Y_0$ fills
+this need by focusing specifically on the identification step, offering
+researchers a systematic way to evaluate whether their causal questions can be
+answered given their data and assumptions.
 
 # State of the Field
 
@@ -198,9 +223,10 @@ source, available for registration of new users, nor provides documentation.
 
 Causal inference remains an active research area where new identification
 algorithms are regularly published (see the recent review from @JSSv099i05), but
-often without a reference implementation. The need for a standard interface that can implement these algorithms motivates the development of a
-modular framework with reusable data structures to support the
-implementation of both previously published and future algorithms and workflows.
+often without a reference implementation. The need for a standard interface that
+can implement these algorithms motivates the development of a modular framework
+with reusable data structures to support the implementation of both previously
+published and future algorithms and workflows.
 
 # Implementation
 
