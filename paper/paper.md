@@ -177,19 +177,19 @@ a causal query, such as a:
    multiple studies or populations be combined to draw conclusions about a
    target group of interest?_
 
-We present the $Y_0$ Python package, which addresses a gap in the current
-software ecosystem by implementing causal identification algorithms that apply
-interventional, counterfactual, and transportability queries to data from
-(randomized) controlled trials, observational studies, or mixtures thereof.
-$Y_0$ focuses on the qualitative investigation of causation, helping researchers
-determine _whether_ a causal relationship can be estimated from available data
-before attempting to estimate _how strong_ that relationship is. $Y_0$ provides
-a domain-specific language for expressing causal queries, tools for representing
-graphical causal models that represent prior knowledge about either single or
-multiple populations, and implementations of numerous identification algorithms
-from the recent causal inference literature.
+We present the $Y_0$ Python package, which implements causal identification
+algorithms that apply interventional, counterfactual, and transportability
+queries to data from (randomized) controlled trials, observational studies, or
+mixtures thereof. $Y_0$ focuses on the qualitative investigation of causation,
+helping researchers determine _whether_ a causal relationship can be estimated
+from available data before attempting to estimate _how strong_ that relationship
+is. $Y_0$ provides a domain-specific language for expressing causal queries,
+tools for representing and manipulating graphical causal models that represent
+prior knowledge about either single or multiple populations, and implementations
+of numerous identification algorithms from the recent causal inference
+literature.
 
-# State of the Field
+# Statement of Need
 
 Several open source Python packages have implemented the simplest identification
 algorithm (`ID`) from @shpitser2006id including
@@ -216,11 +216,12 @@ Finally, [CausalFusion](https://www.causalfusion.net) is a web application that
 implements many identification and estimation algorithms, but is neither open
 source, available for registration of new users, nor provides documentation.
 
-Causal inference remains an active research area where new identification
-algorithms are regularly published (see the recent review from @JSSv099i05), but
-often without a reference implementation. This motivates the development of a
-modular framework with reusable data structures and workflows to support the
-implementation of both previously published and future algorithms and workflows.
+Causal inference remains an active research area where new algorithms are
+regularly published (see the recent review from @JSSv099i05), but often without
+a reference implementation. We therefore implemented the $Y_0$ Python package in
+order to address the need for open source implementations of existing algorithms
+as well as to provide a modular framework that can support the implementation of
+future algorithms and workflows.
 
 # Implementation
 
