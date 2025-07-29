@@ -234,11 +234,11 @@ three levels of Pearl's Causal Hierarchy [@bareinboim2022], including
 association $P(Y=y \mid
 X=x^\ast)$, represented as \texttt{P(Y | \textasciitilde
 X)}, interventions $P_{do(X=x^\ast)}(Y=y, Z=z)$, represented as
-\texttt{P[\textasciitilde X](Y,Z)} and counterfactuals
+\texttt{P[\textasciitilde X](Y, Z)} and counterfactuals
 $P(Y_{do(X=x^\ast)}=y^\ast\mid X=x, Y=y)$, represented as
 \texttt{P(\textasciitilde Y @ \textasciitilde X | X, Y)}. Expressions can be
-converted to SymPy [@meurer2017sympy] or LaTeX expressions and be rendered in
-Jupyter notebooks.
+converted to SymPy [@meurer2017sympy] or LaTeX expressions and can be rendered
+in Jupyter notebooks.
 
 **Data Structure** $Y_0$ builds on NetworkX [@hagberg2008networkx] to implement
 an (acyclic) directed mixed graph data structure, used in many identification
@@ -316,33 +316,35 @@ its further development:
 # Future Directions
 
 There remain several high value identification algorithms to include in $Y_0$ in
-the future. For example, the cyclic identification algorithm (`ioID`)
+the future. First, the cyclic identification algorithm (`ioID`)
 [@forré2019causalcalculuspresencecycles] is important to work with more
 realistic graphs that contain cycles, such as how biomolecular signaling
-pathways often contain feedback loops. Further, missing data identification
+pathways often contain feedback loops. Second, Missing data identification
 algorithms can account for data that is missing not at random (MNAR) by modeling
-the underlying missingness mechanism [@mohan2021]. Implementing recent
-algorithms that provide sufficient conditions for identification in hierarchical
-causal models [@weinstein2024hierarchicalcausalmodels] would be useful for
-supporting causal identification in probabilistic programming languages, such as
-ChiRho. Several algorithms noted in the review by @JSSv099i05, such as
-generalized identification (`gID`) [@lee2019general] and generalized
-counterfactual identification (`gID*`) [@correa2021counterfactual], can be
-formulated as special cases of counterfactual transportability. Therefore, we
-plan to improve the user experience by exposing more powerful algorithms like
-counterfactual transport through a simplified APIs corresponding to special
-cases like `gID` and `gID*`. Similarly, we plan to implement probabilistic
-expression simplification [@tikka2017b] to improve the consistency of the
-estimands output from identification algorithms.
+the underlying missingness mechanism [@mohan2021]. Third, algorithms that
+provide sufficient conditions for identification in hierarchical causal models
+[@weinstein2024hierarchicalcausalmodels] would be useful for supporting causal
+identification in probabilistic programming languages, such as ChiRho [@chirho].
 
+Several algorithms noted in the review by @JSSv099i05, such as generalized
+identification (`gID`) [@lee2019general] and generalized counterfactual
+identification (`gID*`) [@correa2021counterfactual], can be formulated as
+special cases of counterfactual transportability. Therefore, we plan to improve
+the user experience by exposing more powerful algorithms like counterfactual
+transport through a simplified APIs corresponding to special cases like `gID`
+and `gID*`. Similarly, we plan to implement probabilistic expression
+simplification [@tikka2017b] to improve the consistency of the estimands output
+from identification algorithms.
+
+It remains an open research question how to estimate the causal effect for an
+arbitrary estimand produced by an algorithm more sophisticated than `ID`.
 @agrawal2024automated recently demonstrated automatically generating an
 efficient and robust estimator for causal queries more sophisticated than `ID`
-using [ChiRho](https://basisresearch.github.io/chirho/dr_learner.html), a causal
-extension of the Pyro probabilistic programming language [@bingham2018pyro]
-called. Probabilistic circuits [@darwiche2022causalinferenceusingtractable;
-@wang2023tractable] also present a new paradigm for tractable causal estimation.
-Such a generalization would enable the automation of downstream applications in
-experimental design.
+using ChiRho [@chirho], a causal extension of the Pyro probabilistic programming
+language [@bingham2018pyro]. Probabilistic circuits
+[@darwiche2022causalinferenceusingtractable; @wang2023tractable] also present a
+new paradigm for tractable causal estimation. Such a generalization would enable
+the automation of downstream applications in experimental design.
 
 # Availability and Usage
 
