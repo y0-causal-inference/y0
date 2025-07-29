@@ -63,7 +63,7 @@ authors:
   - name: Haley M. Hummel
     email: haley.hummel@oregonstate.edu
     orcid: 0009-0004-5405-946X
-    affiliation: [2, 4]
+    affiliation: [ 2, 4 ]
     roles:
       - type: software
         degree: supporting
@@ -177,22 +177,21 @@ a causal query, such as:
    multiple studies or populations be combined to draw conclusions about a
    target group of interest?_
 
-We present the $Y_0$ Python package, which addresses a gap in the current
-software ecosystem by implementing causal identification algorithms that apply
-interventional, counterfactual, and transportability queries to data from
-(randomized) controlled trials, observational studies, or mixtures thereof.
-$Y_0$ focuses on the qualitative investigation of causation, helping researchers
+We present the $Y_0$ Python package, which implements causal identification
+algorithms that apply interventional, counterfactual, and transportability
+queries to data from (randomized) controlled trials, observational studies, or
+mixtures thereof. $Y_0$ focuses on the qualitative investigation of causation, helping researchers
 determine _whether_ a causal relationship can be estimated from available data
 before attempting to estimate _how strong_ that relationship is. Furthermore,
 $Y_0$ provides guidance on how to transform the causal query into a symbolic
-estimand that can be non-parametrically estimated from the available data. $Y_0$
-provides a domain-specific language for representing causal queries and
+estimand that can be non-parametrically estimated from the available data.
+$Y_0$ provides a domain-specific language for representing causal queries and
 estimands as symbolic probabilistic expressions, tools for representing causal
-graphical models with unobserved confounders as acyclic directed mixed graphs
-(ADMG)s and implementations of numerous identification algorithms from the
+graphical models with unobserved confounders, such as acyclic directed mixed graphs
+(ADMGs), and implementations of numerous identification algorithms from the
 recent causal inference literature.
 
-# State of the Field
+# Statement of Need
 
 Several open source Python packages have implemented the simplest identification
 algorithm (`ID`) from @shpitser2006id including
@@ -219,11 +218,12 @@ Finally, [CausalFusion](https://www.causalfusion.net) is a web application that
 implements many identification and estimation algorithms, but is neither open
 source, available for registration of new users, nor provides documentation.
 
-Causal inference remains an active research area where new identification
-algorithms are regularly published (see the recent review from @JSSv099i05), but
-often without a reference implementation. This motivates the development of a
-modular framework with reusable data structures and workflows to support the
-implementation of both previously published and future algorithms and workflows.
+Causal inference remains an active research area where new algorithms are
+regularly published (see the recent review from @JSSv099i05), but often without
+a reference implementation. We therefore implemented the $Y_0$ Python package in
+order to address the need for open source implementations of existing algorithms
+as well as to provide a modular framework that can support the implementation of
+future algorithms and workflows.
 
 # Implementation
 
@@ -274,7 +274,9 @@ following prior knowledge:
 2. Accumulation of tar in the lungs increases the risk of cancer.
 3. Smoking also increases the risk of cancer directly.
 
-![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
+![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B
+**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf)
+{#cancer height="100pt"}
 
 The identification algorithm (`ID`) [@shpitser2006id] estimates the effect of
 smoking on the risk of cancer in \autoref{cancer}A as
