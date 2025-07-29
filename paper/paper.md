@@ -167,30 +167,29 @@ determined whether it is theoretically possible to estimate a causal effect from
 available data, given prior knowledge about relationships between variables and
 a causal query, such as:
 
-1. **Interventional Query**, which asks: _what will happen if we intervene?_
-   For example, what would be the average effect if everyone received treatment?
-2. **Counterfactual Query**, which asks: _what would have happened had we done something different?_ For example, would a given patient,
-   who recovered after receiving treatment, have recovered anyway without treatment?.
+1. **Interventional Query**, which asks: _what will happen if we intervene?_ For
+   example, what would be the average effect if everyone received treatment?
+2. **Counterfactual Query**, which asks: _what would have happened had we done
+   something different?_ For example, would a given patient, who recovered after
+   receiving treatment, have recovered anyway without treatment?.
 3. **Transportability Query**, which asks: _can causal findings from one
    population be validly applied to another, and if so, how can evidence from
    multiple studies or populations be combined to draw conclusions about a
    target group of interest?_
 
-We present the $Y_0$ Python package, which addresses a gap in the
-current software ecosystem by implementing causal identification
-algorithms that apply interventional, counterfactual, and
-transportability queries to data from (randomized) controlled trials,
-observational studies, or mixtures thereof.  $Y_0$ focuses on the
-qualitative investigation of causation, helping researchers determine
-_whether_ a causal relationship can be estimated from available data
-before attempting to estimate _how strong_ that relationship
-is. Furthermore, $Y_0$ provides guidance on how to transform the
-causal query into a symbolic estimand that can be non-parametrically
-estimated from the available data.  $Y_0$ provides a domain-specific
-language for representing causal queries and estimands as symbolic
-probabilistic expressions, tools for representing causal graphical models
-with unobserved confounders as acyclic directed mixed graphs (ADMG)s
-and implementations of numerous identification algorithms from the
+We present the $Y_0$ Python package, which addresses a gap in the current
+software ecosystem by implementing causal identification algorithms that apply
+interventional, counterfactual, and transportability queries to data from
+(randomized) controlled trials, observational studies, or mixtures thereof.
+$Y_0$ focuses on the qualitative investigation of causation, helping researchers
+determine _whether_ a causal relationship can be estimated from available data
+before attempting to estimate _how strong_ that relationship is. Furthermore,
+$Y_0$ provides guidance on how to transform the causal query into a symbolic
+estimand that can be non-parametrically estimated from the available data. $Y_0$
+provides a domain-specific language for representing causal queries and
+estimands as symbolic probabilistic expressions, tools for representing causal
+graphical models with unobserved confounders as acyclic directed mixed graphs
+(ADMG)s and implementations of numerous identification algorithms from the
 recent causal inference literature.
 
 # State of the Field
@@ -228,17 +227,18 @@ implementation of both previously published and future algorithms and workflows.
 
 # Implementation
 
-**Probabilistic Expressions** $Y_0$ implements an internal
-domain-specific language that can capture variables, counterfactual
-variables, population variables, and probabilistic expressions in
-which they appear. It covers the three levels of Pearl's Causal
-Hierarchy [@bareinboim2022], including association $P(Y=y \mid
-X=x^\ast)$, represented as \texttt{P(Y | \textasciitilde X)}, interventions
-$P_{do(X=x^\ast)}(Y=y, Z=z)$, represented as \texttt{P[\textasciitilde X](Y,Z)} and
-counterfactuals $P(Y_{do(X=x^\ast)}=y^\ast\mid X=x, Y=y)$, represented as
-\texttt{P(\textasciitilde Y @ \textasciitilde X | X, Y)}. Expressions can be converted to SymPy
-[@meurer2017sympy] or LaTeX expressions and be rendered in Jupyter
-notebooks.
+**Probabilistic Expressions** $Y_0$ implements an internal domain-specific
+language that can capture variables, counterfactual variables, population
+variables, and probabilistic expressions in which they appear. It covers the
+three levels of Pearl's Causal Hierarchy [@bareinboim2022], including
+association $P(Y=y \mid
+X=x^\ast)$, represented as \texttt{P(Y | \textasciitilde
+X)}, interventions $P_{do(X=x^\ast)}(Y=y, Z=z)$, represented as
+\texttt{P[\textasciitilde X](Y,Z)} and counterfactuals
+$P(Y_{do(X=x^\ast)}=y^\ast\mid X=x, Y=y)$, represented as
+\texttt{P(\textasciitilde Y @ \textasciitilde X | X, Y)}. Expressions can be
+converted to SymPy [@meurer2017sympy] or LaTeX expressions and be rendered in
+Jupyter notebooks.
 
 **Data Structure** $Y_0$ builds on NetworkX [@hagberg2008networkx] to implement
 an (acyclic) directed mixed graph data structure, used in many identification
@@ -264,7 +264,6 @@ algorithms of any causal inference package. It implements `ID`
 [@tian2010identifying], transport [@correa2020transport], and counterfactual
 transport [@correa2022cftransport].
 
-
 # Case Study
 
 We present a case study regarding the effect of how smoking relates to cancer.
@@ -277,25 +276,25 @@ following prior knowledge:
 
 ![**A**) A simplified acyclic directed graph model representing prior knowledge on smoking and cancer and **B**) a more complex acyclic directed mixed graph that explicitly represents confounding variables.](figures/cancer_tar.pdf){#cancer height="100pt"}
 
-The identification algorithm (`ID`) [@shpitser2006id] estimates the
-effect of smoking on the risk of cancer in \autoref{cancer}A as
-$\sum_{Tar} P(Cancer | Smoking, Tar) P(Tar | Smoking)$. However, the
-model in \autoref{cancer}A is inaccurate because it does not represent
-confounders between smoking and tar accumulation, such as the choice
-to smoke tar-free cigarettes. Therefore, we add a _bidirected_ edge in
-\autoref{cancer}B.  Unfortunately, `ID` can not produce an estimand
-for \autoref{cancer}B, which motivates the usage of an alternative
-algorithm that incorporates observational and/or interventional
-data. For example, if data from an observational study associating
-smoking with tar and cancer ($\pi^{\ast}$) and data from a randomized
-trial studying the causal effect of smoking on tar buildup in the
-lungs ($\pi_1$) are available, the surrogate outcomes algorithm
-(`TRSO`) [@tikka2019trso] estimates the effect of smoking on the risk
-of cancer in \autoref{cancer}B as $\sum_{Tar} P^{\pi^{\ast}}(Cancer |
-Smoking, Tar) P_{\text{Smoking}}^{{\pi_1}}(Tar)$.  Code and a more
-detailed description of this case study can be found in the following
-[Jupyter
-notebook](https://github.com/y0-causal-inference/y0/blob/main/notebooks/Surrogate%20Outcomes.ipynb).
+The identification algorithm (`ID`) [@shpitser2006id] estimates the effect of
+smoking on the risk of cancer in \autoref{cancer}A as
+$\sum_{Tar} P(Cancer | Smoking, Tar) P(Tar | Smoking)$. However, the model in
+\autoref{cancer}A is inaccurate because it does not represent confounders
+between smoking and tar accumulation, such as the choice to smoke tar-free
+cigarettes. Therefore, we add a _bidirected_ edge in \autoref{cancer}B.
+Unfortunately, `ID` can not produce an estimand for \autoref{cancer}B, which
+motivates the usage of an alternative algorithm that incorporates observational
+and/or interventional data. For example, if data from an observational study
+associating smoking with tar and cancer ($\pi^{\ast}$) and data from a
+randomized trial studying the causal effect of smoking on tar buildup in the
+lungs ($\pi_1$) are available, the surrogate outcomes algorithm (`TRSO`)
+[@tikka2019trso] estimates the effect of smoking on the risk of cancer in
+\autoref{cancer}B as
+$\sum_{Tar} P^{\pi^{\ast}}(Cancer |
+Smoking, Tar) P_{\text{Smoking}}^{{\pi_1}}(Tar)$.
+Code and a more detailed description of this case study can be found in the
+following
+[Jupyter notebook](https://github.com/y0-causal-inference/y0/blob/main/notebooks/Surrogate%20Outcomes.ipynb).
 
 We provide a second case study demonstrating the transport
 [@correa2020transport] and counterfactual transport [@correa2022cftransport]
@@ -316,37 +315,34 @@ its further development:
 
 # Future Directions
 
-There remain several high value identification algorithms to include
-in $Y_0$ in the future. For example, the cyclic identification
-algorithm (`ioID`) [@forré2019causalcalculuspresencecycles] is
-important to work with more realistic graphs that contain cycles, such
-as how biomolecular signaling pathways often contain feedback
-loops. Further, missing data identification algorithms can account for
-data that is missing not at random (MNAR) by modeling the underlying
-missingness mechanism [@mohan2021]. Implementing recent algorithms
-that provide sufficient conditions for identification in hierarchical
-causal models [@weinstein2024hierarchicalcausalmodels] would be useful
-for supporting causal identification in probabilistic programming
-languages, such as ChiRho.  Several algorithms noted in the review by
-@JSSv099i05, such as generalized identification (`gID`)
-[@lee2019general] and generalized counterfactual identification
-(`gID*`) [@correa2021counterfactual], can be formulated as special
-cases of counterfactual transportability. Therefore, we plan to
-improve the user experience by exposing more powerful algorithms like
-counterfactual transport through a simplified APIs corresponding to
-special cases like `gID` and `gID*`.  Similarly, we plan to implement
-probabilistic expression simplification [@tikka2017b] to improve the
-consistency of the estimands output from identification algorithms.
+There remain several high value identification algorithms to include in $Y_0$ in
+the future. For example, the cyclic identification algorithm (`ioID`)
+[@forré2019causalcalculuspresencecycles] is important to work with more
+realistic graphs that contain cycles, such as how biomolecular signaling
+pathways often contain feedback loops. Further, missing data identification
+algorithms can account for data that is missing not at random (MNAR) by modeling
+the underlying missingness mechanism [@mohan2021]. Implementing recent
+algorithms that provide sufficient conditions for identification in hierarchical
+causal models [@weinstein2024hierarchicalcausalmodels] would be useful for
+supporting causal identification in probabilistic programming languages, such as
+ChiRho. Several algorithms noted in the review by @JSSv099i05, such as
+generalized identification (`gID`) [@lee2019general] and generalized
+counterfactual identification (`gID*`) [@correa2021counterfactual], can be
+formulated as special cases of counterfactual transportability. Therefore, we
+plan to improve the user experience by exposing more powerful algorithms like
+counterfactual transport through a simplified APIs corresponding to special
+cases like `gID` and `gID*`. Similarly, we plan to implement probabilistic
+expression simplification [@tikka2017b] to improve the consistency of the
+estimands output from identification algorithms.
 
-[@agrawal2024automated] has recently demonstrated how to automatically
-generate an efficient and robust estimator for causal queries more
-sophisticated than `ID` using a causal extension of the Pyro
-probabilistic programming language [@bingham2018pyro] called
+[@agrawal2024automated] has recently demonstrated how to automatically generate
+an efficient and robust estimator for causal queries more sophisticated than
+`ID` using a causal extension of the Pyro probabilistic programming language
+[@bingham2018pyro] called
 [ChiRho](https://basisresearch.github.io/chirho/dr_learner.html). Probabilistic
-circuits [@darwiche2022causalinferenceusingtractable],
-[@wang2023tractable] also present a new paradigm for tractable causal
-estimation. Such a generalization would enable the automation of
-downstream applications in experimental design.
+circuits [@darwiche2022causalinferenceusingtractable], [@wang2023tractable] also
+present a new paradigm for tractable causal estimation. Such a generalization
+would enable the automation of downstream applications in experimental design.
 
 # Availability and Usage
 
