@@ -342,7 +342,7 @@ an efficient and robust estimator for causal queries more sophisticated than
 `ID` using a causal extension of the Pyro probabilistic programming language
 [@bingham2018pyro] called
 [ChiRho](https://basisresearch.github.io/chirho/dr_learner.html). Probabilistic
-circuits [@darwiche2022causalinferenceusingtractable], [@wang2023tractable] also
+circuits [@darwiche2022causalinferenceusingtractable; @wang2023tractable] also
 present a new paradigm for tractable causal estimation. Such a generalization
 would enable the automation of downstream applications in experimental design.
 
