@@ -63,7 +63,7 @@ authors:
   - name: Haley M. Hummel
     email: haley.hummel@oregonstate.edu
     orcid: 0009-0004-5405-946X
-    affiliation: [ 2, 4 ]
+    affiliation: [2, 4]
     roles:
       - type: software
         degree: supporting
@@ -180,16 +180,16 @@ a causal query, such as:
 We present the $Y_0$ Python package, which implements causal identification
 algorithms that apply interventional, counterfactual, and transportability
 queries to data from (randomized) controlled trials, observational studies, or
-mixtures thereof. $Y_0$ focuses on the qualitative investigation of causation, helping researchers
-determine _whether_ a causal relationship can be estimated from available data
-before attempting to estimate _how strong_ that relationship is. Furthermore,
-$Y_0$ provides guidance on how to transform the causal query into a symbolic
-estimand that can be non-parametrically estimated from the available data.
-$Y_0$ provides a domain-specific language for representing causal queries and
-estimands as symbolic probabilistic expressions, tools for representing causal
-graphical models with unobserved confounders, such as acyclic directed mixed graphs
-(ADMGs), and implementations of numerous identification algorithms from the
-recent causal inference literature.
+mixtures thereof. $Y_0$ focuses on the qualitative investigation of causation,
+helping researchers determine _whether_ a causal relationship can be estimated
+from available data before attempting to estimate _how strong_ that relationship
+is. Furthermore, $Y_0$ provides guidance on how to transform the causal query
+into a symbolic estimand that can be non-parametrically estimated from the
+available data. $Y_0$ provides a domain-specific language for representing
+causal queries and estimands as symbolic probabilistic expressions, tools for
+representing causal graphical models with unobserved confounders, such as
+acyclic directed mixed graphs (ADMGs), and implementations of numerous
+identification algorithms from the recent causal inference literature.
 
 # Statement of Need
 
