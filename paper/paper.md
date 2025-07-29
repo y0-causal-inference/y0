@@ -335,14 +335,14 @@ cases like `gID` and `gID*`. Similarly, we plan to implement probabilistic
 expression simplification [@tikka2017b] to improve the consistency of the
 estimands output from identification algorithms.
 
-[@agrawal2024automated] has recently demonstrated how to automatically generate
-an efficient and robust estimator for causal queries more sophisticated than
-`ID` using a causal extension of the Pyro probabilistic programming language
-[@bingham2018pyro] called
-[ChiRho](https://basisresearch.github.io/chirho/dr_learner.html). Probabilistic
-circuits [@darwiche2022causalinferenceusingtractable; @wang2023tractable] also
-present a new paradigm for tractable causal estimation. Such a generalization
-would enable the automation of downstream applications in experimental design.
+@agrawal2024automated recently demonstrated automatically generating an
+efficient and robust estimator for causal queries more sophisticated than `ID`
+using [ChiRho](https://basisresearch.github.io/chirho/dr_learner.html), a causal
+extension of the Pyro probabilistic programming language [@bingham2018pyro]
+called. Probabilistic circuits [@darwiche2022causalinferenceusingtractable;
+@wang2023tractable] also present a new paradigm for tractable causal estimation.
+Such a generalization would enable the automation of downstream applications in
+experimental design.
 
 # Availability and Usage
 
