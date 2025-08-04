@@ -74,6 +74,13 @@ authors:
     roles:
       - type: software
         degree: supporting
+  - name: Craig Bakker
+    email: craig.bakker@pnnl.gov
+    orcid: 0000-0002-0083-4000
+    affiliation: 2
+    roles:
+      - type: software
+        degree: supporting
   - name: Sara Mohammad Taheri
     email: srtaheri66@gmail.com
     orcid: 0000-0002-6554-9083
