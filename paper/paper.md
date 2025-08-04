@@ -30,6 +30,13 @@ authors:
         degree: equal
       - type: writing-original-draft
         degree: lead
+  - name: Craig Bakker
+    email: craig.bakker@pnnl.gov
+    orcid: 0000-0002-0083-4000
+    affiliation: 2
+    roles:
+      - type: software
+        degree: supporting
   - name: Richard J. Callahan
     affiliation: 2
     email: richardcallahan@protonmail.com
@@ -71,13 +78,6 @@ authors:
     orcid: 0000-0002-1998-0980
     email: merrill@battelle.org
     affiliation: 5
-    roles:
-      - type: software
-        degree: supporting
-  - name: Craig Bakker
-    email: craig.bakker@pnnl.gov
-    orcid: 0000-0002-0083-4000
-    affiliation: 2
     roles:
       - type: software
         degree: supporting
