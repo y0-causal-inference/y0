@@ -378,6 +378,7 @@ following grants:
 - DARPA award HR00112220036
   ([Automating Scientific Knowledge Extraction and Modeling](https://www.darpa.mil/program/automating-scientific-knowledge-extraction-and-modeling))
 - Award number DE-SC0023091 under the DOE Biosystems Design program
+- The Center for AI @PNNL serves as a virtual research hub that enables the use of artificial intelligence (AI) across research domains and provided resources supporting the research reported in this article. The Center is driving U.S. leadership in AI and technological innovation by advancing research and development, fostering an AI-enabled workforce, and engaging in impactful industry partnerships.
 
 The authorship of this manuscript lists the primary contributors as the first
 and last authors and all remaining authors in alphabetical order by family name.
