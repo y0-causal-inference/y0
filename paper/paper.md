@@ -367,9 +367,10 @@ studies described above.
 
 # Acknowledgements
 
-The authors would like to thank the German NFDI4Chem Consortium, the Causality Community of Interest (Causal COIN), and the Center for AI@PNNL for support.
-Additionally, the development of $Y_0$ has been partially supported by the
-following grants:
+The authors would like to thank the German NFDI4Chem Consortium, the Pacific
+Northwest National Lab (PNNL) Center for Artificial Intelligence, and the PNNL
+Causality Community of Interest (Causal COIN) for support. Additionally, the
+development of $Y_0$ has been partially supported by the following grants:
 
 - DARPA award HR00111990009
   ([Automating Scientific Knowledge Extraction](https://www.darpa.mil/program/automating-scientific-knowledge-extraction))
@@ -378,7 +379,6 @@ following grants:
 - DARPA award HR00112220036
   ([Automating Scientific Knowledge Extraction and Modeling](https://www.darpa.mil/program/automating-scientific-knowledge-extraction-and-modeling))
 - Award number DE-SC0023091 under the DOE Biosystems Design program
-
 
 The authorship of this manuscript lists the primary contributors as the first
 and last authors and all remaining authors in alphabetical order by family name.
