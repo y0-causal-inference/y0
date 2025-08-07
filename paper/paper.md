@@ -367,9 +367,10 @@ studies described above.
 
 # Acknowledgements
 
-The authors would like to thank the German NFDI4Chem Consortium for support.
-Additionally, the development of $Y_0$ has been partially supported by the
-following grants:
+The authors would like to thank the German NFDI4Chem Consortium, the Pacific
+Northwest National Lab (PNNL) Center for Artificial Intelligence, and the PNNL
+Causality Community of Interest (Causal COIN) for support. Additionally, the
+development of $Y_0$ has been partially supported by the following grants:
 
 - DARPA award HR00111990009
   ([Automating Scientific Knowledge Extraction](https://www.darpa.mil/program/automating-scientific-knowledge-extraction))
