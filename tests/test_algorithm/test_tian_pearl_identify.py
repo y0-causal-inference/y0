@@ -675,13 +675,15 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
     expected_result_2 = Fraction(expected_result_2_num, expected_result_2_den)
 
     # Same thing, but with population probabilities
+    # @cthoyt mypy throws an error for each appearance of PP[] below:
+    # error: Value of type "type[PopulationProbabilityBuilderType]" is not indexable  [index]
     result_piece_pp = Product.safe(
         [
-            PP[Pi1](W1),
-            PP[Pi1](W3 | W1),
-            PP[Pi1](W2 | (W3, W1)),
-            PP[Pi1](X | (W1, W3, W2, W4)),
-            PP[Pi1](Y | (W1, W3, W2, W4, X)),
+            PP[Pi1](W1),  # type: ignore[index]
+            PP[Pi1](W3 | W1),  # type: ignore[index]
+            PP[Pi1](W2 | (W3, W1)),  # type: ignore[index]
+            PP[Pi1](X | (W1, W3, W2, W4)),  # type: ignore[index]
+            PP[Pi1](Y | (W1, W3, W2, W4, X)),  # type: ignore[index]
         ]
     )
     expected_result_1_part_1_pp = Fraction(
