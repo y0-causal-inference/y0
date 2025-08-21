@@ -67,6 +67,7 @@ dependencies = [
     "scikit-learn",
     "statsmodels",
     "scipy",
+    "matplotlib>=3.10.5",
 ]
 
 
