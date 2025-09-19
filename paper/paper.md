@@ -246,7 +246,8 @@ above.
 
 # Acknowledgements
 
-The development of $Y_0$ has been partially supported by the following grants:
+The authors would like to thank the German NFDI4Chem Consortium, the Causality Community
+152 of Interest (Causal COIN), and the Center for AI@PNNL for support. Additionally, the development of $Y_0$ has been partially supported by the following grants:
 
 - DARPA award
   HR00111990009 ([Automating Scientific Knowledge Extraction](https://www.darpa.mil/program/automating-scientific-knowledge-extraction))
