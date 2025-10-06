@@ -1,0 +1,9 @@
+diff a/pyproject.toml b/pyproject.toml	(rejected hunks)
+@@ -79,6 +79,7 @@ typing = [
+     { include-group = "tests" },
+     "mypy",
+     "pydantic",
++    "click-types",
+     # You will probably have to add additional type stubs here, especially if you're using tox-uv
+ ]
+ docs-lint = [
