@@ -155,7 +155,7 @@ affiliations:
 date: 21 June 2025
 ---
 
-# Summary
+## Summary
 
 Researchers are often interested in investigating whether one thing causes
 another, such as whether a medication effectively treats a disease or whether
@@ -198,7 +198,7 @@ representing causal graphical models with unobserved confounders, such as
 acyclic directed mixed graphs (ADMGs), and implementations of numerous
 identification algorithms from the recent causal inference literature.
 
-# Statement of Need
+## Statement of Need
 
 Several open source Python packages have implemented the simplest identification
 algorithm (`ID`) from @shpitser2006id including
@@ -232,7 +232,7 @@ order to address the need for open source implementations of existing algorithms
 as well as to provide a modular framework that can support the implementation of
 future algorithms and workflows.
 
-# Implementation
+## Implementation
 
 **Probabilistic Expressions** $Y_0$ implements an internal domain-specific
 language that can capture variables, counterfactual variables, population
@@ -271,7 +271,7 @@ algorithms of any causal inference package. It implements `ID`
 [@tian2010identifying], transport [@correa2020transport], and counterfactual
 transport [@correa2022cftransport].
 
-# Case Study
+## Case Study
 
 We present a case study regarding the effect of how smoking relates to cancer.
 First, we construct a graphical model (\autoref{cancer}A) representing the
@@ -320,7 +320,7 @@ its further development:
 - @ness_causal_2024 used $Y_0$ as a teaching tool for identification and the
   causal hierarchy.
 
-# Future Directions
+## Future Directions
 
 There remain several high value identification algorithms to include in $Y_0$ in
 the future. First, the cyclic identification algorithm (`ioID`)
@@ -353,7 +353,7 @@ language [@bingham2018pyro]. Probabilistic circuits
 new paradigm for tractable causal estimation. Such a generalization would enable
 the automation of downstream applications in experimental design.
 
-# Availability and Usage
+## Availability and Usage
 
 $Y_0$ is available as a package on [PyPI](https://pypi.org/project/y0) with the
 source code available at
@@ -365,7 +365,7 @@ documentation available at
 contains an interactive Jupyter notebook tutorial and notebooks for the case
 studies described above.
 
-# Acknowledgements
+## Acknowledgements
 
 The authors would like to thank the German NFDI4Chem Consortium, the Pacific
 Northwest National Lab (PNNL) Center for Artificial Intelligence, and the PNNL
@@ -383,4 +383,4 @@ development of $Y_0$ has been partially supported by the following grants:
 The authorship of this manuscript lists the primary contributors as the first
 and last authors and all remaining authors in alphabetical order by family name.
 
-# References
+## References
