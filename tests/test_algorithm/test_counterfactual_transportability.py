@@ -3258,6 +3258,7 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             outcome_variables,
             outcome_and_conditioned_variables,
             outcome_variable_to_value_mappings,
+            conditioned_variable_to_value_mappings,
             outcome_and_conditioned_variable_names_to_values,
             outcome_and_conditioned_variable_names,
             conditioned_variable_names,
@@ -3267,6 +3268,7 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         self.assertSetEqual(conditioned_variables, {X1, X2})
         self.assertSetEqual(outcome_variables, {Y @ -X1, W @ -X2})
         self.assertSetEqual(outcome_and_conditioned_variables, {X1, X2, Y @ -X1, W @ -X2})
+        self.assertDictEqual(conditioned_variable_to_value_mappings, {X1: {-X1}, X2: {-X2}})
         self.assertDictEqual(outcome_variable_to_value_mappings, {Y @ -X1: {-Y}, W @ -X2: {-W}})
         self.assertDictEqual(
             outcome_and_conditioned_variable_names_to_values,
@@ -3285,6 +3287,7 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
         )
         outcome_variables = {Y @ -X1, W @ -X2}
         outcome_variable_to_value_mappings = {Y @ -X1: {-Y}, W @ -X2: {-W}}
+        conditioned_variable_to_value_mappings = {X1: {-X1}}
         expected_outcome_ancestral_component_query_in_counterfactual_factor_form = [
             (Y @ -W, -Y),
             (W @ -Z, -W),
@@ -3301,6 +3304,7 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             ancestral_components=ancestral_components,
             outcome_variables=outcome_variables,
             outcome_variable_to_value_mappings=outcome_variable_to_value_mappings,
+            conditioned_variable_to_value_mappings=conditioned_variable_to_value_mappings,
             target_domain_graph=self.example_2_target_domain_graph,
         )
         self.assertCountEqual(
