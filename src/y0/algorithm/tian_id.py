@@ -8,6 +8,7 @@
 """
 
 import logging
+import typing
 from collections.abc import Collection
 
 from y0.dsl import (
@@ -36,7 +37,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def identify_district_variables(  # noqa:C901
+def identify_district_variables(
     *,
     input_variables: frozenset[Variable],
     input_district: frozenset[Variable],
@@ -134,7 +135,7 @@ def identify_district_variables(  # noqa:C901
                 subgraph_probability=district_probability,  # Q[T]
                 graph_topo=topo,
             )
-        elif isinstance(district_probability, Probability):
+        else:
             logger.debug(
                 "About to get ancestral_set_probability. district_probability = "
                 + district_probability.to_latex()
@@ -150,6 +151,9 @@ def identify_district_variables(  # noqa:C901
                     | district_probability.parents,
                 )
             else:
+                # district_probability must be an Expression and in particular a Probability. Cast it as such
+                # explicitly so a mypy check passes.
+                district_probability = typing.cast(Probability, district_probability)
                 ancestral_set_probability = P(
                     ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
                     | district_probability.parents
@@ -157,10 +161,7 @@ def identify_district_variables(  # noqa:C901
             logger.debug(
                 "Got ancestral_set_probability. Result = " + ancestral_set_probability.to_latex()
             )
-        else:
-            raise TypeError(
-                "In identify_district_variables: the district probability is an expression of an unknown type."
-            )
+
         # Get Q[T'] by Lemma 4 or Lemma 1
         logger.debug(
             "In identify_district_variables: about to call _compute_c_factor. Subgraph_probability = "
