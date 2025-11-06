@@ -1716,7 +1716,7 @@ class UnconditionalCFTResult(NamedTuple):
         from IPython.display import display
 
         display(event_to_probability(self.event))  # type:ignore
-        display(self.expression)
+        display(self.expression)  # type:ignore
 
 
 def _event_from_counterfactuals(
@@ -2344,7 +2344,7 @@ class ConditionalCFTResult(NamedTuple):
         from IPython.display import display
 
         display(event_to_probability(self.event))  # type:ignore
-        display(self.expression)
+        display(self.expression)  # type:ignore
 
 
 def conditional_cft(

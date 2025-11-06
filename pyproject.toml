@@ -81,6 +81,7 @@ tests = [
     "xgboost", # for pillai
     "torch",
     "y0[r]",
+    "IPython",
 ]
 docs = [
     "sphinx>=8",

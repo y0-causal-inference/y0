@@ -27,6 +27,7 @@ from y0.algorithm.counterfactual_transport.ancestor_utils import (
     get_base_variables,
 )
 from y0.algorithm.counterfactual_transport.api import (
+    CFTDomain,
     _any_inconsistent_intervention_values,
     _any_variable_values_inconsistent_with_interventions,
     _any_variables_with_inconsistent_values,
@@ -58,6 +59,7 @@ from y0.algorithm.counterfactual_transport.api import (
     transport_conditional_counterfactual_query,
     transport_district_intervening_on_parents,
     transport_unconditional_counterfactual_query,
+    unconditional_cft,
 )
 from y0.algorithm.transport import transport_variable
 from y0.dsl import (
@@ -2462,6 +2464,60 @@ class TestEventToProbabilitySubroutine(cases.GraphTestCase):
         result2 = event_to_probability(event2)
         expected_result2 = P(-Y @ -X, Variable("X", star=False))
         self.assertEqual(result2, expected_result2)
+
+
+class TestCFTFeatures(cases.GraphTestCase):
+    """Test the constructor for a CFTDomain."""
+
+    def test_CFTdomain(self):  # noqa: N802
+        """Test the post-init routine for the CFTDomain.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        domain = CFTDomain(
+            population=Variable("TEST"),
+            graph=figure_2_graph_domain_1_with_interventions,
+            policy_variables={X},
+        )
+        expected_population_probability = PP[Variable("TEST")](W, X, Y, Z)
+        self.assertEqual(domain.population, expected_population_probability)
+        self.assertSetEqual(domain.policy_variables, {X})
+        self.assert_graph_equal(domain.graph, figure_2_graph_domain_1_with_interventions)
+        self.assertIsNone(domain.ordering)
+
+        domain2 = CFTDomain(
+            population=PP[Variable("TEST")](W, X, Y, Z),
+            graph=figure_2_graph_domain_1_with_interventions,
+            policy_variables={X},
+        )
+        self.assertEqual(domain2.population, expected_population_probability)
+        self.assertSetEqual(domain2.policy_variables, {X})
+        self.assert_graph_equal(domain2.graph, figure_2_graph_domain_1_with_interventions)
+        self.assertIsNone(domain2.ordering)
+
+    def test_display_CFT(self):  # noqa: N802
+        """Test displaying a CFT result.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        event = [-Y @ -X, -X]
+        domains = [
+            CFTDomain(
+                population=Variable("TEST"),
+                graph=figure_2_graph_domain_1_with_interventions,
+                policy_variables={X},
+            ),
+            CFTDomain(
+                population=Variable("TEST2"),
+                graph=figure_2_graph_domain_2,
+                policy_variables=set(),
+            ),
+        ]
+        unconditional_cft_result = unconditional_cft(
+            event=event, target_domain_graph=figure_2a_graph, domains=domains
+        )
+        result = unconditional_cft_result.display()
+        self.assertIsNone(result)
 
 
 # TODO: x 1. We need a test case that returns a probability of Zero() if the Simplify() algorithm
