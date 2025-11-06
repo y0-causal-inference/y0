@@ -48,6 +48,7 @@ from y0.algorithm.counterfactual_transport.api import (
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
+    event_to_probability,
     get_counterfactual_factors,
     get_counterfactual_factors_retaining_variable_values,
     is_counterfactual_factor_form,
@@ -2443,6 +2444,24 @@ class TestCounterfactualFactorIsInconsistent(cases.GraphTestCase):
         # )
         event = [(Y @ -X, -Y), (Z @ +X, -Z)]
         self.assertTrue(_counterfactual_factor_is_inconsistent(event=event))
+
+
+class TestEventToProbabilitySubroutine(cases.GraphTestCase):
+    """Test a subroutine used to display results of conditional and unconditional counterfactual queries."""
+
+    def test_event_to_probability(self):
+        """Test a subroutine to convert events to probabilities.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        event1 = [(+Y @ -X, -Y), (X, -X)]
+        # Events cannot have star values for the variable
+        self.assertRaises(ValueError, event_to_probability, event=event1)
+
+        event2 = [(Y @ -X, -Y), (X, -X)]
+        result2 = event_to_probability(event2)
+        expected_result2 = P(-Y @ -X, Variable("X", star=False))
+        self.assertEqual(result2, expected_result2)
 
 
 # TODO: x 1. We need a test case that returns a probability of Zero() if the Simplify() algorithm
