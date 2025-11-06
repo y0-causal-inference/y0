@@ -48,6 +48,7 @@ from y0.algorithm.counterfactual_transport.api import (
     _validate_transport_conditional_counterfactual_query_input,
     _validate_transport_conditional_counterfactual_query_line_4_output,
     _validate_transport_unconditional_counterfactual_query_input,
+    conditional_cft,
     convert_to_counterfactual_factor_form,
     counterfactual_factors_are_transportable,
     do_counterfactual_factor_factorization,
@@ -2498,7 +2499,7 @@ class TestCFTFeatures(cases.GraphTestCase):
         self.assertIsNone(domain2.ordering)
 
     def test_display_CFT(self):  # noqa: N802
-        """Test displaying a CFT result.
+        """Test displaying an unconditional CFT result.
 
         Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
         """
@@ -2519,6 +2520,32 @@ class TestCFTFeatures(cases.GraphTestCase):
             event=event, target_domain_graph=figure_2a_graph, domains=domains
         )
         result = unconditional_cft_result.display()
+        self.assertIsNone(result)
+
+    def test_display_CFT_2(self):  # noqa: N802
+        """Test displaying a conditional CFT result.
+
+        Source: Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        domains = [
+            CFTDomain(
+                population=TARGET_DOMAIN,
+                graph=figure_1_graph_no_transportability_nodes,
+                policy_variables=set(),
+            ),
+            CFTDomain(
+                population=PP[Pi1](X, Y, Z),
+                graph=figure_1_graph_domain_1_with_interventions,
+                policy_variables={X},
+            ),
+        ]
+        conditional_cft_result = conditional_cft(
+            outcomes=[-Y @ -X],
+            conditions=[-Z @ -X, +X],
+            target_domain_graph=figure_1_graph_no_transportability_nodes,
+            domains=domains,
+        )
+        result = conditional_cft_result.display()
         self.assertIsNone(result)
 
 
