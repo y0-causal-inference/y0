@@ -1746,7 +1746,13 @@ def _event_from_counterfactuals_strict(
         if variable.star is not None:
             value = Intervention(name=variable.name, star=variable.star)
         else:
-            raise TypeError
+            raise TypeError(
+                "In _event_from_counterfactuals_strict: all counterfactuals passed in as "
+                + "inputs must have variable values, but at least one has no value. "
+                + "(Offending variable: "
+                + str(variable.name)
+                + ".) Check your inputs."
+            )
         rv.append((base, value))
     return rv
 

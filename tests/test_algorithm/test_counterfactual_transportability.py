@@ -32,6 +32,8 @@ from y0.algorithm.counterfactual_transport.api import (
     _any_variable_values_inconsistent_with_interventions,
     _any_variables_with_inconsistent_values,
     _counterfactual_factor_is_inconsistent,
+    _event_from_counterfactuals,
+    _event_from_counterfactuals_strict,
     _initialize_conditional_transportability_data_structures,
     _no_intervention_variables_in_domain,
     _no_transportability_nodes_in_domain,
@@ -2518,6 +2520,53 @@ class TestCFTFeatures(cases.GraphTestCase):
         )
         result = unconditional_cft_result.display()
         self.assertIsNone(result)
+
+
+class TestEventFromCounterfactuals(cases.GraphTestCase):
+    """Tests a utility subroutine that simplifies the counterfactual transportability API."""
+
+    def test_event_from_counterfactuals(self):
+        """Test of the _event_from_counterfactuals() subroutine.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        counterfactuals = [-Y @ -X, -X, Z]
+        result = _event_from_counterfactuals(counterfactuals)
+        expected_result = [(Y @ -X, -Y), (X, -X), (Z, None)]
+        logger.warning("Original counterfactuals: " + str(counterfactuals))
+        logger.warning("Output from _event_from_counterfactuals: " + str(result))
+        self.assertCountEqual(expected_result, result)
+
+        counterfactuals_2 = Z
+        result_2 = _event_from_counterfactuals(counterfactuals_2)
+        expected_result_2 = [(Z, None)]
+        logger.warning("Original counterfactuals_2: " + str(counterfactuals_2))
+        logger.warning("Output from _event_from_counterfactuals: " + str(result_2))
+        self.assertCountEqual(expected_result_2, result_2)
+
+    def test_event_from_counterfactuals_strict(self):
+        """Test of the _event_from_counterfactuals_strict() subroutine.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        counterfactuals = [-Y @ -X, -X]
+        result = _event_from_counterfactuals_strict(counterfactuals)
+        expected_result = [(Y @ -X, -Y), (X, -X)]
+        logger.warning("Original counterfactuals: " + str(counterfactuals))
+        logger.warning("Output from _event_from_counterfactuals_strict: " + str(result))
+        self.assertCountEqual(expected_result, result)
+
+        counterfactuals_2 = -Z
+        result_2 = _event_from_counterfactuals_strict(counterfactuals_2)
+        expected_result_2 = [(Z, -Z)]
+        logger.warning("Original counterfactuals_2: " + str(counterfactuals_2))
+        logger.warning("Output from _event_from_counterfactuals_strict: " + str(result_2))
+        self.assertCountEqual(expected_result_2, result_2)
+
+        counterfactuals_3 = Z
+        self.assertRaises(
+            TypeError, _event_from_counterfactuals_strict, variables=counterfactuals_3
+        )
 
 
 # TODO: x 1. We need a test case that returns a probability of Zero() if the Simplify() algorithm
