@@ -315,7 +315,7 @@ def print_results(results: list[Result], file: StringIO | None = None) -> None:
 
 
 @click.command()
-@verbose_option  # type:ignore
+@verbose_option
 def main() -> None:
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
     import pystow

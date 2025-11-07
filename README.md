@@ -164,21 +164,19 @@ The code in this package is licensed under the
 
 ### 📖 Citation
 
-Before we publish an application note on `y0`, you can cite this software via
-our Zenodo record (also see the badge above):
+> [Causal identification with Y0](https://doi.org/10.48550/arXiv.2508.03167)
+> <br>Hoyt, C.T., _et al._ (2025) _arXiv_, 2508.03167
 
 ```bibtex
-@software{y0,
-  author       = {Charles Tapley Hoyt and
-                  Jeremy Zucker and
-                  Marc-Antoine Parent},
-  title        = {y0-causal-inference/y0},
-  month        = jun,
-  year         = 2021,
-  publisher    = {Zenodo},
-  version      = {v0.1.0},
-  doi          = {10.5281/zenodo.4950768},
-  url          = {https://doi.org/10.5281/zenodo.4950768}
+@software{hoyt2025y0,
+    title = {Causal identification with $Y_0$},
+    author = {Charles Tapley Hoyt and Craig Bakker and Richard J. Callahan and Joseph Cottam and August George and Benjamin M. Gyori and Haley M. Hummel and Nathaniel Merrill and Sara Mohammad Taheri and Pruthvi Prakash Navada and Marc-Antoine Parent and Adam Rupe and Olga Vitek and Jeremy Zucker},
+    year = {2025},
+    eprint = {2508.03167},
+    archivePrefix = {arXiv},
+    primaryClass = {cs.AI},
+    url = {https://doi.org/10.48550/arXiv.2508.03167},
+    doi = {10.48550/arXiv.2508.03167},
 }
 ```
 
