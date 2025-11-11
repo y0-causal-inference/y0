@@ -2608,6 +2608,37 @@ class TestEventFromCounterfactuals(cases.GraphTestCase):
 class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     """Test [correa22a]_'s unconditional counterfactual transportability algorithm (Algorithm 2)."""
 
+    def test_transport_unconditional_counterfactual_query_wrapper(self):
+        """Test of the API wrapper for Algorithm 2 of [correa22a]_.
+
+        Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
+        """
+        event = [-Y @ -X, -X]
+        domains = [
+            CFTDomain(
+                population=PP[Pi1](W, X, Y, Z),
+                graph=figure_2_graph_domain_1_with_interventions,
+                policy_variables={X},
+            ),
+            CFTDomain(
+                population=PP[Pi2](W, X, Y, Z),
+                graph=figure_2_graph_domain_2,
+                policy_variables=set(),
+            ),
+        ]
+        unconditional_cft_result = unconditional_cft(
+            event=event, target_domain_graph=figure_2a_graph, domains=domains
+        )
+        result_expr = unconditional_cft_result.expression
+        result_event = unconditional_cft_result.event
+        expected_result_part_1 = Product.safe(
+            [PP[Pi1](Y | W, X, Z), PP[Pi1](W | X), PP[Pi2](X | Z), PP[Pi2](Z)]
+        )
+        expected_result = Sum.safe(expected_result_part_1, [Z, W])
+        logger.debug("Result_expr = " + result_expr.to_latex())
+        logger.debug("Result_event = " + str(result_event))
+        self.assert_expr_equal(expected_result, result_expr)
+
     def test_transport_unconditional_counterfactual_query_1(self):
         """Test of Algorithm 2 of [correa22a]_.
 
@@ -3317,6 +3348,42 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
                 cls.example_2_domain_1_graph_topo,
             ),
         ]
+
+    def test_transport_conditional_counterfactual_query_wrapper(self):
+        """Testing the wrapper for Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
+
+        Source: Example 4.5 and Figure 6 of [correa22a]_.
+        """
+        domains = [
+            CFTDomain(
+                population=TARGET_DOMAIN,
+                graph=figure_1_graph_no_transportability_nodes,
+                policy_variables=set(),
+            ),
+            CFTDomain(
+                population=PP[Pi1](X, Y, Z),
+                graph=figure_1_graph_domain_1_with_interventions,
+                policy_variables={X},
+            ),
+        ]
+        conditional_cft_result = conditional_cft(
+            outcomes=[-Y @ -X],
+            conditions=[-Z @ -X, +X],
+            target_domain_graph=figure_1_graph_no_transportability_nodes,
+            domains=domains,
+        )
+        result_expr = conditional_cft_result.expression
+        result_event = conditional_cft_result.event
+        expected_result_expr, expected_result_event = (
+            Fraction(PP[TARGET_DOMAIN](Y | X, Z), Sum.safe(PP[TARGET_DOMAIN](Y | X, Z), {Y})),
+            [(Y, -Y), (X, +X), (Z, -Z)],
+        )
+        logger.debug("expected_result_expr = " + expected_result_expr.to_latex())
+        logger.debug("expected_result_event = " + str(expected_result_event))
+        logger.debug("Result_expr = " + result_expr.to_latex())
+        logger.debug("Result_event = " + str(result_event))
+        self.assert_expr_equal(expected_result_expr, result_expr)
+        self.assertCountEqual(expected_result_event, result_event)
 
     def test_transport_conditional_counterfactual_query_1(self):
         """First test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
