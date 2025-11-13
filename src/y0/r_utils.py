@@ -51,6 +51,10 @@ def prepare_renv(requirements: Iterable[str]) -> list[InstalledSTPackage | Insta
     ]
     if uninstalled_requirements:
         logger.warning("installing R packages: %s", uninstalled_requirements)
+        logger.warning(
+            "Passing the following argument to install_packages(): %s",
+            str(StrVector(uninstalled_requirements)),
+        )
         utils.install_packages(StrVector(uninstalled_requirements))
 
     return [importr(requirement) for requirement in requirements]
