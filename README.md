@@ -164,8 +164,8 @@ The code in this package is licensed under the
 
 ### 📖 Citation
 
-> [Causal identification with Y0](https://doi.org/10.48550/arXiv.2508.03167) \
-> Hoyt, C.T., _et al._ (2025) _arXiv_, 2508.03167
+> [Causal identification with Y0](https://doi.org/10.48550/arXiv.2508.03167)
+> <br>Hoyt, C.T., _et al._ (2025) _arXiv_, 2508.03167
 
 ```bibtex
 @software{hoyt2025y0,
