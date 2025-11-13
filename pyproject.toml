@@ -67,7 +67,6 @@ dependencies = [
     "scikit-learn",
     "statsmodels",
     "scipy",
-    "matplotlib>=3.10.5",
 ]
 
 
@@ -81,6 +80,7 @@ tests = [
     "xgboost", # for pillai
     "torch",
     "y0[r]",
+    "matplotlib>=3.10.5",
     "IPython",
 ]
 docs = [
