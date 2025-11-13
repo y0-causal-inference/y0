@@ -81,7 +81,6 @@ tests = [
     "torch",
     "y0[r]",
     "matplotlib>=3.10.5",
-    "IPython",
 ]
 docs = [
     "sphinx>=8",
