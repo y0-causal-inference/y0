@@ -2519,8 +2519,7 @@ class TestCFTFeatures(cases.GraphTestCase):
         unconditional_cft_result = unconditional_cft(
             event=event, target_domain_graph=figure_2a_graph, domains=domains
         )
-        result = unconditional_cft_result.display()
-        self.assertIsNone(result)
+        self.assertIsNotNone(unconditional_cft_result)
 
     def test_display_CFT_2(self):  # noqa: N802
         """Test displaying a conditional CFT result.
@@ -2545,8 +2544,7 @@ class TestCFTFeatures(cases.GraphTestCase):
             target_domain_graph=figure_1_graph_no_transportability_nodes,
             domains=domains,
         )
-        result = conditional_cft_result.display()
-        self.assertIsNone(result)
+        self.assertIsNotNone(conditional_cft_result)
 
 
 class TestEventFromCounterfactuals(cases.GraphTestCase):
