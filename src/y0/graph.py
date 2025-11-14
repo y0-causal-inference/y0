@@ -26,7 +26,6 @@ from .dsl import (
     P,
     Probability,
     Variable,
-    vmap_adj,
     vmap_pairs,
 )
 
@@ -124,7 +123,7 @@ class NxMixedGraph:
         if self.is_counterfactual():
             raise ValueError("This operation is not available for counterfactual graphs")
 
-    def add_node(self, n: Variable) -> None:
+    def add_node(self, n: str | Variable) -> None:
         """Add a node."""
         n = Variable.norm(n)
         self.directed.add_node(n)
@@ -438,9 +437,9 @@ class NxMixedGraph:
     @classmethod
     def from_edges(
         cls,
-        nodes: Iterable[Variable] | None = None,
-        directed: Iterable[tuple[Variable, Variable]] | None = None,
-        undirected: Iterable[tuple[Variable, Variable]] | None = None,
+        nodes: Iterable[str | Variable] | None = None,
+        directed: Iterable[tuple[str | Variable, str | Variable]] | None = None,
+        undirected: Iterable[tuple[str | Variable, str | Variable]] | None = None,
     ) -> NxMixedGraph:
         """Make a mixed graph from a pair of edge lists."""
         if directed is None and undirected is None:
@@ -471,9 +470,9 @@ class NxMixedGraph:
     @classmethod
     def from_adj(
         cls,
-        nodes: Iterable[Variable] | None = None,
-        directed: Mapping[Variable, Collection[Variable]] | None = None,
-        undirected: Mapping[Variable, Collection[Variable]] | None = None,
+        nodes: Iterable[str | Variable] | None = None,
+        directed: Mapping[str | Variable, Iterable[str | Variable]] | None = None,
+        undirected: Mapping[str | Variable, Iterable[str | Variable]] | None = None,
     ) -> NxMixedGraph:
         """Make a mixed graph from a pair of adjacency lists."""
         rv = cls()
@@ -492,16 +491,13 @@ class NxMixedGraph:
     @classmethod
     def from_str_adj(
         cls,
-        nodes: Iterable[str] | None = None,
-        directed: Mapping[str, Collection[str]] | None = None,
-        undirected: Mapping[str, Collection[str]] | None = None,
+        nodes: Iterable[str | Variable] | None = None,
+        directed: Mapping[str | Variable, Iterable[str | Variable]] | None = None,
+        undirected: Mapping[str | Variable, Iterable[str | Variable]] | None = None,
     ) -> NxMixedGraph:
         """Make a mixed graph from a pair of adjacency lists of strings."""
-        return cls.from_adj(
-            nodes=None if nodes is None else [Variable(n) for n in nodes],
-            directed=None if directed is None else vmap_adj(directed),
-            undirected=None if undirected is None else vmap_adj(undirected),
-        )
+        warnings.warn("directly use from_adj", DeprecationWarning, stacklevel=2)
+        return cls.from_adj(nodes=nodes, directed=directed, undirected=undirected)
 
     @classmethod
     @open_file(1)  # type:ignore

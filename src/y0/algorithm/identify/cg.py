@@ -2,7 +2,7 @@
 
 from collections.abc import Iterable
 from itertools import combinations
-from typing import Any, cast
+from typing import Any, TypeAlias, cast
 
 from y0.dsl import (
     CounterfactualVariable,
@@ -35,7 +35,7 @@ class World(frozenset[Intervention]):
         return super().__contains__(item)
 
 
-Worlds = set[World]
+Worlds: TypeAlias = set[World]
 
 
 def has_same_confounders(graph: NxMixedGraph, a: Variable, b: Variable) -> bool:
