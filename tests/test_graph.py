@@ -7,7 +7,7 @@ import networkx as nx
 from pgmpy.models import DiscreteBayesianNetwork
 
 from y0.dsl import V1, V2, V3, V4, A, B, C, D, M, Variable, X, Y, Z
-from y0.examples import (  # type: ignore[attr-defined]
+from y0.examples import (
     SARS_SMALL_GRAPH,
     Example,
     examples,

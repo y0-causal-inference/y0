@@ -5,7 +5,7 @@ import unittest
 import pyparsing
 
 from y0.dsl import P, Q, Sum, Variable
-from y0.examples import examples, verma_1  # type: ignore[attr-defined]
+from y0.examples import examples, verma_1
 
 try:
     from rpy2 import robjects

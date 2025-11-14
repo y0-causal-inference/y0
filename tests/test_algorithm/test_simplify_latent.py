@@ -15,7 +15,7 @@ from y0.algorithm.simplify_latent import (
 )
 from y0.algorithm.taheri_design import taheri_design_dag
 from y0.dsl import U1, U2, U3, Y1, Y2, Y3, U, Variable, W
-from y0.examples import igf_example  # type: ignore[attr-defined]
+from y0.examples import igf_example
 from y0.graph import set_latent
 
 X1, X2, X3 = map(Variable, ["X1", "X2", "X3"])

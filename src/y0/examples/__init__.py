@@ -51,6 +51,7 @@ from ..resources import ASIA_PATH
 from ..struct import DSeparationJudgement, VermaConstraint
 
 __all__ = [
+    "SARS_SMALL_GRAPH",
     "Example",
     "asia_example",
     "d_separation_example",
@@ -69,6 +70,7 @@ __all__ = [
     "frontdoor",
     "frontdoor_backdoor_example",
     "frontdoor_example",
+    "igf_example",
     "line_1_example",
     "line_2_example",
     "line_3_example",
@@ -82,7 +84,9 @@ __all__ = [
     "tikka_figure_5",
     "tikka_figure_6a",
     "tikka_figure_6b",
+    "tikka_trso_figure_8_graph",
     "tikka_unidentifiable_cfgraph",
+    "verma_1",
 ]
 
 x, y, z, w = -X, -Y, -Z, -W

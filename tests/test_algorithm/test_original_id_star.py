@@ -27,7 +27,7 @@ from y0.algorithm.identify.idc_star import (
     idc_star,
 )
 from y0.dsl import D, One, P, Sum, W, X, Y, Z, Zero
-from y0.examples import (  # type: ignore[attr-defined]
+from y0.examples import (
     figure_9a,
     figure_9c,
     figure_9d,
