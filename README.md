@@ -57,7 +57,7 @@ It can also be used to manipulate expressions:
 from y0.dsl import P, A, B, Sum
 
 P(A, B).marginalize(A) == Sum[A](P(A, B))
-P(A, B).conditional(A) == P(A, B) / Sum[A](P(A, B))
+P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
 ```
 
 DSL objects can be converted into strings with `str()` and parsed back using
@@ -116,12 +116,10 @@ to generate an estimand represented in the DSL like:
 ```python
 from y0.dsl import P, X, Y
 from y0.examples import napkin
-from y0.algorithm.identify import Identification, identify
+from y0.algorithm.identify import identify_outcomes
 
-# TODO after ID* and IDC* are done, we'll update this interface
-query = Identification.from_expression(graph=napkin, query=P(Y @ X))
-estimand = identify(query)
-assert estimand == P(Y @ X)
+estimand = identify_outcomes(napkin, treatments=X, outcomes=Y)
+assert estimand == P(Y | X)
 ```
 
 ## 🚀 Installation
@@ -167,21 +165,19 @@ The code in this package is licensed under the
 
 ### 📖 Citation
 
-Before we publish an application note on `y0`, you can cite this software via
-our Zenodo record (also see the badge above):
+> [Causal identification with Y0](https://doi.org/10.48550/arXiv.2508.03167)
+> <br>Hoyt, C.T., _et al._ (2025) _arXiv_, 2508.03167
 
 ```bibtex
-@software{y0,
-  author       = {Charles Tapley Hoyt and
-                  Jeremy Zucker and
-                  Marc-Antoine Parent},
-  title        = {y0-causal-inference/y0},
-  month        = jun,
-  year         = 2021,
-  publisher    = {Zenodo},
-  version      = {v0.1.0},
-  doi          = {10.5281/zenodo.4950768},
-  url          = {https://doi.org/10.5281/zenodo.4950768}
+@software{hoyt2025y0,
+    title = {Causal identification with $Y_0$},
+    author = {Charles Tapley Hoyt and Craig Bakker and Richard J. Callahan and Joseph Cottam and August George and Benjamin M. Gyori and Haley M. Hummel and Nathaniel Merrill and Sara Mohammad Taheri and Pruthvi Prakash Navada and Marc-Antoine Parent and Adam Rupe and Olga Vitek and Jeremy Zucker},
+    year = {2025},
+    eprint = {2508.03167},
+    archivePrefix = {arXiv},
+    primaryClass = {cs.AI},
+    url = {https://doi.org/10.48550/arXiv.2508.03167},
+    doi = {10.48550/arXiv.2508.03167},
 }
 ```
 
@@ -191,6 +187,7 @@ This project has been supported by several organizations (in alphabetical
 order):
 
 - [Biopragmatics Lab](https://biopragmatics.github.io)
+- [Gyori Lab for Computational Biomedicine](https://gyorilab.github.io/)
 - [Harvard Program in Therapeutic Science - Laboratory of Systems Pharmacology](https://hits.harvard.edu/the-program/laboratory-of-systems-pharmacology/)
 - [Pacific Northwest National Laboratory](https://www.pnnl.org/)
 
@@ -237,20 +234,6 @@ Alternatively, install using pip:
 $ python3 -m pip install -e .
 ```
 
-### Updating Package Boilerplate
-
-This project uses `cruft` to keep boilerplate (i.e., configuration, contribution
-guidelines, documentation configuration) up-to-date with the upstream
-cookiecutter package. Install cruft with either `uv tool install cruft` or
-`python3 -m pip install cruft` then run:
-
-```console
-$ cruft update
-```
-
-More info on Cruft's update command is available
-[here](https://github.com/cruft/cruft?tab=readme-ov-file#updating-a-project).
-
 ### 🥼 Testing
 
 After cloning the repository and installing `tox` with
@@ -288,7 +271,20 @@ only that Sphinx can build the documentation in an isolated environment (i.e.,
 with `tox -e docs-test`) but also that
 [ReadTheDocs can build it too](https://docs.readthedocs.io/en/stable/pull-requests.html).
 
+</details>
+
+## 🧑‍💻 For Maintainers
+
+<details>
+  <summary>See maintainer instructions</summary>
+
+### Initial Configuration
+
 #### Configuring ReadTheDocs
+
+[ReadTheDocs](https://readthedocs.org) is an external documentation hosting
+service that integrates with GitHub's CI/CD. Do the following for each
+repository:
 
 1. Log in to ReadTheDocs with your GitHub account to install the integration at
    https://readthedocs.org/accounts/login/?next=/dashboard/
@@ -298,12 +294,10 @@ with `tox -e docs-test`) but also that
    (i.e., with spaces and capital letters)
 4. Click next, and you're good to go!
 
-### 📦 Making a Release
-
-#### Configuring Zenodo
+#### Configuring Archival on Zenodo
 
 [Zenodo](https://zenodo.org) is a long-term archival system that assigns a DOI
-to each release of your package.
+to each release of your package. Do the following for each repository:
 
 1. Log in to Zenodo via GitHub with this link:
    https://zenodo.org/oauth/login/github/?next=%2F. This brings you to a page
@@ -323,10 +317,10 @@ see the DOI for the release and link to the Zenodo record for it.
 
 #### Registering with the Python Package Index (PyPI)
 
-You only have to do the following steps once.
+The [Python Package Index (PyPI)](https://pypi.org) hosts packages so they can
+be easily installed with `pip`, `uv`, and equivalent tools.
 
-1. Register for an account on the
-   [Python Package Index (PyPI)](https://pypi.org/account/register)
+1. Register for an account [here](https://pypi.org/account/register)
 2. Navigate to https://pypi.org/manage/account and make sure you have verified
    your email address. A verification email might not have been sent by default,
    so you might have to click the "options" dropdown next to your address to get
@@ -337,9 +331,11 @@ You only have to do the following steps once.
    2-factor authentication
 4. Issue an API token from https://pypi.org/manage/account/token
 
+This only needs to be done once per developer.
+
 #### Configuring your machine's connection to PyPI
 
-You have to do the following steps once per machine.
+This needs to be done once per machine.
 
 ```console
 $ uv tool install keyring
@@ -348,6 +344,8 @@ $ keyring set https://test.pypi.org/legacy/ __token__
 ```
 
 Note that this deprecates previous workflows using `.pypirc`.
+
+### 📦 Making a Release
 
 #### Uploading to PyPI
 
@@ -385,5 +383,19 @@ This script does the following:
 4. Click the big green "Publish Release" button
 
 This will trigger Zenodo to assign a DOI to your release as well.
+
+### Updating Package Boilerplate
+
+This project uses `cruft` to keep boilerplate (i.e., configuration, contribution
+guidelines, documentation configuration) up-to-date with the upstream
+cookiecutter package. Install cruft with either `uv tool install cruft` or
+`python3 -m pip install cruft` then run:
+
+```console
+$ cruft update
+```
+
+More info on Cruft's update command is available
+[here](https://github.com/cruft/cruft?tab=readme-ov-file#updating-a-project).
 
 </details>

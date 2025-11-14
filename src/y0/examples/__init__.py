@@ -1,5 +1,3 @@
-# type: ignore
-
 """Examples from CausalFusion."""
 
 from __future__ import annotations
@@ -51,6 +49,45 @@ from ..dsl import (
 from ..graph import NxMixedGraph
 from ..resources import ASIA_PATH
 from ..struct import DSeparationJudgement, VermaConstraint
+
+__all__ = [
+    "SARS_SMALL_GRAPH",
+    "Example",
+    "asia_example",
+    "d_separation_example",
+    "examples",
+    "figure_6a",
+    "figure_9a",
+    "figure_9a",
+    "figure_9b",
+    "figure_9c",
+    "figure_9c",
+    "figure_9d",
+    "figure_9d",
+    "figure_11a",
+    "figure_11b",
+    "figure_11c",
+    "frontdoor",
+    "frontdoor_backdoor_example",
+    "frontdoor_example",
+    "igf_example",
+    "line_1_example",
+    "line_2_example",
+    "line_3_example",
+    "line_4_example",
+    "line_5_example",
+    "line_6_example",
+    "line_7_example",
+    "napkin",
+    "napkin_example",
+    "tikka_figure_2",
+    "tikka_figure_5",
+    "tikka_figure_6a",
+    "tikka_figure_6b",
+    "tikka_trso_figure_8_graph",
+    "tikka_unidentifiable_cfgraph",
+    "verma_1",
+]
 
 x, y, z, w = -X, -Y, -Z, -W
 
@@ -221,13 +258,14 @@ napkin_example = Example(
     example_queries=[Query.from_str(treatments="X", outcomes="Y")],
     verma_constraints=[
         VermaConstraint(
-            lhs_cfactor=Q[X, Y](Z1, X, Y) / Sum[Y](Q[X, Y](Z1, X, Y)),
+            lhs_cfactor=Q.safe(Z1, X, Y, codomain=[X, Y])
+            / Sum.safe(Q.safe(Z1, X, Y, codomain=[X, Y]), Y),
             lhs_expr=(
-                Sum[Z2](P(Y | (Z1, Z2, X)) * P(X | (Z2, Z1)) * P(Z2))
-                / Sum[Z2, Y](P(Y | (Z2, Z1, X)) * P(X | (Z2, Z1)) * P(Z2))
+                Sum.safe(P(Y | (Z1, Z2, X)) * P(X | (Z2, Z1)) * P(Z2), Z2)
+                / Sum.safe(P(Y | (Z2, Z1, X)) * P(X | (Z2, Z1)) * P(Z2), [Z2, Y])
             ),
-            rhs_cfactor=Q[Y](X, Y),
-            rhs_expr=Sum[u_2, X](P(Y | u_2 | X) * P(X) * P(u_2)),
+            rhs_cfactor=Q.safe(X, Y, codomain=[Y]),
+            rhs_expr=Sum.safe(P(Y | u_2 | X) * P(X) * P(u_2), [u_2, X]),
             variables=(Z1,),
         ),
     ],
@@ -283,7 +321,7 @@ line_1_example = Example(
             "id_out": [
                 Identification.from_expression(
                     query=P(Y),
-                    estimand=Sum[Z](P(Y, Z)),
+                    estimand=Sum.safe(P(Y, Z), [Z]),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
@@ -324,7 +362,7 @@ line_2_example = Example(
             "id_out": [
                 Identification.from_expression(
                     query=P(Y),
-                    estimand=Sum[X](P(Y, X, Z)),
+                    estimand=Sum.safe(P(Y, X, Z), [X]),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
@@ -822,19 +860,24 @@ identifiability_2_example = Example(
     graph=identifiability_2,
     verma_constraints=[
         VermaConstraint(
-            rhs_cfactor=Q[Z5](Z4, Z5),
-            rhs_expr=Sum[u_3, Z4](P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3)),
-            lhs_cfactor=Sum[Z3](Q[Z3, Z5](Z1, Z4, Z3, Z5)),
-            lhs_expr=Sum[Z3](P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z2, Z4))),
+            rhs_cfactor=Q.safe(Z4, Z5, codomain=[Z5]),
+            rhs_expr=Sum.safe(P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3), [u_3, Z4]),
+            lhs_cfactor=Sum.safe(Q.safe(Z1, Z4, Z3, Z5, codomain=[Z3, Z5]), [Z3]),
+            lhs_expr=Sum.safe(P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z2, Z4)), [Z3]),
             variables=(Z1,),
         ),
         VermaConstraint(
-            rhs_cfactor=Q[Z5](Z4, Z5),
-            rhs_expr=Sum[u_3, Z4](P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3)),
-            lhs_cfactor=(Q[Z2, Z5](Z1, Z4, Z2, Z5) / Sum[Z5](Q[Z2, Z5](Z1, Z4, Z2, Z5))),
+            rhs_cfactor=Q.safe(Z4, Z5, codomain=[Z5]),
+            rhs_expr=Sum.safe(P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3), [u_3, Z4]),
+            lhs_cfactor=(
+                Q.safe(Z1, Z4, Z2, Z5, codomain=[Z2, Z5])
+                / Sum.safe(Q.safe(Z1, Z4, Z2, Z5, codomain=[Z2, Z5]), [Z5])
+            ),
             lhs_expr=(
-                Sum[Z3](P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
-                / Sum[Z3, Z5](P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
+                Sum.safe(P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)), [Z3])
+                / Sum.safe(
+                    P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)), [Z3, Z5]
+                )
             ),
             variables=(Z1, Z2),
         ),
@@ -916,9 +959,9 @@ identifiability_4 = NxMixedGraph.from_edges(
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 119.
 identifiability_5 = NxMixedGraph.from_edges(
     directed=[
-        ("X1", Z),
-        ("X1", Y),
-        ("X1", "X2"),
+        (X1, Z),
+        (X1, Y),
+        (X1, X2),
         (Z, "X2"),
         ("X2", Y),
     ],
@@ -1439,7 +1482,7 @@ p_ipw_graph = NxMixedGraph.from_str_edges(
 )
 
 
-def _generate_p_ipw(size: int, interventions=None) -> pd.DataFrame:
+def _generate_p_ipw(size: int, interventions: dict[Variable, float] | None = None) -> pd.DataFrame:
     if interventions is not None:
         raise NotImplementedError
     u1 = np.random.binomial(1, 0.4, size)

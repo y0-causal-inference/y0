@@ -114,7 +114,7 @@ def _any_variables_with_inconsistent_values(
         # most of the type errors in this module should actually be value errors
         raise TypeError(
             "In _any_variables_with_inconsistent values: a variable lacking interventions on itself "
-            + "has an assigned value and also a value of None. That should not occur. Check your inputs."
+            "has an assigned value and also a value of None. That should not occur."
         )
 
     if any(len(value_set) > 1 for value_set in nonreflexive_variable_to_value_mappings.values()):
@@ -129,7 +129,7 @@ def _any_variables_with_inconsistent_values(
     ):
         raise TypeError(
             "In _any_variables_with_inconsistent values: a variable containing interventions on itself "
-            + "has an assigned value of None. That should not occur. Check your inputs."
+            "has an assigned value of None. That should not occur."
         )
     return any(
         (
@@ -409,13 +409,8 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
         if not isinstance(variable, Variable) or not (
             isinstance(intervention, Intervention) or intervention is None
         ):
-            # FIXME please replace all instances of concatenating str() with usage of f strings
             raise TypeError(
-                "Improperly formatted inputs for simplify(): check input event element ("
-                + str(variable)
-                + ", "
-                + str(intervention)
-                + ")"
+                f"Improperly formatted inputs for simplify(): check input event element ({variable}, {intervention})"
             )
         if (
             isinstance(variable, Variable)
@@ -430,8 +425,9 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     # It's not enough to minimize the variables, we need to keep track of what values are associated with
     # the minimized variables. So we minimize the event.
     # minimized_variables: set[Variable] = minimize(variables={variable for variable, _ in event}, graph=graph)
+    logger.debug("In simplify: event = " + str(event))
     minimized_event: Event = minimize_event(event=event, graph=graph)
-    # logger.debug("In simplify: minimized_event = " + str(minimized_event))
+    logger.debug("In simplify: minimized_event = " + str(minimized_event))
 
     # Split the query into Y_x variables and Y_y ("reflexive") variables
     (
@@ -458,14 +454,14 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
         _remove_repeated_variables_and_values(reflexive_interventions_event)
     )
 
-    # logger.debug(
-    #    "In simplify after part 1 of line 3: minimized_nonreflexive_variable_to_value_mappings = "
-    #    + str(minimized_nonreflexive_variable_to_value_mappings)
-    # )
-    # logger.debug(
-    #    "                                    minimized_reflexive_variable_to_value_mappings = "
-    #    + str(minimized_reflexive_variable_to_value_mappings)
-    # )
+    logger.debug(
+        "In simplify after part 1 of line 3: minimized_nonreflexive_variable_to_value_mappings = "
+        + str(minimized_nonreflexive_variable_to_value_mappings)
+    )
+    logger.debug(
+        "                                    minimized_reflexive_variable_to_value_mappings = "
+        + str(minimized_reflexive_variable_to_value_mappings)
+    )
 
     # Line 2 of SIMPLIFY.
     if _any_variables_with_inconsistent_values(
@@ -474,14 +470,14 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     ):
         return None
 
-    # logger.debug(
-    #    "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
-    #    + str(minimized_nonreflexive_variable_to_value_mappings)
-    # )
-    # logger.debug(
-    #    "                                    minimized_reflexive_variable_to_value_mappings = "
-    #    + str(minimized_reflexive_variable_to_value_mappings)
-    # )
+    logger.debug(
+        "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
+        + str(minimized_nonreflexive_variable_to_value_mappings)
+    )
+    logger.debug(
+        "                                    minimized_reflexive_variable_to_value_mappings = "
+        + str(minimized_reflexive_variable_to_value_mappings)
+    )
 
     # Now we're able to reduce the reflexive counterfactual variables to interventions.
     # This simultaneously addresses Part 2 of Line 3:
@@ -493,10 +489,10 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
         )
     )
 
-    # logger.debug(
-    #    "In simplify after part 2 of line 3: minimized_reflexive_variable_to_value_mappings = "
-    #    + str(minimized_reflexive_variable_to_value_mappings)
-    # )
+    logger.debug(
+        "In simplify after part 2 of line 3: minimized_reflexive_variable_to_value_mappings = "
+        + str(minimized_reflexive_variable_to_value_mappings)
+    )
 
     # (Original part 2 of Line 3):
     # :math: **if** there exists $Y_y\in \mathbf{Y}_\ast$ with $\mathbf{y_*} \cap Y_y = y$ **then**
@@ -519,14 +515,14 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     ):
         return None
 
-    # logger.debug(
-    #    "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
-    #    + str(minimized_nonreflexive_variable_to_value_mappings)
-    # )
-    # logger.debug(
-    #    "                                    minimized_reflexive_variable_to_value_mappings = "
-    #    + str(minimized_reflexive_variable_to_value_mappings)
-    # )
+    logger.debug(
+        "In simplify after line 2: minimized_nonreflexive_variable_to_value_mappings = "
+        + str(minimized_nonreflexive_variable_to_value_mappings)
+    )
+    logger.debug(
+        "                                    minimized_reflexive_variable_to_value_mappings = "
+        + str(minimized_reflexive_variable_to_value_mappings)
+    )
 
     simplified_event = [
         (key, minimized_nonreflexive_variable_to_value_mappings[key].pop())
@@ -686,9 +682,8 @@ def get_counterfactual_factors_retaining_variable_values(
         # FIXME please replace all instances of concatenating str() with usage of f strings
         logger.debug(f"    Event = {event!s}")
         raise ValueError(
-            "In get_counterfactual_factors_retaining_variable_values(): the event %s is not"
-            + " in counterfactual factor form.",
-            str(event),
+            "In get_counterfactual_factors_retaining_variable_values(): the event is not"
+            f" in counterfactual factor form. {event}",
         )
 
     district_mappings: defaultdict[
@@ -697,16 +692,11 @@ def get_counterfactual_factors_retaining_variable_values(
     for variable, value in event:
         district_mappings[graph.get_district(variable.get_base())].add((variable, value))
 
-    logger.debug(
-        "In get_counterfactual_factors_retaining_variable_values(): district_mappings = "
-        + str(district_mappings)
-    )
-
     # TODO if there aren't duplicates, this can be a set of frozensets
     return_value = [set(value) for value in district_mappings.values()]
-    logger.debug(
-        "In get_counterfactual_factors_retaining_variable_values(): returning " + str(return_value)
-    )
+    # logger.debug(
+    #    "In get_counterfactual_factors_retaining_variable_values(): returning " + str(return_value)
+    # )
     return return_value
 
 
@@ -883,12 +873,12 @@ def validate_inputs_for_transport_district_intervening_on_parents(  # noqa:C901
     if not (isinstance(district, Collection) and all(isinstance(v, Variable) for v in district)):
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: "
-            + "the input district must be a Collection of Variable objects."
+            "the input district must be a Collection of Variable objects."
         )
     if not (isinstance(domain_graphs, list) and all(isinstance(t, tuple) for t in domain_graphs)):
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: the "
-            + "input domain graphs must be a list of tuples."
+            "input domain graphs must be a list of tuples."
         )
     if not all(
         isinstance(g, NxMixedGraph)
@@ -898,12 +888,12 @@ def validate_inputs_for_transport_district_intervening_on_parents(  # noqa:C901
     ):
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: the input domain "
-            + "graph tuples must all contain NxMixedGraph objects and lists of variables."
+            "graph tuples must all contain NxMixedGraph objects and lists of variables."
         )
     if not (isinstance(domain_data, list) and all(isinstance(t, tuple) for t in domain_data)):
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: the "
-            + "input domain data must be a list of tuples."
+            "input domain data must be a list of tuples."
         )
     if not all(
         isinstance(sigma_z, Collection)
@@ -913,67 +903,66 @@ def validate_inputs_for_transport_district_intervening_on_parents(  # noqa:C901
     ):
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: the input "
-            + "domain data tuples must all contain Collections of Variable objects "
-            + "(first element) and Expressions (second element)."
+            "domain data tuples must all contain Collections of Variable objects "
+            "(first element) and Expressions (second element)."
         )
     if any(e == Zero() or e == One() for _, e in domain_data):
         raise NotImplementedError(
             "In validate_inputs_for_transport_district_intervening_on_parents: this algorithm "
-            + "does not currently handle domain_data probability expressions that are of type "
-            + "One() or Zero()."
+            "does not currently handle domain_data probability expressions that are of type "
+            "One() or Zero()."
         )
     # Check we have no empty lists
     if len(domain_graphs) == 0 or len(domain_data) == 0:
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: empty list for "
-            + "either domain_graphs or domain_data. Check your inputs."
+            "either domain_graphs or domain_data."
         )
     if len(district) == 0:
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: the "
-            + "input district cannot be an empty set."
+            "input district cannot be an empty set."
         )
     if any(len(g.nodes()) == 0 for g, _ in domain_graphs):
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: at least one input "
-            + "domain graph contained no nodes. Check your inputs."
+            "domain graph contained no nodes."
         )
     if any(len(topo) == 0 for _, topo in domain_graphs):
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: an input set of "
-            + "topologically sorted vertices was empty. Check your inputs."
+            "topologically sorted vertices was empty."
         )
     if len(domain_graphs) != len(domain_data):
         raise TypeError(
             "In validate_inputs_for_transport_district_intervening_on_parents: the length of the "
-            + "domain_graphs and domain_data must be the same."
+            "domain_graphs and domain_data must be the same."
         )
     # Technically the topologically sorted vertices could be for the graph $G$ containing $G_{\mathbf{C}_{i}}$,
     # but we currently have a stricter requirement that they are for $G_{\mathbf{C}_{i}}$. That requirement
     # could be relaxed if it becomes a computational burden in the ctf_TRu algorithm.
-    for k in range(len(domain_graphs)):
-        logger.debug("k = " + str(k))
-        topo_vertices = frozenset(domain_graphs[k][1])
-        expression_vertices = frozenset(domain_data[k][1].get_variables())
-        graph_vertices = frozenset(domain_graphs[k][0].nodes())
+    for k, ((domain_graph, domain_topo), (d_xx, p_xx)) in enumerate(
+        zip(domain_graphs, domain_data, strict=False)
+    ):
+        topo_vertices = frozenset(domain_topo)
+        expression_vertices = frozenset(p_xx.get_variables())
+        graph_vertices = frozenset(domain_graph.nodes())
         graph_vertices_without_transportability_nodes = frozenset(
             _remove_transportability_vertices(vertices=graph_vertices)
         )
-        policy_vertices = frozenset(domain_data[k][0])
+        policy_vertices = frozenset(d_xx)
         if topo_vertices != graph_vertices:
             raise KeyError(
                 "In validate_inputs_for_transport_district_intervening_on_parents: the vertices "
-                + "in each domain graph must match those in the "
-                + "corresponding topologically sorted list of vertices. Check your inputs and "
-                + "note that the topologically sorted vertex lists "
-                + "must contain any transportability nodes. An easy way to "
-                + "generate a usable list is to call "
-                + "[graph_name].topological_sort() on the graph. "
-                + "Graph vertices: "
-                + str(graph_vertices)
-                + ". List: "
-                + str(topo_vertices)
-                + "."
+                "in each domain graph must match those in the "
+                "corresponding topologically sorted list of vertices. Check your inputs and "
+                "note that the topologically sorted vertex lists "
+                "must contain any transportability nodes. An easy way to "
+                "generate a usable list is to call "
+                "[graph_name].topological_sort() on the graph. "
+                f"Domain graph: {k}"
+                f". Graph vertices: {graph_vertices}"
+                f". List: {topo_vertices}."
             )
         # It's possible for the probability distribution to contain vertices not in the graph
         # due to conditioning on vertices outside the c-component associated with this graph.
@@ -981,35 +970,29 @@ def validate_inputs_for_transport_district_intervening_on_parents(  # noqa:C901
         if not all(v in expression_vertices for v in graph_vertices_without_transportability_nodes):
             raise KeyError(
                 "In validate_inputs_for_transport_district_intervening_on_parents: some of the "
-                + "vertices in a domain graph do not appear in the expression"
-                + " for the probability of the graph. Check your inputs. Graph vertices: "
-                + str(graph_vertices_without_transportability_nodes)
-                + ". Expression vertices: "
-                + str(expression_vertices)
-                + "."
+                "vertices in a domain graph do not appear in the expression"
+                f" for the probability of the graph. Domain graph: {k}"
+                f". Graph vertices: {graph_vertices_without_transportability_nodes}"
+                f". Expression vertices: {expression_vertices}."
             )
         if not all(v in graph_vertices_without_transportability_nodes for v in policy_vertices):
             raise KeyError(
                 "In validate_inputs_for_transport_district_intervening_on_parents: the set of "
-                + "vertices for which a policy has been applied for one "
-                + "of the domains contains at least one vertex not in the domain graph. Check your inputs. "
-                + "Policy vertices: "
-                + str(policy_vertices)
-                + ". Graph vertices: "
-                + str(graph_vertices_without_transportability_nodes)
+                "vertices for which a policy has been applied for one "
+                "of the domains contains at least one vertex not in the domain graph. "
+                f"Domain graph: {k}"
+                f". Policy vertices: {policy_vertices}"
+                f". Graph vertices: {graph_vertices_without_transportability_nodes}"
             )
         for v in district:
             if v not in graph_vertices_without_transportability_nodes:
                 raise KeyError(
                     "In validate_inputs_for_transport_district_intervening_on_parents: one of "
-                    + "the variables in the input district "
-                    + "is not in a domain graph. District: "
-                    + str(district)
-                    + ". Node missing from the graph: "
-                    + str(v)
-                    + ". Nodes in the graph: "
-                    + str(graph_vertices_without_transportability_nodes)
-                    + "."
+                    "the variables in the input district "
+                    f"is not in a domain graph. Domain graph: {k}"
+                    f". District: {district}"
+                    f". Node missing from the graph: {v}"
+                    f". Nodes in the graph: {graph_vertices_without_transportability_nodes}"
                 )
     return
 
@@ -1094,48 +1077,42 @@ def transport_district_intervening_on_parents(
     validate_inputs_for_transport_district_intervening_on_parents(
         district=district, domain_graphs=domain_graphs, domain_data=domain_data
     )
-    logger.debug("In transport_district_intervening_on_parents: input validated successfully.")
+    logger.debug("In transport_district_intervening_on_parents: All inputs are valid.")
     # Line 1
-    # FIXME use list comprehension + enumerate
-    for k in range(len(domain_graphs)):
+    for k, ((domain_graph, domain_topo), (d_xx, p_xx)) in enumerate(
+        zip(domain_graphs, domain_data, strict=False)
+    ):
         # Also Line 1 (the published pseudocode could break the for loop and this test into two lines)
-        logger.debug(" k = " + str(k))
+        logger.debug("  Domain graph under examination: " + str(k))
+        logger.debug("    district: " + str(district))
+        logger.debug("    interventions: " + str(d_xx))
+        logger.debug("    domain graph nodes: " + str(domain_graph.nodes()))
+        logger.debug("    domain graph directed edges: " + str(domain_graph.directed.edges))
+        logger.debug("    domain graph undirected edges: " + str(domain_graph.undirected.edges))
         logger.debug(
-            " _no_intervention_variables_in_domain: "
-            + str(
-                _no_intervention_variables_in_domain(
-                    district=district, interventions=domain_data[k][0]
-                )
-            )
+            "    No intervention variables in district: "
+            + str(_no_intervention_variables_in_domain(district=district, interventions=d_xx))
         )
         logger.debug(
-            " _no_transportability_nodes_in_domain: "
+            "    No transportability nodes in district: "
             + str(
-                _no_transportability_nodes_in_domain(
-                    district=district, domain_graph=domain_graphs[k][0]
-                )
+                _no_transportability_nodes_in_domain(district=district, domain_graph=domain_graph)
             )
         )
         if _no_intervention_variables_in_domain(
-            district=district, interventions=domain_data[k][0]
-        ) and _no_transportability_nodes_in_domain(
-            district=district, domain_graph=domain_graphs[k][0]
-        ):
-            logger.debug("In transport_district_intervening_on_parents: domain = " + str(k))
-            domain_graph = domain_graphs[k][0]
+            district=district, interventions=d_xx
+        ) and _no_transportability_nodes_in_domain(district=district, domain_graph=domain_graph):
+            logger.debug("    Attempting to transport this district for this domain graph: ")
+            logger.debug("      domain = " + str(k))
             domain_graph_variables = _remove_transportability_vertices(
                 vertices=domain_graph.nodes()
             )
-            domain_topo = domain_graphs[k][1]
 
             # Line 2
             domain_graph_district = frozenset().union(
                 *[domain_graph.get_district(v) for v in district]
             )  # $B_{i}$
-            logger.debug(
-                "In transport_district_intervening_on_parents: domain_graph_district = "
-                + str(domain_graph_district)
-            )
+            logger.debug("      domain_graph_district = " + str(domain_graph_district))
             # Sanity check: confirm that $C_{i} \subseteq B_{i}$
             if any(
                 domain_graph_district != frozenset(domain_graph.get_district(v)) for v in district
@@ -1156,15 +1133,15 @@ def transport_district_intervening_on_parents(
                 )
 
             # Line 3
-            logger.debug("Subgraph_probability: " + domain_data[k][1].to_latex())
+            logger.debug("    Subgraph_probability: " + p_xx.to_latex())
             domain_graph_district_q_probability = compute_c_factor(
                 district=domain_graph_district,  # district=district,
                 subgraph_variables=domain_graph_variables,
-                subgraph_probability=domain_data[k][1],
+                subgraph_probability=p_xx,
                 graph_topo=domain_topo,
             )
             logger.debug(
-                "domain_graph_district_q_probability: "
+                "    domain_graph_district_q_probability: "
                 + domain_graph_district_q_probability.to_latex()
             )
             # Line 4
@@ -1228,6 +1205,10 @@ def _transport_unconditional_counterfactual_query_line_2(
         (convert_to_counterfactual_factor_form(event=[(variable, value)], graph=graph)[0][0], value)
         for variable, value in ancestral_set_with_values
     }
+    logger.debug(
+        "In _transport_unconditional_counterfactual_query_line_2: ancestral_set_in_counterfactual_factor_form_with_values = "
+        + str(ancestral_set_in_counterfactual_factor_form_with_values)
+    )
     ancestor_bases = {v.get_base() for v in ancestral_set}
     outcome_ancestor_graph = graph.subgraph(ancestor_bases)
     factorized_ancestral_set_with_values: list[set[tuple[Variable, Intervention | None]]] = (
@@ -1338,7 +1319,7 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
     domain_graphs: list[tuple[NxMixedGraph, list[Variable]]],
     domain_data: list[tuple[Collection[Variable], PopulationProbability]],
 ) -> None:
-    r"""Conduct pre-processing checks to transport unconditional counterfacutal queries (Algorithm 2 from [correa22a]_).
+    r"""Conduct pre-processing checks to transport unconditional counterfactual queries (Algorithm 2 from [correa22a]_).
 
     :param event:
         "Y_*, a set of counterfactual variables in V and y_* a set of
@@ -1403,7 +1384,7 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
     if not (isinstance(event, list) and all(isinstance(t, tuple) and len(t) == 2 for t in event)):
         raise TypeError(
             "In _validate_transport_unconditional_counterfactual_query_input: the input event "
-            + "must be a list of tuples of length 2. Check your inputs."
+            + "must be a list of tuples of length 2."
         )
     if not all(
         isinstance(variable, Variable) and (value is None or isinstance(value, Intervention))
@@ -1428,13 +1409,13 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
     if len(event) == 0:
         raise ValueError(
             "In _validate_transport_unconditional_counterfactual_query_input: empty list for "
-            + "the event. Check your inputs."
+            + "the event."
         )
     # 8. (Target domain graph)
     if len(target_domain_graph.nodes()) == 0:
         raise ValueError(
             "In _validate_transport_unconditional_counterfactual_query_input: the target "
-            + "domain graph contained no nodes. Check your inputs."
+            + "domain graph contained no nodes."
         )
 
     # Type checking for inputs consistent with Algorithms 2,3, and 4
@@ -1483,7 +1464,7 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
     if all(value is None for _, value in event):
         raise ValueError(
             "In _validate_transport_unconditional_counterfactual_query_input: the event list "
-            + "must contain at least one variable with a value that is not None. Check your inputs."
+            + "must contain at least one variable with a value that is not None."
         )
 
     # Check we have no empty inputs (Algorithms 2, 3, and 4)
@@ -1491,19 +1472,19 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
     if len(domain_graphs) == 0 or len(domain_data) == 0:
         raise ValueError(
             "In _validate_transport_unconditional_counterfactual_query_input: empty list for "
-            + "either domain_graphs or domain_data. Check your inputs."
+            + "either domain_graphs or domain_data."
         )
     # 8.
     if any(len(g.nodes()) == 0 for g, _ in domain_graphs):
         raise ValueError(
             "In _validate_transport_unconditional_counterfactual_query_input: at least one input "
-            + "domain graph contained no nodes. Check your inputs."
+            + "domain graph contained no nodes."
         )
     # 9.
     if any(len(topo) == 0 for _, topo in domain_graphs):
         raise ValueError(
             "In _validate_transport_unconditional_counterfactual_query_input: an input set of "
-            + "topologically sorted vertices was empty. Check your inputs."
+            + "topologically sorted vertices was empty."
         )
     # 9.5.
     if len(domain_graphs) != len(domain_data):
@@ -1519,12 +1500,12 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
     ):
         raise ValueError(
             "In _validate_transport_unconditional_counterfactual_query_input: the target domain graph "
-            + "cannot contain a transportability node. Check your inputs."
+            + "cannot contain a transportability node."
         )
     if not is_directed_acyclic_graph(target_domain_graph.directed):
         raise ValueError(
             "In _validate_transport_unconditional_counterfactual_query_input: the directed edges in "
-            + "the target domain graph cannot form a cycle. Check your inputs."
+            + "the target domain graph cannot form a cycle."
         )
     # Check the domain graph vertices are all the same as the target domain graph vertices,
     #    net of transportability nodes
@@ -1537,14 +1518,14 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
         raise ValueError(
             "In _validate_transport_unconditional_counterfactual_query_input: a domain graph contained"
             + " different vertices than the target domain graph after excluding transportability "
-            + "nodes. Check your inputs."
+            + "nodes."
         )
     # Check the event vertices are in the target domain graph (given the above check, that means they're in every graph)
     # 12.
     if any(variable.get_base() not in target_domain_graph.nodes() for variable, _ in event):
         raise ValueError(
             "In _validate_transport_unconditional_counterfactual_query_input: one of the input "
-            + "event variables is not in the target domain graph. Check your inputs. "
+            + "event variables is not in the target domain graph. "
         )
     # 13.
     if any(
@@ -1554,19 +1535,21 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
             "In _validate_transport_unconditional_counterfactual_query_input: all input "
             + "event variables must either have values of None or the same base variable "
             + "as their corresponding values (e.g., your variable is (W @ -X) and its value "
-            + "must be +W or -W, but it's -X). Check your inputs."
+            + "must be +W or -W, but it's -X)."
         )
 
     # Technically the topologically sorted vertices could be for a superset of the vertices
     # in the input graphs, but we currently require them to be for the vertices in the input graphs.
-    for k in range(len(domain_graphs)):
-        topo_vertices = frozenset(domain_graphs[k][1])
-        expression_vertices = frozenset(domain_data[k][1].get_variables())
-        graph_vertices = frozenset(domain_graphs[k][0].nodes())
+    for k, ((domain_graph, domain_topo), (d_xx, p_xx)) in enumerate(
+        zip(domain_graphs, domain_data, strict=False)
+    ):
+        topo_vertices = frozenset(domain_topo)
+        expression_vertices = frozenset(p_xx.get_variables())
+        graph_vertices = frozenset(domain_graph.nodes())
         graph_vertices_without_transportability_nodes = frozenset(
             _remove_transportability_vertices(vertices=graph_vertices)
         )
-        policy_vertices = frozenset(domain_data[k][0])
+        policy_vertices = frozenset(d_xx)
         # 14.
         if topo_vertices != graph_vertices:
             raise ValueError(
@@ -1592,7 +1575,7 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
             raise ValueError(
                 "In _validate_transport_unconditional_counterfactual_query_input: some of the "
                 + "vertices in a domain graph do not appear in the expression"
-                + " for the probability of the graph. Check your inputs. Graph vertices: "
+                + " for the probability of the graph. Graph vertices: "
                 + str(graph_vertices_without_transportability_nodes)
                 + ". Expression vertices: "
                 + str(expression_vertices)
@@ -1604,7 +1587,7 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
             raise ValueError(
                 "In _validate_transport_unconditional_counterfactual_query_input: the set of "
                 + "vertices for which a policy has been applied for one "
-                + "of the domains contains at least one vertex not in the domain graph. Check your inputs. "
+                + "of the domains contains at least one vertex not in the domain graph. "
                 + "Policy vertices: "
                 + str(policy_vertices)
                 + ". Graph vertices: "
@@ -1613,41 +1596,41 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
                 + str(k)
             )
         # 9.7. (The directed acyclic graph check must come before the topological order check)
-        if not is_directed_acyclic_graph(domain_graphs[k][0].directed):
+        if not is_directed_acyclic_graph(domain_graph.directed):
             raise ValueError(
                 "In _validate_transport_unconditional_counterfactual_query_input: the directed edges in "
                 + "domain graph entry "
                 + str(k)
                 + " (zero-indexed) form a cycle and the graph must be a "
-                + "directed acyclic graph. Check your inputs."
+                + "directed acyclic graph."
             )
         # 10.
-        if not _valid_topo_list(topo=domain_graphs[k][1], graph=domain_graphs[k][0]):
+        if not _valid_topo_list(topo=domain_topo, graph=domain_graph):
             raise ValueError(
                 "In _validate_transport_unconditional_counterfactual_query_input: the provided topologically "
                 + "sorted order of the vertices ("
-                + str(domain_graphs[k][1])
+                + str(domain_topo)
                 + ") for domain graph entry "
                 + str(k)
                 + " (zero-indexed) "
-                + "is not valid, given the input domain_graph. Check your inputs."
+                + "is not valid, given the input domain_graph."
             )
         # 16. If the target domain graph is also in the domain_graphs list (i.e., data were collected for
         #     the target domain), then the target domain graph in the domain_graphs list must be
         #     identical to the target_domain_graph parameter.
         # TODO: relax the code base to allow Expressions in the domain_data instead of
         #     PopulationProbability types as follows:
-        # if isinstance(domain_data[k][1], PopulationProbability) and
-        #    str(domain_data[k][1].population)==str(TARGET_DOMAIN):
+        # if isinstance(p_xx, PopulationProbability) and
+        #    str(p_xx.population)==str(TARGET_DOMAIN):
         #    That covers a corner case where a user wishes to run this algorithm with a single domain and
         #    without specifying a population for the graph probability. In that case the problem reduces
         #    to running ID* anyway, so it's not likely to get much usage.
-        if str(domain_data[k][1].population) == str(TARGET_DOMAIN):
-            if domain_graphs[k][0] != target_domain_graph:
+        if str(p_xx.population) == str(TARGET_DOMAIN):
+            if domain_graph != target_domain_graph:
                 raise ValueError(
                     "In _validate_transport_unconditional_counterfactual_query_input: the domain_data input contains "
                     + 'a graph probability expression from the target domain (i.e., "pi*"), but the corresponding '
-                    + "domain_graph is not the same graph as the target_domain_graph. Check your inputs. Domain index "
+                    + "domain_graph is not the same graph as the target_domain_graph. Domain index "
                     + "(zero-indexed): "
                     + str(k)
                 )
@@ -1734,7 +1717,13 @@ def _event_from_counterfactuals_strict(
         if variable.star is not None:
             value = Intervention(name=variable.name, star=variable.star)
         else:
-            raise TypeError
+            raise TypeError(
+                "In _event_from_counterfactuals_strict: all counterfactuals passed in as "
+                + "inputs must have variable values, but at least one has no value. "
+                + "(Offending variable: "
+                + str(variable.name)
+                + ".)"
+            )
         rv.append((base, value))
     return rv
 
@@ -1772,6 +1761,7 @@ def unconditional_cft(
         (domain.graph, domain.ordering or domain.graph.topological_sort()) for domain in domains
     ]
     domain_data = [(domain.policy_variables, domain.population) for domain in domains]
+    logger.debug("In unconditional_cft: domain_data = " + str(domain_data))
     return transport_unconditional_counterfactual_query(
         event=_event_from_counterfactuals(event),
         target_domain_graph=target_domain_graph,
@@ -1870,7 +1860,7 @@ def transport_unconditional_counterfactual_query(
             #    reader regarding how the district probability intervening on the district's
             #    parents (i.e., its Q expression) is transported from one of the available domains.
             # Line 8 is a statement that the values over which the Q expression is evaluated come
-            #    from the union of the parents of each of the parents of the district variables
+            #    from the union of each of the parents of the district variables
             #    and the values of the district variables themselves. Many of these values are
             #    not associated with actual input variables $\mathbf{y_{\ast}}$. Instead, we
             #    will end up marginalizing over them in Line 14. Correa and Bareinboim point this
@@ -1933,6 +1923,7 @@ def _initialize_conditional_transportability_data_structures(
     set[Variable],
     dict[Variable, set[Intervention]],
     dict[Variable, set[Intervention]],
+    dict[Variable, set[Intervention]],
     set[Variable],
     set[Variable],
 ]:
@@ -1954,6 +1945,9 @@ def _initialize_conditional_transportability_data_structures(
         outcome_variables
     )
     outcome_variable_to_value_mappings: defaultdict[Variable, set[Intervention]] = defaultdict(set)
+    conditioned_variable_to_value_mappings: defaultdict[Variable, set[Intervention]] = defaultdict(
+        set
+    )
     # outcome_and_conditioned_variable_to_value_mappings: defaultdict[
     #    Variable, set[Intervention]
     # ] = defaultdict(set)
@@ -1966,6 +1960,7 @@ def _initialize_conditional_transportability_data_structures(
         outcome_and_conditioned_variable_names_to_values[key.get_base()].add(value)
     for key, value in conditions:
         # outcome_and_conditioned_variable_to_value_mappings[key].update({value})
+        conditioned_variable_to_value_mappings[key].update({value})
         outcome_and_conditioned_variable_names_to_values[key.get_base()].add(value)
 
     outcome_and_conditioned_variable_names: set[Variable] = {
@@ -1979,6 +1974,7 @@ def _initialize_conditional_transportability_data_structures(
         outcome_variables,
         outcome_and_conditioned_variables,
         dict(outcome_variable_to_value_mappings),
+        dict(conditioned_variable_to_value_mappings),
         dict(outcome_and_conditioned_variable_names_to_values),
         outcome_and_conditioned_variable_names,
         conditioned_variable_names,
@@ -1990,6 +1986,7 @@ def _transport_conditional_counterfactual_query_line_2(
     ancestral_components: frozenset[frozenset[Variable]],
     outcome_variables: set[Variable],
     outcome_variable_to_value_mappings: dict[Variable, set[Intervention]],
+    conditioned_variable_to_value_mappings: dict[Variable, set[Intervention]],
     target_domain_graph: NxMixedGraph,
 ) -> tuple[Event, set[Variable]]:
     r"""Set up data structures to process a conditional counterfactual query per Algorithm 3 of [correa22a]_.
@@ -2027,22 +2024,72 @@ def _transport_conditional_counterfactual_query_line_2(
         Algorithm 3 of [correa22a]_. It also returns a set of variables representing the target domain graph vertices
         associated with variables in $\mathbf{D_{\ast}}$.
     """
+    logger.debug(
+        "In _transport_conditional_counterfactual_query_line_2: ancestral_components = "
+        + str(ancestral_components)
+    )
+    logger.debug(
+        "In _transport_conditional_counterfactual_query_line_2: outcome_variables = "
+        + str(outcome_variables)
+    )
+    logger.debug(
+        "In _transport_conditional_counterfactual_query_line_2: outcome_variable_to_value_mappings = "
+        + str(outcome_variable_to_value_mappings)
+    )
+    logger.debug(
+        "In _transport_conditional_counterfactual_query_line_2: conditioned_variable_to_value_mappings = "
+        + str(conditioned_variable_to_value_mappings)
+    )
     outcome_ancestral_component_variables_and_values: Event = []
     outcome_variable_ancestral_component_variables: set[Variable] = set()
     for component in ancestral_components:
         if any(variable in outcome_variables for variable in component):
             outcome_variable_ancestral_component_variables.update(set(component))
+    # for variable in outcome_variable_ancestral_component_variables:
+    #    if variable not in outcome_variable_to_value_mappings:
+    #        outcome_ancestral_component_variables_and_values.append((variable, None))
+    #    else:
+    #        # There could be redundant values for a variable, and Simplify() will catch them
+    #        for value in outcome_variable_to_value_mappings[variable]:
+    #            outcome_ancestral_component_variables_and_values.append((variable, value))
+    # Note that we may also know values for the conditioned variables $\mathbf{X_{\ast}}$.
+    #    And some of those variables may be in the ancestral components. However, we do not
+    #    bother to add those values to the outcome_ancestral_component_variables_and_values
+    #    event, because Line 4 of Algorithm 3 of [correa22a] marginalizes out all values $\mathbf{x_{\ast}}$,
+    #    in both the numerator and denominator. Because none of those values would ever get used for anything
+    #    if they're not already included among the outcomes, we don't keep track of them.
+    # Update: we must add values of the conditioned variables present in the ancestral components
+    #    because any inconsistent intervention values passed in to Algorithm 2 of [correa22a] could
+    #    cause that algorithm to return FAIL, and therefore cause Algorithm 3 of [correa22a] to
+    #    return FAIL as well.
     for variable in outcome_variable_ancestral_component_variables:
-        if variable not in outcome_variable_to_value_mappings:
+        if (
+            variable not in outcome_variable_to_value_mappings
+            and variable not in conditioned_variable_to_value_mappings
+        ):
             outcome_ancestral_component_variables_and_values.append((variable, None))
         else:
             # There could be redundant values for a variable, and Simplify() will catch them
-            for value in outcome_variable_to_value_mappings[variable]:
-                outcome_ancestral_component_variables_and_values.append((variable, value))
+            if variable in outcome_variable_to_value_mappings.keys():
+                for value in outcome_variable_to_value_mappings[variable]:
+                    outcome_ancestral_component_variables_and_values.append((variable, value))
+            if variable in conditioned_variable_to_value_mappings.keys():
+                for value in conditioned_variable_to_value_mappings[variable]:
+                    outcome_ancestral_component_variables_and_values.append((variable, value))
+    logger.debug(
+        "In _transport_conditional_counterfactual_query_line_2: outcome_ancestral_component_variables_and_values = "
+        + str(outcome_ancestral_component_variables_and_values)
+        + ". (This is D_* and d_*)"
+    )
     outcome_ancestral_component_query_in_counterfactual_factor_form: Event = (
         convert_to_counterfactual_factor_form(
             event=outcome_ancestral_component_variables_and_values, graph=target_domain_graph
         )
+    )
+    logger.debug(
+        "In _transport_conditional_counterfactual_query_line_2: In counterfactual factor form this is "
+        + str(outcome_ancestral_component_query_in_counterfactual_factor_form)
+        + "."
     )
     outcome_variable_ancestral_component_variable_names = {
         variable.get_base() for variable in outcome_variable_ancestral_component_variables
@@ -2154,21 +2201,17 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
     if any(value is None for _, value in result_event):
         raise TypeError(
             "In transport_conditional_counterfactual_query: all returned values "
-            + "used to evaluate the query result expression should be actual outcome "
-            + "variable values, but at least one is None. The result_event is "
-            + str(result_event)
-            + ". Also check your inputs."
+            "used to evaluate the query result expression should be actual outcome "
+            f"variable values, but at least one is None. The result_event is {result_event}"
         )
     # 5. Make sure all the variables in the result_event are in the result_expression.
     if not all(variable in result_expression.get_variables() for variable, _ in result_event):
         raise KeyError(
             "In final checks for transport_conditional_counterfactual_query: at least one variable in "
-            + "the event that transport_unconditional_counterfactual_query() "
-            + "will return is not a variable in the expression for the probability of the query "
-            + "that is to be returned. result_event: "
-            + str(result_event)
-            + " and return expression: "
-            + str(result_expression)
+            "the event that transport_unconditional_counterfactual_query() "
+            "will return is not a variable in the expression for the probability of the query "
+            f"that is to be returned. result_event: {result_event}"
+            f" and return expression: {result_expression}"
         )
 
 
@@ -2367,6 +2410,7 @@ def transport_conditional_counterfactual_query(
         outcome_variables,
         outcome_and_conditioned_variables,
         outcome_variable_to_value_mappings,
+        conditioned_variable_to_value_mappings,
         # outcome_and_conditioned_variable_to_value_mappings,
         outcome_and_conditioned_variable_names_to_values,
         outcome_and_conditioned_variable_names,
@@ -2390,6 +2434,7 @@ def transport_conditional_counterfactual_query(
         ancestral_components=ancestral_components,
         outcome_variables=outcome_variables,
         outcome_variable_to_value_mappings=outcome_variable_to_value_mappings,
+        conditioned_variable_to_value_mappings=conditioned_variable_to_value_mappings,
         target_domain_graph=target_domain_graph,
     )
 
@@ -2510,7 +2555,7 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     ):
         raise TypeError(
             "In _validate_transport_conditional_counterfactual_query_input: the input outcomes "
-            + "must be a list of tuples of length 2. Check your inputs."
+            + "must be a list of tuples of length 2."
         )
     if not all(
         isinstance(variable, Variable) and isinstance(value, Intervention)
@@ -2518,7 +2563,7 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     ):
         raise TypeError(
             "In _validate_transport_conditional_counterfactual_query_input: each tuple in the input outcomes "
-            + "must contain a Variable object and its corresponding value (an Intervention). Check your inputs."
+            + "must contain a Variable object and its corresponding value (an Intervention)."
         )
     if not (
         isinstance(conditions, list)
@@ -2526,7 +2571,7 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     ):
         raise TypeError(
             "In _validate_transport_conditional_counterfactual_query_input: the input conditions "
-            + "must be a list of tuples of length 2. Check your inputs."
+            + "must be a list of tuples of length 2."
         )
     if not all(
         isinstance(variable, Variable) and isinstance(value, Intervention)
@@ -2534,7 +2579,7 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     ):
         raise TypeError(
             "In _validate_transport_conditional_counterfactual_query_input: each tuple in the input conditions "
-            + "must contain a Variable object and its corresponding value (an Intervention). Check your inputs."
+            + "must contain a Variable object and its corresponding value (an Intervention)."
         )
     # Type checking for inputs consistent with both Algorithms 2 and 3
     # 2.
@@ -2555,12 +2600,11 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     if len(outcomes) == 0:
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: empty list for "
-            + "the outcomes. Check your inputs."
+            + "the outcomes."
         )
     if len(target_domain_graph.nodes()) == 0:
         raise ValueError(
-            "In _validate_transport_conditional_counterfactual_query_input: the target "
-            + "domain graph contained no nodes. Check your inputs."
+            "In _validate_transport_conditional_counterfactual_query_input: the target domain graph contained no nodes."
         )
 
     # Type checking for inputs consistent with Algorithms 2,3, and 4
@@ -2578,19 +2622,18 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     ):
         raise TypeError(
             "In _validate_transport_conditional_counterfactual_query_input: the input domain "
-            + "graph tuples must all contain NxMixedGraph objects and lists of variables."
+            "graph tuples must all contain NxMixedGraph objects and lists of variables."
         )
     # 4 and 4.5.
     if not (isinstance(domain_data, list) and all(isinstance(t, tuple) for t in domain_data)):
         raise TypeError(
-            "In _validate_transport_conditional_counterfactual_query_input: the "
-            + "input domain data must be a list of tuples."
+            "In _validate_transport_conditional_counterfactual_query_input: the input domain data must be a list of tuples."
         )
     if any(e == Zero() or e == One() for _, e in domain_data):
         raise NotImplementedError(
             "In _validate_transport_conditional_counterfactual_query_input: this algorithm "
-            + "does not currently handle domain_data probability expressions that are of type "
-            + "One() or Zero()."
+            "does not currently handle domain_data probability expressions that are of type "
+            "One() or Zero()."
         )
     if not all(
         isinstance(sigma_z, Collection)
@@ -2600,8 +2643,8 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     ):
         raise TypeError(
             "In _validate_transport_conditional_counterfactual_query_input: the input "
-            + "domain data tuples must all contain Collections of Variable objects "
-            + "(first element) and PopulationProbability expressions (second element)."
+            "domain data tuples must all contain Collections of Variable objects "
+            "(first element) and PopulationProbability expressions (second element)."
         )
 
     # 17.
@@ -2620,25 +2663,25 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     if len(domain_graphs) == 0 or len(domain_data) == 0:
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: empty list for "
-            + "either domain_graphs or domain_data. Check your inputs."
+            "either domain_graphs or domain_data."
         )
     # 8.
     if any(len(g.nodes()) == 0 for g, _ in domain_graphs):
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: at least one input "
-            + "domain graph contained no nodes. Check your inputs."
+            "domain graph contained no nodes."
         )
     # 9.
     if any(len(topo) == 0 for _, topo in domain_graphs):
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: an input set of "
-            + "topologically sorted vertices was empty. Check your inputs."
+            + "topologically sorted vertices was empty."
         )
     # 9.5.
     if len(domain_graphs) != len(domain_data):
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: the length of the "
-            + "domain_graphs and domain_data must be the same."
+            "domain_graphs and domain_data must be the same."
         )
 
     # Check the target domain graph contains no transportability nodes and is a directed acyclic graph
@@ -2648,12 +2691,12 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
     ):
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: the target domain graph "
-            + "cannot contain a transportability node. Check your inputs."
+            "cannot contain a transportability node."
         )
     if not is_directed_acyclic_graph(target_domain_graph.directed):
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: the directed edges in "
-            + "the target domain graph cannot form a cycle. Check your inputs."
+            "the target domain graph cannot form a cycle."
         )
     # Check the domain graph vertices are all the same as the target domain graph vertices,
     #    net of transportability nodes
@@ -2664,65 +2707,64 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
         for domain_graph, _ in domain_graphs
     ):
         raise ValueError(
-            "In _validate_transport_conditional_counterfactual_query_input: a domain graph contained"
-            + " different vertices than the target domain graph after excluding transportability "
-            + "nodes. Check your inputs."
+            "In _validate_transport_conditional_counterfactual_query_input: a domain graph contained "
+            "different vertices than the target domain graph after excluding transportability "
+            "nodes."
         )
     # Check the event vertices are in the target domain graph (given the above check, that means they're in every graph)
     # 12.
     if any(variable.get_base() not in target_domain_graph.nodes() for variable, _ in conditions):
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: one of the input "
-            + "conditioned variables is not in the target domain graph. Check your inputs. "
+            "conditioned variables is not in the target domain graph. "
         )
     if any(variable.get_base() not in target_domain_graph.nodes() for variable, _ in outcomes):
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: one of the input "
-            + "outcome variables is not in the target domain graph. Check your inputs. "
+            "outcome variables is not in the target domain graph. "
         )
     # 13.
     if any(variable.get_base() != value.get_base() for variable, value in conditions):
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: one of the input "
-            + "conditioned variables does not have the same base variable as its corresponding"
-            + "value (e.g., your variable is (W @ -X) and its value must be +W or -W, but it's"
-            + "-X). Check your inputs."
+            "conditioned variables does not have the same base variable as its corresponding"
+            "value (e.g., your variable is (W @ -X) and its value must be +W or -W, but it's"
+            "-X)."
         )
     if any(variable.get_base() != value.get_base() for variable, value in outcomes):
         raise ValueError(
             "In _validate_transport_conditional_counterfactual_query_input: one of the input "
-            + "outcome variables does not have the same base variable as its corresponding"
-            + "value (e.g., your variable is (W @ -X) and its value must be +W or -W, but the "
-            + "value is -X). Check your inputs."
+            "outcome variables does not have the same base variable as its corresponding "
+            "value (e.g., your variable is (W @ -X) and its value must be +W or -W, but the "
+            "value is -X)."
         )
 
     # Technically the topologically sorted vertices could be for a superset of the vertices
     # in the input graphs, but we currently require them to be for the vertices in the input graphs.
-    for k in range(len(domain_graphs)):
+    for k, ((domain_graph, domain_topo), (d_xx, p_xx)) in enumerate(
+        zip(domain_graphs, domain_data, strict=False)
+    ):
         # logger.debug("k = " + str(k))
-        topo_vertices = frozenset(domain_graphs[k][1])
-        expression_vertices = frozenset(domain_data[k][1].get_variables())
-        graph_vertices = frozenset(domain_graphs[k][0].nodes())
+        topo_vertices = frozenset(domain_topo)
+        expression_vertices = frozenset(p_xx.get_variables())
+        graph_vertices = frozenset(domain_graph.nodes())
         graph_vertices_without_transportability_nodes = frozenset(
             _remove_transportability_vertices(vertices=graph_vertices)
         )
-        policy_vertices = frozenset(domain_data[k][0])
+        policy_vertices = frozenset(d_xx)
         # 14.
         if topo_vertices != graph_vertices:
             raise ValueError(
                 "In _validate_transport_conditional_counterfactual_query_input: the vertices "
-                + "in each domain graph must match those in the "
-                + "corresponding topologically sorted list of vertices. Check your inputs and "
-                + "note that the topologically sorted vertex lists "
-                + "must contain any transportability nodes. An easy way to "
-                + "generate a usable list is to call "
-                + "[graph_name].topological_sort() on the graph. "
-                + "Graph vertices: "
-                + str(graph_vertices)
-                + ". Topologically sorted list of vertices: "
-                + str(topo_vertices)
-                + ". Domain index (zero-indexed): "
-                + str(k)
+                "in each domain graph must match those in the "
+                "corresponding topologically sorted list of vertices. Check your inputs and "
+                "note that the topologically sorted vertex lists "
+                "must contain any transportability nodes. An easy way to "
+                "generate a usable list is to call "
+                "[graph_name].topological_sort() on the graph. "
+                f"Graph vertices: {graph_vertices}."
+                f"Topologically sorted list of vertices: {topo_vertices}."
+                f"Domain index (zero-indexed): {k}"
             )
         # It's possible for a graph probability expression to contain vertices not in the graph
         # due to conditioning on vertices outside the graph. But the graph vertices must all be
@@ -2731,65 +2773,53 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
         if not all(v in expression_vertices for v in graph_vertices_without_transportability_nodes):
             raise ValueError(
                 "In _validate_transport_conditional_counterfactual_query_input: some of the "
-                + "vertices in a domain graph do not appear in the expression"
-                + " for the probability of the graph. Check your inputs. Graph vertices: "
-                + str(graph_vertices_without_transportability_nodes)
-                + ". Expression vertices: "
-                + str(expression_vertices)
-                + ". Domain index (zero-indexed): "
-                + str(k)
+                "vertices in a domain graph do not appear in the expression "
+                f"for the probability of the graph. Graph vertices: "
+                f"{graph_vertices_without_transportability_nodes}."
+                f"Expression vertices: {expression_vertices}"
+                f"Domain index (zero-indexed): {k}"
             )
         # 15.5.
         if not all(v in graph_vertices_without_transportability_nodes for v in policy_vertices):
             raise ValueError(
                 "In _validate_transport_conditional_counterfactual_query_input: the set of "
-                + "vertices for which a policy has been applied for one "
-                + "of the domains contains at least one vertex not in the domain graph. Check your inputs. "
-                + "Policy vertices: "
-                + str(policy_vertices)
-                + ". Graph vertices: "
-                + str(graph_vertices_without_transportability_nodes)
-                + ". Domain index (zero-indexed): "
-                + str(k)
+                "vertices for which a policy has been applied for one "
+                "of the domains contains at least one vertex not in the domain graph.\n"
+                f"Policy vertices: {policy_vertices}\n"
+                f"Graph vertices: {graph_vertices_without_transportability_nodes}\n"
+                f"Domain index (zero-indexed): {k}"
             )
         # 9.7. (The directed acyclic graph check must come before the topological order check)
-        if not is_directed_acyclic_graph(domain_graphs[k][0].directed):
+        if not is_directed_acyclic_graph(domain_graph.directed):
             raise ValueError(
                 "In _validate_transport_conditional_counterfactual_query_input: the directed edges in "
-                + "domain graph entry "
-                + str(k)
-                + " (zero-indexed) form a cycle and the graph must be a "
-                + "directed acyclic graph. Check your inputs."
+                f"domain graph entry {k} (zero-indexed) form a cycle and the graph must be a "
+                "directed acyclic graph."
             )
         # 10.
-        if not _valid_topo_list(topo=domain_graphs[k][1], graph=domain_graphs[k][0]):
+        if not _valid_topo_list(topo=domain_topo, graph=domain_graph):
             raise ValueError(
                 "In _validate_transport_conditional_counterfactual_query_input: the provided topologically "
-                + "sorted order of the vertices ("
-                + str(domain_graphs[k][1])
-                + ") for domain graph entry "
-                + str(k)
-                + " (zero-indexed) "
-                + "is not valid, given the input domain_graph. Check your inputs."
+                f"sorted order of the vertices ({domain_topo}) for domain graph entry {k} (zero-indexed) "
+                "is not valid, given the input domain_graph."
             )
         # 16. If the target domain graph is also in the domain_graphs list (i.e., data were collected for
         #     the target domain), then the target domain graph in the domain_graphs list must be
         #     identical to the target_domain_graph parameter.
         # TODO: relax the code base to allow Expressions in the domain_data instead of
         #     PopulationProbability types as follows:
-        # if isinstance(domain_data[k][1], PopulationProbability) and
-        #    str(domain_data[k][1].population)==str(TARGET_DOMAIN):
+        # if isinstance(p_xx, PopulationProbability) and
+        #    str(p_xx.population)==str(TARGET_DOMAIN):
         #    That covers a corner case where a user wishes to run this algorithm with a single domain and
         #    without specifying a population for the graph probability. In that case the problem reduces
         #    to running ID* anyway, so it's not likely to get much usage.
-        if str(domain_data[k][1].population) == str(TARGET_DOMAIN):
-            if domain_graphs[k][0] != target_domain_graph:
+        if str(p_xx.population) == str(TARGET_DOMAIN):
+            if domain_graph != target_domain_graph:
                 raise ValueError(
                     "In _validate_transport_conditional_counterfactual_query_input: the domain_data contain "
-                    + 'a graph probability expression from the target domain (i.e., "pi*"), but the '
-                    + "corresponding domain_graph is not the same graph as the target_domain_graph. "
-                    + "Check your inputs. Domain index (zero-indexed): "
-                    + str(k)
+                    'a graph probability expression from the target domain (i.e., "pi*"), but the '
+                    "corresponding domain_graph is not the same graph as the target_domain_graph. "
+                    f"Check your inputs. Domain index (zero-indexed): {k}"
                 )
     return
 
