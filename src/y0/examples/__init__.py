@@ -258,13 +258,13 @@ napkin_example = Example(
     example_queries=[Query.from_str(treatments="X", outcomes="Y")],
     verma_constraints=[
         VermaConstraint(
-            lhs_cfactor=Q[X, Y](Z1, X, Y) / Sum[Y](Q[X, Y](Z1, X, Y)),
+            lhs_cfactor=Q[X, Y](Z1, X, Y) / Sum.safe(Q[X, Y](Z1, X, Y), Y),
             lhs_expr=(
-                Sum[Z2](P(Y | (Z1, Z2, X)) * P(X | (Z2, Z1)) * P(Z2))
-                / Sum[Z2, Y](P(Y | (Z2, Z1, X)) * P(X | (Z2, Z1)) * P(Z2))
+                Sum.safe(P(Y | (Z1, Z2, X)) * P(X | (Z2, Z1)) * P(Z2), Z2)
+                / Sum.safe(P(Y | (Z2, Z1, X)) * P(X | (Z2, Z1)) * P(Z2), [Z2, Y])
             ),
             rhs_cfactor=Q[Y](X, Y),
-            rhs_expr=Sum[u_2, X](P(Y | u_2 | X) * P(X) * P(u_2)),
+            rhs_expr=Sum.safe(P(Y | u_2 | X) * P(X) * P(u_2), [u_2, X]),
             variables=(Z1,),
         ),
     ],
@@ -320,7 +320,7 @@ line_1_example = Example(
             "id_out": [
                 Identification.from_expression(
                     query=P(Y),
-                    estimand=Sum[Z](P(Y, Z)),
+                    estimand=Sum.safe(P(Y, Z), [Z]),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
@@ -361,7 +361,7 @@ line_2_example = Example(
             "id_out": [
                 Identification.from_expression(
                     query=P(Y),
-                    estimand=Sum[X](P(Y, X, Z)),
+                    estimand=Sum.safe(P(Y, X, Z), [X]),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
@@ -860,18 +860,20 @@ identifiability_2_example = Example(
     verma_constraints=[
         VermaConstraint(
             rhs_cfactor=Q[Z5](Z4, Z5),
-            rhs_expr=Sum[u_3, Z4](P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3)),
-            lhs_cfactor=Sum[Z3](Q[Z3, Z5](Z1, Z4, Z3, Z5)),
-            lhs_expr=Sum[Z3](P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z2, Z4))),
+            rhs_expr=Sum.safe(P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3), [u_3, Z4]),
+            lhs_cfactor=Sum.safe(Q[Z3, Z5](Z1, Z4, Z3, Z5), [Z3]),
+            lhs_expr=Sum.safe(P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z2, Z4)), [Z3]),
             variables=(Z1,),
         ),
         VermaConstraint(
             rhs_cfactor=Q[Z5](Z4, Z5),
-            rhs_expr=Sum[u_3, Z4](P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3)),
-            lhs_cfactor=(Q[Z2, Z5](Z1, Z4, Z2, Z5) / Sum[Z5](Q[Z2, Z5](Z1, Z4, Z2, Z5))),
+            rhs_expr=Sum.safe(P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3), [u_3, Z4]),
+            lhs_cfactor=(Q[Z2, Z5](Z1, Z4, Z2, Z5) / Sum.safe(Q[Z2, Z5](Z1, Z4, Z2, Z5), [Z5])),
             lhs_expr=(
-                Sum[Z3](P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
-                / Sum[Z3, Z5](P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
+                Sum.safe(P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)), [Z3])
+                / Sum.safe(
+                    P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)), [Z3, Z5]
+                )
             ),
             variables=(Z1, Z2),
         ),
