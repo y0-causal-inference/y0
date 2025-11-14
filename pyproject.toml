@@ -80,6 +80,7 @@ tests = [
     "xgboost", # for pillai
     "torch",
     "y0[r]",
+    "matplotlib>=3.10.5",
 ]
 docs = [
     "sphinx>=8",
