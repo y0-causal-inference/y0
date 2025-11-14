@@ -37,7 +37,7 @@ from y0.dsl import (
     Z,
     get_outcomes_and_treatments,
 )
-from y0.examples import (  # type: ignore[attr-defined]
+from y0.examples import (
     figure_6a,
     line_1_example,
     line_2_example,

@@ -1,5 +1,3 @@
-# type: ignore
-
 """Examples from CausalFusion."""
 
 from __future__ import annotations
@@ -54,11 +52,16 @@ from ..struct import DSeparationJudgement, VermaConstraint
 
 __all__ = [
     "Example",
+    "asia_example",
     "d_separation_example",
     "examples",
+    "figure_6a",
+    "figure_9a",
     "figure_9a",
     "figure_9b",
     "figure_9c",
+    "figure_9c",
+    "figure_9d",
     "figure_9d",
     "figure_11a",
     "figure_11b",
@@ -66,8 +69,20 @@ __all__ = [
     "frontdoor",
     "frontdoor_backdoor_example",
     "frontdoor_example",
+    "line_1_example",
+    "line_2_example",
+    "line_3_example",
+    "line_4_example",
+    "line_5_example",
+    "line_6_example",
+    "line_7_example",
     "napkin",
     "napkin_example",
+    "tikka_figure_2",
+    "tikka_figure_5",
+    "tikka_figure_6a",
+    "tikka_figure_6b",
+    "tikka_unidentifiable_cfgraph",
 ]
 
 x, y, z, w = -X, -Y, -Z, -W
@@ -934,9 +949,9 @@ identifiability_4 = NxMixedGraph.from_edges(
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 119.
 identifiability_5 = NxMixedGraph.from_edges(
     directed=[
-        ("X1", Z),
-        ("X1", Y),
-        ("X1", "X2"),
+        (X1, Z),
+        (X1, Y),
+        (X1, X2),
         (Z, "X2"),
         ("X2", Y),
     ],
@@ -1457,7 +1472,7 @@ p_ipw_graph = NxMixedGraph.from_str_edges(
 )
 
 
-def _generate_p_ipw(size: int, interventions=None) -> pd.DataFrame:
+def _generate_p_ipw(size: int, interventions: None = None) -> pd.DataFrame:
     if interventions is not None:
         raise NotImplementedError
     u1 = np.random.binomial(1, 0.4, size)

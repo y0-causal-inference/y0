@@ -124,7 +124,7 @@ class NxMixedGraph:
         if self.is_counterfactual():
             raise ValueError("This operation is not available for counterfactual graphs")
 
-    def add_node(self, n: Variable) -> None:
+    def add_node(self, n: str | Variable) -> None:
         """Add a node."""
         n = Variable.norm(n)
         self.directed.add_node(n)
@@ -438,9 +438,9 @@ class NxMixedGraph:
     @classmethod
     def from_edges(
         cls,
-        nodes: Iterable[Variable] | None = None,
-        directed: Iterable[tuple[Variable, Variable]] | None = None,
-        undirected: Iterable[tuple[Variable, Variable]] | None = None,
+        nodes: Iterable[str | Variable] | None = None,
+        directed: Iterable[tuple[str | Variable, str | Variable]] | None = None,
+        undirected: Iterable[tuple[str | Variable, str | Variable]] | None = None,
     ) -> NxMixedGraph:
         """Make a mixed graph from a pair of edge lists."""
         if directed is None and undirected is None:
@@ -471,9 +471,9 @@ class NxMixedGraph:
     @classmethod
     def from_adj(
         cls,
-        nodes: Iterable[Variable] | None = None,
-        directed: Mapping[Variable, Collection[Variable]] | None = None,
-        undirected: Mapping[Variable, Collection[Variable]] | None = None,
+        nodes: Iterable[str | Variable] | None = None,
+        directed: Mapping[str | Variable, Collection[str | Variable]] | None = None,
+        undirected: Mapping[str | Variable, Collection[str | Variable]] | None = None,
     ) -> NxMixedGraph:
         """Make a mixed graph from a pair of adjacency lists."""
         rv = cls()
