@@ -1021,7 +1021,7 @@ class Product(Expression):
 
     expressions: frozenset[Expression]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not isinstance(self.expressions, frozenset):
             raise TypeError("Products must be given with a frozenset")
         if len(self.expressions) < 2:
@@ -1065,10 +1065,10 @@ class Product(Expression):
         return cls(expressions=frozenset(expressions))
 
     @property
-    def _sorted_expressions(self):
+    def _sorted_expressions(self) -> list[Expression]:
         return sorted(self.expressions)
 
-    def _get_key(self):
+    def _get_key(self):  # type:ignore
         inner_keys = (sexpr._get_key() for sexpr in self._sorted_expressions)
         return 2, *inner_keys
 
