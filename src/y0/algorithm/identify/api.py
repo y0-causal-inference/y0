@@ -1,7 +1,5 @@
 """High-level API for identification algorithms."""
 
-from typing import Union
-
 from .id_c import idc
 from .id_std import identify
 from .utils import Identification, Query, Unidentifiable
@@ -15,9 +13,9 @@ __all__ = [
 
 def identify_outcomes(
     graph: NxMixedGraph,
-    treatments: Union[Variable, set[Variable]],
-    outcomes: Union[Variable, set[Variable]],
-    conditions: Union[None, Variable, set[Variable]] = None,
+    treatments: Variable | set[Variable],
+    outcomes: Variable | set[Variable],
+    conditions: None | Variable | set[Variable] = None,
 ) -> Expression | None:
     """Calculate the estimand for the treatment(s)m outcome(s), and optional condition(s).
 

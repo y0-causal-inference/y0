@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from contextlib import redirect_stdout
-from typing import List, Optional, Union
+from typing import cast
 
 import pandas as pd
 
@@ -17,20 +17,21 @@ from y0.graph import (
 )
 
 __all__ = [
+    "df_covers_graph",
     "estimate_ace",
 ]
 
 
-def estimate_ace(
+def estimate_ace(  # noqa:C901
     graph: NxMixedGraph,
-    treatments: Union[Variable, List[Variable]],
-    outcomes: Union[Variable, List[Variable]],
+    treatments: Variable | list[Variable],
+    outcomes: Variable | list[Variable],
     data: pd.DataFrame,
     *,
-    conditions: Optional[List[Variable]] = None,
+    conditions: list[Variable] | None = None,
     bootstraps: int | None = None,
     alpha: float | None = None,
-    estimator: Optional[str] = None,
+    estimator: str | None = None,
 ) -> float:
     """Estimate the average treatment effect."""
     if conditions is not None:
@@ -109,6 +110,9 @@ def ananke_average_causal_effect(
         # care of that explicitly below
         causal_effect = CausalEffect(ananke_graph, treatment.name, outcome.name)
 
-    return causal_effect.compute_effect(
-        data, estimator=estimator, n_bootstraps=bootstraps or 0, alpha=alpha or 0.05
+    return cast(
+        float,
+        causal_effect.compute_effect(
+            data, estimator=estimator, n_bootstraps=bootstraps or 0, alpha=alpha or 0.05
+        ),
     )

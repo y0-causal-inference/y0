@@ -1,14 +1,298 @@
-# See https://setuptools.readthedocs.io/en/latest/build_meta.html
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta:__legacy__"
+requires = ["uv_build>=0.9.6,<1.0"]
+build-backend = "uv_build"
 
-[tool.black]
+[project]
+name = "y0"
+version = "0.2.12-dev"
+description = "Causal inference in Python."
+readme = "README.md"
+authors = [
+    { name = "Charles Tapley Hoyt", email = "cthoyt@gmail.com" },
+    { name = "Jeremy Zucker", email = "jeremy.zucker@pnnl.gov" },
+]
+maintainers = [
+    { name = "Charles Tapley Hoyt", email = "cthoyt@gmail.com" },
+]
+
+# See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#classifiers
+# Search tags using the controlled vocabulary at https://pypi.org/classifiers
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Framework :: Pytest",
+    "Framework :: tox",
+    "Framework :: Sphinx",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Typing :: Typed",
+]
+keywords = [
+    "snekpack",
+    "cookiecutter",
+    "structural causal modeling",
+    "causal artificial intelligence",
+    "causal machine learning",
+    "causal inference",
+    "network science",
+]
+
+# License Information.
+# See PEP-639 at https://peps.python.org/pep-0639/#add-license-files-key
+license-files = [
+    "LICENSE",
+]
+
+requires-python = ">=3.10"
+dependencies = [
+    "more_itertools", # missing from itertools in stdlib
+    "tqdm", # progress bars
+    "click",
+    "more_click",
+    "pyparsing",
+    "networkx",
+    "tabulate",
+    "pandas",
+    "scikit-learn",
+    "statsmodels",
+    "scipy",
+]
+
+
+# see https://peps.python.org/pep-0735/ and https://docs.astral.sh/uv/concepts/dependencies/#dependency-groups
+[dependency-groups]
+tests = [
+    "pytest",
+    "coverage[toml]",
+    # "ananke-causal",
+    "pgmpy>=1.0.0",
+    "xgboost", # for pillai
+    "torch",
+    "y0[r]",
+    "matplotlib>=3.10.5",
+]
+docs = [
+    "sphinx>=8",
+    "sphinx-rtd-theme>=3.0",
+    "sphinx-click",
+    "sphinx_automodapi",
+    "texext",
+]
+lint = [
+    "ruff",
+]
+typing = [
+    { include-group = "tests" },
+    "mypy",
+    "pydantic",
+    "types-click",
+    "types-tabulate",
+]
+docs-lint = [
+    { include-group = "docs" },
+    "doc8",
+]
+format-docs = [
+    { include-group = "docs" },
+    "docstrfmt",
+]
+doctests = [
+    "xdoctest",
+    "pygments",
+]
+pyroma = [
+    "pyroma",
+    "pygments",
+]
+# follow https://github.com/astral-sh/uv/issues/6298 for switching to a uv-based version bump workflow
+bump = [
+    "bump-my-version",
+]
+build = [
+    "uv>=0.9.6",
+    "uv-build>=0.9.6",
+]
+release = [
+    { include-group = "build" },
+    "uv",
+    "keyring",
+]
+
+# see https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-optional-dependencies
+[project.optional-dependencies]
+r = [
+    "rpy2",
+]
+
+# See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#urls
+# and also https://packaging.python.org/en/latest/specifications/well-known-project-urls/
+[project.urls]
+"Bug Tracker" = "https://github.com/y0-causal-inference/y0/issues"
+Homepage = "https://github.com/y0-causal-inference/y0"
+Repository = "https://github.com/y0-causal-inference/y0.git"
+Documentation = "https://y0.readthedocs.io"
+Funding = "https://github.com/sponsors/cthoyt"
+
+[project.scripts]
+y0 = "y0.cli:main"
+
+[tool.cruft]
+skip = [
+    "**/__init__.py",
+    "tests/*"
+]
+
+# MyPy, see https://mypy.readthedocs.io/en/stable/config_file.html
+[tool.mypy]
+plugins = []
+
+# Doc8, see https://doc8.readthedocs.io/en/stable/readme.html#ini-file-usage
+[tool.doc8]
+max-line-length = 120
+
+# Pytest, see https://docs.pytest.org/en/stable/reference/customize.html#pyproject-toml
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+# Coverage, see https://coverage.readthedocs.io/en/latest/config.html
+[tool.coverage.run]
+branch = true
+source = [
+    "y0",
+]
+omit = [
+    "tests/*",
+    "docs/*",
+    "src/y0/version.py",
+    "src/y0/__main__.py",
+    "src/y0/cli.py",
+    "src/y0/algorithm/identify/_extras.py",
+]
+
+[tool.coverage.paths]
+source = [
+    "src/y0",
+    ".tox/*/lib/python*/site-packages/y0",
+]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == \"__main__\":",
+    "if TYPE_CHECKING:",
+    "def __str__",
+    "def __repr__",
+]
+
+[tool.ruff]
 line-length = 100
-target-version = ["py38", "py39", "py310"]
+extend-include = ["*.ipynb"]
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-include_trailing_comma = true
-reverse_relative = true
+[tool.ruff.lint]
+# See https://docs.astral.sh/ruff/rules
+extend-select = [
+    "F", # pyflakes
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "C90", # mccabe
+    "I", # isort
+    "UP", # pyupgrade
+    "D", # pydocstyle
+    "DOC", # pydoclint
+    "B", # bugbear
+    "S", # bandit
+    "T20", # print
+    "N", # pep8 naming
+    #"ERA", # eradicate commented out code
+    #"NPY", # numpy checks
+    "RUF", # ruff rules
+    "C4", # comprehensions
+]
+ignore = [
+    "D105", # Missing docstring in magic method
+    "E203", # Black conflicts with the following
+    "E501",
+]
+
+# See https://docs.astral.sh/ruff/settings/#per-file-ignores
+[tool.ruff.lint.per-file-ignores]
+# Ignore security issues in the version.py, which are inconsistent
+"src/y0/version.py" = ["S603", "S607"]
+# Ignore commented out code in Sphinx configuration file
+"docs/source/conf.py" = ["ERA001"]
+# Prints are okay in notebooks
+"notebooks/**/*.ipynb" = ["T201", "S101", "N811", "N802", "N803"]
+"src/y0/algorithm/separation/sigma_separation.py" = ["RUF002", "RUF003"]
+"src/y0/algorithm/separation/__init__.py" = ["RUF002", "RUF003"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.isort]
+relative-imports-order = "closest-to-furthest"
+known-third-party = [
+    "tqdm",
+]
+known-first-party = [
+    "y0",
+    "tests",
+]
+
+[tool.ruff.format]
+# see https://docs.astral.sh/ruff/settings/#format_docstring-code-format
+docstring-code-format = true
+
+[tool.bumpversion]
+current_version = "0.2.12-dev"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(?:-(?P<release>[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?(?:\\+(?P<build>[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?"
+serialize = [
+    "{major}.{minor}.{patch}-{release}+{build}",
+    "{major}.{minor}.{patch}+{build}",
+    "{major}.{minor}.{patch}-{release}",
+    "{major}.{minor}.{patch}",
+]
+commit = true
+tag = false
+
+[tool.bumpversion.parts.release]
+optional_value = "production"
+first_value = "dev"
+values = [
+    "dev",
+    "production",
+]
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = "version = \"{current_version}\""
+replace = "version = \"{new_version}\""
+
+[[tool.bumpversion.files]]
+filename = "docs/source/conf.py"
+search = "release = \"{current_version}\""
+replace = "release = \"{new_version}\""
+
+[[tool.bumpversion.files]]
+filename = "src/y0/version.py"
+search = "VERSION = \"{current_version}\""
+replace = "VERSION = \"{new_version}\""
+
+[[tool.bumpversion.files]]
+filename = "CITATION.cff"
+search = "version: {current_version}"
+replace = "version: {new_version}"

@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-
 """Tests for the identify algorithm."""
 
 import unittest
-from typing import Union
 
 from y0.algorithm.identify import Identification, Unidentifiable, identify
 from y0.dsl import Distribution, P, Probability, X, Y
@@ -18,7 +15,7 @@ class TestNotIdentifiable(unittest.TestCase):
     """
 
     def assert_not_identifiable(
-        self, graph: NxMixedGraph, query: Union[Probability, Distribution]
+        self, graph: NxMixedGraph, query: Probability | Distribution
     ) -> None:
         """Asset the graph is not identifiable under the given query."""
         with self.assertRaises(Unidentifiable):
@@ -105,9 +102,7 @@ class TestIdentifiable(unittest.TestCase):
     https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb.
     """
 
-    def assert_identifiable(
-        self, graph: NxMixedGraph, query: Union[Probability, Distribution]
-    ) -> None:
+    def assert_identifiable(self, graph: NxMixedGraph, query: Probability | Distribution) -> None:
         """Assert the graph is identifiable under the given query."""
         estimand = identify(Identification.from_expression(graph=graph, query=query))
         self.assertIsNotNone(estimand)

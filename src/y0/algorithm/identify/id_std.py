@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 """An implementation of the identification algorithm."""
 
-from typing import List, Sequence
+from collections.abc import Sequence
 
 from .utils import Identification, Unidentifiable
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
@@ -14,7 +12,7 @@ __all__ = [
 
 
 def identify(identification: Identification) -> Expression:
-    """Run the ID algorithm from [Shpitser2006]_.
+    """Run the ID algorithm from [shpitser2006]_.
 
     :param identification: The identification tuple
     :returns: the expression corresponding to the identification
@@ -22,9 +20,6 @@ def identify(identification: Identification) -> Expression:
 
     See also :func:`identify_outcomes` for a more idiomatic way of running
     the ID algorithm given a graph, treatments, and outcomes.
-
-    .. [Shpitser2006] `Identification of joint interventional distributions in recursive semi-Markovian
-       causal models <https://dl.acm.org/doi/10.5555/1597348.1597382>`_
     """
     graph = identification.graph
     treatments = identification.treatments
@@ -161,7 +156,7 @@ def line_3(identification: Identification) -> Identification:
     return identification.with_treatments(no_effect_on_outcome)
 
 
-def line_4(identification: Identification) -> List[Identification]:
+def line_4(identification: Identification) -> list[Identification]:
     r"""Run line 4 of the identification algorithm.
 
     The key line of the algorithm, it decomposes the problem into a set

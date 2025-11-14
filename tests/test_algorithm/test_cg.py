@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Tests for parallel world graphs and counterfactual graphs."""
 
 import unittest
@@ -264,27 +262,27 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assert_uedge_set_equal(
             {(Y, Y @ -x)},
             stitch_factual_and_dopplegangers(
-                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds={frozenset([-x])}
             ),
         )
         self.assert_uedge_set_equal(
             {(Y, Y @ +x)},
             stitch_factual_and_dopplegangers(
-                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds={frozenset([+x])}
             ),
         )
         self.assert_uedge_set_equal(
             {(Y, Y @ +x), (Z, Z @ +x)},
             stitch_factual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
-                worlds=set([frozenset([+x])]),
+                worlds={frozenset([+x])},
             ),
         )
         self.assert_uedge_set_equal(
             {(Y, Y @ +x), (Z, Z @ +x)},
             stitch_factual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
-                worlds=set([frozenset([+x])]),
+                worlds={frozenset([+x])},
             ),
         )
         self.assert_uedge_set_equal(
@@ -293,7 +291,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 graph=NxMixedGraph.from_edges(
                     directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
                 ),
-                worlds=set([frozenset([+x]), frozenset([-d])]),
+                worlds={frozenset([+x]), frozenset([-d])},
             ),
         )
         self.assert_uedge_set_equal(
@@ -308,7 +306,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 (W, W @ +x),
             },
             stitch_factual_and_dopplegangers(
-                graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
+                graph=figure_9a.graph, worlds={frozenset([+x]), frozenset([-d])}
             ),
         )
 
@@ -323,21 +321,21 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assert_uedge_set_equal(
             set(),
             stitch_factual_and_doppleganger_neighbors(
-                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds={frozenset([-x])}
             ),
         )
         self.assert_uedge_set_equal(
             {(X, Y @ +x)},
             stitch_factual_and_doppleganger_neighbors(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
-                worlds=set([frozenset([+x])]),
+                worlds={frozenset([+x])},
             ),
         )
         self.assert_uedge_set_equal(
             {(X, Z @ +x)},
             stitch_factual_and_doppleganger_neighbors(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
-                worlds=set([frozenset([+x])]),
+                worlds={frozenset([+x])},
             ),
         )
         self.assert_uedge_set_equal(
@@ -346,7 +344,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                 graph=NxMixedGraph.from_edges(
                     directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
                 ),
-                worlds=set([frozenset([+x]), frozenset([-d])]),
+                worlds={frozenset([+x]), frozenset([-d])},
             ),
         )
 
@@ -355,27 +353,27 @@ class TestCounterfactualGraph(cases.GraphTestCase):
         self.assert_uedge_set_equal(
             set(),
             stitch_counterfactual_and_dopplegangers(
-                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds={frozenset([-x])}
             ),
         )
         self.assert_uedge_set_equal(
             set(),
             stitch_counterfactual_and_dopplegangers(
-                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
+                graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds={frozenset([+x])}
             ),
         )
         self.assert_uedge_set_equal(
             set(),
             stitch_counterfactual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
-                worlds=set([frozenset([+x])]),
+                worlds={frozenset([+x])},
             ),
         )
         self.assert_uedge_set_equal(
             set(),
             stitch_counterfactual_and_dopplegangers(
                 graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
-                worlds=set([frozenset([+x])]),
+                worlds={frozenset([+x])},
             ),
         )
         self.assert_uedge_set_equal(
@@ -385,14 +383,14 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                     graph=NxMixedGraph.from_edges(
                         directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
                     ),
-                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                    worlds={frozenset([+x]), frozenset([-d])},
                 )
             ),
         )
         self.assert_uedge_set_equal(
             {frozenset({Y @ -d, Y @ +x}), frozenset({W @ +x, W @ -d}), frozenset({Z @ +x, Z @ -d})},
             stitch_counterfactual_and_dopplegangers(
-                graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
+                graph=figure_9a.graph, worlds={frozenset([+x]), frozenset([-d])}
             ),
         )
 
@@ -402,7 +400,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             set(),
             set(
                 stitch_counterfactual_and_doppleganger_neighbors(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds={frozenset([-x])}
                 )
             ),
         )
@@ -410,7 +408,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             set(),
             set(
                 stitch_counterfactual_and_doppleganger_neighbors(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds={frozenset([+x])}
                 )
             ),
         )
@@ -419,7 +417,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             set(
                 stitch_counterfactual_and_doppleganger_neighbors(
                     graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
-                    worlds=set([frozenset([+x])]),
+                    worlds={frozenset([+x])},
                 )
             ),
         )
@@ -428,7 +426,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             set(
                 stitch_counterfactual_and_doppleganger_neighbors(
                     graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)], undirected=[(X, Z)]),
-                    worlds=set([frozenset([+x])]),
+                    worlds={frozenset([+x])},
                 )
             ),
         )
@@ -439,7 +437,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                     graph=NxMixedGraph.from_edges(
                         directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
                     ),
-                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                    worlds={frozenset([+x]), frozenset([-d])},
                 )
             ),
         )
@@ -450,14 +448,14 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                     graph=NxMixedGraph.from_edges(
                         directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z), (Y, Z)]
                     ),
-                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                    worlds={frozenset([+x]), frozenset([-d])},
                 )
             ),
         )
         self.assert_uedge_set_equal(
             {frozenset({X @ -d, Y @ +x})},
             stitch_counterfactual_and_doppleganger_neighbors(
-                graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
+                graph=figure_9a.graph, worlds={frozenset([+x]), frozenset([-d])}
             ),
         )
 
@@ -467,7 +465,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             set(),
             set(
                 stitch_counterfactual_and_neighbors(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([-x])])
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds={frozenset([-x])}
                 )
             ),
         )
@@ -475,7 +473,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             set(),
             set(
                 stitch_counterfactual_and_neighbors(
-                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds=set([frozenset([+x])])
+                    graph=NxMixedGraph.from_edges(directed=[(X, Y)]), worlds={frozenset([+x])}
                 )
             ),
         )
@@ -484,7 +482,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             set(
                 stitch_counterfactual_and_neighbors(
                     graph=NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)]),
-                    worlds=set([frozenset([+x])]),
+                    worlds={frozenset([+x])},
                 )
             ),
         )
@@ -495,7 +493,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                     graph=NxMixedGraph.from_edges(
                         directed=[(X, Y), (Y, Z)], undirected=[(X, Z), (Y, Z)]
                     ),
-                    worlds=set([frozenset([+x])]),
+                    worlds={frozenset([+x])},
                 )
             ),
         )
@@ -506,7 +504,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                     graph=NxMixedGraph.from_edges(
                         directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z)]
                     ),
-                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                    worlds={frozenset([+x]), frozenset([-d])},
                 )
             ),
         )
@@ -517,14 +515,14 @@ class TestCounterfactualGraph(cases.GraphTestCase):
                     graph=NxMixedGraph.from_edges(
                         directed=[(X, Y), (Y, Z), (D, X)], undirected=[(X, Z), (Y, Z)]
                     ),
-                    worlds=set([frozenset([+x]), frozenset([-d])]),
+                    worlds={frozenset([+x]), frozenset([-d])},
                 )
             ),
         )
         self.assert_uedge_set_equal(
             {frozenset({X @ -d, Y @ -d})},
             stitch_counterfactual_and_neighbors(
-                graph=figure_9a.graph, worlds=set([frozenset([+x]), frozenset([-d])])
+                graph=figure_9a.graph, worlds={frozenset([+x]), frozenset([-d])}
             ),
         )
 
@@ -540,7 +538,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
             },
             _get_directed_edges(
                 NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z), (D, X)]),
-                worlds=set([frozenset([+x]), frozenset([-d])]),
+                worlds={frozenset([+x]), frozenset([-d])},
             ),
         )
 
@@ -642,14 +640,14 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_merge_pw(self):
         """Test the parallel worlds graph after merging two nodes is correct (Lemma 25)."""
-        cf_graph_1, preferred, eliminated = merge_pw(figure_9b.graph, D, D @ -X)
-        cf_graph_2, preferred, eliminated = merge_pw(cf_graph_1, X, X @ D)
+        cf_graph_1, _preferred, _eliminated = merge_pw(figure_9b.graph, D, D @ -X)
+        cf_graph_2, _preferred, _eliminated = merge_pw(cf_graph_1, X, X @ D)
         # test that we swap the order of the nodes if the first is a counterfactual
-        cf_graph_3, preferred, eliminated = merge_pw(cf_graph_2, Z @ -X, Z)
-        cf_graph_4, preferred, eliminated = merge_pw(cf_graph_3, Z, Z @ D)
-        cf_graph_5, preferred, eliminated = merge_pw(cf_graph_4, W, W @ D)
-        cf_graph_6, preferred, eliminated = merge_pw(cf_graph_5, D @ -D, D)
-        cf_graph_7, preferred, eliminated = merge_pw(cf_graph_6, Y, Y @ -D)
+        cf_graph_3, _preferred, _eliminated = merge_pw(cf_graph_2, Z @ -X, Z)
+        cf_graph_4, _preferred, _eliminated = merge_pw(cf_graph_3, Z, Z @ D)
+        cf_graph_5, _preferred, _eliminated = merge_pw(cf_graph_4, W, W @ D)
+        cf_graph_6, _preferred, _eliminated = merge_pw(cf_graph_5, D @ -D, D)
+        cf_graph_7, _preferred, _eliminated = merge_pw(cf_graph_6, Y, Y @ -D)
         self.assert_graph_equal(figure_11a.graph, cf_graph_2)
         self.assert_graph_equal(figure_11b.graph, cf_graph_6)
         self.assert_graph_equal(figure_11c.graph, cf_graph_7)

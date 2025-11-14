@@ -1,6 +1,7 @@
-"""Implementation of sigma-separation."""
+"""Implementation of sigma-separation from [forre2018]_."""
 
-from typing import Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
+from typing import cast
 
 import networkx as nx
 from more_itertools import triplewise
@@ -10,8 +11,8 @@ from y0.graph import NxMixedGraph
 
 __all__ = [
     "are_sigma_separated",
-    "is_z_sigma_open",
     "get_equivalence_classes",
+    "is_z_sigma_open",
 ]
 
 
@@ -20,15 +21,15 @@ def are_sigma_separated(
     left: Variable,
     right: Variable,
     *,
-    conditions: Optional[Iterable[Variable]] = None,
-    cutoff: Optional[int] = None,
+    conditions: Iterable[Variable] | None = None,
+    cutoff: int | None = None,
 ) -> bool:
     """Test if two variables are sigma-separated.
 
     Sigma separation is a generalization of d-separation that
     works not only for directed acyclic graphs, but also for
     directed graphs containing cycles. It was originally introduced
-    in https://arxiv.org/abs/1807.03024.
+    in [forre2018]_.
 
     We say that X and Y are σ-connected by Z or not
     σ-separated by Z if there exists a path π (with some
@@ -64,7 +65,7 @@ def is_z_sigma_open(
     path: Sequence[Variable],
     *,
     sigma: dict[Variable, set[Variable]],
-    conditions: Optional[set[Variable]] = None,
+    conditions: set[Variable] | None = None,
 ) -> bool:
     r"""Check if a path is Z-sigma-open.
 
@@ -138,11 +139,11 @@ def _triple_helper(
     )
 
 
-def _has_either_edge(graph: NxMixedGraph, u, v) -> bool:
-    return graph.directed.has_edge(u, v) or graph.undirected.has_edge(u, v)
+def _has_either_edge(graph: NxMixedGraph, u: Variable, v: Variable) -> bool:
+    return cast(bool, graph.directed.has_edge(u, v)) or cast(bool, graph.undirected.has_edge(u, v))
 
 
-def _only_directed_edge(graph, u, v) -> bool:
+def _only_directed_edge(graph: NxMixedGraph, u: Variable, v: Variable) -> bool:
     return graph.directed.has_edge(u, v) and not graph.undirected.has_edge(u, v)
 
 

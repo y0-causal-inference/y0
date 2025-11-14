@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
-
 """Test cases."""
 
 import unittest
+from collections import Counter
+from collections.abc import Collection
 
-from y0.dsl import Expression, get_outcomes_and_treatments
+from y0.dsl import Expression, Variable, get_outcomes_and_treatments
 from y0.graph import NxMixedGraph
 from y0.mutate import canonicalize
 
@@ -46,5 +46,13 @@ class GraphTestCase(unittest.TestCase):
         self.assertEqual(
             expected_canonical,
             actual_canonical,
-            msg=f"\nExpected: {str(expected_canonical)}\nActual:   {str(actual_canonical)}",
+            msg=f"\nExpected: {expected_canonical!s}\nActual:   {actual_canonical!s}",
         )
+
+    def assert_collection_of_set_equal(
+        self, left: Collection[set[Variable]], right: Collection[set[Variable]]
+    ) -> None:
+        """Check that two collections contain sets with the same elements."""
+        c1 = Counter(frozenset(element) for element in left)
+        c2 = Counter(frozenset(el) for el in right)
+        self.assertEqual(c1, c2)

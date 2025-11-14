@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """An implementation of Sara Taheri's algorithm for using causal queries for experimental design.
 
 .. seealso:: https://docs.google.com/presentation/d/1klBOjGtRkXOMSDgOCLChBTBJZ0dFxJPn9IPRLAlv_N8/edit?usp=sharing
@@ -8,8 +6,10 @@
 import itertools as itt
 import logging
 import textwrap
+from collections.abc import Collection, Iterable
+from io import StringIO
 from pathlib import Path
-from typing import Collection, Iterable, List, NamedTuple, Optional, Set, Tuple, Union
+from typing import NamedTuple
 
 import click
 import networkx as nx
@@ -26,10 +26,10 @@ from y0.mutate import canonicalize
 from y0.util.combinatorics import powerset
 
 __all__ = [
-    "taheri_design_admg",
-    "taheri_design_dag",
     "Result",
     "draw_results",
+    "taheri_design_admg",
+    "taheri_design_dag",
 ]
 
 logger = logging.getLogger(__name__)
@@ -40,25 +40,25 @@ class Result(NamedTuple):
 
     identifiable: bool
     #: The estimand returned from the related identification algorithm. Is none if not identifiable.
-    estimand: Optional[Expression]
+    estimand: Expression | None
     pre_nodes: int
     pre_edges: int
     post_nodes: int
     post_edges: int
-    latents: List[Variable]
-    observed: List[Variable]
+    latents: list[Variable]
+    observed: list[Variable]
     lvdag: nx.DiGraph
     admg: NxMixedGraph
 
 
 def taheri_design_admg(
     graph: NxMixedGraph,
-    cause: Union[str, Variable],
-    effect: Union[str, Variable],
+    cause: str | Variable,
+    effect: str | Variable,
     *,
-    tag: Optional[str] = None,
-    stop: Optional[int] = None,
-) -> List[Result]:
+    tag: str | None = None,
+    stop: int | None = None,
+) -> list[Result]:
     r"""Run the brute force implementation of the Taheri Design algorithm on an ADMG.
 
     :param graph: An ADMG
@@ -88,12 +88,12 @@ def taheri_design_admg(
 
 def taheri_design_dag(
     graph: nx.DiGraph,
-    cause: Union[str, Variable],
-    effect: Union[str, Variable],
+    cause: str | Variable,
+    effect: str | Variable,
     *,
-    tag: Optional[str] = None,
-    stop: Optional[int] = None,
-) -> List[Result]:
+    tag: str | None = None,
+    stop: int | None = None,
+) -> list[Result]:
     """Run the brute force implementation of the Taheri Design algorithm on a DAG.
 
     Identify all latent variable configurations inducible over the given DAG that result
@@ -124,11 +124,11 @@ def _help(
     cause: Variable,
     effect: Variable,
     *,
-    fixed_observed: Optional[Collection[Variable]] = None,
-    fixed_latent: Optional[Collection[Variable]] = None,
-    tag: Optional[str] = None,
-    stop: Optional[int] = None,
-) -> List[Result]:
+    fixed_observed: Collection[Variable] | None = None,
+    fixed_latent: Collection[Variable] | None = None,
+    tag: str | None = None,
+    stop: int | None = None,
+) -> list[Result]:
     return [
         _get_result(
             lvdag=lvdag,
@@ -155,7 +155,7 @@ def _get_result(
     cause: Variable,
     effect: Variable,
     *,
-    tag: Optional[str] = None,
+    tag: str | None = None,
 ) -> Result:
     # Book keeping
     pre_nodes, pre_edges = lvdag.number_of_nodes(), lvdag.number_of_edges()
@@ -175,7 +175,7 @@ def _get_result(
     # Check if the ADMG is identifiable under the (simple) causal query
     query = P(effect @ ~cause)
     try:
-        estimand: Optional[Expression] = canonicalize(
+        estimand: Expression | None = canonicalize(
             identify(Identification.from_expression(graph=admg, query=query))
         )
     except Unidentifiable:
@@ -197,12 +197,12 @@ def _get_result(
 
 def iterate_lvdags(
     graph: nx.DiGraph,
-    fixed_observed: Optional[Collection[Variable]] = None,
-    fixed_latents: Optional[Collection[Variable]] = None,
+    fixed_observed: Collection[Variable] | None = None,
+    fixed_latents: Collection[Variable] | None = None,
     *,
-    tag: Optional[str] = None,
-    stop: Optional[int] = None,
-) -> Iterable[Tuple[Set[Variable], Set[Variable], nx.DiGraph]]:
+    tag: str | None = None,
+    stop: int | None = None,
+) -> Iterable[tuple[set[Variable], set[Variable], nx.DiGraph]]:
     """Iterate over all possible latent variable configurations for the given graph.
 
     :param graph: A regular DAG
@@ -221,20 +221,20 @@ def iterate_lvdags(
     fixed_observed = set() if not fixed_observed else set(fixed_observed)
     fixed_latents = set() if not fixed_latents else set(fixed_latents)
 
-    inducible_nodes: Set[Variable] = set(graph)
+    inducible_nodes: set[Variable] = set(graph)
     inducible_nodes.difference_update(fixed_observed)
     inducible_nodes.difference_update(fixed_latents)
 
     if stop is None:
         stop = len(inducible_nodes) - 1
-    it: Iterable[Set[Variable]] = map(
+    it: Iterable[set[Variable]] = map(
         set,
         powerset(
             sorted(inducible_nodes),
             stop=stop,
             reverse=True,
             use_tqdm=True,
-            tqdm_kwargs=dict(desc="LV powerset"),
+            tqdm_kwargs={"desc": "LV powerset"},
         ),
     )
 
@@ -247,16 +247,16 @@ def iterate_lvdags(
         yv = graph.copy()
         for node in inducible_nodes:
             yv.nodes[node][tag] = node in induced_latents
-        yield induced_latents, inducible_nodes - induced_latents, yv  # type:ignore
+        yield induced_latents, inducible_nodes - induced_latents, yv
 
 
 def draw_results(
     results: Iterable[Result],
-    path: Union[str, Path, Iterable[str], Iterable[Path]],
+    path: str | Path | Iterable[str] | Iterable[Path],
     ncols: int = 10,
     x_ratio: float = 4.2,
     y_ratio: float = 4.2,
-    max_size: Optional[int] = None,
+    max_size: int | None = None,
 ) -> None:
     """Draw identifiable ADMGs to a file."""
     import matplotlib.pyplot as plt
@@ -295,7 +295,7 @@ def draw_results(
         fig.savefig(_path, dpi=400)
 
 
-def print_results(results: List[Result], file=None) -> None:
+def print_results(results: list[Result], file: StringIO | None = None) -> None:
     """Print a set of results."""
     rows = [
         (
@@ -308,7 +308,7 @@ def print_results(results: List[Result], file=None) -> None:
         )
         for i, result in enumerate(results, start=1)
     ]
-    print(  # noqa:T201
+    print(
         tabulate(rows, headers=["Row", "ID?", "Node Simp.", "Edge Simp.", "N", "Latents"]),
         file=file,
     )
@@ -316,11 +316,11 @@ def print_results(results: List[Result], file=None) -> None:
 
 @click.command()
 @verbose_option
-def main():
+def main() -> None:
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
     import pystow
 
-    from y0.examples import igf_example
+    from y0.examples import igf_example  # type:ignore
 
     results = taheri_design_dag(igf_example.graph.directed, cause="PI3K", effect="Erk", stop=3)
     # print_results(results)

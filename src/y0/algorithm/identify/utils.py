@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-
 """Utilities for identification algorithms."""
 
 from __future__ import annotations
 
-from typing import Any, Iterable, Optional, Union
+from collections.abc import Iterable
+from typing import Any
 
 import networkx as nx
 
@@ -21,8 +20,8 @@ from y0.graph import NxMixedGraph, _ensure_set
 from y0.mutate.canonicalize_expr import canonical_expr_equal
 
 __all__ = [
-    "Query",
     "Identification",
+    "Query",
     "Unidentifiable",
     "str_nodes_to_variable_nodes",
 ]
@@ -41,9 +40,9 @@ class Query:
 
     def __init__(
         self,
-        outcomes: Union[Variable, set[Variable]],
-        treatments: Union[Variable, set[Variable]],
-        conditions: Union[None, Variable, set[Variable]] = None,
+        outcomes: Variable | set[Variable],
+        treatments: Variable | set[Variable],
+        conditions: None | Variable | set[Variable] = None,
     ) -> None:
         """Instantiate an identification.
 
@@ -67,25 +66,29 @@ class Query:
     @classmethod
     def from_str(
         cls,
-        outcomes: Union[str, Iterable[str]],
-        treatments: Union[str, Iterable[str]],
-        conditions: Optional[Iterable[str]] = None,
+        outcomes: str | Iterable[str],
+        treatments: str | Iterable[str],
+        conditions: Iterable[str] | None = None,
     ) -> Query:
         """Construct a query from text variable names."""
         return cls(
-            outcomes={Variable(outcomes)}
-            if isinstance(outcomes, str)
-            else {Variable(n) for n in outcomes},
-            treatments={Variable(treatments)}
-            if isinstance(treatments, str)
-            else {Variable(n) for n in treatments},
+            outcomes=(
+                {Variable(outcomes)}
+                if isinstance(outcomes, str)
+                else {Variable(n) for n in outcomes}
+            ),
+            treatments=(
+                {Variable(treatments)}
+                if isinstance(treatments, str)
+                else {Variable(n) for n in treatments}
+            ),
             conditions=None if conditions is None else {Variable(n) for n in conditions},
         )
 
     @classmethod
     def from_expression(
         cls,
-        query: Union[Probability, Distribution],
+        query: Probability | Distribution,
     ) -> Query:
         """Instantiate an identification.
 
@@ -115,9 +118,7 @@ class Query:
             conditions=conditions,
         )
 
-    def exchange_observation_with_action(
-        self, variables: Union[Variable, Iterable[Variable]]
-    ) -> Query:
+    def exchange_observation_with_action(self, variables: Variable | Iterable[Variable]) -> Query:
         """Move the condition variable(s) to the treatments."""
         if isinstance(variables, Variable):
             variables = {variables}
@@ -131,9 +132,7 @@ class Query:
             conditions=self.conditions - variables,
         )
 
-    def exchange_action_with_observation(
-        self, variables: Union[Variable, Iterable[Variable]]
-    ) -> Query:
+    def exchange_action_with_observation(self, variables: Variable | Iterable[Variable]) -> Query:
         """Move the treatment variable(s) to the conditions."""
         if isinstance(variables, Variable):
             variables = {variables}
@@ -198,7 +197,7 @@ class Identification:
         self,
         query: Query,
         graph: NxMixedGraph,
-        estimand: Optional[Expression] = None,
+        estimand: Expression | None = None,
     ) -> None:
         """Instantiate an identification.
 
@@ -216,8 +215,8 @@ class Identification:
         outcomes: set[Variable],
         treatments: set[Variable],
         graph: NxMixedGraph,
-        estimand: Optional[Expression] = None,
-        conditions: Optional[set[Variable]] = None,
+        estimand: Expression | None = None,
+        conditions: set[Variable] | None = None,
     ) -> Identification:
         """Instantiate an identification.
 
@@ -238,9 +237,9 @@ class Identification:
     def from_expression(
         cls,
         *,
-        query: Union[Probability, Distribution],
+        query: Probability | Distribution,
         graph: NxMixedGraph,
-        estimand: Optional[Expression] = None,
+        estimand: Expression | None = None,
     ) -> Identification:
         """Instantiate an identification.
 
@@ -271,7 +270,7 @@ class Identification:
         return self.query.conditions
 
     def exchange_observation_with_action(
-        self, variables: Union[Variable, Iterable[Variable]]
+        self, variables: Variable | Iterable[Variable]
     ) -> Identification:
         """Move the condition variable(s) to the treatments."""
         return Identification(
@@ -281,7 +280,7 @@ class Identification:
         )
 
     def exchange_action_with_observation(
-        self, variables: Union[Variable, Iterable[Variable]]
+        self, variables: Variable | Iterable[Variable]
     ) -> Identification:
         """Move the treatment variable(s) to the conditions."""
         return Identification(

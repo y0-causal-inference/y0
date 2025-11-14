@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 """Calculate the complexity of an expression."""
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from .dsl import (
     CounterfactualVariable,
@@ -42,7 +40,7 @@ def complexity(expr: Expression) -> float:
     :raises TypeError:
         Raised if an invalid expression type is used
     """
-    if isinstance(expr, (One, Zero)):
+    if isinstance(expr, One | Zero):
         return CONST_CONST
     if isinstance(expr, Fraction):
         return FRAC_CONST + complexity(expr.numerator) + complexity(expr.denominator)

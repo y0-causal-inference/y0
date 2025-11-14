@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 """Implementation of the canonicalization algorithm."""
 
-from typing import Collection, Iterable, Mapping, Optional, Sequence, Tuple, Union
+from collections.abc import Collection, Iterable, Mapping, Sequence
 
 from ..dsl import (
     Distribution,
@@ -19,13 +17,13 @@ from ..dsl import (
 )
 
 __all__ = [
-    "canonicalize",
     "canonical_expr_equal",
+    "canonicalize",
 ]
 
 
 def canonicalize(
-    expression: Expression, ordering: Optional[Sequence[Union[str, Variable]]] = None
+    expression: Expression, ordering: Sequence[str | Variable] | None = None
 ) -> Expression:
     """Canonicalize an expression that meets the markov condition with respect to the given ordering.
 
@@ -64,7 +62,7 @@ class Canonicalizer:
             )
         )
 
-    def _sorted(self, variables: Collection[Variable]) -> Tuple[Variable, ...]:
+    def _sorted(self, variables: Collection[Variable]) -> tuple[Variable, ...]:
         return tuple(sorted(variables, key=self._sorted_key))
 
     def _canonicalize_variable(self, variable: Variable) -> Variable:
@@ -102,7 +100,7 @@ class Canonicalizer:
             if numerator == denominator:
                 return One()
             return numerator / denominator  # TODO
-        elif isinstance(expression, (One, Zero)):
+        elif isinstance(expression, One | Zero):
             return expression
         else:
             raise TypeError

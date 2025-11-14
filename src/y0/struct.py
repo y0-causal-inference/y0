@@ -1,21 +1,22 @@
-# -*- coding: utf-8 -*-
-
 """Data structures."""
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from functools import lru_cache
-from typing import Callable, Iterable, Literal, NamedTuple, Optional, Tuple, Union
+from functools import lru_cache, partial
+from typing import Any, Literal, NamedTuple, cast
 
 import pandas as pd
 
 from .dsl import Expression, Variable
 
 __all__ = [
-    "VermaConstraint",
     "DSeparationJudgement",
+    "VermaConstraint",
 ]
+
+DEFAULT_SIGNIFICANCE = 0.01
 
 
 class VermaConstraint(NamedTuple):
@@ -25,10 +26,10 @@ class VermaConstraint(NamedTuple):
     lhs_expr: Expression
     rhs_cfactor: Expression
     rhs_expr: Expression
-    variables: Tuple[Variable, ...]
+    variables: tuple[Variable, ...]
 
     @classmethod
-    def from_element(cls, element) -> VermaConstraint:
+    def from_element(cls, element: Any) -> VermaConstraint:
         """Extract content from each element in the vector returned by `verma.constraint`.
 
         :param element: An element in the vector returned by `verma.constraint`
@@ -52,17 +53,18 @@ CITest = Literal[
     "pearson",
     "chi-square",
     "cressie_read",
-    "freeman_tuckey",
+    "freeman_tukey",
     "g_sq",
     "log_likelihood",
     "modified_log_likelihood",
     "power_divergence",
     "neyman",
+    "pillai",
 ]
 DEFAULT_CONTINUOUS_CI_TEST: CITest = "pearson"
 DEFAULT_DISCRETE_CI_TEST: CITest = "cressie_read"
 
-CITestFunc = Callable
+CITestFunc = Callable[..., Any]
 
 
 @lru_cache
@@ -74,16 +76,34 @@ def get_conditional_independence_tests() -> dict[CITest, CITestFunc]:
         raise ImportError("Calculating falsifications requires `pip install pgmpy`.") from e
 
     return {
-        "pearson": CITests.pearsonr,
         "chi-square": CITests.chi_square,
-        "cressie_read": CITests.cressie_read,
-        "freeman_tuckey": CITests.freeman_tuckey,
         "g_sq": CITests.g_sq,
         "log_likelihood": CITests.log_likelihood,
         "modified_log_likelihood": CITests.modified_log_likelihood,
+        "pearson": CITests.pearsonr,  # deprecate
+        "pillai": CITests.pillai_trace,
+        # wrappers
+        "cressie_read": partial(CITests.power_divergence, lambda_="cressie-read"),
+        "freeman_tukey": partial(CITests.power_divergence, lambda_="freeman-tukey"),
         "power_divergence": CITests.power_divergence,
-        "neyman": CITests.neyman,
+        "neyman": partial(CITests.power_divergence, lambda_="neyman"),
     }
+
+
+class CITestTuple(NamedTuple):
+    """A tuple containing the results from a PGMPy conditional independency test.
+
+    Note that continuous tests such as :func:`pgmpy.estimators.CITests.pearsonr`
+    do not have an associated _degrees of freedom_ (dof), so this field is set
+    to none in those cases.
+    """
+
+    statistic: float
+    p_value: float
+    dof: float | None = None
+
+
+CITestResult = CITestTuple | bool
 
 
 @dataclass(frozen=True)
@@ -97,21 +117,21 @@ class DSeparationJudgement:
     separated: bool
     left: Variable
     right: Variable
-    conditions: Tuple[Variable, ...]
+    conditions: tuple[Variable, ...]
 
     @classmethod
     def create(
         cls,
         left: Variable,
         right: Variable,
-        conditions: Optional[Iterable[Variable]] = None,
+        conditions: Iterable[Variable] | None = None,
         *,
         separated: bool = True,
     ) -> DSeparationJudgement:
         """Create a d-separation judgement in canonical form."""
         left, right = sorted([left, right], key=str)
         if conditions is None:
-            conditions = tuple()
+            conditions = ()
         conditions = tuple(sorted(set(conditions), key=str))
         return cls(separated, left, right, conditions)
 
@@ -130,10 +150,12 @@ class DSeparationJudgement:
     def test(
         self,
         df: pd.DataFrame,
+        *,
         boolean: bool = False,
-        method: Optional[CITest] = None,
-        significance_level: Optional[float] = None,
-    ) -> Union[Tuple[float, int], Tuple[float, int, float], bool]:
+        method: CITest | None = None,
+        significance_level: float | None = None,
+        _method_checked: bool = False,
+    ) -> bool | CITestTuple:
         """Test for conditional independence, given some data.
 
         :param df: A dataframe.
@@ -168,14 +190,16 @@ class DSeparationJudgement:
                     f"conditional {c.name} ({type(c.name)}) not in columns {df.columns}"
                 )
         if significance_level is None:
-            significance_level = 0.01
+            significance_level = DEFAULT_SIGNIFICANCE
 
         method = _ensure_method(
-            method, df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]]
+            method,
+            df[[self.left.name, self.right.name, *(c.name for c in self.conditions)]],
+            skip=_method_checked,
         )
         tests: dict[CITest, CITestFunc] = get_conditional_independence_tests()
         func: CITestFunc = tests[method]
-        return func(
+        result = func(
             X=self.left.name,
             Y=self.right.name,
             Z={condition.name for condition in self.conditions},
@@ -183,9 +207,25 @@ class DSeparationJudgement:
             boolean=boolean,
             significance_level=significance_level,
         )
+        if boolean:
+            return cast(bool, result)
+        # Person's correlation returns a pair with the first element being the Person's correlation
+        # and the second being the p-value. The other methods return a triple with the first element
+        # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of
+        # freedom.
+        if method in {"pearson", "pillai"}:
+            statistic, p_value = result
+            dof = None
+        else:
+            statistic, p_value, dof = result
+        return CITestTuple(statistic=statistic, p_value=p_value, dof=dof)
 
 
-def _ensure_method(method: Optional[CITest], df: pd.DataFrame) -> CITest:
+def _ensure_method(method: CITest | None, df: pd.DataFrame, skip: bool = False) -> CITest:
+    if skip:
+        if method is None:
+            raise RuntimeError
+        return method
     # TODO extend to discrete but more than 2.
     #  see https://stats.stackexchange.com/questions/12273/how-to-test-if-my-data-is-discrete-or-continuous
     # TODO what happens when some variables are binary but others are continous?
@@ -204,7 +244,7 @@ def _ensure_method(method: Optional[CITest], df: pd.DataFrame) -> CITest:
     return method
 
 
-def _summarize_df(df: pd.DataFrame):
+def _summarize_df(df: pd.DataFrame) -> dict[str, set[str]]:
     return {column: set(df[column].unique()) for column in df.columns}
 
 
@@ -213,6 +253,6 @@ def _is_binary(df: pd.DataFrame) -> bool:
     return all(column_to_type.values())
 
 
-def _is_two_values(series):
+def _is_two_values(series: pd.Series) -> bool:
     values = set(series.unique())
     return values == {True, False} or values == {1, 0} or values == {1, -1}
