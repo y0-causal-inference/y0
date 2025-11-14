@@ -43,9 +43,7 @@ from y0.dsl import (
     Z,
     Zero,
 )
-from y0.examples import (
-    tikka_trso_figure_8_graph as tikka_trso_figure_8,
-)
+from y0.examples import tikka_trso_figure_8_graph as tikka_trso_figure_8
 from y0.graph import NxMixedGraph
 from y0.mutate import canonicalize, fraction_expand
 
