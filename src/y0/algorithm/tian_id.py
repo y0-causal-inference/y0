@@ -161,7 +161,6 @@ def identify_district_variables(  # noqa:C901
             raise TypeError(
                 "In identify_district_variables: the district probability is an expression of an unknown type."
             )
-
         # Get Q[T'] by Lemma 4 or Lemma 1
         logger.debug(
             "In identify_district_variables: about to call _compute_c_factor. Subgraph_probability = "
