@@ -1478,7 +1478,7 @@ p_ipw_graph = NxMixedGraph.from_str_edges(
 )
 
 
-def _generate_p_ipw(size: int, interventions: None = None) -> pd.DataFrame:
+def _generate_p_ipw(size: int, interventions: dict[Variable, float] | None = None) -> pd.DataFrame:
     if interventions is not None:
         raise NotImplementedError
     u1 = np.random.binomial(1, 0.4, size)
