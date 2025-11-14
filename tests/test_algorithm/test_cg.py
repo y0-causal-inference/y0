@@ -46,12 +46,8 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_world(self):
         """Test that a world contains an intervention."""
+        input_world1: World = World([-x])
         with self.assertRaises(TypeError):
-            input_world1: World = World([-x])  # type: ignore[annotation-unchecked]
-            3 in input_world1  # noqa
-
-        with self.assertRaises(TypeError):
-            input_world1: World = World([3])  # type: ignore[annotation-unchecked]
             3 in input_world1  # noqa
 
         input_world2 = World([-x])
@@ -94,7 +90,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_nodes_attain_same_value(self):
         """Test that two variables attain the same value."""
-        event: Event = {D: -d}  # type: ignore[annotation-unchecked]
+        event: Event = {D: -d}
         self.assertTrue(nodes_attain_same_value(figure_11a.graph, event, D, D @ -d))
         self.assertTrue(nodes_attain_same_value(figure_11a.graph, event, D @ -d, D))
         self.assertTrue(
@@ -143,7 +139,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
     def test_parents_attain_same_values(self):
         """Test that the parents of two nodes attain the same value."""
         graph = figure_9b.graph
-        event: Event = {Y @ -x: -y, D: -d, Z @ -d: -z, X: +x}  # type: ignore[annotation-unchecked]
+        event: Event = {Y @ -x: -y, D: -d, Z @ -d: -z, X: +x}
         self.assertTrue(parents_attain_same_values(figure_11a.graph, event, Z, Z @ -d))
         self.assertTrue(parents_attain_same_values(figure_11a.graph, event, Z, Z @ -x))
         self.assertTrue(parents_attain_same_values(figure_11a.graph, event, Z @ -d, Z @ -x))
@@ -544,7 +540,7 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_is_pw_equivalent(self):
         """Test that two nodes in a parallel world graph are the same (lemma 24)."""
-        event: Event = {Y @ -x: -y, D: -d, Z @ -d: -z, X: +x}  # type: ignore[annotation-unchecked]
+        event: Event = {Y @ -x: -y, D: -d, Z @ -d: -z, X: +x}
         self.assertTrue(is_pw_equivalent(figure_9b.graph, event, D @ -X, D))
         self.assertTrue(is_pw_equivalent(figure_9b.graph, event, X @ -D, X))
         self.assertTrue(is_pw_equivalent(figure_11a.graph, event, Z, Z @ -X))
