@@ -134,7 +134,7 @@ def identify_district_variables(  # noqa:C901
                 subgraph_probability=district_probability,  # Q[T]
                 graph_topo=topo,
             )
-        else:
+        elif isinstance(district_probability, Probability):
             logger.debug(
                 "About to get ancestral_set_probability. district_probability = "
                 + district_probability.to_latex()
@@ -149,17 +149,17 @@ def identify_district_variables(  # noqa:C901
                     distribution=ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
                     | district_probability.parents,
                 )
-            elif isinstance(district_probability, Probability):
+            else:
                 ancestral_set_probability = P(
                     ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
                     | district_probability.parents
                 )
-            else:
-                raise TypeError(
-                    "In identify_district_variables: the district probability is an expression of an unknown type."
-                )
             logger.debug(
                 "Got ancestral_set_probability. Result = " + ancestral_set_probability.to_latex()
+            )
+        else:
+            raise TypeError(
+                "In identify_district_variables: the district probability is an expression of an unknown type."
             )
 
         # Get Q[T'] by Lemma 4 or Lemma 1
