@@ -27,7 +27,7 @@ from y0.algorithm.identify.cg import (
     value_of_self_intervention,
 )
 from y0.dsl import A, B, D, Event, W, X, Y, Z
-from y0.examples import (  # type: ignore[attr-defined]
+from y0.examples import (
     figure_9a,
     figure_9b,
     figure_9c,

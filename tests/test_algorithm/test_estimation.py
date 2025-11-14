@@ -7,7 +7,7 @@ import pandas as pd
 from y0.algorithm.estimation import ananke_average_causal_effect, df_covers_graph
 from y0.algorithm.estimation.estimators import get_primal_ipw_ace, get_state_space_map
 from y0.dsl import Variable
-from y0.examples import examples, frontdoor, napkin, napkin_example  # type: ignore[attr-defined]
+from y0.examples import examples, frontdoor, napkin, napkin_example
 from y0.graph import ANANKE_REQUIRED, is_p_fixable
 
 TOLERANCE = 0.1

@@ -52,6 +52,24 @@ from ..graph import NxMixedGraph
 from ..resources import ASIA_PATH
 from ..struct import DSeparationJudgement, VermaConstraint
 
+__all__ = [
+    "Example",
+    "d_separation_example",
+    "examples",
+    "figure_9a",
+    "figure_9b",
+    "figure_9c",
+    "figure_9d",
+    "figure_11a",
+    "figure_11b",
+    "figure_11c",
+    "frontdoor",
+    "frontdoor_backdoor_example",
+    "frontdoor_example",
+    "napkin",
+    "napkin_example",
+]
+
 x, y, z, w = -X, -Y, -Z, -W
 
 u_2 = Variable("u_2")

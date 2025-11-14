@@ -98,6 +98,7 @@ typing = [
     "pydantic",
     "types-click",
     "types-tabulate",
+    "scipy-stubs",
 ]
 docs-lint = [
     { include-group = "docs" },
