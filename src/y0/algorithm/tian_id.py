@@ -8,7 +8,6 @@
 """
 
 import logging
-import typing
 from collections.abc import Collection
 
 from y0.dsl import (
@@ -37,7 +36,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def identify_district_variables(
+def identify_district_variables(  # noqa:C901
     *,
     input_variables: frozenset[Variable],
     input_district: frozenset[Variable],
@@ -150,13 +149,14 @@ def identify_district_variables(
                     distribution=ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
                     | district_probability.parents,
                 )
-            else:
-                # district_probability must be an Expression and in particular a Probability. Cast it as such
-                # explicitly so a mypy check passes.
-                district_probability = typing.cast(Probability, district_probability)
+            elif isinstance(district_probability, Probability):
                 ancestral_set_probability = P(
                     ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
                     | district_probability.parents
+                )
+            else:
+                raise TypeError(
+                    "In identify_district_variables: the district probability is an expression of an unknown type."
                 )
             logger.debug(
                 "Got ancestral_set_probability. Result = " + ancestral_set_probability.to_latex()
