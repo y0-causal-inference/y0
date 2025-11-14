@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build>=0.6.6,<1.0"]
+requires = ["uv_build>=0.9.6,<1.0"]
 build-backend = "uv_build"
 
 [project]
@@ -80,6 +80,7 @@ tests = [
     "xgboost", # for pillai
     "torch",
     "y0[r]",
+    "matplotlib>=3.10.5",
 ]
 docs = [
     "sphinx>=8",
@@ -119,8 +120,8 @@ bump = [
     "bump-my-version",
 ]
 build = [
-    "uv",
-    "uv-build",
+    "uv>=0.9.6",
+    "uv-build>=0.9.6",
 ]
 release = [
     { include-group = "build" },
@@ -290,3 +291,8 @@ replace = "release = \"{new_version}\""
 filename = "src/y0/version.py"
 search = "VERSION = \"{current_version}\""
 replace = "VERSION = \"{new_version}\""
+
+[[tool.bumpversion.files]]
+filename = "CITATION.cff"
+search = "version: {current_version}"
+replace = "version: {new_version}"
