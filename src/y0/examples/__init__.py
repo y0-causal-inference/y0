@@ -258,12 +258,13 @@ napkin_example = Example(
     example_queries=[Query.from_str(treatments="X", outcomes="Y")],
     verma_constraints=[
         VermaConstraint(
-            lhs_cfactor=Q[X, Y](Z1, X, Y) / Sum.safe(Q[X, Y](Z1, X, Y), Y),
+            lhs_cfactor=Q.safe(Z1, X, Y, codomain=[X, Y])
+            / Sum.safe(Q.safe(Z1, X, Y, codomain=[X, Y]), Y),
             lhs_expr=(
                 Sum.safe(P(Y | (Z1, Z2, X)) * P(X | (Z2, Z1)) * P(Z2), Z2)
                 / Sum.safe(P(Y | (Z2, Z1, X)) * P(X | (Z2, Z1)) * P(Z2), [Z2, Y])
             ),
-            rhs_cfactor=Q[Y](X, Y),
+            rhs_cfactor=Q.safe(X, Y, codomain=[Y]),
             rhs_expr=Sum.safe(P(Y | u_2 | X) * P(X) * P(u_2), [u_2, X]),
             variables=(Z1,),
         ),
@@ -859,16 +860,19 @@ identifiability_2_example = Example(
     graph=identifiability_2,
     verma_constraints=[
         VermaConstraint(
-            rhs_cfactor=Q[Z5](Z4, Z5),
+            rhs_cfactor=Q.safe(Z4, Z5, codomain=[Z5]),
             rhs_expr=Sum.safe(P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3), [u_3, Z4]),
-            lhs_cfactor=Sum.safe(Q[Z3, Z5](Z1, Z4, Z3, Z5), [Z3]),
+            lhs_cfactor=Sum.safe(Q.safe(Z1, Z4, Z3, Z5, codomain=[Z3, Z5]), [Z3]),
             lhs_expr=Sum.safe(P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z2, Z4)), [Z3]),
             variables=(Z1,),
         ),
         VermaConstraint(
-            rhs_cfactor=Q[Z5](Z4, Z5),
+            rhs_cfactor=Q.safe(Z4, Z5, codomain=[Z5]),
             rhs_expr=Sum.safe(P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3), [u_3, Z4]),
-            lhs_cfactor=(Q[Z2, Z5](Z1, Z4, Z2, Z5) / Sum.safe(Q[Z2, Z5](Z1, Z4, Z2, Z5), [Z5])),
+            lhs_cfactor=(
+                Q.safe(Z1, Z4, Z2, Z5, codomain=[Z2, Z5])
+                / Sum.safe(Q.safe(Z1, Z4, Z2, Z5, codomain=[Z2, Z5]), [Z5])
+            ),
             lhs_expr=(
                 Sum.safe(P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)), [Z3])
                 / Sum.safe(

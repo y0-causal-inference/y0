@@ -1660,15 +1660,19 @@ def outcomes_and_treatments_to_query(
     return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
 
 
-def vmap_pairs(edges: Iterable[tuple[str, str]]) -> list[tuple[Variable, Variable]]:
+def vmap_pairs(
+    edges: Iterable[tuple[str | Variable, str | Variable]],
+) -> list[tuple[Variable, Variable]]:
     """Map a pair of strings to pairs of variables."""
-    return [(Variable(source), Variable(target)) for source, target in edges]
+    return [(Variable.norm(source), Variable.norm(target)) for source, target in edges]
 
 
-def vmap_adj(adjacency_dict: Mapping[str, Iterable[str]]) -> dict[Variable, list[Variable]]:
+def vmap_adj(
+    adjacency_dict: Mapping[str | Variable, Iterable[str | Variable]],
+) -> dict[Variable, list[Variable]]:
     """Map an adjacency dictionary of strings to variables."""
     return {
-        Variable(source): [Variable(target) for target in targets]
+        Variable.norm(source): [Variable.norm(target) for target in targets]
         for source, targets in adjacency_dict.items()
     }
 
