@@ -1,7 +1,9 @@
 """Implementation of the ID algorithm for input-output structural causal models (ioSCMs).
 
 .. [forré20a] http://proceedings.mlr.press/v115/forre20a/forre20a.pdf.
+
 .. [forré20b] http://proceedings.mlr.press/v115/forre20a/forre20a-supp.pdf
+
 """
 
 import copy
@@ -34,13 +36,14 @@ ComponentToNode = dict[frozenset[Variable], Variable]
 def get_strongly_connected_components(graph: NxMixedGraph) -> set[frozenset[Variable]]:
     r"""Return the strongly-connected components for a graph.
 
-    :math: The strongly connected component of $v$ in $G$ is defined to be:
-    $\text{Sc}^{G}(v):= \text{Anc}^{G}(v)\cap \text{Desc}^{G}(v)$.
+    The strongly connected component of $v$ in $G$ is defined to be: $\text{Sc}^{G}(v):=
+    \text{Anc}^{G}(v)\cap \text{Desc}^{G}(v)$.
 
-    :param graph:
-        The corresponding graph.
-    :returns:
-        A set of frozen sets of variables comprising $\text{Sc}^{G}(v)$ for all vertices $v$.
+    :param graph: The corresponding graph.
+
+    :returns: A set of frozen sets of variables comprising $\text{Sc}^{G}(v)$ for all
+        vertices $v$.
+
     """
     return set(
         frozenset(component) for component in nx.strongly_connected_components(graph.directed)
@@ -50,24 +53,23 @@ def get_strongly_connected_components(graph: NxMixedGraph) -> set[frozenset[Vari
 def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozenset[Variable]:
     r"""Return the consolidated district for a single vertex in a graph.
 
-    See Definition 9.1 of [forré20a].
+    See Definition 9.1 of [forré20a]_.
 
-    :math: Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. Let $v \in V$. The
-    consolidated district $\text{Cd}^{G}(v)$ of $v$ in $G$ is given by all nodes $w \in V$ for which
-    there exist $k \ge 1$ nodes $(v_1,\dots,v_k)$ in $G$ such that $v_1 = v, v_k = w$ and for
-    $i = 2,\dots\,k$ we have that the bidirected edge $v_{i-1} \leftrightarrow v_i$ is in $G$
-    or that $v_i \in \text{Sc}^{G}(v_{i-1})$. For $B \subseteq V$ we write
-    $\text{Cd}^{G}(B) := \bigcup_{v\in B}\text{Cd}^{G}(v)$. Let
+    Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. Let $v \in V$. The
+    consolidated district $\text{Cd}^{G}(v)$ of $v$ in $G$ is given by all nodes $w \in
+    V$ for which there exist $k \ge 1$ nodes $(v_1,\dots,v_k)$ in $G$ such that $v_1 =
+    v, v_k = w$ and for $i = 2,\dots\,k$ we have that the bidirected edge $v_{i-1}
+    \leftrightarrow v_i$ is in $G$ or that $v_i \in \text{Sc}^{G}(v_{i-1})$. For $B
+    \subseteq V$ we write $\text{Cd}^{G}(B) := \bigcup_{v\in B}\text{Cd}^{G}(v)$. Let
     $\mathcal{CD}(G)$ be the set of consolidated districts of $G$.
 
     (This function retrieves the consolidated district for $v$, not $B$.)
 
-    :param graph:
-        The corresponding graph.
-    :param v:
-        The vertex for which the consolidated district is to be retrieved.
-    :returns:
-        The set of variables comprising $\text{Cd}^{G}(v)$.
+    :param graph: The corresponding graph.
+    :param v: The vertex for which the consolidated district is to be retrieved.
+
+    :returns: The set of variables comprising $\text{Cd}^{G}(v)$.
+
     """
     # Strategy: (O(N^2))
     # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
@@ -82,28 +84,27 @@ def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozen
 def get_consolidated_district(graph: NxMixedGraph, vertices: Collection[Variable]) -> set[Variable]:
     r"""Return the consolidated districts for one or more vertices in a graph.
 
-    See Definition 9.1 of [forré20a].
+    See Definition 9.1 of [forré20a]_.
 
-    :math: Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. Let $v \in V$. The
-    consolidated district $\text{Cd}^{G}(v)$ of $v$ in $G$ is given by all nodes $w \in V$ for which
-    there exist $k \ge 1$ nodes $(v_1,\dots,v_k)$ in $G$ such that $v_1 = v, v_k = w$ and for
-    $i = 2,\dots\,k$ we have that the bidirected edge $v_{i-1} \leftrightarrow v_i$ is in $G$
-    or that $v_i \in \text{Sc}^{G}(v_{i-1})$. For $B \subseteq V$ we write
-    $\text{Cd}^{G}(B) := \bigcup_{v\in B}\text{Cd}^{G}(v)$. Let
+    Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. Let $v \in V$. The
+    consolidated district $\text{Cd}^{G}(v)$ of $v$ in $G$ is given by all nodes $w \in
+    V$ for which there exist $k \ge 1$ nodes $(v_1,\dots,v_k)$ in $G$ such that $v_1 =
+    v, v_k = w$ and for $i = 2,\dots\,k$ we have that the bidirected edge $v_{i-1}
+    \leftrightarrow v_i$ is in $G$ or that $v_i \in \text{Sc}^{G}(v_{i-1})$. For $B
+    \subseteq V$ we write $\text{Cd}^{G}(B) := \bigcup_{v\in B}\text{Cd}^{G}(v)$. Let
     $\mathcal{CD}(G)$ be the set of consolidated districts of $G$.
 
     Note: it's not entirely clear from the text whether the return value is meant to be
-    a set of sets of vertices or just a set of vertices. We return a set of vertices in order
-    for the notation to be consistent with Notation 9.4 part 3 and Remark 9.5: in Remark 9.5,
-    the function $\text{Anc}^{G}$ only makes sense when called on a set of vertices, not a
-    set of sets of vertices.
+    a set of sets of vertices or just a set of vertices. We return a set of vertices in
+    order for the notation to be consistent with Notation 9.4 part 3 and Remark 9.5: in
+    Remark 9.5, the function $\text{Anc}^{G}$ only makes sense when called on a set of
+    vertices, not a set of sets of vertices.
 
-    :param graph:
-        The corresponding graph.
-    :param vertices:
-        The vertex for which the consolidated district is to be retrieved.
-    :returns:
-        The set of consolidated districts for the variables in $B$.
+    :param graph: The corresponding graph.
+    :param vertices: The vertex for which the consolidated district is to be retrieved.
+
+    :returns: The set of consolidated districts for the variables in $B$.
+
     """
     # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
@@ -123,18 +124,18 @@ def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Varia
 
     See Definition 9.1 of [forré20a].
 
-    :math: Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. Let $v \in V$. The
-    consolidated district $\text{Cd}^{G}(v)$ of $v$ in $G$ is given by all nodes $w \in V$ for which
-    there exist $k \ge 1$ nodes $(v_1,\dots,v_k)$ in $G$ such that $v_1 = v, v_k = w$ and for
-    $i = 2,\dots\,k$ we have that the bidirected edge $v_{i-1} \leftrightarrow v_i$ is in $G$
-    or that $v_i \in \text{Sc}^{G}(v_{i-1})$. For $B \subseteq V$ we write
-    $\text{Cd}^{G}(B) := \bigcup_{v\in B}\text{Cd}^{G}(v)$. Let
+    Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. Let $v \in V$. The
+    consolidated district $\text{Cd}^{G}(v)$ of $v$ in $G$ is given by all nodes $w \in
+    V$ for which there exist $k \ge 1$ nodes $(v_1,\dots,v_k)$ in $G$ such that $v_1 =
+    v, v_k = w$ and for $i = 2,\dots\,k$ we have that the bidirected edge $v_{i-1}
+    \leftrightarrow v_i$ is in $G$ or that $v_i \in \text{Sc}^{G}(v_{i-1})$. For $B
+    \subseteq V$ we write $\text{Cd}^{G}(B) := \bigcup_{v\in B}\text{Cd}^{G}(v)$. Let
     $\mathcal{CD}(G)$ be the set of consolidated districts of $G$.
 
-    :param graph:
-        The corresponding graph.
-    :returns:
-        The set of consolidated districts for the graph.
+    :param graph: The corresponding graph.
+
+    :returns: The set of consolidated districts for the graph.
+
     """
     # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
@@ -173,8 +174,9 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
 
     See Definition 9.2 of [forré20a].
 
-    :math: Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. An assembling
-    pseudo-topological order (apt-order) of $G$ is a total order $\lt$ on $V$ with the following two properties:
+    Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. An assembling
+    pseudo-topological order (apt-order) of $G$ is a total order $\lt$ on $V$ with the
+    following two properties:
 
     1. For every $v, w \in V$ we have:
 
@@ -182,12 +184,13 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
 
     2. For every $v_1, v_2, w \in V$ we have:
 
-      $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in \text{Sc}^{G}(v_1)$.
+        $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in
+        \text{Sc}^{G}(v_1)$.
 
-    :param graph:
-        The corresponding graph.
-    :returns:
-        An apt-order for the vertices in $G$.
+    :param graph: The corresponding graph.
+
+    :returns: An apt-order for the vertices in $G$.
+
     """
     # Strategy:
     # 1. Get the strongly-connected components and replace each one with a single vertex.
@@ -218,16 +221,19 @@ def _simplify_strongly_connected_components(
 ) -> tuple[NxMixedGraph, dict[Variable, frozenset[Variable]]]:
     r"""Reduce each strongly-connected component in a directed graph to a single vertex.
 
-    This is a helper function for generating the assembling pseudo-topological order for a graph.
+    This is a helper function for generating the assembling pseudo-topological order for
+    a graph.
 
-    Get the strongly-connected components and replace each one with a single vertex. An edge going into or out
-    of the strongly-connected component becomes an edge going into or out of the representative vertex.
+    Get the strongly-connected components and replace each one with a single vertex. An
+    edge going into or out of the strongly-connected component becomes an edge going
+    into or out of the representative vertex.
 
-    :param graph:
-        The input graph.
-    :returns:
-        The simplified graph and a dictionary mapping vertices representing strongly-connected components
-        in the new graph to the vertices in each strongly-connected component in the original graph.
+    :param graph: The input graph.
+
+    :returns: The simplified graph and a dictionary mapping vertices representing
+        strongly-connected components in the new graph to the vertices in each
+        strongly-connected component in the original graph.
+
     """
     comp_to_rep_node: ComponentToNode = {}
     node_to_component: NodeToComponent = {}
@@ -279,8 +285,9 @@ def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
 
     See Definition 9.2 of [forré20a].
 
-    :math: Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. An assembling
-    pseudo-topological order (apt-order) of $G$ is a total order $\lt$ on $V$ with the following two properties:
+    Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. An assembling
+    pseudo-topological order (apt-order) of $G$ is a total order $\lt$ on $V$ with the
+    following two properties:
 
     1. For every $v, w \in V$ we have:
 
@@ -288,14 +295,14 @@ def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
 
     2. For every $v_1, v_2, w \in V$ we have:
 
-      $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in \text{Sc}^{G}(v_1)$.
+        $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in
+        \text{Sc}^{G}(v_1)$.
 
-    :param order:
-        The candidate apt-order.
-    :param graph:
-        The corresponding graph.
-    :returns:
-        True if the candidate apt-order is a possible apt-order for the graph, False otherwise.
+    :param order: The candidate apt-order.
+    :param graph: The corresponding graph.
+
+    :returns: True if the candidate apt-order is a possible apt-order for the graph,
+        False otherwise.
     """
     raise NotImplementedError
     # TODO: Confirm we need the function
