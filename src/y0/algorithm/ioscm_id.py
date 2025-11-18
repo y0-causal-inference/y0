@@ -17,12 +17,12 @@ from y0.dsl import Variable
 from y0.graph import NxMixedGraph
 
 __all__ = [
+    "get_apt_order",
+    "get_consolidated_district",
+    "get_graph_consolidated_districts",
     # TODO do a proper audit of which of these a user should ever have to import
     "get_strongly_connected_components",
     "get_vertex_consolidated_district",
-    "get_consolidated_district",
-    "get_graph_consolidated_districts",
-    "get_apt_order",
     "is_apt_order",
 ]
 
@@ -45,9 +45,9 @@ def get_strongly_connected_components(graph: NxMixedGraph) -> set[frozenset[Vari
         vertices $v$.
 
     """
-    return set(
+    return {
         frozenset(component) for component in nx.strongly_connected_components(graph.directed)
-    )
+    }
 
 
 def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozenset[Variable]:
