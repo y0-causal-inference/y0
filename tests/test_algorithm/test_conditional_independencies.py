@@ -1,11 +1,12 @@
 """Test getting conditional independencies (and related)."""
 
+from __future__ import annotations
+
 import typing
 import unittest
 from collections.abc import Iterable
 
-from pgmpy.estimators import CITests
-
+from tests import requires_pgmpy
 from y0.algorithm.conditional_independencies import (
     are_d_separated,
     get_conditional_independencies,
@@ -228,6 +229,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
                 self.maxDiff = None
                 self.assert_example_has_judgements(example)
 
+    @requires_pgmpy
     def test_ci_test_continuous(self):
         """Test conditional independency test on continuous data."""
         data = frontdoor_example.generate_data(500)  # continuous
@@ -248,8 +250,11 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         with self.assertRaises(ValueError):
             judgement.test(data, method="chi-square", boolean=True)
 
+    @requires_pgmpy
     def test_ci_test_discrete(self):
         """Test conditional independency test on discrete data."""
+        from pgmpy.estimators import CITests
+
         data = frontdoor_backdoor_example.generate_data(500)  # discrete
         judgement = DSeparationJudgement(
             left=X,
