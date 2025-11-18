@@ -1,11 +1,14 @@
 """Test graph construction and conversion."""
 
+from __future__ import annotations
+
 import unittest
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 import networkx as nx
-from pgmpy.models import DiscreteBayesianNetwork
 
+from tests import requires_pgmpy
 from y0.dsl import V1, V2, V3, V4, A, B, C, D, M, Variable, X, Y, Z
 from y0.examples import SARS_SMALL_GRAPH, Example, examples, napkin, verma_1
 from y0.graph import (
@@ -20,6 +23,9 @@ from y0.graph import (
     is_p_fixable,
 )
 from y0.resources import VIRAL_PATHOGENESIS_PATH
+
+if TYPE_CHECKING:
+    from pgmpy.models import DiscreteBayesianNetwork
 
 
 class TestGraph(unittest.TestCase):
@@ -641,6 +647,7 @@ def _ananke_p_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
     return 0 == len(admg.district(treatment.name).intersection(admg.children([treatment.name])))
 
 
+@requires_pgmpy
 class TestToBayesianNetwork(unittest.TestCase):
     """Tests converting a mixed graph to an equivalent :class:`pgmpy.DiscreteBayesianNetwork`."""
 
@@ -653,6 +660,8 @@ class TestToBayesianNetwork(unittest.TestCase):
 
     def test_graph_with_latents(self):
         """Tests converting a mixed graph with latents to an equivalent :class:`pgmpy.DiscreteBayesianNetwork`."""
+        from pgmpy.models import DiscreteBayesianNetwork
+
         graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)])
         expected = DiscreteBayesianNetwork(
             ebunch=[("X", "Y"), ("U_X_Y", "X"), ("U_X_Y", "Y")], latents=["U_X_Y"]
@@ -662,6 +671,8 @@ class TestToBayesianNetwork(unittest.TestCase):
 
     def test_graph_without_latents(self):
         """Tests converting a mixed graph without latents to an equivalent :class:`pgmpy.DiscreteBayesianNetwork`."""
+        from pgmpy.models import DiscreteBayesianNetwork
+
         graph = NxMixedGraph.from_edges(directed=[(X, Y)])
         expected = DiscreteBayesianNetwork(ebunch=[("X", "Y")])
         actual = graph.to_pgmpy_bayesian_network()
