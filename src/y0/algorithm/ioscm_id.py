@@ -184,8 +184,8 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
 
     2. For every $v_1, v_2, w \in V$ we have:
 
-        $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in
-        \text{Sc}^{G}(v_1)$.
+           $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in
+           \text{Sc}^{G}(v_1)$.
 
     :param graph: The corresponding graph.
 
@@ -295,14 +295,15 @@ def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
 
     2. For every $v_1, v_2, w \in V$ we have:
 
-        $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in
-        \text{Sc}^{G}(v_1)$.
+           $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in
+           \text{Sc}^{G}(v_1)$.
 
     :param order: The candidate apt-order.
     :param graph: The corresponding graph.
 
     :returns: True if the candidate apt-order is a possible apt-order for the graph,
         False otherwise.
+
     """
     raise NotImplementedError
     # TODO: Confirm we need the function
