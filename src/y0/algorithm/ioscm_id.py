@@ -144,6 +144,8 @@ def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Varia
     for node in graph.nodes():
         if node not in result:
             result.add(converted_graph.get_district(node))
+        else:
+            pass  # FIXME there should be a test case that covers this
     return result
 
 
@@ -269,7 +271,7 @@ def _simplify_strongly_connected_components(
         u_component = node_to_component[ego]
         v_component = node_to_component[alter]
         if u_component == v_component:
-            continue
+            continue  # FIXME there should be a test case that covers this
         undirected.add((comp_to_rep_node[u_component], comp_to_rep_node[v_component]))
         # If we add both (u,v) and (v,u), that will go away when the actual graph gets
         # produced, so there's no need for a test
