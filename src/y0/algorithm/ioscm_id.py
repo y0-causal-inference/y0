@@ -45,9 +45,7 @@ def get_strongly_connected_components(graph: NxMixedGraph) -> set[frozenset[Vari
         vertices $v$.
 
     """
-    return {
-        frozenset(component) for component in nx.strongly_connected_components(graph.directed)
-    }
+    return {frozenset(component) for component in nx.strongly_connected_components(graph.directed)}
 
 
 def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozenset[Variable]:

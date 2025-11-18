@@ -57,9 +57,7 @@ class TestConvertStronglyConnectedComponents(unittest.TestCase):
     def test_convert_strongly_connected_components_2(self):
         """Second test converting strongly connected components in a graph to bidirected edges."""
         result_2 = scc_to_bidirected(simple_cyclic_graph_2)
-        self.assertSetEqual(
-            set(result_2.undirected.edges), {(X, R), (X, W), (W, Z), (X, Z)}
-        )
+        self.assertSetEqual(set(result_2.undirected.edges), {(X, R), (X, W), (W, Z), (X, Z)})
         self.assertSetEqual(set(result_2.directed.edges), {(W, Y)})
 
 
