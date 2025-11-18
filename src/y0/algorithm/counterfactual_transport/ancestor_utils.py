@@ -10,8 +10,8 @@ from y0.graph import NxMixedGraph
 
 __all__ = [
     "get_ancestors_of_counterfactual",
-    "minimize_counterfactual",
     "get_ancestral_components",
+    "minimize_counterfactual",
 ]
 
 logger = logging.getLogger(__file__)
@@ -51,7 +51,7 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
 
     # This is the set of variables X in [correa22a]_, Definition 2.1.
     intervention_variables = {intervention.get_base() for intervention in event.interventions}
-    intervention_values = {intervention for intervention in event.interventions}
+    intervention_values = set(event.interventions)
 
     graph_minus_in = graph.remove_in_edges(intervention_variables)
     ancestors = graph.remove_out_edges(intervention_variables).ancestors_inclusive(event.get_base())
@@ -233,7 +233,7 @@ def _compute_ancestral_components_from_ancestral_sets(
     # Initialization
 
     # O(V)
-    ancestral_components: set[frozenset[Variable]] = {s for s in ancestral_sets}
+    ancestral_components: set[frozenset[Variable]] = set(ancestral_sets)
 
     # O(V^3)
     merged_ancestral_components_using_vertices: set[frozenset[Variable]] = (

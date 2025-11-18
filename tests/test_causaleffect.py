@@ -1,42 +1,30 @@
 """Tests for the CausalEffect wrapper."""
 
+import importlib.util
 import unittest
 
 import pyparsing
 
-from y0.dsl import P, Q, Sum, Variable
+from y0.algorithm.verma import r_get_verma_constraints
+from y0.dsl import V1, V2, V3, V4, P, Q, Sum, Variable
 from y0.examples import examples, verma_1
-
-try:
-    from y0.causaleffect import r_get_verma_constraints
-    from y0.r_utils import CAUSALEFFECT, IGRAPH
-    from y0.struct import VermaConstraint
-except ImportError:  # rpy2 is not installed
-    missing_rpy2 = True
-else:
-    missing_rpy2 = False
+from y0.r_utils import CAUSALEFFECT, IGRAPH, prepare_renv
+from y0.struct import VermaConstraint
 
 u_1 = Variable("u_1")
-V1 = Variable("V1")
-V2 = Variable("V2")
-V3 = Variable("V3")
-V4 = Variable("V4")
 
 
-@unittest.skipIf(missing_rpy2, "rpy2 is not installed")
+@unittest.skipIf(importlib.util.find_spec("rpy2"), reason="rpy2 is not installed")
 class TestCausalEffect(unittest.TestCase):
     """Tests for the causaleffect wrapper."""
 
     @classmethod
     def setUpClass(cls) -> None:
         """Make imports for the class."""
-        from rpy2.robjects.packages import PackageNotInstalledError, importr
-
         try:
-            importr(CAUSALEFFECT)
-            importr(IGRAPH)
-        except PackageNotInstalledError:
-            raise unittest.SkipTest("R packages not properly installed.") from None
+            prepare_renv([CAUSALEFFECT, IGRAPH])
+        except Exception as e:
+            raise unittest.SkipTest(f"R packages not properly installed.\n\n{e}") from None
 
     def test_verma_constraint(self):
         """Test getting the single Verma constraint from the Figure 1A graph."""

@@ -7,6 +7,7 @@ import itertools as itt
 import logging
 import textwrap
 from collections.abc import Collection, Iterable
+from io import StringIO
 from pathlib import Path
 from typing import NamedTuple
 
@@ -25,10 +26,10 @@ from y0.mutate import canonicalize
 from y0.util.combinatorics import powerset
 
 __all__ = [
-    "taheri_design_admg",
-    "taheri_design_dag",
     "Result",
     "draw_results",
+    "taheri_design_admg",
+    "taheri_design_dag",
 ]
 
 logger = logging.getLogger(__name__)
@@ -233,7 +234,7 @@ def iterate_lvdags(
             stop=stop,
             reverse=True,
             use_tqdm=True,
-            tqdm_kwargs=dict(desc="LV powerset"),
+            tqdm_kwargs={"desc": "LV powerset"},
         ),
     )
 
@@ -246,7 +247,7 @@ def iterate_lvdags(
         yv = graph.copy()
         for node in inducible_nodes:
             yv.nodes[node][tag] = node in induced_latents
-        yield induced_latents, inducible_nodes - induced_latents, yv  # type:ignore
+        yield induced_latents, inducible_nodes - induced_latents, yv
 
 
 def draw_results(
@@ -294,7 +295,7 @@ def draw_results(
         fig.savefig(_path, dpi=400)
 
 
-def print_results(results: list[Result], file=None) -> None:
+def print_results(results: list[Result], file: StringIO | None = None) -> None:
     """Print a set of results."""
     rows = [
         (
@@ -315,7 +316,7 @@ def print_results(results: list[Result], file=None) -> None:
 
 @click.command()
 @verbose_option
-def main():
+def main() -> None:
     """Run the algorithm on the IGF graph with the PI3K/Erk example."""
     import pystow
 

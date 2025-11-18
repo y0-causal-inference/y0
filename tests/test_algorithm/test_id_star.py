@@ -110,7 +110,7 @@ class TestIDStar(cases.GraphTestCase):
         self.assert_graph_equal(figure_9c.graph, new_graph)
         self.assertEqual({Y @ x: y, X: +x, Z: -z, D: -d}, new_event)
 
-        actual_graph3, actual_event3 = make_counterfactual_graph(
+        _actual_graph3, actual_event3 = make_counterfactual_graph(
             graph=NxMixedGraph.from_edges(directed=[(D, Z), (Z, Y)]),
             event={Z @ -d: -z, Z: +z, D: -d},
         )

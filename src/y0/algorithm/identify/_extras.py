@@ -88,7 +88,7 @@ def get_district_interventions(graph: NxMixedGraph, event: Event) -> DistrictInt
     :return: a dictionary of districts and interventions of districts
 
     """
-    nodes = set(node for node in graph.nodes() if is_not_self_intervened(node))
+    nodes = {node for node in graph.nodes() if is_not_self_intervened(node)}
     return {
         district: intervene_on_district(district, nodes - district, event)
         for district in graph.subgraph(nodes).districts()
@@ -161,7 +161,7 @@ def original_id_star(
         return Zero()
 
     # Line 6:
-    nodes = set(node for node in cf_graph.nodes() if is_not_self_intervened(node))
+    nodes = {node for node in cf_graph.nodes() if is_not_self_intervened(node)}
     cf_subgraph = cf_graph.subgraph(nodes)
     if not cf_subgraph.is_connected():
         summand, events_of_each_district = original_id_star_line_6(cf_graph, new_event)

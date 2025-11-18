@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from functools import lru_cache
-from typing import Literal, NamedTuple, cast
+from functools import lru_cache, partial
+from typing import Any, Literal, NamedTuple, cast
 
 import pandas as pd
 
 from .dsl import Expression, Variable
 
 __all__ = [
-    "VermaConstraint",
     "DSeparationJudgement",
+    "VermaConstraint",
 ]
 
 DEFAULT_SIGNIFICANCE = 0.01
@@ -29,7 +29,7 @@ class VermaConstraint(NamedTuple):
     variables: tuple[Variable, ...]
 
     @classmethod
-    def from_element(cls, element) -> VermaConstraint:
+    def from_element(cls, element: Any) -> VermaConstraint:
         """Extract content from each element in the vector returned by `verma.constraint`.
 
         :param element: An element in the vector returned by `verma.constraint`
@@ -53,17 +53,18 @@ CITest = Literal[
     "pearson",
     "chi-square",
     "cressie_read",
-    "freeman_tuckey",
+    "freeman_tukey",
     "g_sq",
     "log_likelihood",
     "modified_log_likelihood",
     "power_divergence",
     "neyman",
+    "pillai",
 ]
 DEFAULT_CONTINUOUS_CI_TEST: CITest = "pearson"
 DEFAULT_DISCRETE_CI_TEST: CITest = "cressie_read"
 
-CITestFunc = Callable
+CITestFunc = Callable[..., Any]
 
 
 @lru_cache
@@ -75,15 +76,17 @@ def get_conditional_independence_tests() -> dict[CITest, CITestFunc]:
         raise ImportError("Calculating falsifications requires `pip install pgmpy`.") from e
 
     return {
-        "pearson": CITests.pearsonr,
         "chi-square": CITests.chi_square,
-        "cressie_read": CITests.cressie_read,
-        "freeman_tuckey": CITests.freeman_tuckey,
         "g_sq": CITests.g_sq,
         "log_likelihood": CITests.log_likelihood,
         "modified_log_likelihood": CITests.modified_log_likelihood,
+        "pearson": CITests.pearsonr,  # deprecate
+        "pillai": CITests.pillai_trace,
+        # wrappers
+        "cressie_read": partial(CITests.power_divergence, lambda_="cressie-read"),
+        "freeman_tukey": partial(CITests.power_divergence, lambda_="freeman-tukey"),
         "power_divergence": CITests.power_divergence,
-        "neyman": CITests.neyman,
+        "neyman": partial(CITests.power_divergence, lambda_="neyman"),
     }
 
 
@@ -128,7 +131,7 @@ class DSeparationJudgement:
         """Create a d-separation judgement in canonical form."""
         left, right = sorted([left, right], key=str)
         if conditions is None:
-            conditions = tuple()
+            conditions = ()
         conditions = tuple(sorted(set(conditions), key=str))
         return cls(separated, left, right, conditions)
 
@@ -210,7 +213,7 @@ class DSeparationJudgement:
         # and the second being the p-value. The other methods return a triple with the first element
         # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of
         # freedom.
-        if method == "pearson":
+        if method in {"pearson", "pillai"}:
             statistic, p_value = result
             dof = None
         else:
@@ -241,7 +244,7 @@ def _ensure_method(method: CITest | None, df: pd.DataFrame, skip: bool = False) 
     return method
 
 
-def _summarize_df(df: pd.DataFrame):
+def _summarize_df(df: pd.DataFrame) -> dict[str, set[str]]:
     return {column: set(df[column].unique()) for column in df.columns}
 
 
@@ -250,6 +253,6 @@ def _is_binary(df: pd.DataFrame) -> bool:
     return all(column_to_type.values())
 
 
-def _is_two_values(series):
+def _is_two_values(series: pd.Series) -> bool:
     values = set(series.unique())
     return values == {True, False} or values == {1, 0} or values == {1, -1}

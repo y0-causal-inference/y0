@@ -13,9 +13,9 @@ from ..dsl import (
 )
 
 __all__ = [
+    "bayes_expand",
     "chain_expand",
     "fraction_expand",
-    "bayes_expand",
 ]
 
 
@@ -113,7 +113,7 @@ def bayes_expand(p: Probability) -> Expression:
 
     >>> from y0.dsl import P, A, B, C, Sum
     >>> from y0.mutate.chain import bayes_expand
-    >>> assert bayes_expand(P(A | B)) == P(A, B) / Sum[A](P(A, B)
+    >>> assert bayes_expand(P(A | B)) == P(A, B) / Sum[A](P(A, B))
 
     If there are no conditions (i.e., parents), then the probability
     is returned without modification.

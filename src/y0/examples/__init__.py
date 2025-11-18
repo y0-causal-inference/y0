@@ -1,11 +1,10 @@
-# type: ignore
-
 """Examples from CausalFusion."""
 
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from scipy.special import expit
 
 from .backdoor import generate_data_for_backdoor
 from .frontdoor import generate_data_for_frontdoor
@@ -50,6 +49,45 @@ from ..dsl import (
 from ..graph import NxMixedGraph
 from ..resources import ASIA_PATH
 from ..struct import DSeparationJudgement, VermaConstraint
+
+__all__ = [
+    "SARS_SMALL_GRAPH",
+    "Example",
+    "asia_example",
+    "d_separation_example",
+    "examples",
+    "figure_6a",
+    "figure_9a",
+    "figure_9a",
+    "figure_9b",
+    "figure_9c",
+    "figure_9c",
+    "figure_9d",
+    "figure_9d",
+    "figure_11a",
+    "figure_11b",
+    "figure_11c",
+    "frontdoor",
+    "frontdoor_backdoor_example",
+    "frontdoor_example",
+    "igf_example",
+    "line_1_example",
+    "line_2_example",
+    "line_3_example",
+    "line_4_example",
+    "line_5_example",
+    "line_6_example",
+    "line_7_example",
+    "napkin",
+    "napkin_example",
+    "tikka_figure_2",
+    "tikka_figure_5",
+    "tikka_figure_6a",
+    "tikka_figure_6b",
+    "tikka_trso_figure_8_graph",
+    "tikka_unidentifiable_cfgraph",
+    "verma_1",
+]
 
 x, y, z, w = -X, -Y, -Z, -W
 
@@ -167,7 +205,7 @@ def generate_napkin_data(
 
     Generate _observational_ data with the following:
 
-    >>> from y0.examples.napkin_example
+    >>> from y0.examples import napkin_example
     >>> napkin_example.generate_data(1000)
 
     Generate interventional data on $X=1$ with the following:
@@ -220,13 +258,14 @@ napkin_example = Example(
     example_queries=[Query.from_str(treatments="X", outcomes="Y")],
     verma_constraints=[
         VermaConstraint(
-            lhs_cfactor=Q[X, Y](Z1, X, Y) / Sum[Y](Q[X, Y](Z1, X, Y)),
+            lhs_cfactor=Q.safe(Z1, X, Y, codomain=[X, Y])
+            / Sum.safe(Q.safe(Z1, X, Y, codomain=[X, Y]), Y),
             lhs_expr=(
-                Sum[Z2](P(Y | (Z1, Z2, X)) * P(X | (Z2, Z1)) * P(Z2))
-                / Sum[Z2, Y](P(Y | (Z2, Z1, X)) * P(X | (Z2, Z1)) * P(Z2))
+                Sum.safe(P(Y | (Z1, Z2, X)) * P(X | (Z2, Z1)) * P(Z2), Z2)
+                / Sum.safe(P(Y | (Z2, Z1, X)) * P(X | (Z2, Z1)) * P(Z2), [Z2, Y])
             ),
-            rhs_cfactor=Q[Y](X, Y),
-            rhs_expr=Sum[u_2, X](P(Y | u_2 | X) * P(X) * P(u_2)),
+            rhs_cfactor=Q.safe(X, Y, codomain=[Y]),
+            rhs_expr=Sum.safe(P(Y | u_2 | X) * P(X) * P(u_2), [u_2, X]),
             variables=(Z1,),
         ),
     ],
@@ -271,38 +310,38 @@ line_1_example = Example(
         ]
     ),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y),
                     estimand=P(Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y),
-                    estimand=Sum[Z](P(Y, Z)),
+                    estimand=Sum.safe(P(Y, Z), [Z]),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
-        ),
-        dict(
-            id_in=[
+        },
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y, Z),
                     estimand=P(Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y, Z),
                     estimand=P(Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
-        ),
+        },
     ],
 )
 
@@ -312,22 +351,22 @@ line_2_example = Example(
     reference="out of the mind of JZ",
     graph=NxMixedGraph.from_edges(directed=[(Z, Y), (Y, X)], undirected=[(Z, X)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y), (Y, X)], undirected=[(Z, X)]),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y),
-                    estimand=Sum[X](P(Y, X, Z)),
+                    estimand=Sum.safe(P(Y, X, Z), [X]),
                     graph=NxMixedGraph.from_edges(directed=[(Z, Y)]),
                 )
             ],
-        )
+        }
     ],
 )
 
@@ -336,22 +375,22 @@ line_3_example = Example(
     reference="out of the mind of JZ",
     graph=NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)], undirected=[(Z, X)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)], undirected=[(Z, X)]),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y @ {X, Z}),
                     estimand=P(X, Y, Z),
                     graph=NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)], undirected=[(Z, X)]),
                 )
             ],
-        ),
+        },
     ],
 )
 
@@ -363,8 +402,8 @@ line_4_example = Example(
         undirected=[(Z, X), (M, Y)],
     ),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(M, X, Y, Z),
@@ -374,7 +413,7 @@ line_4_example = Example(
                     ),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(M @ {X, Z}, Y @ {X, Z}),
                     estimand=P(M, X, Y, Z),
@@ -392,7 +431,7 @@ line_4_example = Example(
                     ),
                 ),
             ],
-        ),
+        },
     ],
 )
 
@@ -401,15 +440,15 @@ line_5_example = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y),
                     graph=NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)]),
                 )
             ],
-        )
+        }
     ],
 )
 
@@ -421,8 +460,8 @@ line_6_example = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(directed=[(X, Y), (X, Z), (Z, Y)], undirected=[(X, Z)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ [X, Z]),
                     estimand=P(X, Y, Z),
@@ -432,7 +471,7 @@ line_6_example = Example(
                     ),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y @ {X, Z}),
                     estimand=P(Y | [X, Z]),
@@ -442,9 +481,9 @@ line_6_example = Example(
                     ),
                 )
             ],
-        ),
-        dict(
-            id_in=[
+        },
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(X, Y),
@@ -453,7 +492,7 @@ line_6_example = Example(
                     ),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y @ X),
                     estimand=P(Y | X),
@@ -462,7 +501,7 @@ line_6_example = Example(
                     ),
                 )
             ],
-        ),
+        },
     ],
 )
 
@@ -471,8 +510,8 @@ line_7_example = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(directed=[(X, Y1), (W1, Y1)], undirected=[(W1, Y1)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_expression(
                     query=P(Y1 @ [X, W1]),
                     estimand=P(X, Y1, W1),
@@ -481,14 +520,14 @@ line_7_example = Example(
                     ),
                 )
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y1 @ W1),
                     estimand=P(Y1 | [X, W1]) * P(W1),
                     graph=NxMixedGraph.from_edges(undirected=[(W1, Y1)]),
                 )
             ],
-        )
+        }
     ],
 )
 
@@ -497,8 +536,8 @@ figure_6a = Example(
     reference="Shpitser, I., & Pearl, J. (2008). Complete Identification Methods for the Causal Hierarchy.",
     graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=[(X, Z)]),
     identifications=[
-        dict(
-            id_in=[
+        {
+            "id_in": [
                 Identification.from_parts(
                     outcomes={Y},
                     treatments={X},
@@ -507,14 +546,14 @@ figure_6a = Example(
                     graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=[(X, Z)]),
                 ),
             ],
-            id_out=[
+            "id_out": [
                 Identification.from_expression(
                     query=P(Y @ (X, Z)),
                     estimand=P(Y | (X, Z)) / Sum.safe(expression=P(Y | (X, Z)), ranges=(Y,)),
-                    graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=list()),
+                    graph=NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)], undirected=[]),
                 ),
             ],
-        )
+        }
     ],
 )
 
@@ -821,19 +860,24 @@ identifiability_2_example = Example(
     graph=identifiability_2,
     verma_constraints=[
         VermaConstraint(
-            rhs_cfactor=Q[Z5](Z4, Z5),
-            rhs_expr=Sum[u_3, Z4](P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3)),
-            lhs_cfactor=Sum[Z3](Q[Z3, Z5](Z1, Z4, Z3, Z5)),
-            lhs_expr=Sum[Z3](P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z2, Z4))),
+            rhs_cfactor=Q.safe(Z4, Z5, codomain=[Z5]),
+            rhs_expr=Sum.safe(P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3), [u_3, Z4]),
+            lhs_cfactor=Sum.safe(Q.safe(Z1, Z4, Z3, Z5, codomain=[Z3, Z5]), [Z3]),
+            lhs_expr=Sum.safe(P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z2, Z4)), [Z3]),
             variables=(Z1,),
         ),
         VermaConstraint(
-            rhs_cfactor=Q[Z5](Z4, Z5),
-            rhs_expr=Sum[u_3, Z4](P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3)),
-            lhs_cfactor=(Q[Z2, Z5](Z1, Z4, Z2, Z5) / Sum[Z5](Q[Z2, Z5](Z1, Z4, Z2, Z5))),
+            rhs_cfactor=Q.safe(Z4, Z5, codomain=[Z5]),
+            rhs_expr=Sum.safe(P(Z5 | (u_3, Z4)) * P(Z4) * P(u_3), [u_3, Z4]),
+            lhs_cfactor=(
+                Q.safe(Z1, Z4, Z2, Z5, codomain=[Z2, Z5])
+                / Sum.safe(Q.safe(Z1, Z4, Z2, Z5, codomain=[Z2, Z5]), [Z5])
+            ),
             lhs_expr=(
-                Sum[Z3](P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
-                / Sum[Z3, Z5](P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)))
+                Sum.safe(P(Z5 | (Z1, Z2, Z3, Z4)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)), [Z3])
+                / Sum.safe(
+                    P(Z5 | (Z1, Z4, Z2, Z3)) * P(Z3 | (Z1, Z4, Z2)) * P(Z2 | (Z1, Z4)), [Z3, Z5]
+                )
             ),
             variables=(Z1, Z2),
         ),
@@ -915,9 +959,9 @@ identifiability_4 = NxMixedGraph.from_edges(
 #: Reference: J. Pearl. 2009. "Causality: Models, Reasoning and Inference. 2nd ed." Cambridge University Press, p. 119.
 identifiability_5 = NxMixedGraph.from_edges(
     directed=[
-        ("X1", Z),
-        ("X1", Y),
-        ("X1", "X2"),
+        (X1, Z),
+        (X1, Y),
+        (X1, X2),
         (Z, "X2"),
         ("X2", Y),
     ],
@@ -1168,9 +1212,8 @@ d_separation_example = Example(
     ],
 )
 
+asia_df = pd.read_csv(ASIA_PATH, sep="\t")
 
-asia_df = pd.read_csv(ASIA_PATH).replace({"yes": 1, "no": -1})
-del asia_df[asia_df.columns[0]]
 
 asia_example = Example(
     name="Asia dataset",
@@ -1420,6 +1463,68 @@ cancer_example = Example(
     graph=NxMixedGraph.from_edges(directed=[(S, T), (T, C), (S, C)], undirected=[(S, T)]),
     generate_data=generate_data_for_smoke_cancer,
     example_queries=[Query.from_str(outcomes="C", treatments="S")],
+)
+
+
+p_ipw_graph = NxMixedGraph.from_str_edges(
+    directed=[
+        ("C1", "T"),
+        ("C1", "L"),
+        ("C2", "T"),
+        ("C2", "M"),
+        ("C2", "L"),
+        ("C2", "Y"),
+        ("T", "M"),
+        ("M", "L"),
+        ("L", "Y"),
+    ],
+    undirected=[("Z1", "C1"), ("Z2", "C2"), ("T", "L")],
+)
+
+
+def _generate_p_ipw(size: int, interventions: dict[Variable, float] | None = None) -> pd.DataFrame:
+    if interventions is not None:
+        raise NotImplementedError
+    u1 = np.random.binomial(1, 0.4, size)
+    u2 = np.random.uniform(0, 1.5, size)
+    u3 = np.random.binomial(1, 0.6, size)
+    u4 = np.random.uniform(-1, 0.2, size)
+    u5 = np.random.binomial(1, 0.3, size)
+    u6 = np.random.uniform(0.5, 1.5, size)
+
+    p_z1 = expit(0.4 - u1 + u2)
+    z1 = np.random.binomial(1, p_z1, size)
+
+    p_c1 = expit(-0.1 + u1 - u2)  # + 0.5*Z1)
+    c1 = np.random.binomial(1, p_c1, size)
+
+    c2 = 1 + u3 - u4 + np.random.normal(0, 1, size)
+
+    z2 = -0.5 + u3 - u4 + np.random.normal(0, 1, size)
+
+    p_t = expit(0.5 + 0.5 * c1 - 0.4 * c2 - 0.4 * u5 + 0.4 * u6)
+    t = np.random.binomial(1, p_t, size)
+
+    p_m = expit(-0.3 + 1.5 * t - 0.3 * c2)
+    m = np.random.binomial(1, p_m, size)
+
+    p_l = expit(0.75 - 0.8 * m - 0.4 * c1 - 0.3 * c2 - 0.4 * u5 + 0.5 * u6)
+    l_values = np.random.binomial(1, p_l, size)
+
+    y_values = 1 + 1 * l_values + c2 + np.random.normal(0, 1, size)
+
+    return pd.DataFrame(
+        {"C1": c1, "C2": c2, "Z1": z1, "Z2": z2, "T": t, "M": m, "L": l_values, "Y": y_values}
+    )
+
+
+p_ipw_example = Example(
+    name="Primal IPW Example",
+    description="This was borrowed from the Ananke unit tests",
+    reference="https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_counterfactual_mean.py#L215",
+    graph=p_ipw_graph,
+    example_queries=[Query.from_str(outcomes="Y", treatments="T")],
+    generate_data=_generate_p_ipw,
 )
 
 

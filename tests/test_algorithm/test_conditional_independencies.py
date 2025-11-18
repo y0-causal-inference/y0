@@ -81,7 +81,7 @@ class TestDSeparation(unittest.TestCase):
             nodes=("a", "b", "c"),
             directed=[("a", "c"), ("b", "c")],
         )
-        links = set(tuple(sorted(e)) for e in iter_moral_links(graph))
+        links = {tuple(sorted(e)) for e in iter_moral_links(graph)}
         self.assertEqual(
             {(Variable("a"), Variable("b"))},
             links,
@@ -92,7 +92,7 @@ class TestDSeparation(unittest.TestCase):
             nodes=("a", "b", "aa", "bb", "c"),
             directed=[("a", "c"), ("b", "c"), ("aa", "c"), ("bb", "c")],
         )
-        links = set(tuple(sorted(e)) for e in iter_moral_links(graph))
+        links = {tuple(sorted(e)) for e in iter_moral_links(graph)}
         self.assertEqual(
             {
                 (Variable("a"), Variable("b")),
@@ -110,7 +110,7 @@ class TestDSeparation(unittest.TestCase):
             nodes=("a", "b", "c", "d", "e"),
             directed=[("a", "c"), ("b", "c"), ("c", "e"), ("d", "e")],
         )
-        links = set(tuple(sorted(e)) for e in iter_moral_links(graph))
+        links = {tuple(sorted(e)) for e in iter_moral_links(graph)}
         self.assertEqual(
             {(Variable("a"), Variable("b")), (Variable("c"), Variable("d"))},
             links,
@@ -123,7 +123,8 @@ class TestGetConditionalIndependencies(unittest.TestCase):
 
     def assert_example_has_judgements(self, example: Example) -> None:
         """Assert that the example is consistent w.r.t. D-separations."""
-        self.assertIsNotNone(example.conditional_independencies)
+        if example.conditional_independencies is None:
+            self.fail(msg="no conditional independencies were found")
         self.assert_has_judgements(
             graph=example.graph,
             judgements=example.conditional_independencies,
@@ -142,14 +143,15 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             )
         )
 
-    def assert_has_judgements(self, graph, judgements: Iterable[DSeparationJudgement]) -> None:
+    def assert_has_judgements(
+        self, graph: NxMixedGraph, judgements: Iterable[DSeparationJudgement]
+    ) -> None:
         """Assert that the graph has the correct conditional independencies.
 
         :param graph: the graph to test
-        :type graph: NxMixedGraph or ananke.graphs.SG
         :param judgements: the set of expected conditional independencies
         """
-        self.assertTrue(all(isinstance(node, Variable) for node in graph))
+        self.assertTrue(all(isinstance(node, Variable) for node in graph.nodes()))
         self.assert_judgement_types(judgements)
 
         asserted_judgements = set(judgements)

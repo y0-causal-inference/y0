@@ -20,8 +20,8 @@ from y0.graph import NxMixedGraph, _ensure_set
 from y0.mutate.canonicalize_expr import canonical_expr_equal
 
 __all__ = [
-    "Query",
     "Identification",
+    "Query",
     "Unidentifiable",
     "str_nodes_to_variable_nodes",
 ]
