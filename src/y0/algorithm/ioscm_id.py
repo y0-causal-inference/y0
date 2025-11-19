@@ -327,6 +327,30 @@ def _validate_apt_order_inputs(order:list[Variable], graph: NxMixedGraph) -> Non
     
     # -----------------------------------------------------------
     
+# 2. _check_scc_consecutiveness
+
+def _check_scc_consecutiveness(
+    order: list[Variable],
+    sccs: set[frozenset[Variable]]
+) -> bool: 
+    """ This function checks property 2: Nodes in the same SCC must appear consecutively. 
+    
+    For every $v_1, v_2, w \in V$:
+    $v_2 \in \text{Sc}^{G}(v_1) \land (v_1 \le w \le v_2) \Longrightarrow w \in \text{Sc}^{G}(v_1)$
+    
+    Translation: If $v_2$ is in same SCC as $v_1$, and $w$ is between them 
+    in the order, then $w$ must also be in that SCC.
+    
+    In other words: Nodes in the same SCC (feedback loop) must appear 
+    consecutively in the order with no nodes from other SCCs in between.
+    
+    :param order: The candidate apt-order (list of variables).
+    :param sccs: Set of strongly connected components (each is a frozenset of variables).
+    
+    :returns: True if all SCCs are consecutive, False otherwise.
+    
+    """
+    
 
 
 def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
