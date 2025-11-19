@@ -291,6 +291,9 @@ def _validate_apt_order_inputs(order:list[Variable], graph: NxMixedGraph) -> Non
     
     """Validate inputs for is_apt_order function.
     
+    Before checking Definition 9.2 properties, ensures the order is well-formed:
+    a total order on all vertices in the graph with no duplicates.
+    
     This function checks:
     
     1. All nodes in order exist in the graph.
