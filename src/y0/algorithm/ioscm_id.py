@@ -99,7 +99,7 @@ def get_consolidated_district(graph: NxMixedGraph, vertices: Collection[Variable
     vertices, not a set of sets of vertices.
 
     :param graph: The corresponding graph.
-    :param vertices: The vertex for which the consolidated district is to be retrieved.
+    :param vertices: The vertices for which the consolidated district is to be retrieved.
 
     :returns: The set of consolidated districts for the variables in $B$.
 
@@ -112,15 +112,14 @@ def get_consolidated_district(graph: NxMixedGraph, vertices: Collection[Variable
     result: set[Variable] = set()
     for vertex in vertices:
         district = converted_graph.get_district(vertex)
-        if vertex not in result:
-            result.update(district)
+        result.update(district)
     return result
 
 
 def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Variable]]:
     r"""Return the set of all consolidated districts in a graph.
 
-    See Definition 9.1 of [forré20a].
+    See Definition 9.1 of [forré20a]_.
 
     Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. Let $v \in V$. The
     consolidated district $\text{Cd}^{G}(v)$ of $v$ in $G$ is given by all nodes $w \in
@@ -142,7 +141,10 @@ def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Varia
     converted_graph = scc_to_bidirected(graph)
     result: set[frozenset[Variable]] = set()
     for node in graph.nodes():
-        if node not in result:
+        district = converted_graph.get_district(node)
+        if district not in result:
+            result.add(district)
+        
             result.add(converted_graph.get_district(node))
         else:
             pass  # FIXME there should be a test case that covers this
@@ -165,14 +167,13 @@ def scc_to_bidirected(graph: NxMixedGraph) -> NxMixedGraph:
         new_graph.directed.remove_edge(ego, alter)
         new_graph.undirected.add_edge(ego, alter)
 
-    logger.warning(f"In _convert_strongly_connected_components: graph = {new_graph!s}")
     return new_graph
 
 
 def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
     r"""Return one possible assembling pseudo-topological order ("apt-order") for the vertices in a graph.
 
-    See Definition 9.2 of [forré20a].
+    See Definition 9.2 of [forré20a]_.
 
     Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. An assembling
     pseudo-topological order (apt-order) of $G$ is a total order $\lt$ on $V$ with the
@@ -206,9 +207,7 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
     # 1.
     new_graph, node_to_component = _simplify_strongly_connected_components(graph)
     components = [sorted(node_to_component[v]) for v in new_graph.topological_sort()]
-    logger.warning(f"In get_apt_order: original vertex list, not flattened = {components!s}")
     nodes = [node for component in components for node in component]
-    logger.warning(f"In get_apt_order: flattened output vertex list = {nodes!s}")
     return nodes
 
 
@@ -283,7 +282,7 @@ def _simplify_strongly_connected_components(
 def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
     r"""Verify that a list of vertices is a possible assembling pseudo-topological order ("apt-order") for a graph.
 
-    See Definition 9.2 of [forré20a].
+    See Definition 9.2 of [forré20a]_.
 
     Let $G$ be a directed mixed graph (DMG) with set of nodes $V$. An assembling
     pseudo-topological order (apt-order) of $G$ is a total order $\lt$ on $V$ with the
