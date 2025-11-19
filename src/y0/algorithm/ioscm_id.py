@@ -351,6 +351,26 @@ def _check_scc_consecutiveness(
     
     """
     
+    # checks each SCC to make sure its nodes are grouped together
+    for scc in sccs: # go through each SCC one at a time
+        # skip over the single node SCCs - these are conseciutive by definition
+        
+        if len(scc) == 1:
+            continue 
+        
+        # find where each node in this SCC appears in the order
+        # example - if SCC = {A, B, C} and order = [X, A, Y, B, Z, C]
+        #      then positions = [1, 3, 5] 
+        positions = [order.index(node) for node in scc]
+        
+        # find the first and last occurrence of nodes from the SCC
+        # example: min_pos = 1 (A's position), max_pos = 5 (C's position)
+        
+        min_pos = min(positions)
+        max_pos = max(positions)
+        
+        
+    
 
 
 def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
