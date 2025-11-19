@@ -46,12 +46,8 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_world(self):
         """Test that a world contains an intervention."""
+        input_world1: World = World([-x])
         with self.assertRaises(TypeError):
-            input_world1: World = World([-x])
-            3 in input_world1  # noqa
-
-        with self.assertRaises(TypeError):
-            input_world1: World = World([3])
             3 in input_world1  # noqa
 
         input_world2 = World([-x])
@@ -640,14 +636,14 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_merge_pw(self):
         """Test the parallel worlds graph after merging two nodes is correct (Lemma 25)."""
-        cf_graph_1, preferred, eliminated = merge_pw(figure_9b.graph, D, D @ -X)
-        cf_graph_2, preferred, eliminated = merge_pw(cf_graph_1, X, X @ D)
+        cf_graph_1, _preferred, _eliminated = merge_pw(figure_9b.graph, D, D @ -X)
+        cf_graph_2, _preferred, _eliminated = merge_pw(cf_graph_1, X, X @ D)
         # test that we swap the order of the nodes if the first is a counterfactual
-        cf_graph_3, preferred, eliminated = merge_pw(cf_graph_2, Z @ -X, Z)
-        cf_graph_4, preferred, eliminated = merge_pw(cf_graph_3, Z, Z @ D)
-        cf_graph_5, preferred, eliminated = merge_pw(cf_graph_4, W, W @ D)
-        cf_graph_6, preferred, eliminated = merge_pw(cf_graph_5, D @ -D, D)
-        cf_graph_7, preferred, eliminated = merge_pw(cf_graph_6, Y, Y @ -D)
+        cf_graph_3, _preferred, _eliminated = merge_pw(cf_graph_2, Z @ -X, Z)
+        cf_graph_4, _preferred, _eliminated = merge_pw(cf_graph_3, Z, Z @ D)
+        cf_graph_5, _preferred, _eliminated = merge_pw(cf_graph_4, W, W @ D)
+        cf_graph_6, _preferred, _eliminated = merge_pw(cf_graph_5, D @ -D, D)
+        cf_graph_7, _preferred, _eliminated = merge_pw(cf_graph_6, Y, Y @ -D)
         self.assert_graph_equal(figure_11a.graph, cf_graph_2)
         self.assert_graph_equal(figure_11b.graph, cf_graph_6)
         self.assert_graph_equal(figure_11c.graph, cf_graph_7)

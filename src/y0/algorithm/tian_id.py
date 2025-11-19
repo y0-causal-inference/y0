@@ -267,13 +267,13 @@ def compute_c_factor_conditioning_on_topological_predecessors(
                 ),
             )
             population_probabilities.append(pp)
-            logger.debug(
-                "In _compute_c_factor_conditioning_on_topological_predecessors: returning "
-                + str(Product.safe(population_probabilities))
-            )
-            logger.debug(
-                "Return value in Latex form is " + Product.safe(population_probabilities).to_latex()
-            )
+        logger.debug(
+            "In _compute_c_factor_conditioning_on_topological_predecessors: returning "
+            + str(Product.safe(population_probabilities))
+        )
+        logger.debug(
+            "Return value in Latex form is " + Product.safe(population_probabilities).to_latex()
+        )
         return Product.safe(population_probabilities)
     else:
         probabilities = []

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build>=0.6.6,<1.0"]
+requires = ["uv_build>=0.9.6,<1.0"]
 build-backend = "uv_build"
 
 [project]
@@ -31,7 +31,6 @@ classifiers = [
     "Framework :: Sphinx",
     "Natural Language :: English",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -54,7 +53,7 @@ license-files = [
     "LICENSE",
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "more_itertools", # missing from itertools in stdlib
     "tqdm", # progress bars
@@ -67,8 +66,8 @@ dependencies = [
     "scikit-learn",
     "statsmodels",
     "scipy",
+    "typing-extensions",
 ]
-
 
 # see https://peps.python.org/pep-0735/ and https://docs.astral.sh/uv/concepts/dependencies/#dependency-groups
 [dependency-groups]
@@ -80,6 +79,7 @@ tests = [
     "xgboost", # for pillai
     "torch",
     "y0[r]",
+    "matplotlib>=3.10.5",
 ]
 docs = [
     "sphinx>=8",
@@ -97,6 +97,7 @@ typing = [
     "pydantic",
     "types-click",
     "types-tabulate",
+    "scipy-stubs",
 ]
 docs-lint = [
     { include-group = "docs" },
@@ -119,8 +120,8 @@ bump = [
     "bump-my-version",
 ]
 build = [
-    "uv",
-    "uv-build",
+    "uv>=0.9.6",
+    "uv-build>=0.9.6",
 ]
 release = [
     { include-group = "build" },
@@ -290,3 +291,8 @@ replace = "release = \"{new_version}\""
 filename = "src/y0/version.py"
 search = "VERSION = \"{current_version}\""
 replace = "VERSION = \"{new_version}\""
+
+[[tool.bumpversion.files]]
+filename = "CITATION.cff"
+search = "version: {current_version}"
+replace = "version: {new_version}"
