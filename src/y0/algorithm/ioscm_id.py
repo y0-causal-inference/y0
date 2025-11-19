@@ -278,6 +278,27 @@ def _simplify_strongly_connected_components(
     new_graph = NxMixedGraph.from_edges(directed=directed, undirected=undirected)
     return new_graph, representative_node_to_component
 
+def _validate_apt_order_inputs(order:list[Variable], graph: NxMixedGraph) -> None:
+    
+    """Validate inputs for is_apt_order function.
+    
+    This function checks:
+    
+    1. All nodes in order exist in the graph.
+    2. All nodes in the graph are present in order.
+    3. No duplicate nodes in order. 
+    
+    
+    :param order: The candidate apt-order.
+    : param graph: The corresponding graph.
+    
+    :raises ValueError: If order is invalid. 
+    """
+    order_set = set(order) # converting to a set for easier checking
+    graph_nodes = set(graph.nodes())  # set of nodes in the graph
+    
+    
+
 
 def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
     r"""Verify that a list of vertices is a possible assembling pseudo-topological order ("apt-order") for a graph.
