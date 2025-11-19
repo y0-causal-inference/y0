@@ -278,6 +278,15 @@ def _simplify_strongly_connected_components(
     new_graph = NxMixedGraph.from_edges(directed=directed, undirected=undirected)
     return new_graph, representative_node_to_component
 
+
+# ----- Helper Functions for is_apt_order ----- #
+# -----------------------------------------------------------
+# 1. _validate_apt_order_inputs
+# 2. _check_scc_consecutiveness
+# 3. _check_scc_topological_order
+
+
+
 def _validate_apt_order_inputs(order:list[Variable], graph: NxMixedGraph) -> None:
     
     """Validate inputs for is_apt_order function.
@@ -297,6 +306,21 @@ def _validate_apt_order_inputs(order:list[Variable], graph: NxMixedGraph) -> Non
     order_set = set(order) # converting to a set for easier checking
     graph_nodes = set(graph.nodes())  # set of nodes in the graph
     
+    # checking for nodes in order but not in the graph
+    extra_nodes = order_set - graph_nodes
+    if extra_nodes:
+        raise ValueError(f"Order contains nodes that are not in graph: {extra_nodes}")
+    
+    # check for nodes in graph but not in order
+    missing_nodes = graph_nodes - order_set
+    if missing_nodes:
+        raise ValueError(f"Order is missing nodes from the graph: {missing_nodes}")
+    
+    # checking to see if there are duplicates in order
+    if len(order) != len(order_set):
+        raise ValueError("Order contains duplicate nodes.")
+    
+    # -----------------------------------------------------------
     
 
 
