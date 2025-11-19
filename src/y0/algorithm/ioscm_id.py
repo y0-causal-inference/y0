@@ -295,7 +295,6 @@ def _validate_apt_order_inputs(order:list[Variable], graph: NxMixedGraph) -> Non
     This function ensures the input satisfies the basic requirements of a 
     total order: all vertices present exactly once.
     
-    Definition 9.2 requires that 
     
     This function checks:
     
