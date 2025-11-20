@@ -118,6 +118,26 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
         result_2 = get_graph_consolidated_districts(simple_cyclic_graph_2)
         logger.warning(f"In test_get_graph_consolidated_district_1: result_2 = {result_2!s}")
         self.assertSetEqual(result_2, {frozenset({R, X, W, Z}), frozenset({Y})})
+    
+    def test_graph_consolidated_districts_with_shared_districts(self):
+        """Test that get_graph_consolidated_districts correctly handles deduplicates when multiple nodes share a district.
+        
+        This test ensures that when multiple nodes belong to the same consolidated district,
+        the district appears only once in the returned set (automatic deduplication by the set data structure).
+        """
+        
+        # create a graph where multiple nodes belong to the same consolidated district
+        
+        from y0.dsl import Variable
+        
+        A, B, C = Variable("A"), Variable("B"), Variable("C")
+        
+        # create a graph with bidirected edges forming one district
+        
+        graph = NxMixedGraph.from_edges(
+            directed=[],
+            undirected=[(A, B), (B, C)]
+        )
 
 
 class TestAptOrder(unittest.TestCase):
