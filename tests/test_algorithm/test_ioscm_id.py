@@ -127,18 +127,16 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
         """
         
         # create a graph where multiple nodes belong to the same consolidated district
-        
         from y0.dsl import Variable
         
         A, B, C = Variable("A"), Variable("B"), Variable("C")
         
         # create a graph with bidirected edges forming one district
-        
         graph = NxMixedGraph.from_edges(
             directed=[],
             undirected=[(A, B), (B, C)]
         )
-        
+    
         districts = get_graph_consolidated_districts(graph)
         
         # should return only one district containing all three nodes
