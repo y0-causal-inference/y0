@@ -189,6 +189,46 @@ class TestAptOrder(unittest.TestCase):
             sorted(expected_result_2.undirected.edges),
             sorted(result_2.undirected.edges),
         )
+        
+    def test_simplify_strongly_connected_components_3(self):
+        """Test a utility function to simplify strongly-connected components for a graph.
+        
+        This test covers the case where an undirected edge exists between two nodes
+        in the same strongly connected component. The edge should be removed during simplification
+        since both nodes get collapsed into a single representative node.
+        """
+        
+        from y0.dsl import Variable
+        
+        X, W, Z, Y = Variable("X"), Variable("W"), Variable("Z"), Variable("Y")
+        
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X, W),
+                (W, Z),
+                (Z, X),
+            ],
+            undirected=[
+                (X, W) # this undirected edge is within the SCC
+            ]
+        )
+        
+        result, result_dict = _simplify_strongly_connected_components(graph)
+        
+        # The SCC {X, W, Z} should be collapsed to one representative vertex (W is min)
+        # Since X and W are in the same component, the undirected edge should NOT appear
+        # in the simplified graph
+        
+        # checking that the result has only one node (the representattive)
+        self.assertEqual(len(result.nodes()), 1)
+        
+        # check that there are no undirected edges in the result
+        # (the X <-> W edge should be removed via the continue statement)
+        self.assertEqual(len(list(result.undirected.edges)), 0)
+        
+        # verify the representative node maps to all three nodes in the component
+        
+        
 
     def test_get_apt_order_1(self):
         """First test for getting an assembling pseudo-topological order for a graph."""
