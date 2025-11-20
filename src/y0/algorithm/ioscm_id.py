@@ -265,7 +265,7 @@ def _simplify_strongly_connected_components(
         u_component = node_to_component[ego]
         v_component = node_to_component[alter]
         if u_component == v_component:
-            continue  # FIXME there should be a test case that covers this
+            continue  # FIXME adding a unit test for: when two nodes in the same strongly connected component have an undirected edge between them and the edge is skipped during simplification. 
         undirected.add((comp_to_rep_node[u_component], comp_to_rep_node[v_component]))
         # If we add both (u,v) and (v,u), that will go away when the actual graph gets
         # produced, so there's no need for a test
