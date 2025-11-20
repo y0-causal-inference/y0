@@ -119,7 +119,7 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
         logger.warning(f"In test_get_graph_consolidated_district_1: result_2 = {result_2!s}")
         self.assertSetEqual(result_2, {frozenset({R, X, W, Z}), frozenset({Y})})
     
-    def test_graph_consolidated_districts_with_shared_districts(self):
+    def test_get_graph_consolidated_districts_with_shared_districts(self):
         """Test that get_graph_consolidated_districts correctly handles deduplicates when multiple nodes share a district.
         
         This test ensures that when multiple nodes belong to the same consolidated district,
@@ -138,6 +138,12 @@ class TestGetConsolidatedDistrict(unittest.TestCase):
             directed=[],
             undirected=[(A, B), (B, C)]
         )
+        
+        districts = get_graph_consolidated_districts(graph)
+        
+        # should return only one district containing all three nodes
+        self.assertEqual(len(districts), 1)
+        self.assertIn(frozenset({A, B, C}), districts)
 
 
 class TestAptOrder(unittest.TestCase):
