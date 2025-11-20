@@ -207,6 +207,7 @@ class TestAptOrder(unittest.TestCase):
                 (X, W),
                 (W, Z),
                 (Z, X),
+                (W, Y),
             ],
             undirected=[
                 (X, W) # this undirected edge is within the SCC
@@ -219,14 +220,22 @@ class TestAptOrder(unittest.TestCase):
         # Since X and W are in the same component, the undirected edge should NOT appear
         # in the simplified graph
         
-        # checking that the result has only one node (the representattive)
-        self.assertEqual(len(result.nodes()), 1)
+        # check that the result has 2 nodes: SCC and Y
+        self.assertEqual(len(result.nodes()), 2)
+    
         
         # check that there are no undirected edges in the result
         # (the X <-> W edge should be removed via the continue statement)
         self.assertEqual(len(list(result.undirected.edges)), 0)
         
+    
+        # checking that the result has only one node (the representattive to Y)
+        self.assertEqual(len(result.nodes()), 1)
+        
         # verify the representative node maps to all three nodes in the component
+        representative = min([X, W, Z]) # W is the min = representative
+        self.assertIn(representative, result_dict)
+        self.assertEqual(result_dict[representative], frozenset({X, W, Z}))
         
         
 
