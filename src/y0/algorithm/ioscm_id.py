@@ -287,7 +287,7 @@ def _simplify_strongly_connected_components(
 
 
 
-def _validate_apt_order_inputs(order:list[Variable], graph: NxMixedGraph) -> None:
+def _validate_apt_order_inputs(candidate_order:list[Variable], graph: NxMixedGraph) -> None:
     
     """Validate inputs for is_apt_order function.
     
@@ -308,7 +308,7 @@ def _validate_apt_order_inputs(order:list[Variable], graph: NxMixedGraph) -> Non
     
     :raises ValueError: If order is invalid. 
     """
-    order_set = set(order) # converting to a set for easier checking
+    order_set = set(candidate_order) # converting to a set for easier checking
     graph_nodes = set(graph.nodes())  # set of nodes in the graph
     
     # checking for nodes in order but not in the graph
@@ -398,6 +398,9 @@ def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
         False otherwise.
 
     """
+    sccs = get_strongly_connected_components(graph)
+    return _check_ancestors_are_prior_to_non_scc_descendants(order, sccs) and _check_members_of_scc_are_consecutive(order, sccs)
+    # 
     raise NotImplementedError
     # TODO: Confirm we need the function
     # Strategy (not sure this is optimal yet):

@@ -190,3 +190,12 @@ class TestAptOrder(unittest.TestCase):
         self.assertFalse(is_apt_order([Y, Z, R, X, W], simple_cyclic_graph_1))
         self.assertFalse(is_apt_order([Y, Z, R, W, X], simple_cyclic_graph_1))
         # TODO: Use itertools.permutations to test every permutation of the vertices for this small graph
+
+    def test_check_scc_consecutiveness(self):
+        """Test that all nodes in each strongly connected component are consecutive in the apt_order."""
+        # find where each node in this SCC appears in the order
+        # example - if SCC = {A, B, C} and order = [X, A, Y, B, Z, C]
+        #      then positions = [1, 3, 5] 
+        bad_scc = {A, B, C}
+        bad_order = [X, A, Y, B, Z, C]
+        

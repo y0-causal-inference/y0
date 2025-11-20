@@ -67,6 +67,7 @@ dependencies = [
     "statsmodels",
     "scipy",
     "typing-extensions",
+    "matplotlib>=3.10.7",
 ]
 
 # see https://peps.python.org/pep-0735/ and https://docs.astral.sh/uv/concepts/dependencies/#dependency-groups
