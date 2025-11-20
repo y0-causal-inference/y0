@@ -142,12 +142,7 @@ def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Varia
     result: set[frozenset[Variable]] = set()
     for node in graph.nodes():
         district = converted_graph.get_district(node)
-        if district not in result:
-            result.add(district)
-        
-            result.add(converted_graph.get_district(node))
-        else:
-            pass  # FIXME there should be a test case that covers this
+        result.add(district)
     return result
 
 
