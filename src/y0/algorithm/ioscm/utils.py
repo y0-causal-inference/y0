@@ -268,7 +268,7 @@ def simplify_strongly_connected_components(
 
 def _validate_apt_order_inputs(candidate_order:list[Variable], graph: NxMixedGraph) -> None:
     
-    """Validate inputs for is_apt_order function.
+    r"""Validate inputs for is_apt_order function.
     
     Definition 9.2 requires apt-order to be a total order $\lt$ on $V$. 
     This function ensures the input satisfies the basic requirements of a 
