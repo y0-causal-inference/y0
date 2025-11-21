@@ -267,7 +267,11 @@ def get_equivalence_classes(graph: NxMixedGraph) -> dict[Variable, set[Variable]
        definition of strongly connected component totally
        ignores the bi- and undirected edges of the σ-CG.
     """
-    return {
-        node: graph.ancestors_inclusive(node).intersection(graph.descendants_inclusive(node))
-        for node in graph.nodes()
-    }
+    return {node: _get_scc(graph, node) for node in graph.nodes()}
+
+
+def _get_scc(graph: NxMixedGraph, node: Variable) -> set[Variable]:
+    # TODO: It might be faster to use strongly_connected_components:
+    # https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.\
+    # components.strongly_connected_components.html#networkx.algorithms.components.strongly_connected_components
+    return graph.ancestors_inclusive(node).intersection(graph.descendants_inclusive(node))
