@@ -358,6 +358,26 @@ def _check_ancestors_are_prior_to_non_scc_descendants(
     for scc in sccs:
         for node in scc:
             node_to_scc[node] = scc
+    
+    # check the constraint for each node
+    for v in graph.nodes():
+        
+        # get all the ancestors of v
+        ancestors_of_v = graph.ancestors_inclusive(v)
+        
+        # get the SCC that v belongs to
+        scc_of_v = node_to_scc[v]
+        
+        # check each ancestor w of v
+        for w in ancestors_of_v:
+            # Check if w is in Anc^G(v) \ Sc^G(v) - which would mean w is an ancestor but not in the same SCC
+            if node_to_scc[w] != scc_of_v:
+                # then the constraint requires w < v in the order
+                # in the order, this means index of w < index of v
+                
+                
+            
+
             
     
 
