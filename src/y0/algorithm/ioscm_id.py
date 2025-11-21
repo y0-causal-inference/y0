@@ -8,6 +8,7 @@
 import copy
 import logging
 from collections.abc import Collection
+from typing import TypeAlias
 
 import networkx as nx
 
@@ -28,8 +29,8 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 #: Variable to component mapping
-NodeToComponent = dict[Variable, frozenset[Variable]]
-ComponentToNode = dict[frozenset[Variable], Variable]
+NodeToComponent: TypeAlias = dict[Variable, frozenset[Variable]]
+ComponentToNode: TypeAlias = dict[frozenset[Variable], Variable]
 
 
 def get_strongly_connected_components(graph: NxMixedGraph) -> set[frozenset[Variable]]:
@@ -46,7 +47,7 @@ def get_strongly_connected_components(graph: NxMixedGraph) -> set[frozenset[Vari
     return {frozenset(component) for component in nx.strongly_connected_components(graph.directed)}
 
 
-def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozenset[Variable]:
+def get_vertex_consolidated_district(graph: NxMixedGraph, vertex: Variable) -> frozenset[Variable]:
     r"""Return the consolidated district for a single vertex in a graph.
 
     See Definition 9.1 of [forré20a]_.
@@ -62,7 +63,7 @@ def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozen
     (This function retrieves the consolidated district for $v$, not $B$.)
 
     :param graph: The corresponding graph.
-    :param v: The vertex for which the consolidated district is to be retrieved.
+    :param vertex: The vertex for which the consolidated district is to be retrieved.
 
     :returns: The set of variables comprising $\text{Cd}^{G}(v)$.
     """
@@ -72,7 +73,7 @@ def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozen
     # 3. Get the district for the new graph that contains the target vertex in question using get_district().
     # 4. Return the resulting set.
     converted_graph = scc_to_bidirected(graph)
-    result = converted_graph.get_district(v)
+    result = converted_graph.get_district(vertex)
     return result
 
 
