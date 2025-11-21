@@ -303,7 +303,7 @@ def _validate_apt_order_inputs(candidate_order:list[Variable], graph: NxMixedGra
     3. No duplicate nodes in order. 
     
     
-    :param order: The candidate apt-order.
+    :param candidate_order: The candidate apt-order.
     : param graph: The corresponding graph.
     
     :raises ValueError: If order is invalid. 
@@ -322,7 +322,7 @@ def _validate_apt_order_inputs(candidate_order:list[Variable], graph: NxMixedGra
         raise ValueError(f"Order is missing nodes from the graph: {missing_nodes}")
     
     # checking to see if there are duplicates in order
-    if len(order) != len(order_set):
+    if len(candidate_order) != len(order_set):
         raise ValueError("Order contains duplicate nodes.")
     
     # -----------------------------------------------------------
