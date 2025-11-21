@@ -153,7 +153,6 @@ class TestIOSCMUtils(cases.GraphTestCase):
         ]:
             self.assertListEqual(result, get_apt_order(graph))
 
-    @unittest.skip(reason="not implemented")
     def test_is_apt_order_1(self) -> None:
         """Test verifying an assembling pseudo-topological order for a graph."""
         for order in [
@@ -175,3 +174,26 @@ class TestIOSCMUtils(cases.GraphTestCase):
             [Y, Z, R, W, X],
         ]:
             self.assertFalse(is_apt_order(order, simple_cyclic_graph_1))
+            
+    def test_check_scc_consecutiveness(self):
+        """Test Condition 2: SCC members must be consecutive in the apt_order."""
+    
+        # simple_cyclic_graph_1 has:
+        # - R → X → W → Z (with Z → X creating cycle)
+        # - W → Y
+        # - SCC: {X, W, Z}
+        # - Single-node SCCs: {R}, {Y}
+    
+        # VALID: SCC {X, W, Z} is consecutive
+        self.assertTrue(is_apt_order([R, X, W, Z, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, W, Z, X, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, Z, X, W, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, W, X, Z, Y], simple_cyclic_graph_1))
+    
+        # INVALID: SCC {X, W, Z} is broken up
+        # Note: These also violate Condition 1 (ancestry constraint)
+        # because Y appears before its ancestors
+        self.assertFalse(is_apt_order([R, X, Y, W, Z], simple_cyclic_graph_1))  # Y breaks SCC
+        self.assertFalse(is_apt_order([R, X, W, Y, Z], simple_cyclic_graph_1))  # Y breaks SCC
+        self.assertFalse(is_apt_order([R, Y, X, W, Z], simple_cyclic_graph_1))  # Y breaks SCC
+   
