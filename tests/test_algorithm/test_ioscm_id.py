@@ -211,6 +211,13 @@ class TestAptOrder(unittest.TestCase):
         self.assertTrue(is_apt_order([X, A, B, C, Y, Z], graph_with_cycle))
         self.assertTrue(is_apt_order([X, Y, Z, A, B, C], graph_with_cycle))
         self.assertTrue(is_apt_order([X, Y, Z, C, B, A], graph_with_cycle))
+        
+        # INVALID test that should NOT pass: SCC {A,B,C} is broken up by other nodes
+        self.assertFalse(is_apt_order([X, A, Y, B, Z, C], graph_with_cycle))  # Y and Z break SCC
+        self.assertFalse(is_apt_order([A, X, B, Y, C, Z], graph_with_cycle))  # X and Y break SCC
+        self.assertFalse(is_apt_order([A, Y, B, Z, C, X], graph_with_cycle))  # Y and Z break SCC
+        self.assertFalse(is_apt_order([X, A, B, Y, C, Z], graph_with_cycle))  # Y breaks SCC
+        self.assertFalse(is_apt_order([A, X, Y, B, C, Z], graph_with_cycle))  # X and Y break SCC
        
        
    
