@@ -418,6 +418,15 @@ def _check_members_of_scc_are_consecutive(
         # find the first and last occurrence of nodes from this SCC in the order
         min_pos = min(positions)
         max_pos = max(positions)
+        
+        # check all positions between min_pos and max_pos which is inclusive
+        for pos in range(min_pos, max_pos + 1):
+            node_at_pos = candidate_order[pos]
+            if node_at_pos not in scc:
+                # this means we've found a node between SCC members that is not in the SCC
+                # violates condition 2
+                return False
+    return True  # All SCCs are consecutive
 
 
 def is_apt_order(candidate_order: list[Variable], graph: NxMixedGraph) -> bool:
