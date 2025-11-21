@@ -461,11 +461,13 @@ def is_apt_order(candidate_order: list[Variable], graph: NxMixedGraph) -> bool:
     sccs = get_strongly_connected_components(graph)
     
     # third check - check both conditions from Definition 9.2
-    
     return (
         _check_ancestors_are_prior_to_non_scc_descendants(candidate_order, graph, sccs) and 
         _check_members_of_scc_are_consecutive(candidate_order, sccs)
     )
+    
+    # -----------------------------------------------------------
+    
     # 
     # raise NotImplementedError
     # TODO: Confirm we need the function
