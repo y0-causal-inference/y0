@@ -8,14 +8,14 @@
 import unittest
 
 from tests.test_algorithm import cases
-from y0.algorithm.ioscm_id import (
-    _simplify_strongly_connected_components,
+from y0.algorithm.ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
     get_graph_consolidated_districts,
     get_vertex_consolidated_district,
     is_apt_order,
     scc_to_bidirected,
+    simplify_strongly_connected_components,
 )
 from y0.dsl import A, B, C, R, W, X, Y, Z
 from y0.graph import NxMixedGraph
@@ -103,7 +103,7 @@ class TestIOSCMUtils(cases.GraphTestCase):
             ),
         ]:
             # TODO test result dict
-            actual, _result_dict = _simplify_strongly_connected_components(graph)
+            actual, _result_dict = simplify_strongly_connected_components(graph)
             self.assert_graph_equal(expected, actual)
 
     def test_simplify_strongly_connected_components_3(self) -> None:
@@ -125,7 +125,7 @@ class TestIOSCMUtils(cases.GraphTestCase):
             ],
         )
 
-        simplified_graph, result_dict = _simplify_strongly_connected_components(graph)
+        simplified_graph, result_dict = simplify_strongly_connected_components(graph)
 
         # The SCC {X, W, Z} should be collapsed to one representative vertex (W is min)
         # Since X and W are in the same component, the undirected edge should NOT appear

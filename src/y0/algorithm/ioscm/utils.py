@@ -1,9 +1,4 @@
-"""Implementation of the ID algorithm for input-output structural causal models (ioSCMs).
-
-.. [forré20a] http://proceedings.mlr.press/v115/forre20a/forre20a.pdf.
-
-.. [forré20b] http://proceedings.mlr.press/v115/forre20a/forre20a-supp.pdf
-"""
+"""Utilities supporting operations on the ioSCM data structure."""
 
 import copy
 import logging
@@ -20,10 +15,11 @@ __all__ = [
     "get_apt_order",
     "get_consolidated_district",
     "get_graph_consolidated_districts",
-    # TODO do a proper audit of which of these a user should ever have to import
     "get_strongly_connected_components",
     "get_vertex_consolidated_district",
     "is_apt_order",
+    "scc_to_bidirected",
+    "simplify_strongly_connected_components",
 ]
 
 logger = logging.getLogger(__name__)
@@ -196,13 +192,13 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
     #     once it's already been added.
 
     # 1.
-    new_graph, node_to_component = _simplify_strongly_connected_components(graph)
+    new_graph, node_to_component = simplify_strongly_connected_components(graph)
     components = [sorted(node_to_component[v]) for v in new_graph.topological_sort()]
     nodes = [node for component in components for node in component]
     return nodes
 
 
-def _simplify_strongly_connected_components(
+def simplify_strongly_connected_components(
     graph: NxMixedGraph,
 ) -> tuple[NxMixedGraph, dict[Variable, frozenset[Variable]]]:
     r"""Reduce each strongly-connected component in a directed graph to a single vertex.
