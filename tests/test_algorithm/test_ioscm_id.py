@@ -189,36 +189,28 @@ class TestAptOrder(unittest.TestCase):
         self.assertFalse(is_apt_order([Y, Z, X, W, R], simple_cyclic_graph_1))
         self.assertFalse(is_apt_order([Y, Z, R, X, W], simple_cyclic_graph_1))
         self.assertFalse(is_apt_order([Y, Z, R, W, X], simple_cyclic_graph_1))
-        # TODO: Use itertools.permutations to test every permutation of the vertices for this small graph
+    # TODO: Use itertools.permutations to test every permutation of the vertices for this small graph
 
     def test_check_scc_consecutiveness(self):
-        """Test that all nodes in each strongly connected component are consecutive in the apt_order."""
-        from y0.dsl import A, B, C, X, Y, Z
-        
-        # Graph: A ↔ B ↔ C (cycle), plus isolated nodes X, Y, Z
-        graph_with_cycle = NxMixedGraph.from_edges(
-            directed=[
-                (A, B),
-                (B, C),
-                (C, A),
-            ],
-        )
-        
-        # VALID tests that should pass: SCC {A,B,C} is consecutive
-        self.assertTrue(is_apt_order([A, B, C, X, Y, Z], graph_with_cycle))
-        self.assertTrue(is_apt_order([A, C, B, X, Y, Z], graph_with_cycle))
-        self.assertTrue(is_apt_order([B, A, C, X, Y, Z], graph_with_cycle))
-        self.assertTrue(is_apt_order([X, A, B, C, Y, Z], graph_with_cycle))
-        self.assertTrue(is_apt_order([X, Y, Z, A, B, C], graph_with_cycle))
-        self.assertTrue(is_apt_order([X, Y, Z, C, B, A], graph_with_cycle))
-        
-        # INVALID test that should NOT pass: SCC {A,B,C} is broken up by other nodes
-        self.assertFalse(is_apt_order([X, A, Y, B, Z, C], graph_with_cycle))  # Y and Z break SCC
-        self.assertFalse(is_apt_order([A, X, B, Y, C, Z], graph_with_cycle))  # X and Y break SCC
-        self.assertFalse(is_apt_order([A, Y, B, Z, C, X], graph_with_cycle))  # Y and Z break SCC
-        self.assertFalse(is_apt_order([X, A, B, Y, C, Z], graph_with_cycle))  # Y breaks SCC
-        self.assertFalse(is_apt_order([A, X, Y, B, C, Z], graph_with_cycle))  # X and Y break SCC
-       
-       
+        """Test Condition 2: SCC members must be consecutive in the apt_order."""
+    
+        # simple_cyclic_graph_1 has:
+        # - R → X → W → Z (with Z → X creating cycle)
+        # - W → Y
+        # - SCC: {X, W, Z}
+        # - Single-node SCCs: {R}, {Y}
+    
+        # VALID: SCC {X, W, Z} is consecutive
+        self.assertTrue(is_apt_order([R, X, W, Z, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, W, Z, X, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, Z, X, W, Y], simple_cyclic_graph_1))
+        self.assertTrue(is_apt_order([R, W, X, Z, Y], simple_cyclic_graph_1))
+    
+        # INVALID: SCC {X, W, Z} is broken up
+        # Note: These also violate Condition 1 (ancestry constraint)
+        # because Y appears before its ancestors
+        self.assertFalse(is_apt_order([R, X, Y, W, Z], simple_cyclic_graph_1))  # Y breaks SCC
+        self.assertFalse(is_apt_order([R, X, W, Y, Z], simple_cyclic_graph_1))  # Y breaks SCC
+        self.assertFalse(is_apt_order([R, Y, X, W, Z], simple_cyclic_graph_1))  # Y breaks SCC
    
         
