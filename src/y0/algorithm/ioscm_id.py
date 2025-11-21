@@ -327,49 +327,38 @@ def _validate_apt_order_inputs(candidate_order:list[Variable], graph: NxMixedGra
     
     # -----------------------------------------------------------
     
-# 2. _check_scc_consecutiveness
+# 2. Checking the first condition from Definition 9.2
 
-def _check_scc_consecutiveness(
-    order: list[Variable],
+def _check_ancestors_are_prior_to_non_scc_descendants(
+    candidate_order: list[Variable],
+    graph: NxMixedGraph,
     sccs: set[frozenset[Variable]]
 ) -> bool: 
-    """ This function checks property 2: Nodes in the same SCC must appear consecutively. 
+    """Checking Condition 1 from Definition 9.2 of [forré20a]_.
     
-    For every $v_1, v_2, w \in V$:
-    $v_2 \in \text{Sc}^{G}(v_1) \land (v_1 \le w \le v_2) \Longrightarrow w \in \text{Sc}^{G}(v_1)$
+    For every v, w ∈ V:
+    w ∈ Anc^G(v) \ Sc^G(v) ⟹ w < v
     
-    Translation: If $v_2$ is in same SCC as $v_1$, and $w$ is between them 
-    in the order, then $w$ must also be in that SCC.
-    
-    In other words: Nodes in the same SCC (feedback loop) must appear 
-    consecutively in the order with no nodes from other SCCs in between.
+    This verifies that ancestors outside of a node's SCC appear before that node
+    in the order. In other words: you can't have a node appear before its 
+    non-SCC ancestors.
     
     :param order: The candidate apt-order (list of variables).
+    :param graph: The corresponding graph.
     :param sccs: Set of strongly connected components (each is a frozenset of variables).
     
-    :returns: True if all SCCs are consecutive, False otherwise.
-    
+    :returns: True if the ancestry constraint is satisfied, False otherwise.
     """
     
-    # checks each SCC to make sure its nodes are grouped together
-    for scc in sccs: # go through each SCC one at a time
-        # skip over the single node SCCs - these are conseciutive by definition
-        
-        if len(scc) == 1:
-            continue 
-        
-        # find where each node in this SCC appears in the order
-        # example - if SCC = {A, B, C} and order = [X, A, Y, B, Z, C]
-        #      then positions = [1, 3, 5] 
-        positions = [order.index(node) for node in scc]
-        
-        # find the first and last occurrence of nodes from the SCC
-        # example: min_pos = 1 (A's position), max_pos = 5 (C's position)
-        
-        min_pos = min(positions)
-        max_pos = max(positions)
-        
-        
+    # creating a mapping from the node -> its indesx in the order
+    node_to_index = {node: index for index, node in enumerate(candidate_order)}
+    
+    # create SCC mapping; node -> its SCC
+    node_to_scc = {}
+    for scc in sccs:
+        for node in scc:
+            node_to_scc[node] = scc
+            
     
 
 
