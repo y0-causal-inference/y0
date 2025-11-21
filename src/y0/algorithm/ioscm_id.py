@@ -374,11 +374,17 @@ def _check_ancestors_are_prior_to_non_scc_descendants(
             if node_to_scc[w] != scc_of_v:
                 # then the constraint requires w < v in the order
                 # in the order, this means index of w < index of v
+                if node_to_index[w] >= node_to_index[v]:
+                    # contraint violated
+                    return False
                 
-                
-            
+    return True # All constraints satisfied
 
-            
+# ---------------------------------------------------
+
+# 3. Checking the second condition from Definition 9.2
+
+def _check_members_of_scc_are_consecutive()
     
 
 
