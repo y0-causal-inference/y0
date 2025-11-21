@@ -334,7 +334,7 @@ def _check_ancestors_are_prior_to_non_scc_descendants(
     graph: NxMixedGraph,
     sccs: set[frozenset[Variable]]
 ) -> bool: 
-    """Checking Condition 1 from Definition 9.2 of [forré20a]_.
+    r"""Checking Condition 1 from Definition 9.2 of [forré20a]_.
     
     For every v, w ∈ V:
     w ∈ Anc^G(v) \ Sc^G(v) ⟹ w < v
@@ -384,11 +384,15 @@ def _check_ancestors_are_prior_to_non_scc_descendants(
 
 # 3. Checking the second condition from Definition 9.2
 
-def _check_members_of_scc_are_consecutive()
-    
+def _check_members_of_scc_are_consecutive(
+    candidate_order: list[Variable],
+    sccs: set[frozenset[Variable]]
+) -> bool:
+    """TODO: Implement Condition 2."""
+    return True  # Stub - always pass for now
 
 
-def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
+def is_apt_order(candidate_order: list[Variable], graph: NxMixedGraph) -> bool:
     r"""Verify that a list of vertices is a possible assembling pseudo-topological order ("apt-order") for a graph.
 
     See Definition 9.2 of [forré20a]_.
@@ -406,17 +410,27 @@ def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
            $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in
            \text{Sc}^{G}(v_1)$.
 
-    :param order: The candidate apt-order.
+    :param candidate_order: The candidate apt-order.
     :param graph: The corresponding graph.
 
     :returns: True if the candidate apt-order is a possible apt-order for the graph,
         False otherwise.
-
     """
+    
+    # first check - validate inputs
+    _validate_apt_order_inputs(candidate_order, graph)
+    
+    # second check - get the strongly connected components
     sccs = get_strongly_connected_components(graph)
-    return _check_ancestors_are_prior_to_non_scc_descendants(order, sccs) and _check_members_of_scc_are_consecutive(order, sccs)
+    
+    # third check - check both conditions from Definition 9.2
+    
+    return (
+        _check_ancestors_are_prior_to_non_scc_descendants(candidate_order, graph, sccs) and 
+        _check_members_of_scc_are_consecutive(candidate_order, sccs)
+    )
     # 
-    raise NotImplementedError
+    # raise NotImplementedError
     # TODO: Confirm we need the function
     # Strategy (not sure this is optimal yet):
     # 1. Get the strongly-connected components
