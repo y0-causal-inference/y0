@@ -69,7 +69,7 @@ def evaluate_lscm(
 def _main() -> None:
     import warnings
 
-    from y0.examples import examples  # type:ignore[attr-defined]
+    from y0.examples import examples
 
     warnings.filterwarnings("ignore")
 

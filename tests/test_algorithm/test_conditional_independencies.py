@@ -1,11 +1,12 @@
 """Test getting conditional independencies (and related)."""
 
+from __future__ import annotations
+
 import typing
 import unittest
 from collections.abc import Iterable
 
-from pgmpy.estimators import CITests
-
+from tests import requires_pgmpy
 from y0.algorithm.conditional_independencies import (
     are_d_separated,
     get_conditional_independencies,
@@ -123,7 +124,8 @@ class TestGetConditionalIndependencies(unittest.TestCase):
 
     def assert_example_has_judgements(self, example: Example) -> None:
         """Assert that the example is consistent w.r.t. D-separations."""
-        self.assertIsNotNone(example.conditional_independencies)
+        if example.conditional_independencies is None:
+            self.fail(msg="no conditional independencies were found")
         self.assert_has_judgements(
             graph=example.graph,
             judgements=example.conditional_independencies,
@@ -142,14 +144,15 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             )
         )
 
-    def assert_has_judgements(self, graph, judgements: Iterable[DSeparationJudgement]) -> None:
+    def assert_has_judgements(
+        self, graph: NxMixedGraph, judgements: Iterable[DSeparationJudgement]
+    ) -> None:
         """Assert that the graph has the correct conditional independencies.
 
         :param graph: the graph to test
-        :type graph: NxMixedGraph or ananke.graphs.SG
         :param judgements: the set of expected conditional independencies
         """
-        self.assertTrue(all(isinstance(node, Variable) for node in graph))
+        self.assertTrue(all(isinstance(node, Variable) for node in graph.nodes()))
         self.assert_judgement_types(judgements)
 
         asserted_judgements = set(judgements)
@@ -226,6 +229,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
                 self.maxDiff = None
                 self.assert_example_has_judgements(example)
 
+    @requires_pgmpy
     def test_ci_test_continuous(self):
         """Test conditional independency test on continuous data."""
         data = frontdoor_example.generate_data(500)  # continuous
@@ -246,8 +250,11 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         with self.assertRaises(ValueError):
             judgement.test(data, method="chi-square", boolean=True)
 
+    @requires_pgmpy
     def test_ci_test_discrete(self):
         """Test conditional independency test on discrete data."""
+        from pgmpy.estimators import CITests
+
         data = frontdoor_backdoor_example.generate_data(500)  # discrete
         judgement = DSeparationJudgement(
             left=X,

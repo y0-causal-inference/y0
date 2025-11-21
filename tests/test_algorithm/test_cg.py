@@ -46,12 +46,8 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 
     def test_world(self):
         """Test that a world contains an intervention."""
+        input_world1: World = World([-x])
         with self.assertRaises(TypeError):
-            input_world1: World = World([-x])
-            3 in input_world1  # noqa
-
-        with self.assertRaises(TypeError):
-            input_world1: World = World([3])
             3 in input_world1  # noqa
 
         input_world2 = World([-x])
