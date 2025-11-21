@@ -388,8 +388,36 @@ def _check_members_of_scc_are_consecutive(
     candidate_order: list[Variable],
     sccs: set[frozenset[Variable]]
 ) -> bool:
-    """TODO: Implement Condition 2."""
-    return True  # Stub - always pass for now
+    r"""Checking Condition 2 from Definition 9.2 of [forré20a]_.
+    
+    For every v₁, v₂, w ∈ V:
+    v₂ ∈ Sc^G(v₁) ∧ (v₁ ≤ w ≤ v₂) ⟹ w ∈ Sc^G(v₁)
+    
+    Translation: If v₂ is in same SCC as v₁, and w is between them 
+    in the order, then w must also be in that SCC.
+    
+    In other words: Nodes in the same SCC (feedback loop) must appear 
+    consecutively in the order with no nodes from other SCCs in between.
+    
+    :param candidate_order: The order to validate as a potential apt-order.
+    :param sccs: Set of strongly connected components (each is a frozenset of variables).
+    
+    :returns: True if all SCCs are consecutive, False otherwise.
+    
+    """
+    # check each SCC
+    for scc in sccs:
+        
+        # skip single node SCCS
+        if len(scc) <= 1:
+            continue
+        
+        # find where each node in this SCC appears in the order
+        positions = [candidate_order.index(node) for node in scc]
+        
+        # find the first and last occurrence of nodes from this SCC in the order
+        min_pos = min(positions)
+        max_pos = max(positions)
 
 
 def is_apt_order(candidate_order: list[Variable], graph: NxMixedGraph) -> bool:
