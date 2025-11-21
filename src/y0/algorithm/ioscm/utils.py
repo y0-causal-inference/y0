@@ -259,8 +259,158 @@ def simplify_strongly_connected_components(
     new_graph = NxMixedGraph.from_edges(directed=directed, undirected=undirected)
     return new_graph, representative_node_to_component
 
+# ----- Helper Functions for is_apt_order ----- #
+# -----------------------------------------------------------
+# 1. _validate_apt_order_inputs
 
-def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
+
+
+
+def _validate_apt_order_inputs(candidate_order:list[Variable], graph: NxMixedGraph) -> None:
+    
+    """Validate inputs for is_apt_order function.
+    
+    Definition 9.2 requires apt-order to be a total order $\lt$ on $V$. 
+    This function ensures the input satisfies the basic requirements of a 
+    total order: all vertices present exactly once.
+    
+    
+    This function checks:
+    
+    1. All nodes in order exist in the graph.
+    2. All nodes in the graph are present in order.
+    3. No duplicate nodes in order. 
+    
+    
+    :param candidate_order: The candidate apt-order.
+    : param graph: The corresponding graph.
+    
+    :raises ValueError: If order is invalid. 
+    """
+    order_set = set(candidate_order) # converting to a set for easier checking
+    graph_nodes = set(graph.nodes())  # set of nodes in the graph
+    
+    # checking for nodes in order but not in the graph
+    extra_nodes = order_set - graph_nodes
+    if extra_nodes:
+        raise ValueError(f"Order contains nodes that are not in graph: {extra_nodes}")
+    
+    # check for nodes in graph but not in order
+    missing_nodes = graph_nodes - order_set
+    if missing_nodes:
+        raise ValueError(f"Order is missing nodes from the graph: {missing_nodes}")
+    
+    # checking to see if there are duplicates in order
+    if len(candidate_order) != len(order_set):
+        raise ValueError("Order contains duplicate nodes.")
+    
+    # -----------------------------------------------------------
+    
+# 2. Checking the first condition from Definition 9.2
+
+def _check_ancestors_are_prior_to_non_scc_descendants(
+    candidate_order: list[Variable],
+    graph: NxMixedGraph,
+    sccs: set[frozenset[Variable]]
+) -> bool: 
+    r"""Checking Condition 1 from Definition 9.2 of [forré20a]_.
+    
+    For every v, w ∈ V:
+    w ∈ Anc^G(v) \ Sc^G(v) ⟹ w < v
+    
+    This verifies that ancestors outside of a node's SCC appear before that node
+    in the order. In other words: you can't have a node appear before its 
+    non-SCC ancestors.
+    
+    :param order: The candidate apt-order (list of variables).
+    :param graph: The corresponding graph.
+    :param sccs: Set of strongly connected components (each is a frozenset of variables).
+    
+    :returns: True if the ancestry constraint is satisfied, False otherwise.
+    """
+    
+    # creating a mapping from the node -> its indesx in the order
+    node_to_index = {node: index for index, node in enumerate(candidate_order)}
+    
+    # create SCC mapping; node -> its SCC
+    node_to_scc = {}
+    for scc in sccs:
+        for node in scc:
+            node_to_scc[node] = scc
+    
+    # check the constraint for each node
+    for v in graph.nodes():
+        
+        # get all the ancestors of v
+        ancestors_of_v = graph.ancestors_inclusive(v)
+        
+        # get the SCC that v belongs to
+        scc_of_v = node_to_scc[v]
+        
+        # check each ancestor w of v
+        for w in ancestors_of_v:
+            # Check if w is in Anc^G(v) \ Sc^G(v) - which would mean w is an ancestor but not in the same SCC
+            if node_to_scc[w] != scc_of_v:
+                # then the constraint requires w < v in the order
+                # in the order, this means index of w < index of v
+                if node_to_index[w] >= node_to_index[v]:
+                    # contraint violated
+                    return False
+                
+    return True # All constraints satisfied
+
+# ---------------------------------------------------
+
+# 3. Checking the second condition from Definition 9.2
+
+def _check_members_of_scc_are_consecutive(
+    candidate_order: list[Variable],
+    sccs: set[frozenset[Variable]]
+) -> bool:
+    r"""Checking Condition 2 from Definition 9.2 of [forré20a]_.
+    
+    For every v₁, v₂, w ∈ V:
+    v₂ ∈ Sc^G(v₁) ∧ (v₁ ≤ w ≤ v₂) ⟹ w ∈ Sc^G(v₁)
+    
+    Translation: If v₂ is in same SCC as v₁, and w is between them 
+    in the order, then w must also be in that SCC.
+    
+    In other words: Nodes in the same SCC (feedback loop) must appear 
+    consecutively in the order with no nodes from other SCCs in between.
+    
+    :param candidate_order: The order to validate as a potential apt-order.
+    :param sccs: Set of strongly connected components (each is a frozenset of variables).
+    
+    :returns: True if all SCCs are consecutive, False otherwise.
+    
+    """
+    # check each SCC
+    for scc in sccs:
+        
+        # skip single node SCCS
+        if len(scc) <= 1:
+            continue
+        
+        # find where each node in this SCC appears in the order
+        positions = [candidate_order.index(node) for node in scc]
+        
+        # find the first and last occurrence of nodes from this SCC in the order
+        min_pos = min(positions)
+        max_pos = max(positions)
+        
+        # check all positions between min_pos and max_pos which is inclusive
+        for pos in range(min_pos, max_pos + 1):
+            node_at_pos = candidate_order[pos]
+            if node_at_pos not in scc:
+                # this means we've found a node between SCC members that is not in the SCC
+                # violates condition 2
+                return False
+    return True  # All SCCs are consecutive
+
+
+
+
+def is_apt_order(candidate_order: list[Variable], graph: NxMixedGraph) -> bool:
     r"""Verify that a list of vertices is a possible assembling pseudo-topological order ("apt-order") for a graph.
 
     See Definition 9.2 of [forré20a]_.
@@ -278,13 +428,35 @@ def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
            $v_2 \in \text{Sc}^{G}(v_1) \land(v_1 \le w \le v_2) \Longrightarrow w \in
            \text{Sc}^{G}(v_1)$.
 
-    :param order: The candidate apt-order.
+    :param candidate_order: The candidate apt-order.
     :param graph: The corresponding graph.
 
     :returns: True if the candidate apt-order is a possible apt-order for the graph,
         False otherwise.
     """
-    raise NotImplementedError
+    
+    # first check - validate inputs
+    _validate_apt_order_inputs(candidate_order, graph)
+    
+    # second check - get the strongly connected components
+    sccs = get_strongly_connected_components(graph)
+    
+    # third check - check both conditions from Definition 9.2
+    return (
+        _check_ancestors_are_prior_to_non_scc_descendants(candidate_order, graph, sccs) and 
+        _check_members_of_scc_are_consecutive(candidate_order, sccs)
+    )
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    # -----------------------------------------------------------
+    # raise NotImplementedError
     # TODO: Confirm we need the function
     # Strategy (not sure this is optimal yet):
     # 1. Get the strongly-connected components
