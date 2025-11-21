@@ -3,12 +3,11 @@
 .. [forré20a] http://proceedings.mlr.press/v115/forre20a/forre20a.pdf.
 
 .. [forré20b] http://proceedings.mlr.press/v115/forre20a/forre20a-supp.pdf
-
 """
 
 import copy
 import logging
-from collections.abc import Callable, Collection, Iterable
+from collections.abc import Collection
 
 import networkx as nx
 
@@ -43,7 +42,6 @@ def get_strongly_connected_components(graph: NxMixedGraph) -> set[frozenset[Vari
 
     :returns: A set of frozen sets of variables comprising $\text{Sc}^{G}(v)$ for all
         vertices $v$.
-
     """
     return {frozenset(component) for component in nx.strongly_connected_components(graph.directed)}
 
@@ -67,7 +65,6 @@ def get_vertex_consolidated_district(graph: NxMixedGraph, v: Variable) -> frozen
     :param v: The vertex for which the consolidated district is to be retrieved.
 
     :returns: The set of variables comprising $\text{Cd}^{G}(v)$.
-
     """
     # Strategy: (O(N^2))
     # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
@@ -99,10 +96,10 @@ def get_consolidated_district(graph: NxMixedGraph, vertices: Collection[Variable
     vertices, not a set of sets of vertices.
 
     :param graph: The corresponding graph.
-    :param vertices: The vertices for which the consolidated district is to be retrieved.
+    :param vertices: The vertices for which the consolidated district is to be
+        retrieved.
 
     :returns: The set of consolidated districts for the variables in $B$.
-
     """
     # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
@@ -132,7 +129,6 @@ def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Varia
     :param graph: The corresponding graph.
 
     :returns: The set of consolidated districts for the graph.
-
     """
     # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
@@ -186,7 +182,6 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
     :param graph: The corresponding graph.
 
     :returns: An apt-order for the vertices in $G$.
-
     """
     # Strategy:
     # 1. Get the strongly-connected components and replace each one with a single vertex.
@@ -206,12 +201,8 @@ def get_apt_order(graph: NxMixedGraph) -> list[Variable]:
     return nodes
 
 
-def _min_from_component(component: Iterable[Variable]) -> Variable:
-    return min(component)
-
-
 def _simplify_strongly_connected_components(
-    graph: NxMixedGraph, _get_rep_node: Callable[[Iterable[Variable]], Variable] | None = None
+    graph: NxMixedGraph,
 ) -> tuple[NxMixedGraph, dict[Variable, frozenset[Variable]]]:
     r"""Reduce each strongly-connected component in a directed graph to a single vertex.
 
@@ -227,17 +218,13 @@ def _simplify_strongly_connected_components(
     :returns: The simplified graph and a dictionary mapping vertices representing
         strongly-connected components in the new graph to the vertices in each
         strongly-connected component in the original graph.
-
     """
     comp_to_rep_node: ComponentToNode = {}
     node_to_component: NodeToComponent = {}
     representative_node_to_component: NodeToComponent = {}
 
-    if _get_rep_node is None:
-        _get_rep_node = _min_from_component
-
     for component in get_strongly_connected_components(graph):
-        representative_node = _get_rep_node(component)
+        representative_node = min(component)
         representative_node_to_component[representative_node] = component
         comp_to_rep_node[component] = representative_node
         for node in component:
@@ -265,7 +252,9 @@ def _simplify_strongly_connected_components(
         u_component = node_to_component[ego]
         v_component = node_to_component[alter]
         if u_component == v_component:
-            continue  # FIXME adding a unit test for: when two nodes in the same strongly connected component have an undirected edge between them and the edge is skipped during simplification. 
+            # this happens when two nodes in the same strongly connected component have
+            # an undirected edge between them and the edge is skipped during simplification.
+            continue
         undirected.add((comp_to_rep_node[u_component], comp_to_rep_node[v_component]))
         # If we add both (u,v) and (v,u), that will go away when the actual graph gets
         # produced, so there's no need for a test
@@ -297,7 +286,6 @@ def is_apt_order(order: list[Variable], graph: NxMixedGraph) -> bool:
 
     :returns: True if the candidate apt-order is a possible apt-order for the graph,
         False otherwise.
-
     """
     raise NotImplementedError
     # TODO: Confirm we need the function
