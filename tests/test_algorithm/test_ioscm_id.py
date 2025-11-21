@@ -193,9 +193,25 @@ class TestAptOrder(unittest.TestCase):
 
     def test_check_scc_consecutiveness(self):
         """Test that all nodes in each strongly connected component are consecutive in the apt_order."""
-        # find where each node in this SCC appears in the order
-        # example - if SCC = {A, B, C} and order = [X, A, Y, B, Z, C]
-        #      then positions = [1, 3, 5] 
-        bad_scc = {A, B, C}
-        bad_order = [X, A, Y, B, Z, C]
+        from y0.dsl import A, B, C, X, Y, Z
+        
+        # Graph: A ↔ B ↔ C (cycle), plus isolated nodes X, Y, Z
+        graph_with_cycle = NxMixedGraph.from_edges(
+            directed=[
+                (A, B),
+                (B, C),
+                (C, A),
+            ],
+        )
+        
+        # VALID tests that should pass: SCC {A,B,C} is consecutive
+        self.assertTrue(is_apt_order([A, B, C, X, Y, Z], graph_with_cycle))
+        self.assertTrue(is_apt_order([A, C, B, X, Y, Z], graph_with_cycle))
+        self.assertTrue(is_apt_order([B, A, C, X, Y, Z], graph_with_cycle))
+        self.assertTrue(is_apt_order([X, A, B, C, Y, Z], graph_with_cycle))
+        self.assertTrue(is_apt_order([X, Y, Z, A, B, C], graph_with_cycle))
+        self.assertTrue(is_apt_order([X, Y, Z, C, B, A], graph_with_cycle))
+       
+       
+   
         
