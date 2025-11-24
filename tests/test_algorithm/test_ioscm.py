@@ -182,16 +182,16 @@ class TestIOSCMUtils(cases.GraphTestCase):
         # - Single-node SCCs: {R}, {Y}
 
         # VALID: SCC {X, W, Z} is consecutive
-        for order in [[R, X, W, Z, Y], [R, W, Z, X, Y], [R, Z, X, W, Y], [R, W, X, Z, Y]]:
-            self.assertTrue(is_apt_order(order, simple_cyclic_graph_1))
+        for candidate_order in [[R, X, W, Z, Y], [R, W, Z, X, Y], [R, Z, X, W, Y], [R, W, X, Z, Y]]:
+            self.assertTrue(is_apt_order(candidate_order, simple_cyclic_graph_1))
 
         # INVALID: SCC {X, W, Z} is broken up
         # Note: These also violate Condition 1 (ancestry constraint)
         # because Y appears before its ancestors
-        for order in [
+        for candidate_order in [
             # Y breaks SCC
             [R, X, Y, W, Z],
             [R, X, W, Y, Z],
             [R, Y, X, W, Z],
         ]:
-            self.assertFalse(is_apt_order(order, simple_cyclic_graph_1))
+            self.assertFalse(is_apt_order(candidate_order, simple_cyclic_graph_1))

@@ -352,24 +352,20 @@ def _check_ancestors_are_prior_to_non_scc_descendants(
     For every v, w ∈ V:
     w ∈ Anc^G(v) \ Sc^G(v) ⟹ w < v
 
-    This verifies that ancestors outside of a node's SCC appear before that node
+    This verifies that ancestors outside a node's SCC appear before that node
     in the order. In other words: you can't have a node appear before its
     non-SCC ancestors.
 
-    :param order: The candidate apt-order (list of variables).
+    :param candidate_order: The candidate apt-order (list of variables).
     :param graph: The corresponding graph.
     :param sccs: Set of strongly connected components (each is a frozenset of variables).
 
     :returns: True if the ancestry constraint is satisfied, False otherwise.
     """
-    # creating a mapping from the node -> its indesx in the order
+    # creating a mapping from the node -> its index in the order
     node_to_index = {node: index for index, node in enumerate(candidate_order)}
 
-    # create SCC mapping; node -> its SCC
-    node_to_scc = {}
-    for scc in sccs:
-        for node in scc:
-            node_to_scc[node] = scc
+    node_to_scc = {node: scc for scc in sccs for node in scc}
 
     # check the constraint for each node
     for v in graph.nodes():
@@ -386,7 +382,7 @@ def _check_ancestors_are_prior_to_non_scc_descendants(
                 # then the constraint requires w < v in the order
                 # in the order, this means index of w < index of v
                 if node_to_index[w] >= node_to_index[v]:
-                    # contraint violated
+                    # constraint violated
                     return False
 
     return True  # All constraints satisfied
