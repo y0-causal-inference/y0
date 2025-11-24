@@ -294,7 +294,7 @@ def is_apt_order(candidate_order: list[Variable], graph: NxMixedGraph) -> bool:
     return _check_ancestors_are_prior_to_non_scc_descendants(
         candidate_order, graph, sccs
     ) and _check_members_of_scc_are_consecutive(candidate_order, sccs)
-   
+
 
 def _validate_apt_order_inputs(candidate_order: list[Variable], graph: NxMixedGraph) -> None:
     r"""Validate inputs for is_apt_order function.
