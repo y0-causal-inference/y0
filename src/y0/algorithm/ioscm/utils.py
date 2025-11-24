@@ -426,5 +426,5 @@ def _check_members_of_scc_are_consecutive(
             if node_at_pos not in scc:
                 # this means we've found a node between SCC members that is not in the SCC
                 # violates condition 2
-                return False
+                return False  # FIXME need a test for this
     return True  # All SCCs are consecutive
