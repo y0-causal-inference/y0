@@ -294,17 +294,7 @@ def is_apt_order(candidate_order: list[Variable], graph: NxMixedGraph) -> bool:
     return _check_ancestors_are_prior_to_non_scc_descendants(
         candidate_order, graph, sccs
     ) and _check_members_of_scc_are_consecutive(candidate_order, sccs)
-    # TODO: Confirm we need the function
-    # Strategy (not sure this is optimal yet):
-    # 1. Get the strongly-connected components
-    # 2. For each strongly-connected component, flag the associated vertices in the input list
-    #    and make sure the vertices are consecutive in the 'order' param
-    # 3. Replace the vertices in 'order' associated with a single strongly-connected component
-    #    by one vertex in that component (with a dictionary mapping the vertex name to the
-    #    set of vertices in the strongly-connected component). An edge going into or out of the
-    #    strongly-connected component becomes an edge going into or out of the representative vertex
-    # 4. Test whether the result is in topologically sorted order
-
+   
 
 def _validate_apt_order_inputs(candidate_order: list[Variable], graph: NxMixedGraph) -> None:
     r"""Validate inputs for is_apt_order function.
