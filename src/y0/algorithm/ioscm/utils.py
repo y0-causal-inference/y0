@@ -387,22 +387,22 @@ def _check_members_of_scc_are_consecutive(
 
     :returns: True if all SCCs are consecutive, False otherwise.
     """
+
+    def _get_target_nodes(component: frozenset[Variable]) -> Iterable[Variable]:
+        # find where each node in this SCC appears in the order
+        positions = {candidate_order.index(node) for node in component}
+
+        # find the first and last occurrence of nodes from this SCC in the order
+        min_pos = min(positions)
+        max_pos = max(positions)
+
+        # check all positions between min_pos and max_pos which is inclusive
+        for pos in range(min_pos, max_pos + 1):
+            yield candidate_order[pos]
+
     return not any(
         node not in component
         for component in components
         if len(component) > 1
-        for node in _iterate_nodes(candidate_order, component)
+        for node in _get_target_nodes(component)
     )
-
-
-def _iterate_nodes(candidate_order: list[Variable], scc: frozenset[Variable]) -> Iterable[Variable]:
-    # find where each node in this SCC appears in the order
-    positions = [candidate_order.index(node) for node in scc]
-
-    # find the first and last occurrence of nodes from this SCC in the order
-    min_pos = min(positions)
-    max_pos = max(positions)
-
-    # check all positions between min_pos and max_pos which is inclusive
-    for pos in range(min_pos, max_pos + 1):
-        yield candidate_order[pos]
