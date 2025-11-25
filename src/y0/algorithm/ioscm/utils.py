@@ -359,7 +359,6 @@ def _check_ancestors_are_prior_to_non_scc_descendants(
 
     # check the constraint for each node
     for v in graph.nodes():
-        # get all the ancestors of v
         ancestors_of_v = graph.ancestors_inclusive(v)
 
         # get the SCC that v belongs to
