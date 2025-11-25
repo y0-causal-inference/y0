@@ -222,4 +222,24 @@ class TestIOSCMUtils(cases.GraphTestCase):
         sccs = {frozenset([R]), frozenset([X]), frozenset([Y]), frozenset([W]), frozenset([Z])}
         self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
         
+        
+    def test_check_members_of_scc_are_consecutive_mixed(self) -> None:
+        """Test validation with both single node and multi-node SCCs.
+        
+        This ensures the continue statement for single-node SCCS is executed while still testing multi-node SCC consecutiveness
+        logic.
+        """
+        
+        candidate_order = [R, X, W, Z, Y]
+        sccs = {
+            frozenset([X, W, Z]),  # multi-node SCC - consecutive
+            frozenset([R]),        # single-node SCC - should skip
+            frozenset([Y])         # single-node SCC - should skip
+        }
+        
+        self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
+        
+        
+        
+                
     
