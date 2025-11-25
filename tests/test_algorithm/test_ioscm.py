@@ -239,7 +239,14 @@ class TestIOSCMUtils(cases.GraphTestCase):
         
         self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
         
+    def test_check_members_of_scc_are_consecutive_empty(self) -> None:
+        """Test with no SCCS - should return True"""
         
+        candidate_order = [R, X, W, Z, Y]
+        sccs = set()  # no SCCs
+        self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
+    
+    
         
                 
     
