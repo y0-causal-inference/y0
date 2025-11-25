@@ -5,10 +5,9 @@
 .. [forré20b] http://proceedings.mlr.press/v115/forre20a/forre20a-supp.pdf
 """
 
-import unittest
-
 from tests.test_algorithm import cases
 from y0.algorithm.ioscm.utils import (
+    _check_members_of_scc_are_consecutive,
     get_apt_order,
     get_consolidated_district,
     get_graph_consolidated_districts,
@@ -17,7 +16,7 @@ from y0.algorithm.ioscm.utils import (
     scc_to_bidirected,
     simplify_strongly_connected_components,
 )
-from y0.dsl import A, B, C, R, W, X, Y, Z
+from y0.dsl import A, B, C, R, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 # From [correa20a]_, Figure 2c.
@@ -42,6 +41,10 @@ simple_cyclic_graph_2 = NxMixedGraph.from_edges(
         (R, X),
     ],
 )
+
+
+def _fs(*args: Variable) -> frozenset[Variable]:
+    return frozenset(args)
 
 
 class TestIOSCMUtils(cases.GraphTestCase):
@@ -153,7 +156,6 @@ class TestIOSCMUtils(cases.GraphTestCase):
         ]:
             self.assertListEqual(result, get_apt_order(graph))
 
-    @unittest.skip(reason="not implemented")
     def test_is_apt_order_1(self) -> None:
         """Test verifying an assembling pseudo-topological order for a graph."""
         for order in [
@@ -175,3 +177,54 @@ class TestIOSCMUtils(cases.GraphTestCase):
             [Y, Z, R, W, X],
         ]:
             self.assertFalse(is_apt_order(order, simple_cyclic_graph_1))
+
+    def test_check_scc_consecutiveness(self) -> None:
+        """Test Condition 2: SCC members must be consecutive in the apt_order."""
+        # simple_cyclic_graph_1 has:
+        # - R → X → W → Z (with Z → X creating cycle)
+        # - W → Y
+        # - SCC: {X, W, Z}
+        # - Single-node SCCs: {R}, {Y}
+
+        # VALID: SCC {X, W, Z} is consecutive
+        for candidate_order in [[R, X, W, Z, Y], [R, W, Z, X, Y], [R, Z, X, W, Y], [R, W, X, Z, Y]]:
+            self.assertTrue(is_apt_order(candidate_order, simple_cyclic_graph_1))
+
+        # INVALID: SCC {X, W, Z} is broken up
+        # Note: These also violate Condition 1 (ancestry constraint)
+        # because Y appears before its ancestors
+        for candidate_order in [
+            # Y breaks SCC
+            [R, X, Y, W, Z],
+            [R, X, W, Y, Z],
+            [R, Y, X, W, Z],
+        ]:
+            self.assertFalse(is_apt_order(candidate_order, simple_cyclic_graph_1))
+
+    def test_check_members_of_scc_are_consecutive_valid(self) -> None:
+        """Test that consecutive SCC members pass validation."""
+        cases = [
+            # all SCC members are consecutive
+            ([R, X, W, Z, Y], {_fs(X, W, Z), _fs(R), _fs(Y)}),
+            # all single node SCCS are always valid
+            ([R, X, Y, W, Z], {_fs(R), _fs(X), _fs(Y), _fs(W), _fs(Z)}),
+            # "no SCCs returns true"
+            ([R, X, W, Z, Y], set()),
+            # single-node SCCS is executed while still testing multi-node SCC consecutiveness logic.
+            ([R, X, W, Z, Y], {_fs(X, W, Z), _fs(R), _fs(Y)}),
+            # multiple SCCs that are all consecutive
+            ([R, X, W, A, Y, Z, B], {_fs(X, W), _fs(Y, Z), _fs(R), _fs(A), _fs(B)}),
+        ]
+        for candidate_order, sccs in cases:
+            with self.subTest():
+                self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
+
+        false_cases = [
+            # SCC members are not consecutive
+            ([R, X, Y, W, Z], {_fs(X, W, Z), _fs(R), _fs(Y)}),
+            # multiple SCCs where one is not consecutive
+            ([R, X, W, A, Y, B, Z], {_fs(X, W), _fs(Y, Z), _fs(R), _fs(A), _fs(B)}),
+        ]
+        for candidate_order, sccs in false_cases:
+            with self.subTest():
+                self.assertFalse(_check_members_of_scc_are_consecutive(candidate_order, sccs))
