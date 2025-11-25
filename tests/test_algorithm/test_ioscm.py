@@ -205,4 +205,13 @@ class TestIOSCMUtils(cases.GraphTestCase):
         sccs = {frozenset([X, W, Z]), frozenset([R]), frozenset([Y])}
         self.assertTrue(_check_members_of_scc_are_consecutive(order, sccs))
     
+    def test_check_members_of_scc_are_consecutive_invalid(self) -> None:
+        """Test that non-consecutive SCC members are detected (return False branch)"""
+        
+        # invalid case - SCC members are not consecutive
+        
+        order = [R, X, Y, W, Z]
+        sccs = {frozenset([X, W, Z]), frozenset([R]), frozenset([Y])}
+        self.assertFalse(_check_members_of_scc_are_consecutive(order, sccs))
+        
     
