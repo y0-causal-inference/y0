@@ -2,7 +2,7 @@
 
 import copy
 import logging
-from collections.abc import Collection
+from collections.abc import Collection, Iterable
 from typing import TypeAlias
 
 import networkx as nx
@@ -395,7 +395,7 @@ def _check_members_of_scc_are_consecutive(
     )
 
 
-def _iterate_nodes(candidate_order, scc):
+def _iterate_nodes(candidate_order: list[Variable], scc: frozenset[Variable]) -> Iterable[Variable]:
     # find where each node in this SCC appears in the order
     positions = [candidate_order.index(node) for node in scc]
 
