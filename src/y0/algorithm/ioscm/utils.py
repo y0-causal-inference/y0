@@ -335,7 +335,7 @@ def _validate_apt_order_inputs(candidate_order: list[Variable], graph: NxMixedGr
 
 
 def _check_ancestors_are_prior_to_non_scc_descendants(
-    candidate_order: list[Variable], graph: NxMixedGraph, sccs: set[frozenset[Variable]]
+    candidate_order: list[Variable], graph: NxMixedGraph, components: set[frozenset[Variable]]
 ) -> bool:
     r"""Check Condition 1 from Definition 9.2 of [forré20a]_.
 
@@ -348,37 +348,28 @@ def _check_ancestors_are_prior_to_non_scc_descendants(
 
     :param candidate_order: The candidate apt-order (list of variables).
     :param graph: The corresponding graph.
-    :param sccs: Set of strongly connected components (each is a frozenset of variables).
+    :param components: Set of strongly connected components (each is a frozenset of variables).
 
     :returns: True if the ancestry constraint is satisfied, False otherwise.
     """
-    # creating a mapping from the node -> its index in the order
     node_to_index = {node: index for index, node in enumerate(candidate_order)}
+    node_to_component = {node: component for component in components for node in component}
 
-    node_to_scc = {node: scc for scc in sccs for node in scc}
-
-    # check the constraint for each node
-    for v in graph.nodes():
-        ancestors_of_v = graph.ancestors_inclusive(v)
-
-        # get the SCC that v belongs to
-        scc_of_v = node_to_scc[v]
-
-        # check each ancestor w of v
-        for w in ancestors_of_v:
+    return not any(
+        (
             # Check if w is in Anc^G(v) \ Sc^G(v) - which would mean w is an ancestor but not in the same SCC
-            if node_to_scc[w] != scc_of_v:
-                # then the constraint requires w < v in the order
-                # in the order, this means index of w < index of v
-                if node_to_index[w] >= node_to_index[v]:
-                    # constraint violated
-                    return False
-
-    return True  # All constraints satisfied
+            node_to_component[w] != node_to_component[v]
+            # then the constraint requires w < v in the order
+            # in the order, this means index of w < index of v
+            and node_to_index[w] >= node_to_index[v]
+        )
+        for v in graph.nodes()
+        for w in graph.ancestors_inclusive(v)
+    )
 
 
 def _check_members_of_scc_are_consecutive(
-    candidate_order: list[Variable], sccs: set[frozenset[Variable]]
+    candidate_order: list[Variable], components: set[frozenset[Variable]]
 ) -> bool:
     r"""Check Condition 2 from Definition 9.2 of [forré20a]_.
 
@@ -392,28 +383,26 @@ def _check_members_of_scc_are_consecutive(
     consecutively in the order with no nodes from other SCCs in between.
 
     :param candidate_order: The order to validate as a potential apt-order.
-    :param sccs: Set of strongly connected components (each is a frozenset of variables).
+    :param components: Set of strongly connected components (each is a frozenset of variables).
 
     :returns: True if all SCCs are consecutive, False otherwise.
     """
-    # check each SCC
-    for scc in sccs:
-        # skip single node SCCS
-        if len(scc) <= 1:
-            continue
+    return not any(
+        node not in component
+        for component in components
+        if len(component) > 1
+        for node in _iterate_nodes(candidate_order, component)
+    )
 
-        # find where each node in this SCC appears in the order
-        positions = [candidate_order.index(node) for node in scc]
 
-        # find the first and last occurrence of nodes from this SCC in the order
-        min_pos = min(positions)
-        max_pos = max(positions)
+def _iterate_nodes(candidate_order, scc):
+    # find where each node in this SCC appears in the order
+    positions = [candidate_order.index(node) for node in scc]
 
-        # check all positions between min_pos and max_pos which is inclusive
-        for pos in range(min_pos, max_pos + 1):
-            node_at_pos = candidate_order[pos]
-            if node_at_pos not in scc:
-                # this means we've found a node between SCC members that is not in the SCC
-                # violates condition 2
-                return False
-    return True  # All SCCs are consecutive
+    # find the first and last occurrence of nodes from this SCC in the order
+    min_pos = min(positions)
+    max_pos = max(positions)
+
+    # check all positions between min_pos and max_pos which is inclusive
+    for pos in range(min_pos, max_pos + 1):
+        yield candidate_order[pos]
