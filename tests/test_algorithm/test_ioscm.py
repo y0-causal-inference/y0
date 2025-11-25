@@ -17,6 +17,7 @@ from y0.algorithm.ioscm.utils import (
 )
 from y0.dsl import A, B, C, R, W, X, Y, Z
 from y0.graph import NxMixedGraph
+from y0.algorithm.ioscm.utils import _check_members_of_scc_are_consecutive
 
 # From [correa20a]_, Figure 2c.
 simple_cyclic_graph_1 = NxMixedGraph.from_edges(
@@ -195,3 +196,13 @@ class TestIOSCMUtils(cases.GraphTestCase):
             [R, Y, X, W, Z],
         ]:
             self.assertFalse(is_apt_order(candidate_order, simple_cyclic_graph_1))
+            
+    #
+    def test_check_members_of_scc_are_consecutive_valid(self) -> None:
+        """Test that consecutive SCC members pass validation"""
+        # valid case - all SCC members are consecutive
+        order = [R, X, W, Z, Y]
+        sccs = {frozenset([X, W, Z]), frozenset([R]), frozenset([Y])}
+        self.assertTrue(_check_members_of_scc_are_consecutive(order, sccs))
+    
+    
