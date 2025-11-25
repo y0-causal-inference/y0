@@ -7,6 +7,7 @@
 
 from tests.test_algorithm import cases
 from y0.algorithm.ioscm.utils import (
+    _check_members_of_scc_are_consecutive,
     get_apt_order,
     get_consolidated_district,
     get_graph_consolidated_districts,
@@ -15,9 +16,8 @@ from y0.algorithm.ioscm.utils import (
     scc_to_bidirected,
     simplify_strongly_connected_components,
 )
-from y0.dsl import A, B, C, R, W, X, Y, Z
+from y0.dsl import A, B, C, R, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
-from y0.algorithm.ioscm.utils import _check_members_of_scc_are_consecutive
 
 # From [correa20a]_, Figure 2c.
 simple_cyclic_graph_1 = NxMixedGraph.from_edges(
@@ -41,6 +41,10 @@ simple_cyclic_graph_2 = NxMixedGraph.from_edges(
         (R, X),
     ],
 )
+
+
+def _fs(*args: Variable) -> frozenset[Variable]:
+    return frozenset(args)
 
 
 class TestIOSCMUtils(cases.GraphTestCase):
@@ -196,83 +200,64 @@ class TestIOSCMUtils(cases.GraphTestCase):
             [R, Y, X, W, Z],
         ]:
             self.assertFalse(is_apt_order(candidate_order, simple_cyclic_graph_1))
-            
-    #
+
     def test_check_members_of_scc_are_consecutive_valid(self) -> None:
-        """Test that consecutive SCC members pass validation"""
-        # valid case - all SCC members are consecutive
-        candidate_order = [R, X, W, Z, Y]
-        sccs = {frozenset([X, W, Z]), frozenset([R]), frozenset([Y])}
-        self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
-    
-    def test_check_members_of_scc_are_consecutive_invalid(self) -> None:
-        """Test that non-consecutive SCC members are detected (return False branch)"""
-        
-        # invalid case - SCC members are not consecutive
-        
-        candidate_order = [R, X, Y, W, Z]
-        sccs = {frozenset([X, W, Z]), frozenset([R]), frozenset([Y])}
-        self.assertFalse(_check_members_of_scc_are_consecutive(candidate_order, sccs))
-        
-    def test_check_members_of_scc_are_consecutive_single_node(self) -> None:
-        """Test that single-node SCCs are always valid (skipped in the function)."""
-        
-        # all single node SCCS should pass 
-        candidate_order = [R, X, Y, W, Z]
-        sccs = {frozenset([R]), frozenset([X]), frozenset([Y]), frozenset([W]), frozenset([Z])}
-        self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
-        
-        
-    def test_check_members_of_scc_are_consecutive_mixed(self) -> None:
-        """Test validation with both single node and multi-node SCCs.
-        
-        This ensures the continue statement for single-node SCCS is executed while still testing multi-node SCC consecutiveness
-        logic.
-        """
-        
-        candidate_order = [R, X, W, Z, Y]
-        sccs = {
-            frozenset([X, W, Z]),  # multi-node SCC - consecutive
-            frozenset([R]),        # single-node SCC - should skip
-            frozenset([Y])         # single-node SCC - should skip
-        }
-        
-        self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
-        
-    def test_check_members_of_scc_are_consecutive_empty(self) -> None:
-        """Test with no SCCS - should return True"""
-        
-        candidate_order = [R, X, W, Z, Y]
-        sccs = set()  # no SCCs
-        self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
-    
-    
-    def test_check_members_of_scc_are_consecutive_multiple_sccs(self) -> None:
-        """Test with multiple SCCs that are all consecutive."""
-        
-        candidate_order = [R, X, W, A, Y, Z, B]
-        sccs = {
-            frozenset([X, W]),  # multi-node SCC - consecutive
-            frozenset([Y, Z]),  # multi-node SCC - consecutive
-            frozenset([R]),     # single-node SCC - should skip
-            frozenset([A]),     # single-node SCC - should skip
-            frozenset([B])      # single-node SCC - should skip
-        }
-        
-        self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
-                
-    
-    def test_check_members_of_scc_are_consecutive_multiple_sccs_invalid(self) -> None:
-        """Test with multiple SCCs where one is not consecutive."""
-        candidate_order = [R, X, W, A, Y, B, Z]
-        sccs = {
-            frozenset([X, W]),  # multi-node SCC - consecutive
-            frozenset([Y, Z]),  # multi-node SCC - NOT consecutive
-            frozenset([R]),     # single-node SCC - should skip
-            frozenset([A]),     # single-node SCC - should skip
-            frozenset([B])      # single-node SCC - should skip
-        }
-        
-        self.assertFalse(_check_members_of_scc_are_consecutive(candidate_order, sccs))
-        
-        
+        """Test that consecutive SCC members pass validation."""
+        cases = [
+            (
+                [R, X, W, Z, Y],
+                {_fs(X, W, Z), _fs(R), _fs(Y)},
+                "valid case - all SCC members are consecutive",
+            ),
+            (
+                [R, X, Y, W, Z],
+                {_fs(R), _fs(X), _fs(Y), _fs(W), _fs(Z)},
+                "all single node SCCS are always valid",
+            ),
+            ([R, X, W, Z, Y], set(), "no SCCs returns true"),
+            (
+                [R, X, W, Z, Y],
+                {
+                    _fs(X, W, Z),  # multi-node SCC - consecutive
+                    _fs(R),  # single-node SCC - should skip
+                    _fs(Y),  # single-node SCC - should skip
+                },
+                "single-node SCCS is executed while still testing multi-node SCC consecutiveness logic.",
+            ),
+            (
+                [R, X, W, A, Y, Z, B],
+                {
+                    frozenset([X, W]),  # multi-node SCC - consecutive
+                    frozenset([Y, Z]),  # multi-node SCC - consecutive
+                    frozenset([R]),  # single-node SCC - should skip
+                    frozenset([A]),  # single-node SCC - should skip
+                    frozenset([B]),  # single-node SCC - should skip
+                },
+                "multiple SCCs that are all consecutive",
+            ),
+        ]
+        for candidate_order, sccs, name in cases:
+            with self.subTest(name=name):
+                self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
+
+        false_cases = [
+            (
+                [R, X, Y, W, Z],
+                {_fs(X, W, Z), _fs(R), _fs(Y)},
+                "invalid case - SCC members are not consecutive",
+            ),
+            (
+                [R, X, W, A, Y, B, Z],
+                {
+                    frozenset([X, W]),  # multi-node SCC - consecutive
+                    frozenset([Y, Z]),  # multi-node SCC - NOT consecutive
+                    frozenset([R]),  # single-node SCC - should skip
+                    frozenset([A]),  # single-node SCC - should skip
+                    frozenset([B]),  # single-node SCC - should skip
+                },
+                "multiple SCCs where one is not consecutive",
+            ),
+        ]
+        for candidate_order, sccs, name in false_cases:
+            with self.subTest(name=name):
+                self.assertFalse(_check_members_of_scc_are_consecutive(candidate_order, sccs))
