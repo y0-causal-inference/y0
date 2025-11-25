@@ -201,17 +201,25 @@ class TestIOSCMUtils(cases.GraphTestCase):
     def test_check_members_of_scc_are_consecutive_valid(self) -> None:
         """Test that consecutive SCC members pass validation"""
         # valid case - all SCC members are consecutive
-        order = [R, X, W, Z, Y]
+        candidate_order = [R, X, W, Z, Y]
         sccs = {frozenset([X, W, Z]), frozenset([R]), frozenset([Y])}
-        self.assertTrue(_check_members_of_scc_are_consecutive(order, sccs))
+        self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
     
     def test_check_members_of_scc_are_consecutive_invalid(self) -> None:
         """Test that non-consecutive SCC members are detected (return False branch)"""
         
         # invalid case - SCC members are not consecutive
         
-        order = [R, X, Y, W, Z]
+        candidate_order = [R, X, Y, W, Z]
         sccs = {frozenset([X, W, Z]), frozenset([R]), frozenset([Y])}
-        self.assertFalse(_check_members_of_scc_are_consecutive(order, sccs))
+        self.assertFalse(_check_members_of_scc_are_consecutive(candidate_order, sccs))
+        
+    def test_check_members_of_scc_are_consecutive_single_node(self) -> None:
+        """Test that single-node SCCs are always valid (skipped in the function)."""
+        
+        # all single node SCCS should pass 
+        candidate_order = [R, X, Y, W, Z]
+        sccs = {frozenset([R]), frozenset([X]), frozenset([Y]), frozenset([W]), frozenset([Z])}
+        self.assertTrue(_check_members_of_scc_are_consecutive(candidate_order, sccs))
         
     
