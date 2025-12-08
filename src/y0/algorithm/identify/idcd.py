@@ -86,5 +86,17 @@ def idcd(
         f"\t D (district): {sorted(D)}\n"
         f"\t |V| = {len(V)}"
     )
+
+    # line 15 - computing the ancestral closure of C within the subgraph G[D]
+    
+    logger.debug(f"[{_number_recursions}]: line 15 IDCD: compute An(C)_G[D]")
+    
+    # create subgraph G[D]
+    subgraph_D = graph.subgraph(D)
+    
+    # Get ancestors of all variables in C within G[D], intersected with D
+    A = set().union(*(subgraph_D.ancestors_inclusive(c) for c in C)) & D   
+        
+    
     
     
