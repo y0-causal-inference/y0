@@ -243,7 +243,7 @@ def idcd(
         
         logger.debug(f"[{_number_recursions}]: R_A[{sorted(S)}] computed")
     
-    # Line 25: Q[Cd^G[A](C)] ← ⊗_{S ∈ S(G[A]), S ⊆ Cd^G[A](C)} R_A[S]
+    # Line 25
     logger.debug(
         f"[{_number_recursions}]: Line 25 - Computing product over {len(RA)} SCC(s)"
     )
@@ -257,7 +257,7 @@ def idcd(
         f"{[sorted(S) for S in sorted_sccs]}"
     )
     
-    # Line 26: Recursive call with new consolidated district
+    # Line 26: Recursive call with the new consolidated district
     logger.debug(
         f"[{_number_recursions}]: Line 26 - Recursive IDCD call\n"
         f"\t C: {sorted(C)}\n"
