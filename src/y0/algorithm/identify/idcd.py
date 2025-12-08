@@ -105,10 +105,11 @@ def idcd(
     marginalize_out = D - A
     
     if marginalize_out:
-        logger.debug(f"[{_number_recursions}]: Marginalizing out variables: {sorted(marginalize_out)}")
-        Q_A = Q_D.marginalize(marginalize_out)
+        # getting the apt order in the context of the district subgraph
+        apt_order = get_apt_order(subgraph_D, list(marginalize_out))
+        logger.debug(f"[{_number_recursions}]: Marginalizing out variables: (APT order) {apt_order}")
+        Q_A = Q_D.marginalize(apt_order)
     else:
-        logger.debug(f"[{_number_recursions}]: No variables to marginalize out.")
         Q_A = Q_D
     
     logger.debug(f"[{_number_recursions}]: Q[A] computed")
