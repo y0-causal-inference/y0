@@ -19,6 +19,8 @@ from ..ioscm.utils import (
 )
 
 from ..identify.utils import Unidentifiable
+from ..identify.utils import Identification
+from ..identify.id_std import identify
 from ...dsl import Expression, P, Variable
 from ...graph import NxMixedGraph
 
@@ -136,6 +138,47 @@ def idcd(
     subgraph_A = graph.subgraph(A)
     CdG_A_C = get_consolidated_district(subgraph_A, C)
     
-    # find all the c-components S in G[A] that are subsets of CdG_A(C)
-    all_c_components = get_consolidated_district(subgraph_A)
-    relevant_c_components = [S for S in all_c_components if S.issubset(CdG_A_C)]
+    # compute SCCS as sets of variables
+    sccs = get_strongly_connected_components(subgraph_A)
+    
+    # apt order SCCs 
+    apt_ordered_sccs = get_apt_order(subgraph_A, sccs)
+    
+    # filter SCCs to those within consolidated district containing C
+    relevant_sccs = [S for S in apt_ordered_sccs if S.issubset(CdG_A_C)]
+    
+    # store the conditional interventional distributions
+    RA = {}
+    
+    V = set(graph.nodes())
+    J = set() # replace or pass J 
+    
+    for idx, S in enumerate(relevant_sccs):
+        # earlier SCCs in apt-order 
+        predecessors_in_order = set().union(*relevant_sccs[:idx])
+        # conditioning set: restricted to actual variables in A
+        conditioning_set = predecessors_in_order & A
+        
+        # intervention: original interventions + variables outside A
+        intervention_set = J | (V - A)
+        
+        # build the identification query for standard ID alg. call
+        identification_obj = Identification.from_parts(
+            outcomes=S,
+            treatments=intervention_set,
+            conditions=conditioning_set,
+            graph=subgraph_A,
+            estimand=Q_A,
+        )
+        
+        RA[S] = identify(identification_obj)
+        
+        logger.debug(
+            f"[{_number_recursions}]: SCC {sorted(S)}: "
+            f"Condition on {sorted(conditioning_set)}; "
+            f"do on {sorted(intervention_set)} -> {RA[S]}"
+        )
+        
+        
+
+        
