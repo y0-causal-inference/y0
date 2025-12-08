@@ -114,4 +114,14 @@ def idcd(
     logger.debug(f"[{_number_recursions}]: Q[A] computed")
     
     
+    # line 17 - checking if A == C: return Q[A]
+    if A == C:
+        logger.debug(f"[{_number_recursions}]: line 17 IDCD: A == C, returning Q[A]")
+        # line 18 - return Q[A]
+        return Q_A
     
+    # line 19 - if A == D: return FAIL/Unidentifiable
+    if A == D:
+        logger.debug(f"[{_number_recursions}]: line 19 IDCD: A == D, raising Unidentifiable")
+        # line 20 - return FAIL
+        raise Unidentifiable("Causal effect is unidentifiable within district D.")
