@@ -126,3 +126,16 @@ def idcd(
         logger.debug(f"[{_number_recursions}]: line 19 IDCD: A == D, raising Unidentifiable")
         # line 20 - return FAIL
         raise Unidentifiable("Causal effect is unidentifiable within district D.")
+    
+    # line 21
+    elif C < A < D:
+        logger.debug(f"[{_number_recursions}]: line 21 IDCD: C ⊂ A ⊂ D, decomposing further"
+    )
+    
+    # get consolidated district containing C in G[A]
+    subgraph_A = graph.subgraph(A)
+    CdG_A_C = get_consolidated_district(subgraph_A, C)
+    
+    # find all the c-components S in G[A] that are subsets of CdG_A(C)
+    all_c_components = get_consolidated_district(subgraph_A)
+    relevant_c_components = [S for S in all_c_components if S.issubset(CdG_A_C)]
