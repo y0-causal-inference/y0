@@ -98,5 +98,20 @@ def idcd(
     A = set().union(*(subgraph_D.ancestors_inclusive(c) for c in C)) & D   
         
     
+    # line 16 - marginalize Q[D] over variables in D \ A
+    
+    logger.debug(f"[{_number_recursions}]: line 16 IDCD: marginalize Q[D] over D \\ A")
+    
+    marginalize_out = D - A
+    
+    if marginalize_out:
+        logger.debug(f"[{_number_recursions}]: Marginalizing out variables: {sorted(marginalize_out)}")
+        Q_A = Q_D.marginalize(marginalize_out)
+    else:
+        logger.debug(f"[{_number_recursions}]: No variables to marginalize out.")
+        Q_A = Q_D
+    
+    logger.debug(f"[{_number_recursions}]: Q[A] computed")
+    
     
     
