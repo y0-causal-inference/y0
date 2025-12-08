@@ -44,6 +44,47 @@ def idcd(
     
     :param graph: The causal directed mixed graph (may contain cycles)
     :param C: Target set of variables to identify within district D
-    
+    :param D: Consolidated district containing C
+        Precondition: C ⊆ D ⊆ V and CD(G_D) = {D}
+    :param Q_D: Probability distribution over district D
+    :param _number_recursions: Recursion depth tracker for logging
+    :returns: Identified causal effect Q[C]
+    :raises Unidentifiable: If causal effect cannot be identified
     """
+    
+    # line 14 - precondition check
+    # require: C ⊆ D ⊆ V and CD(G_D) = {D}
+    
+    V = set(graph.nodes())
+    
+    # precondition 1: C must not be empty
+    if not C:
+        raise ValueError("Target set C must not be empty.")
+    
+    # precondition 2: D cannot be empty
+    if not D:
+        raise ValueError("District D must not be empty.")
+    
+    # precondition 3: C must be a subset of D - target variables have to be within district
+    if not C.issubset(D):
+        raise ValueError(
+            f"C must be a subset of D."
+            f"C = {sorted(C)}, D = {sorted(D)}, C \\ D = {sorted(C - D)}" 
+        )   
+        
+    # precondition 4: D must be a subset of V - district has to be within graph nodes
+    
+    if not D.issubset(V):
+        raise ValueError(
+            f"D must be a subset of V."
+            f"D = {sorted(D)}, V = {sorted(V)}, D \\ V = {sorted(D - V)}"
+        )
+     
+    logger.debug(
+        f"[{_number_recursions}]: Calling IDCD\n"
+        f"\t C (target): {sorted(C)}\n"
+        f"\t D (district): {sorted(D)}\n"
+        f"\t |V| = {len(V)}"
+    )
+    
     
