@@ -1,10 +1,5 @@
 """
 IDCD Algorithm Implementation (Algorithm 1, Lines 13-28) from Forré & Mooij (2019).
-
-This module implements the IDCD (IDentification within Consolidated Districts) algorithm,
-which is a helper function for the main cyclic ID algorithm. IDCD handles identification
-of causal effects within consolidated districts of directed mixed graphs that may contain
-cycles and latent confounders.
 """
 
 import logging
@@ -33,8 +28,6 @@ def idcd(
     _number_recursions: int = 0,
 ) -> Expression:
     """
-    Run IDCD algorithm from Forré & Mooij (2019), Algorithm 1, Lines 13-28.
-    
     Identifies causal effects within consolidated districts of cyclic graphs.
     This is a helper function called by the main ID algorithm at Line 5.
     
@@ -48,10 +41,6 @@ def idcd(
     :raises ValueError: If preconditions are violated
     :raises Unidentifiable: If causal effect cannot be identified
     
-    References:
-        Forré, P., & Mooij, J. M. (2019). Causal Calculus in the Presence of
-        Cycles, Latent Confounders and Selection Bias. arXiv:1901.00433
-        Algorithm 1, Lines 13-28.
     """
     
     # ================================================================
@@ -167,10 +156,10 @@ def idcd(
         )
     
     # ================================================================
-    # Lines 21-26: Recursive case (C ⊂ A ⊂ D)
+    # Lines 21-26: Recursive case 
     # ================================================================
     
-    # At this point, we know A ≠ C and A ≠ D, so this is C ⊂ A ⊂ D
+    # at this point, we know A ≠ C and A ≠ D, so this is C ⊂ A ⊂ D
     logger.debug(
         f"[{_number_recursions}]: Lines 21-26 - Recursive case: C ⊂ A ⊂ D\n"
         f"\t C: {sorted(C)}\n"
