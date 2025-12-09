@@ -506,7 +506,7 @@ class CounterfactualVariable(Variable):
 class Distribution(Element):
     """A general distribution over several child variables, conditioned by several parents.
 
-    P(X | Y) means that X is a child and Y is a parent.
+    ``P(X | Y)`` means that ``X`` is a child and ``Y`` is a parent.
     """
 
     children: tuple[Variable, ...]
