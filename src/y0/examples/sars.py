@@ -24,8 +24,9 @@ def generate_data_for_covid_case_study(
     :param num_samples: The number of samples to generate. Try 1000.
     :param treatments: An optional dictionary of the values to fix each variable to.
     :param seed: An optional random seed for reproducibility purposes
-    :returns: A pandas Dataframe with columns corresponding
-        to the variable names SARS-CoV-2 small graph
+
+    :returns: A pandas Dataframe with columns corresponding to the variable names
+        SARS-CoV-2 small graph
     """
     if treatments is None:
         treatments = {}

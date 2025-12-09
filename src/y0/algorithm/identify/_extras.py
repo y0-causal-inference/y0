@@ -1,8 +1,8 @@
 """This file contains code that implements the original ID* algorithm.
 
-The algorithm is described in the paper "Complete Identification Methods for the Causal Hierarchy"
-but the algorithm itself is not complete, as there are identifiable queries that cannot be
-identified with this algorithm.
+The algorithm is described in the paper "Complete Identification Methods for the Causal
+Hierarchy" but the algorithm itself is not complete, as there are identifiable queries
+that cannot be identified with this algorithm.
 """
 
 import logging
@@ -31,46 +31,38 @@ def original_id_star_line_6(
 ) -> tuple[Collection[Variable], DistrictInterventions]:
     r"""Run line 6 of the ID* algorithm.
 
-    Line 6 is analogous to Line 4 in the ID algorithm, it decomposes
-    the problem into a set of subproblems, one for each C-component in
-    the counterfactual graph. In the ID algorithm, the term
-    corresponding to a given C-component :math:`S_i` of the causal
-    diagram was the effect of all variables not in :math:`S_i` on
-    variables in :math:`S_i` , in other words
-    :math:`P_{\mathbf{v}\backslash s_i} (s_i )`, and the outermost
-    summation on line 4 was over values of variables not in
-    :math:`\mathbf{Y},\mathbf{X}`. Here, the term corresponding to a
-    given C-component :math:`S^i` of the counterfactual graph
-    :math:`G'` is the conjunction of counterfactual variables where
-    each variable contains in its subscript all variables not in the
-    C-component :math:`S^i` , in other words :math:`\mathbf{v}(G'
-    )\backslash s^i` , and the outermost summation is over observable
-    variables not in :math:`\event'` , that is over
-    :math:`\mathbf{v}(G' ) \backslash \event'` , where we interpret
-    :math:`\event'` as a set of counterfactuals, rather than a
-    conjunction.
+    Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
+    set of subproblems, one for each C-component in the counterfactual graph. In the ID
+    algorithm, the term corresponding to a given C-component :math:`S_i` of the causal
+    diagram was the effect of all variables not in :math:`S_i` on variables in
+    :math:`S_i` , in other words :math:`P_{\mathbf{v}\backslash s_i} (s_i )`, and the
+    outermost summation on line 4 was over values of variables not in
+    :math:`\mathbf{Y},\mathbf{X}`. Here, the term corresponding to a given C-component
+    :math:`S^i` of the counterfactual graph :math:`G'` is the conjunction of
+    counterfactual variables where each variable contains in its subscript all variables
+    not in the C-component :math:`S^i` , in other words :math:`\mathbf{v}(G' )\backslash
+    s^i` , and the outermost summation is over observable variables not in
+    :math:`\event'` , that is over :math:`\mathbf{v}(G' ) \backslash \event'` , where we
+    interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
 
-    Unfortunately, the conjunction of all counterfactual variables in
-    the C-component where each variable contains its subscript over
-    all variables not in the C-component results in a problem.  The
-    problem is that the query contains redundant interventions that
-    must be removed for the query to be identifiable.  The removal of
-    redundant interventions is not specified as part of the algorithm
-    itself.  Instead, it must be specified outside the algorithm.  The
-    algorithm is not complete without this step.  Tikka et al. (2022)
-    address this problem by removing the rudundant interventions in
-    step 7 of the algorithm after running ID* on each C-component.
-    However, it is simpler to not include redundant interventions in
-    the first place.  Instead of intervening on every variable not in
-    the C-component, we intervene on every variable that is a parent
-    of the C-component.  This is also known as the Markov pillow. Zucker
-    suggested this approach in an email to Shpitser on May 20, 2022. In
-    this function we demonstrate what happens when we intervene on
-    every variable not in the C-component.
+    Unfortunately, the conjunction of all counterfactual variables in the C-component
+    where each variable contains its subscript over all variables not in the C-component
+    results in a problem. The problem is that the query contains redundant interventions
+    that must be removed for the query to be identifiable. The removal of redundant
+    interventions is not specified as part of the algorithm itself. Instead, it must be
+    specified outside the algorithm. The algorithm is not complete without this step.
+    Tikka et al. (2022) address this problem by removing the rudundant interventions in
+    step 7 of the algorithm after running ID* on each C-component. However, it is
+    simpler to not include redundant interventions in the first place. Instead of
+    intervening on every variable not in the C-component, we intervene on every variable
+    that is a parent of the C-component. This is also known as the Markov pillow. Zucker
+    suggested this approach in an email to Shpitser on May 20, 2022. In this function we
+    demonstrate what happens when we intervene on every variable not in the C-component.
 
     :param graph: an NxMixedGraph
     :param event: a conjunction of counterfactual variables
-    :return: a set of Variables in summand, a dictionary of districts and events
+
+    :returns: a set of Variables in summand, a dictionary of districts and events
     """
     # First we get the summand, then we intervene on each district
     summand = get_free_variables(graph, event)
@@ -85,8 +77,8 @@ def get_district_interventions(graph: NxMixedGraph, event: Event) -> DistrictInt
 
     :param graph: an NxMixedGraph
     :param event: a conjunction of counterfactual variables
-    :return: a dictionary of districts and interventions of districts
 
+    :returns: a dictionary of districts and interventions of districts
     """
     nodes = {node for node in graph.nodes() if is_not_self_intervened(node)}
     return {
@@ -98,12 +90,13 @@ def get_district_interventions(graph: NxMixedGraph, event: Event) -> DistrictInt
 def intervene_on_district(district: District, interventions: set[Variable], event: Event) -> Event:
     """Intervene on the variables not in the district.
 
-    Each variable in the district takes its value in the event if it has one.
-    Otherwise, we set the value to ``-variable.get_base()``.
+    Each variable in the district takes its value in the event if it has one. Otherwise,
+    we set the value to ``-variable.get_base()``.
 
     :param district: a district of the graph
     :param event: a conjunction of counterfactual values
     :param interventions: a set of Variables to act as interventions
+
     :returns: A new event
     """
     interventions = {-i.get_base() for i in interventions}

@@ -24,8 +24,9 @@ def generate_data_for_frontdoor(
     :param num_samples: The number of samples to generate. Try 1000.
     :param treatments: An optional dictionary of the values to fix each variable to.
     :param seed: An optional random seed for reproducibility purposes
-    :returns: A pandas Dataframe with columns corresponding
-        to the variable names in the front-door example
+
+    :returns: A pandas Dataframe with columns corresponding to the variable names in the
+        front-door example
     """
     if treatments is None:
         treatments = {}

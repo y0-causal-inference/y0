@@ -671,10 +671,11 @@ class TestCounterfactualGraph(cases.GraphTestCase):
 class TestMakeCounterfactualGraph(cases.GraphTestCase):
     r"""Test making a counterfactual graph.
 
-    The invocation of **make-cg** with the graph in Figure 9(a) and the joint distribution
-    :math:`P(y_x, x', z, d)` will result in the counterfactual graph shown in Fig. 9(c).
-    The invocation of **make-cg** with the graph in Figure 9(a) and the joint distribution
-    :math:`P(y_{x,z},x')` will result in the counterfactual graph shown in Fig. 9(d).
+    The invocation of **make-cg** with the graph in Figure 9(a) and the joint
+    distribution :math:`P(y_x, x', z, d)` will result in the counterfactual graph shown
+    in Fig. 9(c). The invocation of **make-cg** with the graph in Figure 9(a) and the
+    joint distribution :math:`P(y_{x,z},x')` will result in the counterfactual graph
+    shown in Fig. 9(d).
     """
 
     def test_1(self):

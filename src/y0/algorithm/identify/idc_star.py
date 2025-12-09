@@ -62,7 +62,10 @@ def idc_star(
     :param outcomes: The outcome events corresponds to :math:`\gamma`
     :param conditions: The condition events corresponds to :math:`\delta`
     :param _number_recursions: The number of times the algorithm has recurred
-    :returns: An expression created by the :func:`idc_star` algorithm after simplifying the original query
+
+    :returns: An expression created by the :func:`idc_star` algorithm after simplifying
+        the original query
+
     :raises ValueError: If ID* returns zero
     """
     logger.debug(
@@ -167,18 +170,20 @@ def cf_rule_2_of_do_calculus_applies(
 ) -> bool:
     r"""Check if Rule 2 of the Do-Calculus applies to the conditioned variable.
 
-    Rule 2 is about Observations that are interchangeable with Interventions.
-    This occurs when there is no backdoor path from the conditioned variable to the outcomes.
-    Rule 2 operationalizes this criterion to say that if we remove the outgoing edge from
-    the conditioned variable, then if the intervened node is D-separated from all outcomes,
-    then the backdoor criterion has been satisfied.
+    Rule 2 is about Observations that are interchangeable with Interventions. This
+    occurs when there is no backdoor path from the conditioned variable to the outcomes.
+    Rule 2 operationalizes this criterion to say that if we remove the outgoing edge
+    from the conditioned variable, then if the intervened node is D-separated from all
+    outcomes, then the backdoor criterion has been satisfied.
 
     :param cf_graph: an NxMixedGraph
     :param outcomes: The outcomes to check
     :param condition: The condition to check
+
     :returns: If rule 2 applies, see below.
 
-    If Rule 2 of the do calculus applies to the conditioned variable, then it can be converted to a do variable.
+    If Rule 2 of the do calculus applies to the conditioned variable, then it can be
+    converted to a do variable.
 
     .. math::
 

@@ -28,8 +28,10 @@ def canonicalize(
     """Canonicalize an expression that meets the markov condition with respect to the given ordering.
 
     :param expression: An expression to canonicalize
-    :param ordering: A toplogical ordering. If none is given, it is assigned by sort order of the variable names.
-    :return: A canonical expression
+    :param ordering: A toplogical ordering. If none is given, it is assigned by sort
+        order of the variable names.
+
+    :returns: A canonical expression
     """
     canonicalizer = Canonicalizer(ensure_ordering(expression, ordering=ordering))
     return canonicalizer.canonicalize(expression)
@@ -44,7 +46,8 @@ class Canonicalizer:
     def __init__(self, ordering: Sequence[Variable]) -> None:
         """Initialize the canonicalizer.
 
-        :param ordering: A topological ordering over the variables appearing in the expression.
+        :param ordering: A topological ordering over the variables appearing in the
+            expression.
 
         :raises ValueError: if the ordering has duplicates
         """
@@ -75,7 +78,9 @@ class Canonicalizer:
         """Canonicalize an expression.
 
         :param expression: An uncanonicalized expression
-        :return: A canonicalized expression
+
+        :returns: A canonicalized expression
+
         :raises TypeError: if an object with an invalid type is passed
         """
         if isinstance(expression, Probability):  # atomic

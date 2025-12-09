@@ -1,5 +1,7 @@
-Conditional Independence and Separation
-=======================================
+#########################################
+ Conditional Independence and Separation
+#########################################
+
 .. automodule:: y0.algorithm.separation
 
 .. automodule:: y0.algorithm.conditional_independencies

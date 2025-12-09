@@ -15,11 +15,13 @@ def identify(identification: Identification) -> Expression:
     """Run the ID algorithm from [shpitser2006]_.
 
     :param identification: The identification tuple
+
     :returns: the expression corresponding to the identification
+
     :raises Unidentifiable: If no appropriate identification can be found
 
-    See also :func:`identify_outcomes` for a more idiomatic way of running
-    the ID algorithm given a graph, treatments, and outcomes.
+    See also :func:`identify_outcomes` for a more idiomatic way of running the ID
+    algorithm given a graph, treatments, and outcomes.
     """
     graph = identification.graph
     treatments = identification.treatments
@@ -83,8 +85,10 @@ def line_1(identification: Identification) -> Expression:
     If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
     the observational distribution
 
-    :param identification: The data structure with the treatment, outcomes, estimand, and graph
-    :returns:  The marginal of the outcome variables
+    :param identification: The data structure with the treatment, outcomes, estimand,
+        and graph
+
+    :returns: The marginal of the outcome variables
     """
     outcomes = identification.outcomes
     vertices = set(identification.graph.nodes())
@@ -97,8 +101,8 @@ def line_1(identification: Identification) -> Expression:
 def line_2(identification: Identification) -> Identification:
     r"""Run line 2 of the identification algorithm.
 
-    If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our attention
-    on the parts of the model ancestral to :math:`\mathbf Y`.
+    If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to
+    restrict our attention on the parts of the model ancestral to :math:`\mathbf Y`.
 
     .. math::
 
@@ -106,8 +110,11 @@ def line_2(identification: Identification) -> Identification:
         \text{ return } \mathbf{ ID}\left(\mathbf y, \mathbf x\cap An(\mathbf Y)_G, \sum_{\mathbf V -
          An(Y)_G}P, G_{An(\mathbf Y)}\right)
 
-    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :param identification: The data structure with the treatment, outcomes, estimand,
+        and graph
+
     :returns: The new estimand
+
     :raises ValueError: If the line 2 precondition is not met
     """
     graph = identification.graph
@@ -132,15 +139,17 @@ def line_2(identification: Identification) -> Identification:
 def line_3(identification: Identification) -> Identification:
     r"""Run line 3 of the identification algorithm.
 
-    Forces an action on any node where such an action would have no
-    effect on :math:\mathbf Y`—assuming we already acted on
-    :math:`\mathbf X`. Since actions remove incoming arrows, we can
-    view line 3 as simplifying the causal graph we consider by
-    removing certain arcs from the graph, without affecting the
-    overall answer.
+    Forces an action on any node where such an action would have no effect on
+    :math:\mathbf Y`—assuming we already acted on :math:`\mathbf X`. Since actions
+    remove incoming arrows, we can view line 3 as simplifying the causal graph we
+    consider by removing certain arcs from the graph, without affecting the overall
+    answer.
 
-    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :param identification: The data structure with the treatment, outcomes, estimand,
+        and graph
+
     :returns: The new estimand
+
     :raises ValueError: If the preconditions for line 3 aren't met.
     """
     outcomes = identification.outcomes
@@ -159,16 +168,19 @@ def line_3(identification: Identification) -> Identification:
 def line_4(identification: Identification) -> list[Identification]:
     r"""Run line 4 of the identification algorithm.
 
-    The key line of the algorithm, it decomposes the problem into a set
-    of smaller problems using the key property of *c-component
-    factorization* of causal models. If the entire graph is a single
-    C-component already, further problem decomposition is impossible,
-    and we must provide base cases. :math:`\mathbf{ID}` has three base
+    The key line of the algorithm, it decomposes the problem into a set of smaller
+    problems using the key property of *c-component factorization* of causal models. If
+    the entire graph is a single C-component already, further problem decomposition is
+    impossible, and we must provide base cases. :math:`\mathbf{ID}` has three base
     cases.
 
-    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :param identification: The data structure with the treatment, outcomes, estimand,
+        and graph
+
     :returns: A list of new estimands
-    :raises ValueError: If the precondition that there are more than 1 districts without treatments is not met
+
+    :raises ValueError: If the precondition that there are more than 1 districts without
+        treatments is not met
     """
     treatments = identification.treatments
     estimand = identification.estimand
@@ -194,13 +206,14 @@ def line_4(identification: Identification) -> list[Identification]:
 def line_5(identification: Identification) -> None:
     r"""Run line 5 of the identification algorithm.
 
-    Fails because it finds two C-components, the graph :math:`G`
-    itself, and a subgraph :math:`S` that does not contain any
-    :math:`\mathbf X` nodes. But that is exactly one of the properties
-    of C-forests that make up a hedge. In fact, it turns out that it
+    Fails because it finds two C-components, the graph :math:`G` itself, and a subgraph
+    :math:`S` that does not contain any :math:`\mathbf X` nodes. But that is exactly one
+    of the properties of C-forests that make up a hedge. In fact, it turns out that it
     is always possible to recover a hedge from these two c-components.
 
-    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :param identification: The data structure with the treatment, outcomes, estimand,
+        and graph
+
     :raises Unidentifiable: If line 5 realizes that identification is not possible
     """
     treatments = identification.treatments
@@ -218,16 +231,22 @@ def line_5(identification: Identification) -> None:
 def line_6(identification: Identification) -> Expression:
     r"""Run line 6 of the identification algorithm.
 
-    Asserts that if there are no bidirected arcs from :math:`X` to the other nodes in the current subproblem
-    under consideration, then we can replace acting on :math:`X` by conditioning, and thus solve the subproblem.
+    Asserts that if there are no bidirected arcs from :math:`X` to the other nodes in
+    the current subproblem under consideration, then we can replace acting on :math:`X`
+    by conditioning, and thus solve the subproblem.
 
-    ..math::
+    ..math:
+
+    ::
 
         \text{ if }S\in C(G) \\
         \text{ return }\sum_{S - \mathbf y}\prod_{\{i|V_i\in S\}}P\left(v_i|v_\pi^{(i-1)}\right)
 
-    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :param identification: The data structure with the treatment, outcomes, estimand,
+        and graph
+
     :returns: A list of new estimands
+
     :raises ValueError: If line 6 precondition is not met
     """
     outcomes = identification.outcomes
@@ -254,27 +273,27 @@ def line_6(identification: Identification) -> Expression:
 def line_7(identification: Identification) -> Identification:
     r"""Run line 7 of the identification algorithm.
 
-    The most complex case where :math:`\mathbf X` is partitioned into
-    two sets, :math:`\mathbf W` which contain bidirected arcs into
-    other nodes in the subproblem, and :math:`\mathbf Z` which do
-    not. In this situation, identifying :math:`P(\mathbf y|do(\mathbf
-    x))` from :math:`P(v)` is equivalent to identifying
-    :math:`P(\mathbf y|do(\mathbf w))` from :math:`P(\mathbf
-    V|do(\mathbf z))`, since :math:`P(\mathbf y|do(\mathbf x)) =
-    P(\mathbf y|do(\mathbf w), do(\mathbf z))`. But the term
-    :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the
-    previous base case, so we can consider the subproblem of
-    identifying :math:`P(\mathbf y|do(\mathbf w))`
+    The most complex case where :math:`\mathbf X` is partitioned into two sets,
+    :math:`\mathbf W` which contain bidirected arcs into other nodes in the subproblem,
+    and :math:`\mathbf Z` which do not. In this situation, identifying :math:`P(\mathbf
+    y|do(\mathbf x))` from :math:`P(v)` is equivalent to identifying :math:`P(\mathbf
+    y|do(\mathbf w))` from :math:`P(\mathbf V|do(\mathbf z))`, since :math:`P(\mathbf
+    y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))`. But the term
+    :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the previous base case, so
+    we can consider the subproblem of identifying :math:`P(\mathbf y|do(\mathbf w))`
 
     .. math::
 
-       \text{ if }(\exists S')S\subset S'\in C(G) \\
-       \text{ return }\mathbf{ID}\left(\mathbf y, \mathbf x\cap S',
-       \prod_{\{i|V_i\in S'\}}P(V_i|V_\pi^{(i-1)}\cap S', V_\pi^{(i-1)} -
-       S'), G_{S'}\right)
+        \text{ if }(\exists S')S\subset S'\in C(G) \\
+        \text{ return }\mathbf{ID}\left(\mathbf y, \mathbf x\cap S',
+        \prod_{\{i|V_i\in S'\}}P(V_i|V_\pi^{(i-1)}\cap S', V_\pi^{(i-1)} -
+        S'), G_{S'}\right)
 
-    :param identification: The data structure with the treatment, outcomes, estimand, and graph
+    :param identification: The data structure with the treatment, outcomes, estimand,
+        and graph
+
     :returns: A new estimand
+
     :raises ValueError: If line 7 does not find a suitable district
     """
     outcomes = identification.outcomes
@@ -303,8 +322,9 @@ def p_parents(child: Variable, ordering: Sequence[Variable]) -> Probability:
     """Get a probability expression based on a topological ordering.
 
     :param child: The child variable
-    :param ordering: A topologically ordered sequence of all variables. All occurring before the
-        child will be used as parents.
-    :return: A probability expression
+    :param ordering: A topologically ordered sequence of all variables. All occurring
+        before the child will be used as parents.
+
+    :returns: A probability expression
     """
     return P(child | ordering[: ordering.index(child)])
