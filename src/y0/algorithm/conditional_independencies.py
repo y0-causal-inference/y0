@@ -43,14 +43,14 @@ def add_ci_undirected_edges(
 
     :param graph: An acyclic directed mixed graph
     :param data: observational data corresponding to the graph
-    :param method:
-        The conditional independency test to use. If None, defaults to
-        :data:`y0.struct.DEFAULT_CONTINUOUS_CI_TEST` for continuous data
-        or :data:`y0.struct.DEFAULT_DISCRETE_CI_TEST` for discrete data.
-    :param significance_level: The statistical tests employ this value for
-        comparison with the p-value of the test to determine the independence of
-        the tested variables. If none, defaults to 0.05.
+    :param method: The conditional independency test to use. If None, defaults to
+        :data:`y0.struct.DEFAULT_CONTINUOUS_CI_TEST` for continuous data or
+        :data:`y0.struct.DEFAULT_DISCRETE_CI_TEST` for discrete data.
+    :param significance_level: The statistical tests employ this value for comparison
+        with the p-value of the test to determine the independence of the tested
+        variables. If none, defaults to 0.05.
     :param max_conditions: Longest set of conditions to investigate
+
     :returns: A copy of the input graph potentially with new undirected edges added
     """
     rv = graph.copy()
@@ -81,17 +81,16 @@ def test_conditional_independencies(
 
     :param graph: An acyclic directed mixed graph
     :param data: observational data corresponding to the graph
-    :param method:
-        The conditional independency test to use. If None, defaults to
-        :data:`y0.struct.DEFAULT_CONTINUOUS_CI_TEST` for continuous data
-        or :data:`y0.struct.DEFAULT_DISCRETE_CI_TEST` for discrete data.
-    :param boolean:
-        If set to true, switches the test return type to be a pre-computed
+    :param method: The conditional independency test to use. If None, defaults to
+        :data:`y0.struct.DEFAULT_CONTINUOUS_CI_TEST` for continuous data or
+        :data:`y0.struct.DEFAULT_DISCRETE_CI_TEST` for discrete data.
+    :param boolean: If set to true, switches the test return type to be a pre-computed
         boolean based on the significance level (see parameter below)
-    :param significance_level: The statistical tests employ this value for
-        comparison with the p-value of the test to determine the independence of
-        the tested variables. If none, defaults to 0.05.
+    :param significance_level: The statistical tests employ this value for comparison
+        with the p-value of the test to determine the independence of the tested
+        variables. If none, defaults to 0.05.
     :param max_conditions: Longest set of conditions to investigate
+
     :returns: A copy of the input graph potentially with new undirected edges added
     """
     if significance_level is None:
@@ -128,12 +127,16 @@ def get_conditional_independencies(
     the unique left/right combinations in all valid d-separation.
 
     :param graph: An acyclic directed mixed graph
-    :param policy: Retention policy when more than one conditional independency option exists (see minimal for details)
+    :param policy: Retention policy when more than one conditional independency option
+        exists (see minimal for details)
     :param max_conditions: Longest set of conditions to investigate
     :param kwargs: Other keyword arguments are passed to :func:`d_separations`
-    :return: A set of conditional dependencies
 
-    .. seealso:: Original issue https://github.com/y0-causal-inference/y0/issues/24
+    :returns: A set of conditional dependencies
+
+    .. seealso::
+
+        Original issue https://github.com/y0-causal-inference/y0/issues/24
     """
     if policy is None:
         policy = get_topological_policy(graph)
@@ -148,17 +151,20 @@ def minimal(
 ) -> set[DSeparationJudgement]:
     r"""Given some d-separations, reduces to a 'minimal' collection.
 
-    For independencies of the form $A \perp B | {C_1, C_2, ...}$, the minimal collection will
+    For independencies of the form $A \perp B | {C_1, C_2, ...}$, the minimal collection
+    will
 
     - Have only one independency with the same A/B nodes.
-    - If there are multiples sets of C-nodes, the kept d-separation will be the first/minimal
-      element in the group sorted according to `policy` argument.
+    - If there are multiples sets of C-nodes, the kept d-separation will be the
+      first/minimal element in the group sorted according to `policy` argument.
 
-    The default policy is to sort by the shortest set of conditions & then lexicographic.
+    The default policy is to sort by the shortest set of conditions & then
+    lexicographic.
 
     :param judgements: Collection of judgements to minimize
     :param policy: Function from d-separation to a representation suitable for sorting.
-    :return: A set of judgements that is minimal (as described above)
+
+    :returns: A set of judgements that is minimal (as described above)
     """
     if policy is None:
         policy = _len_lex
@@ -171,11 +177,12 @@ def get_topological_policy(
 ) -> Callable[[DSeparationJudgement], tuple[int, int]]:
     """Sort d-separations by condition length and topological order.
 
-    This policy prefers small collections, and collections with variables earlier
-    in topological order for collections of the same size.
+    This policy prefers small collections, and collections with variables earlier in
+    topological order for collections of the same size.
 
     :param graph: a mixed graph
-    :return: A function suitable for use as a sort key on d-separations
+
+    :returns: A function suitable for use as a sort key on d-separations
     """
     order = list(graph.topological_sort())
     return partial(_topological_policy, order=order)
@@ -216,13 +223,16 @@ def are_d_separated(
     :param a: A node in the graph
     :param b: A node in the graph
     :param conditions: A collection of graph nodes
-    :return: T/F and the final graph (as evidence)
-    :raises TypeError: if the left/right arguments or any conditions are
-        not Variable instances
-    :raises KeyError: if the left/right arguments or any conditions are
-        not in the graph
 
-    .. seealso:: NetworkX implementation :func:`nx.d_separated`
+    :returns: T/F and the final graph (as evidence)
+
+    :raises TypeError: if the left/right arguments or any conditions are not Variable
+        instances
+    :raises KeyError: if the left/right arguments or any conditions are not in the graph
+
+    .. seealso::
+
+        NetworkX implementation :func:`nx.d_separated`
     """
     if conditions is None:
         conditions = set()
@@ -267,8 +277,10 @@ def d_separations(
 
     :param graph: Graph to search for d-separations.
     :param max_conditions: Longest set of conditions to investigate
-    :param return_all: If false (default) only returns the first d-separation per left/right pair.
+    :param return_all: If false (default) only returns the first d-separation per
+        left/right pair.
     :param verbose: If true, prints extra output with tqdm
+
     :yields: True d-separation judgements
     """
     vertices = set(graph.nodes())

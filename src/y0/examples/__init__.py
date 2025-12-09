@@ -193,15 +193,14 @@ def generate_napkin_data(
     """Generate testing data for the napkin graph.
 
     :param num_samples: The number of samples to generate. Try 1000.
-    :param treatments: An optional dictionary of the values to fix each variable
-        to. The keys in this dictionary must correspond to variables in the
-        napkin graph as defined in :data:`y0.examples.napkin` (i.e.,
-        with :data:`y0.dsl.Z1`, :data:`y0.dsl.Z2`, :data:`y0.dsl.X`,
-        and :data:`y0.dsl.Y`).
+    :param treatments: An optional dictionary of the values to fix each variable to. The
+        keys in this dictionary must correspond to variables in the napkin graph as
+        defined in :data:`y0.examples.napkin` (i.e., with :data:`y0.dsl.Z1`,
+        :data:`y0.dsl.Z2`, :data:`y0.dsl.X`, and :data:`y0.dsl.Y`).
     :param seed: An optional random seed for reproducibility purposes
-    :returns: A pandas Dataframe with columns corresponding to the four
-        variable names in the Napkin graph (i.e., ``Z1``, ``Z2``, ``X``,
-        and ``Y``)
+
+    :returns: A pandas Dataframe with columns corresponding to the four variable names
+        in the Napkin graph (i.e., ``Z1``, ``Z2``, ``X``, and ``Y``)
 
     Generate _observational_ data with the following:
 

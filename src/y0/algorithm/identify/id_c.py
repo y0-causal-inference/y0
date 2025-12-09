@@ -15,7 +15,9 @@ def idc(identification: Identification) -> Expression:
     """Run the IDC algorithm from [shpitser2008]_.
 
     :param identification: The identification tuple
-    :returns: An expression created by the :func:`identify` algorithm after simplifying the original query
+
+    :returns: An expression created by the :func:`identify` algorithm after simplifying
+        the original query
 
     Raises "Unidentifiable" if no appropriate identification can be found.
     """
@@ -33,9 +35,11 @@ def rule_2_of_do_calculus_applies(identification: Identification, condition: Var
 
     :param identification: The identification tuple
     :param condition: The condition to check
+
     :returns: If rule 2 applies, see below.
 
-    If Rule 2 of the do calculus applies to the conditioned variable, then it can be converted to a do variable.
+    If Rule 2 of the do calculus applies to the conditioned variable, then it can be
+    converted to a do variable.
 
     .. math::
 

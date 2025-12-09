@@ -1,8 +1,7 @@
 """Tests for expression complexity.
 
-Note: tests in this module should **NOT** use exact
-numbers, but should rather encode our intuitive ideas
-of what's more complex by comparing expressions.
+Note: tests in this module should **NOT** use exact numbers, but should rather encode
+our intuitive ideas of what's more complex by comparing expressions.
 """
 
 import unittest

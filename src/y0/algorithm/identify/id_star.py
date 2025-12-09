@@ -128,6 +128,7 @@ def get_free_variables(cf_graph: NxMixedGraph, event: Event) -> set[Variable]:
 
     :param cf_graph: A counterfactual graph
     :param event: a conjunction of counterfactual variables
+
     :returns: The set of free variables
     """
     free_variables = {variable for variable in cf_graph.nodes() if is_not_self_intervened(variable)}
@@ -137,11 +138,12 @@ def get_free_variables(cf_graph: NxMixedGraph, event: Event) -> set[Variable]:
 def violates_axiom_of_effectiveness(event: Event) -> bool:
     r"""Run line 2 of the ID* algorithm.
 
-    The second line states that if :math:`\event` contains a counterfactual
-    which violates the Axiom of Effectiveness (Pearl, 2000), then :math:`\event`
-    is inconsistent, and we return probability 0.
+    The second line states that if :math:`\event` contains a counterfactual which
+    violates the Axiom of Effectiveness (Pearl, 2000), then :math:`\event` is
+    inconsistent, and we return probability 0.
 
     :param event: a conjunction of counterfactual variables
+
     :returns: True if violates axiom of effectiveness
     """
     return any(
@@ -155,12 +157,13 @@ def violates_axiom_of_effectiveness(event: Event) -> bool:
 def remove_event_tautologies(event: Event) -> Event:
     r"""Run line 3 of the ID* algorithm.
 
-    The third line states that if a counterfactual contains its own value in the subscript,
-    then it is a tautological event, and it can be removed from :math:`\event` without
-    affecting its probability.
+    The third line states that if a counterfactual contains its own value in the
+    subscript, then it is a tautological event, and it can be removed from
+    :math:`\event` without affecting its probability.
 
     :param event: a conjunction of counterfactual variables
-    :return: updated event or None
+
+    :returns: updated event or None
     """
     return {
         variable: value
@@ -187,19 +190,21 @@ def id_star_line_6(
     Line 6 is analogous to Line 4 in the ID algorithm, it decomposes the problem into a
     set of subproblems, one for each C-component in the counterfactual graph. In the ID
     algorithm, the term corresponding to a given C-component :math:`S_i` of the causal
-    diagram was the effect of all variables not in :math:`S_i` on variables in :math:`S_i` ,
-    in other words :math:`P_{\mathbf{v}\backslash s_i} (s_i )`, and the outermost summation
-    on line 4 was over values of variables not in :math:`\mathbf{Y},\mathbf{X}`. Here, the
-    term corresponding to a given C-component :math:`S^i` of the counterfactual graph :math:`G'`
-    is the conjunction of counterfactual variables where each variable contains in its
-    subscript all variables not in the C-component :math:`S^i` , in other words
-    :math:`\mathbf{v}(G' )\backslash s^i` , and the outermost summation is over observable
-    variables not in :math:`\event'` , that is over :math:`\mathbf{v}(G' ) \backslash \event'` ,
-    where we interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
+    diagram was the effect of all variables not in :math:`S_i` on variables in
+    :math:`S_i` , in other words :math:`P_{\mathbf{v}\backslash s_i} (s_i )`, and the
+    outermost summation on line 4 was over values of variables not in
+    :math:`\mathbf{Y},\mathbf{X}`. Here, the term corresponding to a given C-component
+    :math:`S^i` of the counterfactual graph :math:`G'` is the conjunction of
+    counterfactual variables where each variable contains in its subscript all variables
+    not in the C-component :math:`S^i` , in other words :math:`\mathbf{v}(G' )\backslash
+    s^i` , and the outermost summation is over observable variables not in
+    :math:`\event'` , that is over :math:`\mathbf{v}(G' ) \backslash \event'` , where we
+    interpret :math:`\event'` as a set of counterfactuals, rather than a conjunction.
 
     :param cf_graph: an NxMixedGraph
     :param event: a conjunction of counterfactual variables
-    :return: a set of Variables in summand, a dictionary of districts and events
+
+    :returns: a set of Variables in summand, a dictionary of districts and events
     """
     # Then we intervene on the Markov pillow of each district
     summand = get_free_variables(cf_graph, event)
@@ -214,7 +219,8 @@ def get_events_of_each_district(graph: NxMixedGraph, event: Event) -> DistrictIn
 
     :param graph: an NxMixedGraph
     :param event: a conjunction of counterfactual variables
-    :return: a dictionary of districts and interventions of districts
+
+    :returns: a dictionary of districts and interventions of districts
     """
     nodes = {node for node in graph.nodes() if is_not_self_intervened(node)}
     subgraph = graph.subgraph(nodes)
@@ -229,12 +235,14 @@ def get_events_of_district(
 ) -> Event:
     """Create new events by intervening each node on the Markov pillow of the district.
 
-    If the node in the original event, then the value of the new event is the same as the original event.
+    If the node in the original event, then the value of the new event is the same as
+    the original event.
 
     :param graph: an NxMixedGraph
     :param district: a district of the graph
     :param event: a conjunction of counterfactual variables
-    :return: the events of the district
+
+    :returns: the events of the district
     """
     markov_pillow = graph.get_markov_pillow(district)
     if not markov_pillow:
@@ -253,11 +261,15 @@ def _get_node_event(node: Variable, event: Event) -> Intervention:
 def get_conflicts(cf_graph: NxMixedGraph, event: Event) -> list[tuple[Intervention, Intervention]]:
     r"""Identify conflicts between interventions int the graph and value assignments in the event.
 
-    .. note:: This is part of line 8 of the ID* algorithm
+    .. note::
+
+        This is part of line 8 of the ID* algorithm
 
     :param cf_graph: an NxMixedGraph
     :param event: a joint distribution over counterfactual variables
-    :return: A list of pairs of conflicts. The same intervention or value assignment may appear in multiple conflicts
+
+    :returns: A list of pairs of conflicts. The same intervention or value assignment
+        may appear in multiple conflicts
     """
     interventions = get_cf_interventions(cf_graph.nodes())
     evidence = get_evidence(event)
@@ -271,9 +283,13 @@ def get_conflicts(cf_graph: NxMixedGraph, event: Event) -> list[tuple[Interventi
 def get_cf_interventions(nodes: Iterable[Variable]) -> set[Intervention]:
     """For the graph, get the set of interventions in each counterfactual variable (all the subscripts).
 
-    .. note:: This was called ``sub()`` in the paper
+    .. note::
 
-    :param nodes: An iterable of Variables, potentially containing CounterfactualVariables
+        This was called ``sub()`` in the paper
+
+    :param nodes: An iterable of Variables, potentially containing
+        CounterfactualVariables
+
     :returns: The set of interventions over all counterfactual variables
     """
     return {
@@ -287,12 +303,15 @@ def get_cf_interventions(nodes: Iterable[Variable]) -> set[Intervention]:
 def get_evidence(event: Event) -> set[Intervention]:
     """Get the evidence (interventions and values) of the counterfactual conjunction.
 
-    The evidence (either set or observed) appearing in a given counterfactual conjunction
-    (or set of counterfactual events)
+    The evidence (either set or observed) appearing in a given counterfactual
+    conjunction (or set of counterfactual events)
 
-    .. note:: This was called ``ev()`` in the paper
+    .. note::
+
+        This was called ``ev()`` in the paper
 
     :param event: a conjunction of counterfactual variables
+
     :returns: The set of values and interventions in the given counterfactual conjuction
     """
     return set(event.values()) | get_cf_interventions(event)
@@ -302,11 +321,12 @@ def id_star_line_9(cf_graph: NxMixedGraph) -> Probability:
     r"""Run line 9 of the ID* algorithm.
 
     Line 9 says if there are no conflicts, then it's safe to take the union of all
-    subscripts in :math:`\event'` , and return the effect of the subscripts in :math:`\event'`
-    on the variables in :math:`\event'`.
+    subscripts in :math:`\event'` , and return the effect of the subscripts in
+    :math:`\event'` on the variables in :math:`\event'`.
 
     :param cf_graph: A counterfactual graph
-    :return: An interventional distribution.
+
+    :returns: An interventional distribution.
     """
     interventions = get_cf_interventions(cf_graph.nodes())
     bases = [node.get_base() for node in cf_graph.nodes()]

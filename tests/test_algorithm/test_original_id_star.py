@@ -42,7 +42,7 @@ d, w, x, y, z = -D, -W, -X, -Y, -Z
 
 
 class TestIDCStar(cases.GraphTestCase):
-    """Tests for the  ``IDC*`` algorithm."""
+    """Tests for the ``IDC*`` algorithm."""
 
     def test_rule_2_of_do_calculus_applies(self):
         """Test that rule 2 of do calculus applies."""
@@ -126,9 +126,10 @@ class TestOriginalIDStar(cases.GraphTestCase):
     def test_original_id_star_line_6(self):
         """For each district, intervene on all variables not in the district.
 
-        This is the key difference between the original ID* and our ID*.
-        Original ID* intervenes on all variables not in the district, but this creates problems with identifiability.
-        The identifiability issues are resolved by intervening only on the Markov pillow of each district.
+        This is the key difference between the original ID* and our ID*. Original ID*
+        intervenes on all variables not in the district, but this creates problems with
+        identifiability. The identifiability issues are resolved by intervening only on
+        the Markov pillow of each district.
         """
         input_graph = tikka_figure_5.graph
         input_event = {Y @ -x: -y, X: +x, Z: -z, D: -d}
@@ -286,7 +287,8 @@ class TestOriginalIDStar(cases.GraphTestCase):
     def test_get_district_interventions(self):
         """Ensure that for each district, we intervene on the domain of each variable not in the district.
 
-        Confirm that the domain of variables in the event query are restricted to their event value
+        Confirm that the domain of variables in the event query are restricted to their
+        event value
         """
         # counterfactual_graph = NxMixedGraph.from_edges(
         #     undirected=[(Y @ (~X, Z), X)],
@@ -329,8 +331,8 @@ class TestOriginalIDStar(cases.GraphTestCase):
     def test_id_star_line_9(self):
         """Test line 9 of the ID* algorithm.
 
-        Test that estimand returned by taking the effect of all subscripts in
-        new_event on variables in new_event is correct
+        Test that estimand returned by taking the effect of all subscripts in new_event
+        on variables in new_event is correct
         """
         input_graph1 = NxMixedGraph.from_edges(undirected=[(X, Y @ (-w, +x, -z))])
         expected1 = P[-w, +x, -z](X, Y)

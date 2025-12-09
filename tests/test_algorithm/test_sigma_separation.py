@@ -41,9 +41,8 @@ graph = NxMixedGraph.from_edges(
 class TestSigmaSeparation(unittest.TestCase):
     """Test sigma separation.
 
-    These tests come from Table 1 in https://arxiv.org/abs/1807.03024.
-    The sigma equivalence classes in Figure 3 are {v1}, {v2, v3, v4, v5},
-    {v6, v7}, and {v8}.
+    These tests come from Table 1 in https://arxiv.org/abs/1807.03024. The sigma
+    equivalence classes in Figure 3 are {v1}, {v2, v3, v4, v5}, {v6, v7}, and {v8}.
     """
 
     def setUp(self) -> None:

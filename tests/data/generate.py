@@ -1,9 +1,8 @@
 """Generate example data.
 
-This automatically works for all instances of :clas:`y0.examples.Example`
-appearing in :mod:`y0.examples`. If you make a new generator, make sure
-you annotate it to the correct graph and add a corresponding example
-query.
+This automatically works for all instances of :clas:`y0.examples.Example` appearing in
+:mod:`y0.examples`. If you make a new generator, make sure you annotate it to the
+correct graph and add a corresponding example query.
 
 This file can be run as a script directly with ``python generate.py``.
 """

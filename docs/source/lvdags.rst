@@ -1,5 +1,7 @@
-Latent Variable DAGs
-====================
+######################
+ Latent Variable DAGs
+######################
+
 .. automodule:: y0.algorithm.simplify_latent
     :members:
 

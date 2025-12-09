@@ -22,12 +22,12 @@ def identify_outcomes(
     :param graph: An acyclic directed mixed graph
     :param treatments: The node or nodes that are treated
     :param outcomes: The node or nodes that are outcomes
-    :param conditions: Optional condition or condition nodes.
-        If given, uses the IDC algorithm via :func:`y0.algorithm.identify.idc`.
-        Otherwise, uses the ID algorithm via :func:`y0.algorithm.identify.identify`.
-    :returns:
-        An expression representing the estimand if the query is identifiable.
-        If the query is not identifiable, returns none.
+    :param conditions: Optional condition or condition nodes. If given, uses the IDC
+        algorithm via :func:`y0.algorithm.identify.idc`. Otherwise, uses the ID
+        algorithm via :func:`y0.algorithm.identify.identify`.
+
+    :returns: An expression representing the estimand if the query is identifiable. If
+        the query is not identifiable, returns none.
     """
     treatments = _ensure_set(treatments)
     outcomes = _ensure_set(outcomes)
