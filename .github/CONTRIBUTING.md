@@ -54,6 +54,22 @@ contribution. If you're unsure how to address the feedback from one of these
 tools, please say so either in the description of your pull request or in a
 comment, and we will help you.
 
+### Pre-commit
+
+You can optionally use [pre-commit](https://pre-commit.com) to automate running
+key code quality checks on each commit. Enable it with:
+
+```console
+$ uvx pre-commit install
+```
+
+Or using `pip`:
+
+```console
+$ pip install pre-commit
+$ pre-commit install
+```
+
 ### Logging
 
 Python's builtin `print()` should not be used (except when writing to files),
