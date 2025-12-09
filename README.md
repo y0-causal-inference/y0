@@ -108,6 +108,7 @@ unimplemented for the last 15 years of publications including:
 | IDC Star                        | [Shpitser and Pearl, 2012](https://arxiv.org/abs/1206.5294)                         |
 | Surrogate Outcomes              | [Tikka and Karvanen, 2018](https://arxiv.org/abs/1806.07172)                        |
 | Counterfactual Transportability | [Correia, Lee, Bareinboim, 2022](https://proceedings.mlr.press/v162/correa22a.html) |
+| Hierarchical Causal Models      | [Weinstein and Blei, 2024](https://arxiv.org/abs/2401.05330)                        |
 
 Apply an algorithm to an Acyclic Directed Mixed Graph (ADMG) and a causal query
 to generate an estimand represented in the DSL like:
