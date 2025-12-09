@@ -96,8 +96,9 @@ class TestIdentify(unittest.TestCase):
     def test_line_1(self):
         r"""Test that line 1 of ID algorithm works correctly.
 
-        If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
-        the observational distribution :math:`P(\mathbf v)` on :math:`\mathbf Y`.
+        If no action has been taken, the effect on :math:`\mathbf Y` is just the
+        marginal of the observational distribution :math:`P(\mathbf v)` on
+        :math:`\mathbf Y`.
         """
         for identification in line_1_example.identifications:
             self.assert_expr_equal(
@@ -112,8 +113,8 @@ class TestIdentify(unittest.TestCase):
     def test_line_2(self):
         r"""Test line 2 of the identification algorithm.
 
-        2. If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to restrict our
-        attention on the parts of the model ancestral to :math:`\mathbf Y`.
+        2. If we are interested in the effect on :math:`\mathbf Y`, it is sufficient to
+        restrict our attention on the parts of the model ancestral to :math:`\mathbf Y`.
         """
         for identification in line_2_example.identifications:
             id_out = identification["id_out"][0]
@@ -138,10 +139,11 @@ class TestIdentify(unittest.TestCase):
     def test_line_3(self):
         r"""Test line 3 of the identification algorithm.
 
-        3. Forces an action on any node where such an action would have no effect on :math:`\mathbf Y`—assuming
-        we already acted on :math:`\mathbf X`. Since actions remove incoming arrows, we can view line 3 as
-        simplifying the causal graph we consider by removing certain arcs from the graph, without
-        affecting the overall answer.
+        3. Forces an action on any node where such an action would have no effect on
+        :math:`\mathbf Y`\ —assuming we already acted on :math:`\mathbf X`. Since
+        actions remove incoming arrows, we can view line 3 as simplifying the causal
+        graph we consider by removing certain arcs from the graph, without affecting the
+        overall answer.
         """
         for identification in line_3_example.identifications:
             self.assertEqual(
@@ -165,10 +167,11 @@ class TestIdentify(unittest.TestCase):
     def test_line_4(self):
         r"""Test line 4 of the identification algorithm.
 
-        4. The key line of the algorithm, it decomposes the problem into a set of smaller problems
-        using the key property of *c-component factorization* of causal models. If the entire graph
-        is a single C-component already, further problem decomposition is impossible, and we must
-        provide base cases. :math:`\mathbf{ID}` has three base cases.
+        4. The key line of the algorithm, it decomposes the problem into a set of
+        smaller problems using the key property of *c-component factorization* of causal
+        models. If the entire graph is a single C-component already, further problem
+        decomposition is impossible, and we must provide base cases. :math:`\mathbf{ID}`
+        has three base cases.
         """
         for identification in line_4_example.identifications:
             actuals = line_4(identification["id_in"][0])
@@ -208,10 +211,11 @@ class TestIdentify(unittest.TestCase):
     def test_line_5(self):
         r"""Test line 5 of the identification algorithm.
 
-        5. Fails because it finds two C-components, the graph :math:`G` itself, and a subgraph :math:`S` that
-        does not contain any :math:`\mathbf X` nodes. But that is exactly one of the properties of C-forests
-        that make up a hedge. In fact, it turns out that it is always possible to recover a hedge
-        from these two c-components.
+        5. Fails because it finds two C-components, the graph :math:`G` itself, and a
+        subgraph :math:`S` that does not contain any :math:`\mathbf X` nodes. But that
+        is exactly one of the properties of C-forests that make up a hedge. In fact, it
+        turns out that it is always possible to recover a hedge from these two
+        c-components.
         """
         for identification in line_5_example.identifications:
             with self.assertRaises(Unidentifiable):
@@ -230,9 +234,9 @@ class TestIdentify(unittest.TestCase):
     def test_line_6(self):
         r"""Test line 6 of the identification algorithm.
 
-        6. Asserts that if there are no bidirected arcs from X to the other nodes in the current
-        subproblem under consideration, then we can replace acting on X by conditioning, and thus
-        solve the subproblem.
+        6. Asserts that if there are no bidirected arcs from X to the other nodes in the
+        current subproblem under consideration, then we can replace acting on X by
+        conditioning, and thus solve the subproblem.
         """
         for identification in line_6_example.identifications:
             id_out = identification["id_out"][0]
@@ -247,13 +251,15 @@ class TestIdentify(unittest.TestCase):
     def test_line_7(self):
         r"""Test line 2 of the identification algorithm.
 
-        7. The most complex case where :math:`\mathbf X` is partitioned into two sets, :math:`\mathbf W` which
-        contain bidirected arcs into other nodes in the subproblem, and :math:`\mathbf Z` which do not.
-        In this situation, identifying :math:`P(\mathbf y|do(\mathbf x))` from :math:`P(v)` is equivalent to
-        identifying :math:`P(\mathbf y|do(\mathbf w))` from :math:`P(\mathbf V|do(\mathbf z))`, since
-        :math:`P(\mathbf y|do(\mathbf x)) = P(\mathbf y|do(\mathbf w), do(\mathbf z))`. But the term
-        :math:`P(\mathbf V|do(\mathbf z))` is identifiable using the previous base case, so we can consider
-        the subproblem of identifying :math:`P(\mathbf y|do(\mathbf w))`.
+        7. The most complex case where :math:`\mathbf X` is partitioned into two sets,
+        :math:`\mathbf W` which contain bidirected arcs into other nodes in the
+        subproblem, and :math:`\mathbf Z` which do not. In this situation, identifying
+        :math:`P(\mathbf y|do(\mathbf x))` from :math:`P(v)` is equivalent to
+        identifying :math:`P(\mathbf y|do(\mathbf w))` from :math:`P(\mathbf
+        V|do(\mathbf z))`, since :math:`P(\mathbf y|do(\mathbf x)) = P(\mathbf
+        y|do(\mathbf w), do(\mathbf z))`. But the term :math:`P(\mathbf V|do(\mathbf
+        z))` is identifiable using the previous base case, so we can consider the
+        subproblem of identifying :math:`P(\mathbf y|do(\mathbf w))`.
         """
         for identification in line_7_example.identifications:
             id_out = identification["id_out"][0]
@@ -290,7 +296,9 @@ class TestIdentify(unittest.TestCase):
     def test_figure_2d(self):
         """Test Figure 2D from Shpitser *et al.*, (2008).
 
-        .. note:: frac_expr = Sum[Z](Sum[X, Y](P_XYZ) * P_XYZ / Sum[Y](P_XYZ))
+        .. note::
+
+            frac_expr = Sum[Z](Sum[X, Y](P_XYZ) * P_XYZ / Sum[Y](P_XYZ))
         """
         graph = y0.examples.complete_hierarchy_figure_2d_example.graph
         expr = Sum[Z](P(Y | X, Z) * Sum[X, Y](P(X, Y, Z)))

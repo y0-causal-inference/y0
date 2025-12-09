@@ -11,7 +11,9 @@ def has_markov_postcondition(expression: Expression) -> bool:
     """Check that the expression is a sum/product of markov kernels.
 
     :param expression: Any expression
-    :return: if the expression satisfies the sum/product of markov kernels condition
+
+    :returns: if the expression satisfies the sum/product of markov kernels condition
+
     :raises TypeError: if an object with an invalid type is passed
     """
     if isinstance(expression, Probability):

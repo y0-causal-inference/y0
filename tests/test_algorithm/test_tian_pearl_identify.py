@@ -1,10 +1,16 @@
 """Tests for Tian and Pearl's Identify algorithm.
 
 .. [huang08a] https://link.springer.com/article/10.1007/s10472-008-9101-x.
-.. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
+
+.. [correa20a]
+    https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
+
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
+
 .. [tikka20a] https://github.com/santikka/causaleffect/blob/master/R/compute.c.factor.R.
+
 .. [tikka20b] https://github.com/santikka/causaleffect/blob/master/R/identify.R.
+
 .. [tian03a] https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf.
 """
 
@@ -146,10 +152,10 @@ logger = logging.getLogger(__name__)
 class TestIdentify(cases.GraphTestCase):
     """Test the IDENTIFY algorithm (Algorithm 5 of [correa22a]_).
 
-    Source: The example on page 7 of [correa20a]_ (using Figure 1d).
-    Note that [correa20a]_ and [correa22a]_ use the same specification of the IDENTIFY
-    algorithm. Both papers have a typo on Line 4. See [huang08a]_ for the correct
-    version of Line 4.
+    Source: The example on page 7 of [correa20a]_ (using Figure 1d). Note that
+    [correa20a]_ and [correa22a]_ use the same specification of the IDENTIFY algorithm.
+    Both papers have a typo on Line 4. See [huang08a]_ for the correct version of Line
+    4.
     """
 
     def test_identify_preprocessing(self):
@@ -246,9 +252,9 @@ class TestIdentify(cases.GraphTestCase):
     def test_identify_2(self):
         """Test Line 3 of Algorithm 5 of [correa22a]_.
 
-        This tests the case where A == T.
-        Sources: a modification of the example following Theorem 2 in [correa20a]_
-        and the paragraph at the end of section 4 in [correa20a]_.
+        This tests the case where A == T. Sources: a modification of the example
+        following Theorem 2 in [correa20a]_ and the paragraph at the end of section 4 in
+        [correa20a]_.
         """
         result1 = identify_district_variables(
             input_variables=frozenset({R, Y}),
@@ -273,7 +279,8 @@ class TestIdentify(cases.GraphTestCase):
     def test_identify_3(self):
         """Test Lines 4-7 of Algorithm 5 of [correa22a]_.
 
-        Source: the example in section 4 of [correa20a]_, which returns FAIL (i.e., None).
+        Source: the example in section 4 of [correa20a]_, which returns FAIL (i.e.,
+        None).
         """
         test_3_identify_input_variables = {R, X}
         test_3_identify_input_district = {R, X, W, Y}
@@ -303,9 +310,10 @@ class TestIdentify(cases.GraphTestCase):
         Source: the example from page 29 of [tian03a]_.
 
         Note: Tian and Pearl provide a simpler result that is due to using probabilistic
-        axioms to simplify the formula. This result is what we get when running Santikka's
-        implementation of identify in their R package, Causal Effect ([tikka20b]_), and is more
-        complex in its structure but easier to code for an initial Python implementation.
+        axioms to simplify the formula. This result is what we get when running
+        Santikka's implementation of identify in their R package, Causal Effect
+        ([tikka20b]_), and is more complex in its structure but easier to code for an
+        initial Python implementation.
         """
         result_piece_1 = Product.safe(
             [
@@ -345,8 +353,8 @@ class TestIdentify(cases.GraphTestCase):
     def test_identify_4_with_population_probabilities(self):
         """Further test Lines 4-7 of Algorithm 5 of [correa22a]_.
 
-        Source: the example from page 29 of [tian03a]_, requiring all probabilities
-        be specified as population probabilities.
+        Source: the example from page 29 of [tian03a]_, requiring all probabilities be
+        specified as population probabilities.
         """
         result_piece_1 = Product.safe(
             [
@@ -476,9 +484,9 @@ class TestComputeCFactor(cases.GraphTestCase):
     def test_compute_c_factor_5(self):
         """Fifth test of the Compute C Factor function.
 
-        Testing Lemma 1 as called from _compute_c_factor,
-        conditioning on a variable as part of the input Q value for the graph.
-        Source: [tian03a], the example in section 4.6.
+        Testing Lemma 1 as called from _compute_c_factor, conditioning on a variable as
+        part of the input Q value for the graph. Source: [tian03a], the example in
+        section 4.6.
         """
         topo = list(tian_pearl_figure_9a_graph.topological_sort())
         district = [W1, W3, W2, X, Y]
@@ -502,9 +510,9 @@ class TestComputeCFactor(cases.GraphTestCase):
     def test_compute_c_factor_5_with_population_probabilities(self):
         """Fifth test of the Compute C Factor function, using population probabilities.
 
-        Testing Lemma 1 as called from _compute_c_factor,
-        conditioning on a variable as part of the input Q value for the graph.
-        Source: [tian03a], the example in section 4.6.
+        Testing Lemma 1 as called from _compute_c_factor, conditioning on a variable as
+        part of the input Q value for the graph. Source: [tian03a], the example in
+        section 4.6.
         """
         topo = list(tian_pearl_figure_9a_graph.topological_sort())
         district = [W1, W3, W2, X, Y]
@@ -536,9 +544,9 @@ class TestComputeCFactor(cases.GraphTestCase):
     def test_compute_c_factor_6(self):
         """Sixth test of the Compute C Factor function.
 
-        Here we test a case in which the input probability is neither a product, sum, fraction,
-        nor a simple probability.
-        Source: derivative from [tian03a], the example in section 4.6.
+        Here we test a case in which the input probability is neither a product, sum,
+        fraction, nor a simple probability. Source: derivative from [tian03a], the
+        example in section 4.6.
         """
         # TODO: Discuss whether we want identify_district_variables() and _compute_c_factor()
         # to handle expressions of type One, Zero, or QFactor.
@@ -562,7 +570,7 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
     def test_compute_c_factor_conditioning_on_topological_predecessors_part_1(self):
         """First test of Lemma 1, part (i) (Equation 37 in [tian03a]_.
 
-        Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
+        Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
         topo = [W1, W3, W2, W4, X, Y]
         part_1_graph = tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
@@ -603,8 +611,8 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
     def test_compute_c_factor_conditioning_on_topological_predecessors_part_2(self):
         """Second test of Lemma 1, part (i) (Equation 37 in [tian03a]_.
 
-        This one handles a graph_probability conditioning on variables.
-        Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
+        This one handles a graph_probability conditioning on variables. Source: The
+        example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
         # working with tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
         topo = [W1, W3, W2, W4, X, Y]
@@ -706,7 +714,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
     def test_compute_c_factor_marginalizing_over_topological_successors_part_1(self):
         """First test of Lemma 4, part (ii) (Equations 71 and 72 in [tian03a]_.
 
-        Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
+        Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={W1, X, Y},
@@ -721,7 +729,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
     def test_compute_c_factor_marginalizing_over_topological_successors_part_2(self):
         """Second test of Lemma 4, part (ii) (Equations 71 and 72 in [tian03a]_.
 
-        Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
+        Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
         logger.debug(
             "In second test of Lemma 4(ii): expecting this result: " + str(self.expected_result_2)
@@ -737,7 +745,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
     def test_compute_c_factor_marginalizing_over_topological_successors_part_3(self):
         """First test of Equations 71 and 72 in [tian03a]_ using population probabilities.
 
-        Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
+        Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={W1, X, Y},
@@ -753,7 +761,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
     def test_compute_c_factor_marginalizing_over_topological_successors_part_4(self):
         """Second test of Equations 71 and 72 in [tian03a]_ using population probabilities.
 
-        Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
+        Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
         logger.debug(
             "In second test of Lemma 4(ii): expecting this result: "
@@ -815,7 +823,7 @@ class TestComputeAncestralSetQValue(cases.GraphTestCase):
     def test_compute_ancestral_set_q_value_part_1(self):
         """First test of Lemma 3 in [tian03a]_ (Equation 69).
 
-        Source: The example on p. 30 of [Tian03a]_, run initially through [tikka20a]_.
+        Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
         topo = [W1, W3, W5, W2, W4, X, Y]
         # Q_T = Q[{W1, W2, W3, X, Y}]

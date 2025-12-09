@@ -1,4 +1,6 @@
-Internal DSL
-============
+##############
+ Internal DSL
+##############
+
 .. automodule:: y0.dsl
     :members:

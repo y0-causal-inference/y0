@@ -69,7 +69,8 @@ class TestDSeparation(unittest.TestCase):
     def test_moral_links(self):
         """Test adding 'moral links' (part of the d-separation algorithm).
 
-        This test covers several cases around moral links to ensure that they are added when needed.
+        This test covers several cases around moral links to ensure that they are added
+        when needed.
         """
         graph = NxMixedGraph.from_str_edges(
             nodes=("a", "b", "c"),

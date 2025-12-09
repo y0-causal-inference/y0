@@ -95,6 +95,7 @@ def get_beta_primal(
     :param treatment: Given treatment
     :param outcome: Given outcome
     :param treatment_value: Given treatment value
+
     :returns: Beta primal value for each row in the data
     """
     state_space_map = get_state_space_map(data)

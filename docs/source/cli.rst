@@ -1,5 +1,6 @@
-Command Line Interface
-======================
+########################
+ Command Line Interface
+########################
 
 y0 automatically installs the command ``y0``. See ``y0 --help`` for usage details.
 

@@ -93,7 +93,9 @@ class Query:
         """Instantiate an identification.
 
         :param query: The query probability expression
+
         :returns: An identification tuple
+
         :raises ValueError: If there are ragged counterfactual variables in the query
         """
         outcomes = {child.get_base() for child in query.children}  # clean counterfactuals
@@ -201,9 +203,11 @@ class Identification:
     ) -> None:
         """Instantiate an identification.
 
-        :param query: The generalized identification query (outcomes/treatments/conditions)
+        :param query: The generalized identification query
+            (outcomes/treatments/conditions)
         :param graph: The graph
-        :param estimand: If none is given, will use the joint distribution over all variables in the graph.
+        :param estimand: If none is given, will use the joint distribution over all
+            variables in the graph.
         """
         self.query = query
         self.graph = str_nodes_to_variable_nodes(graph)
@@ -224,7 +228,9 @@ class Identification:
         :param treatments: The treatments in the query (e.g., counterfactual variables)
         :param conditions: The conditions in the query (e.g., coming after the bar)
         :param graph: The graph
-        :param estimand: If none is given, will use the joint distribution over all variables in the graph.
+        :param estimand: If none is given, will use the joint distribution over all
+            variables in the graph.
+
         :returns: An identification object
         """
         return cls(
@@ -245,7 +251,9 @@ class Identification:
 
         :param query: The query probability expression
         :param graph: The graph
-        :param estimand: If none is given, will use the joint distribution over all variables in the graph.
+        :param estimand: If none is given, will use the joint distribution over all
+            variables in the graph.
+
         :returns: An identification object
         """
         return cls(
