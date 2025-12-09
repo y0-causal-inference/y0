@@ -1,10 +1,16 @@
 """Tests for counterfactual transportability.
 
 .. [huang08a] https://link.springer.com/article/10.1007/s10472-008-9101-x.
-.. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
+
+.. [correa20a]
+    https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
+
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
+
 .. [tikka20a] https://github.com/santikka/causaleffect/blob/master/R/compute.c.factor.R.
+
 .. [tikka20b] https://github.com/santikka/causaleffect/blob/master/R/identify.R.
+
 .. [tian03a] https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf.
 """
 
@@ -345,8 +351,8 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
     def test_example_2_1_1(self):
         """Test the first result of Example 2.1.
 
-        Note we test whether we can get Z back, Z is just a Variable so
-        it's a test of the Union in the return value for the tested function.
+        Note we test whether we can get Z back, Z is just a Variable so it's a test of
+        the Union in the return value for the tested function.
         """
         test1_in = CounterfactualVariable(
             name="Y", star=None, interventions=frozenset({Intervention(name="X", star=False)})
@@ -434,8 +440,7 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
     def test_6(self):
         """Test the pre-processing check for get_ancestors_of_counterfactual().
 
-        Send in anything that's not a variable.
-        Source: out of RJC's head.
+        Send in anything that's not a variable. Source: out of RJC's head.
         """
         test6_in = [
             CounterfactualVariable(
@@ -473,10 +478,10 @@ class TestGetAncestorsOfCounterfactual(unittest.TestCase):
 class TestSimplify(cases.GraphTestCase):
     """Test the simplify algorithm from counterfactual transportability.
 
-    We also test the subroutines that only simplify calls:
-    1. _bifurcate_event_by_reflexivity
-    2. _reduce_reflexive_counterfactual_variables_to_interventions
-    3. _remove_repeated_values
+    We also test the subroutines that only simplify calls: 1.
+    _bifurcate_event_by_reflexivity 2.
+    _reduce_reflexive_counterfactual_variables_to_interventions 3.
+    _remove_repeated_values
     """
 
     # TODO: 1. Incorporate a test involving counterfactual unnesting.
@@ -507,8 +512,8 @@ class TestSimplify(cases.GraphTestCase):
     def test_inconsistent_1(self):
         """Test simplifying an inconsistent event.
 
-        Correa et al. specify the output should be 0 if the counterfactual event
-        is guaranteed to have probability 0. Source: RJC's mind.
+        Correa et al. specify the output should be 0 if the counterfactual event is
+        guaranteed to have probability 0. Source: RJC's mind.
         """
         event = [(Y @ -X, -Y), (Y @ -X, +Y)]
         result = simplify(event=event, graph=figure_2a_graph)
@@ -549,8 +554,8 @@ class TestSimplify(cases.GraphTestCase):
     def test_reduce_reflexive_counterfactual_variables_to_interventions_part_1(self):
         """Test reducing counterfactual variables that intervene on themselves to simpler Intervention objects.
 
-        We test both TypeError tests and normal functioning of the function.
-        Source: RJC's mind.
+        We test both TypeError tests and normal functioning of the function. Source:
+        RJC's mind.
         """
         reflexive_variable_to_value_mappings = defaultdict(set)
         reflexive_variable_to_value_mappings[Y @ -Y].add(+Y)
@@ -719,9 +724,10 @@ class TestSimplify(cases.GraphTestCase):
     def test_line_2_11(self):
         """Eleventh test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls.
 
-        This one's a little subtle: Y@-Y with a value of None evaluates to Y with a value of -Y and also None,
-        which should raise an error instead of merely signalling that values are inconsistent and therefore
-        the expression has a probability of Zero.
+        This one's a little subtle: Y@-Y with a value of None evaluates to Y with a
+        value of -Y and also None, which should raise an error instead of merely
+        signalling that values are inconsistent and therefore the expression has a
+        probability of Zero.
         """
         reflexive_variable_to_value_mappings = defaultdict(set)
         reflexive_variable_to_value_mappings[Y @ -Y].add(None)
@@ -837,8 +843,8 @@ class TestSimplify(cases.GraphTestCase):
     def test_line_2_8(self):
         """Eighth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls.
 
-        We're checking that an error gets thrown when a nonreflexive intervention has a value that is None
-        and also a value that is something else.
+        We're checking that an error gets thrown when a nonreflexive intervention has a
+        value that is None and also a value that is something else.
         """
         reflexive_variable_to_value_mappings = defaultdict(set)
         reflexive_variable_to_value_mappings[Y @ -Y].add(-Y)
@@ -865,8 +871,8 @@ class TestSimplify(cases.GraphTestCase):
     def test_line_2_9(self):
         """Ninth test for the internal function _any_variables_with_inconsistent_values() that SIMPLIFY calls.
 
-        We're checking that an error gets thrown when a reflexive intervention has a value that is None
-        and also a value that is something else.
+        We're checking that an error gets thrown when a reflexive intervention has a
+        value that is None and also a value that is something else.
         """
         reflexive_variable_to_value_mappings = defaultdict(set)
         reflexive_variable_to_value_mappings[Y @ -Y].add(-Y)
@@ -908,8 +914,7 @@ class TestSimplify(cases.GraphTestCase):
         """Third test for simplifying an event with redundant subscripts.
 
         (Y @ (-Y,-X), -Y) reduces to (Y @ -Y, -Y) via line 1 of the SIMPLIFY algorithm.
-        And then we want to further simplify (Y @ -Y, -Y) to
-        Source: JZ's mind.
+        And then we want to further simplify (Y @ -Y, -Y) to Source: JZ's mind.
         """
         event = [
             (Y @ (-Y, -X), -Y),
@@ -929,8 +934,8 @@ class TestSimplify(cases.GraphTestCase):
         """Make sure users don't pass improper input into SIMPLIFY.
 
         That includes variables with star values that are not counterfactual variables,
-        as well as events with tuples that are the wrong length or elements that
-        are not pairs of variables and interventions.
+        as well as events with tuples that are the wrong length or elements that are not
+        pairs of variables and interventions.
 
         Source: JZ and RJC
         """
@@ -1079,9 +1084,10 @@ class TestMinimizeEvent(cases.GraphTestCase):
     r"""Test minimizing a set of counterfactual variables.
 
     Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
-    Mathematical expression: ||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \elementof \mathbf Y_*}, and
-    ||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline{\mathbf X}}}}.
-    (The math syntax is not necessarily cannonical LaTeX.)
+    Mathematical expression: ||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}}
+    \elementof \mathbf Y_*}, and ||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T =
+    \mathbf X \intersect An(Y)_{G_{\overline{\mathbf X}}}}. (The math syntax is not
+    necessarily cannonical LaTeX.)
     """
 
     minimize_graph_1 = NxMixedGraph.from_edges(
@@ -1204,9 +1210,10 @@ class TestMinimize(cases.GraphTestCase):
     r"""Test minimizing a set of counterfactual variables.
 
     Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
-    Mathematical expression: ||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \elementof \mathbf Y_*}, and
-    ||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline{\mathbf X}}}}.
-    (The math syntax is not necessarily cannonical LaTeX.)
+    Mathematical expression: ||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}}
+    \elementof \mathbf Y_*}, and ||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T =
+    \mathbf X \intersect An(Y)_{G_{\overline{\mathbf X}}}}. (The math syntax is not
+    necessarily cannonical LaTeX.)
     """
 
     minimize_graph_1 = NxMixedGraph.from_edges(
@@ -1368,10 +1375,10 @@ class TestSameDistrict(unittest.TestCase):
 class TestGetCounterfactualFactors(cases.GraphTestCase):
     """Test the GetCounterfactualFactors function in counterfactual_transportability.py.
 
-    This is one step in the ctf-factor factorization process. Here we want
-    to check that we can separate a joint probability distribution of ctf-factors
-    into a set of joint probability distributions that we'll later multiply
-    together as per Equation 15 in [correa22a]_.
+    This is one step in the ctf-factor factorization process. Here we want to check that
+    we can separate a joint probability distribution of ctf-factors into a set of joint
+    probability distributions that we'll later multiply together as per Equation 15 in
+    [correa22a]_.
     """
 
     # def assert_collection_of_set_equal(
@@ -1386,8 +1393,7 @@ class TestGetCounterfactualFactors(cases.GraphTestCase):
         """Test factoring a set of counterfactual variables by district (c-component).
 
         Source: Example 4.2 of [correa22a]_. Note that
-                we're not testing the full example, just computing factors
-                for the query.
+            we're not testing the full example, just computing factors for the query.
         """
         get_counterfactual_factors_test_1_in = {
             (Y @ (-X, -W, -Z)),
@@ -1410,7 +1416,7 @@ class TestGetCounterfactualFactors(cases.GraphTestCase):
         """Test factoring a set of counterfactual variables by district (c-component).
 
         Source: RJC. We send in a variable not in the graph. Throws a NetworkXError
-           when we try to get that node's parents.
+            when we try to get that node's parents.
         """
         get_counterfactual_factors_test_2_in = {
             (Y @ (-X, -W, -Z)),
@@ -1449,8 +1455,9 @@ class TestGetCounterfactualFactors(cases.GraphTestCase):
 class TestDoCounterfactualFactorFactorization(cases.GraphTestCase):
     """Test factorizing the counterfactual factors corresponding to a query, as per Example 4.2 of [correa22a]_.
 
-    This puts together getting the ancestral set of a query, getting the ctf-factors for each element of the set,
-    and factorizing the resulting joint distribution according to the C-components of the graph.
+    This puts together getting the ancestral set of a query, getting the ctf-factors for
+    each element of the set, and factorizing the resulting joint distribution according
+    to the C-components of the graph.
     """
 
     # TODO: Add more tests, looking at edge cases: empty set, One(),
@@ -1607,7 +1614,8 @@ class TestConvertToCounterfactualFactorForm(unittest.TestCase):
 
         Source: RJC's mind.
 
-        Here we should expect the ancestor X2 to not be an intervention for Z in the output.
+        Here we should expect the ancestor X2 to not be an intervention for Z in the
+        output.
         """
         graph = NxMixedGraph.from_edges(
             directed=[
@@ -1692,7 +1700,8 @@ class TestCounterfactualFactorTransportability(unittest.TestCase):
     def test_counterfactual_factor_transportability_5(self):
         """Another test related to Example 3.4 of [correa22a]_.
 
-        Checking that a child of a transported node in the same c-component is still tranportable.
+        Checking that a child of a transported node in the same c-component is still
+        tranportable.
         """
         test_5_in = {(-X @ -Z)}
         self.assertTrue(
@@ -2326,9 +2335,8 @@ class TestInconsistentCounterfactualFactorVariableAndInterventionValues(cases.Gr
     def test_any_variable_values_inconsistent_with_interventions_6(self):
         """Test #6 for whether a counterfactual factor variable has a value inconsistent with any intervention.
 
-        This is a case that is inconsistent according to Definition 4.1(ii)
-        but not Definition 4.1(i).
-        Source: RJC
+        This is a case that is inconsistent according to Definition 4.1(ii) but not
+        Definition 4.1(i). Source: RJC
         """
         # graph = NxMixedGraph.from_edges(
         #    directed=[
@@ -2382,9 +2390,8 @@ class TestInconsistentCounterfactualFactorVariableInterventionValues(cases.Graph
     def test_any_inconsistent_intervention_values_5(self):
         """Test #5 for whether a counterfactual factor has any inconsistent intervention values.
 
-        This is a case that is inconsistent according to Definition 4.1(ii)
-        but not Definition 4.1(i).
-        Source: RJC
+        This is a case that is inconsistent according to Definition 4.1(ii) but not
+        Definition 4.1(i). Source: RJC
         """
         # graph = NxMixedGraph.from_edges(
         #    directed=[
@@ -2435,8 +2442,8 @@ class TestCounterfactualFactorIsInconsistent(cases.GraphTestCase):
     def test_counterfactual_factor_is_inconsistent_5(self):
         """Test #5 for whether a counterfactual factor is inconsistent.
 
-        This is a case that is inconsistent according to Definition 4.1(ii)
-        but not Definition 4.1(i).
+        This is a case that is inconsistent according to Definition 4.1(ii) but not
+        Definition 4.1(i).
 
         Source: RJC
         """
@@ -2672,8 +2679,7 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_unconditional_counterfactual_query_2(self):
         """Test of Algorithm 2 of [correa22a]_.
 
-        Checking Line 3: an inconsistent counterfactual factor.
-        Source: RJC's mind.
+        Checking Line 3: an inconsistent counterfactual factor. Source: RJC's mind.
         """
         event = [(Y @ -X, -Y), (W @ +X, -W), (X, -X)]
         domain_graphs = [
@@ -2788,8 +2794,8 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_unconditional_counterfactual_query_line_2_2(self):
         """Second test of Line 2 of Algorithm 2 of [correa22a]_.
 
-        This tests whether we properly get W @-X1 and W @ -X2 as two separate ancestors, and then
-        merge them into one counterfactual factor W @ [-X1, -X2].
+        This tests whether we properly get W @-X1 and W @ -X2 as two separate ancestors,
+        and then merge them into one counterfactual factor W @ [-X1, -X2].
 
         Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
         """
@@ -2832,8 +2838,8 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_unconditional_counterfactual_query_simplify_returns_none(self):
         """Test of Line 1 of Algorithm 2 of [correa22a]_.
 
-        This tests whether we properly return (Zero(), None) if a query, when simplified,
-        returns a probability of zero.
+        This tests whether we properly return (Zero(), None) if a query, when
+        simplified, returns a probability of zero.
 
         Source: Example 4.2 from [correa22]_, modified to make the simplification fail.
         """
@@ -2864,8 +2870,9 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_unconditional_counterfactual_query_line_2_3(self):
         """Third test of Line 2 of Algorithm 2 of [correa22a]_.
 
-        This tests whether we properly get W @ -X1 and W @ -X2 from two different variables but
-        represent it as one ancestor, which we then merge into one counterfactual factor W @ -X2.
+        This tests whether we properly get W @ -X1 and W @ -X2 from two different
+        variables but represent it as one ancestor, which we then merge into one
+        counterfactual factor W @ -X2.
 
         Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
         """
@@ -2932,8 +2939,7 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_unconditional_counterfactual_query_line_2_5(self):
         """Fifth test of Line 2 of Algorithm 2 of [correa22a]_.
 
-        This tests if the function properly parses input variables with
-        values of None.
+        This tests if the function properly parses input variables with values of None.
 
         Source: Example 4.2 from [correa22]_ (Equations 15, 17, and 19).
         """
@@ -2956,8 +2962,8 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_unconditional_counterfactual_query_line_5(self):
         """Test of Line 5 of Algorithm 2 of [correa22a]_.
 
-        This test checks that if a counterfactual factor can't be transported, the algorithm
-        returns None.
+        This test checks that if a counterfactual factor can't be transported, the
+        algorithm returns None.
 
         Source: RJC's mind.
         """
@@ -2993,8 +2999,9 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
 class TestGetConditionedVariablesInAncestralSet(cases.GraphTestCase):
     r"""Identify conditioned variables that are ancestors of an input variable ($\mathbf{X_{\ast}}(W_{\mathbf{\ast}})$).
 
-    Note: see the documentation for get_conditioned_variables_in_ancestral_set for a note about
-    some ambiguity in the mathematical definition of that function in [correa22a]_.
+    Note: see the documentation for get_conditioned_variables_in_ancestral_set for a
+    note about some ambiguity in the mathematical definition of that function in
+    [correa22a]_.
     """
 
     def test_get_conditioned_variable_in_ancestral_set_1(self):
@@ -3095,7 +3102,8 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
     def test_get_ancestral_set_after_intervening_on_conditioned_variables_1(self):
         """First test of the function to get an ancestral set after intervening on some conditioned variables.
 
-        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+        Note that we only intervene on the conditioned variables that are ancestors of
+        the input root variable.
 
         Source: Example 4.5 and Figure 6 of [correa22a]_.
         """
@@ -3110,7 +3118,8 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
     def test_get_ancestral_set_after_intervening_on_conditioned_variables_2(self):
         """Second test of the function to get an ancestral set after intervening on some conditioned variables.
 
-        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+        Note that we only intervene on the conditioned variables that are ancestors of
+        the input root variable.
 
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
@@ -3125,7 +3134,8 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
     def test_get_ancestral_set_after_intervening_on_conditioned_variables_3(self):
         """Third test of the function to get an ancestral set after intervening on some conditioned variables.
 
-        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+        Note that we only intervene on the conditioned variables that are ancestors of
+        the input root variable.
 
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
@@ -3140,7 +3150,8 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
     def test_get_ancestral_set_after_intervening_on_conditioned_variables_4(self):
         """Fourth test of the function to get an ancestral set after intervening on some conditioned variables.
 
-        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+        Note that we only intervene on the conditioned variables that are ancestors of
+        the input root variable.
 
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
@@ -3155,7 +3166,8 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
     def test_get_ancestral_set_after_intervening_on_conditioned_variables_5(self):
         """Fifth test of the function to get an ancestral set after intervening on some conditioned variables.
 
-        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+        Note that we only intervene on the conditioned variables that are ancestors of
+        the input root variable.
 
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
@@ -3170,7 +3182,8 @@ class TestGetAncestralSetAfterInterveningOnConditionedVariables(cases.GraphTestC
     def test_get_ancestral_set_after_intervening_on_conditioned_variables_6(self):
         """Sixth test of the function to get an ancestral set after intervening on some conditioned variables.
 
-        Note that we only intervene on the conditioned variables that are ancestors of the input root variable.
+        Note that we only intervene on the conditioned variables that are ancestors of
+        the input root variable.
 
         Source: Slight modification of Example 4.5 and Figure 6 of [correa22a]_.
         """
@@ -3228,7 +3241,8 @@ class TestComputeAncestralComponentsFromAncestralSets(cases.GraphTestCase):
     def test_compute_ancestral_components_from_ancestral_sets_4(self):
         """Fourth test of a function to combine ancestral sets if they share vertices or are joined by bidirected edges.
 
-        Source: RJC, based the graph for Figure 2a of [correa22a]_ with no bidirectional edges.
+        Source: RJC, based the graph for Figure 2a of [correa22a]_ with no bidirectional
+        edges.
         """
         graph = NxMixedGraph.from_edges(
             directed=[
@@ -3250,7 +3264,7 @@ class TestComputeAncestralComponentsFromAncestralSets(cases.GraphTestCase):
         """Fifth test of a function to combine ancestral sets if they share vertices or are joined by bidirected edges.
 
         Source: Example 1.1 of [correa22a]_, modified to include ancestral sets that are not disjoint and
-           bidirected edges joining two ancestral sets.
+            bidirected edges joining two ancestral sets.
         """
         expected_result_5 = frozenset({frozenset({Y @ -X, Y, Z @ -X, X})})
         result_5 = _compute_ancestral_components_from_ancestral_sets(
@@ -3263,7 +3277,7 @@ class TestComputeAncestralComponentsFromAncestralSets(cases.GraphTestCase):
         """Sixth test of a function to combine ancestral sets if they share vertices or are joined by bidirected edges.
 
         Source: Example 1.1 of [correa22a]_, modified to include ancestral sets that are not disjoint and
-           bidirected edges joining two ancestral sets.
+            bidirected edges joining two ancestral sets.
         """
         expected_result_6 = frozenset({frozenset({Y @ -X, Y @ -Z, Z @ -X, X})})
         result_6 = _compute_ancestral_components_from_ancestral_sets(
@@ -3411,7 +3425,8 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_conditional_counterfactual_query_2(self):
         """Second test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
 
-        Source: RC's mind. Designed to test merging outcome ancestral sets into ancestral components.
+        Source: RC's mind. Designed to test merging outcome ancestral sets into
+        ancestral components.
         """
         # DSL isn't smart enough to replace the denominator with 1
         # @cthoyt: The code base would be simpler were we to instantiate these as static class-level objects,
@@ -3790,9 +3805,9 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_conditional_counterfactual_query_5(self):
         """Fifth test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
 
-        Here we test the notion that the joint probability of the vertices sent in as input conditions
-        on other variables we don't see in the graph. A user may wish to transport a subgraph,
-        for example.
+        Here we test the notion that the joint probability of the vertices sent in as
+        input conditions on other variables we don't see in the graph. A user may wish
+        to transport a subgraph, for example.
 
         Source: Example 4.5 and Figure 6 of [correa22a]_.
         """
@@ -3818,9 +3833,9 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_conditional_counterfactual_query_6(self):
         """Sixth test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
 
-        Here we test the notion that the joint probability of the vertices sent in as input conditions
-        on other variables we don't see in the graph. A user may wish to transport a subgraph,
-        for example.
+        Here we test the notion that the joint probability of the vertices sent in as
+        input conditions on other variables we don't see in the graph. A user may wish
+        to transport a subgraph, for example.
 
         Source: Example 4.5 and Figure 6 of [correa22a]_.
         """
@@ -3851,8 +3866,8 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_conditional_counterfactual_query_7(self):
         """Seventh test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
 
-        This test checks that if a counterfactual factor can't be transported, the algorithm
-        returns None.
+        This test checks that if a counterfactual factor can't be transported, the
+        algorithm returns None.
 
         Source: RJC's mind.
         """
@@ -3900,8 +3915,8 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_conditional_counterfactual_query_8(self):
         """Eigth test of Algorithm 3 of [correa22a], transporting a conditional counterfactual query.
 
-        This tests whether we properly return (Zero(), None) if a query, when simplified,
-        returns a probability of zero.
+        This tests whether we properly return (Zero(), None) if a query, when
+        simplified, returns a probability of zero.
 
         Source: Example 4.2 from [correa22]_, modified to make the simplification fail.
         """
@@ -3968,40 +3983,49 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
     def test_transport_conditional_counterfactual_query_preprocessing(self):
         """Tests of input validation for transport_conditional_counterfactual_query() [correa22a].
 
-        Here are all the checks (numbering is just based on convenience during implementation, and
-        the numbered order is not necessarily the order of implementation):
+        Here are all the checks (numbering is just based on convenience during
+        implementation, and the numbered order is not necessarily the order of
+        implementation):
+
         1. Type checking for outcomes and conditions
         2. Type checking for target_domain_graph
         3. Type checking for domain_graphs
         4. Type checking for domain_data
-        4.5. Make sure probabilistic expressions in domain_data aren't Zero() or One()
+
+           - 4.5. Make sure probabilistic expressions in domain_data aren't ``Zero()``
+             or ``One()``
+
         5. Make sure conditions and outcomes aren't empty
-        6. (Skipped for the conditional transportability algorithm, included for unconditional
-        transportability) Make sure at least one event element has a non-None value
+        6. (Skipped for the conditional transportability algorithm, included for
+           unconditional transportability) Make sure at least one event element has a
+           non-None value
         7. Check domain_graphs and domain_data aren't empty lists
         8. Check all graphs in domain_graphs have nodes
         9. Check all topologically sorted lists have entries
-        9.2. Check that the target domain graph contains no transportability nodes and is a directed acyclic graph
-        9.5. Check that the domain_graphs and domain_data list lengths are equal
-        9.7. Check that every domain graph is a directed acyclic graph
-        10. Check that every topological order list in domain_graphs is a valid topological order,
-            given the corresponding graph
-        11. Check the domain graph vertices are all the same as the target domain graph vertices
-        12. Check the event vertices are in the target domain graph (given check #11, that
-            means they're in every graph)
-        13. Check the conditioned and outcome variables have the same base variable
-            as the base variable of their corresponding values
-        14. Domain graphs: make sure the vertex set of the topologically sorted vertex order matches
-            the set of vertices in each corresponding domain graph
-        15. It's possible for a graph probability expression to contain vertices not in the graph
-            due to conditioning on vertices outside the graph. But the graph vertices must all be
-            represented in that graph probability expression.
-        16. If the target domain graph is also in the domain_graphs list (i.e., data were collected for
-            the target domain), then the target domain graph in the domain_graphs list must be
-            identical to the target_domain_graph parameter.
-        17. Make sure the conditioned variable and outcome variable sets don't share graph vertices
 
-        Source: RJC.
+           - 9.2. Check that the target domain graph contains no transportability nodes
+             and is a directed acyclic graph
+           - 9.5. Check that the domain_graphs and domain_data list lengths are equal
+           - 9.7. Check that every domain graph is a directed acyclic graph
+
+        10. Check that every topological order list in domain_graphs is a valid
+            topological order, given the corresponding graph
+        11. Check the domain graph vertices are all the same as the target domain graph
+            vertices
+        12. Check the event vertices are in the target domain graph (given check #11,
+            that means they're in every graph)
+        13. Check the conditioned and outcome variables have the same base variable as
+            the base variable of their corresponding values
+        14. Domain graphs: make sure the vertex set of the topologically sorted vertex
+            order matches the set of vertices in each corresponding domain graph
+        15. It's possible for a graph probability expression to contain vertices not in
+            the graph due to conditioning on vertices outside the graph. But the graph
+            vertices must all be represented in that graph probability expression.
+        16. If the target domain graph is also in the domain_graphs list (i.e., data
+            were collected for the target domain), then the target domain graph in the
+            domain_graphs list must be identical to the target_domain_graph parameter.
+        17. Make sure the conditioned variable and outcome variable sets don't share
+            graph vertices
         """
         # 1. Type check the outcomes
         example_1_domain_data = [(set(), PP[TARGET_DOMAIN](X, Y, Z)), ({X}, PP[Pi1](X, Y, Z))]
@@ -5158,37 +5182,48 @@ class TestTransportUnconditionalCounterfactualQueryPreprocessing(cases.GraphTest
     def test_unconditional_counterfactual_query_preprocessing(self):
         """Tests of input validation for transport_conditional_counterfactual_query() [correa22a].
 
-        Here are all the checks (numbering is just based on convenience during implementation, and
-        the numbered order is not necessarily the order of implementation):
+        Here are all the checks (numbering is just based on convenience during
+        implementation, and the numbered order is not necessarily the order of
+        implementation):
+
         1. Type checking for the input event
         2. Type checking for target_domain_graph
         3. Type checking for domain_graphs
         4. Type checking for domain_data
-        4.5. Make sure probabilistic expressions in domain_data aren't Zero() or One()
+
+           - 4.5. Make sure probabilistic expressions in domain_data aren't Zero() or
+             One()
+
         5. Make sure the input event isn't empty
         6. Make sure at least one event element has a non-None value
         7. Check domain_graphs and domain_data aren't empty lists
         8. Check all graphs in domain_graphs have nodes
         9. Check all topologically sorted lists have entries
-        9.2. Check that the target domain graph contains no transportability nodes and is a directed acyclic graph
-        9.5. Check that the domain_graphs and domain_data list lengths are equal
-        9.7. Check that every domain graph is a directed acyclic graph
-        10. Check that every topological order list in domain_graphs is a valid topological order,
-            given the corresponding graph
-        11. Check the domain graph vertices are all the same as the target domain graph vertices
-        12. Check the event vertices are in the target domain graph (given check #11, that
-            means they're in every graph)
-        13. Check the event variables have the same base variable as the base variable of their
-            corresponding values, if those values aren't None
-        14. Domain graphs: make sure the vertex set of the topologically sorted vertex order matches
-            the set of vertices in each corresponding domain graph
-        15. It's possible for a graph probability expression to contain vertices not in the graph
-            due to conditioning on vertices outside the graph. But the graph vertices must all be
-            represented in that graph probability expression
-        15.5. Make sure policy vertices are in the target domain graph
-        16. If the target domain graph is also in the domain_graphs list (i.e., data were collected for
-            the target domain), then the target domain graph in the domain_graphs list must be
-            identical to the target_domain_graph parameter
+
+           - 9.2. Check that the target domain graph contains no transportability nodes
+             and is a directed acyclic graph
+           - 9.5. Check that the domain_graphs and domain_data list lengths are equal
+           - 9.7. Check that every domain graph is a directed acyclic graph
+
+        10. Check that every topological order list in domain_graphs is a valid
+            topological order, given the corresponding graph
+        11. Check the domain graph vertices are all the same as the target domain graph
+            vertices
+        12. Check the event vertices are in the target domain graph (given check #11,
+            that means they're in every graph)
+        13. Check the event variables have the same base variable as the base variable
+            of their corresponding values, if those values aren't None
+        14. Domain graphs: make sure the vertex set of the topologically sorted vertex
+            order matches the set of vertices in each corresponding domain graph
+        15. It's possible for a graph probability expression to contain vertices not in
+            the graph due to conditioning on vertices outside the graph. But the graph
+            vertices must all be represented in that graph probability expression
+
+            - 15.5. Make sure policy vertices are in the target domain graph
+
+        16. If the target domain graph is also in the domain_graphs list (i.e., data
+            were collected for the target domain), then the target domain graph in the
+            domain_graphs list must be identical to the target_domain_graph parameter
 
         Source: RJC.
         """
