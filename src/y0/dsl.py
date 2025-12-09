@@ -1694,7 +1694,9 @@ class PopulationProbability(Probability):
     >>> PP[Pi1][X](Y)
 
     Related publications:
+
     - `Surrogate Outcomes and Transportability <https://arxiv.org/abs/1806.07172>`_ (Tikka and Karvanen, 2018)
+
     """
 
     population: Population
