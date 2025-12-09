@@ -2,13 +2,13 @@
 
 import logging
 
+from ..identify.id_std import identify
+from ..identify.utils import Identification, Unidentifiable
 from ..ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
     get_strongly_connected_components,
 )
-from ..identify.utils import Identification, Unidentifiable
-from ..identify.id_std import identify
 from ...dsl import Expression, P, Product, Variable
 from ...graph import NxMixedGraph
 
@@ -45,7 +45,7 @@ def idcd(
     :raises Unidentifiable: If causal effect cannot be identified.
     """
     # line 14
-    line_14(graph, C, D, _number_recursions)
+    validate_preconditions(graph, C, D, _number_recursions)
 
     # line 15
     subgraph_D = graph.subgraph(D)
@@ -70,46 +70,69 @@ def idcd(
     return lines_21_26(graph, C, A, D, _number_recursions)
 
 
-def line_14(
+def validate_preconditions(
     graph: NxMixedGraph,
-    C: set[Variable],
-    D: set[Variable],
+    targets: set[Variable],
+    district: set[Variable],  # district containing C
     recursion_level: int,
 ) -> None:
-    """Run line 14 of IDCD algorithm.
+    """Validate IDCD algorithm preconditions.
 
-    Line 14: require C ⊆ D ⊆ V
+    Line 14: require C ⊆ D ⊆ V, CD(G_D) = {D}
 
-    Validates IDCD preconditions.
+    Ensures that:
+    1. Target set C is non-empty and contained within district D.
+    2. District D is non-empty and contained within graph nodes V
+    3. D forms a single consolidated district in subgraph G[D].
 
     :param graph: The causal graph.
-    :param C: Target variable set.
-    :param D: District containing C.
+    :param targets: Target variable set.
+    :param district: Consolidated district containing targets.
     :param recursion_level: Current recursion depth for logging.
     :raises ValueError: If any precondition is violated.
+     References:
+        Algorithm 1, Line 14 from Forré & Mooij (2019)
     """
-    V = set(graph.nodes())
+    nodes = set(graph.nodes())
 
-    if not C:
+    # check C is non-empty
+    if not targets:
         raise ValueError("Target set C cannot be empty")
 
-    if not D:
+    # check D is non-empty
+    if not district:
         raise ValueError("District D cannot be empty")
 
-    if not C.issubset(D):
+    # check C ⊆ D
+    if not targets.issubset(district):
         raise ValueError(
-            f"C must be subset of D. C={sorted(C)}, D={sorted(D)}, C\\D={sorted(C-D)}"
+            f"C must be subset of D. "
+            f"C={sorted(targets)}, D={sorted(district)}, C\\D={sorted(targets - district)}"
         )
 
-    if not D.issubset(V):
+    if not district.issubset(nodes):
         raise ValueError(
-            f"D must be subset of V. D={sorted(D)}, V={sorted(V)}, D\\V={sorted(D-V)}"
+            f"D must be subset of V. "
+            f"D={sorted(district)}, V={sorted(nodes)}, D\\V={sorted(district - nodes)}"
+        )
+
+    # check CD(G_D) = {D}
+    subgraph_d = graph.subgraph(district)
+    consolidated_district = get_consolidated_district(subgraph_d, district)
+
+    if consolidated_district != district:
+        raise ValueError(
+            f"D must be a single consolidated district in G[D]."
+            f"Expected CD(G_D) = {{D}}, but got CD(G_D) = {{{sorted(consolidated_district)}}}"
         )
 
     logger.debug(
         f"[{recursion_level}]: Line 14 - Preconditions satisfied: "
-        f"C={sorted(C)}, D={sorted(D)}, |V|={len(V)}"
+        f"C={sorted(targets)}, D={sorted(district)}, |V|={len(nodes)}"
     )
+
+
+# ------------------------------------------------------------
 
 
 def line_15(
@@ -164,9 +187,7 @@ def line_16(
     apt_order_D = get_apt_order(subgraph_D)
     apt_order_marginalize = [v for v in apt_order_D if v in marginalize_out]
 
-    logger.debug(
-        f"[{recursion_level}]: Line 16 - Marginalizing {len(apt_order_marginalize)} vars"
-    )
+    logger.debug(f"[{recursion_level}]: Line 16 - Marginalizing {len(apt_order_marginalize)} vars")
 
     return Q_D.marginalize(apt_order_marginalize)
 
@@ -178,7 +199,7 @@ def lines_21_26(
     D: set[Variable],
     recursion_level: int,
 ) -> Expression:
-    """Run lines 21-26 of IDCD algorithm.
+    r"""Run lines 21-26 of IDCD algorithm.
 
     Lines 21-26: Recursive case when C ⊂ A ⊂ D
     - Line 22: Loop over SCCs in G[A] where S ⊆ Cd^G[A](C)
