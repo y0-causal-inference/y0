@@ -33,9 +33,12 @@ def prepare_renv(requirements: Iterable[str]) -> list[InstalledSTPackage | Insta
     """Ensure the given R packages are installed.
 
     :param requirements: A list of R package names to ensure are installed
+
     :returns: A list of R packages
 
-    .. seealso:: https://rpy2.github.io/doc/v3.4.x/html/introduction.html#installing-packages
+    .. seealso::
+
+        https://rpy2.github.io/doc/v3.4.x/html/introduction.html#installing-packages
     """
     from rpy2.robjects.packages import importr, isinstalled
     from rpy2.robjects.vectors import StrVector

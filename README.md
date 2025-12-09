@@ -233,6 +233,22 @@ Alternatively, install using pip:
 $ python3 -m pip install -e .
 ```
 
+### Pre-commit
+
+You can optionally use [pre-commit](https://pre-commit.com) to automate running
+key code quality checks on each commit. Enable it with:
+
+```console
+$ uvx pre-commit install
+```
+
+Or using `pip`:
+
+```console
+$ pip install pre-commit
+$ pre-commit install
+```
+
 ### 🥼 Testing
 
 After cloning the repository and installing `tox` with

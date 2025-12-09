@@ -1,5 +1,6 @@
-y0 |release| Documentation
-==========================
+############################
+ y0 |release| Documentation
+############################
 
 .. toctree::
     :maxdepth: 2
@@ -21,8 +22,9 @@ y0 |release| Documentation
     struct
     cli
 
-Indices and Tables
-------------------
+********************
+ Indices and Tables
+********************
 
 - :ref:`genindex`
 - :ref:`modindex`

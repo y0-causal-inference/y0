@@ -52,12 +52,14 @@ def get_graph_falsifications(
     :param graph: An ADMG
     :param df: Data to check for consistency with a causal implications
     :param significance_level: Significance for p-value test
-    :param max_given: The maximum set size in the power set of the vertices minus the d-separable pairs
+    :param max_given: The maximum set size in the power set of the vertices minus the
+        d-separable pairs
     :param verbose: If true, use tqdm for status updates.
-    :param method: Conditional independence from :mod:`pgmpy` to use. If none,
-        defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
+    :param method: Conditional independence from :mod:`pgmpy` to use. If none, defaults
+        to :func:`pgmpy.estimators.CITests.cressie_read`.
     :param sep: The separator between givens when outputting the dataframe
-    :return: Falsifications report
+
+    :returns: Falsifications report
     """
     judgements = get_conditional_independencies(graph, max_conditions=max_given, verbose=verbose)
     return get_falsifications(
@@ -85,13 +87,16 @@ def get_falsifications(
     :param judgements: A list of D-separation judgements to check.
     :param df: Data to check for consistency with a causal implications
     :param verbose: If true, use tqdm for status updates.
-    :param method: Conditional independence from :mod:`pgmpy` to use. If none,
-        defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
-    :param correction: Method used for multiple hypothesis test correction. Defaults to ``holm``.
-        See :func:`statsmodels.stats.multitest.multipletests` for possible methods.
-    :param significance_level: Significance for p-value test, applied after multiple hypothesis testing correction
+    :param method: Conditional independence from :mod:`pgmpy` to use. If none, defaults
+        to :func:`pgmpy.estimators.CITests.cressie_read`.
+    :param correction: Method used for multiple hypothesis test correction. Defaults to
+        ``holm``. See :func:`statsmodels.stats.multitest.multipletests` for possible
+        methods.
+    :param significance_level: Significance for p-value test, applied after multiple
+        hypothesis testing correction
     :param sep: The separator between givens when outputting the dataframe
-    :return: Falsifications report
+
+    :returns: Falsifications report
     """
     if significance_level is None:
         significance_level = 0.05

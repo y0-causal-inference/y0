@@ -12,6 +12,7 @@ def contract(expression: Expression) -> Expression:
     """Contract a fraction.
 
     :param expression: A fraction
+
     :returns: A bayesian compressed probability, if possible
 
     >>> from y0.dsl import P, A, B, C, D

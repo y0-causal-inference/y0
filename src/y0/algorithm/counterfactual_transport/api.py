@@ -1,7 +1,9 @@
 """Implementation of counterfactual transportability.
 
 .. [correa22a] https://proceedings.mlr.press/v162/correa22a/correa22a.pdf.
-.. [correa20a] https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
+
+.. [correa20a]
+    https://proceedings.neurips.cc/paper/2020/file/7b497aa1b2a83ec63d1777a88676b0c2-Paper.pdf.
 """
 
 import itertools as itt
@@ -234,32 +236,35 @@ def _any_variables_with_inconsistent_values(
 def _remove_repeated_variables_and_values(event: Event) -> dict[Variable, set[Intervention | None]]:
     r"""Implement the first half of Line 3 of the SIMPLIFY algorithm from [correa22a]_.
 
-    The implementation is as simple as creating a dictionary. Adding variables to
-    the dictionary removes repeated variables in the input event, and adding values to
-    the dictionary using the variables as keys removes repeated values.
+    The implementation is as simple as creating a dictionary. Adding variables to the
+    dictionary removes repeated variables in the input event, and adding values to the
+    dictionary using the variables as keys removes repeated values.
 
-    :math: **if** there exists $Y_{\mathbf{x}}\in \mathbf{Y}_\ast$ with
-    two consistent values in  $\mathbf{y_\ast} \cap Y_x$ **then**
-    remove repeated variables from $\mathbf{Y_\ast}$ and values $\mathbf{y_\ast}$.
+    If there exists $Y_{\mathbf{x}}\in \mathbf{Y}_\ast$ with two consistent values in
+    $\mathbf{y_\ast} \cap Y_x$, then remove repeated variables from $\mathbf{Y_\ast}$
+    and values $\mathbf{y_\ast}$.
 
-    In this function we also handle a case that [correa22a]_ does not address. Some variables
-    passed in to Algorithm 2 of [correa22a]_ (transport_unconditional_counterfactual_query())
-    from Algorithm 3 of [correa22a]_ (transport_conditional_counterfactual_query())
-    may have values of None, because they were ancestors of a counterfactual when processed
-    in Algorithm 3 and not variables passed in to Algorithm 3 along with actual values.
-    Such variables may be redundant with variables passed in to Algorithm 2 for which values
-    are observed. Because a value of None in this context implies that the variable could
-    take any value, it is consistent with a specific value. Its intervention set is also
-    guaranteed to match the intervention set of its counterpart that has a specific value, because
-    all variables passed from Algorithm 3 to Algorithm 2 are in counterfactual factor form.
-    Therefore, in this function, we want to treat the None value as consistent with a specific value.
+    In this function we also handle a case that [correa22a]_ does not address. Some
+    variables passed in to Algorithm 2 of [correa22a]_
+    (transport_unconditional_counterfactual_query()) from Algorithm 3 of [correa22a]_
+    (transport_conditional_counterfactual_query()) may have values of None, because they
+    were ancestors of a counterfactual when processed in Algorithm 3 and not variables
+    passed in to Algorithm 3 along with actual values. Such variables may be redundant
+    with variables passed in to Algorithm 2 for which values are observed. Because a
+    value of None in this context implies that the variable could take any value, it is
+    consistent with a specific value. Its intervention set is also guaranteed to match
+    the intervention set of its counterpart that has a specific value, because all
+    variables passed from Algorithm 3 to Algorithm 2 are in counterfactual factor form.
+    Therefore, in this function, we want to treat the None value as consistent with a
+    specific value.
 
-    :param event:
-        A tuple associating $\mathbf{Y_\ast}$, a set of counterfactual variables (or regular variables)
-        in $\mathbf{V}$ with $\mathbf{y_\ast}$, a set of values for $\mathbf{Y_\ast}$. We encode the
-        counterfactual variables as Variable objects, and the values as Intervention objects.
-    :returns:
-        A dictionary mapping the event variables to all values associated with each variable in the event.
+    :param event: A tuple associating $\mathbf{Y_\ast}$, a set of counterfactual
+        variables (or regular variables) in $\mathbf{V}$ with $\mathbf{y_\ast}$, a set
+        of values for $\mathbf{Y_\ast}$. We encode the counterfactual variables as
+        Variable objects, and the values as Intervention objects.
+
+    :returns: A dictionary mapping the event variables to all values associated with
+        each variable in the event.
     """
     variable_to_value_mappings: defaultdict[Variable, set[Intervention | None]] = defaultdict(set)
     for variable, value in event:
@@ -276,16 +281,16 @@ def _remove_repeated_variables_and_values(event: Event) -> dict[Variable, set[In
 def _split_event_by_reflexivity(event: Event) -> tuple[Event, Event]:
     r"""Categorize variables in an event by reflexivity (i.e., whether they intervene on themselves).
 
-    :param event:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
-        values for Y_*." We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
-    :returns:
-        Two events, one containing variables in :math: $Y_{\mathbf{x}} \in \mathbf{Y}_\ast$}
-        and one containing variables in :math: $Y_{y} \in \mathbf{Y}_\ast$.
-        Note that only if minimization has already taken place (which is the case here),
-        variables that are not counterfactual variables are considered the equivalent
-        of :math: $Y_{\mathbf{y} \in \mathbf{Y}_\ast$ and fall into the latter category.
+    :param event: "Y_*, a set of counterfactual variables in V and y_* a set of values
+        for Y_*." We encode the counterfactual variables as CounterfactualVariable
+        objects, and the values as Intervention objects.
+
+    :returns: Two events, one containing variables in :math: $Y_{\mathbf{x}} \in
+        \mathbf{Y}_\ast$} and one containing variables in :math: $Y_{y} \in
+        \mathbf{Y}_\ast$. Note that only if minimization has already taken place (which
+        is the case here), variables that are not counterfactual variables are
+        considered the equivalent of :math: $Y_{\mathbf{y} \in \mathbf{Y}_\ast$ and fall
+        into the latter category.
     """
     # Y_y
     reflexive_interventions_event: Event = [
@@ -333,15 +338,19 @@ def _reduce_reflexive_counterfactual_variables_to_interventions(
 ) -> dict[Variable, set[Intervention | None]]:
     r"""Simplify counterfactual variables intervening on themselves to Intervention objects with the same base.
 
-    :param variables: A mapping :math: $\mathbf{Y_\ast}$, a set of counterfactual variables in
-        $\mathbf{V}$, to $\mathbf{y_\ast}$, a set of values for $\mathbf{Y_\ast}$. Each variable in
-        $\mathbf{Y_\ast}$ is assumed to be either $Y_{y}$ \in $\mathbf{Y_\ast}$ or just $Y$ in $\mathbf{Y_\ast}$,
-        where $Y$ is considered a special case of $Y_{y}$ because minimization has already taken place.
-        The $\mathbf{Y_\ast}$ variables are CounterfactualVariable objects, and the values are Intervention objects.
-    :raises ValueError:
-        a variable in the input dictionary has more than one intervention or its intervention is not itself.
-    :returns:
-        A mapping from simple variables :math: $\mathbf{Y}$ to $\mathbf{y}$ to a set of corresponding values.
+    :param variables: A mapping :math: $\mathbf{Y_\ast}$, a set of counterfactual
+        variables in $\mathbf{V}$, to $\mathbf{y_\ast}$, a set of values for
+        $\mathbf{Y_\ast}$. Each variable in $\mathbf{Y_\ast}$ is assumed to be either
+        $Y_{y}$ \in $\mathbf{Y_\ast}$ or just $Y$ in $\mathbf{Y_\ast}$, where $Y$ is
+        considered a special case of $Y_{y}$ because minimization has already taken
+        place. The $\mathbf{Y_\ast}$ variables are CounterfactualVariable objects, and
+        the values are Intervention objects.
+
+    :returns: A mapping from simple variables :math: $\mathbf{Y}$ to $\mathbf{y}$ to a
+        set of corresponding values.
+
+    :raises ValueError: a variable in the input dictionary has more than one
+        intervention or its intervention is not itself.
     """
     result_dict: defaultdict[Variable, set[Intervention | None]] = defaultdict(set)
     for variable, interventions in variables.items():
@@ -364,26 +373,27 @@ def _check_nonreflexive(variable: CounterfactualVariable) -> bool:
 def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
     r"""Run algorithm 1, the SIMPLIFY algorithm from [correa22a]_.
 
-    Correa, Lee, and Bareinboim [correa22a]_ state that this algorithm should return "an interventionally
-    minimal event :math:$\mathbf Y_* = \mathbf y_*$ without redundant subscripts or 0 if the counterfactual
-    event is guaranteed to have probability 0." In Y0, Zero() is an expression object. Here, we return
-    None instead of 0 to denote an event that is impossible, and rely on the calling function to translate either
-    the returned event or a None object into an appropriate probabilistic expression.
+    Correa, Lee, and Bareinboim [correa22a]_ state that this algorithm should return "an
+    interventionally minimal event :math:$\mathbf Y_* = \mathbf y_*$ without redundant
+    subscripts or 0 if the counterfactual event is guaranteed to have probability 0." In
+    Y0, Zero() is an expression object. Here, we return None instead of 0 to denote an
+    event that is impossible, and rely on the calling function to translate either the
+    returned event or a None object into an appropriate probabilistic expression.
 
-    This implementation switches the order of Lines 2 and 3 in Algorithm 1 of [correa22a]_. The reason
-    is that Line 3 reduces (Y @ -Y, -Y) to (Y, -Y). The substitution could introduce the inconsistency
-    [(Y, -Y), (Y, +Y)] in the case where the input to SIMPLIFY is [(Y @ -Y, -Y), (Y, +Y)].
+    This implementation switches the order of Lines 2 and 3 in Algorithm 1 of
+    [correa22a]_. The reason is that Line 3 reduces (Y @ -Y, -Y) to (Y, -Y). The
+    substitution could introduce the inconsistency [(Y, -Y), (Y, +Y)] in the case where
+    the input to SIMPLIFY is [(Y @ -Y, -Y), (Y, +Y)].
 
-    :param event:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
-        values for Y_*." We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
-    :param graph:
-        The associated graph.
-    :raises TypeError: Improperly formatted inputs for simplify()
-    :returns:
-        "Y_* = y_*". We use a dict with counterfactual variables for keys and
+    :param event: "Y_*, a set of counterfactual variables in V and y_* a set of values
+        for Y_*." We encode the counterfactual variables as CounterfactualVariable
+        objects, and the values as Intervention objects.
+    :param graph: The associated graph.
+
+    :returns: "Y_* = y_*". We use a dict with counterfactual variables for keys and
         interventions for values.
+
+    :raises TypeError: Improperly formatted inputs for simplify()
     """
     # TODO: Ask Jeremy:
     # 1) Is it better to have Union[CounterfactualVariable, Variable] instead of just CounterfactualVariable?
@@ -539,15 +549,16 @@ def simplify(*, event: Event, graph: NxMixedGraph) -> Event | None:
 def minimize_event(*, event: Event, graph: NxMixedGraph) -> Event:
     r"""Minimize a set of counterfactual variables wrapped into an event.
 
-    Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
-    $||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \in {\mathbf Y_*}$.
+    Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1. $||\mathbf
+    Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \in {\mathbf Y_*}$.
 
-    :param event: A set of counterfactual variables to minimize (some may have no interventions),
-                  along with their associated values.
+    :param event: A set of counterfactual variables to minimize (some may have no
+        interventions), along with their associated values.
     :param graph: The graph containing them.
-    :returns:
-        An event comprised of a set of minimized counterfactual variables such that each minimized variable
-        is an element of the original set, and the values associated with those variables.
+
+    :returns: An event comprised of a set of minimized counterfactual variables such
+        that each minimized variable is an element of the original set, and the values
+        associated with those variables.
     """
     return [(minimize_counterfactual(variable, graph), value) for variable, value in event]
 
@@ -559,6 +570,7 @@ def same_district(event: set[Variable], graph: NxMixedGraph) -> bool:
 
     :param event: A set of counterfactual variables.
     :param graph: The graph containing them.
+
     :returns: A boolean.
     """
     if len(event) < 1:
@@ -574,15 +586,18 @@ def is_counterfactual_factor_form(*, event: set[Variable], graph: NxMixedGraph) 
 
     See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
 
-    For a counterfactual variable to be in counterfactual factor form, all of its parents
-    must be in the intervention set and the variable itself cannot be (because Y_y = y,
-    so we want to apply the counterfactual factor form of y by itself). If the variable
-    is not a counterfactual variable, then it must have no parents to be in counterfactual
-    factor form.
+    For a counterfactual variable to be in counterfactual factor form, all of its
+    parents must be in the intervention set and the variable itself cannot be (because
+    Y_y = y, so we want to apply the counterfactual factor form of y by itself). If the
+    variable is not a counterfactual variable, then it must have no parents to be in
+    counterfactual factor form.
 
-    :param event: A set of counterfactual variables, some of which may have no interventions.
+    :param event: A set of counterfactual variables, some of which may have no
+        interventions.
     :param graph: The corresponding graph.
-    :returns: A single boolean value (True if the input event is a ctf-factor, False otherwise).
+
+    :returns: A single boolean value (True if the input event is a ctf-factor, False
+        otherwise).
     """
     for variable in event:
         parents = list(graph.directed.predecessors(variable.get_base()))
@@ -606,26 +621,26 @@ def is_counterfactual_factor_form(*, event: set[Variable], graph: NxMixedGraph) 
 def get_counterfactual_factors(*, event: set[Variable], graph: NxMixedGraph) -> list[set[Variable]]:
     """Decompose a joint probability distribution of counterfactual variables.
 
-    Rather than work with probability distributions directly, the function
-    takes in a set of counterfactual variables and returns a set of
-    sets that correspond to factors associated with individual districts
-    (c-components) in the graph. The function returns "None" if any of the
-    counterfactual variables are not in counterfactual factor form, or
-    if an event variable is not in any district (i.e., not in the graph).
+    Rather than work with probability distributions directly, the function takes in a
+    set of counterfactual variables and returns a set of sets that correspond to factors
+    associated with individual districts (c-components) in the graph. The function
+    returns "None" if any of the counterfactual variables are not in counterfactual
+    factor form, or if an event variable is not in any district (i.e., not in the
+    graph).
 
     See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
 
-    :param event:
-        A set of counterfactual variables, some of which may
-        have no interventions. All counterfactual variables must be in counterfactual
-        factor form.
+    :param event: A set of counterfactual variables, some of which may have no
+        interventions. All counterfactual variables must be in counterfactual factor
+        form.
     :param graph: The corresponding graph.
+
+    :returns: A set of sorted lists of counterfactual variables in counterfactual factor
+        form, with each list associated with a district of the graph. The lists need not
+        contain every variable in the district, but they can't contain variables missing
+        from the graph.
+
     :raises ValueError: An event is not in counterfactual factor form.
-    :returns:
-        A set of sorted lists of counterfactual variables in counterfactual factor
-        form, with each list associated with a district of the graph. The lists
-        need not contain every variable in the district, but they can't contain
-        variables missing from the graph.
     """
     if not is_counterfactual_factor_form(event=event, graph=graph):
         logger.debug("Supposed to trigger ValueError in get_counterfactual_factors().")
@@ -649,29 +664,28 @@ def get_counterfactual_factors_retaining_variable_values(
 ) -> list[set[tuple[Variable, Intervention | None]]]:
     """Decompose a joint probability distribution of counterfactual variables.
 
-    Rather than work with probability distributions directly, the function
-    takes in a set of counterfactual variables and returns a set of
-    sets that correspond to factors associated with individual districts
-    (c-components) in the graph. The function returns "None" if any of the
-    counterfactual variables are not in counterfactual factor form, or
-    if an event variable is not in any district (i.e., not in the graph).
-    This variation of the function keeps the values of the counterfactual
-    variables bound to the variables in the form of tuples (necessary for
-    Algorithm 2 of [correa22a]_).
+    Rather than work with probability distributions directly, the function takes in a
+    set of counterfactual variables and returns a set of sets that correspond to factors
+    associated with individual districts (c-components) in the graph. The function
+    returns "None" if any of the counterfactual variables are not in counterfactual
+    factor form, or if an event variable is not in any district (i.e., not in the
+    graph). This variation of the function keeps the values of the counterfactual
+    variables bound to the variables in the form of tuples (necessary for Algorithm 2 of
+    [correa22a]_).
 
     See [correa22a]_, Definition 3.4. A "ctf-factor" is a counterfactual factor.
 
-    :param event:
-        A set of counterfactual variables, some of which may
-        have no interventions. All counterfactual variables must be in counterfactual
-        factor form.
+    :param event: A set of counterfactual variables, some of which may have no
+        interventions. All counterfactual variables must be in counterfactual factor
+        form.
     :param graph: The corresponding graph.
+
+    :returns: A set of sorted lists of counterfactual variables in counterfactual factor
+        form along with the values for those variables, with each list associated with a
+        district of the graph. The lists need not contain every variable in the
+        district, but they can't contain variables missing from the graph.
+
     :raises ValueError: An event is not in counterfactual factor form.
-    :returns:
-        A set of sorted lists of counterfactual variables in counterfactual factor
-        form along with the values for those variables, with each list associated
-        with a district of the graph. The lists need not contain every variable in
-        the district, but they can't contain variables missing from the graph.
     """
     event_without_values = {variable for variable, _ in event}
 
@@ -705,11 +719,12 @@ def convert_to_counterfactual_factor_form(*, event: Event, graph: NxMixedGraph) 
 
     That requires intervening on all the parents of each counterfactual variable.
 
-    :param event: A list of variables (which may have interventions) and their values (:math:`\mathbf W_\ast`).
+    :param event: A list of variables (which may have interventions) and their values
+        (:math:`\mathbf W_\ast`).
     :param graph: The corresponding graph.
-    :returns:
-        The output above, represented as a set of counterfactual variables (those without interventions
-        are just variables).
+
+    :returns: The output above, represented as a set of counterfactual variables (those
+        without interventions are just variables).
 
         :math:`w_{1[\mathbf{pa_{1}}]},w_{2[\mathbf{pa_{2}}]},\cdots,w_{l[\mathbf{pa_{l}}]}`
         for each :math:`W_i \in \mathbf V`.
@@ -746,21 +761,26 @@ def do_counterfactual_factor_factorization(
 ) -> tuple[Expression, list[tuple[Variable, Intervention]]]:
     r"""Get the counterfactual factor form for a query, factorized according to the graph c-components.
 
-    :param variables:
-        A list of counterfactual variables (the left side of Equation 11 in [correa22a]_).
+    :param variables: A list of counterfactual variables (the left side of Equation 11
+        in [correa22a]_).
 
-        :math:P*( \mathbf y_*) (i.e., a joint probability distribution corresponding to a query).
+        :math:P*( \mathbf y_*) (i.e., a joint probability distribution corresponding to
+        a query).
     :param graph: The corresponding graph.
-    :raises TypeError: do_counterfactual_factorization() requires at least one variable in the query variable set.
-    :returns:
-        An expression following the right side of Equation 15 in [correa22a]_ (example: Equation 16).
-        Additionally, the function returns a tuple matching variables to interventions, in order to specify
-        the values of those variables in the returned expression that are not indexes of the summation term
-        (i.e. the expression doesn't marginalize over those variables).
 
-        :math:Sum_{ \mathbf d_* \backslash \mathbf y_*} P*( \mathbf d_* ), where :math:\mathbf D_* = An( \mathbf Y_* ),
-        and where P*( \mathbf d_* ) has been further decomposed as per
-        :math: P*( \mathbf d_* ) = prod_{j}(P*( \mathbf c_{j*}) (Equation 15).
+    :returns: An expression following the right side of Equation 15 in [correa22a]_
+        (example: Equation 16). Additionally, the function returns a tuple matching
+        variables to interventions, in order to specify the values of those variables in
+        the returned expression that are not indexes of the summation term (i.e. the
+        expression doesn't marginalize over those variables).
+
+        :math:Sum_{ \mathbf d_* \backslash \mathbf y_*} P*( \mathbf d_* ), where
+        :math:\mathbf D_* = An( \mathbf Y_* ), and where P*( \mathbf d_* ) has been
+        further decomposed as per :math: P*( \mathbf d_* ) = prod_{j}(P*( \mathbf
+        c_{j*}) (Equation 15).
+
+    :raises TypeError: do_counterfactual_factorization() requires at least one variable
+        in the query variable set.
     """
     # We can't directly compute the ancestral set via a set comprehension because get_ancestors_of_counterfactual()
     # returns mutable sets, so we'd get an 'unhashable type: set' error
@@ -822,8 +842,10 @@ def counterfactual_factors_are_transportable(
 ) -> bool:
     """Determine if a set of counterfactual factors can be transported from a domain to the target.
 
-    :param domain_graph: Corresponds to the domain from which we're doing the transporting.
+    :param domain_graph: Corresponds to the domain from which we're doing the
+        transporting.
     :param factors: The counterfactual factors in question.
+
     :returns: Whether the query is transportable.
     """
     nodes = set(domain_graph.nodes())
@@ -834,6 +856,7 @@ def _remove_transportability_vertices(*, vertices: Collection[Variable]) -> set[
     """Remove the transportability nodes from a set of vertices.
 
     :param vertices: The input vertices.
+
     :returns: The input vertices, without the transportability nodes.
     """
     return {v for v in vertices if not is_transport_node(v)}
@@ -848,26 +871,29 @@ def validate_inputs_for_transport_district_intervening_on_parents(  # noqa:C901
     r"""Conduct pre-processing checks for the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
 
     :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
-    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
-           contains a selection diagram for that domain. In particular the graph contains
-           transportability nodes for every vertex that is distributed differently in the
-           domain in question than in the target domain (e.g., Vertex Z in Figure 3(a)
-           in [correa22a]_), and it is a causal diagram such that its edges represent
-           the state of the graph after a regime corresponding to domain $k$ has been
-           applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_). The second
-           element of the tuple is a topologically sorted list of all the vertices in
-           the corresponding graph that are not transportability nodes. (Nodes that
-           have no parents come first in such lists.)
+    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each
+        tuple contains a selection diagram for that domain. In particular the graph
+        contains transportability nodes for every vertex that is distributed differently
+        in the domain in question than in the target domain (e.g., Vertex Z in Figure
+        3(a) in [correa22a]_), and it is a causal diagram such that its edges represent
+        the state of the graph after a regime corresponding to domain $k$ has been
+        applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_). The second
+        element of the tuple is a topologically sorted list of all the vertices in the
+        corresponding graph that are not transportability nodes. (Nodes that have no
+        parents come first in such lists.)
     :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-           $K$ tuples, one for each of the $K$ domains. Each tuple contains a set of
-           variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression
-           denoting the probability distribution
-           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
-    :raises NotImplementedError: a domain_data probability expression of type One() or Zero() was
-           passed in.
-    :raises TypeError: the input arguments are in an improper format or not internally consistent.
-    :raises KeyError: a variable in an input argument is missing from another input argument
-           and should be there.
+        $K$ tuples, one for each of the $K$ domains. Each tuple contains a set of
+        variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting
+        the probability distribution
+        $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in
+        \mathcal{Z}^{i}$.
+
+    :raises NotImplementedError: a domain_data probability expression of type One() or
+        Zero() was passed in.
+    :raises TypeError: the input arguments are in an improper format or not internally
+        consistent.
+    :raises KeyError: a variable in an input argument is missing from another input
+        argument and should be there.
     """
     # Preliminary checks, starting with type checking
     if not (isinstance(district, Collection) and all(isinstance(v, Variable) for v in district)):
@@ -1002,11 +1028,13 @@ def _no_intervention_variables_in_domain(
 ) -> bool:
     r"""Check that a district in a graph contains no intervention veriables.
 
-    Helper function for the transport_district_intervening_on_parents algorithm
-    from [correa22a]_ (Algorithm 4 in Appendix B).
+    Helper function for the transport_district_intervening_on_parents algorithm from
+    [correa22a]_ (Algorithm 4 in Appendix B).
+
     :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
-    :param interventions: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-           variables corresponding to $\sigma_{\mathbf{Z}_{k}}$.
+    :param interventions: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set
+        of variables corresponding to $\sigma_{\mathbf{Z}_{k}}$.
+
     :returns: true or false.
     """
     return len(set(district).intersection(interventions)) == 0
@@ -1019,13 +1047,15 @@ def _no_transportability_nodes_in_domain(
 
     Helper function for the transport_district_intervening_on_parents algorithm from
     [correa22a]_ (Algorithm 4 in Appendix B).
+
     :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
-    :param domain_graph: a selection diagram for the domain in question.
-           The graph contains a transportability node for every vertex distributed differently
-           in the domain in question than in the target domain (e.g., Vertex Z in Figure 3(a)
-           in [correa22a]_), and it is a causal diagram such that its edges represent
-           the state of the graph after a regime corresponding to domain $k$ has been
-           applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
+    :param domain_graph: a selection diagram for the domain in question. The graph
+        contains a transportability node for every vertex distributed differently in the
+        domain in question than in the target domain (e.g., Vertex Z in Figure 3(a) in
+        [correa22a]_), and it is a causal diagram such that its edges represent the
+        state of the graph after a regime corresponding to domain $k$ has been applied
+        (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
+
     :returns: true or false.
     """
     return not any(transport_variable(v) in domain_graph.nodes() for v in district)
@@ -1039,37 +1069,40 @@ def transport_district_intervening_on_parents(
 ) -> Expression | None:
     r"""Implement the sigma-TR algorithm from [correa22a]_ (Algorithm 4 in Appendix B).
 
-    See also: [correa20a]_, which contains the original sigma-TR algorithm. Algorithm 4 in
-    [correa22a]_ is the algorithm in [correa20a]_ modified to run on a single district in a
-    graph.
+    See also: [correa20a]_, which contains the original sigma-TR algorithm. Algorithm 4
+    in [correa22a]_ is the algorithm in [correa20a]_ modified to run on a single
+    district in a graph.
 
     :param district: the C-component $\mathbf{C}\_{i}$ under analysis.
-    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
-           contains a selection diagram for that domain. In particular the graph contains
-           transportability nodes for every vertex that is distributed differently in the
-           domain in question than in the target domain (e.g., Vertex Z in Figure 3(a)
-           in [correa22a]_), and it is a causal diagram such that its edges represent
-           the state of the graph after a regime corresponding to domain $k$ has been
-           applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_). The second
-           element of the tuple is a topologically sorted list of all the vertices in
-           the corresponding graph that are not transportability nodes. (Nodes that
-           have no parents come first in such lists.)
-    :param domain_data:
-            .. todo::
+    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each
+        tuple contains a selection diagram for that domain. In particular the graph
+        contains transportability nodes for every vertex that is distributed differently
+        in the domain in question than in the target domain (e.g., Vertex Z in Figure
+        3(a) in [correa22a]_), and it is a causal diagram such that its edges represent
+        the state of the graph after a regime corresponding to domain $k$ has been
+        applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_). The second
+        element of the tuple is a topologically sorted list of all the vertices in the
+        corresponding graph that are not transportability nodes. (Nodes that have no
+        parents come first in such lists.)
+    :param domain_data: .. todo::
 
-                Start with a human readable version of explaining what the data structure is.
-                Then, after it is possible to understand without thinking about math at all,
-                you can then say "this corresponds to the impenetrable math notation used in some paper"
+            Start with a human readable version of explaining what the data structure is.
+            Then, after it is possible to understand without thinking about math at all,
+            you can then say "this corresponds to the impenetrable math notation used in some paper"
 
-            Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-            $K$ tuples, one for each of the $K$ domains. Each tuple contains a set of
-            variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression
-            denoting the probability distribution
-            $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
-    :raises ValueError: the vertices in the input district are part of more than one district
-           in a domain graph.
-    :returns: A probabilistic expression for $P^{\ast}_{Pa(\mathbf{C})_{i}}(\mathbf{C}\_i)$ if
-           it is transportable, or None if it is not transportable.
+        Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of $K$ tuples, one
+        for each of the $K$ domains. Each tuple contains a set of variables
+        corresponding to $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the
+        probability distribution
+        $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in
+        \mathcal{Z}^{i}$.
+
+    :returns: A probabilistic expression for
+        $P^{\ast}_{Pa(\mathbf{C})_{i}}(\mathbf{C}\_i)$ if it is transportable, or None
+        if it is not transportable.
+
+    :raises ValueError: the vertices in the input district are part of more than one
+        district in a domain graph.
     """
     # We don't require the user to input $\mathcal{G}^{\ast}$, the target graph, and
     # therefore can't verify that the input district is in fact a district of the
@@ -1168,17 +1201,18 @@ def _transport_unconditional_counterfactual_query_line_2(
 ]:
     r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
 
-    :param event:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
-        values for Y_*." We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
+    :param event: "Y_*, a set of counterfactual variables in V and y_* a set of values
+        for Y_*." We encode the counterfactual variables as CounterfactualVariable
+        objects, and the values as Intervention objects.
     :param graph: The graph corresponding to the target domain for the query.
+
     :returns: a tuple containing:
+
         1. An expression for $W_{\ast} = An(\mathbf{Y_{\ast}})$, which is an event
-              because some variables in $W_{\ast}$ may have values and others may not.
-              We need to keep the known values coupled to their associated variables.
+               because some variables in $W_{\ast}$ may have values and others may not.
+               We need to keep the known values coupled to their associated variables.
         2. A list of ctf-factors corresponding to $W_{\ast}$, and values for those
-              variables as well when available.
+               variables as well when available.
     """
     ancestral_set: set[Variable] = set()
     # $W_{\ast}$
@@ -1230,12 +1264,14 @@ def _any_variable_values_inconsistent_with_interventions(
     r"""Determine whether a counterfactual factor has a variable value inconsistent with any intervention value.
 
     Source: Definition 4.1 in [correa22a]_ (Algorithm 2), part (i).
-    :param event:
-        $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and $\mathbf{w_{\ast}}$, a set of
-        values for $\mathbf{W_{\ast}}$. We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
-    :returns: True if the counterfactual factor has a variable value inconsistent with any intervention value, and
-        false otherwise.
+
+    :param event: $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and
+        $\mathbf{w_{\ast}}$, a set of values for $\mathbf{W_{\ast}}$. We encode the
+        counterfactual variables as CounterfactualVariable objects, and the values as
+        Intervention objects.
+
+    :returns: True if the counterfactual factor has a variable value inconsistent with
+        any intervention value, and false otherwise.
     """
     intervention_variable_dictionary: dict[Variable, set[Intervention]] = defaultdict(set)
     # $W_{\ast}$
@@ -1273,13 +1309,17 @@ def _any_inconsistent_intervention_values(
 ) -> bool:
     r"""Determine whether a counterfactual factor has two inconsistent intervention values.
 
-    :param event:
-        $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and $\mathbf{w_{\ast}}$, a set of
-        values for $\mathbf{W_{\ast}}$. We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
-    :returns: True if the counterfactual factor has at least two inconsistent intervention values, and false otherwise.
+    :param event: $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and
+        $\mathbf{w_{\ast}}$, a set of values for $\mathbf{W_{\ast}}$. We encode the
+        counterfactual variables as CounterfactualVariable objects, and the values as
+        Intervention objects.
 
-    .. seealso:: Definition 4.1 in [correa22a]_ (Algorithm 2), part (ii).
+    :returns: True if the counterfactual factor has at least two inconsistent
+        intervention values, and false otherwise.
+
+    .. seealso::
+
+        Definition 4.1 in [correa22a]_ (Algorithm 2), part (ii).
     """
     base_to_interventions = defaultdict(set)
     # $\mathbf{T}$ per Definition 4.1 (ii)
@@ -1298,13 +1338,16 @@ def _counterfactual_factor_is_inconsistent(
 ) -> bool:
     r"""Determine whether a counterfactual factor is inconsistent.
 
-    :param event:
-        $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and $\mathbf{w_{\ast}}$, a set of
-        values for $\mathbf{W_{\ast}}$. We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
+    :param event: $\mathbf{W_{\ast}}$, a set of counterfactual variables in V and
+        $\mathbf{w_{\ast}}$, a set of values for $\mathbf{W_{\ast}}$. We encode the
+        counterfactual variables as CounterfactualVariable objects, and the values as
+        Intervention objects.
+
     :returns: If the counterfactual factor is consistent
 
-    .. seealso:: Source: Definition 4.1 in [correa22a]_ (Algorithm 2).
+    .. seealso::
+
+        Source: Definition 4.1 in [correa22a]_ (Algorithm 2).
     """
     # Are counterfactual factor and intervention values inconsistent?
     return _any_variable_values_inconsistent_with_interventions(
@@ -1321,32 +1364,34 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
 ) -> None:
     r"""Conduct pre-processing checks to transport unconditional counterfactual queries (Algorithm 2 from [correa22a]_).
 
-    :param event:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
-        values for Y_*." We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
+    :param event: "Y_*, a set of counterfactual variables in V and y_* a set of values
+        for Y_*." We encode the counterfactual variables as CounterfactualVariable
+        objects, and the values as Intervention objects.
     :param target_domain_graph: a graph for the target domain.
-    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
-           contains a selection diagram for that domain and a topologically sorted list
-           of all the vertices in the corresponding graph that are not transportability
-           nodes. (Nodes that have no parents come first in such lists.) The selection
-           diagram contains a transportability node for every vertex that is distributed
-           differently in the domain in question than in the target domain (e.g., Vertex
-           Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such that its edges
-           represent the state of the graph after a regime corresponding to domain $k$ has
-           been applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
+    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each
+        tuple contains a selection diagram for that domain and a topologically sorted
+        list of all the vertices in the corresponding graph that are not
+        transportability nodes. (Nodes that have no parents come first in such lists.)
+        The selection diagram contains a transportability node for every vertex that is
+        distributed differently in the domain in question than in the target domain
+        (e.g., Vertex Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such
+        that its edges represent the state of the graph after a regime corresponding to
+        domain $k$ has been applied (e.g., policy $\sigma_{X}$ in Figure 4 of
+        [correa22a]_).
     :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-           $K$ tuples, one for each of the $K$ domains except for the target domain.
-           Each tuple contains a set of variables corresponding to
-           $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the probability distribution
-           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
-    :raises TypeError: a validity check associated with either the input variables
-           or the output event failed. See the error message for specifics.
+        $K$ tuples, one for each of the $K$ domains except for the target domain. Each
+        tuple contains a set of variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and
+        an expression denoting the probability distribution
+        $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in
+        \mathcal{Z}^{i}$.
+
+    :raises TypeError: a validity check associated with either the input variables or
+        the output event failed. See the error message for specifics.
     :raises ValueError: an input variable is of valid type but has an invalid value. See
-           the error message for specifics.
-    :raises NotImplementedError: this algorithm does not currently handle input graph probability
-           Expression objects that are One() or Zero(), or cases where the conditioned and
-           outcome variable sets share one or more variables in common.
+        the error message for specifics.
+    :raises NotImplementedError: this algorithm does not currently handle input graph
+        probability Expression objects that are One() or Zero(), or cases where the
+        conditioned and outcome variable sets share one or more variables in common.
     """
     # Here are all the checks (numbering is just based on convenience during implementation, and
     #    the numbered order is not necessarily the order of implementation):
@@ -1641,18 +1686,17 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
 class CFTDomain:
     r"""Represents a counterfactual transport domain.
 
-    Each CFTDomain class contains a selection diagram for that domain,
-    an expression denoting the probability distribution
-    $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$,
-    a set of policy variables corresponding to $\sigma_{\mathbf{Z}_{k}}$,
-    and a topologically sorted list of all the vertices in the corresponding graph
-    that are not transportability nodes. (Nodes that have no parents come first in
-    such lists.) The selection diagram contains a transportability node for every
-    vertex that is distributed differently in the domain in question than in the
-    target domain (e.g., Vertex Z in Figure 3(a) in [correa22a]_), and it is a causal
-    diagram such that its edges represent the state of the graph after a regime
-    corresponding to domain $k$ has been applied (e.g., policy $\sigma_{X}$ in Figure
-    4 of [correa22a]_).
+    Each CFTDomain class contains a selection diagram for that domain, an expression
+    denoting the probability distribution
+    $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$, a
+    set of policy variables corresponding to $\sigma_{\mathbf{Z}_{k}}$, and a
+    topologically sorted list of all the vertices in the corresponding graph that are
+    not transportability nodes. (Nodes that have no parents come first in such lists.)
+    The selection diagram contains a transportability node for every vertex that is
+    distributed differently in the domain in question than in the target domain (e.g.,
+    Vertex Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such that its
+    edges represent the state of the graph after a regime corresponding to domain $k$
+    has been applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
     """
 
     #: The domain graph (a selection diagram, containing transportability nodes)
@@ -1747,13 +1791,12 @@ def unconditional_cft(
 ) -> UnconditionalCFTResult | None:
     r"""Run an unconditional counterfactual transportability query (Algorithm 2 from [correa22a]_).
 
-    :param event:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
-        values for Y_*." We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
+    :param event: "Y_*, a set of counterfactual variables in V and y_* a set of values
+        for Y_*." We encode the counterfactual variables as CounterfactualVariable
+        objects, and the values as Intervention objects.
     :param target_domain_graph: a graph for the target domain.
-    :param domains: A set of $K$ CFTDomain classes, one for each of the $K$ domains. See the
-        documentation for CFTDomain for more details.
+    :param domains: A set of $K$ CFTDomain classes, one for each of the $K$ domains. See
+        the documentation for CFTDomain for more details.
 
     :returns: The result of the query as an UnconditionalCFTResult object.
     """
@@ -1779,25 +1822,27 @@ def transport_unconditional_counterfactual_query(
 ) -> UnconditionalCFTResult | None:
     r"""Implement the ctfTRu algorithm from [correa22a]_ (Algorithm 2).
 
-    :param event:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
-        values for Y_*." We encode the counterfactual variables as
-        CounterfactualVariable objects, and the values as Intervention objects.
+    :param event: "Y_*, a set of counterfactual variables in V and y_* a set of values
+        for Y_*." We encode the counterfactual variables as CounterfactualVariable
+        objects, and the values as Intervention objects.
     :param target_domain_graph: a graph for the target domain.
-    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
-           contains a selection diagram for that domain and a topologically sorted list
-           of all the vertices in the corresponding graph that are not transportability
-           nodes. (Nodes that have no parents come first in such lists.) The selection
-           diagram contains a transportability node for every vertex that is distributed
-           differently in the domain in question than in the target domain (e.g., Vertex
-           Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such that its edges
-           represent the state of the graph after a regime corresponding to domain $k$ has
-           been applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
+    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each
+        tuple contains a selection diagram for that domain and a topologically sorted
+        list of all the vertices in the corresponding graph that are not
+        transportability nodes. (Nodes that have no parents come first in such lists.)
+        The selection diagram contains a transportability node for every vertex that is
+        distributed differently in the domain in question than in the target domain
+        (e.g., Vertex Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such
+        that its edges represent the state of the graph after a regime corresponding to
+        domain $k$ has been applied (e.g., policy $\sigma_{X}$ in Figure 4 of
+        [correa22a]_).
     :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-           $K$ tuples, one for each of the $K$ domains except for the target domain.
-           Each tuple contains a set of variables corresponding to
-           $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the probability distribution
-           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+        $K$ tuples, one for each of the $K$ domains except for the target domain. Each
+        tuple contains a set of variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and
+        an expression denoting the probability distribution
+        $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in
+        \mathcal{Z}^{i}$.
+
     :returns: an expression for $P^{\ast}(\mathbf{Y_{\ast}}=\mathbf{y_{\ast}})$
     """
     _validate_transport_unconditional_counterfactual_query_input(
@@ -1929,15 +1974,15 @@ def _initialize_conditional_transportability_data_structures(
 ]:
     r"""Set up data structures to process a conditional counterfactual query per Algorithm 3 of [correa22a]_.
 
-    :param outcomes:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
+    :param outcomes: "Y_*, a set of counterfactual variables in V and y_* a set of
         values for Y_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and their values as Intervention objects.
-    :param conditions:
-        "X_*, a set of counterfactual variables in V and x_* a set of
+    :param conditions: "X_*, a set of counterfactual variables in V and x_* a set of
         values for X_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and their values as Intervention objects.
-    :returns: a tuple of hash tables and dictionaries that speed processing of a conditional counterfactual query.
+
+    :returns: a tuple of hash tables and dictionaries that speed processing of a
+        conditional counterfactual query.
     """
     conditioned_variables: set[Variable] = {variable for variable, _ in conditions}
     outcome_variables: set[Variable] = {outcome for outcome, _ in outcomes}
@@ -1991,38 +2036,43 @@ def _transport_conditional_counterfactual_query_line_2(
 ) -> tuple[Event, set[Variable]]:
     r"""Set up data structures to process a conditional counterfactual query per Algorithm 3 of [correa22a]_.
 
-    This function is an internal subroutine for transport_conditional_counterfactual_query().
+    This function is an internal subroutine for
+    transport_conditional_counterfactual_query().
 
-    :param ancestral_components:
-        The ancestral components associated with a conditional counterfactual query, encoded as a set of sets of
-        counterfactual variables.
+    :param ancestral_components: The ancestral components associated with a conditional
+        counterfactual query, encoded as a set of sets of counterfactual variables.
 
         :math: Let $\mathbf{W_{\ast}}$ be a set of counterfactual variables,
-           $\mathbf{X_{\ast}} \subseteq \mathbf{W_{\ast}}$,
-           and $\mathcal{G}$ be a causal diagram. Then the ancestral components induced by $\mathbf{W_{\ast}}$,
-           given $\mathbf{X_{\ast}}$, are sets $\mathbf{A}_{1\ast},\mathbf{A}_{2\ast},\ldots$ that form a partition
-           over $An(\mathbf{W_{\ast}})$, made of unions of the ancestral sets
-           $An(W_\mathbf{t})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}}(W_\mathbf{t})}}}$,
-           $W_{\mathbf{t}} \in \mathbf{W_{\ast}}$. Sets
-           $An(W_{1\left[\mathbf{t}_{1}\right]})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}}(W_{1\left[\mathbf{t}_{1}\right]})}}}$
-           and
-           $An(W_{2\left[\mathbf{t}_{2}\right]})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}}(W_{2\left[\mathbf{t}_{2}\right]})}}}$
-           are put together if they are not disjoint or there exists a bidirected arrow in $\mathcal{G}$
-           connecting variables in those sets.
-    :param outcome_variables:
-        "Y_*, a set of counterfactual variables in V.", encoded as a set of Variable objects.
-    :param outcome_variable_to_value_mappings:
-        A dictionary mapping Variable objects to sets of Intervention objects representing the values
-        those variables attain in the query.
+            $\mathbf{X_{\ast}} \subseteq \mathbf{W_{\ast}}$, and $\mathcal{G}$ be a
+            causal diagram. Then the ancestral components induced by
+            $\mathbf{W_{\ast}}$, given $\mathbf{X_{\ast}}$, are sets
+            $\mathbf{A}_{1\ast},\mathbf{A}_{2\ast},\ldots$ that form a partition over
+            $An(\mathbf{W_{\ast}})$, made of unions of the ancestral sets
+            $An(W_\mathbf{t})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}}(W_\mathbf{t})}}}$,
+            $W_{\mathbf{t}} \in \mathbf{W_{\ast}}$. Sets
+            $An(W_{1\left[\mathbf{t}_{1}\right]})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}}(W_{1\left[\mathbf{t}_{1}\right]})}}}$
+            and
+            $An(W_{2\left[\mathbf{t}_{2}\right]})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}}(W_{2\left[\mathbf{t}_{2}\right]})}}}$
+            are put together if they are not disjoint or there exists a bidirected arrow
+            in $\mathcal{G}$ connecting variables in those sets.
+    :param outcome_variables: "Y_*, a set of counterfactual variables in V.", encoded as
+        a set of Variable objects.
+    :param outcome_variable_to_value_mappings: A dictionary mapping Variable objects to
+        sets of Intervention objects representing the values those variables attain in
+        the query.
     :param target_domain_graph: The associated graph, for the target domain.
-    :returns: The union of the ancestral components containing at least one outcome variable:
 
-        :math: "Let $\mathbf{D_{\ast}}$ be the union of the ancestral components containing a variable in
-           $\mathbf{Y_{\ast}}$ and $\mathbf{d_{\ast}}$ the corresponding set of values" ([correa22a]_, Algorithm 3).
+    :returns: The union of the ancestral components containing at least one outcome
+        variable:
 
-        This function converts the variables to counterfactual factor form in preparation for calling Line 3 of
-        Algorithm 3 of [correa22a]_. It also returns a set of variables representing the target domain graph vertices
-        associated with variables in $\mathbf{D_{\ast}}$.
+        :math: "Let $\mathbf{D_{\ast}}$ be the union of the ancestral components
+            containing a variable in $\mathbf{Y_{\ast}}$ and $\mathbf{d_{\ast}}$ the
+            corresponding set of values" ([correa22a]_, Algorithm 3).
+
+        This function converts the variables to counterfactual factor form in
+        preparation for calling Line 3 of Algorithm 3 of [correa22a]_. It also returns a
+        set of variables representing the target domain graph vertices associated with
+        variables in $\mathbf{D_{\ast}}$.
     """
     logger.debug(
         "In _transport_conditional_counterfactual_query_line_2: ancestral_components = "
@@ -2112,34 +2162,44 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
 ) -> None:
     r"""Perform validity checks on output for Algorithm 3 of [correa22a]_.
 
-    This function is an internal subroutine for transport_conditional_counterfactual_query(). It performs
-    some validity checks and does not return any value if successful or raises a KeyError or TypeError if not.
+    This function is an internal subroutine for
+    transport_conditional_counterfactual_query(). It performs some validity checks and
+    does not return any value if successful or raises a KeyError or TypeError if not.
 
-    :param simplified_event:
-        This is the set of variables $D_{\ast}$ (in counterfactual factor form) and their values $d_{\ast}$
-        after getting processed by the simplify() algorithm (Algorithm 1 in [correa22a]_, called from Line 1 in
+    :param simplified_event: This is the set of variables $D_{\ast}$ (in counterfactual
+        factor form) and their values $d_{\ast}$ after getting processed by the
+        simplify() algorithm (Algorithm 1 in [correa22a]_, called from Line 1 in
         Algorithm 2 of [correa22a]_. ) We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
-    :param outcome_and_conditioned_variable_names: The graph vertices associated with outcome and conditioned variables
-        in the query (stripped of any interventions), represented as a set of Variable objects.
-    :param outcome_and_conditioned_variable_names_to_values: a dictionary mapping those variables to their values
-        from the query passed in to transport_conditional_counterfactual_query() as a parameter.
-    :param outcome_ancestral_component_variables_with_no_values: the graph vertices associated with elements of
-        the ancestral components of $\mathbf{Y_{\ast}} \cap \mathbf{X_{\ast}}$ given $\mathbf{X_{\ast}}$
-        that are neither outcome variables nor conditioned variables in the query, and therefore do not have
-        values assigned to those variables. Represented as a set of Variable objects.
-    :param result_expression: the probabilistic expression to be returned by this query (if this function gets called,
-        the query is not expected to fail or return a probability of zero due to inconsistent query variable values).
-    :param result_event: a list of tuples of variables and their values used to evaluate the result_expression.
+    :param outcome_and_conditioned_variable_names: The graph vertices associated with
+        outcome and conditioned variables in the query (stripped of any interventions),
+        represented as a set of Variable objects.
+    :param outcome_and_conditioned_variable_names_to_values: a dictionary mapping those
+        variables to their values from the query passed in to
+        transport_conditional_counterfactual_query() as a parameter.
+    :param outcome_ancestral_component_variables_with_no_values: the graph vertices
+        associated with elements of the ancestral components of $\mathbf{Y_{\ast}} \cap
+        \mathbf{X_{\ast}}$ given $\mathbf{X_{\ast}}$ that are neither outcome variables
+        nor conditioned variables in the query, and therefore do not have values
+        assigned to those variables. Represented as a set of Variable objects.
+    :param result_expression: the probabilistic expression to be returned by this query
+        (if this function gets called, the query is not expected to fail or return a
+        probability of zero due to inconsistent query variable values).
+    :param result_event: a list of tuples of variables and their values used to evaluate
+        the result_expression.
     :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-           $K$ tuples, one for each of the $K$ domains except for the target domain.
-           Each tuple contains a set of variables corresponding to
-           $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the probability distribution
-           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
-           Passed in to transport_conditional_counterfactual_query() as an input parameter.
-    :raises KeyError: a variable in one of the input parameters should appear in another parameter and does not,
-           or should not and does. See each error description for specifics.
-    :raises TypeError: a return value used to evaluate the result_expression is None and that should not happen.
+        $K$ tuples, one for each of the $K$ domains except for the target domain. Each
+        tuple contains a set of variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and
+        an expression denoting the probability distribution
+        $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in
+        \mathcal{Z}^{i}$. Passed in to transport_conditional_counterfactual_query() as
+        an input parameter.
+
+    :raises KeyError: a variable in one of the input parameters should appear in another
+        parameter and does not, or should not and does. See each error description for
+        specifics.
+    :raises TypeError: a return value used to evaluate the result_expression is None and
+        that should not happen.
     """
     simplified_event_variable_names_to_values: dict[Variable, Intervention | None] = {
         variable.get_base(): value for variable, value in simplified_event
@@ -2229,42 +2289,49 @@ def _transport_conditional_counterfactual_query_line_4(
 ) -> "ConditionalCFTResult":
     r"""Execute Line 4 of Algorithm 3 of [correa22a]_.
 
-    This function is an internal subroutine for transport_conditional_counterfactual_query().
+    This function is an internal subroutine for
+    transport_conditional_counterfactual_query().
 
-    :param outcome_variable_ancestral_component_variable_names: The graph vertices associated with ancestral
-        components containing at least one outcome variable in the query, represented as a set of Variable objects.
-    :param outcome_and_conditioned_variable_names: The graph vertices associated with outcome and conditioned variables
-        in the query (stripped of any interventions), represented as a set of Variable objects.
-    :param conditioned_variable_names: The graph vertices associated with conditioned variables
-        in the query (stripped of any interventions), represented as a set of Variable objects.
-    :param transported_unconditional_query_expression: the probabilistic expression returned by the call to Algorithm
-        2 of [correa22a]_ and represented by $Q$ in the pseudocode for Algorithm 3 of [correa22a]_.
-    :param simplified_event:
-        This is the set of variables $D_{\ast}$ (in counterfactual factor form) and their values $d_{\ast}$
-        after getting processed by the simplify() algorithm (Algorithm 1 in [correa22a]_, called from Line 1 in
+    :param outcome_variable_ancestral_component_variable_names: The graph vertices
+        associated with ancestral components containing at least one outcome variable in
+        the query, represented as a set of Variable objects.
+    :param outcome_and_conditioned_variable_names: The graph vertices associated with
+        outcome and conditioned variables in the query (stripped of any interventions),
+        represented as a set of Variable objects.
+    :param conditioned_variable_names: The graph vertices associated with conditioned
+        variables in the query (stripped of any interventions), represented as a set of
+        Variable objects.
+    :param transported_unconditional_query_expression: the probabilistic expression
+        returned by the call to Algorithm 2 of [correa22a]_ and represented by $Q$ in
+        the pseudocode for Algorithm 3 of [correa22a]_.
+    :param simplified_event: This is the set of variables $D_{\ast}$ (in counterfactual
+        factor form) and their values $d_{\ast}$ after getting processed by the
+        simplify() algorithm (Algorithm 1 in [correa22a]_, called from Line 1 in
         Algorithm 2 of [correa22a]_. ) We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
-    :param outcome_and_conditioned_variable_names_to_values: a dictionary mapping those variables to their values
-        from the query passed in to transport_conditional_counterfactual_query() as a parameter.
-    :param outcomes:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
+    :param outcome_and_conditioned_variable_names_to_values: a dictionary mapping those
+        variables to their values from the query passed in to
+        transport_conditional_counterfactual_query() as a parameter.
+    :param outcomes: "Y_*, a set of counterfactual variables in V and y_* a set of
         values for Y_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
-    :param conditions:
-        "X_*, a set of counterfactual variables in V and x_* a set of
+    :param conditions: "X_*, a set of counterfactual variables in V and x_* a set of
         values for X_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
     :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-           $K$ tuples, one for each of the $K$ domains except for the target domain.
-           Each tuple contains a set of variables corresponding to
-           $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the probability distribution
-           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
-           Passed in to transport_conditional_counterfactual_query() as an input parameter.
-    :returns: a tuple containing an expression representing the query result, and a list of
-           variables and their values used to evaluate the expression. Per Line 4 of Algorithm 4 of
-           [correa22a]_, the return expression has the following form:
-        :math: $\frac{\Sigma_{\mathbf{d_{\ast}}\backslash(\mathbf{y_{\ast}} \cup \mathbf{x_{\ast}})}{Q}}
-                     {\Sigma_{\mathbf{d_{\ast}}\backslash\mathbf{x_{\ast}}}{Q}}$
+        $K$ tuples, one for each of the $K$ domains except for the target domain. Each
+        tuple contains a set of variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and
+        an expression denoting the probability distribution
+        $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in
+        \mathcal{Z}^{i}$. Passed in to transport_conditional_counterfactual_query() as
+        an input parameter.
+
+    :returns: a tuple containing an expression representing the query result, and a list
+        of variables and their values used to evaluate the expression. Per Line 4 of
+        Algorithm 4 of [correa22a]_, the return expression has the following form:
+        :math: $\frac{\Sigma_{\mathbf{d_{\ast}}\backslash(\mathbf{y_{\ast}} \cup
+        \mathbf{x_{\ast}})}{Q}}
+        {\Sigma_{\mathbf{d_{\ast}}\backslash\mathbf{x_{\ast}}}{Q}}$
     """
     # Line 4: compute the expression to return
     # $\mathbf{d_{\ast}} \backslash (\mathbf{y_{\ast}}\cup\mathbf{x_{\ast}})}$
@@ -2329,17 +2396,15 @@ def conditional_cft(
 ) -> ConditionalCFTResult | None:
     r"""Run a conditional counterfactual transportability query (Algorithm 3 from [correa22a]_).
 
-    :param outcomes:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
+    :param outcomes: "Y_*, a set of counterfactual variables in V and y_* a set of
         values for Y_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
-    :param conditions:
-        "X_*, a set of counterfactual variables in V and x_* a set of
+    :param conditions: "X_*, a set of counterfactual variables in V and x_* a set of
         values for X_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
     :param target_domain_graph: a graph for the target domain.
-    :param domains: A set of $K$ CFTDomain classes, one for each of the $K$ domains. See the
-        documentation for CFTDomain for more details.
+    :param domains: A set of $K$ CFTDomain classes, one for each of the $K$ domains. See
+        the documentation for CFTDomain for more details.
 
     :returns: The result of the query as a ConditionalCFTResult object.
     """
@@ -2366,35 +2431,36 @@ def transport_conditional_counterfactual_query(
 ) -> ConditionalCFTResult | None:
     r"""Implement the ctfTR algorithm from [correa22a]_ (Algorithm 3).
 
-    :param outcomes:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
+    :param outcomes: "Y_*, a set of counterfactual variables in V and y_* a set of
         values for Y_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
-    :param conditions:
-        "X_*, a set of counterfactual variables in V and x_* a set of
+    :param conditions: "X_*, a set of counterfactual variables in V and x_* a set of
         values for X_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
-    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
-           contains a selection diagram for that domain and a topologically sorted list
-           of all the vertices in the corresponding graph that are not transportability
-           nodes. (Nodes that have no parents come first in such lists.) The selection
-           diagram contains a transportability node for every vertex that is distributed
-           differently in the domain in question than in the target domain (e.g., Vertex
-           Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such that its edges
-           represent the state of the graph after a regime corresponding to domain $k$ has
-           been applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
+    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each
+        tuple contains a selection diagram for that domain and a topologically sorted
+        list of all the vertices in the corresponding graph that are not
+        transportability nodes. (Nodes that have no parents come first in such lists.)
+        The selection diagram contains a transportability node for every vertex that is
+        distributed differently in the domain in question than in the target domain
+        (e.g., Vertex Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such
+        that its edges represent the state of the graph after a regime corresponding to
+        domain $k$ has been applied (e.g., policy $\sigma_{X}$ in Figure 4 of
+        [correa22a]_).
     :param target_domain_graph: a graph for the target domain.
     :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-           $K$ tuples, one for each of the $K$ domains except for the target domain.
-           Each tuple contains a set of variables corresponding to
-           $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the probability distribution
-           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
+        $K$ tuples, one for each of the $K$ domains except for the target domain. Each
+        tuple contains a set of variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and
+        an expression denoting the probability distribution
+        $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in
+        \mathcal{Z}^{i}$.
+
     :returns: FAIL (None) if the algorithm fails, or a probabilistic expression for
-           $P^{\ast}(\mathbf{Y_{\ast}}=\mathbf{y_{\ast}} | \mathbf{X_{\ast}}=\mathbf{x_{\ast}}$
-           along a mapping of variables to values used to evaluate that expression.
-           If that expression evaluated to 0 because input values of some counterfactual
-           variables were not consistent, then the algorithm returns Zero (a DSL Expression type)
-           and no mapping.
+        $P^{\ast}(\mathbf{Y_{\ast}}=\mathbf{y_{\ast}} |
+        \mathbf{X_{\ast}}=\mathbf{x_{\ast}}$ along a mapping of variables to values used
+        to evaluate that expression. If that expression evaluated to 0 because input
+        values of some counterfactual variables were not consistent, then the algorithm
+        returns Zero (a DSL Expression type) and no mapping.
     """
     _validate_transport_conditional_counterfactual_query_input(
         outcomes=outcomes,
@@ -2482,36 +2548,37 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
 ) -> None:
     r"""Conduct pre-processing checks to transport conditional counterfacutal queries (Algorithm 3 from [correa22a]_).
 
-    :param outcomes:
-        "Y_*, a set of counterfactual variables in V and y_* a set of
+    :param outcomes: "Y_*, a set of counterfactual variables in V and y_* a set of
         values for Y_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
-    :param conditions:
-        "X_*, a set of counterfactual variables in V and x_* a set of
+    :param conditions: "X_*, a set of counterfactual variables in V and x_* a set of
         values for X_*." We encode the counterfactual variables as
         CounterfactualVariable objects, and the values as Intervention objects.
-    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each tuple
-           contains a selection diagram for that domain and a topologically sorted list
-           of all the vertices in the corresponding graph that are not transportability
-           nodes. (Nodes that have no parents come first in such lists.) The selection
-           diagram contains a transportability node for every vertex that is distributed
-           differently in the domain in question than in the target domain (e.g., Vertex
-           Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such that its edges
-           represent the state of the graph after a regime corresponding to domain $k$ has
-           been applied (e.g., policy $\sigma_{X}$ in Figure 4 of [correa22a]_).
+    :param domain_graphs: A set of $K$ tuples, one for each of the $K$ domains. Each
+        tuple contains a selection diagram for that domain and a topologically sorted
+        list of all the vertices in the corresponding graph that are not
+        transportability nodes. (Nodes that have no parents come first in such lists.)
+        The selection diagram contains a transportability node for every vertex that is
+        distributed differently in the domain in question than in the target domain
+        (e.g., Vertex Z in Figure 3(a) in [correa22a]_), and it is a causal diagram such
+        that its edges represent the state of the graph after a regime corresponding to
+        domain $k$ has been applied (e.g., policy $\sigma_{X}$ in Figure 4 of
+        [correa22a]_).
     :param target_domain_graph: a graph for the target domain.
     :param domain_data: Corresponding to $\mathcal{Z}$ in [correa22a]_, this is a set of
-           $K$ tuples, one for each of the $K$ domains except for the target domain.
-           Each tuple contains a set of variables corresponding to
-           $\sigma_{\mathbf{Z}_{k}}$ and an expression denoting the probability distribution
-           $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in \mathcal{Z}^{i}$.
-    :raises TypeError: a validity check associated with either the input variables
-           or the output event failed. See the error message for specifics.
+        $K$ tuples, one for each of the $K$ domains except for the target domain. Each
+        tuple contains a set of variables corresponding to $\sigma_{\mathbf{Z}_{k}}$ and
+        an expression denoting the probability distribution
+        $P^{k}(\mathbf{V};\sigma_{\mathbf{Z}\_{j}})|{\mathbf{Z}_{j}} \in
+        \mathcal{Z}^{i}$.
+
+    :raises TypeError: a validity check associated with either the input variables or
+        the output event failed. See the error message for specifics.
     :raises ValueError: an input variable is of valid type but has an invalid value. See
-           the error message for specifics.
-    :raises NotImplementedError: this algorithm does not currently handle input graph probability
-           Expression objects that are One() or Zero(), or cases where the conditioned and
-           outcome variable sets share one or more variables in common.
+        the error message for specifics.
+    :raises NotImplementedError: this algorithm does not currently handle input graph
+        probability Expression objects that are One() or Zero(), or cases where the
+        conditioned and outcome variable sets share one or more variables in common.
     """
     # Here are all the checks (numbering is just based on convenience during implementation, and
     #    the numbered order is not necessarily the order of implementation):
@@ -2827,17 +2894,21 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
 def _valid_topo_list(topo: list[Variable], graph: NxMixedGraph) -> bool:
     r"""Verify that a list of vertices is in topologically sorted order for a given graph.
 
-    :param topo: A candidate list of graph vertices. This function assumes every vertex in topo is somewhere
-        in the graph and every graph vertex is in topo (that is, this information has already been verified).
+    :param topo: A candidate list of graph vertices. This function assumes every vertex
+        in topo is somewhere in the graph and every graph vertex is in topo (that is,
+        this information has already been verified).
     :param graph: The graph in question.
-    :returns: True if the list is in a valid topologically sorted order, False otherwise.
 
-    From Cormen, Leiserson, Rivest, and Stein, "Introduction to Algorithms", second edition, p. 549:
-    a graph is sorted topologically if for every directed edge in the graph from $u$ to $v$,
-    the index of $u$ in the topologically sorted array of vertices is less than the index of $v$.
-    We just have to check this definition holds for each edge.
-    $O(E*V)$ if we use :func:`list.index` to do this. But :func:`list.index` is $O(n)$,
-    so we improve the running time to $O(E+V)$ by creating a hash table first.
+    :returns: True if the list is in a valid topologically sorted order, False
+        otherwise.
+
+    From Cormen, Leiserson, Rivest, and Stein, "Introduction to Algorithms", second
+    edition, p. 549: a graph is sorted topologically if for every directed edge in the
+    graph from $u$ to $v$, the index of $u$ in the topologically sorted array of
+    vertices is less than the index of $v$. We just have to check this definition holds
+    for each edge. $O(E*V)$ if we use :func:`list.index` to do this. But
+    :func:`list.index` is $O(n)$, so we improve the running time to $O(E+V)$ by creating
+    a hash table first.
     """
     node_to_index = {node: index for index, node in enumerate(topo)}
     return not any(node_to_index[u] > node_to_index[v] for u, v in graph.directed.edges)

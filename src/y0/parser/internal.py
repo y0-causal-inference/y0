@@ -38,9 +38,12 @@ for letter in itt.chain(string.ascii_uppercase, ["Pi", "π"]):
 def parse_y0(s: str) -> Expression:
     """Parse a valid Python expression using the :mod:`y0.dsl` objects, written in a string.
 
-    :param s: The string to parse. Should be a valid Python expression given ``from y0.dsl import *``.
-        Variables of the form A-Z, A0-Z0, A_0-Z_0, A1-Z1, A_1-Z_1, ..., A9-Z9, A_9-Z_9 are available.
-    :return: An expression object.
+    :param s: The string to parse. Should be a valid Python expression given ``from
+        y0.dsl import *``. Variables of the form A-Z, A0-Z0, A_0-Z_0, A1-Z1, A_1-Z_1,
+        ..., A9-Z9, A_9-Z_9 are available.
+
+
+    :returns: An expression object.
 
     >>> from y0.parser import parse_y0
     >>> from y0.dsl import P, PP, A, B, Sum, Pi1

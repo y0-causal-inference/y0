@@ -299,17 +299,15 @@ def is_apt_order(candidate_order: list[Variable], graph: NxMixedGraph) -> bool:
 def _validate_apt_order_inputs(candidate_order: list[Variable], graph: NxMixedGraph) -> None:
     r"""Validate inputs for is_apt_order function.
 
-    Definition 9.2 requires apt-order to be a total order $\lt$ on $V$.
-    This function ensures the input satisfies the basic requirements of a
-    total order: all vertices present exactly once.
-
+    Definition 9.2 requires apt-order to be a total order $\lt$ on $V$. This function
+    ensures the input satisfies the basic requirements of a total order: all vertices
+    present exactly once.
 
     This function checks:
 
     1. All nodes in order exist in the graph.
     2. All nodes in the graph are present in order.
     3. No duplicate nodes in order.
-
 
     :param candidate_order: The candidate apt-order.
     :param graph: The corresponding graph.
@@ -339,16 +337,15 @@ def _check_ancestors_are_prior_to_non_scc_descendants(
 ) -> bool:
     r"""Check Condition 1 from Definition 9.2 of [forré20a]_.
 
-    For every v, w ∈ V:
-    w ∈ Anc^G(v) \ Sc^G(v) ⟹ w < v
+    For every v, w ∈ V: w ∈ Anc^G(v) Sc^G(v) ⟹ w < v
 
-    This verifies that ancestors outside a node's SCC appear before that node
-    in the order. In other words: you can't have a node appear before its
-    non-SCC ancestors.
+    This verifies that ancestors outside a node's SCC appear before that node in the
+    order. In other words: you can't have a node appear before its non-SCC ancestors.
 
     :param candidate_order: The candidate apt-order (list of variables).
     :param graph: The corresponding graph.
-    :param components: Set of strongly connected components (each is a frozenset of variables).
+    :param components: Set of strongly connected components (each is a frozenset of
+        variables).
 
     :returns: True if the ancestry constraint is satisfied, False otherwise.
     """
@@ -373,17 +370,17 @@ def _check_members_of_scc_are_consecutive(
 ) -> bool:
     r"""Check Condition 2 from Definition 9.2 of [forré20a]_.
 
-    For every v₁, v₂, w ∈ V:
-    v₂ ∈ Sc^G(v₁) ∧ (v₁ ≤ w ≤ v₂) ⟹ w ∈ Sc^G(v₁)
+    For every v₁, v₂, w ∈ V: v₂ ∈ Sc^G(v₁) ∧ (v₁ ≤ w ≤ v₂) ⟹ w ∈ Sc^G(v₁)
 
-    Translation: If v₂ is in same SCC as v₁, and w is between them
-    in the order, then w must also be in that SCC.
+    Translation: If v₂ is in same SCC as v₁, and w is between them in the order, then w
+    must also be in that SCC.
 
-    In other words: Nodes in the same SCC (feedback loop) must appear
-    consecutively in the order with no nodes from other SCCs in between.
+    In other words: Nodes in the same SCC (feedback loop) must appear consecutively in
+    the order with no nodes from other SCCs in between.
 
     :param candidate_order: The order to validate as a potential apt-order.
-    :param components: Set of strongly connected components (each is a frozenset of variables).
+    :param components: Set of strongly connected components (each is a frozenset of
+        variables).
 
     :returns: True if all SCCs are consecutive, False otherwise.
     """
