@@ -4,6 +4,8 @@ import logging
 
 from ..identify.id_std import identify
 from ..identify.utils import Identification, Unidentifiable
+from ..identify.id_std import identify
+from ..identify.utils import Identification, Unidentifiable
 from ..ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
@@ -27,11 +29,11 @@ def idcd(
 ) -> Expression:
     r"""Identify causal effects within consolidated districts of cyclic graphs.
 
-    This implements Algorithm 1, Lines 13-28 from [forré20a]_. IDCD is a helper
-    function called by the main ID algorithm at Line 5.
+    This implements Algorithm 1, Lines 13-28 from [forré20a]_. IDCD is a helper function
+    called by the main ID algorithm at Line 5.
 
-    Let $G$ be a directed mixed graph (DMG), $C \subseteq D \subseteq V$ where $D$ is
-    a consolidated district with $\text{CD}(G_D) = \{D\}$, and $Q[D]$ is a probability
+    Let $G$ be a directed mixed graph (DMG), $C \subseteq D \subseteq V$ where $D$ is a
+    consolidated district with $\text{CD}(G_D) = \{D\}$, and $Q[D]$ is a probability
     distribution over $D$. IDCD identifies the causal effect $Q[C]$ by recursively
     shrinking the district through ancestral closure and SCC decomposition.
 
@@ -40,7 +42,9 @@ def idcd(
     :param D: Consolidated district containing C.
     :param Q_D: Probability distribution over district D.
     :param _number_recursions: Recursion depth tracker for logging.
+
     :returns: Identified causal effect Q[C].
+
     :raises ValueError: If preconditions are violated (C ⊆ D ⊆ V).
     :raises Unidentifiable: If causal effect cannot be identified.
     """
@@ -89,6 +93,7 @@ def validate_preconditions(
     :param targets: Target variable set.
     :param district: Consolidated district containing targets.
     :param recursion_level: Current recursion depth for logging.
+
     :raises ValueError: If any precondition is violated.
      References:
         Algorithm 1, Line 14 from Forré & Mooij (2019)
@@ -151,6 +156,7 @@ def line_15(
     :param C: Target variable set.
     :param D: District containing C.
     :param recursion_level: Current recursion depth for logging.
+
     :returns: Ancestral closure A.
     """
     A = set().union(*(subgraph_D.ancestors_inclusive(c) for c in C)) & D
@@ -169,13 +175,14 @@ def line_16(
 
     Line 16: Q[A] ← ∫ Q[D] d(x_{D\A})
 
-    Marginalizes Q[D] over variables D \ A using apt-order for deterministic ordering.
+    Marginalizes Q[D] over variables D A using apt-order for deterministic ordering.
 
     :param subgraph_D: Subgraph G[D].
     :param Q_D: Distribution over D.
     :param D: District.
     :param A: Ancestral closure.
     :param recursion_level: Current recursion depth for logging.
+
     :returns: Distribution Q[A].
     """
     marginalize_out = D - A
@@ -187,6 +194,7 @@ def line_16(
     apt_order_D = get_apt_order(subgraph_D)
     apt_order_marginalize = [v for v in apt_order_D if v in marginalize_out]
 
+    logger.debug(f"[{recursion_level}]: Line 16 - Marginalizing {len(apt_order_marginalize)} vars")
     logger.debug(f"[{recursion_level}]: Line 16 - Marginalizing {len(apt_order_marginalize)} vars")
 
     return Q_D.marginalize(apt_order_marginalize)
@@ -202,8 +210,9 @@ def lines_21_26(
     r"""Run lines 21-26 of IDCD algorithm.
 
     Lines 21-26: Recursive case when C ⊂ A ⊂ D
+
     - Line 22: Loop over SCCs in G[A] where S ⊆ Cd^G[A](C)
-    - Line 23: Compute R_A[S] ← P(S | Pred^G_<(S) ∩ A, do(J ∪ V \ A))
+    - Line 23: Compute R_A[S] ← P(S | Pred^G_<(S) ∩ A, do(J ∪ V - A))
     - Line 25: Q[Cd^G[A](C)] ← ⊗ R_A[S]
     - Line 26: Recursive IDCD call
 
@@ -212,6 +221,7 @@ def lines_21_26(
     :param A: Ancestral closure.
     :param D: Original district.
     :param recursion_level: Current recursion depth.
+
     :returns: Result of recursive IDCD call.
     """
     logger.debug(f"[{recursion_level}]: Lines 21-26 - Recursive case (C ⊂ A ⊂ D)")
@@ -254,15 +264,17 @@ def line_23(
 ) -> dict[frozenset[Variable], Expression]:
     r"""Run line 23 of IDCD algorithm.
 
-    Line 23: R_A[S] ← P(S | Pred^G_<(S) ∩ A, do(J ∪ V \ A))
+    Line 23: R_A[S] ← P(S | Pred^G_<(S) ∩ A, do(J ∪ V - A))
 
-    For each SCC S, calls the main ID algorithm to identify the conditional causal effect.
+    For each SCC S, calls the main ID algorithm to identify the conditional causal
+    effect.
 
     :param graph: The full causal graph.
     :param subgraph_A: Subgraph G[A].
     :param relevant_sccs: SCCs to process.
     :param A: Ancestral closure.
     :param recursion_level: Current recursion depth.
+
     :returns: Dictionary mapping each SCC to its distribution R_A[S].
     """
     V = set(graph.nodes())
@@ -275,7 +287,6 @@ def line_23(
         # Compute Pred^G_<(S) ∩ A (predecessors in apt-order)
         conditioning_set = _get_apt_order_predecessors(S, apt_order_A, A)
 
-        # Intervention set: J ∪ V \ A
         intervention_set = J | (V - A)
 
         logger.debug(
@@ -312,6 +323,7 @@ def line_25(
     :param RA: Dictionary of SCC distributions.
     :param relevant_sccs: List of SCCs.
     :param recursion_level: Current recursion depth.
+
     :returns: Tensor product expression Q[Cd^G[A](C)].
     """
     # Sort SCCs for deterministic ordering
@@ -329,12 +341,13 @@ def _get_apt_order_predecessors(
 ) -> set[Variable]:
     r"""Get predecessors of SCC in apt-order (helper for line 23).
 
-    Computes Pred^G_<(S) ∩ A, which is the set of all variables that come
-    before S in the apt-order and are within A.
+    Computes Pred^G_<(S) ∩ A, which is the set of all variables that come before S in
+    the apt-order and are within A.
 
     :param S: The SCC.
     :param apt_order: Apt-order for the graph.
     :param A: Set to intersect with.
+
     :returns: Set of predecessors Pred^G_<(S) ∩ A.
     """
     s_positions = [apt_order.index(v) for v in S if v in apt_order]
@@ -345,3 +358,4 @@ def _get_apt_order_predecessors(
     min_position = min(s_positions)
 
     return {apt_order[i] for i in range(min_position) if apt_order[i] in A}
+
