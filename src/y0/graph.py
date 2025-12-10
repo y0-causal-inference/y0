@@ -760,7 +760,7 @@ def _descendants_inclusive(graph: nx.DiGraph, sources: set[Variable]) -> set[Var
 
 
 def _include_adjacent(
-    graph: nx.Graph, vertices: set[Variable]
+    graph: nx.Graph, vertices: Variable | Iterable[Variable]
 ) -> Collection[tuple[Variable, Variable]]:
     vertices = _ensure_set(vertices)
     return [(u, v) for u, v in graph.edges() if u in vertices and v in vertices]
@@ -1008,8 +1008,8 @@ def iter_moral_links(graph: NxMixedGraph) -> Iterable[tuple[Variable, Variable]]
 
 def get_nodes_in_directed_paths(
     graph: NxMixedGraph,
-    sources: Variable | set[Variable],
-    targets: Variable | set[Variable],
+    sources: Variable | Iterable[Variable],
+    targets: Variable | Iterable[Variable],
 ) -> set[Variable]:
     """Get all nodes appearing in directed paths from sources to targets.
 

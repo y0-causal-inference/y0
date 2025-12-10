@@ -40,9 +40,9 @@ class Query:
 
     def __init__(
         self,
-        outcomes: Variable | set[Variable],
-        treatments: Variable | set[Variable],
-        conditions: None | Variable | set[Variable] = None,
+        outcomes: Variable | Iterable[Variable],
+        treatments: Variable | Iterable[Variable],
+        conditions: None | Variable | Iterable[Variable] = None,
     ) -> None:
         """Instantiate an identification.
 
@@ -52,7 +52,7 @@ class Query:
         """
         self.outcomes = _ensure_set(outcomes)
         self.treatments = _ensure_set(treatments)
-        self.conditions = _ensure_set(conditions or set())
+        self.conditions = _ensure_set(conditions) if conditions is not None else set()
 
     def __eq__(self, other: Any) -> bool:
         """Check if the outcomes, treatments, and conditions are equal."""
@@ -216,11 +216,11 @@ class Identification:
     @classmethod
     def from_parts(
         cls,
-        outcomes: set[Variable],
-        treatments: set[Variable],
+        outcomes: Variable | Iterable[Variable],
+        treatments: Variable | Iterable[Variable],
         graph: NxMixedGraph,
         estimand: Expression | None = None,
-        conditions: set[Variable] | None = None,
+        conditions: Variable | Iterable[Variable] | None = None,
     ) -> Identification:
         """Instantiate an identification.
 
