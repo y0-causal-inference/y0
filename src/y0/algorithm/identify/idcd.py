@@ -177,7 +177,7 @@ def compute_ancestral_closure(
     induced subgraph G[D], intersected with D. This represents all
     variables in D that causally influence C (directly or indirectly).
 
-    :param subgraph_d: Indiced subgraph G[D] over district D.
+    :param subgraph_d: Induced subgraph G[D] over district D.
     :param targets: Target variable set to identify
     :param district: Consolidated district containing targets.
     :param recursion_level: Current recursion depth for logging.
@@ -353,7 +353,7 @@ def compute_district_product(
 ) -> Expression:
     r"""Compute the tensor product over SCC distributions.
 
-    qImplements Algorithm 1, Line 25: Q[Cd^G[A](C)] ← ⊗ R_A[S]
+    Implements Algorithm 1, Line 25: Q[Cd^G[A](C)] ← ⊗ R_A[S]
     Computes the tensor product (⊗) over all R_A[S] distributions.
 
     :param scc_distributions: Dictionary of SCC distributions.
