@@ -2,7 +2,7 @@
 
 import logging
 
-from y0.algorithm.identify import P, identify
+from y0.algorithm.identify import identify
 from y0.algorithm.identify.utils import (
     Identification,
     Unidentifiable,
@@ -13,7 +13,7 @@ from ..ioscm.utils import (
     get_consolidated_district,
     get_strongly_connected_components,
 )
-from ...dsl import Expression, Product, Variable
+from ...dsl import Expression, P, Product, Variable
 from ...graph import NxMixedGraph
 
 __all__ = ["idcd"]
@@ -321,7 +321,7 @@ def compute_scc_distributions(
     :returns: Dictionary mapping each SCC to its distribution R_A[S].
     """
     nodes = set(graph.nodes())
-    background_interventions = set()  # Assuming no background interventions (J = ∅)
+    background_interventions: set[Variable] = set()  # Assuming no background interventions (J = ∅)
     apt_order_a = get_apt_order(subgraph_a)
 
     scc_distributions: dict[frozenset[Variable], Expression] = {}
