@@ -1,6 +1,7 @@
 """High-level API for identification algorithms."""
 
 from collections.abc import Iterable
+from typing import Literal, overload
 
 from .id_c import idc
 from .id_std import identify
@@ -13,11 +14,37 @@ __all__ = [
 ]
 
 
+# docstr-coverage:excused `overload`
+@overload
+def identify_outcomes(
+    graph: NxMixedGraph,
+    treatments: Variable | Iterable[Variable],
+    outcomes: Variable | Iterable[Variable],
+    conditions: None | Variable | Iterable[Variable] = ...,
+    *,
+    strict: Literal[True] = ...,
+) -> Expression: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def identify_outcomes(
+    graph: NxMixedGraph,
+    treatments: Variable | Iterable[Variable],
+    outcomes: Variable | Iterable[Variable],
+    conditions: None | Variable | Iterable[Variable] = ...,
+    *,
+    strict: Literal[False] = ...,
+) -> Expression | None: ...
+
+
 def identify_outcomes(
     graph: NxMixedGraph,
     treatments: Variable | Iterable[Variable],
     outcomes: Variable | Iterable[Variable],
     conditions: None | Variable | Iterable[Variable] = None,
+    *,
+    strict: bool = False,
 ) -> Expression | None:
     """Calculate the estimand for the treatment(s)m outcome(s), and optional condition(s).
 
@@ -27,6 +54,7 @@ def identify_outcomes(
     :param conditions: Optional condition or condition nodes. If given, uses the IDC
         algorithm via :func:`y0.algorithm.identify.idc`. Otherwise, uses the ID
         algorithm via :func:`y0.algorithm.identify.identify`.
+    :param strict: If true, raises an error identification fails rather than returning None
 
     :returns: An expression representing the estimand if the query is identifiable. If
         the query is not identifiable, returns none.
@@ -41,5 +69,7 @@ def identify_outcomes(
         else:
             rv = idc(identification)
     except Unidentifiable:
+        if strict:
+            raise
         return None
     return rv
