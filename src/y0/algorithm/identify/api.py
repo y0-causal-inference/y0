@@ -1,10 +1,12 @@
 """High-level API for identification algorithms."""
 
+from collections.abc import Iterable
+
 from .id_c import idc
 from .id_std import identify
-from .utils import Identification, Query, Unidentifiable
+from .utils import Identification, Unidentifiable
 from ...dsl import Expression, Variable
-from ...graph import NxMixedGraph, _ensure_set
+from ...graph import NxMixedGraph
 
 __all__ = [
     "identify_outcomes",
@@ -13,9 +15,9 @@ __all__ = [
 
 def identify_outcomes(
     graph: NxMixedGraph,
-    treatments: Variable | set[Variable],
-    outcomes: Variable | set[Variable],
-    conditions: None | Variable | set[Variable] = None,
+    treatments: Variable | Iterable[Variable],
+    outcomes: Variable | Iterable[Variable],
+    conditions: None | Variable | Iterable[Variable] = None,
 ) -> Expression | None:
     """Calculate the estimand for the treatment(s)m outcome(s), and optional condition(s).
 
@@ -29,14 +31,12 @@ def identify_outcomes(
     :returns: An expression representing the estimand if the query is identifiable. If
         the query is not identifiable, returns none.
     """
-    treatments = _ensure_set(treatments)
-    outcomes = _ensure_set(outcomes)
-
-    query = Query(treatments=treatments, outcomes=outcomes, conditions=conditions)
-    identification = Identification(graph=graph, query=query)
+    identification = Identification.from_parts(
+        graph=graph, treatments=treatments, outcomes=outcomes, conditions=conditions
+    )
 
     try:
-        if conditions is None:
+        if not identification.conditions:
             rv = identify(identification)
         else:
             rv = idc(identification)
