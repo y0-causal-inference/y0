@@ -53,11 +53,14 @@ def idcd(
     # line 14
     validate_preconditions(graph, targets, district, _number_recursions)
 
-    # line 15
+    # line 15: A <- An^G[D](C)
     subgraph_d = graph.subgraph(district)
-    ancestral_closure = compute_ancestral_closure(subgraph_d, targets, district, _number_recursions)
+    ancestral_closure = subgraph_d.ancestors_inclusive(targets) & district
+    logger.debug(
+        f"[{_number_recursions}]: Line 15 - A = {sorted(ancestral_closure)}, |A| = {len(ancestral_closure)}"
+    )
 
-    # # line 16
+    # line 16
     distribution_a = marginalize_to_ancestors(
         subgraph_d, distribution, district, ancestral_closure, _number_recursions
     )
@@ -76,11 +79,11 @@ def idcd(
             f"Causal effect Q[{sorted(targets)}] is unidentifiable within district D = {sorted(ancestral_closure)}"
         )
 
-    # checking recursive case (must have targets ⊂ ancestral_closure ⊂ district)
-
-    if not (targets < ancestral_closure < district):
+    # checking recursive case (must have targets ⊊ ancestral_closure ⊊ district)
+    # strict subsets: targets and ancestral_closure must be strictly smaller
+    if not (targets < ancestral_closure and ancestral_closure < district):
         raise ValueError(
-            f"Unexpected state: expected targets ⊂ ancestral_closure ⊂ district, but got "
+            f"Unexpected state: expected targets ⊊ ancestral_closure ⊊ district, but got "
             f"targets={sorted(targets)}, ancestral_closure={sorted(ancestral_closure)}, district={sorted(district)}"
         )
 
@@ -158,45 +161,6 @@ def validate_preconditions(
     )
 
 
-# ------------------------------------------------------------
-
-
-def compute_ancestral_closure(
-    subgraph_d: NxMixedGraph,
-    targets: set[Variable],
-    district: set[Variable],
-    recursion_level: int,
-) -> set[Variable]:
-    r"""Compute ancestral closure within a district.
-
-    Line 15: A ← An^G[D](C)
-
-
-
-    Computes the set of ancestors of target variables C within the
-    induced subgraph G[D], intersected with D. This represents all
-    variables in D that causally influence C (directly or indirectly).
-
-    :param subgraph_d: Induced subgraph G[D] over district D.
-    :param targets: Target variable set to identify
-    :param district: Consolidated district containing targets.
-    :param recursion_level: Current recursion depth for logging.
-
-    :returns: Ancestral closure A.
-
-    References:
-        Algorithm 1, Line 15 from Forré & Mooij (2019)
-    """
-    # compute A = An^G[D](C) ∩ D
-    ancestral_closure = subgraph_d.ancestors_inclusive(targets) & district
-
-    logger.debug(
-        f"[{recursion_level}]: Line 15 - A = {sorted(ancestral_closure)}, |A| = {len(ancestral_closure)}"
-    )
-
-    return ancestral_closure
-
-
 # ---------------------------------------------------------
 
 
@@ -230,6 +194,7 @@ def marginalize_to_ancestors(
         return distribution
 
     apt_order_d = get_apt_order(subgraph_d)
+    # Use apt-order for marginalization to minimize intermediate factor sizes
     apt_order_marginalize = [v for v in apt_order_d if v in marginalize_out]
 
     logger.debug(f"[{recursion_level}]: Line 16 - Marginalizing {len(apt_order_marginalize)} vars")
@@ -304,6 +269,7 @@ def compute_scc_distributions(
     relevant_sccs: list[frozenset[Variable]],
     ancestral_closure: set[Variable],
     recursion_level: int,
+    background_interventions: set[Variable] | None = None,
 ) -> dict[frozenset[Variable], Expression]:
     r"""Compute distributions for each strongly connected component (SCC).
 
@@ -316,12 +282,14 @@ def compute_scc_distributions(
     :param subgraph_a: Subgraph G[A].
     :param relevant_sccs: SCCs to process.
     :param ancestral_closure: Ancestral closure.
+    :param background_interventions: Set of background interventions (J), if any.
     :param recursion_level: Current recursion depth.
 
     :returns: Dictionary mapping each SCC to its distribution R_A[S].
     """
     nodes = set(graph.nodes())
-    background_interventions: set[Variable] = set()  # Assuming no background interventions (J = ∅)
+    if background_interventions is None:
+        background_interventions = set()
     apt_order_a = get_apt_order(subgraph_a)
 
     scc_distributions: dict[frozenset[Variable], Expression] = {}
@@ -383,10 +351,5 @@ def _get_apt_order_predecessors(
 
     :returns: Set of predecessors Pred^G_<(S) ∩ A.
     """
-    scc_positions = [apt_order.index(v) for v in scc if v in apt_order]
-    if not scc_positions:
-        raise ValueError(f"SCC {sorted(scc)} not found in apt-order")
-
-    min_position = min(scc_positions)
-
-    return {apt_order[i] for i in range(min_position) if apt_order[i] in ancestral_closure}
+    min_position = min(apt_order.index(v) for v in scc if v in apt_order)
+    return ancestral_closure.intersection(apt_order[:min_position])
