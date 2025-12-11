@@ -2,18 +2,14 @@
 
 import logging
 
-from y0.algorithm.identify import identify
-from y0.algorithm.identify.utils import (
-    Identification,
-    Unidentifiable,
-)
+from y0.algorithm.identify import Unidentifiable, identify_outcomes
 
 from ..ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
     get_strongly_connected_components,
 )
-from ...dsl import Expression, P, Product, Variable
+from ...dsl import Expression, Product, Variable
 from ...graph import NxMixedGraph
 
 __all__ = ["idcd"]
@@ -291,26 +287,20 @@ def compute_scc_distributions(
     if background_interventions is None:
         background_interventions = set()
     apt_order_a = get_apt_order(subgraph_a)
-
-    scc_distributions: dict[frozenset[Variable], Expression] = {}
-
     intervention_set = background_interventions | (nodes - ancestral_closure)
 
-    for scc in relevant_sccs:
-        # Compute Pred^G_<(S) ∩ A (predecessors in apt-order)
-        conditioning_set = _get_apt_order_predecessors(scc, apt_order_a, ancestral_closure)
-
-        # Build identification query for main ID algorithm
-        identification_obj = Identification.from_parts(
+    scc_distributions = {
+        # Call main ID algorithm to identify R_A[S]
+        scc: identify_outcomes(
             outcomes=scc,
             treatments=intervention_set,
-            conditions=conditioning_set,
+            # Compute Pred^G_<(S) ∩ A (predecessors in apt-order)
+            conditions=_get_apt_order_predecessors(scc, apt_order_a, ancestral_closure),
             graph=graph,
-            estimand=P(graph.nodes()),
+            strict=True,
         )
-
-        # Call main ID algorithm to identify R_A[S]
-        scc_distributions[scc] = identify(identification_obj)
+        for scc in relevant_sccs
+    }
     return scc_distributions
 
 
