@@ -3,8 +3,13 @@
 import unittest
 
 from tests.test_algorithm.test_ioscm import simple_cyclic_graph_1
-from y0.algorithm.identify.idcd import marginalize_to_ancestors, validate_preconditions
-from y0.dsl import P, Variable, W, X, Y, Z
+from y0.algorithm.identify.idcd import (
+    _get_apt_order_predecessors,
+    marginalize_to_ancestors,
+    validate_preconditions,
+)
+from y0.algorithm.ioscm.utils import get_apt_order
+from y0.dsl import P, R, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 
@@ -14,6 +19,9 @@ class TestIDCD(unittest.TestCase):
     def test_fail(self) -> None:
         """Test failure."""
         self.fail(msg="tests are required before merge")
+
+
+# ----------------------------------------------------------------------------
 
 
 class TestValidatePreconditions(unittest.TestCase):
@@ -93,6 +101,9 @@ class TestValidatePreconditions(unittest.TestCase):
         validate_preconditions(graph, targets, district, recursion_level=0)
 
 
+# ----------------------------------------------------------------------------
+
+
 class TestMarginalizationToAncestors(unittest.TestCase):
     """Tests for marginalization to ancestors function."""
 
@@ -135,3 +146,83 @@ class TestMarginalizationToAncestors(unittest.TestCase):
         result_str = str(result)
         self.assertIn("Sum", result_str)
         self.assertIn("X", result_str)
+
+
+# ----------------------------------------------------------------------------
+
+
+class TestGetAptOrderPredecessors(unittest.TestCase):
+    """Tests the _get_apt_order_predecessors function."""
+
+    def test_first_element_has_no_predecessors(self) -> None:
+        """First element in apt-order should have no predecessors."""
+        graph = simple_cyclic_graph_1
+        subgraph = graph.subgraph({R, W, X, Z, Y})
+        apt_order = get_apt_order(subgraph)
+
+        # first element should not have predecessors
+        scc = frozenset([R])
+        ancestral_closure = {R, W, X, Z, Y}
+
+        predecessors = _get_apt_order_predecessors(scc, apt_order, ancestral_closure)
+        self.assertEqual(predecessors, set())
+
+    def test_predecessors_filtered_by_ancestral_closure(self) -> None:
+        """Predecessors should only include those in the ancestral closure."""
+        # Apt order = [R, W, X, Z, Y]
+
+        # If ancestral closure = {R, Z}, only R should be predecessor of Z
+        graph = simple_cyclic_graph_1
+        subgraph = graph.subgraph({R, W, X, Z, Y})
+        apt_order = get_apt_order(subgraph)
+
+        scc = frozenset([Z])
+        ancestral_closure = {R, Z}
+
+        predecessors = _get_apt_order_predecessors(scc, apt_order, ancestral_closure)
+
+        self.assertEqual(predecessors, {R})
+
+    def test_all_predecessors_included(self) -> None:
+        """All variables before SCC in apt order and in ancestral closure should be included."""
+        # apt order = [R, W, X, Z, Y], Y is last so all before it should be included
+
+        graph = simple_cyclic_graph_1
+        subgraph = graph.subgraph({R, W, X, Z, Y})
+        apt_order = get_apt_order(subgraph)
+
+        scc = frozenset([Y])
+        ancestral_closure = {R, W, X, Z, Y}
+
+        predecessors = _get_apt_order_predecessors(scc, apt_order, ancestral_closure)
+
+        self.assertEqual(predecessors, {R, W, X, Z})
+
+    def test_multi_node_scc_uses_minimum_position(self) -> None:
+        """For multi-node SCC, use the minimum position of its members in apt order."""
+        graph = simple_cyclic_graph_1
+        subgraph = graph.subgraph({R, W, X, Z, Y})
+        apt_order = get_apt_order(subgraph)
+
+        scc = frozenset([W, X, Z])
+        ancestral_closure = {R, W, X, Z, Y}
+
+        predecessors = _get_apt_order_predecessors(scc, apt_order, ancestral_closure)
+
+        self.assertEqual(predecessors, {R})
+
+    def test_empty_ancestral_closure(self) -> None:
+        """If ancestral closure is empty, there should be no predecessors."""
+        graph = simple_cyclic_graph_1
+        subgraph = graph.subgraph({R, W, X, Z, Y})
+        apt_order = get_apt_order(subgraph)
+
+        scc = frozenset([Z])
+        ancestral_closure: set[Variable] = set()
+
+        predecessors = _get_apt_order_predecessors(scc, apt_order, ancestral_closure)
+
+        self.assertEqual(predecessors, set())
+
+
+# ----------------------------------------------------------------------------
