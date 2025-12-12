@@ -4,7 +4,7 @@ import unittest
 
 from tests.test_algorithm.test_ioscm import simple_cyclic_graph_1
 from y0.algorithm.identify.idcd import marginalize_to_ancestors, validate_preconditions
-from y0.dsl import P, Q, W, X, Y, Z
+from y0.dsl import P, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 
@@ -22,7 +22,7 @@ class TestValidatePreconditions(unittest.TestCase):
     def test_empty_targets_raises_error(self) -> None:
         """Empty target set should raise ValueError."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)])
-        targets = set()
+        targets: set[Variable] = set()
         district = {Y}
 
         with self.assertRaisesRegex(ValueError, "Target set C cannot be empty"):
@@ -32,7 +32,7 @@ class TestValidatePreconditions(unittest.TestCase):
         """Empty district should raise ValueError."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)])
         targets = {Y}
-        district = set()
+        district: set[Variable] = set()
 
         with self.assertRaisesRegex(ValueError, "District D cannot be empty"):
             validate_preconditions(graph, targets, district, recursion_level=0)
@@ -53,7 +53,7 @@ class TestValidatePreconditions(unittest.TestCase):
         """District must be a subset of graph nodes."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)])
         targets = {Y}
-        district = {Y, Q}  # Q not in graph
+        district = {Y, Z}  # Z not in graph
 
         with self.assertRaisesRegex(
             ValueError,
