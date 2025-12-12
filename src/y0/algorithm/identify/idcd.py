@@ -58,7 +58,7 @@ def idcd(
 
     # line 16
     distribution_a = marginalize_to_ancestors(
-        subgraph_d, distribution, district, ancestral_closure, _number_recursions
+        distribution, district, ancestral_closure, _number_recursions
     )
 
     # # lines 17-18
@@ -131,14 +131,14 @@ def validate_preconditions(
     # check C ⊆ D
     if not targets.issubset(district):
         raise ValueError(
-            f"C must be subset of D. "
+            f"Target must be subset of district. "
             f"C={sorted(targets)}, D={sorted(district)}, C\\D={sorted(targets - district)}"
         )
 
     if not district.issubset(nodes):
         raise ValueError(
-            f"D must be subset of V. "
-            f"D={sorted(district)}, V={sorted(nodes)}, D\\V={sorted(district - nodes)}"
+            f"District must be subset of graph nodes. "
+            f"D={district}, V={nodes}, D\\V={district - nodes}"
         )
 
     # check CD(G_D) = {D}
@@ -161,7 +161,6 @@ def validate_preconditions(
 
 
 def marginalize_to_ancestors(
-    subgraph_d: NxMixedGraph,
     distribution: Expression,
     district: set[Variable],
     ancestral_closure: set[Variable],
@@ -173,7 +172,6 @@ def marginalize_to_ancestors(
 
     #   Marginalizes Q[D] over variables D\A using apt-order for deterministic ordering.
 
-    :param subgraph_d: Subgraph G[D].
     :param distribution: Distribution over D.
     :param district: District.
     :param ancestral_closure: Ancestral closure.
@@ -189,13 +187,8 @@ def marginalize_to_ancestors(
         )
         return distribution
 
-    apt_order_d = get_apt_order(subgraph_d)
-    # Use apt-order for marginalization to minimize intermediate factor sizes
-    apt_order_marginalize = [v for v in apt_order_d if v in marginalize_out]
-
-    logger.debug(f"[{recursion_level}]: Line 16 - Marginalizing {len(apt_order_marginalize)} vars")
-
-    return distribution.marginalize(apt_order_marginalize)
+    logger.debug(f"[{recursion_level}]: Line 16 - Marginalizing out {len(marginalize_out)} vars")
+    return distribution.marginalize(marginalize_out)
 
 
 # ---------------------------------------------------------
@@ -241,9 +234,8 @@ def identify_through_scc_decomposition(
     )
 
     # line 25
-    district_distribution = compute_district_product(
-        scc_distributions, relevant_sccs, recursion_level
-    )
+    logger.debug(f"[{recursion_level}]: Line 25 - Product over {len(scc_distributions)} SCCs")
+    district_distribution = Product.safe([scc_distributions[scc] for scc in relevant_sccs])
 
     # line 26
     logger.debug(f"[{recursion_level}]: Line 26 - Recursive call")
@@ -278,16 +270,14 @@ def compute_scc_distributions(
     :param subgraph_a: Subgraph G[A].
     :param relevant_sccs: SCCs to process.
     :param ancestral_closure: Ancestral closure.
-    :param background_interventions: Set of background interventions (J), if any.
     :param recursion_level: Current recursion depth.
 
     :returns: Dictionary mapping each SCC to its distribution R_A[S].
     """
     nodes = set(graph.nodes())
-    if background_interventions is None:
-        background_interventions = set()
     apt_order_a = get_apt_order(subgraph_a)
-    intervention_set = background_interventions | (nodes - ancestral_closure)
+
+    intervention_set = nodes - ancestral_closure
 
     scc_distributions = {
         # Call main ID algorithm to identify R_A[S]
@@ -304,25 +294,7 @@ def compute_scc_distributions(
     return scc_distributions
 
 
-def compute_district_product(
-    scc_distributions: dict[frozenset[Variable], Expression],
-    relevant_sccs: list[frozenset[Variable]],
-    recursion_level: int,
-) -> Expression:
-    r"""Compute the tensor product over SCC distributions.
-
-    Implements Algorithm 1, Line 25: Q[Cd^G[A](C)] ← ⊗ R_A[S]
-    Computes the tensor product (⊗) over all R_A[S] distributions.
-
-    :param scc_distributions: Dictionary of SCC distributions.
-    :param relevant_sccs: List of SCCs.
-    :param recursion_level: Current recursion depth.
-
-    :returns: Tensor product expression Q[Cd^G[A](C)].
-    """
-    logger.debug(f"[{recursion_level}]: Line 25 - Product over {len(scc_distributions)} SCCs")
-
-    return Product.safe([scc_distributions[scc] for scc in relevant_sccs])
+# ---------------------------------------------------------
 
 
 def _get_apt_order_predecessors(
