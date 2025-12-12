@@ -11,9 +11,9 @@ from y0.graph import NxMixedGraph
 class TestIDCD(unittest.TestCase):
     """Tests for IDCD algorithm implementation."""
 
-    # def test_fail(self) -> None:
-    #     """Test failure."""
-    #     self.fail(msg="tests are required before merge")
+    def test_fail(self) -> None:
+        """Test failure."""
+        self.fail(msg="tests are required before merge")
 
 
 class TestValidatePreconditions(unittest.TestCase):
