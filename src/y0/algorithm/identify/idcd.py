@@ -97,7 +97,7 @@ def validate_preconditions(
     graph: NxMixedGraph,
     targets: set[Variable],
     district: set[Variable],  # district containing C
-    recursion_level: int,
+    recursion_level: int = 0,
 ) -> None:
     """Validate IDCD algorithm preconditions.
 
@@ -163,7 +163,7 @@ def marginalize_to_ancestors(
     distribution: Expression,
     district: set[Variable],
     ancestral_closure: set[Variable],
-    recursion_level: int,
+    recursion_level: int = 0,
 ) -> Expression:
     r"""Marginalize distribution to ancestral closure.
 
@@ -195,8 +195,8 @@ def identify_through_scc_decomposition(
     graph: NxMixedGraph,
     targets: set[Variable],
     ancestral_closure: set[Variable],
-    district: set[Variable],
-    recursion_level: int,
+    district: set[Variable],  # FIXME unused
+    recursion_level: int = 0,
 ) -> Expression:
     r"""Identify causal effect through SCC decomposition.
 
@@ -255,8 +255,8 @@ def compute_scc_distributions(
     subgraph_a: NxMixedGraph,
     relevant_sccs: list[frozenset[Variable]],
     ancestral_closure: set[Variable],
-    recursion_level: int,
-    background_interventions: set[Variable] | None = None,
+    recursion_level: int = 0,  # FIXME unused
+    background_interventions: set[Variable] | None = None,  # FIXME unused
 ) -> dict[frozenset[Variable], Expression]:
     r"""Compute distributions for each strongly connected component (SCC).
 

@@ -25,7 +25,7 @@ class TestValidatePreconditions(unittest.TestCase):
         district = {Y}
 
         with self.assertRaisesRegex(ValueError, "Target set C cannot be empty"):
-            validate_preconditions(graph, targets, district, recursion_level=0)
+            validate_preconditions(graph, targets, district)
 
     def test_empty_district_raises_error(self) -> None:
         """Empty district should raise ValueError."""
@@ -34,7 +34,7 @@ class TestValidatePreconditions(unittest.TestCase):
         district: set[Variable] = set()
 
         with self.assertRaisesRegex(ValueError, "District D cannot be empty"):
-            validate_preconditions(graph, targets, district, recursion_level=0)
+            validate_preconditions(graph, targets, district)
 
     def test_targets_not_subset_of_district_raises_error(self) -> None:
         """Target must be a subset of district."""
@@ -46,7 +46,7 @@ class TestValidatePreconditions(unittest.TestCase):
             ValueError,
             "Target must be subset of district.",
         ):
-            validate_preconditions(graph, targets, district, recursion_level=0)
+            validate_preconditions(graph, targets, district)
 
     def test_district_not_subset_of_nodes_raises_error(self) -> None:
         """District must be a subset of graph nodes."""
@@ -58,7 +58,7 @@ class TestValidatePreconditions(unittest.TestCase):
             ValueError,
             "District must be subset of graph nodes.",
         ):
-            validate_preconditions(graph, targets, district, recursion_level=0)
+            validate_preconditions(graph, targets, district)
 
     # TODO: this test doesn't pass yet
     def test_district_not_consolidated_raises_error(self) -> None:
@@ -69,7 +69,7 @@ class TestValidatePreconditions(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "D must be a single consolidated district in G[D]."
         ):
-            validate_preconditions(simple_cyclic_graph_1, targets, district, recursion_level=0)
+            validate_preconditions(simple_cyclic_graph_1, targets, district)
 
     def test_valid_preconditions_pass(self) -> None:
         """Valid inputs should pass without error."""
@@ -78,7 +78,7 @@ class TestValidatePreconditions(unittest.TestCase):
         district = {Y, Z}
 
         # should not raise due to valid inputs
-        validate_preconditions(graph, targets, district, recursion_level=0)
+        validate_preconditions(graph, targets, district)
 
     def test_cyclic_graph_valid_preconditions_pass(self) -> None:
         """Valid inputs on cyclic graph should pass without error."""
@@ -89,7 +89,7 @@ class TestValidatePreconditions(unittest.TestCase):
         district = {X, Y, Z}
 
         # should not raise due to valid inputs
-        validate_preconditions(graph, targets, district, recursion_level=0)
+        validate_preconditions(graph, targets, district)
 
 
 # ----------------------------------------------------------------------------
@@ -104,9 +104,7 @@ class TestMarginalizationToAncestors(unittest.TestCase):
         district = {X, Y}
         ancestral_closure = {X, Y}
 
-        result = marginalize_to_ancestors(
-            distribution, district, ancestral_closure, recursion_level=0
-        )
+        result = marginalize_to_ancestors(distribution, district, ancestral_closure)
 
         self.assertEqual(result, distribution)  # should be unchanged
 
@@ -116,9 +114,7 @@ class TestMarginalizationToAncestors(unittest.TestCase):
         district = {X, Y, Z}
         ancestral_closure = {X, Y}
 
-        result = marginalize_to_ancestors(
-            distribution, district, ancestral_closure, recursion_level=0
-        )
+        result = marginalize_to_ancestors(distribution, district, ancestral_closure)
 
         result_str = str(result)
         self.assertIn("Sum", result_str)
@@ -130,9 +126,7 @@ class TestMarginalizationToAncestors(unittest.TestCase):
         district = {X, Y}
         ancestral_closure = {Y}
 
-        result = marginalize_to_ancestors(
-            distribution, district, ancestral_closure, recursion_level=0
-        )
+        result = marginalize_to_ancestors(distribution, district, ancestral_closure)
 
         result_str = str(result)
         self.assertIn("Sum", result_str)
