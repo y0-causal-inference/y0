@@ -2,8 +2,7 @@
 
 import logging
 
-from y0.algorithm.identify import Unidentifiable, identify_outcomes
-
+from ..identify import Unidentifiable, identify_outcomes
 from ..ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
