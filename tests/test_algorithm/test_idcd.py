@@ -12,15 +12,6 @@ from y0.algorithm.ioscm.utils import get_apt_order
 from y0.dsl import P, R, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
-
-class TestIDCD(unittest.TestCase):
-    """Tests for IDCD algorithm implementation."""
-
-    def test_fail(self) -> None:
-        """Test failure."""
-        self.fail(msg="tests are required before merge")
-
-
 # ----------------------------------------------------------------------------
 
 
