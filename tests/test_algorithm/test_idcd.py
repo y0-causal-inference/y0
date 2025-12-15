@@ -3,13 +3,17 @@
 import unittest
 
 from tests.test_algorithm.test_ioscm import simple_cyclic_graph_1
+from y0.algorithm.identify import Unidentifiable
 from y0.algorithm.identify.idcd import (
     _get_apt_order_predecessors,
+    compute_scc_distributions,
+    idcd,
+    identify_through_scc_decomposition,
     marginalize_to_ancestors,
     validate_preconditions,
 )
 from y0.algorithm.ioscm.utils import get_apt_order
-from y0.dsl import P, R, Variable, W, X, Y, Z
+from y0.dsl import Expression, P, R, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 # ----------------------------------------------------------------------------
@@ -64,12 +68,16 @@ class TestValidatePreconditions(unittest.TestCase):
     def test_district_not_consolidated_raises_error(self) -> None:
         """District must satisfy CD(G_D) = {D} (single consolidated district)."""
         targets = {X}
-        district = {X, W}  # the full district is X,W,Z
+        district = {X, W}
+
+        # When we check CD(G[{X,Y,W,Z}]), we should get TWO districts: {X,Y} and {W,Z}
+        # But we passed district={X,Y,W,Z} which claims it's ONE consolidated district
+        # This violates the precondition CD(G_D) = {D}
 
         with self.assertRaisesRegex(
             ValueError, "D must be a single consolidated district in G[D]."
         ):
-            validate_preconditions(simple_cyclic_graph_1, targets, district)
+            validate_preconditions(simple_cyclic_graph_1, targets, district, recursion_level=0)
 
     def test_valid_preconditions_pass(self) -> None:
         """Valid inputs should pass without error."""
@@ -211,3 +219,237 @@ class TestGetAptOrderPredecessors(unittest.TestCase):
 
 
 # ----------------------------------------------------------------------------
+
+
+class TestIDCDFunction(unittest.TestCase):
+    """Tests for the IDCD algorithm implementation."""
+
+    def test_base_case_ancestral_closure_equals_district(self) -> None:
+        """Test base case where ancestral closure equals district."""
+        graph = NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)])
+
+        targets = {Z}
+        district = {Z}
+        distribution = P(Z)
+
+        # should return the distribution as is without recursion
+        result = idcd(
+            graph=graph,
+            targets=targets,
+            district=district,
+            distribution=distribution,
+        )
+
+        self.assertEqual(result, distribution)
+
+    def test_unidentifiable_case_ancestral_closure_equals_district(self) -> None:
+        """Line 19-20: When ancestral closure equals district it should be unidentifiable."""
+        graph = NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z), (Z, X)])
+
+        targets = {X}
+        district = {X, Y, Z}
+        distribution = P(X, Y, Z)
+
+        # the result should indicate unidentifiability
+        with self.assertRaises(Unidentifiable) as context:
+            idcd(
+                graph=graph,
+                targets=targets,
+                district=district,
+                distribution=distribution,
+            )
+
+        self.assertIn("unidentifiable", str(context.exception).lower())
+
+    def test_recursive_case_through_scc_decomposition(self) -> None:
+        """Tests the recursive case when SCC decomposition is needed."""
+        graph = NxMixedGraph.from_edges(directed=[(R, X), (X, X), (X, Y), (Y, Z), (Z, X)])
+
+        # identify Z from the full graph
+        targets = {X}
+        district = {X, Y, Z}
+        distribution = P(X, Y, Z)
+
+        result = idcd(graph, targets, district, distribution)
+
+        self.assertIsInstance(result, Expression)
+
+    def test_single_scc_in_consolidated_district(self) -> None:
+        """Test with a single SCC in the consolidated district."""
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X, Y),
+                (Y, Z),
+                (Z, X),
+            ]
+        )
+
+        targets = {Z}
+        ancestral_closure = {X, Y, Z}
+        with self.assertRaises(Unidentifiable):
+            identify_through_scc_decomposition(
+                graph=graph,
+                targets=targets,
+                ancestral_closure=ancestral_closure,
+                recursion_level=0,
+            )
+
+    def test_multiple_sccs_in_consolidated_district(self) -> None:
+        """Test with multiple SCCs in the consolidated district."""
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X, Y),
+                (Y, X),
+                (Y, W),
+                (W, Z),
+                (Z, W),
+            ]
+        )
+
+        targets = {Z}
+        ancestral_closure = {X, Y, W, Z}
+
+        with self.assertRaises(Unidentifiable):
+            identify_through_scc_decomposition(
+                graph=graph,
+                targets=targets,
+                ancestral_closure=ancestral_closure,
+                recursion_level=0,
+            )
+
+    def test_no_relevant_sccs_raises_unidentifiable(self) -> None:
+        """Test that when no relevant SCCs are found, Unidentifiable is raised."""
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X, Y),
+                (Y, X),
+                (X, Z),
+            ]
+        )
+
+        targets = {Z}
+        ancestral_closure = {X, Y, Z}
+
+        with self.assertRaises(Unidentifiable) as context:
+            identify_through_scc_decomposition(
+                graph=graph,
+                targets=targets,
+                ancestral_closure=ancestral_closure,
+                recursion_level=0,
+            )
+
+        self.assertIn("No SCCs", str(context.exception))
+
+
+# ----------------------------------------------------------------------------
+
+
+class TestComputeSCCDistributions(unittest.TestCase):
+    """Tests for compute_scc_distributions function."""
+
+    def test_single_scc_returns_correct_structure(self) -> None:
+        """Test that a single SCC returns the correct distribution structure."""
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X, Y),
+                (Y, Z),
+                (Z, X),
+            ]
+        )
+
+        subgraph_a = graph.subgraph({X, Y, Z})
+
+        relevant_sccs = [frozenset({X, Y, Z})]
+        ancestral_closure = {X, Y, Z}
+
+        result = compute_scc_distributions(
+            graph=graph,
+            subgraph_a=subgraph_a,
+            relevant_sccs=relevant_sccs,
+            ancestral_closure=ancestral_closure,
+        )
+
+        # Should return a dictionary
+        self.assertIsInstance(result, dict)
+
+        # Should have one entry (one SCC)
+        self.assertEqual(len(result), 1)
+
+        # The key should be the SCC
+        self.assertIn(frozenset({X, Y, Z}), result)
+
+        # The value should be an Expression
+        distribution = result[frozenset({X, Y, Z})]
+        self.assertIsInstance(distribution, Expression)
+
+    def test_multiple_sccs_with_cycles(self) -> None:
+        """Test multiple SCCs each with cycles in the graph."""
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X, X),
+                (Y, X),
+                (W, Z),
+                (Z, W),
+            ]
+        )
+
+        # subgraph contains both cycles in the graph
+        subgraph_a = graph.subgraph({X, Y, W, Z})
+
+        # two SCCs
+        relevant_sccs = [frozenset({X, Y}), frozenset({W, Z})]
+        ancestral_closure = {X, Y, W, Z}
+
+        result = compute_scc_distributions(
+            graph=graph,
+            subgraph_a=subgraph_a,
+            relevant_sccs=relevant_sccs,
+            ancestral_closure=ancestral_closure,
+        )
+
+        # Should return a dictionary
+        self.assertIsInstance(result, dict)
+
+        # should have two entries (two SCCs)
+        self.assertEqual(len(result), 2)
+
+        # Each key should be an SCC
+        self.assertIn(frozenset({X, Y}), result)
+        self.assertIn(frozenset({W, Z}), result)
+
+        for scc in relevant_sccs:
+            self.assertIsInstance(result[scc], Expression)
+
+    def test_intervention_set_calculation(self) -> None:
+        """Test that intervention sets are calculated correctly for SCCs."""
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (R, X),
+                (X, Y),
+                (Y, Z),
+            ]
+        )
+
+        # subgraph contains just Y -> Z
+        subgraph_a = graph.subgraph({Y, Z})
+
+        # one SCC
+        relevant_sccs = [frozenset({Z})]
+
+        # ancestral closure is {Y, Z}
+        # So intervention_set should be nodes - ancestral_closure = {R, X, Y, Z} - {Y, Z} = {R, X}
+
+        ancestral_closure = {Y, Z}
+
+        result = compute_scc_distributions(
+            graph=graph,
+            subgraph_a=subgraph_a,
+            relevant_sccs=relevant_sccs,
+            ancestral_closure=ancestral_closure,
+        )
+
+        # should successfully compute distribution for the SCC
+        self.assertIsInstance(result, dict)
+        self.assertEqual(len(result), 1)
+
+        self.assertIsInstance(result[frozenset({Z})], Expression)

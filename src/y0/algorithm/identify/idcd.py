@@ -74,6 +74,7 @@ def idcd(
             f"Causal effect Q[{sorted(targets)}] is unidentifiable within district D = {sorted(ancestral_closure)}"
         )
 
+    # TODO - add test for this error case here
     # checking recursive case (must have targets ⊊ ancestral_closure ⊊ district)
     # strict subsets: targets and ancestral_closure must be strictly smaller
     if not (targets < ancestral_closure and ancestral_closure < district):
@@ -87,8 +88,6 @@ def idcd(
         graph,
         targets,
         ancestral_closure,
-        district,
-        _number_recursions,
     )
 
 
@@ -144,6 +143,7 @@ def validate_preconditions(
     subgraph_d = graph.subgraph(district)
     consolidated_district = get_consolidated_district(subgraph_d, district)
 
+    # TODO: Testing - verify error is raised when CD(G_D) != {D} (unit test for this case)
     if consolidated_district != district:
         raise ValueError(
             f"D must be a single consolidated district in G[D]."
@@ -219,6 +219,7 @@ def identify_through_scc_decomposition(
     consolidated_district_a = get_consolidated_district(subgraph_a, targets)
 
     # line 22
+    # TODO - add test for no relevant SCCs found
     relevant_sccs = [scc for scc in sccs if scc.issubset(consolidated_district_a)]
 
     if not relevant_sccs:
@@ -228,7 +229,7 @@ def identify_through_scc_decomposition(
 
     # line 23
     scc_distributions = compute_scc_distributions(
-        graph, subgraph_a, relevant_sccs, ancestral_closure, recursion_level
+        graph, subgraph_a, relevant_sccs, ancestral_closure
     )
 
     # line 25
@@ -309,5 +310,10 @@ def _get_apt_order_predecessors(
 
     :returns: Set of predecessors Pred^G_<(S) ∩ A.
     """
+    positions = [apt_order.index(v) for v in scc if v in apt_order]
+
+    if not positions:
+        return set()
+
     min_position = min(apt_order.index(v) for v in scc if v in apt_order)
     return ancestral_closure.intersection(apt_order[:min_position])
