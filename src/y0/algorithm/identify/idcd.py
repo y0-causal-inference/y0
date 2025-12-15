@@ -315,5 +315,5 @@ def _get_apt_order_predecessors(
     if not positions:
         return set()
 
-    min_position = min(apt_order.index(v) for v in scc if v in apt_order)
+    min_position = min(positions)
     return ancestral_closure.intersection(apt_order[:min_position])
