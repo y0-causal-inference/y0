@@ -2,6 +2,8 @@
 
 import logging
 
+import networkx as nx
+
 from ..identify import Unidentifiable, identify_outcomes
 from ..ioscm.utils import (
     get_apt_order,
@@ -275,6 +277,9 @@ def compute_scc_distributions(
     apt_order_a = get_apt_order(subgraph_a)
 
     intervention_set = nodes - ancestral_closure
+
+    if nx.find_cycle(graph.directed):
+        raise ValueError("can't run ID/IDC on graph with cycles")
 
     scc_distributions = {
         # Call main ID algorithm to identify R_A[S]
