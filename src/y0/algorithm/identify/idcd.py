@@ -195,7 +195,6 @@ def identify_through_scc_decomposition(
     graph: NxMixedGraph,
     targets: set[Variable],
     ancestral_closure: set[Variable],
-    district: set[Variable],  # FIXME unused
     recursion_level: int = 0,
 ) -> Expression:
     r"""Identify causal effect through SCC decomposition.
@@ -234,7 +233,7 @@ def identify_through_scc_decomposition(
 
     # line 25
     logger.debug(f"[{recursion_level}]: Line 25 - Product over {len(scc_distributions)} SCCs")
-    district_distribution = Product.safe([scc_distributions[scc] for scc in relevant_sccs])
+    district_distribution = Product.safe(scc_distributions.values())
 
     # line 26
     logger.debug(f"[{recursion_level}]: Line 26 - Recursive call")
@@ -255,8 +254,6 @@ def compute_scc_distributions(
     subgraph_a: NxMixedGraph,
     relevant_sccs: list[frozenset[Variable]],
     ancestral_closure: set[Variable],
-    recursion_level: int = 0,  # FIXME unused
-    background_interventions: set[Variable] | None = None,  # FIXME unused
 ) -> dict[frozenset[Variable], Expression]:
     r"""Compute distributions for each strongly connected component (SCC).
 
