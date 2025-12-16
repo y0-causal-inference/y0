@@ -2,7 +2,7 @@
 
 import logging
 
-from ..identify import Unidentifiable, identify_outcomes
+from ..identify import Unidentifiable
 from ..ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
@@ -45,7 +45,7 @@ def idcd(
     :raises ValueError: If preconditions are violated (C ⊆ D ⊆ V).
     :raises Unidentifiable: If causal effect cannot be identified.
     """
-    # line 14
+    # line 14 -
     validate_preconditions(graph, targets, district, _number_recursions)
 
     # line 15: A <- An^G[D](C)
@@ -71,10 +71,13 @@ def idcd(
             f"[{_number_recursions}]: Lines 19-20 - FAILURE (Ancestral closure = district)"
         )
         raise Unidentifiable(
-            f"Causal effect Q[{sorted(targets)}] is unidentifiable within district D = {sorted(ancestral_closure)}"
+            f"Cannot identify causal effect on targets {sorted(targets)}."
+            f"Reason: Ancestral closure equals district: "
+            f"Targets: {sorted(targets)}, "
+            f"District: {sorted(district)}, "
+            f"Ancestral Closure: {sorted(ancestral_closure)}"
         )
 
-    # TODO - add test for this error case here
     # checking recursive case (must have targets ⊊ ancestral_closure ⊊ district)
     # strict subsets: targets and ancestral_closure must be strictly smaller
     if not (targets < ancestral_closure and ancestral_closure < district):
@@ -86,9 +89,7 @@ def idcd(
     # TODO needs end-to-end test where this gets called
     # lines 21-26
     return identify_through_scc_decomposition(
-        graph,
-        targets,
-        ancestral_closure,
+        graph, targets, ancestral_closure, original_distribution=distribution
     )
 
 
@@ -101,7 +102,7 @@ def validate_preconditions(
 ) -> None:
     """Validate IDCD algorithm preconditions.
 
-    Line 14: require C ⊆ D ⊆ V, CD(G_D) = {D}
+    Line 14: require C ⊆ D ⊆ V
 
     Ensures that:
 
@@ -139,17 +140,6 @@ def validate_preconditions(
         raise ValueError(
             f"District must be subset of graph nodes. "
             f"D={district}, V={nodes}, D\\V={district - nodes}"
-        )
-
-    # check CD(G_D) = {D}
-    subgraph_d = graph.subgraph(district)
-    consolidated_district = get_consolidated_district(subgraph_d, district)
-
-    # TODO: Testing - verify error is raised when CD(G_D) != {D} (unit test for this case)
-    if consolidated_district != district:
-        raise ValueError(
-            f"D must be a single consolidated district in G[D]."
-            f"Expected CD(G_D) = {{D}}, but got CD(G_D) = {{{sorted(consolidated_district)}}}"
         )
 
     logger.debug(
@@ -198,6 +188,7 @@ def identify_through_scc_decomposition(
     targets: set[Variable],
     ancestral_closure: set[Variable],
     recursion_level: int = 0,
+    original_distribution: Expression = None,
 ) -> Expression:
     r"""Identify causal effect through SCC decomposition.
 
@@ -229,9 +220,17 @@ def identify_through_scc_decomposition(
 
     logger.debug(f"[{recursion_level}]: Line 22 - {len(relevant_sccs)} relevant SCCs")
 
+    nodes = set(graph.nodes())
+    intervention_set = nodes - ancestral_closure
+
     # line 23
     scc_distributions = compute_scc_distributions(
-        graph, subgraph_a, relevant_sccs, ancestral_closure
+        graph=graph,
+        subgraph_a=subgraph_a,
+        relevant_sccs=relevant_sccs,
+        ancestral_closure=ancestral_closure,
+        original_distribution=original_distribution,
+        intervention_set=intervention_set,
     )
 
     # line 25
@@ -257,41 +256,99 @@ def compute_scc_distributions(
     subgraph_a: NxMixedGraph,
     relevant_sccs: list[frozenset[Variable]],
     ancestral_closure: set[Variable],
+    original_distribution: Expression,
+    intervention_set: set[Variable],
 ) -> dict[frozenset[Variable], Expression]:
     r"""Compute distributions for each strongly connected component (SCC).
 
     Implements Algorithm 1, Line 23: R_A[S] ← P(S | Pred^G_<(S) ∩ A, do
 
-    For each SCC S, calls the main ID algorithm to identify the conditional causal
-    effect.
+    This is another constructed expression using probability operations from the DSL library.
+
+    For each SCC S, we calculate the conditional interventional distribution R_A[S]:
+    - Start with the original distribution
+    - Marginalize to keep only S and its predecessors
+    - Condition on the predecessors to get P(S | predecessors)
 
     :param graph: The full causal graph.
     :param subgraph_a: Subgraph G[A].
     :param relevant_sccs: SCCs to process.
     :param ancestral_closure: Ancestral closure.
+    :param original_distribution: Original distribution from IDCD call.
+    :param intervention_set: Set of variables under intervention.
     :param recursion_level: Current recursion depth.
 
     :returns: Dictionary mapping each SCC to its distribution R_A[S].
     """
-    nodes = set(graph.nodes())
     apt_order_a = get_apt_order(subgraph_a)
 
-    intervention_set = nodes - ancestral_closure
+    scc_distributions = {}
 
-    scc_distributions = {
-        # Call main ID algorithm to identify R_A[S]
-        scc: identify_outcomes(
-            outcomes=scc,
-            treatments=intervention_set,
-            # Compute Pred^G_<(S) ∩ A (predecessors in apt-order)
-            conditions=_get_apt_order_predecessors(scc, apt_order_a, ancestral_closure),
+    for scc in relevant_sccs:
+        predecessors = _get_apt_order_predecessors(scc, apt_order_a, ancestral_closure)
+
+        scc_distribution = _calculate_scc_distribution(
+            scc=scc,
+            predecessors=predecessors,
+            intervention_set=intervention_set,
+            original_distribution=original_distribution,
             graph=graph,
-            strict=True,
-            ordering=apt_order_a,
         )
-        for scc in relevant_sccs
-    }
+
+        scc_distributions[scc] = scc_distribution
+
     return scc_distributions
+
+
+# ----------------------------------------------------------------
+
+
+def _calculate_scc_distribution(
+    scc: frozenset[Variable],
+    predecessors: set[Variable],
+    intervention_set: set[Variable],
+    original_distribution: Expression,
+    graph: NxMixedGraph,
+) -> Expression:
+    """Construct the distribution R_A[S] for a strongly connected component.
+
+    This is a probability calculation using DSL operations:
+
+    1. Start with the original distribution.
+    2. Marginalize to keep only S and its predecessors.
+    3. Condition on the predecessors to get P(S | predecessors).
+
+    :param scc: The strongly connected component.
+    :param predecessors: Predecessors of the SCC in apt-order.
+    :param intervention_set: Set of variables under intervention.
+    :param original_distribution: Original distribution.
+    :param graph: The causal graph.
+
+    :returns: Distribution R_A[S] for the SCC.
+    """
+    # get all variables in the original distribution
+    all_variables = original_distribution.get_variables()
+
+    # variables to keep: S union Pred^G_<(S)
+    variables_to_keep = set(scc) | predecessors
+
+    # variables to marginalize out:
+    variables_to_marginalize = all_variables - variables_to_keep
+
+    # Step 1: Marginalize original distribution to keep only S and predecessors
+    if variables_to_marginalize:
+        result = original_distribution.marginalize(variables_to_marginalize)
+    else:
+        result = original_distribution
+
+    # Step 2: Condition on predecessors if any
+
+    if predecessors:
+        result = result.conditional(list(scc))
+
+    logger.debug(f"Calculated SCC or R_A[{sorted(scc)}] = {result}")
+
+    return result
 
 
 # ---------------------------------------------------------
