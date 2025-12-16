@@ -233,7 +233,12 @@ def line_5(identification: Identification) -> None:
         raise Unidentifiable(districts, districts_without_treatment)
 
 
-def line_6(identification: Identification, *, ordering: Sequence[Variable]) -> Expression:
+# TODO this line 6 isn't used in the actual implementation, delete or merge
+
+
+def line_6(
+    identification: Identification, *, ordering: Sequence[Variable] | None = None
+) -> Expression:
     r"""Run line 6 of the identification algorithm.
 
     Asserts that if there are no bidirected arcs from :math:`X` to the other nodes in
@@ -266,6 +271,8 @@ def line_6(identification: Identification, *, ordering: Sequence[Variable]) -> E
     if district_without_treatments not in districts:
         raise ValueError("Line 6 precondition not met")
 
+    if ordering is None:
+        ordering = graph.topological_sort()
     expression = _district_product(district_without_treatments, ordering)
     ranges = district_without_treatments - outcomes
     return Sum.safe(expression=expression, ranges=ranges)

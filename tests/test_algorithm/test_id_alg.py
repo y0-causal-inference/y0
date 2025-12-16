@@ -264,7 +264,7 @@ class TestIdentify(unittest.TestCase):
         for identification in line_7_example.identifications:
             id_out = identification["id_out"][0]
             id_in = identification["id_in"][0]
-            self.assertEqual(id_out, line_7(id_in))
+            self.assertEqual(id_out, line_7(id_in, ordering=id_in.graph.topological_sort()))
             self.assert_expr_equal(
                 Sum.safe(expression=P(Y1 | (W1, X)) * P(W1), ranges=[W1]), identify(id_in)
             )
