@@ -11,10 +11,14 @@ __all__ = [
 ]
 
 
-def identify(identification: Identification) -> Expression:
+def identify(
+    identification: Identification, *, ordering: Sequence[Variable] | None = None
+) -> Expression:
     """Run the ID algorithm from [shpitser2006]_.
 
     :param identification: The identification tuple
+    :param ordering: A topological ordering of the variables. If not passed, is
+        calculated from the directed component of the mixed graph.
 
     :returns: the expression corresponding to the identification
 
@@ -36,17 +40,19 @@ def identify(identification: Identification) -> Expression:
     outcomes_and_ancestors = graph.ancestors_inclusive(outcomes)
     not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
     if not_outcomes_or_ancestors:
-        return identify(line_2(identification))
+        return identify(line_2(identification), ordering=ordering)
 
     # line 3
     no_effect_on_outcome = graph.get_no_effect_on_outcomes(treatments, outcomes)
     if no_effect_on_outcome:
-        return identify(line_3(identification))
+        return identify(line_3(identification), ordering=ordering)
 
     # line 4
     graph_without_treatments = graph.remove_nodes_from(treatments)
     if not graph_without_treatments.is_connected():
-        expression = Product.safe(map(identify, line_4(identification)))
+        expression = Product.safe(
+            identify(query, ordering=ordering) for query in line_4(identification)
+        )
         return Sum.safe(
             expression=expression,
             ranges=vertices.difference(outcomes | treatments),
@@ -59,17 +65,16 @@ def identify(identification: Identification) -> Expression:
     # line 6
     district_without_treatment = _get_single_district(graph_without_treatments)
 
+    if ordering is None:
+        ordering = graph.topological_sort()
+
     if district_without_treatment in graph.districts():
-        parents = list(graph.topological_sort())
-        expression = Product.safe(p_parents(v, parents) for v in district_without_treatment)
+        expression = _district_product(district_without_treatment, ordering)
         ranges = district_without_treatment - outcomes
-        return Sum.safe(
-            expression=expression,
-            ranges=ranges,
-        )
+        return Sum.safe(expression=expression, ranges=ranges)
 
     # line 7
-    return identify(line_7(identification))
+    return identify(line_7(identification, ordering=ordering), ordering=ordering)
 
 
 def _get_single_district(graph: NxMixedGraph) -> frozenset[Variable]:
@@ -228,7 +233,12 @@ def line_5(identification: Identification) -> None:
         raise Unidentifiable(districts, districts_without_treatment)
 
 
-def line_6(identification: Identification) -> Expression:
+# TODO this line 6 isn't used in the actual implementation, delete or merge
+
+
+def line_6(
+    identification: Identification, *, ordering: Sequence[Variable] | None = None
+) -> Expression:
     r"""Run line 6 of the identification algorithm.
 
     Asserts that if there are no bidirected arcs from :math:`X` to the other nodes in
@@ -244,6 +254,8 @@ def line_6(identification: Identification) -> Expression:
 
     :param identification: The data structure with the treatment, outcomes, estimand,
         and graph
+    :param ordering: A topologically ordered sequence of all variables. All occurring
+        before the child will be used as parents.
 
     :returns: A list of new estimands
 
@@ -261,16 +273,16 @@ def line_6(identification: Identification) -> Expression:
     if district_without_treatments not in districts:
         raise ValueError("Line 6 precondition not met")
 
-    parents = list(graph.topological_sort())
-    expression = Product.safe(p_parents(v, parents) for v in district_without_treatments)
+    if ordering is None:
+        ordering = graph.topological_sort()
+    expression = _district_product(district_without_treatments, ordering)
     ranges = district_without_treatments - outcomes
-    return Sum.safe(
-        expression=expression,
-        ranges=ranges,
-    )
+    return Sum.safe(expression=expression, ranges=ranges)
 
 
-def line_7(identification: Identification) -> Identification:
+def line_7(
+    identification: Identification, ordering: Sequence[Variable] | None = None
+) -> Identification:
     r"""Run line 7 of the identification algorithm.
 
     The most complex case where :math:`\mathbf X` is partitioned into two sets,
@@ -291,6 +303,8 @@ def line_7(identification: Identification) -> Identification:
 
     :param identification: The data structure with the treatment, outcomes, estimand,
         and graph
+    :param ordering: A topologically ordered sequence of all variables. All occurring
+        before the child will be used as parents.
 
     :returns: A new estimand
 
@@ -304,18 +318,24 @@ def line_7(identification: Identification) -> Identification:
     # line 7 precondition requires single district
     district_without_treatments = _get_single_district(graph_without_treatments)
 
+    if ordering is None:
+        ordering = graph.topological_sort()
+
     # line 7
     for district in graph.districts():
         if district_without_treatments < district:
-            parents = list(graph.topological_sort())
             return Identification.from_parts(
                 outcomes=outcomes,
                 treatments=treatments & district,
-                estimand=Product.safe(p_parents(v, parents) for v in district),
+                estimand=_district_product(district, ordering),
                 graph=graph.subgraph(district),
             )
 
     raise ValueError("Could not identify suitable district")
+
+
+def _district_product(district: frozenset[Variable], ordering: Sequence[Variable]) -> Expression:
+    return Product.safe(p_parents(v, ordering) for v in district)
 
 
 def p_parents(child: Variable, ordering: Sequence[Variable]) -> Probability:

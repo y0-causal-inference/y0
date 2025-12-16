@@ -1,5 +1,7 @@
 """Implementation of the IDC algorithm."""
 
+from collections.abc import Sequence
+
 from .id_std import identify
 from .utils import Identification
 from ..conditional_independencies import are_d_separated
@@ -11,10 +13,14 @@ __all__ = [
 ]
 
 
-def idc(identification: Identification) -> Expression:
+def idc(
+    identification: Identification, *, ordering: Sequence[Variable] | None = None
+) -> Expression:
     """Run the IDC algorithm from [shpitser2008]_.
 
     :param identification: The identification tuple
+    :param ordering: A topological ordering of the variables. If not passed, is
+        calculated from the directed component of the mixed graph.
 
     :returns: An expression created by the :func:`identify` algorithm after simplifying
         the original query
@@ -23,10 +29,12 @@ def idc(identification: Identification) -> Expression:
     """
     for condition in identification.conditions:
         if rule_2_of_do_calculus_applies(identification=identification, condition=condition):
-            return idc(identification.exchange_observation_with_action(condition))
+            return idc(
+                identification.exchange_observation_with_action(condition), ordering=ordering
+            )
 
     # Run ID algorithm
-    id_estimand = identify(identification.uncondition())
+    id_estimand = identify(identification.uncondition(), ordering=ordering)
     return id_estimand.normalize_marginalize(identification.outcomes)
 
 
