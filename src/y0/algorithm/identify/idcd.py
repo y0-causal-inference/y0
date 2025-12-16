@@ -60,12 +60,12 @@ def idcd(
         distribution, district, ancestral_closure, _number_recursions
     )
 
-    # # lines 17-18
+    # lines 17-18
     if ancestral_closure == targets:
         logger.debug(f"[{_number_recursions}]: Lines 17-18 - SUCCESS (Ancestral closure = targets)")
         return distribution_a
 
-    # # lines 19-20
+    # lines 19-20
     if ancestral_closure == district:
         logger.debug(
             f"[{_number_recursions}]: Lines 19-20 - FAILURE (Ancestral closure = district)"
@@ -83,7 +83,8 @@ def idcd(
             f"targets={sorted(targets)}, ancestral_closure={sorted(ancestral_closure)}, district={sorted(district)}"
         )
 
-    # # lines 21-26
+    # TODO needs end-to-end test where this gets called
+    # lines 21-26
     return identify_through_scc_decomposition(
         graph,
         targets,
@@ -103,6 +104,7 @@ def validate_preconditions(
     Line 14: require C ⊆ D ⊆ V, CD(G_D) = {D}
 
     Ensures that:
+
     1. Target set C is non-empty and contained within district D.
     2. District D is non-empty and contained within graph nodes V
     3. D forms a single consolidated district in subgraph G[D].
@@ -113,8 +115,8 @@ def validate_preconditions(
     :param recursion_level: Current recursion depth for logging.
 
     :raises ValueError: If any precondition is violated.
-     References:
-        Algorithm 1, Line 14 from Forré & Mooij (2019)
+
+    References: Algorithm 1, Line 14 from Forré & Mooij (2019)
     """
     nodes = set(graph.nodes())
 
@@ -167,9 +169,9 @@ def marginalize_to_ancestors(
 ) -> Expression:
     r"""Marginalize distribution to ancestral closure.
 
-    #   Implements Algorithm 1, Line 16: Q[A] ← ∫ Q[D] d(x_{D\A})
+    Implements Algorithm 1, Line 16: Q[A] ← ∫ Q[D] d(x_{D\A})
 
-    #   Marginalizes Q[D] over variables D\A using apt-order for deterministic ordering.
+    Marginalizes Q[D] over variables D\A using apt-order for deterministic ordering.
 
     :param distribution: Distribution over D.
     :param district: District.
