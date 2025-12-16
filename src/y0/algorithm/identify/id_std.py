@@ -254,6 +254,8 @@ def line_6(
 
     :param identification: The data structure with the treatment, outcomes, estimand,
         and graph
+    :param ordering: A topologically ordered sequence of all variables. All occurring
+        before the child will be used as parents.
 
     :returns: A list of new estimands
 
@@ -278,7 +280,9 @@ def line_6(
     return Sum.safe(expression=expression, ranges=ranges)
 
 
-def line_7(identification: Identification, ordering: Sequence[Variable]) -> Identification:
+def line_7(
+    identification: Identification, ordering: Sequence[Variable] | None = None
+) -> Identification:
     r"""Run line 7 of the identification algorithm.
 
     The most complex case where :math:`\mathbf X` is partitioned into two sets,
@@ -299,6 +303,8 @@ def line_7(identification: Identification, ordering: Sequence[Variable]) -> Iden
 
     :param identification: The data structure with the treatment, outcomes, estimand,
         and graph
+    :param ordering: A topologically ordered sequence of all variables. All occurring
+        before the child will be used as parents.
 
     :returns: A new estimand
 
@@ -311,6 +317,9 @@ def line_7(identification: Identification, ordering: Sequence[Variable]) -> Iden
     graph_without_treatments = graph.remove_nodes_from(treatments)
     # line 7 precondition requires single district
     district_without_treatments = _get_single_district(graph_without_treatments)
+
+    if ordering is None:
+        ordering = graph.topological_sort()
 
     # line 7
     for district in graph.districts():
