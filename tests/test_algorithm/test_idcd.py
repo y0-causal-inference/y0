@@ -330,15 +330,14 @@ class TestIDCDFunction(unittest.TestCase):
         targets = {Z}
         ancestral_closure = {X, Y, Z}
 
-        with self.assertRaises(Unidentifiable) as context:
-            identify_through_scc_decomposition(
-                graph=graph,
-                targets=targets,
-                ancestral_closure=ancestral_closure,
-                recursion_level=0,
+        try:
+            estimand = identify_through_scc_decomposition(
+                graph=graph, targets=targets, ancestral_closure=ancestral_closure
             )
-
-        self.assertIn("No SCCs", str(context.exception))
+        except Unidentifiable as e:
+            self.assertIn("No SCCs", str(e))
+        else:
+            self.fail(f"should have been unidentifiable, but got: {estimand}")
 
 
 # ----------------------------------------------------------------------------
