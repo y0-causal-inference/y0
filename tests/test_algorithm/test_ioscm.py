@@ -80,6 +80,18 @@ class TestIOSCMUtils(cases.GraphTestCase):
             ({X, Y}, {X, W, R, Z, Y}),
         ]:
             self.assertSetEqual(get_consolidated_district(simple_cyclic_graph_2, vertices), result)
+        
+        for vertices, result in [
+            # Single vertex input
+            ({X}, {X, W, Z}),
+            ({R}, {R}),
+            ({Y}, {Y}),
+            # Multiple vertex input
+            ({X, R}, {frozenset({X, W, Z}), frozenset({R})}),
+            ({R, Y}, {frozenset({R}), frozenset({Y})}),
+            ({X, Y}, {frozenset({X, W, Z}), frozenset({Y})}),
+        ]:
+            self.assertSetEqual(get_consolidated_district(simple_cyclic_graph_1, vertices), result)
 
     def test_get_graph_consolidated_district(self) -> None:
         """First test for getting the consolidated districts for a graph."""
