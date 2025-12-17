@@ -77,10 +77,10 @@ class TestIOSCMUtils(cases.GraphTestCase):
             # Multiple vertex input
             ({X, R}, {X, W, Z, R}),
             ({R}, {X, W, Z, R}),
-            ({X, Y}, {X, W, R, Z, Y}),
+            ({X, Y}, {frozenset({X, W, R, Z}), frozenset({Y})}),
         ]:
             self.assertSetEqual(get_consolidated_district(simple_cyclic_graph_2, vertices), result)
-        
+
         for vertices, result in [
             # Single vertex input
             ({X}, {X, W, Z}),
@@ -92,6 +92,368 @@ class TestIOSCMUtils(cases.GraphTestCase):
             ({X, Y}, {frozenset({X, W, Z}), frozenset({Y})}),
         ]:
             self.assertSetEqual(get_consolidated_district(simple_cyclic_graph_1, vertices), result)
+
+    # ------ Tests for edge cases and corner cases for get_consolidated_district ------
+
+    def test_get_consolidated_district_all_nodes_same_district(self) -> None:
+        """Test querying all nodes when they belong to the same consolidated district.
+
+        Graph: simple_cyclic_graph_2
+        - Structure: R <-> X -> W -> Z -> X, W -> Y
+        - Districs: {R, X, W, Z}, {Y}
+
+        Input: {R, X, W, Z}
+        Expected Output: {R, X, W, Z} flat set of Variables
+
+        Reasoning: Since all queried nodes belong to the same consolidated district,
+        the function should return a flat set of Variables representing that district.
+        """
+        # simple_cyclic_graph_2: R <-> X -> W -> Z -> X, W -> Y
+        # Districts: {R, X, W, Z}, {Y}
+
+        # query all nodes from the big district
+        query = {R, X, W, Z}
+        result = get_consolidated_district(simple_cyclic_graph_2, query)
+        expected = {R, X, W, Z}
+
+        self.assertSetEqual(
+            result,
+            expected,
+            "All nodes in the same consolidated district should return that district.",
+        )
+
+        for item in result:
+            self.assertIsInstance(item, Variable)
+
+    # ----------------------------------------------------------------------
+
+    def test_get_consolidated_district_all_nodes_different_districts(self) -> None:
+        """Test querying all nodes when they span all districts.
+
+        Graph: simple_cyclic_graph_1
+        - Structure: R -> X -> W -> Z -> X, (cycle) W -> Y
+        - Districts: {R}, {X, W, Z}, {Y}
+
+        Input: {R, X, Y}
+        Expected Output: {frozenset({R}), frozenset({X, W, Z}), frozenset({Y})}
+
+        Reasoning: Each queried node belongs to a different consolidated district, so return
+        a set of frozensets representing each district to preserve district boundaries.
+        """
+        # simple_cyclic_graph_1: R -> X -> W -> Z -> X, W -> Y
+        # Districts: {R}, {X, W, Z}, {Y}
+
+        # query one node from each district
+        query = {R, X, Y}
+        expected = {frozenset({R}), frozenset({X, W, Z}), frozenset({Y})}
+
+        result = get_consolidated_district(simple_cyclic_graph_1, query)
+
+        self.assertSetEqual(
+            result, expected, "Querying nodes from all districts should return all districts."
+        )
+
+        # verify they are frozensets
+        for item in result:
+            self.assertIsInstance(item, frozenset)
+
+    # ----------------------------------------------------------------------
+
+    def test_get_consolidated_district_bidirected_edge_within_scc(self) -> None:
+        """Test graph with bidirected edge within a SCC.
+
+        Graph Structure:
+
+        - Directed edges: X -> Y -> Z -> X (forming a cycle/SCC)
+        - Bidirected edge: X <-> Y (within the cycle)
+        - Districts: {X, Y, Z}
+
+        Test Case 1:
+        Input: {X}
+        Expected Output: {X, Y, Z}
+
+        Test Case 2:
+        Input: {X, Z}
+        Expected Output: {X, Y, Z}
+
+        Reasoning: Bidirected edges within SCCs do not create separate districts.
+        The entire cycle remains one consolidated district.
+
+        """
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (X, Y),
+                (Y, Z),
+                (Z, X),
+            ],
+            undirected=[
+                (X, Y),
+            ],
+        )
+
+        # Test 1: all nodes in same SCC + bidirected edge = one consolidated district (Single node query)
+        result = get_consolidated_district(graph, {X})
+        expected = {X, Y, Z}
+        self.assertSetEqual(result, expected)
+
+        # Test 2: query multiple nodes from same district
+        result = get_consolidated_district(graph, {X, Z})
+        expected = {X, Y, Z}
+        self.assertSetEqual(result, expected)
+
+    # ----------------------------------------------------------------------
+
+    def test_get_consolidated_district_chain_of_bidirected_edges(self) -> None:
+        """Test graph with chain of bidirected edges that connect nodes.
+
+        A <-> B <-> C should form one consolidated district.
+
+        Graph Structure:
+        - Bidirected edges: A <-> B, B <-> C
+        - No directed edges.
+        - Districts: {A, B, C}
+
+        Test Case 1:
+        Input: {A}
+        Expected Output: {A, B, C}
+        Reasoning: A is connected to B and C via bidirected edges, so all belong to the same district.
+
+
+        Test Case 2:
+        Input: {A, C}
+        Expected Output: {A, B, C}
+        Reasoning: Both A and C are in the same consolidated district via B, so return the full district. (flat set)
+        """
+        graph = NxMixedGraph.from_edges(
+            undirected=[
+                (A, B),
+                (B, C),
+            ]
+        )
+
+        # Test 1: all are connected via bidirected edges = one consolidated district
+        result = get_consolidated_district(graph, {A})
+        expected = {A, B, C}
+        self.assertSetEqual(result, expected)
+
+        # Test 2
+        result = get_consolidated_district(graph, {A, C})
+        expected = {A, B, C}
+        self.assertSetEqual(result, expected)
+
+    # ----------------------------------------------------------------------
+
+    def test_get_consolidated_district_disconnected_components(self) -> None:
+        """Test graph with disconnected components.
+
+        Graph Structure:
+        - Component 1: A -> B
+        - Component 2: X -> Y -> Z -> X (cycle)
+        - No connections between components.
+        - Districts: {A}, {X, Y, Z}
+
+        Test Case 1:
+        Input: {A, X}
+        Expected Output: {frozenset({A}), frozenset({X, Y, Z})}
+        Reasoning: Querying nodes from different disconnected components should return separate frozensets.
+
+        Test Case 2:
+        Input: {X, Y}
+        Expected Output: {X, Y, Z}
+        Reasoning: Both are in the same district (cycle).
+        """
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (A, B),  # component 1
+                (X, Y),  # component 2
+                (Y, Z),
+                (Z, X),
+            ]
+        )
+
+        # Test 1: query from different components
+        result = get_consolidated_district(graph, {A, X})
+        expected = {frozenset({A}), frozenset({X, Y, Z})}
+        self.assertSetEqual(
+            result, expected, "Disconnected components should return separate frozensets."
+        )
+
+        # Test 2: query from single component
+        result = get_consolidated_district(graph, {X, Y})
+        expected = {X, Y, Z}
+        self.assertSetEqual(
+            result, expected, "Nodes from same component/district should return flat set."
+        )
+
+    def test_get_consolidated_district_single_node_queries(self) -> None:
+        """Test querying single nodes always returns flat set.
+
+        Note: Single-node queries should always return a flat set of Variables, regardless of how many districts exist
+        in the graph.
+
+        Test Cases:
+        Graph 1: simple_cyclic_graph_1: R -> X -> W -> Z -> X, W -> Y
+        Districts: {R}, {X, W, Z}, {Y}
+
+        1. Query: {R} -> Output: {R}
+        2. Query: {X} -> Output: {X, W, Z}
+        3. Query: {Y} -> Output: {Y}
+        4. Query: {W} -> Output: {X, W, Z}
+
+        Graph 2: simple_cyclic_graph_2: R <-> X -> W -> Z -> X, W -> Y
+        Districts: {R, X, W, Z}, {Y}
+
+        5. Query: {R} -> Output: {R, X, W, Z}
+        6. Query: {Y} -> Output: {Y}
+        """
+        # single node queries should just return the flat set
+
+        # from the simple_cyclic_graph_1
+        test_cases = [
+            (simple_cyclic_graph_1, {R}, {R}),  # R would be an isolated district
+            (simple_cyclic_graph_1, {X}, {X, W, Z}),  # X is in cycle district
+            (simple_cyclic_graph_1, {Y}, {Y}),  # Y is isolated district
+            (simple_cyclic_graph_1, {W}, {X, W, Z}),  # W is in cycle district
+            # from the simple_cyclic_graph_2
+            (simple_cyclic_graph_2, {R}, {R, X, W, Z}),  # R is in cycle district
+            (simple_cyclic_graph_2, {Y}, {Y}),  # Y is isolated district
+        ]
+
+        for graph, query, expected in test_cases:
+            with self.subTest(query=query):
+                result = get_consolidated_district(graph, query)
+                self.assertSetEqual(result, expected)
+                # verify the result are Variables, not frozensets
+                for item in result:
+                    self.assertIsInstance(
+                        item, Variable, "Single node query should return Variables."
+                    )
+
+    def test_get_consolidated_district_preserves_district_membership(self) -> None:
+        """Test that function correctly identifies district membership. (i.e. which nodes belong to which district).
+
+        Graph: simple_cyclic_graph_1
+        Structure: R -> X -> W -> Z -> X (cycle), W -> Y
+        Districts: {R}, {X, W, Z}, {Y}
+
+
+        Test Case 1: Nodes from different districts
+        Query: {R, X} -> Expected Output: {frozenset({R}), frozenset({X, W, Z})}
+        Query: {R, Y} -> Expected Output: {frozenset({R}), frozenset({Y})}
+        Query: {X, Y} -> Expected Output: {frozenset({X, W, Z}), frozenset({Y})}
+
+        Test Case 2: Nodes from same district
+        Query: {X, W} -> Expected Output: {X, W, Z}
+        Query: {W, Z} -> Expected Output: {X, W, Z}
+        Query: {X, Z} -> Expected Output: {X, W, Z}
+        """
+        # simple_cyclic_graph has three districts: {R}, {X, W, Z}, {Y}
+
+        # Test 1: test all pairs of nodes to verify district membership for different districts
+        different_district_pairs = [
+            ({R, X}, {frozenset({R}), frozenset({X, W, Z})}),
+            ({R, Y}, {frozenset({R}), frozenset({Y})}),
+            ({X, Y}, {frozenset({X, W, Z}), frozenset({Y})}),
+        ]
+
+        for query, expected in different_district_pairs:
+            with self.subTest(query=query):
+                result = get_consolidated_district(simple_cyclic_graph_1, query)
+                self.assertSetEqual(result, expected, f"Nodes {query} are in different districts.")
+
+        # Test 2: test pairs from same district
+        same_district_pairs = [
+            ({X, W}, {X, W, Z}),
+            ({W, Z}, {X, W, Z}),
+            ({X, Z}, {X, W, Z}),
+        ]
+
+        for query, expected in same_district_pairs:
+            with self.subTest(query=query):
+                result = get_consolidated_district(simple_cyclic_graph_1, query)
+                self.assertSetEqual(result, expected, f"Nodes {query} are in the same district.")
+
+    def test_get_consolidated_district_return_type_consistency(self) -> None:
+        """Test that return type is predictable based on district count.
+
+        Rule:
+        - 1 district -> set[Variable]
+        - 2+ districts -> set[frozenset[Variable]]
+
+        Test Cases for Single district:
+
+        Graph 1: simple_cyclic_graph_1
+        1. Query: {X} -> Output: set of Variables {X, W, Z}
+        2. Query: {X, W, Z} -> Output: set of Variables {X, W, Z} (all from the same district)
+
+
+        Graph 2: simple_cyclic_graph_2
+        3. Query: {R, X} -> Output: set of Variables {R, X, W, Z}
+        4. Query: {R, X, W, Z} -> Output: set of Variables {R, X, W, Z} (all from the same district)
+
+        Test Cases for Multiple Districts:
+
+        Graph 1 (simple_cyclic_graph_1):
+        5. Query {X, R} → Returns {frozenset({X,W,Z}), frozenset({R})} (2 districts)
+        6. Query {R, Y} → Returns {frozenset({R}), frozenset({Y})} (2 districts)
+        7. Query {X, Y} → Returns {frozenset({X,W,Z}), frozenset({Y})} (2 districts)
+        8. Query {R, X, Y} → Returns {frozenset({R}), frozenset({X,W,Z}), frozenset({Y})} (3 districts)
+
+        Graph 2 (simple_cyclic_graph_2):
+        9. Query {X, Y} → Returns {frozenset({R,X,W,Z}), frozenset({Y})} (2 districts)
+
+
+        """
+        # 1 district cases (should return set of Variables)
+        one_district = [
+            (simple_cyclic_graph_1, {X}, {X, W, Z}),
+            (simple_cyclic_graph_1, {X, W, Z}, {X, W, Z}),
+            (simple_cyclic_graph_2, {R, X}, {R, X, W, Z}),
+            (simple_cyclic_graph_2, {R, X, W, Z}, {R, X, W, Z}),
+        ]
+
+        for graph, query, expected in one_district:
+            with self.subTest(query=query, expected_districts=1):
+                result = get_consolidated_district(graph, query)
+                # check if its a set truly
+                self.assertIsInstance(result, set)
+                # check expected value
+                self.assertSetEqual(result, expected)
+
+                # check all are Variables
+                for item in result:
+                    self.assertIsInstance(
+                        item, Variable, "Expected set of Variables for single district."
+                    )
+
+        # 2+ district cases (should return set of frozen sets)
+        multiple_districts = [
+            (simple_cyclic_graph_1, {X, R}, {frozenset({X, W, Z}), frozenset({R})}),
+            (simple_cyclic_graph_1, {R, Y}, {frozenset({R}), frozenset({Y})}),
+            (simple_cyclic_graph_1, {X, Y}, {frozenset({X, W, Z}), frozenset({Y})}),
+            (
+                simple_cyclic_graph_1,
+                {R, X, Y},
+                {frozenset({R}), frozenset({X, W, Z}), frozenset({Y})},
+            ),
+            (simple_cyclic_graph_2, {X, Y}, {frozenset({R, X, W, Z}), frozenset({Y})}),
+        ]
+
+        for graph, query, expected in multiple_districts:
+            with self.subTest(query=query, expected_districts="2+"):
+                result = get_consolidated_district(graph, query)
+                # check if its a set
+                self.assertIsInstance(result, set)
+
+                # check expected value
+                self.assertSetEqual(result, expected)
+
+                for item in result:
+                    self.assertIsInstance(
+                        item, frozenset, "Expected set of frozensets for multiple districts."
+                    )
+
+    # ----------------------------------------------------------------------
 
     def test_get_graph_consolidated_district(self) -> None:
         """First test for getting the consolidated districts for a graph."""

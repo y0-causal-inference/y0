@@ -103,11 +103,19 @@ def get_consolidated_district(graph: NxMixedGraph, vertices: Collection[Variable
     # 3. Get all the consolidated districts.
     # 4. Return the union of all of them as one set.
     converted_graph = scc_to_bidirected(graph)
-    result: set[Variable] = set()
+
+    # added a fix to maintain district boundaries to ensure correct return type and district information.
+    # a few tests have been updated to reflect this change.
+    districts: set[frozenset[Variable]] = set()
     for vertex in vertices:
         district = converted_graph.get_district(vertex)
-        result.update(district)
-    return result
+        districts.add(frozenset(district))
+
+    if len(districts) == 1:
+        return set(districts.pop())
+
+    else:
+        return districts
 
 
 def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Variable]]:
