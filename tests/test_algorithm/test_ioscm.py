@@ -342,11 +342,10 @@ class TestIOSCMUtils(cases.GraphTestCase):
             ({W, Z}, {X, W, Z}),
             ({X, Z}, {X, W, Z}),
         ]
-
-        for query, expected in same_district_pairs:
+        for query, expected_2 in same_district_pairs:
             with self.subTest(query=query):
                 result = get_consolidated_district(simple_cyclic_graph_1, query)
-                self.assertEqual(expected, result, f"Nodes {query} are in the same district.")
+                self.assertEqual(expected_2, result, f"Nodes {query} are in the same district.")
 
     def test_get_consolidated_district_return_type_consistency(self) -> None:
         """Test that return type is predictable based on district count.
@@ -400,9 +399,9 @@ class TestIOSCMUtils(cases.GraphTestCase):
             ),
             (simple_cyclic_graph_2, {X, Y}, {frozenset({R, X, W, Z}), frozenset({Y})}),
         ]
-        for graph, query, expected in multiple_districts:
+        for graph, query, expected_2 in multiple_districts:
             with self.subTest(query=query, expected_districts="2+"):
-                self.assertEqual(expected, get_consolidated_district(graph, query))
+                self.assertEqual(expected_2, get_consolidated_district(graph, query))
 
     def test_get_graph_consolidated_district(self) -> None:
         """First test for getting the consolidated districts for a graph."""
