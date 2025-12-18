@@ -13,10 +13,8 @@ from y0.algorithm.identify.idcd import (
     validate_preconditions,
 )
 from y0.algorithm.ioscm.utils import get_apt_order
-from y0.dsl import Expression, P, R, Variable, W, X, Y, Z
+from y0.dsl import P, R, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
-
-# ----------------------------------------------------------------------------
 
 
 class TestValidatePreconditions(unittest.TestCase):
@@ -85,9 +83,6 @@ class TestValidatePreconditions(unittest.TestCase):
         validate_preconditions(graph, targets, district)
 
 
-# ----------------------------------------------------------------------------
-
-
 class TestMarginalizationToAncestors(unittest.TestCase):
     """Tests for marginalization to ancestors function."""
 
@@ -124,9 +119,6 @@ class TestMarginalizationToAncestors(unittest.TestCase):
         result_str = str(result)
         self.assertIn("Sum", result_str)
         self.assertIn("X", result_str)
-
-
-# ----------------------------------------------------------------------------
 
 
 class TestGetAptOrderPredecessors(unittest.TestCase):
@@ -203,9 +195,6 @@ class TestGetAptOrderPredecessors(unittest.TestCase):
         self.assertEqual(predecessors, set())
 
 
-# ----------------------------------------------------------------------------
-
-
 class TestIDCDFunction(unittest.TestCase):
     """Tests for the IDCD algorithm implementation."""
 
@@ -254,17 +243,7 @@ class TestIDCDFunction(unittest.TestCase):
             district=district,
             distribution=distribution,
         )
-
-        # verifying result type
-        self.assertIsInstance(
-            result, Expression
-        )  # should return the expression that is unchanged from the input: P(Z)
-
-        # verify exact equality
-        self.assertEqual(result, distribution)
-
-        # verify string representation
-        self.assertEqual(str(result), "P(Z)", "Result should be exactly P(Z)")
+        self.assertEqual(distribution, result)
 
     def test_unidentifiable_case_ancestral_closure_equals_district(self) -> None:
         """Line 19-20: When ancestral closure equals district it should be unidentifiable."""
@@ -400,18 +379,15 @@ class TestIDCDFunction(unittest.TestCase):
         ancestral_closure = {R, X, Y}
         original_distribution = P(R, X, Y)
 
-        try:
-            result = identify_through_scc_decomposition(
-                graph=graph,
-                targets=targets,
-                ancestral_closure=ancestral_closure,
-                recursion_level=0,
-                original_distribution=original_distribution,
-            )
-
-            self.assertIsInstance(result, Expression)
-        except Unidentifiable:
-            pass
+        result = identify_through_scc_decomposition(
+            graph=graph,
+            targets=targets,
+            ancestral_closure=ancestral_closure,
+            recursion_level=0,
+            original_distribution=original_distribution,
+        )
+        expected = ...  # FIXME add explicit test or explicit catch
+        self.assertEqual(expected, result)
 
     def test_simple_identifiable_graph(self) -> None:
         """Test IDCD on a simple identifiable cyclic graph.
@@ -433,18 +409,14 @@ class TestIDCDFunction(unittest.TestCase):
         district = {R, X, W, Y, Z}
         distribution = P(R, X, W, Y, Z)
 
-        try:
-            result = idcd(
-                graph=simple_cyclic_graph_2,
-                targets=targets,
-                district=district,
-                distribution=distribution,
-            )
-
-            # the expression should be:
-            self.assertIsInstance(result, Expression)  # should return P(Y) unchanged
-        except Unidentifiable:
-            pass  # this query is unidentifiable in this graph
+        result = idcd(
+            graph=simple_cyclic_graph_2,
+            targets=targets,
+            district=district,
+            distribution=distribution,
+        )
+        expected = ...  # FIXME add explicit test
+        self.assertEqual(expected, result)
 
     def test_simple_unidentifiable_graph(self) -> None:
         """Test IDCD on a simple unidentifiable cyclic graph with cycles.
@@ -478,23 +450,31 @@ class TestIDCDFunction(unittest.TestCase):
         district = {X, Z}
         distribution = P(X, Z)
 
-        try:
-            result = idcd(
+        with self.assertRaises(Unidentifiable):
+            idcd(
                 graph=graph,
                 targets=targets,
                 district=district,
                 distribution=distribution,
             )
 
-            self.assertIsInstance(result, Expression)
-            self.assertIn("X", str(result))
-        except Unidentifiable as e:
-            # verify error mentions inability to identify
-            error_msg = str(e).lower()
-            self.assertIn("cannot identify", error_msg)
-
-
-# ----------------------------------------------------------------------------
+    def test_invalid_subsets_raise(self) -> None:
+        """Test when condition targets ⊊ ancestral_closure ⊊ district is not met."""
+        graph = NxMixedGraph.from_edges(directed=[...])
+        targets = ...
+        district = ...
+        distribution = ...
+        with self.assertRaises(ValueError) as context:
+            idcd(
+                graph=graph,
+                targets=targets,
+                district=district,
+                distribution=distribution,
+            )
+            self.assertIn(
+                "Unexpected state: expected targets ⊊ ancestral_closure ⊊ district",
+                str(context.exception),
+            )
 
 
 class TestComputeSCCDistributions(unittest.TestCase):
@@ -521,7 +501,10 @@ class TestComputeSCCDistributions(unittest.TestCase):
         ancestral_closure = {X, Y, Z}
 
         original_distribution = P(X, Y, Z)
-        intervention_set = set()
+        intervention_set: set[Variable] = set()
+        expected = {
+            frozenset({X, Y, Z}): ...  # FIXME add explicit distribution
+        }
 
         result = compute_scc_distributions(
             graph=graph,
@@ -531,19 +514,7 @@ class TestComputeSCCDistributions(unittest.TestCase):
             original_distribution=original_distribution,
             intervention_set=intervention_set,
         )
-
-        # Should return a dictionary
-        self.assertIsInstance(result, dict)
-
-        # Should have one entry (one SCC)
-        self.assertEqual(len(result), 1)
-
-        # The key should be the SCC
-        self.assertIn(frozenset({X, Y, Z}), result)
-
-        # The value should be an Expression
-        distribution = result[frozenset({X, Y, Z})]
-        self.assertIsInstance(distribution, Expression)
+        self.assertEqual(expected, result)
 
     def test_multiple_sccs_with_cycles(self) -> None:
         """Test multiple SCCs each with cycles in the graph."""
@@ -564,7 +535,11 @@ class TestComputeSCCDistributions(unittest.TestCase):
         ancestral_closure = {X, Y, W, Z}
 
         original_distribution = P(X, Y, W, Z)
-        intervention_set = set()
+        intervention_set: set[Variable] = set()
+        expected = {
+            frozenset({X, Y}): ...,  # FIXME add explicit expectations
+            frozenset({W, Z}): ...,
+        }
 
         result = compute_scc_distributions(
             graph=graph,
@@ -574,19 +549,7 @@ class TestComputeSCCDistributions(unittest.TestCase):
             original_distribution=original_distribution,
             intervention_set=intervention_set,
         )
-
-        # Should return a dictionary
-        self.assertIsInstance(result, dict)
-
-        # should have two entries (two SCCs)
-        self.assertEqual(len(result), 2)
-
-        # Each key should be an SCC
-        self.assertIn(frozenset({X, Y}), result)
-        self.assertIn(frozenset({W, Z}), result)
-
-        for scc in relevant_sccs:
-            self.assertIsInstance(result[scc], Expression)
+        self.assertEqual(expected, result)
 
     def test_intervention_set_calculation(self) -> None:
         """Test that intervention sets are calculated correctly for SCCs."""
@@ -610,6 +573,9 @@ class TestComputeSCCDistributions(unittest.TestCase):
         original_distribution = P(R, X, Y, Z)
         nodes = set(graph.nodes())
         intervention_set = nodes - ancestral_closure
+        expected = {
+            frozenset({Z}): ...  # FIXME add explicit expectation
+        }
 
         result = compute_scc_distributions(
             graph=graph,
@@ -619,18 +585,4 @@ class TestComputeSCCDistributions(unittest.TestCase):
             original_distribution=original_distribution,
             intervention_set=intervention_set,
         )
-
-        # should successfully compute distribution for the SCC
-        self.assertIsInstance(result, dict)
-        self.assertEqual(len(result), 1)
-
-        self.assertIsInstance(result[frozenset({Z})], Expression)
-
-
-# ----------------------------------------------------------------------------
-
-
-class TestCalculateSCCDistribution(unittest.TestCase):
-    """Tests for _calculate_scc_distribution function."""
-
-    pass  # adding tests here later
+        self.assertEqual(expected, result)

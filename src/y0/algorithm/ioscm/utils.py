@@ -113,8 +113,10 @@ def get_consolidated_district(graph: NxMixedGraph, vertices: Collection[Variable
 
     if len(districts) == 1:
         return set(districts.pop())
-
     else:
+        # FIXME there's a fundamental type issue here. In the first branch,
+        #  it's returning a single frozenset[Variable]. In this branch, it's
+        #  returning a set[frozenset[Variable]]
         return districts
 
 
