@@ -203,6 +203,9 @@ exclude_lines = [
 [tool.ruff]
 line-length = 100
 extend-include = ["*.ipynb"]
+exclude = [
+    "notebooks/Code_Coverage_Tutorial.ipynb",
+]
 
 [tool.ruff.lint]
 # See https://docs.astral.sh/ruff/rules
