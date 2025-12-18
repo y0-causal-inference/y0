@@ -344,7 +344,7 @@ def _calculate_scc_distribution(
     # Step 2: Condition on predecessors if any
 
     if predecessors:
-        result = result.conditional(list(scc))
+        result = result.conditional(list(predecessors))
 
     logger.debug(f"Calculated SCC or R_A[{sorted(scc)}] = {result}")
 
