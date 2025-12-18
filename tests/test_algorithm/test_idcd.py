@@ -299,7 +299,6 @@ class TestIDCDFunction(unittest.TestCase):
                 graph=graph,
                 targets=targets,
                 ancestral_closure=ancestral_closure,
-                recursion_level=0,
                 original_distribution=original_distribution,
             )
 
@@ -325,7 +324,6 @@ class TestIDCDFunction(unittest.TestCase):
                 graph=graph,
                 targets=targets,
                 ancestral_closure=ancestral_closure,
-                recursion_level=0,
                 original_distribution=original_distribution,
             )
 
@@ -350,7 +348,6 @@ class TestIDCDFunction(unittest.TestCase):
                 graph=graph,
                 targets=targets,
                 ancestral_closure=ancestral_closure,
-                recursion_level=0,
                 original_distribution=original_distribution,
             )
             self.assertIn("No SCCs", str(context.exception))
@@ -383,7 +380,6 @@ class TestIDCDFunction(unittest.TestCase):
             graph=graph,
             targets=targets,
             ancestral_closure=ancestral_closure,
-            recursion_level=0,
             original_distribution=original_distribution,
         )
         expected = ...  # FIXME add explicit test or explicit catch
@@ -460,7 +456,7 @@ class TestIDCDFunction(unittest.TestCase):
 
     def test_invalid_subsets_raise(self) -> None:
         """Test when condition targets ⊊ ancestral_closure ⊊ district is not met."""
-        graph = NxMixedGraph.from_edges(directed=[...])
+        graph = NxMixedGraph.from_edges(directed=[], undirected=[]) # FIXME add in a test case
         targets = ...
         district = ...
         distribution = ...

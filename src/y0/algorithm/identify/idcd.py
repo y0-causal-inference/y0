@@ -187,8 +187,8 @@ def identify_through_scc_decomposition(
     graph: NxMixedGraph,
     targets: set[Variable],
     ancestral_closure: set[Variable],
+    original_distribution: Expression,
     recursion_level: int = 0,
-    original_distribution: Expression | None = None,
 ) -> Expression:
     r"""Identify causal effect through SCC decomposition.
 
