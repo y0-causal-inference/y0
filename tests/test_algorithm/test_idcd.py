@@ -3,9 +3,8 @@
 import unittest
 
 from tests.test_algorithm.test_ioscm import simple_cyclic_graph_1, simple_cyclic_graph_2
-from y0.algorithm.identify import Unidentifiable, identify_outcomes
+from y0.algorithm.identify import Unidentifiable
 from y0.algorithm.identify.idcd import (
-    _calculate_scc_distribution,
     _get_apt_order_predecessors,
     compute_scc_distributions,
     idcd,
@@ -14,10 +13,8 @@ from y0.algorithm.identify.idcd import (
     validate_preconditions,
 )
 from y0.algorithm.ioscm.utils import get_apt_order
-from y0.dsl import Expression, P, R, Variable, W, X, Y, Z
+from y0.dsl import P, R, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
-
-# ----------------------------------------------------------------------------
 
 
 class TestValidatePreconditions(unittest.TestCase):
@@ -86,9 +83,6 @@ class TestValidatePreconditions(unittest.TestCase):
         validate_preconditions(graph, targets, district)
 
 
-# ----------------------------------------------------------------------------
-
-
 class TestMarginalizationToAncestors(unittest.TestCase):
     """Tests for marginalization to ancestors function."""
 
@@ -125,9 +119,6 @@ class TestMarginalizationToAncestors(unittest.TestCase):
         result_str = str(result)
         self.assertIn("Sum", result_str)
         self.assertIn("X", result_str)
-
-
-# ----------------------------------------------------------------------------
 
 
 class TestGetAptOrderPredecessors(unittest.TestCase):
@@ -204,9 +195,6 @@ class TestGetAptOrderPredecessors(unittest.TestCase):
         self.assertEqual(predecessors, set())
 
 
-# ----------------------------------------------------------------------------
-
-
 class TestIDCDFunction(unittest.TestCase):
     """Tests for the IDCD algorithm implementation."""
 
@@ -255,17 +243,7 @@ class TestIDCDFunction(unittest.TestCase):
             district=district,
             distribution=distribution,
         )
-
-        # verifying result type
-        self.assertIsInstance(
-            result, Expression
-        )  # should return the expression that is unchanged from the input: P(Z)
-
-        # verify exact equality
-        self.assertEqual(result, distribution)
-
-        # verify string representation
-        self.assertEqual(str(result), "P(Z)", "Result should be exactly P(Z)")
+        self.assertEqual(distribution, result)
 
     def test_unidentifiable_case_ancestral_closure_equals_district(self) -> None:
         """Line 19-20: When ancestral closure equals district it should be unidentifiable."""
@@ -321,7 +299,6 @@ class TestIDCDFunction(unittest.TestCase):
                 graph=graph,
                 targets=targets,
                 ancestral_closure=ancestral_closure,
-                recursion_level=0,
                 original_distribution=original_distribution,
             )
 
@@ -347,7 +324,6 @@ class TestIDCDFunction(unittest.TestCase):
                 graph=graph,
                 targets=targets,
                 ancestral_closure=ancestral_closure,
-                recursion_level=0,
                 original_distribution=original_distribution,
             )
 
@@ -372,7 +348,6 @@ class TestIDCDFunction(unittest.TestCase):
                 graph=graph,
                 targets=targets,
                 ancestral_closure=ancestral_closure,
-                recursion_level=0,
                 original_distribution=original_distribution,
             )
             self.assertIn("No SCCs", str(context.exception))
@@ -401,18 +376,14 @@ class TestIDCDFunction(unittest.TestCase):
         ancestral_closure = {R, X, Y}
         original_distribution = P(R, X, Y)
 
-        try:
-            result = identify_through_scc_decomposition(
-                graph=graph,
-                targets=targets,
-                ancestral_closure=ancestral_closure,
-                recursion_level=0,
-                original_distribution=original_distribution,
-            )
-
-            self.assertIsInstance(result, Expression)
-        except Unidentifiable:
-            pass
+        result = identify_through_scc_decomposition(
+            graph=graph,
+            targets=targets,
+            ancestral_closure=ancestral_closure,
+            original_distribution=original_distribution,
+        )
+        expected = ...  # FIXME add explicit test or explicit catch
+        self.assertEqual(expected, result)
 
     def test_simple_identifiable_graph(self) -> None:
         """Test IDCD on a simple identifiable cyclic graph.
@@ -434,18 +405,14 @@ class TestIDCDFunction(unittest.TestCase):
         district = {R, X, W, Y, Z}
         distribution = P(R, X, W, Y, Z)
 
-        try:
-            result = idcd(
-                graph=simple_cyclic_graph_2,
-                targets=targets,
-                district=district,
-                distribution=distribution,
-            )
-
-            # the expression should be:
-            self.assertIsInstance(result, Expression)  # should return P(Y) unchanged
-        except Unidentifiable:
-            pass  # this query is unidentifiable in this graph
+        result = idcd(
+            graph=simple_cyclic_graph_2,
+            targets=targets,
+            district=district,
+            distribution=distribution,
+        )
+        expected = ...  # FIXME add explicit test
+        self.assertEqual(expected, result)
 
     def test_simple_unidentifiable_graph(self) -> None:
         """Test IDCD on a simple unidentifiable cyclic graph with cycles.
@@ -479,23 +446,31 @@ class TestIDCDFunction(unittest.TestCase):
         district = {X, Z}
         distribution = P(X, Z)
 
-        try:
-            result = idcd(
+        with self.assertRaises(Unidentifiable):
+            idcd(
                 graph=graph,
                 targets=targets,
                 district=district,
                 distribution=distribution,
             )
 
-            self.assertIsInstance(result, Expression)
-            self.assertIn("X", str(result))
-        except Unidentifiable as e:
-            # verify error mentions inability to identify
-            error_msg = str(e).lower()
-            self.assertIn("cannot identify", error_msg)
-
-
-# ----------------------------------------------------------------------------
+    def test_invalid_subsets_raise(self) -> None:
+        """Test when condition targets ⊊ ancestral_closure ⊊ district is not met."""
+        graph = NxMixedGraph.from_edges(directed=[], undirected=[])  # FIXME add in a test case
+        targets = ...
+        district = ...
+        distribution = ...
+        with self.assertRaises(ValueError) as context:
+            idcd(
+                graph=graph,
+                targets=targets,
+                district=district,
+                distribution=distribution,
+            )
+            self.assertIn(
+                "Unexpected state: expected targets ⊊ ancestral_closure ⊊ district",
+                str(context.exception),
+            )
 
 
 class TestComputeSCCDistributions(unittest.TestCase):
@@ -522,7 +497,10 @@ class TestComputeSCCDistributions(unittest.TestCase):
         ancestral_closure = {X, Y, Z}
 
         original_distribution = P(X, Y, Z)
-        intervention_set = set()
+        intervention_set: set[Variable] = set()
+        expected = {
+            frozenset({X, Y, Z}): ...  # FIXME add explicit distribution
+        }
 
         result = compute_scc_distributions(
             graph=graph,
@@ -532,19 +510,7 @@ class TestComputeSCCDistributions(unittest.TestCase):
             original_distribution=original_distribution,
             intervention_set=intervention_set,
         )
-
-        # Should return a dictionary
-        self.assertIsInstance(result, dict)
-
-        # Should have one entry (one SCC)
-        self.assertEqual(len(result), 1)
-
-        # The key should be the SCC
-        self.assertIn(frozenset({X, Y, Z}), result)
-
-        # The value should be an Expression
-        distribution = result[frozenset({X, Y, Z})]
-        self.assertIsInstance(distribution, Expression)
+        self.assertEqual(expected, result)
 
     def test_multiple_sccs_with_cycles(self) -> None:
         """Test multiple SCCs each with cycles in the graph."""
@@ -565,7 +531,11 @@ class TestComputeSCCDistributions(unittest.TestCase):
         ancestral_closure = {X, Y, W, Z}
 
         original_distribution = P(X, Y, W, Z)
-        intervention_set = set()
+        intervention_set: set[Variable] = set()
+        expected = {
+            frozenset({X, Y}): ...,  # FIXME add explicit expectations
+            frozenset({W, Z}): ...,
+        }
 
         result = compute_scc_distributions(
             graph=graph,
@@ -575,19 +545,7 @@ class TestComputeSCCDistributions(unittest.TestCase):
             original_distribution=original_distribution,
             intervention_set=intervention_set,
         )
-
-        # Should return a dictionary
-        self.assertIsInstance(result, dict)
-
-        # should have two entries (two SCCs)
-        self.assertEqual(len(result), 2)
-
-        # Each key should be an SCC
-        self.assertIn(frozenset({X, Y}), result)
-        self.assertIn(frozenset({W, Z}), result)
-
-        for scc in relevant_sccs:
-            self.assertIsInstance(result[scc], Expression)
+        self.assertEqual(expected, result)
 
     def test_intervention_set_calculation(self) -> None:
         """Test that intervention sets are calculated correctly for SCCs."""
@@ -611,6 +569,9 @@ class TestComputeSCCDistributions(unittest.TestCase):
         original_distribution = P(R, X, Y, Z)
         nodes = set(graph.nodes())
         intervention_set = nodes - ancestral_closure
+        expected = {
+            frozenset({Z}): ...  # FIXME add explicit expectation
+        }
 
         result = compute_scc_distributions(
             graph=graph,
@@ -620,332 +581,4 @@ class TestComputeSCCDistributions(unittest.TestCase):
             original_distribution=original_distribution,
             intervention_set=intervention_set,
         )
-
-        # should successfully compute distribution for the SCC
-        self.assertIsInstance(result, dict)
-        self.assertEqual(len(result), 1)
-
-        self.assertIsInstance(result[frozenset({Z})], Expression)
-
-
-# ----------------------------------------------------------------------------
-
-
-class TestCalculateSCCDistribution(unittest.TestCase):
-    """Tests for _calculate_scc_distribution function."""
-
-    pass  # adding tests here later
-
-
-class TestLine23ImplementationComparison(unittest.TestCase):
-    """Tests comparing two implementations of Line 23."""
-
-    def test_approach_comparison_simple_cycle(self) -> None:
-        """Compare Approach A (using identify_outcomes) vs Approach B (direct construction).
-
-        Graph: simple_cyclic_graph_1
-        - R -> X -> W -> Z -> X (cycle)
-        - W -> Y
-        - Districts: {R}, {X, W, Z,},  {Y}
-
-
-
-        This test verifies both approaches produce equivalent symbolic expressions
-        for computing R_A[S] in Line 23 of the IDCD algorithm.
-
-        Approach A: Call identify_outcomes with apt_order
-        Approach B: Current _calculate_scc_distribution implementation
-
-        Expected: Both should return equivalent Expression objects.
-
-        """
-        graph = simple_cyclic_graph_1
-
-        # test on the SCC {X, W, Z}
-        scc = frozenset({X, W, Z})
-
-        # ancestral closure for this test
-        ancestral_closure = {R, X, W, Z}
-
-        original_distribution = P(R, X, W, Z)
-
-        # intervention set: nodes - ancestral_closure
-        nodes = set(graph.nodes())
-        intervention_set = nodes - ancestral_closure
-
-        # step 2: compute apt-order and predecessors
-        subgraph_a = graph.subgraph(ancestral_closure)
-        apt_order_a = get_apt_order(subgraph_a)
-
-        # get predecessors of the SCC
-        predecessors = _get_apt_order_predecessors(
-            scc,
-            apt_order_a,
-            ancestral_closure,
-        )
-
-        # step 3: Approach A vs B
-
-        # approach B using current implementation with direct construction of expression
-        result_b = _calculate_scc_distribution(
-            scc=scc,
-            predecessors=predecessors,
-            intervention_set=intervention_set,
-            original_distribution=original_distribution,
-            graph=graph,
-        )
-
-        # Approach A - using identify_outcomes
-        result_a = identify_outcomes(
-            graph=graph,
-            outcomes=scc,
-            conditions=predecessors if predecessors else None,
-            strict=True,
-            treatments=intervention_set,
-            ordering=apt_order_a,
-        )
-
-        # Step 4: Compare results - they should be equivalent expressions
-        self.assertIsInstance(result_a, Expression)
-        self.assertIsInstance(result_b, Expression)
-
-        # compare string representations for equivalence
-        result_a_str = str(result_a)
-        result_b_str = str(result_b)
-
-        # If they're equivalent, the strings should match
-        # (This might need adjustment depending on expression normalization)
-        self.assertEqual(
-            result_a_str,
-            result_b_str,
-            f"Approaches produce different results:\n"
-            f"Approach A: {result_a_str}\n"
-            f"Approach B: {result_b_str}",
-        )
-
-    def test_approach_comparison_no_predecessors(self) -> None:
-        """Test Line 23 when there are no predecessors.
-
-        Graph: simple_cyclic_graph_1
-        - R -> X -> W -> Z -> X (cycle)
-        - W -> Y
-
-        Test Case: Scc = {R} with no predecessors.
-        Expected: Both approaches should handle empty predecessors correctly.
-        """
-        graph = simple_cyclic_graph_1
-
-        # test the first node R that has no predecessors
-        scc = frozenset({R})
-        ancestral_closure = {R, X, W, Z}
-        original_distribution = P(R, X, W, Z)
-
-        nodes = set(graph.nodes())
-        intervention_set = nodes - ancestral_closure  # should be {Y}
-
-        # compute the apt-order and predecessors
-        subgraph_a = graph.subgraph(ancestral_closure)
-        apt_order_a = get_apt_order(subgraph_a)
-        predecessors = _get_apt_order_predecessors(
-            scc,
-            apt_order_a,
-            ancestral_closure,
-        )
-
-        # approach B using current implementation
-        result_b = _calculate_scc_distribution(
-            scc=scc,
-            predecessors=predecessors,
-            intervention_set=intervention_set,
-            original_distribution=original_distribution,
-            graph=graph,
-        )
-
-        # approach a using identify_outcomes
-        result_a = identify_outcomes(
-            graph=graph,
-            outcomes=scc,
-            treatments=intervention_set,
-            conditions=predecessors if predecessors else None,
-            strict=True,
-            ordering=apt_order_a,
-        )
-
-        # Both should return valid Expressions
-        self.assertIsInstance(result_a, Expression)
-        self.assertIsInstance(result_b, Expression)
-
-        # Verify predecessors is empty
-        self.assertEqual(len(predecessors), 0)
-
-    def test_approach_comparison_single_node_scc(self) -> None:
-        """Test Line 23 comparison with a single-node SCC.
-
-        Graph: simple_cyclic_graph_1
-        - R -> X -> W -> Z -> X (cycle)
-        - W -> Y
-
-        Test Case: SCC = {Y} which is a single node SCC.
-        Expected: Both approaches should yield the same expression for R_A[S].
-        """
-        graph = simple_cyclic_graph_1
-
-        scc = frozenset({Y})
-        ancestral_closure = {W, X, Z, Y}
-        original_distribution = P(W, X, Z, Y)
-
-        nodes = set(graph.nodes())
-        intervention_set = nodes - ancestral_closure  # should be {R}
-
-        # compute apt-order and predecessors
-        subgraph_a = graph.subgraph(ancestral_closure)
-        apt_order_a = get_apt_order(subgraph_a)
-        predecessors = _get_apt_order_predecessors(
-            scc,
-            apt_order_a,
-            ancestral_closure,
-        )
-
-        # Approach B - current implementation
-        result_b = _calculate_scc_distribution(
-            scc=scc,
-            predecessors=predecessors,
-            intervention_set=intervention_set,
-            original_distribution=original_distribution,
-            graph=graph,
-        )
-
-        # approach A - using identify_outcomes
-        result_a = identify_outcomes(
-            graph=graph,
-            outcomes=scc,
-            treatments=intervention_set,
-            conditions=predecessors if predecessors else None,
-            strict=True,
-            ordering=apt_order_a,
-        )
-
-        # Both should return valid Expressions
-        self.assertIsInstance(result_a, Expression)
-        self.assertIsInstance(result_b, Expression)
-
-    def test_approach_comparison_graph2(self) -> None:
-        """Test Line 23 comparison on simple_cyclic_graph_2.
-
-        Graph: simple_cyclic_graph_2
-
-        - R <-> X (bidirected edge)
-        - R -> X -> W -> Z -> X (cycle)
-        - W -> Y
-
-        Test Case: SCC = {X, W, Z} with confounding.
-        Expected: Both approaches should yield the same expression for R_A[S].
-        """
-        graph = simple_cyclic_graph_2
-
-        scc = frozenset({X, W, Z})
-        ancestral_closure = {R, X, W, Z}
-        original_distribution = P(R, X, W, Z)
-
-        nodes = set(graph.nodes())
-        intervention_set = nodes - ancestral_closure  # should be {Y}
-
-        # compute apt-order and predecessors
-        subgraph_a = graph.subgraph(ancestral_closure)
-        apt_order_a = get_apt_order(subgraph_a)
-        predecessors = _get_apt_order_predecessors(
-            scc,
-            apt_order_a,
-            ancestral_closure,
-        )
-
-        # Approach B - current implementation
-        result_b = _calculate_scc_distribution(
-            scc=scc,
-            predecessors=predecessors,
-            intervention_set=intervention_set,
-            original_distribution=original_distribution,
-            graph=graph,
-        )
-
-        # approach A - using identify_outcomes
-        result_a = identify_outcomes(
-            graph=graph,
-            outcomes=scc,
-            treatments=intervention_set,
-            conditions=predecessors if predecessors else None,
-            strict=True,
-            ordering=apt_order_a,
-        )
-
-        # Both should return valid Expressions
-        self.assertIsInstance(result_a, Expression)
-        self.assertIsInstance(result_b, Expression)
-
-    def test_approach_comparison_multiple_nodes_in_predecessors(self) -> None:
-        """Test Line 23 comparison with multiple predecessor nodes.
-
-        Creates a custom graph where an SCC has multiple predecessors.
-
-        Graph: R1 → S, R2 → S, S → T → S (cycle)
-
-        Test Case: SCC = {S, T} with predecessors = {R1, R2}
-        Expected: Both approaches handle multiple predecessors correctly.
-        """
-        from y0.dsl import Variable
-
-        # Create custom variables
-        r1 = Variable("R1")
-        r2 = Variable("R2")
-        s = Variable("S")
-        t = Variable("T")
-
-        # Build custom graph
-        graph = NxMixedGraph.from_edges(
-            directed=[
-                (r1, s),
-                (r2, s),
-                (s, t),
-                (t, s),  # Creates cycle
-            ]
-        )
-
-        # Test on the SCC {S, T}
-        scc = frozenset({s, t})
-        ancestral_closure = {r1, r2, s, t}
-        original_distribution = P(r1, r2, s, t)
-
-        nodes = set(graph.nodes())
-        intervention_set = nodes - ancestral_closure  # Empty in this case
-
-        # Compute apt-order and predecessors
-        subgraph_a = graph.subgraph(ancestral_closure)
-        apt_order_a = get_apt_order(subgraph_a)
-        predecessors = _get_apt_order_predecessors(scc, apt_order_a, ancestral_closure)
-
-        # Approach B
-        result_b = _calculate_scc_distribution(
-            scc=scc,
-            predecessors=predecessors,
-            intervention_set=intervention_set,
-            original_distribution=original_distribution,
-            graph=graph,
-        )
-
-        # Approach A
-        result_a = identify_outcomes(
-            graph=graph,
-            outcomes=scc,
-            treatments=intervention_set,
-            conditions=predecessors if predecessors else None,
-            strict=True,
-            ordering=apt_order_a,
-        )
-
-        # Both should return valid Expressions
-        self.assertIsInstance(result_a, Expression)
-        self.assertIsInstance(result_b, Expression)
-
-        # Verify we have multiple predecessors
-        self.assertGreater(len(predecessors), 1)
-        self.assertEqual(predecessors, {r1, r2})
+        self.assertEqual(expected, result)

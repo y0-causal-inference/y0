@@ -78,6 +78,7 @@ def idcd(
             f"Ancestral Closure: {sorted(ancestral_closure)}"
         )
 
+    # TODO implement test for this in test_invalid_subsets_raise
     # checking recursive case (must have targets ⊊ ancestral_closure ⊊ district)
     # strict subsets: targets and ancestral_closure must be strictly smaller
     if not (targets < ancestral_closure and ancestral_closure < district):
@@ -86,7 +87,6 @@ def idcd(
             f"targets={sorted(targets)}, ancestral_closure={sorted(ancestral_closure)}, district={sorted(district)}"
         )
 
-    # TODO needs end-to-end test where this gets called
     # lines 21-26
     return identify_through_scc_decomposition(
         graph, targets, ancestral_closure, original_distribution=distribution
@@ -187,8 +187,8 @@ def identify_through_scc_decomposition(
     graph: NxMixedGraph,
     targets: set[Variable],
     ancestral_closure: set[Variable],
+    original_distribution: Expression,
     recursion_level: int = 0,
-    original_distribution: Expression = None,
 ) -> Expression:
     r"""Identify causal effect through SCC decomposition.
 
@@ -306,9 +306,9 @@ def compute_scc_distributions(
 def _calculate_scc_distribution(
     scc: frozenset[Variable],
     predecessors: set[Variable],
-    intervention_set: set[Variable],
+    intervention_set: set[Variable],  # FIXME remove
     original_distribution: Expression,
-    graph: NxMixedGraph,
+    graph: NxMixedGraph,  # FIXME remove
 ) -> Expression:
     """Construct the distribution R_A[S] for a strongly connected component.
 
@@ -344,7 +344,7 @@ def _calculate_scc_distribution(
     # Step 2: Condition on predecessors if any
 
     if predecessors:
-        result = result.conditional(list(predecessors))
+        result = result.conditional(scc)
 
     logger.debug(f"Calculated SCC or R_A[{sorted(scc)}] = {result}")
 
