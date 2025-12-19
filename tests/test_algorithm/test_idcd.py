@@ -429,7 +429,7 @@ class TestIDCDFunction(unittest.TestCase):
         conditional_prob = P(Y | W, X, Z)
 
         # normalization factor
-        normalization = Sum[Y](P(Y | W, X, Z))
+        normalization = Sum[Y](P(Y | W, X, Z))  # type: ignore[misc]
 
         # this is the final expected result which should be: (P(Y | W, X, Z)) / (Sum_Y P(Y | W, X, Z))
         expected = conditional_prob / normalization
@@ -622,10 +622,10 @@ class TestComputeSCCDistributions(unittest.TestCase):
         # explicitly construct expected distributions:
 
         # SCC {X, Y}: marginalize out {W, Z}
-        expected_xy = Sum[W, Z](P(X, Y, W, Z))
+        expected_xy = Sum[W, Z](P(X, Y, W, Z))  # type: ignore[misc]
 
         # SCC {W, Z}: marginalize out {X, Y}
-        expected_wz = Sum[X, Y](P(X, Y, W, Z))
+        expected_wz = Sum[X, Y](P(X, Y, W, Z))  # type: ignore[misc]
 
         # use canonicalize for comparison between expected and actual since symbolic expressions
         xy_ordering = tuple(expected_xy.get_variables())
@@ -690,7 +690,7 @@ class TestComputeSCCDistributions(unittest.TestCase):
 
         conditional_prob = P(Z | Y)
 
-        normalization = Sum[Z](P(Z | Y))
+        normalization = Sum[Z](P(Z | Y))  # type : ignore[misc]
 
         # result = ((P(Z | Y)) / (Sum_Z P(Z | Y)))
         expected = conditional_prob / normalization
