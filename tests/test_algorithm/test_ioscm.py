@@ -106,9 +106,6 @@ class TestIOSCMUtils(cases.GraphTestCase):
         Reasoning: Since all queried nodes belong to the same consolidated district,
         the function should return a flat set of Variables representing that district.
         """
-        # simple_cyclic_graph_2: R <-> X -> W -> Z -> X, W -> Y
-        # Districts: {R, X, W, Z}, {Y}
-
         # query all nodes from the big district
         query = {R, X, W, Z}
         result = get_consolidated_district(simple_cyclic_graph_2, query)
@@ -133,9 +130,6 @@ class TestIOSCMUtils(cases.GraphTestCase):
         Reasoning: Each queried node belongs to a different consolidated district, so return
         a set of frozensets representing each district to preserve district boundaries.
         """
-        # simple_cyclic_graph_1: R -> X -> W -> Z -> X, W -> Y
-        # Districts: {R}, {X, W, Z}, {Y}
-
         # query one node from each district
         query = {R, X, Y}
         expected = {frozenset({R}), frozenset({X, W, Z}), frozenset({Y})}
@@ -276,17 +270,6 @@ class TestIOSCMUtils(cases.GraphTestCase):
         Test Cases:
         Graph 1: simple_cyclic_graph_1: R -> X -> W -> Z -> X, W -> Y
         Districts: {R}, {X, W, Z}, {Y}
-
-        1. Query: {R} -> Output: {R}
-        2. Query: {X} -> Output: {X, W, Z}
-        3. Query: {Y} -> Output: {Y}
-        4. Query: {W} -> Output: {X, W, Z}
-
-        Graph 2: simple_cyclic_graph_2: R <-> X -> W -> Z -> X, W -> Y
-        Districts: {R, X, W, Z}, {Y}
-
-        5. Query: {R} -> Output: {R, X, W, Z}
-        6. Query: {Y} -> Output: {Y}
         """
         # single node queries should just return the flat set
 
@@ -311,20 +294,7 @@ class TestIOSCMUtils(cases.GraphTestCase):
         Graph: simple_cyclic_graph_1
         Structure: R -> X -> W -> Z -> X (cycle), W -> Y
         Districts: {R}, {X, W, Z}, {Y}
-
-
-        Test Case 1: Nodes from different districts
-        Query: {R, X} -> Expected Output: {frozenset({R}), frozenset({X, W, Z})}
-        Query: {R, Y} -> Expected Output: {frozenset({R}), frozenset({Y})}
-        Query: {X, Y} -> Expected Output: {frozenset({X, W, Z}), frozenset({Y})}
-
-        Test Case 2: Nodes from same district
-        Query: {X, W} -> Expected Output: {X, W, Z}
-        Query: {W, Z} -> Expected Output: {X, W, Z}
-        Query: {X, Z} -> Expected Output: {X, W, Z}
         """
-        # simple_cyclic_graph has three districts: {R}, {X, W, Z}, {Y}
-        # Test 1: test all pairs of nodes to verify district membership for different districts
         different_district_pairs = [
             ({R, X}, {frozenset({R}), frozenset({X, W, Z})}),
             ({R, Y}, {frozenset({R}), frozenset({Y})}),
@@ -336,7 +306,6 @@ class TestIOSCMUtils(cases.GraphTestCase):
                 result = get_consolidated_district(simple_cyclic_graph_1, query)
                 self.assertEqual(expected, result, f"Nodes {query} are in different districts.")
 
-        # Test 2: test pairs from same district
         same_district_pairs = [
             ({X, W}, {X, W, Z}),
             ({W, Z}, {X, W, Z}),

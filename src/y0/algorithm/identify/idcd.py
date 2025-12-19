@@ -2,7 +2,7 @@
 
 import logging
 
-from ..identify import Unidentifiable
+from ..identify import Unidentifiable, identify_outcomes
 from ..ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
@@ -229,7 +229,7 @@ def identify_through_scc_decomposition(
         subgraph_a=subgraph_a,
         relevant_sccs=relevant_sccs,
         ancestral_closure=ancestral_closure,
-        original_distribution=original_distribution,
+        # original_distribution=original_distribution,
         intervention_set=intervention_set,
     )
 
@@ -256,7 +256,6 @@ def compute_scc_distributions(
     subgraph_a: NxMixedGraph,
     relevant_sccs: list[frozenset[Variable]],
     ancestral_closure: set[Variable],
-    original_distribution: Expression,
     intervention_set: set[Variable],
 ) -> dict[frozenset[Variable], Expression]:
     r"""Compute distributions for each strongly connected component (SCC).
@@ -281,74 +280,19 @@ def compute_scc_distributions(
     :returns: Dictionary mapping each SCC to its distribution R_A[S].
     """
     apt_order_a = get_apt_order(subgraph_a)
-
-    scc_distributions = {}
-
-    for scc in relevant_sccs:
-        predecessors = _get_apt_order_predecessors(scc, apt_order_a, ancestral_closure)
-
-        scc_distribution = _calculate_scc_distribution(
-            scc=scc,
-            predecessors=predecessors,
-            intervention_set=intervention_set,
-            original_distribution=original_distribution,
+    scc_distributions = {
+        scc: identify_outcomes(
             graph=graph,
+            outcomes=scc,
+            treatments=intervention_set,
+            conditions=predecessors if predecessors else None,
+            strict=True,
+            ordering=apt_order_a,
         )
-
-        scc_distributions[scc] = scc_distribution
-
+        for scc in relevant_sccs
+        for predecessors in [_get_apt_order_predecessors(scc, apt_order_a, ancestral_closure)]
+    }
     return scc_distributions
-
-
-# ----------------------------------------------------------------
-
-
-def _calculate_scc_distribution(
-    scc: frozenset[Variable],
-    predecessors: set[Variable],
-    intervention_set: set[Variable],  # FIXME remove
-    original_distribution: Expression,
-    graph: NxMixedGraph,  # FIXME remove
-) -> Expression:
-    """Construct the distribution R_A[S] for a strongly connected component.
-
-    This is a probability calculation using DSL operations:
-
-    1. Start with the original distribution.
-    2. Marginalize to keep only S and its predecessors.
-    3. Condition on the predecessors to get P(S | predecessors).
-
-    :param scc: The strongly connected component.
-    :param predecessors: Predecessors of the SCC in apt-order.
-    :param intervention_set: Set of variables under intervention.
-    :param original_distribution: Original distribution.
-    :param graph: The causal graph.
-
-    :returns: Distribution R_A[S] for the SCC.
-    """
-    # get all variables in the original distribution
-    all_variables = original_distribution.get_variables()
-
-    # variables to keep: S union Pred^G_<(S)
-    variables_to_keep = set(scc) | predecessors
-
-    # variables to marginalize out:
-    variables_to_marginalize = all_variables - variables_to_keep
-
-    # Step 1: Marginalize original distribution to keep only S and predecessors
-    if variables_to_marginalize:
-        result = original_distribution.marginalize(variables_to_marginalize)
-    else:
-        result = original_distribution
-
-    # Step 2: Condition on predecessors if any
-
-    if predecessors:
-        result = result.conditional(scc)
-
-    logger.debug(f"Calculated SCC or R_A[{sorted(scc)}] = {result}")
-
-    return result
 
 
 # ---------------------------------------------------------
