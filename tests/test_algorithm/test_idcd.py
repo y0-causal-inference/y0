@@ -15,11 +15,11 @@ from y0.algorithm.identify.idcd import (
     validate_preconditions,
 )
 from y0.algorithm.ioscm.utils import get_apt_order
-from y0.dsl import Expression, P, R, Sum, Variable, W, X, Y, Z
+from y0.dsl import P, R, Sum, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 
-class TestValidatePreconditions(unittest.TestCase):
+class TestComponents(unittest.TestCase):
     """Tests for IDCD precondition validation."""
 
     def test_empty_targets_raises_error(self) -> None:
@@ -46,10 +46,7 @@ class TestValidatePreconditions(unittest.TestCase):
         targets = {Y, Z}
         district = {Y}  # Z is not in district
 
-        with self.assertRaisesRegex(
-            ValueError,
-            "Target must be subset of district.",
-        ):
+        with self.assertRaisesRegex(ValueError, "Target must be subset of district."):
             validate_preconditions(graph, targets, district)
 
     def test_district_not_subset_of_nodes_raises_error(self) -> None:
@@ -84,43 +81,24 @@ class TestValidatePreconditions(unittest.TestCase):
         # should not raise due to valid inputs
         validate_preconditions(graph, targets, district)
 
-
-class TestMarginalizationToAncestors(unittest.TestCase):
-    """Tests for marginalization to ancestors function."""
-
     def test_no_marginalization_district_equals_ancestral_closure(self) -> None:
         """If district equals ancestral closure, no marginalization should occur."""
-        distribution = P(X, Y)
-        district = {X, Y}
-        ancestral_closure = {X, Y}
-
-        result = marginalize_to_ancestors(distribution, district, ancestral_closure)
-
-        self.assertEqual(result, distribution)  # should be unchanged
-
-    def test_marginalization_occurs(self) -> None:
-        r"""Marginalization should remove district \ ancestral_closure variables."""
-        distribution = P(X, Y, Z)
-        district = {X, Y, Z}
-        ancestral_closure = {X, Y}
-
-        result = marginalize_to_ancestors(distribution, district, ancestral_closure)
-
-        result_str = str(result)
-        self.assertIn("Sum", result_str)
-        self.assertIn("Z", result_str)
-
-    def test_marginalization_with_single_variable(self) -> None:
-        """Test marginalizing out a single variable."""
-        distribution = P(X, Y)
-        district = {X, Y}
-        ancestral_closure = {Y}
-
-        result = marginalize_to_ancestors(distribution, district, ancestral_closure)
-
-        result_str = str(result)
-        self.assertIn("Sum", result_str)
-        self.assertIn("X", result_str)
+        parameters = [
+            # If district equals ancestral closure, no marginalization should occur
+            (P(X, Y), P(X, Y), {X, Y}, {X, Y}),
+            # Marginalization should remove district \ ancestral_closure variables
+            (Sum[Z](P(X, Y, Z)), P(X, Y, Z), {X, Y, Z}, {X, Y}),  # TODO check
+            # Test marginalizing out a single variable
+            (Sum[X](P(X, Y)), P(X, Y), {X, Y}, {Y}),  # TODO check
+        ]
+        for expected, distribution, district, ancestral_closure in parameters:
+            with self.subTest(
+                distribution=distribution, district=district, ancestral_closure=ancestral_closure
+            ):
+                self.assertEqual(
+                    expected,
+                    marginalize_to_ancestors(distribution, district, ancestral_closure),
+                )
 
 
 class TestGetAptOrderPredecessors(unittest.TestCase):
