@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from tests.test_algorithm import cases
 from tests.test_algorithm.test_ioscm import simple_cyclic_graph_1, simple_cyclic_graph_2
 from y0.algorithm.identify import Unidentifiable
 from y0.algorithm.identify.idcd import (
@@ -16,7 +17,6 @@ from y0.algorithm.identify.idcd import (
 from y0.algorithm.ioscm.utils import get_apt_order
 from y0.dsl import Expression, P, R, Sum, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
-from y0.mutate import canonicalize
 
 
 class TestValidatePreconditions(unittest.TestCase):
@@ -197,7 +197,7 @@ class TestGetAptOrderPredecessors(unittest.TestCase):
         self.assertEqual(predecessors, set())
 
 
-class TestIDCDFunction(unittest.TestCase):
+class TestIDCDFunction(cases.GraphTestCase):
     """Tests for the IDCD algorithm implementation."""
 
     def test_base_case_ancestral_closure_equals_district(self) -> None:
@@ -434,13 +434,7 @@ class TestIDCDFunction(unittest.TestCase):
         # this is the final expected result which should be: (P(Y | W, X, Z)) / (Sum_Y P(Y | W, X, Z))
         expected = conditional_prob / normalization
 
-        # using canonicalization for comparison
-        ordering = tuple(expected.get_variables())
-        self.assertEqual(
-            canonicalize(expected, ordering),
-            canonicalize(result, ordering),
-            msg=f"\nExpected: {expected}\nGot: {result}",
-        )
+        self.assert_expr_equal(expected, result)
 
     def test_simple_unidentifiable_graph(self) -> None:
         """Test IDCD on a simple unidentifiable cyclic graph with cycles.
@@ -485,8 +479,8 @@ class TestIDCDFunction(unittest.TestCase):
     def test_invalid_subsets_raise(self) -> None:
         """Test when condition targets ⊊ ancestral_closure ⊊ district is not met."""
         # FIXME : this test currently does not trigger the intended error for some reason. I have tried a few variations but
-        # none seem to work to raise that value error. The patching approach is a workaround to simulate the condition. We
-        # can either try to fix this test later or remove it if it's not critical.
+        #  none seem to work to raise that value error. The patching approach is a workaround to simulate the condition. We
+        #  can either try to fix this test later or remove it if it's not critical.
 
         graph = NxMixedGraph.from_edges(directed=[((X, Y))], undirected=[(Y, Z)])
         targets = {Z}
@@ -524,7 +518,7 @@ class TestIDCDFunction(unittest.TestCase):
         #     )
 
 
-class TestComputeSCCDistributions(unittest.TestCase):
+class TestComputeSCCDistributions(cases.GraphTestCase):
     """Tests for compute_scc_distributions function."""
 
     def test_single_scc_returns_correct_structure(self) -> None:
@@ -572,13 +566,7 @@ class TestComputeSCCDistributions(unittest.TestCase):
         # explicitly construct expected distribution:
         expected = P(X, Y, Z)
 
-        # use canonicalization for comparison
-        ordering = tuple(expected.get_variables())
-        self.assertEqual(
-            canonicalize(expected, ordering),
-            canonicalize(distribution, ordering),
-            msg=f"\nExpected: {expected}\nGot: {distribution}",
-        )
+        self.assert_expr_equal(expected, distribution)
 
     def test_multiple_sccs_with_cycles(self) -> None:
         """Test multiple SCCs each with cycles in the graph."""
@@ -627,21 +615,8 @@ class TestComputeSCCDistributions(unittest.TestCase):
         # SCC {W, Z}: marginalize out {X, Y}
         expected_wz = Sum[X, Y](P(X, Y, W, Z))  # type: ignore[misc]
 
-        # use canonicalize for comparison between expected and actual since symbolic expressions
-        xy_ordering = tuple(expected_xy.get_variables())
-        self.assertEqual(
-            canonicalize(expected_xy, xy_ordering),
-            canonicalize(result[frozenset({X, Y})], xy_ordering),
-            msg=f"\nExpected: {expected_xy}\nGot: {result[frozenset({X, Y})]}",
-        )
-
-        # compare {W, Z} distribution
-        wz_ordering = tuple(expected_wz.get_variables())
-        self.assertEqual(
-            canonicalize(expected_wz, wz_ordering),
-            canonicalize(result[frozenset({W, Z})], wz_ordering),
-            msg=f"\nExpected: {expected_wz}\nGot: {result[frozenset({W, Z})]}",
-        )
+        self.assert_expr_equal(expected_xy, result[frozenset({X, Y})])
+        self.assert_expr_equal(expected_wz, result[frozenset({W, Z})])
 
     def test_intervention_set_calculation(self) -> None:
         """Test that intervention sets are calculated correctly for SCCs."""
@@ -690,15 +665,9 @@ class TestComputeSCCDistributions(unittest.TestCase):
 
         conditional_prob = P(Z | Y)
 
-        normalization = Sum[Z](P(Z | Y))  # type : ignore[misc]
+        normalization = Sum[Z](P(Z | Y))  # type:ignore[misc]
 
         # result = ((P(Z | Y)) / (Sum_Z P(Z | Y)))
         expected = conditional_prob / normalization
 
-        # use canonicalization for comparison
-        ordering = tuple(expected.get_variables())
-        self.assertEqual(
-            canonicalize(expected, ordering),
-            canonicalize(distribution, ordering),
-            msg=f"\nExpected: {expected}\nGot: {distribution}",
-        )
+        self.assert_expr_equal(expected, distribution)
