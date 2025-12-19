@@ -421,11 +421,7 @@ class TestIDCDFunction(cases.GraphTestCase):
             distribution=distribution,
         )
 
-        # verify result is an Expression
-        self.assertIsInstance(result, Expression)
-
         # explicitly construct expected expression structure
-
         conditional_prob = P(Y | W, X, Z)
 
         # normalization factor
@@ -542,9 +538,8 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
         relevant_sccs = [frozenset({X, Y, Z})]
         ancestral_closure = {X, Y, Z}
 
-        # original_distribution = P(X, Y, Z)
-
         intervention_set: set[Variable] = set()
+        expected = {frozenset({X, Y, Z}): P(X, Y, Z)}
 
         result = compute_scc_distributions(
             graph=graph,
@@ -553,20 +548,7 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
             ancestral_closure=ancestral_closure,
             intervention_set=intervention_set,
         )
-
-        # verify basic structure
-        self.assertIsInstance(result, dict)
-        self.assertEqual(len(result), 1)
-        self.assertIn(frozenset({X, Y, Z}), result)
-
-        # get the distribution for the SCC
-        distribution = result[frozenset({X, Y, Z})]
-        self.assertIsInstance(distribution, Expression)
-
-        # explicitly construct expected distribution:
-        expected = P(X, Y, Z)
-
-        self.assert_expr_equal(expected, distribution)
+        self.assertEqual(expected, result)
 
     def test_multiple_sccs_with_cycles(self) -> None:
         """Test multiple SCCs each with cycles in the graph."""
@@ -589,6 +571,12 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
         # added for documentation - original_distribution = P(X, Y, W, Z)
         intervention_set: set[Variable] = set()
 
+        expected = {
+            # SCC {X, Y}: marginalize out {W, Z}
+            frozenset({X, Y}): Sum[W, Z](P(X, Y, W, Z)),  # type:ignore[misc]
+            # SCC {W, Z}: marginalize out {X, Y}
+            frozenset({W, Z}): Sum[X, Y](P(X, Y, W, Z)),  # type:ignore[misc]
+        }
         result = compute_scc_distributions(
             graph=graph,
             subgraph_a=subgraph_a,
@@ -596,27 +584,7 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
             ancestral_closure=ancestral_closure,
             intervention_set=intervention_set,
         )
-
-        # verify basic structure
-        self.assertIsInstance(result, dict)
-        self.assertEqual(len(result), 2)
-        self.assertIn(frozenset({X, Y}), result)
-        self.assertIn(frozenset({W, Z}), result)
-
-        # each of them should be an expression
-        for scc in relevant_sccs:
-            self.assertIsInstance(result[scc], Expression)
-
-        # explicitly construct expected distributions:
-
-        # SCC {X, Y}: marginalize out {W, Z}
-        expected_xy = Sum[W, Z](P(X, Y, W, Z))  # type: ignore[misc]
-
-        # SCC {W, Z}: marginalize out {X, Y}
-        expected_wz = Sum[X, Y](P(X, Y, W, Z))  # type: ignore[misc]
-
-        self.assert_expr_equal(expected_xy, result[frozenset({X, Y})])
-        self.assert_expr_equal(expected_wz, result[frozenset({W, Z})])
+        self.assertEqual(expected, result)
 
     def test_intervention_set_calculation(self) -> None:
         """Test that intervention sets are calculated correctly for SCCs."""
@@ -643,6 +611,13 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
         nodes = set(graph.nodes())
         intervention_set = nodes - ancestral_closure
 
+        # expected output should be P(Z | Y, R, X)
+        conditional_prob = P(Z | Y)
+        normalization = Sum[Z](P(Z | Y))  # type:ignore[misc]
+        # result = ((P(Z | Y)) / (Sum_Z P(Z | Y)))
+        expected_expression = conditional_prob / normalization
+        expected = {frozenset({Z}): expected_expression}
+
         result = compute_scc_distributions(
             graph=graph,
             subgraph_a=subgraph_a,
@@ -650,24 +625,4 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
             ancestral_closure=ancestral_closure,
             intervention_set=intervention_set,
         )
-
-        # verify basic structure
-        self.assertIsInstance(result, dict)
-        self.assertEqual(len(result), 1)
-        self.assertIn(frozenset({Z}), result)
-
-        # get the distribution for the SCC
-        distribution = result[frozenset({Z})]
-        self.assertIsInstance(distribution, Expression)
-
-        # explicit construction of expected distribution:
-        # expected output should be P(Z | Y, R, X)
-
-        conditional_prob = P(Z | Y)
-
-        normalization = Sum[Z](P(Z | Y))  # type:ignore[misc]
-
-        # result = ((P(Z | Y)) / (Sum_Z P(Z | Y)))
-        expected = conditional_prob / normalization
-
-        self.assert_expr_equal(expected, distribution)
+        self.assertEqual(expected, result)
