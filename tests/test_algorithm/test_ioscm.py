@@ -147,18 +147,6 @@ class TestIOSCMUtils(cases.GraphTestCase):
         - Directed edges: X -> Y -> Z -> X (forming a cycle/SCC)
         - Bidirected edge: X <-> Y (within the cycle)
         - Districts: {X, Y, Z}
-
-        Test Case 1:
-        Input: {X}
-        Expected Output: {X, Y, Z}
-
-        Test Case 2:
-        Input: {X, Z}
-        Expected Output: {X, Y, Z}
-
-        Reasoning: Bidirected edges within SCCs do not create separate districts.
-        The entire cycle remains one consolidated district.
-
         """
         graph = NxMixedGraph.from_edges(
             directed=[
@@ -190,17 +178,6 @@ class TestIOSCMUtils(cases.GraphTestCase):
         - Bidirected edges: A <-> B, B <-> C
         - No directed edges.
         - Districts: {A, B, C}
-
-        Test Case 1:
-        Input: {A}
-        Expected Output: {A, B, C}
-        Reasoning: A is connected to B and C via bidirected edges, so all belong to the same district.
-
-
-        Test Case 2:
-        Input: {A, C}
-        Expected Output: {A, B, C}
-        Reasoning: Both A and C are in the same consolidated district via B, so return the full district. (flat set)
         """
         graph = NxMixedGraph.from_edges(
             undirected=[
@@ -317,34 +294,7 @@ class TestIOSCMUtils(cases.GraphTestCase):
                 self.assertEqual(expected_2, result, f"Nodes {query} are in the same district.")
 
     def test_get_consolidated_district_return_type_consistency(self) -> None:
-        """Test that return type is predictable based on district count.
-
-        Rule:
-        - 1 district -> set[Variable]
-        - 2+ districts -> set[frozenset[Variable]]
-
-        Test Cases for Single district:
-
-        Graph 1: simple_cyclic_graph_1
-        1. Query: {X} -> Output: set of Variables {X, W, Z}
-        2. Query: {X, W, Z} -> Output: set of Variables {X, W, Z} (all from the same district)
-
-
-        Graph 2: simple_cyclic_graph_2
-        3. Query: {R, X} -> Output: set of Variables {R, X, W, Z}
-        4. Query: {R, X, W, Z} -> Output: set of Variables {R, X, W, Z} (all from the same district)
-
-        Test Cases for Multiple Districts:
-
-        Graph 1 (simple_cyclic_graph_1):
-        5. Query {X, R} → Returns {frozenset({X,W,Z}), frozenset({R})} (2 districts)
-        6. Query {R, Y} → Returns {frozenset({R}), frozenset({Y})} (2 districts)
-        7. Query {X, Y} → Returns {frozenset({X,W,Z}), frozenset({Y})} (2 districts)
-        8. Query {R, X, Y} → Returns {frozenset({R}), frozenset({X,W,Z}), frozenset({Y})} (3 districts)
-
-        Graph 2 (simple_cyclic_graph_2):
-        9. Query {X, Y} → Returns {frozenset({R,X,W,Z}), frozenset({Y})} (2 districts)
-        """
+        """Test that return type is predictable based on district count."""
         # 1 district cases (should return set of Variables)
         one_district = [
             (simple_cyclic_graph_1, {X}, {X, W, Z}),
