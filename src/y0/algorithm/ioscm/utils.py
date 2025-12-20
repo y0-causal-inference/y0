@@ -98,26 +98,23 @@ def get_consolidated_district(graph: NxMixedGraph, vertices: Collection[Variable
 
     :returns: The set of consolidated districts for the variables in $B$.
     """
+    return {node for district in get_unique_districts(graph, vertices) for node in district}
+
+
+def get_unique_districts(
+    graph: NxMixedGraph, vertices: Collection[Variable]
+) -> set[frozenset[Variable]]:
+    """Get all unique districts for the given vertex (some might overlap)."""
     # 1. Get the strongly-connected component of every vertex in the graph, using the networkx function.
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
     # 3. Get all the consolidated districts.
     # 4. Return the union of all of them as one set.
     converted_graph = scc_to_bidirected(graph)
-
-    # added a fix to maintain district boundaries to ensure correct return type and district information.
-    # a few tests have been updated to reflect this change.
     districts: set[frozenset[Variable]] = set()
     for vertex in vertices:
         district = converted_graph.get_district(vertex)
-        districts.add(frozenset(district))
-
-    if len(districts) == 1:
-        return set(districts.pop())
-    else:
-        # FIXME there's a fundamental type issue here. In the first branch,
-        #  it's returning a single frozenset[Variable]. In this branch, it's
-        #  returning a set[frozenset[Variable]]
-        return districts
+        districts.add(district)
+    return districts
 
 
 def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Variable]]:

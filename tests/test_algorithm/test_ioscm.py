@@ -11,6 +11,7 @@ from y0.algorithm.ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
     get_graph_consolidated_districts,
+    get_unique_districts,
     get_vertex_consolidated_district,
     is_apt_order,
     scc_to_bidirected,
@@ -71,27 +72,27 @@ class TestIOSCMUtils(cases.GraphTestCase):
         """Test getting consolidated districts."""
         for vertices, expected in [
             # Single vertex input
-            ({X}, {X, W, Z, R}),
-            ({R}, {X, W, Z, R}),
-            ({Y}, {Y}),
+            ({X}, {frozenset({X, W, Z, R})}),
+            ({R}, {frozenset({X, W, Z, R})}),
+            ({Y}, {frozenset({Y})}),
             # Multiple vertex input
-            ({X, R}, {X, W, Z, R}),
-            ({R}, {X, W, Z, R}),
+            ({X, R}, {frozenset({X, W, Z, R})}),
+            ({R}, {frozenset({X, W, Z, R})}),
             ({X, Y}, {frozenset({X, W, R, Z}), frozenset({Y})}),
         ]:
-            self.assertEqual(expected, get_consolidated_district(simple_cyclic_graph_2, vertices))
+            self.assertEqual(expected, get_unique_districts(simple_cyclic_graph_2, vertices))
 
         for vertices, expected in [
             # Single vertex input
-            ({X}, {X, W, Z}),
-            ({R}, {R}),
-            ({Y}, {Y}),
+            ({X}, {frozenset({X, W, Z})}),
+            ({R}, {frozenset({R})}),
+            ({Y}, {frozenset({Y})}),
             # Multiple vertex input
             ({X, R}, {frozenset({X, W, Z}), frozenset({R})}),
             ({R, Y}, {frozenset({R}), frozenset({Y})}),
             ({X, Y}, {frozenset({X, W, Z}), frozenset({Y})}),
         ]:
-            self.assertEqual(expected, get_consolidated_district(simple_cyclic_graph_1, vertices))
+            self.assertEqual(expected, get_unique_districts(simple_cyclic_graph_1, vertices))
 
     def test_get_consolidated_district_all_nodes_same_district(self) -> None:
         """Test querying all nodes when they belong to the same consolidated district.
@@ -108,8 +109,8 @@ class TestIOSCMUtils(cases.GraphTestCase):
         """
         # query all nodes from the big district
         query = {R, X, W, Z}
-        result = get_consolidated_district(simple_cyclic_graph_2, query)
-        expected = {R, X, W, Z}
+        result = get_unique_districts(simple_cyclic_graph_2, query)
+        expected = {frozenset({R, X, W, Z})}
 
         self.assertEqual(
             expected,
@@ -134,7 +135,7 @@ class TestIOSCMUtils(cases.GraphTestCase):
         query = {R, X, Y}
         expected = {frozenset({R}), frozenset({X, W, Z}), frozenset({Y})}
 
-        result = get_consolidated_district(simple_cyclic_graph_1, query)
+        result = get_unique_districts(simple_cyclic_graph_1, query)
         self.assertEqual(
             expected, result, "Querying nodes from all districts should return all districts."
         )
@@ -160,13 +161,13 @@ class TestIOSCMUtils(cases.GraphTestCase):
         )
 
         # Test 1: all nodes in same SCC + bidirected edge = one consolidated district (Single node query)
-        result = get_consolidated_district(graph, {X})
-        expected = {X, Y, Z}
+        result = get_unique_districts(graph, {X})
+        expected = {frozenset({X, Y, Z})}
         self.assertEqual(expected, result)
 
         # Test 2: query multiple nodes from same district
-        result = get_consolidated_district(graph, {X, Z})
-        expected = {X, Y, Z}
+        result = get_unique_districts(graph, {X, Z})
+        expected = {frozenset({X, Y, Z})}
         self.assertEqual(expected, result)
 
     def test_get_consolidated_district_chain_of_bidirected_edges(self) -> None:
@@ -225,15 +226,15 @@ class TestIOSCMUtils(cases.GraphTestCase):
         )
 
         # Test 1: query from different components
-        result = get_consolidated_district(graph, {A, X})
+        result = get_unique_districts(graph, {A, X})
         expected = {frozenset({A}), frozenset({X, Y, Z})}
         self.assertEqual(
             expected, result, "Disconnected components should return separate frozensets."
         )
 
         # Test 2: query from single component
-        result_2 = get_consolidated_district(graph, {X, Y})
-        expected_2 = {X, Y, Z}
+        result_2 = get_unique_districts(graph, {X, Y})
+        expected_2 = {frozenset({X, Y, Z})}
         self.assertEqual(
             expected_2, result_2, "Nodes from same component/district should return flat set."
         )
@@ -263,7 +264,7 @@ class TestIOSCMUtils(cases.GraphTestCase):
 
         for graph, query, expected in test_cases:
             with self.subTest(query=query):
-                self.assertEqual(expected, get_consolidated_district(graph, query))
+                self.assertEqual({frozenset(expected)}, get_unique_districts(graph, query))
 
     def test_get_consolidated_district_preserves_district_membership(self) -> None:
         """Test that function correctly identifies district membership. (i.e. which nodes belong to which district).
@@ -280,7 +281,7 @@ class TestIOSCMUtils(cases.GraphTestCase):
 
         for query, expected in different_district_pairs:
             with self.subTest(query=query):
-                result = get_consolidated_district(simple_cyclic_graph_1, query)
+                result = get_unique_districts(simple_cyclic_graph_1, query)
                 self.assertEqual(expected, result, f"Nodes {query} are in different districts.")
 
         same_district_pairs = [
@@ -290,8 +291,10 @@ class TestIOSCMUtils(cases.GraphTestCase):
         ]
         for query, expected_2 in same_district_pairs:
             with self.subTest(query=query):
-                result = get_consolidated_district(simple_cyclic_graph_1, query)
-                self.assertEqual(expected_2, result, f"Nodes {query} are in the same district.")
+                result = get_unique_districts(simple_cyclic_graph_1, query)
+                self.assertEqual(
+                    {frozenset(expected_2)}, result, f"Nodes {query} are in the same district."
+                )
 
     def test_get_consolidated_district_return_type_consistency(self) -> None:
         """Test that return type is predictable based on district count."""
@@ -304,7 +307,7 @@ class TestIOSCMUtils(cases.GraphTestCase):
         ]
         for graph, query, expected in one_district:
             with self.subTest(query=query, expected_districts="1"):
-                self.assertEqual(expected, get_consolidated_district(graph, query))
+                self.assertEqual({frozenset(expected)}, get_unique_districts(graph, query))
 
         # 2+ district cases (should return set of frozen sets)
         multiple_districts = [
@@ -320,7 +323,7 @@ class TestIOSCMUtils(cases.GraphTestCase):
         ]
         for graph, query, expected_2 in multiple_districts:
             with self.subTest(query=query, expected_districts="2+"):
-                self.assertEqual(expected_2, get_consolidated_district(graph, query))
+                self.assertEqual(expected_2, get_unique_districts(graph, query))
 
     def test_get_graph_consolidated_district(self) -> None:
         """First test for getting the consolidated districts for a graph."""
