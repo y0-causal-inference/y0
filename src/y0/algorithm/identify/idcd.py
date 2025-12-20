@@ -12,7 +12,7 @@ from ..ioscm.utils import (
     get_consolidated_district,
     get_strongly_connected_components,
 )
-from ...dsl import Expression, Product, Variable
+from ...dsl import Expression, Probability, Product, Variable
 from ...graph import NxMixedGraph
 
 __all__ = [
@@ -42,8 +42,8 @@ def idcd(
     graph: Annotated[NxMixedGraph, InPaperAs("G")],
     outcomes: Annotated[set[Variable], InPaperAs("C")],
     district: Annotated[set[Variable], InPaperAs("D")],
-    distribution: Annotated[Expression, InPaperAs("Q[D]")],
     *,
+    distribution: Annotated[Expression, InPaperAs("Q[D]")] | None = None,
     _recursion_level: int = 0,
 ) -> Annotated[Expression, InPaperAs("Q[C]")]:
     r"""Identify causal effects within consolidated districts of cyclic graphs.
@@ -64,8 +64,9 @@ def idcd(
         in paper)
     :param district: A consolidated district containing the outcome variables. (denoted
         as $D$ in paper)
-    :param distribution: Probability distribution over district variables. (Denoted as
-        $Q[D]$ in paper)
+    :param distribution: Initial probability distribution over district variables.
+        (Denoted as $Q[D]$ in paper). If none, will be set to the joint distribution
+        over the district
     :param _recursion_level: Recursion depth tracker for logging.
 
     :returns: Identified causal effect as a symbolic probability expression. (Denoted as
@@ -78,6 +79,9 @@ def idcd(
     """
     # line 14 -
     validate_preconditions(graph, outcomes, district, _recursion_level=_recursion_level)
+
+    if distribution is None:
+        distribution = Probability.safe(district)
 
     # line 15: A <- An^G[D](C)
     ancestral_closure: Annotated[set[Variable], InPaperAs("A")] = (
