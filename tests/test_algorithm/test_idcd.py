@@ -188,15 +188,7 @@ class TestIDCDFunction(cases.GraphTestCase):
     """Tests for the IDCD algorithm implementation."""
 
     def test_base_case_ancestral_closure_equals_district(self) -> None:
-        """Test base case where ancestral closure equals district with a cyclic graph.
-
-        Graph Structure:
-
-        X -> Y -> Z
-
-        Query: Identify effect on Z within district {Z} - Targets: {Z} - District: {Z} -
-        Distribution: P(Z)
-        """
+        """Test base case where ancestral closure equals district with a cyclic graph."""
         graph = NxMixedGraph.from_edges(
             directed=[
                 (X, Y),
@@ -384,13 +376,8 @@ class TestIDCDFunction(cases.GraphTestCase):
     def test_simple_unidentifiable_graph(self) -> None:
         """Test IDCD on a simple unidentifiable cyclic graph with cycles.
 
-        Graph: A simple cyclic graph example: - X has a self-loop - X -> W - X -> Y - X
-        <- Z - Z -> Y - Cycle: X -> ... -> Z -> X (with X's self loop)
-
-        Query: Identify effect on Z within the cyclic structure
-
-        This is a known non-identifiable structure because: - The causal effect cannot
-        be separated from confounding. - IDCD should raise Unidentifiable exception.
+        This is a known non-identifiable structure because the causal effect cannot be
+        separated from confounding.
         """
         graph = NxMixedGraph.from_edges(
             directed=[
@@ -452,12 +439,7 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
     """Tests for compute_scc_distributions function."""
 
     def test_single_scc_returns_correct_structure(self) -> None:
-        """Test that a single SCC returns the correct distribution structure.
-
-        Graph: X -> Y -> Z -> X (cycle) Input: We are identifying within this single SCC
-        Ancestral closure: {X, Y, Z} Expected Output: The distribution for the SCC
-        should be P(X, Y, Z)
-        """
+        """Test that a single SCC returns the correct distribution structure."""
         graph = NxMixedGraph.from_edges(
             directed=[
                 (X, Y),
