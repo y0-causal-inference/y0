@@ -199,17 +199,9 @@ class TestIDCDFunction(cases.GraphTestCase):
 
         targets = {Z}
         district = {Z}
-        distribution = P(Z)
-
-        # should return the distribution as is without recursion
-
-        result = idcd(
-            graph=graph,
-            outcomes=targets,
-            district=district,
-            distribution=distribution,
-        )
-        self.assertEqual(distribution, result)  # expected output: P(Z)
+        expected = P(Z)
+        result = idcd(graph=graph, outcomes=targets, district=district)
+        self.assertEqual(expected, result)  # expected output: P(Z)
 
     def test_unidentifiable_case_ancestral_closure_equals_district(self) -> None:
         """Line 19-20: When ancestral closure equals district it should be unidentifiable."""
@@ -217,16 +209,10 @@ class TestIDCDFunction(cases.GraphTestCase):
 
         targets = {X}
         district = {X, Y, Z}
-        distribution = P(X, Y, Z)
 
         # the result should indicate unidentifiability due to ancestral closure equaling district
         with self.assertRaises(Unidentifiable) as context:
-            idcd(
-                graph=graph,
-                outcomes=targets,
-                district=district,
-                distribution=distribution,
-            )
+            idcd(graph=graph, outcomes=targets, district=district)
 
         self.assertIn("cannot identify", str(context.exception).lower())
 
@@ -236,14 +222,8 @@ class TestIDCDFunction(cases.GraphTestCase):
 
         targets = {Y}
         district = {W, R, X, Y, Z}
-        distribution = P(W, R, X, Y, Z)
         with self.assertRaises(Unidentifiable):
-            idcd(
-                graph=graph,
-                outcomes=targets,
-                district=district,
-                distribution=distribution,
-            )
+            idcd(graph=graph, outcomes=targets, district=district)
 
     def test_single_scc_in_consolidated_district(self) -> None:
         """Test with a single SCC in the consolidated district."""
@@ -353,13 +333,11 @@ class TestIDCDFunction(cases.GraphTestCase):
         """
         targets = {Y}
         district = {R, X, W, Y, Z}
-        distribution = P(R, X, W, Y, Z)
 
         result = idcd(
             graph=simple_cyclic_graph_2,
             outcomes=targets,
             district=district,
-            distribution=distribution,
         )
 
         # explicitly construct expected expression structure
@@ -392,15 +370,9 @@ class TestIDCDFunction(cases.GraphTestCase):
         # try to identify effect on Z within the full graph
         targets = {X}
         district = {X, Z}
-        distribution = P(X, Z)
 
         with self.assertRaises(Unidentifiable):
-            idcd(
-                graph=graph,
-                outcomes=targets,
-                district=district,
-                distribution=distribution,
-            )
+            idcd(graph=graph, outcomes=targets, district=district)
 
     @unittest.skip(
         "Difficult to trigger intended error; patching used as workaround. Might revisit later."
@@ -414,7 +386,6 @@ class TestIDCDFunction(cases.GraphTestCase):
         graph = NxMixedGraph.from_edges(directed=[((X, Y))], undirected=[(Y, Z)])
         targets = {Z}
         district = {X, Y, Z}
-        distribution = P(X, Y, Z)
 
         mock_subgraph = MagicMock()
 
@@ -422,12 +393,7 @@ class TestIDCDFunction(cases.GraphTestCase):
 
         with patch.object(graph, "subgraph", return_value=mock_subgraph):
             with self.assertRaises(ValueError) as context:
-                idcd(
-                    graph=graph,
-                    outcomes=targets,
-                    district=district,
-                    distribution=distribution,
-                )
+                idcd(graph=graph, outcomes=targets, district=district)
             error_msg = str(context.exception).lower()
             self.assertIn("unexpected state", error_msg)
             self.assertIn("targets", error_msg)
