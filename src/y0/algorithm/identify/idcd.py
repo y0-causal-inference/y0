@@ -96,7 +96,6 @@ def idcd(
     )
 
 
-# ------------------------------------------------------------
 def validate_preconditions(
     graph: NxMixedGraph,
     targets: set[Variable],
@@ -156,9 +155,6 @@ def validate_preconditions(
     )
 
 
-# ---------------------------------------------------------
-
-
 def marginalize_to_ancestors(
     distribution: Expression,
     district: set[Variable],
@@ -195,7 +191,6 @@ def marginalize_to_ancestors(
     return distribution.marginalize(marginalize_out)
 
 
-# ---------------------------------------------------------
 def identify_through_scc_decomposition(
     graph: NxMixedGraph,
     targets: set[Variable],
@@ -277,9 +272,6 @@ def identify_through_scc_decomposition(
     )
 
 
-# ---------------------------------------------------------
-
-
 def compute_scc_distributions(
     graph: NxMixedGraph,
     subgraph_a: NxMixedGraph,
@@ -327,9 +319,6 @@ def compute_scc_distributions(
         for predecessors in [_get_apt_order_predecessors(scc, apt_order_a, ancestral_closure)]
     }
     return scc_distributions
-
-
-# ---------------------------------------------------------
 
 
 def _get_apt_order_predecessors(
