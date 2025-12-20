@@ -106,11 +106,11 @@ def idcd(
             f"{ancestral_closure=}"
         )
 
-    # checking recursive case (must have targets ⊊ ancestral_closure ⊊ district)
-    # strict subsets: targets and ancestral_closure must be strictly smaller
+    # checking recursive case (must have outcomes ⊊ ancestral_closure ⊊ district)
+    # strict subsets: outcomes and ancestral_closure must be strictly smaller
     if not (outcomes < ancestral_closure < district):
         raise ValueError(
-            f"Unexpected state: expected targets ⊊ ancestral_closure ⊊ district, but got "
+            f"Unexpected state: expected outcomes ⊊ ancestral_closure ⊊ district, but got "
             f"{outcomes=}, {ancestral_closure=}, {district=}"
         )
 
@@ -198,7 +198,7 @@ def marginalize_to_ancestors(
     :param distribution: Probability distribution over district variables.
     :param district: Set of all variables in current district.
     :param ancestral_closure: Subset of district variables to keep (ancestors of
-        targets).
+        outcomes).
     :param _recursion_level: Current recursion depth for logging.
 
     :returns: Distribution over ancestral closure variables. If ancestral_closure ==
@@ -230,7 +230,7 @@ def identify_through_scc_decomposition(
     recursively calling IDCD on the consolidated district. Strategy:
 
     1. Find all SCCs in the subgraph induced by ancestral closure.
-    2. Filter to SCCs that are in the consolidated district of targets.
+    2. Filter to SCCs that are in the consolidated district of outcomes.
     3. For each relevant SCC, construct its conditional distribution. (Line 23)
     4. Take the product of all SCC distributions (Line 25).
     5. Recursively call IDCD on the consolidated district. (Line 26)
@@ -244,13 +244,13 @@ def identify_through_scc_decomposition(
 
     :param graph: The full causal graph.
     :param outcomes: Variables whose causal effect we want to identify.
-    :param ancestral_closure: Ancestral closure of targets within current district.
+    :param ancestral_closure: Ancestral closure of outcomes within current district.
     :param _recursion_level: Current recursion depth.
 
     :returns: Result of recursive IDCD call.
     """
     logger.debug(
-        f"[{_recursion_level}]: Lines 21-26 - Recursive case (targets ⊂ ancestral_closure ⊂ district)"
+        f"[{_recursion_level}]: Lines 21-26 - Recursive case (outcomes ⊂ ancestral_closure ⊂ district)"
     )
 
     ancestral_closure_subgraph = graph.subgraph(ancestral_closure)
