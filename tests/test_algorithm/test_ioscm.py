@@ -97,15 +97,13 @@ class TestIOSCMUtils(cases.GraphTestCase):
     def test_get_consolidated_district_all_nodes_same_district(self) -> None:
         """Test querying all nodes when they belong to the same consolidated district.
 
-        Graph: simple_cyclic_graph_2
-        - Structure: R <-> X -> W -> Z -> X, W -> Y
-        - Districs: {R, X, W, Z}, {Y}
+        Graph: simple_cyclic_graph_2 - Structure: R <-> X -> W -> Z -> X, W -> Y -
+        Districs: {R, X, W, Z}, {Y}
 
-        Input: {R, X, W, Z}
-        Expected Output: {R, X, W, Z} flat set of Variables
+        Input: {R, X, W, Z} Expected Output: {R, X, W, Z} flat set of Variables
 
-        Reasoning: Since all queried nodes belong to the same consolidated district,
-        the function should return a flat set of Variables representing that district.
+        Reasoning: Since all queried nodes belong to the same consolidated district, the
+        function should return a flat set of Variables representing that district.
         """
         # query all nodes from the big district
         query = {R, X, W, Z}
@@ -121,15 +119,15 @@ class TestIOSCMUtils(cases.GraphTestCase):
     def test_get_consolidated_district_all_nodes_different_districts(self) -> None:
         """Test querying all nodes when they span all districts.
 
-        Graph: simple_cyclic_graph_1
-        - Structure: R -> X -> W -> Z -> X, (cycle) W -> Y
+        Graph: simple_cyclic_graph_1 - Structure: R -> X -> W -> Z -> X, (cycle) W -> Y
         - Districts: {R}, {X, W, Z}, {Y}
 
-        Input: {R, X, Y}
-        Expected Output: {frozenset({R}), frozenset({X, W, Z}), frozenset({Y})}
+        Input: {R, X, Y} Expected Output: {frozenset({R}), frozenset({X, W, Z}),
+        frozenset({Y})}
 
-        Reasoning: Each queried node belongs to a different consolidated district, so return
-        a set of frozensets representing each district to preserve district boundaries.
+        Reasoning: Each queried node belongs to a different consolidated district, so
+        return a set of frozensets representing each district to preserve district
+        boundaries.
         """
         # query one node from each district
         query = {R, X, Y}
@@ -175,10 +173,8 @@ class TestIOSCMUtils(cases.GraphTestCase):
 
         A <-> B <-> C should form one consolidated district.
 
-        Graph Structure:
-        - Bidirected edges: A <-> B, B <-> C
-        - No directed edges.
-        - Districts: {A, B, C}
+        Graph Structure: - Bidirected edges: A <-> B, B <-> C - No directed edges. -
+        Districts: {A, B, C}
         """
         graph = NxMixedGraph.from_edges(
             undirected=[
@@ -200,21 +196,15 @@ class TestIOSCMUtils(cases.GraphTestCase):
     def test_get_consolidated_district_disconnected_components(self) -> None:
         """Test graph with disconnected components.
 
-        Graph Structure:
-        - Component 1: A -> B
-        - Component 2: X -> Y -> Z -> X (cycle)
-        - No connections between components.
-        - Districts: {A}, {X, Y, Z}
+        Graph Structure: - Component 1: A -> B - Component 2: X -> Y -> Z -> X (cycle) -
+        No connections between components. - Districts: {A}, {X, Y, Z}
 
-        Test Case 1:
-        Input: {A, X}
-        Expected Output: {frozenset({A}), frozenset({X, Y, Z})}
-        Reasoning: Querying nodes from different disconnected components should return separate frozensets.
+        Test Case 1: Input: {A, X} Expected Output: {frozenset({A}), frozenset({X, Y,
+        Z})} Reasoning: Querying nodes from different disconnected components should
+        return separate frozensets.
 
-        Test Case 2:
-        Input: {X, Y}
-        Expected Output: {X, Y, Z}
-        Reasoning: Both are in the same district (cycle).
+        Test Case 2: Input: {X, Y} Expected Output: {X, Y, Z} Reasoning: Both are in the
+        same district (cycle).
         """
         graph = NxMixedGraph.from_edges(
             directed=[
@@ -242,11 +232,10 @@ class TestIOSCMUtils(cases.GraphTestCase):
     def test_get_consolidated_district_single_node_queries(self) -> None:
         """Test querying single nodes always returns flat set.
 
-        Note: Single-node queries should always return a flat set of Variables, regardless of how many districts exist
-        in the graph.
+        Note: Single-node queries should always return a flat set of Variables,
+        regardless of how many districts exist in the graph.
 
-        Test Cases:
-        Graph 1: simple_cyclic_graph_1: R -> X -> W -> Z -> X, W -> Y
+        Test Cases: Graph 1: simple_cyclic_graph_1: R -> X -> W -> Z -> X, W -> Y
         Districts: {R}, {X, W, Z}, {Y}
         """
         # single node queries should just return the flat set
@@ -269,8 +258,7 @@ class TestIOSCMUtils(cases.GraphTestCase):
     def test_get_consolidated_district_preserves_district_membership(self) -> None:
         """Test that function correctly identifies district membership. (i.e. which nodes belong to which district).
 
-        Graph: simple_cyclic_graph_1
-        Structure: R -> X -> W -> Z -> X (cycle), W -> Y
+        Graph: simple_cyclic_graph_1 Structure: R -> X -> W -> Z -> X (cycle), W -> Y
         Districts: {R}, {X, W, Z}, {Y}
         """
         different_district_pairs = [

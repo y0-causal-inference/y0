@@ -138,12 +138,7 @@ def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Varia
     # 2. Create a new graph that replaces every directed edge in a strongly-connected component with a bidirected edge.
     # 3. Get each consolidated district as a frozen set.
     # 4. Return all of them as a set of frozen sets.
-    converted_graph = scc_to_bidirected(graph)
-    result: set[frozenset[Variable]] = set()
-    for node in graph.nodes():
-        district = converted_graph.get_district(node)
-        result.add(district)
-    return result
+    return get_unique_districts(graph, graph.nodes())
 
 
 def scc_to_bidirected(graph: NxMixedGraph) -> NxMixedGraph:
