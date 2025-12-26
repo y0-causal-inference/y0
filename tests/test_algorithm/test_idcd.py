@@ -274,14 +274,13 @@ class TestIDCDFunction(cases.GraphTestCase):
             directed=[
                 (X, Y),
                 (Y, X),
-                (X, Z),
+                (W, Z),
+                (Z, W),
             ]
         )
 
-        targets = {Z}
-        ancestral_closure = {X, Y, Z}
-
-        P(X, Y, Z)
+        targets = {X}
+        ancestral_closure = {X, Y}
 
         with self.assertRaises(Unidentifiable) as context:
             identify_through_scc_decomposition(
@@ -289,7 +288,7 @@ class TestIDCDFunction(cases.GraphTestCase):
                 outcomes=targets,
                 ancestral_closure=ancestral_closure,
             )
-            self.assertIn("No SCCs", str(context.exception))
+        self.assertIn("No SCCs", str(context.exception))
 
     def test_recursive_idcd_call_receives_correct_inputs(self) -> None:
         """Test that recursive calls to IDCD receive the correct input.
@@ -374,14 +373,11 @@ class TestIDCDFunction(cases.GraphTestCase):
         with self.assertRaises(Unidentifiable):
             idcd(graph=graph, outcomes=targets, district=district)
 
-    @unittest.skip(
-        "Difficult to trigger intended error; patching used as workaround. Might revisit later."
-    )
+    # can work on a case for this at a later time
     def test_invalid_subsets_raise(self) -> None:
         """Test when condition targets ⊊ ancestral_closure ⊊ district is not met."""
-        # FIXME : this test currently does not trigger the intended error for some reason. I have tried a few variations but
-        #  none seem to work to raise that value error. The patching approach is a workaround to simulate the condition. We
-        #  can either try to fix this test later or remove it if it's not critical.
+        # NOTE: mathematically this isn't something that should happen, since the ancestral closure set
+        # should always include the targets and some portion of the consolidated district.
 
         graph = NxMixedGraph.from_edges(directed=[((X, Y))], undirected=[(Y, Z)])
         targets = {Z}

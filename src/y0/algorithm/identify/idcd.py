@@ -333,12 +333,11 @@ def compute_scc_distributions(
     scc_distributions = {
         scc: identify_outcomes(
             graph=graph,
-            outcomes=scc,  # S (the SCC - outcomes we want to identify)
-            treatments=intervention_set,  # J U V\A (intervention set) or treatments parameter
-            # Pred^G_<(S) intersect A - predecessors of S in apt-order, within A (conditions parameter)
+            outcomes=scc,
+            treatments=intervention_set,
             conditions=get_apt_order_predecessors(scc, apt_order_a, ancestral_closure) or None,
             strict=True,
-            ordering=apt_order_a,  # adds apt-order instead of topological order
+            ordering=apt_order_a,
         )
         for scc in relevant_sccs
     }
@@ -372,15 +371,10 @@ def get_apt_order_predecessors(
     :returns: Set of variables that are both: - Before the SCC in apt-order. - In the
         ancestral closure.
     """
-    # find minimum position of any SCC member in apt-order
-    # treats the SCC as a single unit for ordering
     positions = [apt_order.index(v) for v in scc if v in apt_order]
 
     if not positions:
-        # if SCC has no members in apt-order, no predecessors
         return set()
 
     min_position = min(positions)
-    # Pred^G_<(S) = all variables before S in apt-order
-    # Pred^G_<(S) ∩ A = intersect with ancestral closure
     return ancestral_closure.intersection(apt_order[:min_position])
