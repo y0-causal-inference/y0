@@ -271,7 +271,7 @@ class TestIdentify(cases.GraphTestCase):
             input_variables=frozenset({Z, R}),
             input_district=frozenset({R, X, W, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Z),
-            graph=soft_interventions_figure_3_graph.subgraph(vertices={R, Z, X, W}),
+            graph=soft_interventions_figure_3_graph.subgraph({R, Z, X, W}),
             topo=list(soft_interventions_figure_3_graph.topological_sort()),
         )
         self.assertIsNone(result2)
