@@ -14,6 +14,7 @@ from ..ioscm.utils import (
 )
 from ...dsl import Expression, Probability, Product, Variable
 from ...graph import NxMixedGraph
+from ...util import InPaperAs
 
 __all__ = [
     "compute_scc_distributions",
@@ -25,17 +26,6 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-class InPaperAs:
-    """Annotate the text/LaTeX of a variable in the paper."""
-
-    def __init__(self, value: str) -> None:
-        """Initialize an InPaperAs object."""
-        self.value = value
-
-    def __repr__(self) -> str:
-        return f'InPaperAs("{self.value}")'
 
 
 def idcd(
@@ -269,8 +259,8 @@ def identify_through_scc_decomposition(
 
     logger.debug(f"[{_recursion_level}]: Found - {len(relevant_sccs)} relevant SCCs")
 
-    nodes = set(graph.nodes())
-    intervention_set = nodes - ancestral_closure
+    nodes: Annotated[set[Variable], InPaperAs("V")] = set(graph.nodes())
+    intervention_set: Annotated[set[Variable], InPaperAs("J")] = nodes - ancestral_closure
 
     # line 23 - Construct distributions for each SCC
     scc_distributions: Annotated[dict[frozenset[Variable], Expression], InPaperAs("R_A")] = (

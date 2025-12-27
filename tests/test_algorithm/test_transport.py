@@ -880,9 +880,9 @@ class TestIntegration(_TestCase):
 
     def test_transport_3(self):
         """Test that transport returns the correct expression."""
-        # This triggers triggers not implemented error on line 9
+        # This triggers not implemented error on line 9
         # Now it triggers value error
-        new_graph = tikka_trso_figure_8.subgraph(tikka_trso_figure_8.nodes() - {X1})
+        new_graph = tikka_trso_figure_8.subgraph_without(X1)
         with self.assertRaises(ValueError):
             identify_target_outcomes(
                 graph=new_graph,

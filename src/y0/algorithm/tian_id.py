@@ -83,7 +83,7 @@ def identify_district_variables(  # noqa:C901
             "In identify_district_variables: at least one input district variable is not in the "
             "topologically sorted variable list."
         )
-    district_subgraph = graph.subgraph(vertices=input_district)  # $G_{T}$
+    district_subgraph = graph.subgraph(input_district)  # $G_{T}$
     if len(district_subgraph.districts()) > 1:
         raise TypeError(
             "In identify_district_variables: the subgraph of the input graph G comprised of the"
@@ -120,7 +120,7 @@ def identify_district_variables(  # noqa:C901
         logger.debug("   T = " + str(ancestral_set))
         rv = None
     elif input_variables.issubset(ancestral_set) and ancestral_set.issubset(input_district):
-        ancestral_set_subgraph = graph.subgraph(vertices=ordered_ancestral_set)
+        ancestral_set_subgraph = graph.subgraph(ordered_ancestral_set)
         ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
         targeted_ancestral_set_subgraph_district = ancestral_set_subgraph_districts[
             [
