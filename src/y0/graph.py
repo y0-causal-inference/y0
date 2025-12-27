@@ -528,7 +528,7 @@ class NxMixedGraph:
                 raise ValueError(f"unhandled edge type: {edge['type']}")
         return rv
 
-    def subgraph(self, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
+    def subgraph(self, /, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
         """Return a subgraph given a set of vertices.
 
         :param vertices: a subset of nodes
@@ -541,6 +541,10 @@ class NxMixedGraph:
             directed=_include_adjacent(self.directed, vertices),
             undirected=_include_adjacent(self.undirected, vertices),
         )
+
+    def subgraph_without(self, /, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
+        """Construct a subgraph without the given nodes."""
+        return self.subgraph(set(self.nodes()) - _ensure_set(vertices))
 
     def remove_in_edges(self, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
         """Return a mutilated graph given a set of interventions.
