@@ -10,7 +10,7 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
     """Tests for district initialization (Proposition 9.8)."""
 
     def test_single_node_cases(self) -> None:
-        """Single node districts return appropriate expressions"""
+        """Test single node districts return appropriate expressions."""
         parameters = [
             # graph_edges, district, apt_order, expected_expression
             # test 1: No predecessors
@@ -30,7 +30,7 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
     # ------------------------------------------------------------------------------
 
     def test_cycle_with_predecessors(self) -> None:
-        """District containing a cycle with predecessors returns joint conditional."""
+        """Test district containing a cycle with predecessors returns joint conditional."""
         graph = NxMixedGraph.from_edges(directed=[(A, B), (B, C), (C, B)])
         district = {B, C}
         apt_order = [A, B, C]
@@ -41,7 +41,7 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
         self.assert_expr_equal(expected, result)
 
     def test_multiple_sccs_in_district(self) -> None:
-        """District with multiple separate SCCs returns the product of their conditionals."""
+        """Test district with multiple separate SCCs returns the product of their conditionals."""
         graph = NxMixedGraph.from_edges(directed=[(A, B), (B, B), (C, D), (D, C)])
         district = {B, C, D}
         apt_order = [A, B, C, D]
@@ -55,7 +55,7 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
         self.assert_expr_equal(expected, result)
 
     def test_self_loop_treated_as_scc(self) -> None:
-        """Self-loop is treated as single-node SCC."""
+        """Test that a self-loop is treated as single-node SCC."""
         # B should be treated as single-node SCC with predecessor A
         graph = NxMixedGraph.from_edges(directed=[(A, B), (B, B), (B, C)])
         district = {B}
@@ -73,7 +73,7 @@ class TestCyclicID(cases.GraphTestCase):
 
     # testing line 1 - input validation
     def test_input_validation(self) -> None:
-        """Input validation before algorithm preconditions."""
+        """Test input validation before algorithm preconditions."""
         graph = NxMixedGraph.from_edges(directed=[(A, B), (B, C)])
 
         parameters = [
@@ -91,7 +91,7 @@ class TestCyclicID(cases.GraphTestCase):
 
     # ---- Testing Line 2 ------------------------------
     def test_precondition_validation(self) -> None:
-        """Tests line 2 of the main cyclic ID algorithm."""
+        """Test line 2 of the main cyclic ID algorithm."""
         # test cases that should raise a Value Error
         invalid_cases = [
             (set(), {A}, "empty|outcomes", "empty outcomes"),
@@ -119,7 +119,7 @@ class TestCyclicID(cases.GraphTestCase):
                 try:
                     cyclic_id(graph, outcomes, interventions)
                 except ValueError as e:
-                    # should only fail if its a precondition validation error
+                    # should only fail if it's a precondition validation error
                     error_msg = str(e).lower()
                     if any(
                         word in error_msg for word in ["subset", "disjoint", "empty", "overlap"]

@@ -15,7 +15,7 @@ def initialize_district_distribution(
     apt_order: list[Variable],
 ) -> Expression:
     """
-    Initializes the probability distribution for a given district before identification.
+    Initialize the probability distribution for a given district before identification.
 
     This implements Proposition 9.8(3): each district's initial distribution is built
     by finding its strongly connected components (feedback loops), computing each
@@ -29,18 +29,19 @@ def initialize_district_distribution(
     """
     raise NotImplementedError("initialize_district_distribution is not yet implemented.")
 
-    def cyclic_id(
-        graph: NxMixedGraph,
-        outcomes: set[Variable],
-        interventions: set[Variable],
-    ) -> Expression:
-        """
-        Identify causal effects in cyclic graphs.
 
-        :param graph: Causal graph
-        :param outcomes: Target variables Y
-        :param interventions: Intervention variables W
-        :returns: Identified causal effect P(Y | do(W))
-        :raises Unidentifiable: If the causal effect cannot be identified based on the query and graph.
-        """
-        raise NotImplementedError("cyclic_id not yet implemented")
+def cyclic_id(
+    graph: NxMixedGraph,
+    outcomes: set[Variable],
+    interventions: set[Variable],
+) -> Expression:
+    """
+    Identify causal effects in cyclic graphs.
+
+    :param graph: Causal graph
+    :param outcomes: Target variables Y
+    :param interventions: Intervention variables W
+    :returns: Identified causal effect P(Y | do(W))
+    :raises Unidentifiable: If the causal effect cannot be identified based on the query and graph.
+    """
+    raise NotImplementedError("cyclic_id not yet implemented")
