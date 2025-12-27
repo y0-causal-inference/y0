@@ -1,9 +1,11 @@
 """Validation tests for the math of Line 23.
 
-This module validates that Line 23 of the IDCD algorithm correctly implements
-the formula found in the paper to compute the conditional probability distribution expression.
+This module validates that Line 23 of the IDCD algorithm correctly implements the
+formula found in the paper to compute the conditional probability distribution
+expression.
 
-Each test validates a different aspect of the formula's implementation in terms of the math and structure.
+Each test validates a different aspect of the formula's implementation in terms of the
+math and structure.
 """
 
 from typing import cast
