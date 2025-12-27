@@ -14,6 +14,7 @@ from ..ioscm.utils import (
 )
 from ...dsl import Expression, Probability, Product, Variable
 from ...graph import NxMixedGraph
+from ...util import InPaperAs
 
 __all__ = [
     "compute_scc_distributions",
