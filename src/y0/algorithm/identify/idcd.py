@@ -269,8 +269,8 @@ def identify_through_scc_decomposition(
 
     logger.debug(f"[{_recursion_level}]: Found - {len(relevant_sccs)} relevant SCCs")
 
-    nodes = set(graph.nodes())
-    intervention_set = nodes - ancestral_closure
+    nodes: Annotated[set[Variable], InPaperAs("V")] = set(graph.nodes())
+    intervention_set: Annotated[set[Variable], InPaperAs("J")] = nodes - ancestral_closure
 
     # line 23 - Construct distributions for each SCC
     scc_distributions: Annotated[dict[frozenset[Variable], Expression], InPaperAs("R_A")] = (
