@@ -595,12 +595,7 @@ class NxMixedGraph:
 
         :returns: A NxMixedGraph subgraph
         """
-        vertices = _ensure_set(vertices)
-        return self.from_edges(
-            nodes=self.nodes() - vertices,
-            directed=_exclude_adjacent(self.directed, vertices),
-            undirected=_exclude_adjacent(self.undirected, vertices),
-        )
+        return self.subgraph_without(vertices)
 
     def remove_out_edges(self, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
         """Return a subgraph that does not have any outgoing edges from any of the given vertices.

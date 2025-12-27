@@ -3,13 +3,14 @@
 import copy
 import logging
 from collections.abc import Collection, Iterable
-from typing import TypeAlias
+from typing import Annotated, TypeAlias
 
 import networkx as nx
 
-from y0.algorithm.separation.sigma_separation import get_equivalence_classes
-from y0.dsl import Variable
-from y0.graph import NxMixedGraph
+from ..separation.sigma_separation import get_equivalence_classes
+from ...dsl import Variable
+from ...graph import NxMixedGraph
+from ...util import InPaperAs
 
 __all__ = [
     "get_apt_order",
@@ -43,7 +44,9 @@ def get_strongly_connected_components(graph: NxMixedGraph) -> set[frozenset[Vari
     return {frozenset(component) for component in nx.strongly_connected_components(graph.directed)}
 
 
-def get_vertex_consolidated_district(graph: NxMixedGraph, vertex: Variable) -> frozenset[Variable]:
+def get_vertex_consolidated_district(
+    graph: Annotated[NxMixedGraph, InPaperAs("G")], vertex: Annotated[Variable, InPaperAs("v")]
+) -> Annotated[frozenset[Variable], InPaperAs(r"\text{Cd}^{G}(v)")]:
     r"""Return the consolidated district for a single vertex in a graph.
 
     See Definition 9.1 of [forré20a]_.
@@ -73,7 +76,10 @@ def get_vertex_consolidated_district(graph: NxMixedGraph, vertex: Variable) -> f
     return result
 
 
-def get_consolidated_district(graph: NxMixedGraph, vertices: Collection[Variable]) -> set[Variable]:
+def get_consolidated_district(
+    graph: Annotated[NxMixedGraph, InPaperAs("G")],
+    vertices: Annotated[Collection[Variable], InPaperAs("B")],
+) -> Annotated[set[Variable], InPaperAs(r"\text{Cd}^{G}(B)")]:
     r"""Return the consolidated districts for one or more vertices in a graph.
 
     See Definition 9.1 of [forré20a]_.
@@ -117,7 +123,9 @@ def get_unique_districts(
     return districts
 
 
-def get_graph_consolidated_districts(graph: NxMixedGraph) -> set[frozenset[Variable]]:
+def get_graph_consolidated_districts(
+    graph: Annotated[NxMixedGraph, InPaperAs("G")],
+) -> Annotated[set[frozenset[Variable]], InPaperAs(r"\mathcal{CD}(G)")]:
     r"""Return the set of all consolidated districts in a graph.
 
     See Definition 9.1 of [forré20a]_.

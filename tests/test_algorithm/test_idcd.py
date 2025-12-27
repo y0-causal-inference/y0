@@ -281,8 +281,6 @@ class TestIDCDFunction(cases.GraphTestCase):
         targets = {Z}
         ancestral_closure = {X, Y, Z}
 
-        P(X, Y, Z)
-
         with self.assertRaises(Unidentifiable) as context:
             identify_through_scc_decomposition(
                 graph=graph,
