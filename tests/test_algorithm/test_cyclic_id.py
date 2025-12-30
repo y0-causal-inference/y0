@@ -81,7 +81,7 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
         expected = Product.safe([P(A, B) / P(A), P(A, B, C, D) / P(A, B)])
 
         # expected = product of distributions for each SCC
-        self.assert_expr_equal(expected, result)
+        self.assert_expr_equal(expected, result, ordering=apt_order)
 
     def test_two_single_node_sccs_with_confounder(self) -> None:
         # NOTE - I'm not sure if we need this test. Feel free to remove if redundant.
