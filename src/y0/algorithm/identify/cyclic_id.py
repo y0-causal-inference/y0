@@ -488,14 +488,11 @@ def initialize_district_distribution(
     # find all SCCs (feedback loops) within the district
     district_subgraph = graph.subgraph(district)
     sccs = get_strongly_connected_components(district_subgraph)
+    return Product.safe(
+        _unnamed_operation(set(scc), _get_predecessors(scc, apt_order)) for scc in sccs
+    )
 
-    loop_distributions = []
 
-    for scc in sccs:
-        predecessors = _get_predecessors(scc, apt_order)
-        # compute P(SCC | predecessors) or P(SCC) if no predecessors
-        distribution = Probability.safe(scc.union(predecessors)).conditional(predecessors)
-        loop_distributions.append(distribution)
-
-    # even if there's only one loop distribution, this doe sthe right thing
-    return Product.safe(loop_distributions)
+def _unnamed_operation(x: set[Variable], y: set[Variable]) -> Expression:
+    # TODO does this operation have a high-level interpretation?
+    return Probability.safe(x.union(y)).conditional(y)
