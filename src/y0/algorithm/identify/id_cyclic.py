@@ -3,7 +3,7 @@
 from typing import Annotated
 
 from y0.algorithm.identify import Unidentifiable
-from y0.algorithm.identify.idcd import idcd
+from y0.algorithm.identify.idcd import _apt_order_predecessors, idcd
 from y0.algorithm.ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
@@ -48,15 +48,7 @@ def initialize_district_distribution(
     loop_distributions = []
 
     for scc in sccs:
-        # find earliest position of this SCC in apt-order
-        scc_positions = [apt_order.index(v) for v in scc if v in apt_order]
-
-        if scc_positions:
-            earliest_position = min(scc_positions)
-            predecessors = set(apt_order[:earliest_position])
-        else:
-            predecessors = set()
-
+        predecessors = _apt_order_predecessors(scc, apt_order)
         # compute P(SCC | predecessors) or P(SCC) if no predecessors
         if predecessors:
             all_vars = set(scc) | predecessors

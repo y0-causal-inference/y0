@@ -361,10 +361,15 @@ def get_apt_order_predecessors(
     :returns: Set of variables that are both: - Before the SCC in apt-order. - In the
         ancestral closure.
     """
-    positions = [apt_order.index(v) for v in scc if v in apt_order]
+    return ancestral_closure.intersection(_apt_order_predecessors(scc, apt_order))
 
+
+def _apt_order_predecessors(
+    variables: frozenset[Variable],
+    ordering: list[Variable],
+) -> set[Variable]:
+    positions = [ordering.index(variable) for variable in variables if variable in ordering]
     if not positions:
         return set()
-
     min_position = min(positions)
-    return ancestral_closure.intersection(apt_order[:min_position])
+    return set(ordering[:min_position])
