@@ -92,10 +92,10 @@ def cyclic_id(
     # input validation
 
     if not isinstance(outcomes, set):
-        raise ValueError("Outcomes must be a set.")
+        raise TypeError("Outcomes must be a set.")
 
     if not isinstance(interventions, set):
-        raise ValueError("Interventions must be a set.")
+        raise TypeError("Interventions must be a set.")
 
     # line 2: validate preconditions
     # require: Y ⊆ V, W ⊆ V, Y ∩ W = ∅

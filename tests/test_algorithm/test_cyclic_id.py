@@ -147,8 +147,8 @@ class TestCyclicID(cases.GraphTestCase):
         ]
         for outcomes, interventions, error_pattern, description in parameters:
             with self.subTest(msg=description):
-                with self.assertRaisesRegex(ValueError, error_pattern):
-                    cyclic_id(graph, outcomes, interventions)
+                with self.assertRaisesRegex(TypeError, error_pattern):
+                    cyclic_id(graph, outcomes, interventions)  # type:ignore
 
     # ---- Testing Line 2 ------------------------------
     def test_precondition_validation(self) -> None:
