@@ -1,10 +1,9 @@
 """Tests for cyclic ID algorithm top level function implementation."""
 
-from unittest import result
 from tests.test_algorithm import cases
-from y0.algorithm.identify.id_cyclic import cyclic_id, initialize_district_distribution
 from y0.algorithm.identify import Unidentifiable
-from y0.dsl import A, B, C, D, E, Expression, P, Product, R, X, Y, Z, W
+from y0.algorithm.identify.id_cyclic import cyclic_id, initialize_district_distribution
+from y0.dsl import A, B, C, D, E, Expression, P, Product, R, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 
@@ -53,20 +52,19 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
         """Test district containing a cycle with predecessors returns joint conditional."""
         # district: {B, C} is one SCC with predecessor A
         # expected: P(B, C | A) = P(A, B, C) / P(A)
-        
+
         graph = NxMixedGraph.from_edges(directed=[(A, B), (B, C), (C, B)])
         district = {B, C}
         apt_order = [A, B, C]
 
         result = initialize_district_distribution(graph, district, apt_order)
-        expected = P(A, B, C) / P(A) 
+        expected = P(A, B, C) / P(A)
 
         self.assert_expr_equal(expected, result)
 
-    
     def test_multiple_sccs_in_one_district(self) -> None:
-        # FIXME - this test passes sometimes and then also sometimes fails? I'm not sure why. I think likely a string 
-        # comparison might be best instead. 
+        # FIXME - this test passes sometimes and then also sometimes fails? I'm not sure why. I think likely a string
+        # comparison might be best instead.
         """Test single consolidated district containing multiple SCCs connected by latent confounders."""
         # Consolidated district {B, C, D} has two SCCs: {B} and {C, D}
         # SCC {B}: P(B | A)
@@ -147,7 +145,6 @@ class TestCyclicID(cases.GraphTestCase):
             ([B], {A}, "set", "outcomes is list not set."),
             ({B}, [A], "set", "interventions is list not set."),
         ]
-
         for outcomes, interventions, error_pattern, description in parameters:
             with self.subTest(msg=description):
                 with self.assertRaisesRegex(ValueError, error_pattern):
@@ -209,7 +206,7 @@ class TestCyclicID(cases.GraphTestCase):
         self.assertTrue(result_vars.issubset(expected_h | {R}))
 
     def test_intervention_nodes_removed_from_ancestral_closure(self) -> None:
-        """Intervention nodes shouldn't appear in the ancestral closure set H"""
+        """Intervention nodes shouldn't appear in the ancestral closure set H."""
         # Query: P(Y | do(R))
         # After removing R, ancestral closure H = {X, Y} - R should not appear in final result
         # Expected: R is not in the ancestral closure set
@@ -221,7 +218,7 @@ class TestCyclicID(cases.GraphTestCase):
 
         # R should not appear in the final result structure
         # (except possible as a conditioning variable from do(R))
-        result_vars = result.get_variables()
+        result.get_variables()
 
         self.assertIsInstance(result, Expression)
 
@@ -242,7 +239,7 @@ class TestCyclicID(cases.GraphTestCase):
         # Query: P(C | do(A))
         # After removing A, H = An({D}) = {D}, which means no ancestors
         # Expected: Algorithm should handle empty ancestral closure.
-        
+
         graph = NxMixedGraph.from_edges(directed=[(A, B)])
         graph.add_node(C)
         outcomes = {C}
@@ -270,7 +267,7 @@ class TestCyclicID(cases.GraphTestCase):
         # Ancestral closure H = {B, C, D} forms single consolidated district
         # Districts: {B, C} and {D}
         # Expected: Algorithm identifies and processes districts
-        
+
         graph = NxMixedGraph.from_edges(directed=[(A, B), (B, B), (B, C), (C, B), (C, D)])
         outcomes = {D}
         interventions = {A}
@@ -294,7 +291,7 @@ class TestCyclicID(cases.GraphTestCase):
         self.assertIsInstance(result, Expression)
 
     def test_ancestral_closure_forms_single_cycle(self) -> None:
-        """Entire ancestral closure set forms one large cycle (single district)"""
+        """Entire ancestral closure set forms one large cycle (single district)."""
         # Query: P(D | do(A))
         # H = {B, C, D} forms one large consolidated district
         # Expected: Identifiable (A external to cycle)
@@ -323,7 +320,6 @@ class TestCyclicID(cases.GraphTestCase):
 
     def test_mixed_cycles_and_confounders(self) -> None:
         """Districts formed by both cycles and latent confounders."""
-    
         graph = NxMixedGraph.from_edges(
             directed=[
                 (W, X),
@@ -340,104 +336,100 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
         self.assertIsInstance(result, Expression)
 
-
-# ------ Testing Lines 5-8 --------------------------------------------
+    # ------ Testing Lines 5-8 --------------------------------------------
 
     def test_recursive_idcd_call_and_failure_propagation(self) -> None:
         """Testing Lines 5-8 in the algorithm: IDCD initialization, recursive calls, and failure propagation."""
-        
         test_cases = [
             # (graph_edges, outcomes, interventions, should_fail, description)
-        
             # Line 5: Successful IDCD call
             # Query: P(C | do(A))
             # Expected to be Identifiable
-            ([(A, B), (B, B),(B, C)], {C}, {A}, False, "identifiable chain"),
-        
+            ([(A, B), (B, B), (B, C)], {C}, {A}, False, "identifiable chain"),
             # Line 5: Successful with cycle but external intervention
             # Query: P(D | do(A))
             # Expected: Identifiable
             ([(A, B), (B, C), (C, B), (C, D)], {D}, {A}, False, "identifiable with cycle"),
-        
             # Lines 6-8: IDCD fails, propagates Unidentifiable
             # Query: P(Y | do(X))
             # Expected: Unidentifiable
             ([(X, Y), (Y, X)], {Y}, {X}, True, "unidentifiable - cause and effect in same SCC"),
-        
             # Lines 6-8: Another failure case
             # QUery: P(B | do(A))
-            ([(A, A), (A, B), (B, A)], {B}, {A}, True, "unidentifiable - intervention in same SCC as outcome"),
+            (
+                [(A, A), (A, B), (B, A)],
+                {B},
+                {A},
+                True,
+                "unidentifiable - intervention in same SCC as outcome",
+            ),
         ]
-    
+
         for edges, outcomes, interventions, should_fail, description in test_cases:
             with self.subTest(msg=description):
                 graph = NxMixedGraph.from_edges(directed=edges)
-            
+
                 if should_fail:
                     with self.assertRaises(Unidentifiable):
                         cyclic_id(graph, outcomes, interventions)
                 else:
                     result = cyclic_id(graph, outcomes, interventions)
                     self.assertIsInstance(result, Expression)
-            
-# ------ Testing Line 10 --------------------------------------------
+
+    # ------ Testing Line 10 --------------------------------------------
 
     def test_single_district_no_product_wrapper(self) -> None:
         """Single district should reutrn distribution directly without Product wrapper."""
-        # Query: P(C | do(A)) 
+        # Query: P(C | do(A))
         # H = {B, C} forms single consolidated district
         # Expected: Q[H] returned directly without Product
-        
+
         graph = NxMixedGraph.from_edges(directed=[(A, B), (B, C), (C, B)])
-        
+
         outcomes = {C}
         interventions = {A}
-        
+
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # should be an Expression, but not necessarily wrapped in Product
         self.assertIsInstance(result, Expression)
-        
+
     def test_multiple_disjoint_districts_product(self) -> None:
         """Multiple districts should return Product of district distributions."""
         # Query: P(D | do(A))
         # H = {B, C, D} contains two districts: {B} (self-loop) and {C} (single)
         # Expected: Tensor product of both district distributions
-        
-        graph = NxMixedGraph.from_edges(
-            directed=[(A, B), (B, B), (A, C), (B, D), (C, D)]
-        )
-        
+
+        graph = NxMixedGraph.from_edges(directed=[(A, B), (B, B), (A, C), (B, D), (C, D)])
+
         outcomes = {D}
         interventions = {A}
-        
+
         result = cyclic_id(graph, outcomes, interventions)
-        
-        # verifying both B and C appear in result 
+
+        # verifying both B and C appear in result
         result_vars = result.get_variables()
         self.assertIn(B, result_vars)
         self.assertIn(C, result_vars)
         self.assertIn(D, result_vars)
-        
+
     def test_product_contains_all_ancestral_closure_variables(self) -> None:
         """Product must contain all variables from ancestral closure H which is also prepared for marginalization in Line 11."""
         # Query: P(Z | do(R))
         # H = {X, Y, Z}
         # Expected: Q[H] contains all of {X, Y, Z} for marginalization in Line 11
-        graph = NxMixedGraph.from_edges(
-            directed=[(R, X), (X, Y), (Y, X), (Y, Z)]
-        )
-        
+        graph = NxMixedGraph.from_edges(directed=[(R, X), (X, Y), (Y, X), (Y, Z)])
+
         outcomes = {Z}
         interventions = {R}
-        
+
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # distribution should contain all variables in H = {X, Y, Z}
         result_vars = result.get_variables()
         expected_h = {X, Y, Z}
         self.assertTrue(expected_h.issubset(result_vars))
-        
+
     def test_mixed_district_types(self) -> None:
         """Tests districts formed by cycles and latent confounders both included in product."""
         # Query: P(C, Y | do(A))
@@ -445,129 +437,118 @@ class TestCyclicID(cases.GraphTestCase):
         #   - {B, C} formed by directed feedback cycle
         #   - {X, Y} formed by bidirected edge (latent confounder)
         # Expected: Product includes both district types
-        
+
         graph = NxMixedGraph.from_edges(
-            directed=[(A, B), (B, C), (C, B), (A, X)],
-            undirected=[(X, Y)]
+            directed=[(A, B), (B, C), (C, B), (A, X)], undirected=[(X, Y)]
         )
-        
+
         outcomes = {C, Y}
         interventions = {A}
-        
+
         result = cyclic_id(graph, outcomes, interventions)
-        
-        # both districts should be represented 
+
+        # both districts should be represented
         result_vars = result.get_variables()
         self.assertIn(B, result_vars)  # From cycle district
         self.assertIn(C, result_vars)  # From cycle district
         self.assertIn(X, result_vars)  # From confounder district
         self.assertIn(Y, result_vars)  # From confounder district
-        
-       
-# ---- Testing Line 11: Marginalization --------------------------------------------
+
+    # ---- Testing Line 11: Marginalization --------------------------------------------
 
     def test_no_marginalization_ancestral_closure_equals_outcomes(self) -> None:
         """Tests that no marginalization occurs when ancestral closure H = outcomes Y."""
-        
         graph = NxMixedGraph.from_edges(directed=[(A, B), (B, C), (C, B), (C, D)])
         outcomes = {D}
         interventions = {B, C}
-        
+
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # result should be an Expression
         self.assertIsInstance(result, Expression)
-        
+
         # result should only contain D
         result_vars = result.get_variables()
         self.assertIn(D, result_vars)
-        
+
     def test_marginalize_single_variable(self) -> None:
         """Tests that line 11 should marginalize out single variable from H (ancestral closure)."""
         # Query: P(C | do(A))
         # H = {B, C}, Y = {C}
         # Should marginalize out {B}
         # Expected: Sum over B
-        
-        graph = NxMixedGraph.from_edges(directed=[(A, B), (B, B),(B, C), (C, B)])
-        
+
+        graph = NxMixedGraph.from_edges(directed=[(A, B), (B, B), (B, C), (C, B)])
+
         outcomes = {C}
         interventions = {A}
-        
+
         result = cyclic_id(graph, outcomes, interventions)
         self.assertIsInstance(result, Expression)
         result_vars = result.get_variables()
         self.assertIn(C, result_vars)
-        
+
     def test_marginalize_multiple_variables(self) -> None:
         """Tests that line 11 should marginalize out multiple variables from H (ancestral closure)."""
         # Query: P(D | do(A))
         # H = {B, C, D}, Y = {D}
         # Should marginalize out {B, C}
         # Expected: Sum over B and C
-        
+
         graph = NxMixedGraph.from_edges(directed=[(A, B), (B, C), (C, B), (C, D)])
-        
+
         outcomes = {D}
         interventions = {A}
-        
+
         result = cyclic_id(graph, outcomes, interventions)
         self.assertIsInstance(result, Expression)
         result_vars = result.get_variables()
         self.assertIn(D, result_vars)
-        
-    def test_final_result_contains_only_outcomes(self) -> None:
-        """"Final result after marginalization contains only outcome variables Y."""
 
+    def test_final_result_contains_only_outcomes(self) -> None:
+        """Final result after marginalization contains only outcome variables Y."""
         # Query: P(D | do(A))
         # H = {B, C, D}, Y = {D}
         # Should marginalize out {B, C}
         # Expected: Result focuses on D
-        
-        graph = NxMixedGraph.from_edges(directed=[
-            (A, B), (B, C), (C, B), (C, D)
-        ])
+
+        graph = NxMixedGraph.from_edges(directed=[(A, B), (B, C), (C, B), (C, D)])
         outcomes = {D}
         interventions = {A}
-    
+
         result = cyclic_id(graph, outcomes, interventions)
         self.assertIsInstance(result, Expression)
-    
+
         # After marginalization, D should be in result
         result_vars = result.get_variables()
         self.assertIn(D, result_vars)
-        
+
     def test_marginalize_with_self_loops(self) -> None:
+        """Test marginalizing with self-loops."""
         # Query: P(D | do(A))
         # H = {B, C, D}, Y = {D}
         # Should marginalize out {B, C}
         # Expected: Handles self-loops correctly
-        graph = NxMixedGraph.from_edges(directed=[
-            (A, B), (B, B), (B, C), (C, D)
-        ])
+        graph = NxMixedGraph.from_edges(directed=[(A, B), (B, B), (B, C), (C, D)])
         outcomes = {D}
         interventions = {A}
-    
-        result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
-        result_vars = result.get_variables()
-        self.assertIn(D, result_vars)
-        
-    def test_marginalize_with_latent_confounders(self) -> None:
-        # Query: P(D | do(A))
-        # H = {B, C, D}, Y = {D}
-        # Should marginalize out {B, C} (confounded district)
-        # Expected: Correctly marginalizes confounded variables
-        graph = NxMixedGraph.from_edges(
-            directed=[(A, B), (C, D)],
-            undirected=[(B, C)]
-        )
-        outcomes = {D}
-        interventions = {A}
-    
+
         result = cyclic_id(graph, outcomes, interventions)
         self.assertIsInstance(result, Expression)
         result_vars = result.get_variables()
         self.assertIn(D, result_vars)
 
-    
+    def test_marginalize_with_latent_confounders(self) -> None:
+        """Test marginalizing with latent confounders."""
+        # Query: P(D | do(A))
+        # H = {B, C, D}, Y = {D}
+        # Should marginalize out {B, C} (confounded district)
+        # Expected: Correctly marginalizes confounded variables
+        graph = NxMixedGraph.from_edges(directed=[(A, B), (C, D)], undirected=[(B, C)])
+        outcomes = {D}
+        interventions = {A}
+
+        result = cyclic_id(graph, outcomes, interventions)
+        self.assertIsInstance(result, Expression)
+        result_vars = result.get_variables()
+        self.assertIn(D, result_vars)
