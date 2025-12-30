@@ -57,8 +57,6 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
 
         # print(f"\nLine 23 produced: {expression}")
 
-    # ------------------------------------------------------
-
     def test_line_23_has_correct_marginalization_and_conditioning(self) -> None:
         """Verifying that the conditional probability has the correct form and structure explicitly."""
         graph = simple_cyclic_graph_1
@@ -114,8 +112,6 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
             {R}, conditioning_vars, f"Should condition on {R}, got {conditioning_vars}"
         )
 
-    # --------------------------------------------------------------
-
     def test_line_23_first_scc_has_no_predecessors(self) -> None:
         """First SCC in apt-order should have no conditioning variables."""
         graph = simple_cyclic_graph_1
@@ -157,8 +153,6 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
             self.assertIn(first_scc, result)
 
             # print(f"\nFirst SCC Line 23 produced: {expression} with no conditioning variables")
-
-    # --------------------------------------------------------------
 
     def test_line_23_multiple_sccs_have_different_predecessors(self) -> None:
         """Test Line 23 handles multiple SCCs with different predecessor sets."""
@@ -218,8 +212,6 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
         # For SCC {X,W,Z}, Pred^G_<(S)∩A should be {R}
         # R comes before {X,W,Z} in apt-order and is in A
         self.assertEqual({R}, conditioning_vars, "Line 23: Pred^G_<({X,W,Z})∩A = {R}")
-
-    # --------------------------------------------------------------
 
     def test_line_23_handles_single_node_scc(self) -> None:
         """Test Line 23 handles single-node SCCs correctly."""

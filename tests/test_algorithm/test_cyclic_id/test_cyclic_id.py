@@ -46,8 +46,6 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
                 result = initialize_district_distribution(graph, district, apt_order)
                 self.assert_expr_equal(expected, result)
 
-    # ------------------------------------------------------------------------------
-
     def test_cycle_with_predecessors(self) -> None:
         """Test district containing a cycle with predecessors returns joint conditional."""
         # district: {B, C} is one SCC with predecessor A
@@ -63,8 +61,6 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
         self.assert_expr_equal(expected, result)
 
     def test_multiple_sccs_in_one_district(self) -> None:
-        # FIXME - this test passes sometimes and then also sometimes fails? I'm not sure why. I think likely a string
-        # comparison might be best instead.
         """Test single consolidated district containing multiple SCCs connected by latent confounders."""
         # Consolidated district {B, C, D} has two SCCs: {B} and {C, D}
         # SCC {B}: P(B | A)
@@ -84,7 +80,6 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
         self.assert_expr_equal(expected, result, ordering=apt_order)
 
     def test_two_single_node_sccs_with_confounder(self) -> None:
-        # NOTE - I'm not sure if we need this test. Feel free to remove if redundant.
         """Test district with two single-node SCCs connected by latent confounder."""
         # Graph: X ↔ Y (bidirected edge only, no directed edges)
         # SCCs: {X} and {Y} - separate SCCs, one consolidated district
@@ -129,7 +124,6 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
         self.assert_expr_equal(expected, result)
 
 
-# ------------------------------------------------------------------------------
 class TestCyclicID(cases.GraphTestCase):
     """Tests for the main cyclic_id function for a top-level algorithm."""
 
@@ -220,7 +214,7 @@ class TestCyclicID(cases.GraphTestCase):
         # (except possible as a conditioning variable from do(R))
         result.get_variables()
 
-        self.assertIsInstance(result, Expression)
+        self.assertIsInstance(result, Expression)  # FIXME make explicit
 
     def test_ancestral_closure_computed_with_cycles(self) -> None:
         """Ancestral closure set correctly computed in presence of cycles."""
@@ -232,7 +226,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
     def test_empty_ancestral_closure(self) -> None:
         """Handle case where ancestral closure H is empty after removing interventions."""
@@ -246,7 +241,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
     def test_outcomes_equals_ancestral_closure(self) -> None:
         # Query P(D | do(B, C))
@@ -258,7 +254,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {B}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
     # ------ Testing Line 4 ------------------------------------
     def test_single_consolidated_district(self) -> None:
@@ -273,7 +270,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
     def test_multiple_consolidated_districts(self) -> None:
         """Tests multiple consolidated districts in ancestral closure."""
@@ -288,7 +286,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
     def test_ancestral_closure_forms_single_cycle(self) -> None:
         """Entire ancestral closure set forms one large cycle (single district)."""
@@ -300,7 +299,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
     def test_districts_with_latent_confounders(self) -> None:
         """Consolidated districts with bidirected edges (Latent confounders)."""
@@ -316,7 +316,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
     def test_mixed_cycles_and_confounders(self) -> None:
         """Districts formed by both cycles and latent confounders."""
@@ -334,7 +335,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {W}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
     # ------ Testing Lines 5-8 --------------------------------------------
 
@@ -390,9 +392,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-
-        # should be an Expression, but not necessarily wrapped in Product
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
     def test_multiple_disjoint_districts_product(self) -> None:
         """Multiple districts should return Product of district distributions."""
@@ -406,6 +407,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
         # verifying both B and C appear in result
         result_vars = result.get_variables()
@@ -424,6 +427,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {R}
 
         result = cyclic_id(graph, outcomes, interventions)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
         # distribution should contain all variables in H = {X, Y, Z}
         result_vars = result.get_variables()
@@ -446,6 +451,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
         # both districts should be represented
         result_vars = result.get_variables()
@@ -463,9 +470,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {B, C}
 
         result = cyclic_id(graph, outcomes, interventions)
-
-        # result should be an Expression
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
         # result should only contain D
         result_vars = result.get_variables()
@@ -484,7 +490,9 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
+
         result_vars = result.get_variables()
         self.assertIn(C, result_vars)
 
@@ -501,7 +509,9 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
+
         result_vars = result.get_variables()
         self.assertIn(D, result_vars)
 
@@ -517,7 +527,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
 
         # After marginalization, D should be in result
         result_vars = result.get_variables()
@@ -534,7 +545,9 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
+
         result_vars = result.get_variables()
         self.assertIn(D, result_vars)
 
@@ -549,6 +562,8 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        self.assertIsInstance(result, Expression)
+        expected = ...  # FIXME make explicit
+        self.assertEqual(expected, result)
+
         result_vars = result.get_variables()
         self.assertIn(D, result_vars)
