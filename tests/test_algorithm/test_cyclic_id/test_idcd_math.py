@@ -12,7 +12,7 @@ from typing import cast
 
 from tests.test_algorithm import cases
 from tests.test_algorithm.test_ioscm import simple_cyclic_graph_1
-from y0.algorithm.identify.idcd import compute_scc_distributions
+from y0.algorithm.identify.cyclic_id import compute_scc_distributions
 from y0.algorithm.ioscm.utils import get_strongly_connected_components
 from y0.dsl import Fraction, Probability, Product, R, Sum, W, X, Z
 

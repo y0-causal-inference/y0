@@ -2,7 +2,7 @@
 
 from tests.test_algorithm import cases
 from y0.algorithm.identify import Unidentifiable
-from y0.algorithm.identify.idcd import cyclic_id, initialize_district_distribution
+from y0.algorithm.identify.cyclic_id import cyclic_id, initialize_district_distribution
 from y0.dsl import A, B, C, D, E, Expression, P, Product, R, W, X, Y, Z
 from y0.graph import NxMixedGraph
 

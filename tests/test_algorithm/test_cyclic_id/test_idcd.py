@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from tests.test_algorithm import cases
 from tests.test_algorithm.test_ioscm import simple_cyclic_graph_1, simple_cyclic_graph_2
 from y0.algorithm.identify import Unidentifiable
-from y0.algorithm.identify.idcd import (
+from y0.algorithm.identify.cyclic_id import (
     compute_scc_distributions,
     get_apt_order_predecessors,
     idcd,
