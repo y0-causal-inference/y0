@@ -1019,9 +1019,11 @@ Multiple interventions  on multiple children:
 class Product(Expression):
     """Represent the product of several probability expressions."""
 
-    expressions: tuple[Expression, ...]
+    expressions: frozenset[Expression]
 
     def __post_init__(self) -> None:
+        if not isinstance(self.expressions, frozenset):
+            raise TypeError("Products must be given with a frozenset")
         if len(self.expressions) < 2:
             raise ValueError("Product() must two or more expressions")
 
@@ -1060,36 +1062,40 @@ class Product(Expression):
             return One()
         if len(expressions) == 1:
             return expressions[0]
-        return cls(expressions=tuple(sorted(expressions)))
+        return cls(expressions=frozenset(expressions))
+
+    @property
+    def _sorted_expressions(self) -> list[Expression]:
+        return sorted(self.expressions)
 
     def _get_key(self):  # type:ignore
-        inner_keys = (sexpr._get_key() for sexpr in self.expressions)
+        inner_keys = (sexpr._get_key() for sexpr in self._sorted_expressions)
         return 2, *inner_keys
 
     def to_text(self) -> str:
         """Output this product in the internal string format."""
-        return " ".join(expression.to_text() for expression in self.expressions)
+        return " ".join(expression.to_text() for expression in self._sorted_expressions)
 
     def to_y0(self) -> str:
         """Output this product instance as y0 internal DSL code."""
-        return " * ".join(expr.to_y0() for expr in self.expressions)
+        return " * ".join(expr.to_y0() for expr in self._sorted_expressions)
 
     def to_latex(self) -> str:
         """Output this product in the LaTeX string format."""
-        return " ".join(expression.to_latex() for expression in self.expressions)
+        return " ".join(expression.to_latex() for expression in self._sorted_expressions)
 
     def __mul__(self, other: Expression) -> Expression:
         if isinstance(other, Zero):
             return other
         if isinstance(other, Product):
-            return Product.safe((*self.expressions, *other.expressions))
+            return Product.safe(self.expressions | other.expressions)
         elif isinstance(other, Fraction):
             return Fraction(self * other.numerator, other.denominator)
         else:
-            return Product.safe((*self.expressions, other))
+            return Product.safe(self.expressions | {other})
 
     def _iter_variables(self) -> Iterable[Variable]:
-        """Get the union of the variables used in each expresison in this product."""
+        """Get the union of the variables used in each expression in this product."""
         for expression in self.expressions:
             yield from expression._iter_variables()
 
@@ -1347,11 +1353,13 @@ class Fraction(Expression):
         if self.numerator == self.denominator:
             return One()
         if isinstance(self.numerator, Product) and isinstance(self.denominator, Product):
-            return self._simplify_parts(self.numerator.expressions, self.denominator.expressions)
+            return self._simplify_parts(
+                self.numerator._sorted_expressions, self.denominator._sorted_expressions
+            )
         elif isinstance(self.numerator, Product):
-            return self._simplify_parts(self.numerator.expressions, [self.denominator])
+            return self._simplify_parts(self.numerator._sorted_expressions, [self.denominator])
         elif isinstance(self.denominator, Product):
-            return self._simplify_parts([self.numerator], self.denominator.expressions)
+            return self._simplify_parts([self.numerator], self.denominator._sorted_expressions)
         return self
 
     @classmethod
@@ -1398,6 +1406,7 @@ class Fraction(Expression):
         )
 
 
+@dataclass(frozen=True)
 class One(Expression):
     """The multiplicative identity (1)."""
 
@@ -1430,6 +1439,7 @@ class One(Expression):
         return iter([])
 
 
+@dataclass(frozen=True)
 class Zero(Expression):
     """The additive identity (0)."""
 
