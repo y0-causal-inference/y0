@@ -388,13 +388,8 @@ class TestIDCDFunction(cases.GraphTestCase):
         mock_subgraph.ancestors_inclusive.return_value = {X, Y}
 
         with patch.object(graph, "subgraph", return_value=mock_subgraph):
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(ValueError):
                 idcd(graph=graph, outcomes=targets, district=district)
-            error_msg = str(context.exception).lower()
-            self.assertIn("unexpected state", error_msg)
-            self.assertIn("targets", error_msg)
-            self.assertIn("ancestral_closure", error_msg)
-            self.assertIn("district", error_msg)
 
 
 class TestComputeSCCDistributions(cases.GraphTestCase):

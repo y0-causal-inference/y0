@@ -10,8 +10,7 @@ from y0.algorithm.ioscm.utils import (
     get_graph_consolidated_districts,
     get_strongly_connected_components,
 )
-from y0.dsl import Expression, Probability, Product, Variable
-from y0.graph import NxMixedGraph
+from y0.dsl import Probability, Product
 
 from ...dsl import Expression, Variable
 from ...graph import NxMixedGraph
@@ -50,19 +49,11 @@ def initialize_district_distribution(
     for scc in sccs:
         predecessors = _apt_order_predecessors(scc, apt_order)
         # compute P(SCC | predecessors) or P(SCC) if no predecessors
-        if predecessors:
-            all_vars = set(scc) | predecessors
-            distribution = Probability.safe(all_vars).conditional(predecessors)
-        else:
-            distribution = Probability.safe(set(scc))
-
+        distribution = Probability.safe(scc.union(predecessors)).conditional(predecessors)
         loop_distributions.append(distribution)
 
-        # return product of all SCC distributions
-    if len(loop_distributions) == 1:
-        return loop_distributions[0]
-    else:
-        return Product.safe(loop_distributions)
+    # even if there's only one loop distribution, this doe sthe right thing
+    return Product.safe(loop_distributions)
 
 
 def cyclic_id(
@@ -82,7 +73,6 @@ def cyclic_id(
         and graph.
     """
     # input validation
-
     if not isinstance(outcomes, set):
         raise TypeError("Outcomes must be a set.")
 
@@ -134,11 +124,11 @@ def cyclic_id(
             # call IDCD with that distribution
             result = idcd(
                 graph=graph,
-                outcomes=district_c,
+                outcomes=set(district_c),
                 district=consolidated_district_of_c,
                 distribution=initial_distribution,
             )
-            district_distributions[frozenset(district_c)] = result
+            district_distributions[district_c] = result
 
         except Unidentifiable as e:
             # lines 6-8: if that fails, then return FAIL or raise Unidentifiable
@@ -148,17 +138,13 @@ def cyclic_id(
             ) from e
 
     # line 10: compute the tensor product Q[H] = ⨂ Q[C]
-    if len(district_distributions) == 1:
-        q_h = next(iter(district_distributions.values()))
-    else:
-        q_h = Product.safe(district_distributions.values())
+    q_h = Product.safe(district_distributions.values())
 
     # line 11: marginalize to get P(Y | do(W))
     marginalize_out = ancestral_closure - outcomes
 
     if marginalize_out:
         result = q_h.marginalize(marginalize_out)
-
     else:
         result = q_h
 
