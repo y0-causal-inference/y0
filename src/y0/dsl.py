@@ -734,7 +734,7 @@ class Expression(Element, ABC):
 
     def simplify(self) -> Expression:
         """Simplify this expression."""
-        return self # TODO can make abstract later
+        return self  # TODO can make abstract later
 
 
 @dataclass(frozen=True, repr=False)
@@ -1065,6 +1065,45 @@ class Product(Expression):
         if len(expressions) == 1:
             return expressions[0]
         return cls(expressions=tuple(sorted(expressions)))
+
+    def simplify(self) -> Expression:
+        """Simplify this product.
+
+        1. if there's products inside, recursively simplify
+        2. if there's fractions inside, slurp them together
+        3. if there's a zero inside, give zero
+        4. throw away ones
+        """
+        # remove multiplications of one
+        expressions = tuple(e for e in self.expressions if e != One())
+        # If any multiplications are by zero, then return zero
+        if any(expression == Zero() for expression in expressions):
+            return Zero()
+        if not expressions:
+            return One()
+        if len(expressions) == 1:
+            return expressions[0].simplify()
+
+        numerators: list[Expression] = []
+        denominators: list[Expression] = []
+        for expression in expressions:
+            match expression.simplify():
+                case Product(expressions):
+                    numerators.extend(expressions)
+                case Fraction(numerator, denominator):
+                    numerators.append(numerator)
+                    denominators.append(denominator)
+                case One() | Zero():
+                    raise RuntimeError  # already covered before
+                case _ as e:
+                    numerators.append(e)
+
+        numerator = Product.safe(numerators)
+        if not denominators:
+            return numerator
+
+        # needs one more simplify for cancelling
+        return Fraction(numerator, Product.safe(denominators)).simplify()
 
     def _get_key(self):  # type:ignore
         inner_keys = (sexpr._get_key() for sexpr in self.expressions)

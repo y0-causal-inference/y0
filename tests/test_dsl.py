@@ -12,6 +12,7 @@ from y0.dsl import (
     Distribution,
     Element,
     Expression,
+    Fraction,
     Intervention,
     One,
     P,
@@ -73,7 +74,7 @@ class TestDSL(unittest.TestCase):
             _ = Variable("Q")
 
     def test_intervention(self):
-        """Test the invervention DSL object."""
+        """Test the intervention DSL object."""
         self.assert_text("+W", Intervention("W", star=True))
         self.assert_text("-W", Intervention("W", star=False))
         self.assert_text("W", W)  # shorthand for testing purposes
@@ -578,3 +579,24 @@ class TestZero(unittest.TestCase):
                 self.assertEqual(zero, zero * expr, msg=f"Got {zero * expr}")
             with self.subTest(expr=expr.to_y0(), direction="left"):
                 self.assertEqual(zero, expr * zero, msg=f"Got {expr * zero}")
+
+    def test_probability_multiply(self) -> None:
+        """Test probability with other operations."""
+        self.assertEqual(P(A), P(A) / One())
+        self.assertEqual(
+            Fraction(P(A), Product.safe([P(B), P(C)])), P(A) / Product.safe([P(B), P(C)])
+        )
+        self.assertEqual(Fraction(P(A) * P(C), P(B)), P(A) / Fraction(P(B), P(C)))
+
+    def test_simplify_product(self) -> None:
+        """Test simplifying products."""
+        self.assertEqual(Zero(), Product.safe([P(A), Zero()]).simplify())
+        self.assertEqual(Zero(), Product.safe([Zero(), P(A)]).simplify())
+        self.assertEqual(One(), Product.safe([]).simplify())
+        self.assertEqual(One(), Product.safe([One()]).simplify())
+        self.assertEqual(One(), Product.safe([One(), One()]).simplify())
+        self.assertEqual(P(A), Product.safe([P(A)]).simplify())
+        self.assertEqual(P(A), Product.safe([One(), P(A)]).simplify())
+        self.assertEqual(P(A), Product.safe([P(A), One()]).simplify())
+        self.assertEqual(P(A) * P(B), Product.safe([One(), P(A), P(B)]).simplify())
+        self.assertEqual(P(A) * P(B), Product.safe([P(A), One(), P(B)]).simplify())
