@@ -1,5 +1,6 @@
 """Test the probability DSL."""
 
+import importlib.util
 import unittest
 from typing import ClassVar
 
@@ -65,6 +66,25 @@ class TestDSL(unittest.TestCase):
         """Test the variable DSL object."""
         self.assert_text("A", Variable("A"))
         self.assert_text("A", A)  # shorthand for testing purposes
+        self.assert_text("A", Variable["A"])
+
+    @unittest.skipUnless(importlib.util.find_spec("sympy"), "sympy not installed")
+    def test_sympy(self) -> None:
+        """Test variable to sympy."""
+        Variable("A").to_sympy()
+
+    def test_type_errors(self) -> None:
+        """Test type errors."""
+        with self.assertRaises(TypeError):
+            Variable(name=5)  # type:ignore
+        with self.assertRaises(TypeError):
+            Variable.norm(5)  # type:ignore
+        with self.assertRaises(ValueError):
+            Intervention("A", star=None)
+        with self.assertRaises(ValueError):
+            CounterfactualVariable("A", star=True, interventions=frozenset([]))
+        with self.assertRaises(TypeError):
+            CounterfactualVariable("A", star=True, interventions=frozenset([Variable("B")]))  # type:ignore
 
     def test_stop_the_madness(self):
         """Test that a variable can not be named "P"."""
