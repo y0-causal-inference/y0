@@ -269,7 +269,7 @@ class TestCyclicID(cases.GraphTestCase):
 
         result = cyclic_id(graph, outcomes, interventions)
 
-        expected = P(A, B, C) / Sum[C](P(A, B, C))
+        expected = P(A, B, C) / Sum.safe(P(A, B, C), ranges=[C])
 
         self.assert_expr_equal(expected, result)
 
@@ -288,13 +288,13 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
 
         # District {B, C}: P(B, C | A)
-        district_b = P(A, B, C) / Sum[B, C](P(A, B, C))
+        district_b = P(A, B, C) / Sum.safe(P(A, B, C), ranges=[B, C])
         # District {D}: P(D | A, B, C)
-        district_d = P(A, B, C, D) / Sum[D](P(A, B, C, D))
+        district_d = P(A, B, C, D) / Sum.safe(P(A, B, C, D), ranges=[D])
 
         factors = [district_b, district_d]
         expected_product = Product.safe(factors)
-        expected = Sum[B, C](expected_product)
+        expected = Sum.safe(expected_product, ranges=[B, C])
 
         self.assert_expr_equal(expected, result, ordering=[A, B, C, D])
 
@@ -313,14 +313,14 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
 
         # District {B, C}: P(B, C | A)
-        district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
+        district_bc = P(A, B, C) / Sum.safe(P(A, B, C), ranges=[B, C])
 
         # District {D, E}: P(D, E | A, B, C)
-        district_de = P(A, B, C, D, E) / Sum[D, E](P(A, B, C, D, E))
+        district_de = P(A, B, C, D, E) / Sum.safe(P(A, B, C, D, E), ranges=[D, E])
 
         factors = [district_bc, district_de]
         expected_product = Product.safe(factors)
-        expected = Sum[B, C, D](expected_product)
+        expected = Sum.safe(expected_product, ranges=[B, C, D])
 
         self.assert_expr_equal(expected, result)
 
@@ -336,9 +336,9 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
 
         # single district : {B, C, D} : P(B, C, D | A)
-        district_bcd = P(A, B, C, D) / Sum[B, C, D](P(A, B, C, D))
+        district_bcd = P(A, B, C, D) / Sum.safe(P(A, B, C, D), ranges=[B, C, D])
 
-        expected = Sum[B, C](district_bcd)
+        expected = Sum.safe(district_bcd, ranges=[B, C])
         self.assert_expr_equal(expected, result)
 
     def test_districts_with_latent_confounders(self) -> None:
@@ -355,10 +355,10 @@ class TestCyclicID(cases.GraphTestCase):
         cyclic_id(graph, outcomes, interventions)
 
         # District {B, C}: P(B, C | A) - formed by latent confounder
-        district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
+        district_bc = P(A, B, C) / Sum.safe(P(A, B, C), ranges=[B, C])
 
         # District {D}: P(D | A, B, C)
-        district_d = P(A, B, C, D) / Sum[D](P(A, B, C, D))
+        district_d = P(A, B, C, D) / Sum.safe(P(A, B, C, D), ranges=[D])
 
         factors = [district_bc, district_d]
         Product.safe(factors)  # Product of both districts
@@ -382,10 +382,10 @@ class TestCyclicID(cases.GraphTestCase):
 
         # single district: {X, Y, Z}: P(X, Y, Z | W)
         district_xyz = P(W, X, Y, Z) / P(W, Z)
-        district_z = P(Z) / Sum[Z](P(Z))
+        district_z = P(Z) / Sum.safe(P(Z), ranges=[Z])
 
         factors = [district_xyz, district_z]
-        expected = Sum[X, Y](Product.safe(factors))
+        expected = Sum.safe(Product.safe(factors), ranges=[X, Y])
 
         self.assert_expr_equal(expected, result)
 
@@ -445,9 +445,9 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
 
         # single distrct : {B, C} : P(B, C | A)
-        district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
+        district_bc = P(A, B, C) / Sum.safe(P(A, B, C), ranges=[B, C])
 
-        expected = Sum[B](district_bc)
+        expected = Sum.safe(district_bc, ranges=[B])
         self.assert_expr_equal(expected, result)
 
     @unittest.skip("TODO: Nondeterministic - Product factors order varies across runs")
@@ -476,7 +476,7 @@ class TestCyclicID(cases.GraphTestCase):
         factors = [district_c, district_b, district_d]
         inner_product = Product.safe(factors)
 
-        expected = Sum[B, C](inner_product)
+        expected = Sum.safe(inner_product, ranges=[B, C])
 
         self.assert_expr_equal(expected, result)
 
@@ -493,16 +493,16 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
 
         # District {X, Y}: P(X, Y | R) normalized (cycle)
-        district_xy = P(R, X, Y) / Sum[X, Y](P(R, X, Y))
+        district_xy = P(R, X, Y) / Sum.safe(P(R, X, Y), ranges=[X, Y])
 
         # District {Z}: P(Z | R, X, Y) normalized
-        district_z = P(R, X, Y, Z) / Sum[Z](P(R, X, Y, Z))
+        district_z = P(R, X, Y, Z) / Sum.safe(P(R, X, Y, Z), ranges=[Z])
 
         # Product of district distributions (sorted for consistency)
         factors = [district_xy, district_z]
         expected_product = Product.safe(factors)  # district_xy * district_z
 
-        expected = Sum[X, Y](expected_product)
+        expected = Sum.safe(expected_product, ranges=[X, Y])
 
         self.assert_expr_equal(expected, result)
 
@@ -563,7 +563,7 @@ class TestCyclicID(cases.GraphTestCase):
 
         # Single district {D}: P(D | A, B, C) normalized
         # No marginalization since H = Y
-        expected = P(A, B, C, D) / Sum[D](P(A, B, C, D))
+        expected = P(A, B, C, D) / Sum.safe(P(A, B, C, D), ranges=[D])
 
         self.assert_expr_equal(expected, result)
 
@@ -582,9 +582,9 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
 
         # single distrct : {B, C} : P(B, C | A)
-        district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
+        district_bc = P(A, B, C) / Sum.safe(P(A, B, C), ranges=[B, C])
 
-        expected = Sum[B](district_bc)
+        expected = Sum.safe(district_bc, ranges=[B])
 
         self.assert_expr_equal(expected, result)
 
@@ -603,16 +603,16 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
 
         # district: {B, C} : P(B, C | A)
-        district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
+        district_bc = P(A, B, C) / Sum.safe(P(A, B, C), ranges=[B, C])
 
         # district: {D}: P(D | A, B, C)
-        district_d = P(A, B, C, D) / Sum[D](P(A, B, C, D))
+        district_d = P(A, B, C, D) / Sum.safe(P(A, B, C, D), ranges=[D])
 
         # Product of both districts (district_bc * district_d)
         factors = [district_bc, district_d]
         expected_product = Product.safe(factors)
 
-        expected = Sum[B, C](expected_product)
+        expected = Sum.safe(expected_product, ranges=[B, C])
 
         self.assert_expr_equal(expected, result)
 
@@ -630,13 +630,13 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
 
         # district {B, C}: P(B, C | A)
-        district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
+        district_bc = P(A, B, C) / Sum.safe(P(A, B, C), ranges=[B, C])
 
         # district {D}: P(D | A, B, C)
-        district_d = P(A, B, C, D) / Sum[D](P(A, B, C, D))
+        district_d = P(A, B, C, D) / Sum.safe(P(A, B, C, D), ranges=[D])
 
         factors = [district_bc, district_d]
-        expected = Sum[B, C](Product.safe(factors))
+        expected = Sum.safe(Product.safe(factors), ranges=[B, C])
 
         self.assert_expr_equal(expected, result)
 
@@ -653,20 +653,20 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
 
         # District {B}: P(B | A) normalized (self-loop)
-        district_b = P(A, B) / Sum[B](P(A, B))
+        district_b = P(A, B) / Sum.safe(P(A, B), ranges=[B])
 
         # District {C}: P(C | A, B) normalized
-        district_c = P(A, B, C) / Sum[C](P(A, B, C))
+        district_c = P(A, B, C) / Sum.safe(P(A, B, C), ranges=[C])
 
         # District {D}: P(D | A, B, C) normalized
-        district_d = P(A, B, C, D) / Sum[D](P(A, B, C, D))
+        district_d = P(A, B, C, D) / Sum.safe(P(A, B, C, D), ranges=[D])
 
         # Product of all three district distributions
         factors = [district_b, district_c, district_d]
         expected_product = Product.safe(factors)  # district_b * district_c * district_d
 
         # Marginalize out {B, C} to get P(D | do(A))
-        expected = Sum[B, C](expected_product)
+        expected = Sum.safe(expected_product, ranges=[B, C])
 
         self.assert_expr_equal(expected, result)
 
