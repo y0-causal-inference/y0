@@ -1,11 +1,14 @@
 """Tests for cyclic ID algorithm top level function implementation."""
 
 import unittest
-from unittest import result
+
 from tests.test_algorithm import cases
 from y0.algorithm.identify import Unidentifiable
-from y0.algorithm.identify.cyclic_id import cyclic_id, initialize_district_distribution, initialize_component_distribution
-from y0.dsl import A, B, C, D, E, Expression, P, Product, R, W, X, Y, Z, Sum
+from y0.algorithm.identify.cyclic_id import (
+    cyclic_id,
+    initialize_district_distribution,
+)
+from y0.dsl import A, B, C, D, E, Expression, P, Product, R, Sum, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 
@@ -143,7 +146,7 @@ class TestCyclicID(cases.GraphTestCase):
         ]
         for outcomes, interventions, error_pattern, description in parameters:
             with self.subTest(msg=description):
-                with self.assertRaisesRegex(TypeError, error_pattern): 
+                with self.assertRaisesRegex(TypeError, error_pattern):
                     cyclic_id(graph, outcomes, interventions)  # type:ignore
 
     # ---- Testing Line 2 ------------------------------
@@ -214,11 +217,10 @@ class TestCyclicID(cases.GraphTestCase):
 
         # R should not appear in the final result structure
         # (except possible as a conditioning variable from do(R))
-        
-        
+
         expected = (P(R, X, Y) / P(R)).marginalize(X)
 
-        self.assert_expr_equal(expected, result)  
+        self.assert_expr_equal(expected, result)
 
     def test_ancestral_closure_computed_with_cycles(self) -> None:
         """Ancestral closure set correctly computed in presence of cycles."""
@@ -230,15 +232,14 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         q_d = P(A, B, C, D) / P(A, B, C)
         q_bc = P(A, B, C) / P(A)
-        
+
         q_h = Product.safe([q_bc, q_d])
-        
+
         expected = q_h.marginalize([B, C])
-        
- 
+
         self.assert_expr_equal(expected, result)
 
     def test_empty_ancestral_closure(self) -> None:
@@ -254,7 +255,7 @@ class TestCyclicID(cases.GraphTestCase):
 
         result = cyclic_id(graph, outcomes, interventions)
         expected = P(C)
-      
+
         self.assertEqual(expected, result)
 
     def test_outcomes_equals_ancestral_closure(self) -> None:
@@ -267,9 +268,9 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {B}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
-        expected  = P(A, B, C) / Sum[C](P(A, B, C))
-        
+
+        expected = P(A, B, C) / Sum[C](P(A, B, C))
+
         self.assertEqual(expected, result)
 
     # ------ Testing Line 4 ------------------------------------
@@ -285,17 +286,16 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
-        
+
         # District {B, C}: P(B, C | A)
         district_b = P(A, B, C) / Sum[B, C](P(A, B, C))
         # District {D}: P(D | A, B, C)
         district_d = P(A, B, C, D) / Sum[D](P(A, B, C, D))
-        
-        factors = sorted([district_b, district_d], key=lambda x: str(x))
-        expected_product = Product.safe(factors) 
+
+        factors = [district_b, district_d]
+        expected_product = Product.safe(factors)
         expected = Sum[B, C](expected_product)
-     
+
         self.assert_expr_equal(expected, result, ordering=[A, B, C, D])
 
     def test_multiple_consolidated_districts(self) -> None:
@@ -309,17 +309,16 @@ class TestCyclicID(cases.GraphTestCase):
         )
         outcomes = {E}
         interventions = {A}
-        
-        
+
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # District {B, C}: P(B, C | A)
         district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
-        
+
         # District {D, E}: P(D, E | A, B, C)
         district_de = P(A, B, C, D, E) / Sum[D, E](P(A, B, C, D, E))
-        
-        factors = sorted([district_bc, district_de], key=lambda x: str(x))
+
+        factors = [district_bc, district_de]
         expected_product = Product.safe(factors)
         expected = Sum[B, C, D](expected_product)
 
@@ -335,11 +334,10 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # single district : {B, C, D} : P(B, C, D | A)
         district_bcd = P(A, B, C, D) / Sum[B, C, D](P(A, B, C, D))
-        
-    
+
         expected = Sum[B, C](district_bcd)
         self.assert_expr_equal(expected, result)
 
@@ -354,17 +352,17 @@ class TestCyclicID(cases.GraphTestCase):
         outcomes = {D}
         interventions = {A}
 
-        result = cyclic_id(graph, outcomes, interventions)
-            
+        cyclic_id(graph, outcomes, interventions)
+
         # District {B, C}: P(B, C | A) - formed by latent confounder
         district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
-        
+
         # District {D}: P(D | A, B, C)
         district_d = P(A, B, C, D) / Sum[D](P(A, B, C, D))
-        
-        factors = sorted([district_bc, district_d], key=lambda x: str(x))
-        expected_product = Product.safe(factors) # Product of both districts
-        
+
+        factors = [district_bc, district_d]
+        Product.safe(factors)  # Product of both districts
+
     def test_mixed_cycles_and_confounders(self) -> None:
         """Districts formed by both cycles and latent confounders."""
         graph = NxMixedGraph.from_edges(
@@ -381,15 +379,14 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {W}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # single district: {X, Y, Z}: P(X, Y, Z | W)
         district_xyz = P(W, X, Y, Z) / P(W, Z)
         district_z = P(Z) / Sum[Z](P(Z))
-        
-        
-        factors = sorted([district_xyz, district_z], key=str)
+
+        factors = [district_xyz, district_z]
         expected = Sum[X, Y](Product.safe(factors))
-        
+
         self.assert_expr_equal(expected, result)
 
     # ------ Testing Lines 5-8 --------------------------------------------
@@ -446,16 +443,15 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # single distrct : {B, C} : P(B, C | A)
         district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
-        
-    
-        expected = Sum[B](district_bc) 
+
+        expected = Sum[B](district_bc)
         self.assert_expr_equal(expected, result)
 
     @unittest.skip("TODO: Nondeterministic - Product factors order varies across runs")
-    # FIXME - I've also tried a lot with this one, but it seems to be similar to the others that wouldn't pass. Difficult to test exact expression when Product factor order varies although correct. 
+    # FIXME - I've also tried a lot with this one, but it seems to be similar to the others that wouldn't pass. Difficult to test exact expression when Product factor order varies although correct.
     def test_multiple_disjoint_districts_product(self) -> None:
         """Multiple districts should return Product of district distributions."""
         # Query: P(D | do(A))
@@ -468,9 +464,7 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        print(f"\n=== TEST NAME ===")
-        print(f"Actual: {result}")
-        
+
         # Three districts, all normalized correctly
         # District {B, C}: P(B, C | A)
         district_b = P(A, B) / P(A)
@@ -478,16 +472,13 @@ class TestCyclicID(cases.GraphTestCase):
         district_d = P(A, B, C, D) / P(A, B, C)
         # District {C}: P(C | A)
         district_c = P(A, B, C, D) / P(A, B, C)
-    
-        factors = sorted([district_c, district_b, district_d], key=str)
-        
+
+        factors = [district_c, district_b, district_d]
         inner_product = Product.safe(factors)
-        
+
         expected = Sum[B, C](inner_product)
-    
+
         self.assert_expr_equal(expected, result)
-    
-   
 
     def test_product_contains_all_ancestral_closure_variables(self) -> None:
         """Product must contain all variables from ancestral closure H which is also prepared for marginalization in Line 11."""
@@ -500,22 +491,21 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {R}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # District {X, Y}: P(X, Y | R) normalized (cycle)
         district_xy = P(R, X, Y) / Sum[X, Y](P(R, X, Y))
-    
+
         # District {Z}: P(Z | R, X, Y) normalized
         district_z = P(R, X, Y, Z) / Sum[Z](P(R, X, Y, Z))
-    
+
         # Product of district distributions (sorted for consistency)
-        factors = sorted([district_xy, district_z], key=lambda x: str(x))
+        factors = [district_xy, district_z]
         expected_product = Product.safe(factors)  # district_xy * district_z
-        
+
         expected = Sum[X, Y](expected_product)
-        
+
         self.assert_expr_equal(expected, result)
-    
-     
+
     def test_mixed_district_types(self) -> None:
         """Tests districts formed by cycles and latent confounders both included in product."""
         # Query: P(C, Y | do(A))
@@ -523,23 +513,23 @@ class TestCyclicID(cases.GraphTestCase):
         #   - {B, C} formed by directed feedback cycle
         #   - {X, Y} formed by bidirected edge (latent confounder)
         # Expected: Product includes both district types
-        
+
         # NOTE: This test uses structural assertions rather than exact expression matching
         # because graphs with both directed cycles AND latent confounders produce highly
         # complex nested Sum structures that vary across runs due to nondeterministic
         # recursive IDCD processing, despite all Product sorting fixes. Not sure if there is a way around this to test
         # the exact quality. However, they do product the correct factors, and are structurally equivalent and mathematically equal.
         # the expected expression is constructed manually here for comparison.
-        
+
         graph = NxMixedGraph.from_edges(
             directed=[(A, B), (B, C), (C, B), (A, X)], undirected=[(X, Y)]
         )
         outcomes = {C, Y}
         interventions = {A}
-        
+
         result = cyclic_id(graph, outcomes, interventions)
-        
-       # Structural Assertion 1: Result must be a valid Expression
+
+        # Structural Assertion 1: Result must be a valid Expression
         self.assertIsInstance(result, Expression)
 
         # Structural Assertion 2: Check variable membership
@@ -548,23 +538,18 @@ class TestCyclicID(cases.GraphTestCase):
         self.assertIn(C, result_vars, msg="Outcome C missing from result")
         self.assertIn(Y, result_vars, msg="Outcome Y missing from result")
         self.assertIn(A, result_vars, msg="Context variable A should be present")
-    
+
         # Structural Assertion 3: Verify marginalization occurred
         # B and X should appear in the expression (being marginalized)
         # We check with include_bound=False (default) which shows all variables
         all_vars = result.get_variables()
         self.assertIn(B, all_vars, msg="B should appear in expression (being marginalized)")
         self.assertIn(X, all_vars, msg="X should appear in expression (being marginalized)")
-    
-    
+
         # Structural Assertion 4: Result should be a Sum (marginalization happened)
         self.assertIsInstance(result, Sum, msg="Result should be a Sum expression")
-        
-        # The actual expression can be written as:   Sum[B](Sum[X](((P(A, X, Y) / P(A, Y))) * ((P(A, Y) / P(A)))) * ((P(A, B, C, X, Y) / P(A, X, Y))))
-    
-        
 
-        
+        # The actual expression can be written as:   Sum[B](Sum[X](((P(A, X, Y) / P(A, Y))) * ((P(A, Y) / P(A)))) * ((P(A, B, C, X, Y) / P(A, X, Y))))
 
     # ---- Testing Line 11: Marginalization --------------------------------------------
 
@@ -575,11 +560,11 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {B, C}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # Single district {D}: P(D | A, B, C) normalized
         # No marginalization since H = Y
         expected = P(A, B, C, D) / Sum[D](P(A, B, C, D))
-    
+
         self.assert_expr_equal(expected, result)
 
     def test_marginalize_single_variable(self) -> None:
@@ -595,14 +580,13 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # single distrct : {B, C} : P(B, C | A)
         district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
-        
-        expected = Sum[B](district_bc)
-        
-        self.assert_expr_equal(expected, result)
 
+        expected = Sum[B](district_bc)
+
+        self.assert_expr_equal(expected, result)
 
     def test_marginalize_multiple_variables(self) -> None:
         """Tests that line 11 should marginalize out multiple variables from H (ancestral closure)."""
@@ -617,18 +601,19 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # district: {B, C} : P(B, C | A)
         district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
-        
+
         # district: {D}: P(D | A, B, C)
         district_d = P(A, B, C, D) / Sum[D](P(A, B, C, D))
-        
-        factors = sorted([district_bc, district_d], key=lambda x: str(x))
-        expected_product = Product.safe(factors) # Product of both districts (district_bc * district_d)
-        
+
+        # Product of both districts (district_bc * district_d)
+        factors = [district_bc, district_d]
+        expected_product = Product.safe(factors)
+
         expected = Sum[B, C](expected_product)
-        
+
         self.assert_expr_equal(expected, result)
 
     def test_final_result_contains_only_outcomes(self) -> None:
@@ -643,16 +628,16 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # district {B, C}: P(B, C | A)
         district_bc = P(A, B, C) / Sum[B, C](P(A, B, C))
-        
+
         # district {D}: P(D | A, B, C)
         district_d = P(A, B, C, D) / Sum[D](P(A, B, C, D))
-        
-        factors = sorted([district_bc, district_d], key=str)        
+
+        factors = [district_bc, district_d]
         expected = Sum[B, C](Product.safe(factors))
-        
+
         self.assertEqual(expected, result)
 
     def test_marginalize_with_self_loops(self) -> None:
@@ -666,95 +651,95 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # District {B}: P(B | A) normalized (self-loop)
         district_b = P(A, B) / Sum[B](P(A, B))
-    
+
         # District {C}: P(C | A, B) normalized
         district_c = P(A, B, C) / Sum[C](P(A, B, C))
-    
+
         # District {D}: P(D | A, B, C) normalized
         district_d = P(A, B, C, D) / Sum[D](P(A, B, C, D))
-    
-        # Product of all three district distributions (sorted for consistency)
-        factors = sorted([district_b, district_c, district_d], key=lambda x: str(x))
+
+        # Product of all three district distributions
+        factors = [district_b, district_c, district_d]
         expected_product = Product.safe(factors)  # district_b * district_c * district_d
-    
+
         # Marginalize out {B, C} to get P(D | do(A))
         expected = Sum[B, C](expected_product)
-        
+
         self.assert_expr_equal(expected, result)
 
-     # FIXME - probably can delete this 
+    # FIXME - probably can delete this
     # def test_marginalize_with_latent_confounders(self) -> None:
     #     """Test marginalizing with latent confounders."""
     #     graph = NxMixedGraph.from_edges(directed=[(A, B), (C, D)], undirected=[(B, C)])
     #     outcomes = {D}
     #     interventions = {A}
-
+    #
     #     result = cyclic_id(graph, outcomes, interventions)
-    
+    #
     #     # 1. Define the specific SCC-based factors identified by the algorithm
     #     # These follow the pattern: P(SCC | Predecessors in Apt-Order)
     #     factor_c = P(A, C) / P(A)
     #     factor_b = P(A, B, C) / P(A, C)
     #     factor_d = P(A, B, C, D) / P(A, B, C)
-    
+    #
     #     # 2. Sort the factors alphabetically/symbolically to handle nondeterminism
     #     # The algorithm pulls from a dictionary, so order can vary unless we sort here.
-    #     factors = sorted([factor_c, factor_b, factor_d], key=str)
-    
+    #     factors = [factor_c, factor_b, factor_d]
+    #
     #     # 3. Combine into the expected structure
     #     expected = Sum(Sum((P(A, B, C) / P(A, C)) * (P(A, C) / P(A)) * (P(A, B, C, D) / P(A, B, C)), (B,)), (C,))
-        
+    #
     #     self.assert_expr_equal(expected, result)
 
     def test_marginalize_with_latent_confounders(self) -> None:
         """Test marginalizing with latent confounders.
-    
+
         NOTE: This test uses structural verification to avoid failures caused by nested sums
         and nondeterministic factor ordering in recursive IDCD processing with latent confounders.
-        
+
         The exact nesting order (Sum[C](Sum[B](...)) vs Sum[B](Sum[C](...))),
         factor arrangement, and grouping may vary across runs due to nondeterministic
         dictionary iteration in recursive IDCD calls, despite all Product.safe() sorting fixes.
-        Multiple mathematically equivalent forms do exist for the same expression. 
-        
+        Multiple mathematically equivalent forms do exist for the same expression.
+
         Therefore, we verify structural properties instead of exact expression matching.
-        The actual expression can be written as: Sum[C](Sum[B](P(C) * ((P(A, B, C, D) / P(A, C, D)))) * ((P(A, C, D) / P(A, C)))) 
+        The actual expression can be written as: Sum[C](Sum[B](P(C) * ((P(A, B, C, D) / P(A, C, D)))) * ((P(A, C, D) / P(A, C))))
         """
         graph = NxMixedGraph.from_edges(directed=[(A, B), (C, D)], undirected=[(B, C)])
         outcomes = {D}
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
-        
+
         # Structural assertion 1: Algorithm should succeed (not raise Unidentifiable)
         self.assertIsInstance(result, Expression)
-        
+
         # Structural assertion 2: Result should be a Sum (marginalization occurred)
         self.assertIsInstance(result, Sum, msg="Result should be a Sum expression")
-        
+
         # Structural assertion 3: Verify correct variables
         result_vars = result.get_variables()
-        
+
         # Check that D and A are present
         self.assertIn(D, result_vars, msg="Outcome D should be in result")
         self.assertIn(A, result_vars, msg="Context variable A should be present")
-        
+
         # Check that B and C appear in the expression (being marginalized)
         self.assertIn(B, result_vars, msg="B should appear in expression (being marginalized)")
         self.assertIn(C, result_vars, msg="C should appear in expression (being marginalized)")
-        
-    
+
+
 # FIXME - Adding test cases for initialize_component_distribution function recently added
-# test cases:
-# 1. Testing no predecessors for single-node district
-# 2. No predecessors for multi-node district
-# 3. Single node with single predecessor
-# 4. Single node with multiple predecessors
-# 5. Multi-node with single predecessor
-# 6. Multi-node with multiple predecessors
-# 7. Larger cycle with predecessors
-# 8. Testing the conditional structure
-# 9. Testing empty nodes raises error
+#  test cases:
+#  1. Testing no predecessors for single-node district
+#  2. No predecessors for multi-node district
+#  3. Single node with single predecessor
+#  4. Single node with multiple predecessors
+#  5. Multi-node with single predecessor
+#  6. Multi-node with multiple predecessors
+#  7. Larger cycle with predecessors
+#  8. Testing the conditional structure
+#  9. Testing empty nodes raises error
