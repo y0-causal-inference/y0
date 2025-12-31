@@ -5,6 +5,9 @@ import unittest
 from typing import ClassVar
 
 from y0.dsl import (
+    PP,
+    X1,
+    Y2,
     A,
     B,
     C,
@@ -17,6 +20,7 @@ from y0.dsl import (
     Intervention,
     One,
     P,
+    Pi2,
     Product,
     Q,
     R,
@@ -622,3 +626,11 @@ class TestZero(unittest.TestCase):
             Fraction(P(A) * P(B), P(C)), Product((P(A), Fraction(P(B), P(C)))).simplify()
         )
         self.assertEqual(Fraction(P(A), P(C)), Product((P(A), Fraction(One(), P(C)))).simplify())
+
+    def test_simplify_sum(self) -> None:
+        """Test simplifying sums."""
+        x = Sum(P(W, X1, Y2, Z), frozenset([Y2]))
+        self.assertEqual(P(W, X1, Z), x.simplify())
+
+        y = Sum(PP[Pi2](W, X1, Y2, Z), frozenset([Y2]))
+        self.assertEqual(PP[Pi2](W, X1, Z), y.simplify())

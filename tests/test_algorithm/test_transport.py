@@ -340,6 +340,7 @@ class TestTransport(cases.GraphTestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
 
+        self.assert_expr_equal(expected_3.expression, actual_3.expression, check_parts=False)
         self.assertEqual(expected_3, actual_3)
 
     def test_trso_line3(self):
@@ -566,7 +567,7 @@ class TestTransport(cases.GraphTestCase):
         district1 = {Y2}
         line9_actual1 = trso_line9(line9_query1, district1)
         line9_expected1 = PP[Pi2](W, X1, Y2, Z) / Sum.safe(PP[Pi2](W, X1, Y2, Z), (Y2,))
-        self.assertEqual(line9_expected1, line9_actual1)
+        self.assert_expr_equal(line9_expected1, line9_actual1)
 
         line9_query2 = TRSOQuery(
             target_interventions={W, Z},
@@ -585,7 +586,7 @@ class TestTransport(cases.GraphTestCase):
         district2 = {Y1}
         line9_actual2 = trso_line9(line9_query2, district2)
         line9_expected2 = PP[Pi2](W, Y1, Z) / Sum.safe(PP[Pi2](W, Y1, Z), (Y1,))
-        self.assertEqual(line9_expected2, line9_actual2)
+        self.assert_expr_equal(line9_expected2, line9_actual2)
 
         line9_query3 = TRSOQuery(
             target_interventions={W, Z},
