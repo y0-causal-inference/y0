@@ -25,6 +25,8 @@ __all__ = [
     "identify_through_scc_decomposition",
     "marginalize_to_ancestors",
     "validate_preconditions",
+    "initialize_component_distribution",
+    "initialize_district_distribution",
 ]
 
 logger = logging.getLogger(__name__)
@@ -110,7 +112,7 @@ def cyclic_id(
             ) from e
 
     # line 10: compute the tensor product Q[H] = ⨂ Q[C]
-    q_h = Product.safe(district_distributions.values())
+    q_h = Product.safe(sorted(district_distributions.values(), key=str)) # added a sort for consistency in expressions
 
     # line 11: marginalize to get P(Y | do(W))
     marginalize_out = ancestral_closure - outcomes
@@ -369,9 +371,7 @@ def identify_through_scc_decomposition(
 
     # line 25 - Take product of SCC distributions
     logger.debug(f"[{_recursion_level}]: Line 25 - Product over {len(scc_distributions)} SCCs")
-    district_distribution: Annotated[Expression, InPaperAs("⊗ R_A[S]")] = Product.safe(
-        scc_distributions.values()
-    )
+    district_distribution: Annotated[Expression, InPaperAs("⊗ R_A[S]")] = Product.safe(sorted(scc_distributions.values(), key=str))
 
     # line 26 - Recursive IDCD call
     logger.debug(f"[{_recursion_level}]: Line 26 - Recursive call")
@@ -488,11 +488,25 @@ def initialize_district_distribution(
     # find all SCCs (feedback loops) within the district
     district_subgraph = graph.subgraph(district)
     sccs = get_strongly_connected_components(district_subgraph)
-    return Product.safe(
-        _unnamed_operation(set(scc), _get_predecessors(scc, apt_order)) for scc in sccs
-    )
+    # sort for a deterministic output
+    expressions = [
+        initialize_component_distribution(set(scc), _get_predecessors(scc, apt_order)) for scc in sccs
+    ]
+    
+    return Product.safe(sorted(expressions, key=str))
 
-
-def _unnamed_operation(x: set[Variable], y: set[Variable]) -> Expression:
-    # TODO does this operation have a high-level interpretation?
-    return Probability.safe(x.union(y)).conditional(y)
+def initialize_component_distribution(nodes: set[Variable], predecessors: set[Variable]) -> Expression:
+    """Initialize the probability distribution for a component given its predecessors.
+    
+    Implements Proposition 9.8(3): For a component S with predecessors P in apt-order,
+    compute P(S | P) = P(S U P) / P(P).
+    
+    :param nodes: The component nodes (SCC)
+    :param predecessors: The predecessor nodes in apt-order.
+    :returns: Conditional probability P(nodes | predecessors)
+    """
+    if not predecessors:
+        return Probability.safe(nodes)
+    
+    return Probability.safe(nodes | predecessors).conditional(predecessors)
+    
