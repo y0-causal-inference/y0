@@ -40,15 +40,21 @@ class GraphTestCase(unittest.TestCase):
         )
 
     def assert_expr_equal(
-        self, expected: Expression, actual: Expression, ordering: Sequence[Variable] | None = None
+        self,
+        expected: Expression,
+        actual: Expression,
+        *,
+        check_parts: bool = True,
+        ordering: Sequence[Variable] | None = None,
     ) -> None:
         """Assert that two expressions are the same."""
-        expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
-        actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
-        self.assertEqual(expected_treatments, actual_treatments)
-        self.assertEqual(expected_outcomes, actual_outcomes)
+        if check_parts:
+            expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
+            actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
+            self.assertEqual(expected_treatments, actual_treatments)
+            self.assertEqual(expected_outcomes, actual_outcomes)
         if ordering is None:
-            ordering = sorted(expected.get_variables(), key=lambda x: str(x))
+            ordering = sorted(expected.get_variables(), key=str)
         expected_canonical = canonicalize(expected, ordering)
         actual_canonical = canonicalize(actual, ordering)
         self.assertEqual(

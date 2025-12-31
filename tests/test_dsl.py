@@ -1,9 +1,12 @@
 """Test the probability DSL."""
 
+import importlib.util
 import unittest
 from typing import ClassVar
 
 from y0.dsl import (
+    X1,
+    Y2,
     A,
     B,
     C,
@@ -12,6 +15,7 @@ from y0.dsl import (
     Distribution,
     Element,
     Expression,
+    Fraction,
     Intervention,
     One,
     P,
@@ -64,6 +68,25 @@ class TestDSL(unittest.TestCase):
         """Test the variable DSL object."""
         self.assert_text("A", Variable("A"))
         self.assert_text("A", A)  # shorthand for testing purposes
+        self.assert_text("A", Variable["A"])
+
+    @unittest.skipUnless(importlib.util.find_spec("sympy"), "sympy not installed")
+    def test_sympy(self) -> None:
+        """Test variable to sympy."""
+        Variable("A").to_sympy()
+
+    def test_type_errors(self) -> None:
+        """Test type errors."""
+        with self.assertRaises(TypeError):
+            Variable(name=5)  # type:ignore
+        with self.assertRaises(TypeError):
+            Variable.norm(5)  # type:ignore
+        with self.assertRaises(ValueError):
+            Intervention("A", star=None)
+        with self.assertRaises(ValueError):
+            CounterfactualVariable("A", star=True, interventions=frozenset([]))
+        with self.assertRaises(TypeError):
+            CounterfactualVariable("A", star=True, interventions=frozenset([Variable("B")]))  # type:ignore
 
     def test_stop_the_madness(self):
         """Test that a variable can not be named "P"."""
@@ -73,7 +96,7 @@ class TestDSL(unittest.TestCase):
             _ = Variable("Q")
 
     def test_intervention(self):
-        """Test the invervention DSL object."""
+        """Test the intervention DSL object."""
         self.assert_text("+W", Intervention("W", star=True))
         self.assert_text("-W", Intervention("W", star=False))
         self.assert_text("W", W)  # shorthand for testing purposes
@@ -578,3 +601,31 @@ class TestZero(unittest.TestCase):
                 self.assertEqual(zero, zero * expr, msg=f"Got {zero * expr}")
             with self.subTest(expr=expr.to_y0(), direction="left"):
                 self.assertEqual(zero, expr * zero, msg=f"Got {expr * zero}")
+
+    def test_probability_multiply(self) -> None:
+        """Test probability with other operations."""
+        self.assertEqual(P(A), P(A) / One())
+        self.assertEqual(
+            Fraction(P(A), Product.safe([P(B), P(C)])), P(A) / Product.safe([P(B), P(C)])
+        )
+        self.assertEqual(Fraction(P(A) * P(C), P(B)), P(A) / Fraction(P(B), P(C)))
+
+    def test_simplify_product(self) -> None:
+        """Test simplifying products."""
+        self.assertEqual(Zero(), Product((P(A), Zero())).simplify())
+        self.assertEqual(Zero(), Product((Zero(), P(A))).simplify())
+        self.assertEqual(One(), Product((One(), One())).simplify())
+        self.assertEqual(P(A), Product((One(), P(A))).simplify())
+        self.assertEqual(P(A), Product((P(A), One())).simplify())
+        self.assertEqual(P(A) * P(B), Product((One(), P(A), P(B))).simplify())
+        self.assertEqual(P(A) * P(B), Product((P(A), One(), P(B))).simplify())
+
+        self.assertEqual(
+            Fraction(P(A) * P(B), P(C)), Product((P(A), Fraction(P(B), P(C)))).simplify()
+        )
+        self.assertEqual(Fraction(P(A), P(C)), Product((P(A), Fraction(One(), P(C)))).simplify())
+
+    def test_simplify_sum(self) -> None:
+        """Test simplifying sums."""
+        x = Sum(P(W, X1, Y2, Z), frozenset([Y2]))
+        self.assertEqual(P(W, X1, Z), x.simplify())

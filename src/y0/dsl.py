@@ -732,6 +732,10 @@ class Expression(Element, ABC):
             ranges=_upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)]),
         )
 
+    def simplify(self) -> Expression:
+        """Simplify this expression."""
+        return self  # TODO can make abstract later
+
 
 @dataclass(frozen=True, repr=False)
 class Probability(Expression):
@@ -1062,6 +1066,45 @@ class Product(Expression):
             return expressions[0]
         return cls(expressions=tuple(sorted(expressions)))
 
+    def simplify(self) -> Expression:
+        """Simplify this product.
+
+        1. if there's products inside, recursively simplify
+        2. if there's fractions inside, slurp them together
+        3. if there's a zero inside, give zero
+        4. throw away ones
+        """
+        # remove multiplications of one
+        expressions = tuple(e for e in self.expressions if e != One())
+        # If any multiplications are by zero, then return zero
+        if any(expression == Zero() for expression in expressions):
+            return Zero()
+        if not expressions:
+            return One()
+        if len(expressions) == 1:
+            return expressions[0].simplify()
+
+        numerators: list[Expression] = []
+        denominators: list[Expression] = []
+        for expression in expressions:
+            match expression.simplify():
+                case Product(expressions):
+                    numerators.extend(expressions)
+                case Fraction(numerator, denominator):
+                    numerators.append(numerator)
+                    denominators.append(denominator)
+                case One() | Zero():
+                    raise RuntimeError  # already covered before
+                case _ as e:
+                    numerators.append(e)
+
+        numerator = Product.safe(numerators)
+        if not denominators:
+            return numerator
+
+        # needs one more simplify for cancelling
+        return Fraction(numerator, Product.safe(denominators)).simplify()
+
     def _get_key(self):  # type:ignore
         inner_keys = (sexpr._get_key() for sexpr in self.expressions)
         return 2, *inner_keys
@@ -1089,7 +1132,7 @@ class Product(Expression):
             return Product.safe((*self.expressions, other))
 
     def _iter_variables(self) -> Iterable[Variable]:
-        """Get the union of the variables used in each expresison in this product."""
+        """Get the union of the variables used in each expression in this product."""
         for expression in self.expressions:
             yield from expression._iter_variables()
 
@@ -1206,7 +1249,8 @@ class Sum(Expression):
                     expression=prob,
                     ranges=ranges - intersection,
                 )
-        return self
+
+        return Sum.safe(expression.simplify(), ranges=self.ranges)
 
     def _get_key(self):  # type:ignore
         return 1, *self.expression._get_key()  # type:ignore
@@ -1335,36 +1379,46 @@ class Fraction(Expression):
 
     def simplify(self) -> Expression:
         """Simplify this fraction."""
-        if isinstance(self.denominator, One):
-            return self.numerator
+        if isinstance(self.denominator, Zero):
+            raise ZeroDivisionError
         if isinstance(self.numerator, Zero):
-            return self.numerator
+            return Zero()
+        if isinstance(self.denominator, One):
+            return self.numerator.simplify()
         if isinstance(self.numerator, One):
             if isinstance(self.denominator, Fraction):
                 return self.denominator.flip().simplify()
             else:
-                return self
-        if self.numerator == self.denominator:
+                return One() / self.denominator.simplify()
+
+        numerator = self.numerator.simplify()
+        denominator = self.denominator.simplify()
+
+        if numerator == denominator:
             return One()
-        if isinstance(self.numerator, Product) and isinstance(self.denominator, Product):
-            return self._simplify_parts(self.numerator.expressions, self.denominator.expressions)
-        elif isinstance(self.numerator, Product):
-            return self._simplify_parts(self.numerator.expressions, [self.denominator])
-        elif isinstance(self.denominator, Product):
-            return self._simplify_parts([self.numerator], self.denominator.expressions)
-        return self
+        if isinstance(numerator, Product) and isinstance(denominator, Product):
+            return self._simplify_parts(numerator.expressions, denominator.expressions)
+        elif isinstance(numerator, Product):
+            return self._simplify_parts(numerator.expressions, [denominator])
+        elif isinstance(denominator, Product):
+            return self._simplify_parts([numerator], denominator.expressions)
+        # TODO case when numerator is a fraction?
+        else:
+            return Fraction(numerator, denominator)
 
     @classmethod
     def _simplify_parts(
-        cls, numerator: Sequence[Expression], denominator: Sequence[Expression]
+        cls, numerator_product: Sequence[Expression], denominator_product: Sequence[Expression]
     ) -> Expression:
         """Calculate the minimum fraction.
 
-        :param numerator: A sequence of expressions that are multiplied in the product in the numerator
-        :param denominator: A sequence of expressions that are multiplied in the product in the denominator
+        :param numerator_product: A sequence of expressions that are multiplied in the product in the numerator
+        :param denominator_product: A sequence of expressions that are multiplied in the product in the denominator
         :returns: A simplified fraction.
         """
-        new_numerator, new_denominator = cls._simplify_parts_helper(numerator, denominator)
+        new_numerator, new_denominator = cls._simplify_parts_helper(
+            numerator_product, denominator_product
+        )
         if new_numerator and new_denominator:
             return Fraction(
                 Product.safe(new_numerator),
