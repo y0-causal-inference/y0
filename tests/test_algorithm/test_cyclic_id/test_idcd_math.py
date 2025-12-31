@@ -50,8 +50,9 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
         # The expression should be either:
         # - A Fraction (numerator/denominator)
         # - Or a conditional Probability P(...|...)
-        self.assertTrue(
-            isinstance(expression, (Fraction, Probability)),
+        self.assertIsInstance(
+            expression,
+            (Fraction, Probability),
             f"Expected Fraction or Probability, got {type(expression)}",
         )
 
@@ -244,8 +245,9 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
         expression = result[scc_r]
 
         # A single node SCC should still produce a valid expression
-        self.assertTrue(
-            isinstance(expression, (Fraction, Probability, Sum, Product)),
+        self.assertIsInstance(
+            expression,
+            (Fraction, Probability, Sum, Product),
             f"Expected Fraction, Probability, Sum, or Product, got {type(expression)}",
         )
 

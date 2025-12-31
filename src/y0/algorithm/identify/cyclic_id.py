@@ -350,7 +350,7 @@ def identify_through_scc_decomposition(
     # line 22 - Filter to SCCs within consolidated district
     relevant_sccs = [scc for scc in sccs if scc.issubset(consolidated_district)]
 
-    if not relevant_sccs:
+    if not relevant_sccs:  # pragma: no cover
         raise Unidentifiable(f"No SCCs in {consolidated_district=}")
 
     logger.debug(f"[{_recursion_level}]: Found - {len(relevant_sccs)} relevant SCCs")
