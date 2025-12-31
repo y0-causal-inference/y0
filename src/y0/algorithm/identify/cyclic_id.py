@@ -112,7 +112,7 @@ def cyclic_id(
             ) from e
 
     # line 10: compute the tensor product Q[H] = ⨂ Q[C]
-    q_h = Product.safe(district_distributions.values())
+    q_h = Product.safe(district_distributions.values()).simplify()
 
     # line 11: marginalize to get P(Y | do(W))
     marginalize_out = ancestral_closure - outcomes
@@ -373,7 +373,7 @@ def identify_through_scc_decomposition(
     logger.debug(f"[{_recursion_level}]: Line 25 - Product over {len(scc_distributions)} SCCs")
     district_distribution: Annotated[Expression, InPaperAs("⊗ R_A[S]")] = Product.safe(
         scc_distributions.values()
-    )
+    ).simplify()
 
     # line 26 - Recursive IDCD call
     logger.debug(f"[{_recursion_level}]: Line 26 - Recursive call")
@@ -501,11 +501,12 @@ def initialize_component_distribution(
 ) -> Expression:
     """Initialize the probability distribution for a component given its predecessors.
 
-    Implements Proposition 9.8(3): For a component $S$ with predecessors $P$ in apt-order,
-    compute $P(S | P) = P(S U P) / P(P)$.
+    Implements Proposition 9.8(3): For a component $S$ with predecessors $P$ in
+    apt-order, compute $P(S | P) = P(S U P) / P(P)$.
 
     :param nodes: The component nodes (SCC)
     :param predecessors: The predecessor nodes in apt-order.
+
     :returns: Conditional probability P(nodes | predecessors)
     """
     if not predecessors:

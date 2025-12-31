@@ -697,16 +697,19 @@ class TestCyclicID(cases.GraphTestCase):
     def test_marginalize_with_latent_confounders(self) -> None:
         """Test marginalizing with latent confounders.
 
-        NOTE: This test uses structural verification to avoid failures caused by nested sums
-        and nondeterministic factor ordering in recursive IDCD processing with latent confounders.
+        NOTE: This test uses structural verification to avoid failures caused by nested
+        sums and nondeterministic factor ordering in recursive IDCD processing with
+        latent confounders.
 
-        The exact nesting order (Sum[C](Sum[B](...)) vs Sum[B](Sum[C](...))),
-        factor arrangement, and grouping may vary across runs due to nondeterministic
-        dictionary iteration in recursive IDCD calls, despite all Product.safe() sorting fixes.
-        Multiple mathematically equivalent forms do exist for the same expression.
+        The exact nesting order (Sum[C](Sum[B](...)) vs Sum[B](Sum[C](...))), factor
+        arrangement, and grouping may vary across runs due to nondeterministic
+        dictionary iteration in recursive IDCD calls, despite all Product.safe() sorting
+        fixes. Multiple mathematically equivalent forms do exist for the same
+        expression.
 
         Therefore, we verify structural properties instead of exact expression matching.
-        The actual expression can be written as: Sum[C](Sum[B](P(C) * ((P(A, B, C, D) / P(A, C, D)))) * ((P(A, C, D) / P(A, C))))
+        The actual expression can be written as: Sum[C](Sum[B](P(C) * ((P(A, B, C, D) /
+        P(A, C, D)))) * ((P(A, C, D) / P(A, C))))
         """
         graph = NxMixedGraph.from_edges(directed=[(A, B), (C, D)], undirected=[(B, C)])
         outcomes = {D}
