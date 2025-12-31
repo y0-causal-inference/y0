@@ -2,6 +2,7 @@
 
 import unittest
 
+from tests.test_algorithm import cases
 from y0.algorithm.transport import (
     TransportQuery,
     TRSOQuery,
@@ -27,7 +28,6 @@ from y0.dsl import (
     X2,
     Y1,
     Y2,
-    Expression,
     Fraction,
     Pi1,
     Pi2,
@@ -84,20 +84,7 @@ graph_2 = NxMixedGraph.from_edges(
 )
 
 
-class _TestCase(unittest.TestCase):
-    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
-        """Assert that two expressions are the same."""
-        ordering = tuple(expected.get_variables())
-        expected_canonical = canonicalize(expected, ordering)
-        actual_canonical = canonicalize(actual, ordering)
-        self.assertEqual(
-            expected_canonical,
-            actual_canonical,
-            msg=f"\nExpected: {expected_canonical!s}\nActual:   {actual_canonical!s}",
-        )
-
-
-class TestTransport(_TestCase):
+class TestTransport(cases.GraphTestCase):
     """Test surrogate outcomes and transportability."""
 
     def test_create_transport_diagram(self):
@@ -114,19 +101,19 @@ class TestTransport(_TestCase):
         actual = get_nodes_to_transport(
             surrogate_interventions=X1, surrogate_outcomes=Y1, graph=tikka_trso_figure_8
         )
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
         expected = {X2}
         actual = get_nodes_to_transport(
             surrogate_interventions={X2}, surrogate_outcomes={Y2}, graph=tikka_trso_figure_8
         )
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
 
         # Test for multiple vertices in interventions and surrogate_outcomes
         expected = {X1, X2, Y1}
         actual = get_nodes_to_transport(
             surrogate_interventions={X2, X1}, surrogate_outcomes={Y2, W}, graph=tikka_trso_figure_8
         )
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
 
     def test_surrogate_to_transport(self):
         """Test that surrogate_to_transport correctly converts to a transport query."""
@@ -155,7 +142,7 @@ class TestTransport(_TestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
             target_experiments=set(),
         )
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
         extra_surrogate_outcomes = {Pi1: {Y1}, Pi2: {Y2}, Pi3: {Y2}}
         missing_surrogate_interventions = {Pi1: {Y2}}
         with self.assertRaises(ValueError):
@@ -220,7 +207,6 @@ class TestTransport(_TestCase):
         )
         self.assert_expr_equal(expected, actual)
 
-    @unittest.skip("Skip test")
     def test_trso_line2(self):
         """Test that trso _line2 correctly modifies the query."""
         query_part1 = TRSOQuery(
@@ -263,7 +249,7 @@ class TestTransport(_TestCase):
         )
 
         expected_part1 = new_query_part1
-        self.assertEqual(actual_part1, expected_part1)
+        self.assertEqual(expected_part1, actual_part1)
 
         # this is the simplified form of the expression
         # Maybe to be done in some future implementation
@@ -313,7 +299,7 @@ class TestTransport(_TestCase):
         )
 
         expected_part2 = new_query_part2
-        self.assertEqual(actual_part2, expected_part2)
+        self.assertEqual(expected_part2, actual_part2)
 
         query_3 = TRSOQuery(
             target_interventions={X1, X2, Z, W, Y2},
@@ -354,7 +340,7 @@ class TestTransport(_TestCase):
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
 
-        self.assertEqual(actual_3, expected_3)
+        self.assertEqual(expected_3, actual_3)
 
     def test_trso_line3(self):
         """Test that trso_line3 correctly modifies the query."""
@@ -405,7 +391,7 @@ class TestTransport(_TestCase):
         expected = new_query
 
         actual = trso_line3(query=query, additional_interventions=additional_interventions)
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
 
         self.assertIsNotNone(trso(query))
         self.assertIsNotNone(trso(actual))
@@ -561,7 +547,6 @@ class TestTransport(_TestCase):
         }
         self.assertEqual(expected_part2, actual_part2)
 
-    @unittest.skip("Skip")
     def test_trso_line9(self):
         """Test that trso_line3 returns the correct expression."""
         line9_query1 = TRSOQuery(
@@ -665,7 +650,7 @@ class TestTransport(_TestCase):
         self.assertEqual(line10_expected1, line10_actual1)
 
 
-class TestIntegration(_TestCase):
+class TestIntegration(cases.GraphTestCase):
     """Test integration over the whole workflow."""
 
     def test_transport_variable(self):
