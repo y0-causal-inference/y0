@@ -732,6 +732,10 @@ class Expression(Element, ABC):
             ranges=_upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)]),
         )
 
+    def simplify(self) -> Expression:
+        """Simplify this expression."""
+        return self # TODO can make abstract later
+
 
 @dataclass(frozen=True, repr=False)
 class Probability(Expression):
