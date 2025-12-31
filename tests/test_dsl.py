@@ -590,13 +590,15 @@ class TestZero(unittest.TestCase):
 
     def test_simplify_product(self) -> None:
         """Test simplifying products."""
-        self.assertEqual(Zero(), Product.safe([P(A), Zero()]).simplify())
-        self.assertEqual(Zero(), Product.safe([Zero(), P(A)]).simplify())
-        self.assertEqual(One(), Product.safe([]).simplify())
-        self.assertEqual(One(), Product.safe([One()]).simplify())
-        self.assertEqual(One(), Product.safe([One(), One()]).simplify())
-        self.assertEqual(P(A), Product.safe([P(A)]).simplify())
-        self.assertEqual(P(A), Product.safe([One(), P(A)]).simplify())
-        self.assertEqual(P(A), Product.safe([P(A), One()]).simplify())
-        self.assertEqual(P(A) * P(B), Product.safe([One(), P(A), P(B)]).simplify())
-        self.assertEqual(P(A) * P(B), Product.safe([P(A), One(), P(B)]).simplify())
+        self.assertEqual(Zero(), Product((P(A), Zero())).simplify())
+        self.assertEqual(Zero(), Product((Zero(), P(A))).simplify())
+        self.assertEqual(One(), Product((One(), One())).simplify())
+        self.assertEqual(P(A), Product((One(), P(A))).simplify())
+        self.assertEqual(P(A), Product((P(A), One())).simplify())
+        self.assertEqual(P(A) * P(B), Product((One(), P(A), P(B))).simplify())
+        self.assertEqual(P(A) * P(B), Product((P(A), One(), P(B))).simplify())
+
+        self.assertEqual(
+            Fraction(P(A) * P(B), P(C)), Product((P(A), Fraction(P(B), P(C)))).simplify()
+        )
+        self.assertEqual(Fraction(P(A), P(C)), Product((P(A), Fraction(One(), P(C)))).simplify())
