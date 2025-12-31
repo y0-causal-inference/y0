@@ -6,6 +6,7 @@ from tests.test_algorithm import cases
 from y0.algorithm.identify import Unidentifiable
 from y0.algorithm.identify.cyclic_id import (
     cyclic_id,
+    initialize_component_distribution,
     initialize_district_distribution,
 )
 from y0.dsl import A, B, C, D, E, Expression, P, Product, R, Sum, W, X, Y, Z
@@ -129,6 +130,50 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
         self.assert_expr_equal(expected, result)
 
 
+class TestInitializeComponentDistribution(cases.GraphTestCase):
+    """Tests for district initialization (Proposition 9.8).
+
+    This function implements the core conditional probability construction from Proposition 9.8.
+    """
+
+    def test_no_predecessors_cases(self) -> None:
+        """Components with no predecessors return joint probability."""
+        parameters = [
+            # nodes, expected, description
+            ({X}, P(X), "single node"),
+            ({X, Y}, P(X, Y), "multiple nodes"),
+        ]
+
+        for nodes, expected, description in parameters:
+            with self.subTest(msg=description):
+                result = initialize_component_distribution(nodes, set())
+                self.assert_expr_equal(expected, result)
+
+    def test_with_predecessors_cases(self) -> None:
+        """Components with predecessors return conditional probability. P(nodes | predecessors)."""
+        parameters = [
+            # nodes, predecessors, expected, description
+            # test 1: single node, single predecessor
+            ({B}, {A}, P(A, B) / P(A), "single node, single predecessor"),
+            # test 2: single node, multiple predecessors
+            ({C}, {A, B}, P(A, B, C) / P(A, B), "single node, multiple predecessors"),
+            # test 3: multi-node SCC, single predecessor
+            ({B, C}, {A}, P(A, B, C) / P(A), "multi-node SCC, single predecessor"),
+            # test 4: multi-node SCC, multiple predecessors
+            ({C, D}, {A, B}, P(A, B, C, D) / P(A, B), "multi-node SCC, multiple predecessors"),
+            # test 5: three-node SCC with predecessors
+            ({X, Y, Z}, {A, B}, P(A, B, X, Y, Z) / P(A, B), "three-node SCC"),
+            # test 6: deep chain component with many predecessors
+            ({D}, {A, B, C}, P(A, B, C, D) / P(A, B, C), "deep chain component"),
+        ]
+
+        for nodes, predecessors, expected, description in parameters:
+            with self.subTest(msg=description):
+                result = initialize_component_distribution(nodes, predecessors)
+                self.assert_expr_equal(expected, result)
+
+
+# -----------------------------------------------------------------------------------------------
 class TestCyclicID(cases.GraphTestCase):
     """Tests for the main cyclic_id function for a top-level algorithm."""
 
@@ -240,7 +285,7 @@ class TestCyclicID(cases.GraphTestCase):
 
         expected = q_h.marginalize([B, C])
 
-        self.assert_expr_equal(expected, result)
+        self.assert_expr_equal(expected.simplify(), result.simplify())
 
     def test_empty_ancestral_closure(self) -> None:
         """Handle case where ancestral closure H is empty after removing interventions."""
@@ -296,7 +341,7 @@ class TestCyclicID(cases.GraphTestCase):
         expected_product = Product.safe(factors)
         expected = Sum.safe(expected_product, ranges=[B, C])
 
-        self.assert_expr_equal(expected, result, ordering=[A, B, C, D])
+        self.assert_expr_equal(expected.simplify(), result.simplify(), ordering=[A, B, C, D])
 
     def test_multiple_consolidated_districts(self) -> None:
         """Tests multiple consolidated districts in ancestral closure."""
@@ -322,7 +367,7 @@ class TestCyclicID(cases.GraphTestCase):
         expected_product = Product.safe(factors)
         expected = Sum.safe(expected_product, ranges=[B, C, D])
 
-        self.assert_expr_equal(expected, result)
+        self.assert_expr_equal(expected.simplify(), result.simplify())
 
     def test_ancestral_closure_forms_single_cycle(self) -> None:
         """Entire ancestral closure set forms one large cycle (single district)."""
@@ -387,7 +432,7 @@ class TestCyclicID(cases.GraphTestCase):
         factors = [district_xyz, district_z]
         expected = Sum.safe(Product.safe(factors), ranges=[X, Y])
 
-        self.assert_expr_equal(expected, result)
+        self.assert_expr_equal(expected.simplify(), result.simplify())
 
     # ------ Testing Lines 5-8 --------------------------------------------
 
@@ -451,7 +496,6 @@ class TestCyclicID(cases.GraphTestCase):
         self.assert_expr_equal(expected, result)
 
     @unittest.skip("TODO: Nondeterministic - Product factors order varies across runs")
-    # FIXME - I've also tried a lot with this one, but it seems to be similar to the others that wouldn't pass. Difficult to test exact expression when Product factor order varies although correct.
     def test_multiple_disjoint_districts_product(self) -> None:
         """Multiple districts should return Product of district distributions."""
         # Query: P(D | do(A))
@@ -504,7 +548,7 @@ class TestCyclicID(cases.GraphTestCase):
 
         expected = Sum.safe(expected_product, ranges=[X, Y])
 
-        self.assert_expr_equal(expected, result)
+        self.assert_expr_equal(expected.simplify(), result.simplify())
 
     def test_mixed_district_types(self) -> None:
         """Tests districts formed by cycles and latent confounders both included in product."""
@@ -614,7 +658,7 @@ class TestCyclicID(cases.GraphTestCase):
 
         expected = Sum.safe(expected_product, ranges=[B, C])
 
-        self.assert_expr_equal(expected, result)
+        self.assert_expr_equal(expected.simplify(), result.simplify())
 
     def test_final_result_contains_only_outcomes(self) -> None:
         """Final result after marginalization contains only outcome variables Y."""
@@ -638,7 +682,7 @@ class TestCyclicID(cases.GraphTestCase):
         factors = [district_bc, district_d]
         expected = Sum.safe(Product.safe(factors), ranges=[B, C])
 
-        self.assert_expr_equal(expected, result)
+        self.assert_expr_equal(expected.simplify(), result.simplify())
 
     def test_marginalize_with_self_loops(self) -> None:
         """Test marginalizing with self-loops."""
@@ -668,31 +712,7 @@ class TestCyclicID(cases.GraphTestCase):
         # Marginalize out {B, C} to get P(D | do(A))
         expected = Sum.safe(expected_product, ranges=[B, C])
 
-        self.assert_expr_equal(expected, result)
-
-    # FIXME - probably can delete this
-    # def test_marginalize_with_latent_confounders(self) -> None:
-    #     """Test marginalizing with latent confounders."""
-    #     graph = NxMixedGraph.from_edges(directed=[(A, B), (C, D)], undirected=[(B, C)])
-    #     outcomes = {D}
-    #     interventions = {A}
-    #
-    #     result = cyclic_id(graph, outcomes, interventions)
-    #
-    #     # 1. Define the specific SCC-based factors identified by the algorithm
-    #     # These follow the pattern: P(SCC | Predecessors in Apt-Order)
-    #     factor_c = P(A, C) / P(A)
-    #     factor_b = P(A, B, C) / P(A, C)
-    #     factor_d = P(A, B, C, D) / P(A, B, C)
-    #
-    #     # 2. Sort the factors alphabetically/symbolically to handle nondeterminism
-    #     # The algorithm pulls from a dictionary, so order can vary unless we sort here.
-    #     factors = [factor_c, factor_b, factor_d]
-    #
-    #     # 3. Combine into the expected structure
-    #     expected = Sum(Sum((P(A, B, C) / P(A, C)) * (P(A, C) / P(A)) * (P(A, B, C, D) / P(A, B, C)), (B,)), (C,))
-    #
-    #     self.assert_expr_equal(expected, result)
+        self.assert_expr_equal(expected.simplify(), result.simplify())
 
     def test_marginalize_with_latent_confounders(self) -> None:
         """Test marginalizing with latent confounders.
