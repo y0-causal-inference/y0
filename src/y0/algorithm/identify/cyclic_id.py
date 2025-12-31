@@ -493,7 +493,7 @@ def initialize_district_distribution(
     return Product.safe(
         initialize_component_distribution(set(scc), _get_predecessors(scc, apt_order))
         for scc in sccs
-    )
+    ).simplify()
 
 
 def initialize_component_distribution(

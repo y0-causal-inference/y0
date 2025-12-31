@@ -79,7 +79,7 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
 
         result = initialize_district_distribution(graph, district, apt_order)
 
-        expected = Product.safe([P(A, B) / P(A), P(A, B, C, D) / P(A, B)])
+        expected = P(A, B, C, D) / P(A)
 
         # expected = product of distributions for each SCC
         self.assert_expr_equal(expected, result, ordering=apt_order)
@@ -100,7 +100,7 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
 
         # Expected: Joint distribution (no predecessors, ancestral district)
         # According to Lemma 9.7, ancestral district = simple joint
-        expected = Product.safe([P(X), P(X, Y) / P(X)])
+        expected = P(X, Y)
 
         self.assert_expr_equal(expected, result)
 
