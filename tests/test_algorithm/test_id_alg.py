@@ -1,9 +1,9 @@
 """Tests for the identify algorithm."""
 
 import itertools as itt
-import unittest
 
 import y0.examples
+from tests.test_algorithm import cases
 from y0.algorithm.identify import (
     Identification,
     Query,
@@ -35,7 +35,6 @@ from y0.dsl import (
     X,
     Y,
     Z,
-    get_outcomes_and_treatments,
 )
 from y0.examples import (
     figure_6a,
@@ -48,34 +47,18 @@ from y0.examples import (
     line_7_example,
 )
 from y0.graph import NxMixedGraph
-from y0.mutate import canonicalize
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
 
 
-class TestIdentify(unittest.TestCase):
+class TestIdentify(cases.GraphTestCase):
     """Test cases from https://github.com/COVID-19-Causal-Reasoning/Y0/blob/master/ID_whittemore.ipynb."""
 
     def assert_identify(self, expected: Expression, graph: NxMixedGraph, query: Probability):
         """Assert the ID algorithm returns the expected result."""
         id_in = Identification(Query.from_expression(query), graph)
         self.assert_expr_equal(expected, identify(id_in))
-
-    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
-        """Assert that two expressions are the same."""
-        expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
-        actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
-        self.assertEqual(expected_treatments, actual_treatments)
-        self.assertEqual(expected_outcomes, actual_outcomes)
-        ordering = tuple(expected.get_variables())
-        expected_canonical = canonicalize(expected, ordering)
-        actual_canonical = canonicalize(actual, ordering)
-        self.assertEqual(
-            expected_canonical,
-            actual_canonical,
-            msg=f"\nExpected: {expected_canonical!s}\nActual:   {actual_canonical!s}",
-        )
 
     def test_idc(self):
         r"""Test that the IDC algorithm works correctly."""

@@ -2,7 +2,7 @@
 
 import unittest
 from collections import Counter
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 
 from y0.dsl import Expression, Variable, get_outcomes_and_treatments
 from y0.graph import NxMixedGraph
@@ -39,13 +39,22 @@ class GraphTestCase(unittest.TestCase):
             msg=msg,
         )
 
-    def assert_expr_equal(self, expected: Expression, actual: Expression) -> None:
+    def assert_expr_equal(
+        self,
+        expected: Expression,
+        actual: Expression,
+        *,
+        check_parts: bool = True,
+        ordering: Sequence[Variable] | None = None,
+    ) -> None:
         """Assert that two expressions are the same."""
-        expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
-        actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
-        self.assertEqual(expected_treatments, actual_treatments)
-        self.assertEqual(expected_outcomes, actual_outcomes)
-        ordering = sorted(expected.get_variables(), key=lambda x: str(x))
+        if check_parts:
+            expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
+            actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)
+            self.assertEqual(expected_treatments, actual_treatments)
+            self.assertEqual(expected_outcomes, actual_outcomes)
+        if ordering is None:
+            ordering = sorted(expected.get_variables(), key=str)
         expected_canonical = canonicalize(expected, ordering)
         actual_canonical = canonicalize(actual, ordering)
         self.assertEqual(
