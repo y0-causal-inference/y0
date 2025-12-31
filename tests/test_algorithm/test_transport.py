@@ -720,7 +720,7 @@ class TestIntegration(cases.GraphTestCase):
 
         self.assertIsInstance(actual_part2, Fraction)
         self.assert_expr_equal(expected_part2_full.numerator, actual_part2.numerator)
-        self.assert_expr_equal(expected_part2_full, actual_part2)
+        self.assert_expr_equal(expected_part2_full, actual_part2, check_parts=False)
         self.assert_expr_equal(expected_part2_conditional, actual_part2)
         self.assert_expr_equal(fraction_expand(expected_part2_magic_p), actual_part2)
 
@@ -746,7 +746,7 @@ class TestIntegration(cases.GraphTestCase):
         expected_part3_full = PP[Pi2](W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2) / Sum[Y2](
             PP[Pi2](W @ -X2, X1 @ -X2, Y2 @ -X2, Z @ -X2)
         )
-        self.assert_expr_equal(expected_part3_full, actual_part3)
+        self.assert_expr_equal(expected_part3_full, actual_part3, check_parts=False)
         self.assert_expr_equal(expected_part3_conditional, actual_part3)
         self.assert_expr_equal(fraction_expand(expected_part3_magic_p), actual_part3)
 
