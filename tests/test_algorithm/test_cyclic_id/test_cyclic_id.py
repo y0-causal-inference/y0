@@ -256,7 +256,7 @@ class TestCyclicID(cases.GraphTestCase):
         result = cyclic_id(graph, outcomes, interventions)
         expected = P(C)
 
-        self.assertEqual(expected, result)
+        self.assert_expr_equal(expected, result)
 
     def test_outcomes_equals_ancestral_closure(self) -> None:
         # Query P(D | do(B, C))
@@ -271,7 +271,7 @@ class TestCyclicID(cases.GraphTestCase):
 
         expected = P(A, B, C) / Sum[C](P(A, B, C))
 
-        self.assertEqual(expected, result)
+        self.assert_expr_equal(expected, result)
 
     # ------ Testing Line 4 ------------------------------------
     def test_single_consolidated_district(self) -> None:
@@ -638,7 +638,7 @@ class TestCyclicID(cases.GraphTestCase):
         factors = [district_bc, district_d]
         expected = Sum[B, C](Product.safe(factors))
 
-        self.assertEqual(expected, result)
+        self.assert_expr_equal(expected, result)
 
     def test_marginalize_with_self_loops(self) -> None:
         """Test marginalizing with self-loops."""
