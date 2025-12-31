@@ -1089,7 +1089,7 @@ class Product(Expression):
             return Product.safe((*self.expressions, other))
 
     def _iter_variables(self) -> Iterable[Variable]:
-        """Get the union of the variables used in each expresison in this product."""
+        """Get the union of the variables used in each expression in this product."""
         for expression in self.expressions:
             yield from expression._iter_variables()
 
@@ -1335,15 +1335,17 @@ class Fraction(Expression):
 
     def simplify(self) -> Expression:
         """Simplify this fraction."""
+        if isinstance(self.denominator, Zero):
+            raise ZeroDivisionError
         if isinstance(self.denominator, One):
-            return self.numerator
+            return self.numerator.simplify()
         if isinstance(self.numerator, Zero):
-            return self.numerator
+            return self.numerator.simplify()
         if isinstance(self.numerator, One):
             if isinstance(self.denominator, Fraction):
                 return self.denominator.flip().simplify()
             else:
-                return self
+                return One() / self.denominator.simplify()
         if self.numerator == self.denominator:
             return One()
         if isinstance(self.numerator, Product) and isinstance(self.denominator, Product):
@@ -1352,6 +1354,8 @@ class Fraction(Expression):
             return self._simplify_parts(self.numerator.expressions, [self.denominator])
         elif isinstance(self.denominator, Product):
             return self._simplify_parts([self.numerator], self.denominator.expressions)
+        # TODO case when numerator is a fraction?
+        # TODO case when denominator is zero?
         return self
 
     @classmethod
