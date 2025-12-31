@@ -327,7 +327,8 @@ class TestTransport(cases.GraphTestCase):
             target_interventions={X1, W, Z},
             target_outcomes={Y1},
             expression=Sum.safe(
-                Sum.safe(PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()), (W, Z)).simplify(), (X2, Y2)
+                Sum.safe(PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()), (W, Z)).simplify(),
+                (X2, Y2),
             ).simplify(),
             active_interventions=set(),
             domain=TARGET_DOMAIN,

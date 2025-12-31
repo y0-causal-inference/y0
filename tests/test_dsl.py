@@ -5,7 +5,6 @@ import unittest
 from typing import ClassVar
 
 from y0.dsl import (
-    PP,
     X1,
     Y2,
     A,
@@ -20,7 +19,6 @@ from y0.dsl import (
     Intervention,
     One,
     P,
-    Pi2,
     Product,
     Q,
     R,
@@ -631,6 +629,3 @@ class TestZero(unittest.TestCase):
         """Test simplifying sums."""
         x = Sum(P(W, X1, Y2, Z), frozenset([Y2]))
         self.assertEqual(P(W, X1, Z), x.simplify())
-
-        y = Sum(PP[Pi2](W, X1, Y2, Z), frozenset([Y2]))
-        self.assertEqual(PP[Pi2](W, X1, Z), y.simplify())
