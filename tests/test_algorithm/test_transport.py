@@ -304,7 +304,7 @@ class TestTransport(cases.GraphTestCase):
         query_3 = TRSOQuery(
             target_interventions={X1, X2, Z, W, Y2},
             target_outcomes={Y1},
-            expression=Sum.safe(PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()), (W, Z)),
+            expression=Sum.safe(PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()), (W, Z)).simplify(),
             active_interventions=set(),
             domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
@@ -327,8 +327,8 @@ class TestTransport(cases.GraphTestCase):
             target_interventions={X1, W, Z},
             target_outcomes={Y1},
             expression=Sum.safe(
-                Sum.safe(PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()), (W, Z)), (X2, Y2)
-            ),
+                Sum.safe(PP[TARGET_DOMAIN](tikka_trso_figure_8.nodes()), (W, Z)).simplify(), (X2, Y2)
+            ).simplify(),
             active_interventions=set(),
             domain=TARGET_DOMAIN,
             domains={Pi1, Pi2},
