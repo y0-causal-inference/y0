@@ -21,7 +21,6 @@
     lvdags
     struct
     cli
-    components/index
 
 ********************
  Indices and Tables

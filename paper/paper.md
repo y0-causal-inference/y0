@@ -51,6 +51,11 @@ authors:
     roles:
       - type: software
         degree: supporting
+  - name: Emily Dogbatse
+    affiliation: 2
+    roles:
+      - type: software
+        degree: supporting
   - name: August George
     orcid: 0000-0001-7876-4359
     affiliation: 2
@@ -268,8 +273,9 @@ Verma constraints [@tian2012verma].
 algorithms of any causal inference package. It implements `ID`
 [@shpitser2006id], `IDC` [@shpitser2007idc], `ID*` [@shpitser2012idstar], `IDC*`
 [@shpitser2012idstar], surrogate outcomes (`TRSO`) [@tikka2019trso], `tian-ID`
-[@tian2010identifying], transport [@correa2020transport], and counterfactual
-transport [@correa2022cftransport].
+[@tian2010identifying], transport [@correa2020transport], counterfactual
+transport [@correa2022cftransport], and cyclic identification
+[@forré2019causalcalculuspresencecycles].
 
 # Case Study
 
@@ -326,12 +332,15 @@ There remain several high value identification algorithms to include in $Y_0$ in
 the future. First, the cyclic identification algorithm (`ioID`)
 [@forré2019causalcalculuspresencecycles] is important to work with more
 realistic graphs that contain cycles, such as how biomolecular signaling
-pathways often contain feedback loops. Second, Missing data identification
-algorithms can account for data that is missing not at random (MNAR) by modeling
-the underlying missingness mechanism [@mohan2021]. Third, algorithms that
-provide sufficient conditions for identification in hierarchical causal models
-[@weinstein2024hierarchicalcausalmodels] would be useful for supporting causal
-identification in probabilistic programming languages, such as ChiRho [@chirho].
+pathways often contain feedback loops. While $Y_0$ provides a base
+implementation, it can be extended to handle causal queries with conditionals,
+counterfactuals, and transports similarly to the base ID algorithm. Second,
+Missing data identification algorithms can account for data that is missing not
+at random (MNAR) by modeling the underlying missingness mechanism [@mohan2021].
+Third, algorithms that provide sufficient conditions for identification in
+hierarchical causal models [@weinstein2024hierarchicalcausalmodels] would be
+useful for supporting causal identification in probabilistic programming
+languages, such as ChiRho [@chirho].
 
 Several algorithms noted in the review by @JSSv099i05, such as generalized
 identification (`gID`) [@lee2019general] and generalized counterfactual

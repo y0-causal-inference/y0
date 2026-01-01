@@ -4,9 +4,11 @@
 """
 
 import logging
+from collections.abc import Iterable, Sequence
 from typing import Annotated
 
-from ..identify import Unidentifiable, identify_outcomes
+from .api import identify_outcomes
+from .utils import Unidentifiable
 from ..ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
@@ -14,7 +16,7 @@ from ..ioscm.utils import (
     get_strongly_connected_components,
 )
 from ...dsl import Expression, Probability, Product, Variable
-from ...graph import NxMixedGraph
+from ...graph import NxMixedGraph, _ensure_set
 from ...util import InPaperAs
 
 __all__ = [
@@ -32,16 +34,20 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def cyclic_id(
+def cyclic_id(  # noqa:C901
     graph: Annotated[NxMixedGraph, InPaperAs("G")],
-    outcomes: Annotated[set[Variable], InPaperAs("Y")],
-    interventions: Annotated[set[Variable], InPaperAs("W")],
+    outcomes: Annotated[Variable | Iterable[Variable], InPaperAs("Y")],
+    interventions: Annotated[Variable | Iterable[Variable], InPaperAs("W")],
+    *,
+    ordering: Sequence[Variable] | None = None,
 ) -> Annotated[Expression, InPaperAs(r"P(Y \mid do(W))")]:
     """Identify causal effects in cyclic graphs.
 
     :param graph: Causal graph
     :param outcomes: Target variables $Y$
     :param interventions: Intervention variables $W$
+    :param ordering: Ordering of variables in the graph. If not given, an apt-order is
+        calculated with :func:`get_apt_order`
 
     :returns: Identified causal effect $P(Y | do(W))$
 
@@ -49,6 +55,9 @@ def cyclic_id(
     :raises Unidentifiable: If the causal effect cannot be identified based on the query
         and graph.
     """
+    outcomes = _ensure_set(outcomes)
+    interventions = _ensure_set(interventions)
+
     # input validation
     if not isinstance(outcomes, set):
         raise TypeError("Outcomes must be a set.")
@@ -80,8 +89,8 @@ def cyclic_id(
     h_subgraph = graph_minus_interventions.subgraph(ancestral_closure)
     consolidated_districts = get_graph_consolidated_districts(h_subgraph)
 
-    # get apt-order for the full graph
-    apt_order_full = get_apt_order(graph)
+    if ordering is None:
+        ordering = get_apt_order(graph)
 
     # line 5: for each district, identify Q[C]
     district_distributions = {}
@@ -94,7 +103,7 @@ def cyclic_id(
         initial_distribution = initialize_district_distribution(
             graph=graph,
             district=consolidated_district_of_c,
-            apt_order=apt_order_full,
+            ordering=ordering,
         )
 
         try:
@@ -460,7 +469,7 @@ def get_apt_order_predecessors(
     return ancestral_closure.intersection(_get_predecessors(scc, apt_order))
 
 
-def _get_predecessors(variables: frozenset[Variable], ordering: list[Variable]) -> set[Variable]:
+def _get_predecessors(variables: Iterable[Variable], ordering: Sequence[Variable]) -> set[Variable]:
     """Get predecessors in the apt-order."""
     positions = [ordering.index(variable) for variable in variables if variable in ordering]
     if not positions:
@@ -472,7 +481,7 @@ def _get_predecessors(variables: frozenset[Variable], ordering: list[Variable]) 
 def initialize_district_distribution(
     graph: NxMixedGraph,
     district: set[Variable],
-    apt_order: list[Variable],
+    ordering: Sequence[Variable],
 ) -> Expression:
     """Initialize the probability distribution for a given district before identification.
 
@@ -483,7 +492,7 @@ def initialize_district_distribution(
 
     :param graph: The mixed graph representing the causal structure.
     :param district: The set of variables in the district to initialize.
-    :param apt_order: Apt-order of variables in the graph.
+    :param ordering: Apt-order of variables in the graph.
 
     :returns: Initial distribution for the district
     """
@@ -491,7 +500,7 @@ def initialize_district_distribution(
     district_subgraph = graph.subgraph(district)
     sccs = get_strongly_connected_components(district_subgraph)
     return Product.safe(
-        initialize_component_distribution(set(scc), _get_predecessors(scc, apt_order))
+        initialize_component_distribution(set(scc), _get_predecessors(scc, ordering))
         for scc in sccs
     ).simplify()
 

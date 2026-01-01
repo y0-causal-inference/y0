@@ -177,23 +177,6 @@ class TestInitializeComponentDistribution(cases.GraphTestCase):
 class TestCyclicID(cases.GraphTestCase):
     """Tests for the main cyclic_id function for a top-level algorithm."""
 
-    # testing line 1 - input validation
-    def test_input_validation(self) -> None:
-        """Test input validation before algorithm preconditions."""
-        graph = NxMixedGraph.from_edges(directed=[(A, B), (B, C)])
-
-        parameters = [
-            # outcomes, interventions, error_pattern, description
-            (None, {A}, "Outcomes must be a set.", "outcomes is None"),
-            ({B}, None, "Interventions must be a set.", "interventions is None"),
-            ([B], {A}, "set", "outcomes is list not set."),
-            ({B}, [A], "set", "interventions is list not set."),
-        ]
-        for outcomes, interventions, error_pattern, description in parameters:
-            with self.subTest(msg=description):
-                with self.assertRaisesRegex(TypeError, error_pattern):
-                    cyclic_id(graph, outcomes, interventions)  # type:ignore
-
     # ---- Testing Line 2 ------------------------------
     def test_precondition_validation(self) -> None:
         """Test line 2 of the main cyclic ID algorithm."""
