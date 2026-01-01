@@ -7,13 +7,12 @@
 ====================== ========================================================
 Algorithm              Implementation
 ====================== ========================================================
-ID [shpitser2006]_     :mod:`y0.algorithm.identifiy.id_std`
+ID [shpitser2006]_     :mod:`y0.algorithm.identify.id_std`
 Tian ID [tian03a]_     :mod:`y0.algorithm.tian_id`
-IDC [shpitser2008]_    :mod:`y0.algorithm.identifiy.idc`
-ID* [shpitser2012]_    :mod:`y0.algorithm.identifiy.id_star`
-IDC* [shpitser2012]_   :mod:`y0.algorithm.identifiy.idc_star`
-Cyclic ID [forre2019]_ `Issue #71
-                       <https://github.com/y0-causal-inference/y0/issues/71>`_
+IDC [shpitser2008]_    :mod:`y0.algorithm.identify.idc`
+ID* [shpitser2012]_    :mod:`y0.algorithm.identify.id_star`
+IDC* [shpitser2012]_   :mod:`y0.algorithm.identify.idc_star`
+Cyclic ID [forre2019]_ :mod:`y0.algorithm.identify.cyclic_id`
 gID [correa2019]_      `Issue #72
                        <https://github.com/y0-causal-inference/y0/issues/72>`_
 gID* [correa2021]_     `Issue #121
@@ -71,6 +70,7 @@ Counterfactual Transportability :mod:`y0.algorithm.counterfactual_transport`
 """
 
 from .api import identify_outcomes
+from .cyclic_id import cyclic_id
 from .id_c import idc
 from .id_star import id_star
 from .id_std import identify
@@ -81,6 +81,7 @@ __all__ = [
     "Identification",
     "Query",
     "Unidentifiable",
+    "cyclic_id",
     "id_star",
     "idc",
     "idc_star",
