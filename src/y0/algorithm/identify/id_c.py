@@ -1,10 +1,11 @@
 """Implementation of the IDC algorithm."""
 
 from collections.abc import Sequence
+from typing import Literal
 
 from .id_std import identify
 from .utils import Identification
-from ..conditional_independencies import are_d_separated
+from ..separation import are_d_separated, are_sigma_separated
 from ...dsl import Expression, Variable
 
 __all__ = [
@@ -38,11 +39,17 @@ def idc(
     return id_estimand.normalize_marginalize(identification.outcomes)
 
 
-def rule_2_of_do_calculus_applies(identification: Identification, condition: Variable) -> bool:
+def rule_2_of_do_calculus_applies(
+    identification: Identification,
+    condition: Variable,
+    separation_implementation: Literal["d", "sigma"] | None = None,
+) -> bool:
     r"""Check if Rule 2 of the Do-Calculus applies to the conditioned variable.
 
     :param identification: The identification tuple
     :param condition: The condition to check
+    :param separation_implementation: The separation implementation. Defaults to d
+        separation, but can be generalized to sigma separation
 
     :returns: If rule 2 applies, see below.
 
@@ -62,7 +69,16 @@ def rule_2_of_do_calculus_applies(identification: Identification, condition: Var
     treatments = identification.treatments
     conditions = treatments | (identification.conditions - {condition})
     graph_mod = graph.remove_in_edges(treatments).remove_out_edges(condition)
-    return all(
-        are_d_separated(graph_mod, outcome, condition, conditions=conditions)
-        for outcome in identification.outcomes
-    )
+
+    if separation_implementation == "d" or separation_implementation is None:
+        return all(
+            are_d_separated(graph_mod, outcome, condition, conditions=conditions)
+            for outcome in identification.outcomes
+        )
+    elif separation_implementation == "sigma":
+        return all(
+            are_sigma_separated(graph_mod, outcome, condition, conditions=conditions)
+            for outcome in identification.outcomes
+        )
+    else:
+        raise ValueError(f"Unknown separation implementation: {separation_implementation}")

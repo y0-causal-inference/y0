@@ -109,6 +109,7 @@ unimplemented for the last 15 years of publications including:
 | Surrogate Outcomes              | [Tikka and Karvanen, 2018](https://arxiv.org/abs/1806.07172)                        |
 | Counterfactual Transportability | [Correia, Lee, Bareinboim, 2022](https://proceedings.mlr.press/v162/correa22a.html) |
 | Cyclic ID                       | [Forré and Mooij, 2019](https://arxiv.org/abs/1901.00433v2)                         |
+| Cyclic IDC                      | _ours_                                                                              |
 
 Apply an algorithm to an Acyclic Directed Mixed Graph (ADMG) and a causal query
 to generate an estimand represented in the DSL like:
