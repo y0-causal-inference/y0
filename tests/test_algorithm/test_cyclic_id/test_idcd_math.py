@@ -56,8 +56,6 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
             f"Expected Fraction or Probability, got {type(expression)}",
         )
 
-        # print(f"\nLine 23 produced: {expression}")
-
     def test_line_23_has_correct_marginalization_and_conditioning(self) -> None:
         """Verifying that the conditional probability has the correct form and structure explicitly."""
         graph = simple_cyclic_graph_1
@@ -99,11 +97,6 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
             sum_vars,
             f"Should marginalize over SCC variables {cycle_scc}, got {sum_vars}",
         )
-
-        # print("\nVerified structure:")
-        # print("   - Type: Fraction (conditional)")
-        # print(f"   - Marginalizing over: {sum_vars}")
-        # print("   - Conditioning on: R (predecessor in apt-order)")
 
         self.assertEqual(
             cycle_scc, sum_vars, f"Should marginalize over SCC {cycle_scc}, got {sum_vars}"
@@ -153,8 +146,6 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
             # verify R is in the result
             self.assertIn(first_scc, result)
 
-            # print(f"\nFirst SCC Line 23 produced: {expression} with no conditioning variables")
-
     def test_line_23_multiple_sccs_have_different_predecessors(self) -> None:
         """Test Line 23 handles multiple SCCs with different predecessor sets."""
         graph = simple_cyclic_graph_1
@@ -189,7 +180,6 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
 
         # # test SCC {R} - no predecessors
         # expr_r = result[scc_r]
-        # # print(f"\nSCC {{R}} (first): {expr_r}")
         # self.assertIsNotNone(expr_r, "First SCC should have a distribution")
 
         # test SCC {X,W,Z} - predecessor {R}
@@ -207,7 +197,6 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
         self.assertEqual(
             {R}, conditioning_vars, f"Cycle SCC should condition on {{R}}, got {conditioning_vars}"
         )
-        # print(f"SCC {{X,W,Z}} conditions on: {conditioning_vars}")
 
         # Verify the conditioning is correct per Line 23
         # For SCC {X,W,Z}, Pred^G_<(S)∩A should be {R}
@@ -250,6 +239,3 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
             (Fraction, Probability, Sum, Product),
             f"Expected Fraction, Probability, Sum, or Product, got {type(expression)}",
         )
-
-        # print(f"\nSingle-node SCC {{R}}: {expression}")
-        # print(f"   - Type: {type(expression).__name__}")
