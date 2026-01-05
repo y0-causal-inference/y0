@@ -12,6 +12,10 @@ __all__ = [
 ]
 
 
+# TODO implement rule 1 condition
+# TODO implement rule 3 condition
+
+
 def rule_2_of_do_calculus_applies(
     graph: Annotated[NxMixedGraph, InPaperAs("G")],
     *,
