@@ -65,7 +65,7 @@ def chain_expand(
 
     return Product.safe(
         p._new(
-            Distribution(children={ordered_children[i]}).given(
+            Distribution(children=frozenset([ordered_children[i]])).given(
                 p.parents.union(ordered_children[i + 1 :])
             )
         )

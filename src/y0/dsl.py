@@ -124,8 +124,8 @@ __all__ = [
 T_co = TypeVar("T_co", covariant=True)
 
 
-def _to_interventions(variables: Sequence[Variable]) -> tuple[Intervention, ...]:
-    return tuple(
+def _to_interventions(variables: Sequence[Variable]) -> frozenset[Intervention]:
+    return frozenset(
         (
             variable
             if isinstance(variable, Intervention)
@@ -283,7 +283,7 @@ class Variable(Element):
         """
         if not isinstance(parents, Distribution):
             return Distribution(
-                children={self},
+                children=frozenset([self]),
                 parents=_upgrade_variables_set(parents),
             )
         elif parents.is_conditioned():
@@ -292,7 +292,7 @@ class Variable(Element):
             # The parents variable is actually a Distribution instance with no parents,
             #  so its children become the parents for the new Markov Kernel distribution
             return Distribution(
-                children={self},
+                children=frozenset([self]),
                 parents=parents.children,  # don't think about this too hard
             )
 
@@ -308,7 +308,7 @@ class Variable(Element):
         .. note:: This function can be accessed with the and & operator.
         """
         return Distribution(
-            children={self} | _upgrade_variables_set(children),
+            children=frozenset([self]) | _upgrade_variables_set(children),
         )
 
     def __and__(self, children: VariableHint) -> Distribution:
@@ -509,8 +509,8 @@ class Distribution(Element):
     ``P(X | Y)`` means that ``X`` is a child and ``Y`` is a parent.
     """
 
-    children: set[Variable]
-    parents: set[Variable] = field(default_factory=set)
+    children: frozenset[Variable]
+    parents: frozenset[Variable] = field(default_factory=frozenset)
 
     def __post_init__(self) -> None:
         if isinstance(self.children, list | Variable):
@@ -599,8 +599,8 @@ class Distribution(Element):
         # check that the variables aren't in any of them yet
         variables = _upgrade_variables(variables)
         return Distribution(
-            children={child.intervene(variables) for child in self.children},
-            parents={parent.intervene(variables) for parent in self.parents},
+            children=frozenset(child.intervene(variables) for child in self.children),
+            parents=frozenset(parent.intervene(variables) for parent in self.parents),
         )
 
     def __matmul__(self, variables: VariableHint) -> Distribution:
@@ -782,8 +782,8 @@ class Probability(Expression):
         # check that there's only one intervention set and that it's not an empty one
         if len(intervention_sets) == 1 and (interventions := intervention_sets.pop()):
             unintervened_distribution = Distribution(
-                parents={Variable(name=v.name, star=v.star) for v in self.parents},
-                children={Variable(name=v.name, star=v.star) for v in self.children},
+                parents=frozenset(Variable(name=v.name, star=v.star) for v in self.parents),
+                children=frozenset(Variable(name=v.name, star=v.star) for v in self.children),
             )
             return interventions, unintervened_distribution
         else:
@@ -812,12 +812,12 @@ class Probability(Expression):
         return f"P_{{{intervention_str}}}({unintervened_distribution.to_latex()})"
 
     @property
-    def parents(self) -> set[Variable]:
+    def parents(self) -> frozenset[Variable]:
         """Get the distribution's parents."""
         return self.distribution.parents
 
     @property
-    def children(self) -> set[Variable]:
+    def children(self) -> frozenset[Variable]:
         """Get the distribution's children."""
         return self.distribution.children
 
@@ -1649,11 +1649,11 @@ def _sorted_variables(variables: Iterable[Variable]) -> tuple[Variable, ...]:
     return tuple(sorted(variables, key=_variable_sort_key))
 
 
-def _upgrade_variables_set(variables: VariableHint) -> set[Variable]:
+def _upgrade_variables_set(variables: VariableHint) -> frozenset[Variable]:
     if isinstance(variables, str | Variable):
-        return {Variable.norm(variables)}
+        return frozenset({Variable.norm(variables)})
     else:
-        return {Variable.norm(variable) for variable in variables}
+        return frozenset(Variable.norm(variable) for variable in variables)
 
 
 def _upgrade_variables(variables: VariableHint) -> tuple[Variable, ...]:
