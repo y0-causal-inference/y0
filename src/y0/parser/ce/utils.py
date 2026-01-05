@@ -1,6 +1,7 @@
 """A parser for causaleffect probability expressions based on :mod:`pyparsing`."""
 
 from pyparsing import (
+    DelimitedList,
     Group,
     Optional,
     ParseResults,
@@ -8,7 +9,6 @@ from pyparsing import (
     Word,
     alphanums,
     alphas,
-    DelimitedList,
     nums,
 )
 

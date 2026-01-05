@@ -497,17 +497,6 @@ class NxMixedGraph:
         return rv
 
     @classmethod
-    def from_str_adj(
-        cls,
-        nodes: Iterable[str | Variable] | None = None,
-        directed: Mapping[str | Variable, Iterable[str | Variable]] | None = None,
-        undirected: Mapping[str | Variable, Iterable[str | Variable]] | None = None,
-    ) -> NxMixedGraph:
-        """Make a mixed graph from a pair of adjacency lists of strings."""
-        warnings.warn("directly use from_adj", DeprecationWarning, stacklevel=2)
-        return cls.from_adj(nodes=nodes, directed=directed, undirected=undirected)
-
-    @classmethod
     @open_file(1)  # type:ignore
     def from_causalfusion_path(cls, file) -> NxMixedGraph:  # type:ignore[no-untyped-def]
         """Load a graph from a CausalFusion JSON file."""
