@@ -38,6 +38,10 @@ from y0.parser import parse_y0
 V = Variable("V")
 
 
+def _f(*x: Variable) -> frozenset[Variable]:
+    return frozenset(x)
+
+
 class TestDSL(unittest.TestCase):
     """Tests for the stringifying instances of the probability DSL."""
 
@@ -84,7 +88,7 @@ class TestDSL(unittest.TestCase):
         with self.assertRaises(ValueError):
             Intervention("A", star=None)
         with self.assertRaises(ValueError):
-            CounterfactualVariable("A", star=True, interventions=frozenset([]))
+            CounterfactualVariable("A", star=True, interventions=frozenset())
         with self.assertRaises(TypeError):
             CounterfactualVariable("A", star=True, interventions=frozenset([Variable("B")]))  # type:ignore
 
@@ -200,7 +204,7 @@ class TestDSL(unittest.TestCase):
     def test_conditional_distribution(self):
         """Test the :class:`Distribution` DSL object."""
         # Normal instantiation
-        self.assert_text("A | B", Distribution((A,), (B,)))
+        self.assert_text("A | B", Distribution(_f(A), _f(B)))
 
         # Instantiation with list-based operand to or | operator
         self.assert_text("A | B", Variable("A") | (B,))
@@ -228,29 +232,29 @@ class TestDSL(unittest.TestCase):
 
     def test_joint_distribution(self):
         """Test the JointProbability DSL object."""
-        self.assert_text("A, B", Distribution((A, B)))
+        self.assert_text("A, B", Distribution(_f(A, B)))
         self.assert_text("A, B", A & B)
-        self.assert_text("A, B, C", Distribution((A, B, C)))
+        self.assert_text("A, B, C", Distribution(_f(A, B, C)))
         self.assert_text("A, B, C", A & B & C)
 
     def test_probability(self):
         """Test generation of probabilities."""
         # Make sure there are children
         with self.assertRaises(ValueError):
-            Distribution(())
+            Distribution(set())
 
         self.assert_text("P(A)", P(A))
         self.assert_text("P(A)", P("A"))
-        self.assert_text("P(A)", P(Distribution((A,))))
+        self.assert_text("P(A)", P(Distribution(_f(A))))
 
         # Test markov kernel with single parent (AKA has only one child variable)
         self.assert_text("P(A | B)", P(A | B))
-        self.assert_text("P(A | B)", P(Distribution((A,), (B,))))
+        self.assert_text("P(A | B)", P(Distribution(_f(A), _f(B))))
         self.assert_text("P(A | B)", P(A | [B]))
 
         # Test markov kernel with multiple parents
         self.assert_text("P(A | B, C)", P(A | B, C))
-        self.assert_text("P(A | B, C)", P(Distribution((A,), (B,)) | C))
+        self.assert_text("P(A | B, C)", P(Distribution(_f(A), _f(B)) | C))
         self.assert_text("P(A | B, C)", P(A | [B, C]))
         self.assert_text("P(A | B, C)", P(A | B | C))
         self.assert_text("P(A | B, C)", P(A | B & C))
@@ -273,27 +277,70 @@ class TestDSL(unittest.TestCase):
 
         # Test mixed with single conditional
         self.assert_text("P(A, B | C)", P(A, B | C))
-        self.assert_text("P(A, B | C)", P(Distribution((A, B), (C,))))
-        self.assert_text("P(A, B | C)", P(Distribution((A, B), (C,))))
-        self.assert_text("P(A, B | C)", P(Distribution((A, B)) | C))
+        self.assert_text(
+            "P(A, B | C)",
+            P(
+                Distribution(
+                    _f(A, B),
+                    _f(
+                        C,
+                    ),
+                )
+            ),
+        )
+        self.assert_text(
+            "P(A, B | C)",
+            P(
+                Distribution(
+                    _f(A, B),
+                    _f(
+                        C,
+                    ),
+                )
+            ),
+        )
+        self.assert_text("P(A, B | C)", P(Distribution(_f(A, B)) | C))
         self.assert_text("P(A, B | C)", P(A & B | C))
 
         # Test mixed with multiple conditionals
         self.assert_text("P(A, B | C, D)", P(A, B | C, D))
-        self.assert_text("P(A, B | C, D)", P(Distribution((A, B), (C, D))))
-        self.assert_text("P(A, B | C, D)", P(Distribution((A, B)) | C | D))
-        self.assert_text("P(A, B | C, D)", P(Distribution((A, B), (C,)) | D))
+        self.assert_text("P(A, B | C, D)", P(Distribution(_f(A, B), _f(C, D))))
+        self.assert_text("P(A, B | C, D)", P(Distribution(_f(A, B)) | C | D))
+        self.assert_text(
+            "P(A, B | C, D)",
+            P(
+                Distribution(
+                    _f(A, B),
+                    _f(
+                        C,
+                    ),
+                )
+                | D
+            ),
+        )
         self.assert_text("P(A, B | C, D)", P(A & B | C | D))
         self.assert_text("P(A, B | C, D)", P(A & B | (C, D)))
-        self.assert_text("P(A, B | C, D)", P(A & B | Distribution((C, D))))
+        self.assert_text("P(A, B | C, D)", P(A & B | Distribution(_f(C, D))))
         self.assert_text("P(A, B | C, D)", P(A & B | C & D))
 
     def test_conditioning_errors(self):
         """Test erroring on conditionals."""
         for expression in [
-            Distribution((B,), (C,)),
-            Distribution((B, C), (D,)),
-            Distribution((B, C), (D, W)),
+            Distribution(
+                _f(
+                    B,
+                ),
+                _f(
+                    C,
+                ),
+            ),
+            Distribution(
+                _f(B, C),
+                _f(
+                    D,
+                ),
+            ),
+            Distribution(_f(B, C), _f(D, W)),
         ]:
             with self.assertRaises(TypeError):
                 _ = A | expression

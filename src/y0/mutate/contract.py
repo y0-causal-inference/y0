@@ -1,7 +1,5 @@
 """Contraction functions."""
 
-from operator import attrgetter
-
 from y0.dsl import Distribution, Expression, Fraction, Probability
 from y0.mutate.utils import Applier
 
@@ -30,12 +28,12 @@ def contract(expression: Expression) -> Expression:
         and set(expression.denominator.children).issubset(expression.numerator.children)
     ):
         return expression
-    children = set(expression.numerator.children).difference(expression.denominator.children)
-    parents = set(expression.numerator.children).intersection(expression.denominator.children)
+    children = expression.numerator.children.difference(expression.denominator.children)
+    parents = expression.numerator.children.intersection(expression.denominator.children)
     return expression.numerator._new(
         Distribution(
-            children=tuple(sorted(children, key=attrgetter("name"))),
-            parents=tuple(sorted(parents, key=attrgetter("name"))),
+            children=children,
+            parents=parents,
         )
     )
 

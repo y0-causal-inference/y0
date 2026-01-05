@@ -550,7 +550,7 @@ class NxMixedGraph:
         )
 
     def get_intervened_ancestors(
-        self, interventions: Variable | set[Variable], outcomes: Variable | set[Variable]
+        self, interventions: Variable | Iterable[Variable], outcomes: Variable | Iterable[Variable]
     ) -> set[Variable]:
         """Get the ancestors of outcomes in a graph that has been intervened on.
 
@@ -562,7 +562,7 @@ class NxMixedGraph:
         return self.remove_in_edges(interventions).ancestors_inclusive(outcomes)
 
     def get_no_effect_on_outcomes(
-        self, interventions: set[Variable], outcomes: set[Variable]
+        self, interventions: Variable | Iterable[Variable], outcomes: Variable | Iterable[Variable]
     ) -> set[Variable]:
         """Find nodes in the graph which have no effect on the outcomes.
 
@@ -571,6 +571,7 @@ class NxMixedGraph:
 
         :returns: Set of nodes
         """
+        interventions = _ensure_set(interventions)
         return (
             set(self.nodes())
             - interventions

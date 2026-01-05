@@ -31,7 +31,6 @@ import itertools as itt
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from operator import attrgetter
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, cast
 
 if TYPE_CHECKING:
@@ -124,8 +123,8 @@ __all__ = [
 T_co = TypeVar("T_co", covariant=True)
 
 
-def _to_interventions(variables: Sequence[Variable]) -> tuple[Intervention, ...]:
-    return tuple(
+def _to_interventions(variables: Iterable[Variable]) -> frozenset[Intervention]:
+    return frozenset(
         (
             variable
             if isinstance(variable, Intervention)
@@ -260,7 +259,7 @@ class Variable(Element):
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        interventions = _to_interventions(_upgrade_variables(variables))
+        interventions = _to_interventions(_upgrade_variables_set(variables))
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
@@ -283,8 +282,8 @@ class Variable(Element):
         """
         if not isinstance(parents, Distribution):
             return Distribution(
-                children=(self,),
-                parents=_upgrade_ordering(parents),
+                children=frozenset([self]),
+                parents=_upgrade_variables_set(parents),
             )
         elif parents.is_conditioned():
             raise TypeError("can not be given a distribution that has conditionals")
@@ -292,7 +291,7 @@ class Variable(Element):
             # The parents variable is actually a Distribution instance with no parents,
             #  so its children become the parents for the new Markov Kernel distribution
             return Distribution(
-                children=(self,),
+                children=frozenset([self]),
                 parents=parents.children,  # don't think about this too hard
             )
 
@@ -308,7 +307,7 @@ class Variable(Element):
         .. note:: This function can be accessed with the and & operator.
         """
         return Distribution(
-            children=_upgrade_ordering((self, *_upgrade_variables(children))),
+            children=frozenset([self]) | _upgrade_variables_set(children),
         )
 
     def __and__(self, children: VariableHint) -> Distribution:
@@ -456,8 +455,8 @@ class CounterfactualVariable(Variable):
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        _interventions = _to_interventions(_upgrade_ordering(variables))
-        interventions = {*self.interventions, *_interventions}
+        _interventions = _to_interventions(_upgrade_variables_set(variables))
+        interventions = self.interventions | _interventions
         self._raise_for_overlapping_interventions(interventions)
         return CounterfactualVariable(
             name=self.name, star=self.star, interventions=frozenset(interventions)
@@ -509,8 +508,8 @@ class Distribution(Element):
     ``P(X | Y)`` means that ``X`` is a child and ``Y`` is a parent.
     """
 
-    children: tuple[Variable, ...]
-    parents: tuple[Variable, ...] = field(default_factory=tuple)
+    children: frozenset[Variable]
+    parents: frozenset[Variable] = field(default_factory=frozenset)
 
     def __post_init__(self) -> None:
         if isinstance(self.children, list | Variable):
@@ -543,7 +542,7 @@ class Distribution(Element):
             # There are no distributions (e.g., no conditionals were given with the | already)
             if 0 == len(dist_pos):
                 return Distribution(
-                    children=_upgrade_ordering(cast(VariableHint, extended_args)),
+                    children=_upgrade_variables_set(cast(VariableHint, extended_args)),
                 )
 
             # A single conditional was given. Everything before it should be considered
@@ -554,8 +553,8 @@ class Distribution(Element):
                 dist = cast(Distribution, extended_args[i])
                 post = cast(Iterable[str | Variable], extended_args[i + 1 :])
                 return Distribution(
-                    children=_sorted_variables((*_upgrade_ordering(pre), *dist.children)),
-                    parents=_sorted_variables((*dist.parents, *_upgrade_ordering(post))),
+                    children=dist.children | _upgrade_variables_set(pre),
+                    parents=dist.parents | _upgrade_variables_set(post),
                 )
 
             # Multiple conditionals were detected. This isn't allowed.
@@ -565,14 +564,14 @@ class Distribution(Element):
             raise ValueError("can not use args/parents when giving an iterable as first argument")
         else:
             return Distribution(
-                children=_upgrade_ordering(distribution),
+                children=_upgrade_variables_set(distribution),
             )
 
     def _to_x(self, func: Callable[[Iterable[Variable]], str]) -> str:
-        children = func(self.children)
+        children = func(_sorted_variables(self.children))
         if not self.parents:
             return children
-        return f"{children} | {func(self.parents)}"
+        return f"{children} | {func(_sorted_variables(self.parents))}"
 
     def to_text(self) -> str:
         """Output this distribution in the internal string format."""
@@ -597,10 +596,10 @@ class Distribution(Element):
     def intervene(self, variables: VariableHint) -> Distribution:
         """Return a new distribution that has the given intervention(s) on all variables."""
         # check that the variables aren't in any of them yet
-        variables = _upgrade_ordering(variables)
+        variables = _upgrade_variables_set(variables)
         return Distribution(
-            children=tuple(child.intervene(variables) for child in self.children),
-            parents=tuple(parent.intervene(variables) for parent in self.parents),
+            children=frozenset(child.intervene(variables) for child in self.children),
+            parents=frozenset(parent.intervene(variables) for parent in self.parents),
         )
 
     def __matmul__(self, variables: VariableHint) -> Distribution:
@@ -609,7 +608,7 @@ class Distribution(Element):
     def uncondition(self) -> Distribution:
         """Return a new distribution that is not conditioned on the parents."""
         return Distribution(
-            children=(*self.children, *self.parents),
+            children=self.children | self.parents,
         )
 
     def joint(self, children: VariableHint) -> Distribution:
@@ -621,7 +620,7 @@ class Distribution(Element):
         .. note:: This function can be accessed with the and & operator.
         """
         return Distribution(
-            children=_upgrade_ordering((*self.children, *_upgrade_variables(children))),
+            children=self.children | _upgrade_variables_set(children),
             parents=self.parents,
         )
 
@@ -641,7 +640,7 @@ class Distribution(Element):
         if not isinstance(parents, Distribution):
             return Distribution(
                 children=self.children,
-                parents=_upgrade_ordering((*self.parents, *_upgrade_variables(parents))),
+                parents=self.parents | _upgrade_variables_set(parents),
             )
         elif parents.is_conditioned():
             raise TypeError("can not be given a distribution that has conditionals")
@@ -650,10 +649,7 @@ class Distribution(Element):
             #  so its children get appended as parents for the new mixed distribution
             return Distribution(
                 children=self.children,
-                parents=(
-                    *self.parents,
-                    *parents.children,
-                ),  # don't think about this too hard
+                parents=self.parents | parents.children,  # don't think about this too hard
             )
 
     def __or__(self, parents: VariableHint | Distribution) -> Distribution:
@@ -709,8 +705,8 @@ class Expression(Element, ABC):
         >>> assert P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
         >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
         """
-        ranges = _upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)])
-        ranges_complement = {c.get_base() for c in self._iter_variables()} - set(ranges)
+        ranges_ = {r.get_base() for r in _upgrade_variables_set(ranges)}
+        ranges_complement = {c.get_base() for c in self._iter_variables()} - ranges_
         return self.normalize_marginalize(ranges_complement)
 
     def normalize_marginalize(self, ranges: VariableHint) -> Expression:
@@ -729,7 +725,7 @@ class Expression(Element, ABC):
         """
         return Sum.safe(
             expression=self,
-            ranges=_upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)]),
+            ranges={r.get_base() for r in _upgrade_variables_set(ranges)},
         )
 
     def simplify(self) -> Expression:
@@ -768,7 +764,7 @@ class Probability(Expression):
 
     def _get_key(self):  # type:ignore
         # TODO incorporate more information from children and parents
-        return 0, self.children[0].name
+        return 0, tuple(c.name for c in _sorted_variables(self.children))
 
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
@@ -785,8 +781,8 @@ class Probability(Expression):
         # check that there's only one intervention set and that it's not an empty one
         if len(intervention_sets) == 1 and (interventions := intervention_sets.pop()):
             unintervened_distribution = Distribution(
-                parents=tuple(Variable(name=v.name, star=v.star) for v in self.parents),
-                children=tuple(Variable(name=v.name, star=v.star) for v in self.children),
+                parents=frozenset(Variable(name=v.name, star=v.star) for v in self.parents),
+                children=frozenset(Variable(name=v.name, star=v.star) for v in self.children),
             )
             return interventions, unintervened_distribution
         else:
@@ -815,12 +811,12 @@ class Probability(Expression):
         return f"P_{{{intervention_str}}}({unintervened_distribution.to_latex()})"
 
     @property
-    def parents(self) -> tuple[Variable, ...]:
+    def parents(self) -> frozenset[Variable]:
         """Get the distribution's parents."""
         return self.distribution.parents
 
     @property
-    def children(self) -> tuple[Variable, ...]:
+    def children(self) -> frozenset[Variable]:
         """Get the distribution's children."""
         return self.distribution.children
 
@@ -875,10 +871,10 @@ class Probability(Expression):
         >>> assert P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
         >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
         """
-        ranges = _upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)])
+        ranges_ = {r.get_base() for r in _upgrade_variables_set(ranges)}
         ranges_complement = {
             c.get_base() for c in self._iter_variables() if not isinstance(c, Intervention)
-        } - set(ranges)
+        } - ranges_
         return self.normalize_marginalize(ranges_complement)
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -1195,19 +1191,17 @@ class Sum(Expression):
 
         >>> Sum.safe(P(X, Y), X)
         """
-        if isinstance(ranges, str):
-            ranges = (Variable(ranges),)
-        elif isinstance(ranges, Variable):
-            ranges = (ranges,)
+        if isinstance(ranges, str | Variable):
+            ranges = frozenset([Variable.norm(ranges)])
         else:
-            ranges = _upgrade_ordering(ranges)
+            ranges = _upgrade_variables_set(ranges)
         if not ranges:
             return expression
         if isinstance(expression, Zero):
             return expression
         rv = cls(
             expression=expression,
-            ranges=frozenset(ranges),
+            ranges=ranges,
         )
         if simplify:
             return rv.simplify()
@@ -1256,7 +1250,7 @@ class Sum(Expression):
         return 1, *self.expression._get_key()  # type:ignore
 
     def _get_sorted_ranges(self) -> Sequence[Variable]:
-        return sorted(self.ranges, key=attrgetter("name"))
+        return _sorted_variables(self.ranges)
 
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
@@ -1310,7 +1304,7 @@ class Sum(Expression):
         >>> from y0.dsl import Sum, P, A, B, C
         >>> Sum[B, C](P(A | B) * P(B))
         """
-        return functools.partial(Sum.safe, ranges=_upgrade_ordering(ranges))
+        return functools.partial(Sum.safe, ranges=_upgrade_variables_set(ranges))
 
 
 @dataclass(frozen=True, repr=False)
@@ -1544,7 +1538,7 @@ class QFactor(Expression):
         """Create a Q factor with various input types."""
         return cls(
             domain=cls._prepare_domain(domain, *args),
-            codomain=frozenset(_upgrade_variables(codomain)),
+            codomain=_upgrade_variables_set(codomain),
         )
 
     @staticmethod
@@ -1554,10 +1548,10 @@ class QFactor(Expression):
     ) -> frozenset[Variable]:
         """Prepare a list of variables from a potentially unruly set of args and variadic args."""
         if isinstance(arg, str | Variable):
-            return frozenset((Variable.norm(arg), *_upgrade_ordering(args)))
+            return frozenset([Variable.norm(arg)]) | _upgrade_variables_set(args)
         if args:
             raise ValueError("can not use variadic arguments with combination of first arg")
-        return frozenset(_sorted_variables(_upgrade_ordering(arg)))
+        return _upgrade_variables_set(arg)
 
     @classmethod
     def __class_getitem__(cls, codomain: Variable | Iterable[Variable]) -> QBuilder[QFactor]:
@@ -1581,11 +1575,11 @@ class QFactor(Expression):
     def _get_key(self):  # type:ignore
         return -5, min(v.name for v in self.domain), min(v.name for v in self.codomain)
 
-    def _sorted_codomain(self) -> list[Variable]:
-        return sorted(self.codomain, key=attrgetter("name"))
+    def _sorted_codomain(self) -> Sequence[Variable]:
+        return _sorted_variables(self.codomain)
 
-    def _sorted_domain(self) -> list[Variable]:
-        return sorted(self.domain, key=attrgetter("name"))
+    def _sorted_domain(self) -> Sequence[Variable]:
+        return _sorted_variables(self.domain)
 
     def to_text(self) -> str:
         """Output this Q factor in the internal string format."""
@@ -1652,17 +1646,11 @@ def _sorted_variables(variables: Iterable[Variable]) -> tuple[Variable, ...]:
     return tuple(sorted(variables, key=_variable_sort_key))
 
 
-def _upgrade_variables(variables: VariableHint) -> tuple[Variable, ...]:
-    if isinstance(variables, str):
-        return (Variable(variables),)
-    elif isinstance(variables, Variable):
-        return (variables,)
+def _upgrade_variables_set(variables: VariableHint) -> frozenset[Variable]:
+    if isinstance(variables, str | Variable):
+        return frozenset({Variable.norm(variables)})
     else:
-        return tuple(Variable.norm(variable) for variable in variables)
-
-
-def _upgrade_ordering(variables: VariableHint) -> tuple[Variable, ...]:
-    return _sorted_variables(set(_upgrade_variables(variables)))
+        return frozenset(Variable.norm(variable) for variable in variables)
 
 
 OrderingHint = None | Iterable[str | Variable]
@@ -1683,7 +1671,7 @@ def ensure_ordering(
     :returns: The ordering
     """
     if ordering is not None:
-        return _upgrade_ordering(ordering)
+        return tuple(Variable.norm(n) for n in ordering)
     # use alphabetical ordering
     return _sorted_variables(expression.get_variables())
 
@@ -1710,8 +1698,8 @@ def outcomes_and_treatments_to_query(
 ) -> Expression:
     """Create a query expression from a set of outcome and treatment variables."""
     if not treatments:
-        return P(outcomes)
-    return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
+        return Probability.safe(outcomes)
+    return Probability.safe(Variable.norm(y).intervene(treatments) for y in outcomes)
 
 
 def vmap_pairs(
@@ -1759,7 +1747,7 @@ class PopulationProbability(Probability):
         return PopulationProbability(population=self.population, distribution=distribution)
 
     def _get_key(self):  # type:ignore
-        return -1, self.population, self.children[0].name
+        return -1, self.population, tuple(c.name for c in _sorted_variables(self.children))
 
     def to_y0(self) -> str:
         """Output this probability instance as y0 internal DSL code."""

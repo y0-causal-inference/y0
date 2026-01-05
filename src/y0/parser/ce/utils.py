@@ -12,7 +12,7 @@ from pyparsing import (
     nums,
 )
 
-from ...dsl import Distribution, Probability, QFactor, Variable, _sorted_variables
+from ...dsl import Distribution, Probability, QFactor, Variable
 
 
 def _make_variable(_s, _l, tokens: ParseResults) -> Variable:  # type:ignore[no-untyped-def]
@@ -41,8 +41,8 @@ probability_pe = Suppress("P(") + _children_pe + _parents_pe + Suppress(")")
 def _make_probability(_s, _l, tokens: ParseResults) -> Probability:  # type:ignore[no-untyped-def]
     return Probability(
         Distribution(
-            children=_sorted_variables(tokens["children"].asList()),
-            parents=_sorted_variables(tokens["parents"].asList()),
+            children=frozenset(tokens["children"].asList()),
+            parents=frozenset(tokens["parents"].asList()),
         )
     )
 
