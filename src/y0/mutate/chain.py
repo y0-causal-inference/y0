@@ -61,7 +61,9 @@ def chain_expand(
     >>> assert chain_expand(P(X, Y, Z | A)) == P(X | Y, Z, A) * P(Y | Z, A) * P(Z | A)
     """
     if reorder is not None:
-        warnings.warn("reorder argument doesn't do anything anymore", DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "reorder argument doesn't do anything anymore", DeprecationWarning, stacklevel=2
+        )
     ordering = ensure_ordering(p, ordering=ordering)
     if any(v not in ordering for v in p.children):
         raise ValueError
