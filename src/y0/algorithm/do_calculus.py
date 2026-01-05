@@ -1,8 +1,9 @@
 """Do Calculus."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from .conditional_independencies import are_d_separated
+from .separation import are_sigma_separated
 from ..dsl import Variable
 from ..graph import NxMixedGraph
 from ..util import InPaperAs
@@ -23,6 +24,7 @@ def rule_2_of_do_calculus_applies(
     outcomes: Annotated[set[Variable], InPaperAs(r"\mathbf{Y}")],
     conditions: Annotated[set[Variable], InPaperAs(r"\mathbf{Z}")],
     condition: Variable,
+    separation_implementation: Literal["d", "sigma"] | None = None,
 ) -> bool:
     r"""Check if Rule 2 of the Do-Calculus applies to the conditioned variable.
 
@@ -31,6 +33,8 @@ def rule_2_of_do_calculus_applies(
     :param conditions:
     :param outcomes:
     :param condition: The condition to check
+    :param separation_implementation: The separation implementation. Defaults to d
+        separation, but can be generalized to sigma separation
 
     :returns: If rule 2 applies, see below.
 
@@ -50,7 +54,15 @@ def rule_2_of_do_calculus_applies(
     reduced_graph: Annotated[NxMixedGraph, InPaperAs(r"G_{\bar{x}, \underbar{z}}")] = (
         graph.remove_in_edges(treatments).remove_out_edges(condition)
     )
-    return all(
-        are_d_separated(reduced_graph, outcome, condition, conditions=reduced_conditions)
-        for outcome in outcomes
-    )
+    if separation_implementation == "d" or separation_implementation is None:
+        return all(
+            are_d_separated(reduced_graph, outcome, condition, conditions=reduced_conditions)
+            for outcome in outcomes
+        )
+    elif separation_implementation == "sigma":
+        return all(
+            are_sigma_separated(reduced_graph, outcome, condition, conditions=reduced_conditions)
+            for outcome in outcomes
+        )
+    else:
+        raise ValueError(f"Unknown separation implementation: {separation_implementation}")
