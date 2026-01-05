@@ -31,7 +31,6 @@ import itertools as itt
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from operator import attrgetter
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar, cast
 
 if TYPE_CHECKING:
@@ -456,8 +455,8 @@ class CounterfactualVariable(Variable):
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        _interventions = _to_interventions(_upgrade_ordering(variables))
-        interventions = {*self.interventions, *_interventions}
+        _interventions = _to_interventions(_upgrade_variables(variables))
+        interventions = self.interventions | _interventions
         self._raise_for_overlapping_interventions(interventions)
         return CounterfactualVariable(
             name=self.name, star=self.star, interventions=frozenset(interventions)
@@ -706,8 +705,8 @@ class Expression(Element, ABC):
         >>> assert P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
         >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
         """
-        ranges = _upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)])
-        ranges_complement = {c.get_base() for c in self._iter_variables()} - set(ranges)
+        ranges_ = {r.get_base() for r in _upgrade_variables(ranges)}
+        ranges_complement = {c.get_base() for c in self._iter_variables()} - ranges_
         return self.normalize_marginalize(ranges_complement)
 
     def normalize_marginalize(self, ranges: VariableHint) -> Expression:
@@ -726,7 +725,7 @@ class Expression(Element, ABC):
         """
         return Sum.safe(
             expression=self,
-            ranges=_upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)]),
+            ranges={r.get_base() for r in _upgrade_variables(ranges)},
         )
 
     def simplify(self) -> Expression:
@@ -765,7 +764,7 @@ class Probability(Expression):
 
     def _get_key(self):  # type:ignore
         # TODO incorporate more information from children and parents
-        return 0, tuple(sorted(c.name for c in self.children))
+        return 0, tuple(c.name for c in _sorted_variables(self.children))
 
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
@@ -872,10 +871,10 @@ class Probability(Expression):
         >>> assert P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
         >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
         """
-        ranges = _upgrade_ordering([r.get_base() for r in _upgrade_variables(ranges)])
+        ranges_ = {r.get_base() for r in _upgrade_variables(ranges)}
         ranges_complement = {
             c.get_base() for c in self._iter_variables() if not isinstance(c, Intervention)
-        } - set(ranges)
+        } - ranges_
         return self.normalize_marginalize(ranges_complement)
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -1253,7 +1252,7 @@ class Sum(Expression):
         return 1, *self.expression._get_key()  # type:ignore
 
     def _get_sorted_ranges(self) -> Sequence[Variable]:
-        return sorted(self.ranges, key=attrgetter("name"))
+        return _sorted_variables(self.ranges)
 
     def to_text(self) -> str:
         """Output this sum in the internal string format."""
@@ -1554,7 +1553,7 @@ class QFactor(Expression):
             return frozenset((Variable.norm(arg), *_upgrade_ordering(args)))
         if args:
             raise ValueError("can not use variadic arguments with combination of first arg")
-        return frozenset(_sorted_variables(_upgrade_ordering(arg)))
+        return frozenset(_upgrade_ordering(arg))
 
     @classmethod
     def __class_getitem__(cls, codomain: Variable | Iterable[Variable]) -> QBuilder[QFactor]:
@@ -1578,11 +1577,11 @@ class QFactor(Expression):
     def _get_key(self):  # type:ignore
         return -5, min(v.name for v in self.domain), min(v.name for v in self.codomain)
 
-    def _sorted_codomain(self) -> list[Variable]:
-        return sorted(self.codomain, key=attrgetter("name"))
+    def _sorted_codomain(self) -> Sequence[Variable]:
+        return _sorted_variables(self.codomain)
 
-    def _sorted_domain(self) -> list[Variable]:
-        return sorted(self.domain, key=attrgetter("name"))
+    def _sorted_domain(self) -> Sequence[Variable]:
+        return _sorted_variables(self.domain)
 
     def to_text(self) -> str:
         """Output this Q factor in the internal string format."""
@@ -1761,7 +1760,7 @@ class PopulationProbability(Probability):
         return PopulationProbability(population=self.population, distribution=distribution)
 
     def _get_key(self):  # type:ignore
-        return -1, self.population, tuple(sorted(c.name for c in self.children))
+        return -1, self.population, tuple(c.name for c in _sorted_variables(self.children))
 
     def to_y0(self) -> str:
         """Output this probability instance as y0 internal DSL code."""
