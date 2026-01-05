@@ -1,7 +1,7 @@
 """Tests for cyclic ID algorithm top level function implementation."""
 
 import unittest
-
+import logging 
 from tests.test_algorithm import cases
 from y0.algorithm.identify import Unidentifiable
 from y0.algorithm.identify.cyclic_id import (
@@ -719,6 +719,10 @@ class TestCyclicID(cases.GraphTestCase):
         interventions = {A}
 
         result = cyclic_id(graph, outcomes, interventions)
+        logging.basicConfig(level=logging.DEBUG)  # Enable debug
+        logging.debug(f"Expected structural: Sum[C](Sum[B](P(C) * ((P(A, B, C, D) / P(A, C, D)))) * ((P(A, C, D) / P(A, C))))")
+        logging.debug(f"Resulting expression: {result}")
+        logging.debug(f"Result simplified: {result.simplify()}")
 
         # Structural assertion 1: Algorithm should succeed (not raise Unidentifiable)
         self.assertIsInstance(result, Expression)
@@ -736,16 +740,3 @@ class TestCyclicID(cases.GraphTestCase):
         # Check that B and C appear in the expression (being marginalized)
         self.assertIn(B, result_vars, msg="B should appear in expression (being marginalized)")
         self.assertIn(C, result_vars, msg="C should appear in expression (being marginalized)")
-
-
-# FIXME - Adding test cases for initialize_component_distribution function recently added
-#  test cases:
-#  1. Testing no predecessors for single-node district
-#  2. No predecessors for multi-node district
-#  3. Single node with single predecessor
-#  4. Single node with multiple predecessors
-#  5. Multi-node with single predecessor
-#  6. Multi-node with multiple predecessors
-#  7. Larger cycle with predecessors
-#  8. Testing the conditional structure
-#  9. Testing empty nodes raises error

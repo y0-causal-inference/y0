@@ -88,16 +88,21 @@ def cyclic_id(  # noqa:C901
     # line 4: get consolidated districts of H
     h_subgraph = graph_minus_interventions.subgraph(ancestral_closure)
     consolidated_districts = get_graph_consolidated_districts(h_subgraph)
-
+    
     if ordering is None:
         ordering = get_apt_order(graph)
 
     # line 5: for each district, identify Q[C]
     district_distributions = {}
 
-    for district_c in consolidated_districts:
+    for district_c in consolidated_districts:        
+        
         # get consolidated district of C in full graph G
         consolidated_district_of_c = get_consolidated_district(graph, district_c)
+        
+        if not district_c.issubset(consolidated_district_of_c):
+            consolidated_district_of_c = district_c
+
 
         # initialize the district distribution using Proposition 9.8(3) from the paper
         initial_distribution = initialize_district_distribution(
