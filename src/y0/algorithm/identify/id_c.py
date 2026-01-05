@@ -4,12 +4,11 @@ from collections.abc import Sequence
 
 from .id_std import identify
 from .utils import Identification
-from ..conditional_independencies import are_d_separated
+from ..do_calculus import rule_2_of_do_calculus_applies
 from ...dsl import Expression, Variable
 
 __all__ = [
     "idc",
-    "rule_2_of_do_calculus_applies",
 ]
 
 
@@ -28,7 +27,13 @@ def idc(
     Raises "Unidentifiable" if no appropriate identification can be found.
     """
     for condition in identification.conditions:
-        if rule_2_of_do_calculus_applies(identification=identification, condition=condition):
+        if rule_2_of_do_calculus_applies(
+            graph=identification.graph,
+            treatments=identification.treatments,
+            outcomes=identification.outcomes,
+            conditions=identification.conditions,
+            condition=condition,
+        ):
             return idc(
                 identification.exchange_observation_with_action(condition), ordering=ordering
             )
@@ -36,33 +41,3 @@ def idc(
     # Run ID algorithm
     id_estimand = identify(identification.uncondition(), ordering=ordering)
     return id_estimand.normalize_marginalize(identification.outcomes)
-
-
-def rule_2_of_do_calculus_applies(identification: Identification, condition: Variable) -> bool:
-    r"""Check if Rule 2 of the Do-Calculus applies to the conditioned variable.
-
-    :param identification: The identification tuple
-    :param condition: The condition to check
-
-    :returns: If rule 2 applies, see below.
-
-    If Rule 2 of the do calculus applies to the conditioned variable, then it can be
-    converted to a do variable.
-
-    .. math::
-
-        \newcommand\ci{\perp\!\!\!\perp}
-        \newcommand{\ubar}[1]{\underset{\bar{}}{#1}}
-        \newcommand{\obar}[1]{\overset{\bar{}}{#1}}
-        \text{if } (\exists Z \in \mathbf{Z})(\mathbf{Y} \ci Z | \mathbf{X}, \mathbf{Z}
-        - \{Z\})_{G_{\bar{\mathbf{X}}\ubar{Z}}} \\
-        \text{then } P(\mathbf{Y}|do(\mathbf{X}),\mathbf{Z}) = P(\mathbf Y|do(\mathbf X), do(Z), \mathbf{Z} - \{Z\})
-    """
-    graph = identification.graph
-    treatments = identification.treatments
-    conditions = treatments | (identification.conditions - {condition})
-    graph_mod = graph.remove_in_edges(treatments).remove_out_edges(condition)
-    return all(
-        are_d_separated(graph_mod, outcome, condition, conditions=conditions)
-        for outcome in identification.outcomes
-    )
