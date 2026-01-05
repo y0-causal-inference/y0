@@ -1191,19 +1191,17 @@ class Sum(Expression):
 
         >>> Sum.safe(P(X, Y), X)
         """
-        if isinstance(ranges, str):
-            ranges = (Variable(ranges),)
-        elif isinstance(ranges, Variable):
-            ranges = (ranges,)
+        if isinstance(ranges, str | Variable):
+            ranges = frozenset([Variable.norm(ranges)])
         else:
-            ranges = _upgrade_ordering(ranges)
+            ranges = _upgrade_variables_set(ranges)
         if not ranges:
             return expression
         if isinstance(expression, Zero):
             return expression
         rv = cls(
             expression=expression,
-            ranges=frozenset(ranges),
+            ranges=ranges,
         )
         if simplify:
             return rv.simplify()
@@ -1306,7 +1304,7 @@ class Sum(Expression):
         >>> from y0.dsl import Sum, P, A, B, C
         >>> Sum[B, C](P(A | B) * P(B))
         """
-        return functools.partial(Sum.safe, ranges=_upgrade_ordering(ranges))
+        return functools.partial(Sum.safe, ranges=_upgrade_variables_set(ranges))
 
 
 @dataclass(frozen=True, repr=False)
@@ -1704,8 +1702,8 @@ def outcomes_and_treatments_to_query(
 ) -> Expression:
     """Create a query expression from a set of outcome and treatment variables."""
     if not treatments:
-        return P(outcomes)
-    return P(Variable.norm(y) @ _upgrade_ordering(treatments) for y in outcomes)
+        return Probability.safe(outcomes)
+    return Probability.safe(Variable.norm(y).intervene(treatments) for y in outcomes)
 
 
 def vmap_pairs(
