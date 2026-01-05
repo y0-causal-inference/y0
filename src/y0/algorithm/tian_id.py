@@ -272,7 +272,7 @@ def compute_c_factor_conditioning_on_topological_predecessors(
             pp = PopulationProbability(
                 population=graph_probability.population,
                 distribution=Distribution(
-                    children=(variable,), parents=tuple(conditioned_variables)
+                    children=frozenset([variable]), parents=frozenset(conditioned_variables)
                 ),
             )
             population_probabilities.append(pp)

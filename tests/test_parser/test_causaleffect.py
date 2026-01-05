@@ -21,8 +21,8 @@ class TestCausaleffectGrammar(unittest.TestCase):
             ),
         ]:
             with self.subTest(s=s):
-                parse_result = sum_pe.parseString(s)
-                result_expression = parse_result.asList()[0]
+                parse_result = sum_pe.parse_string(s)
+                result_expression = parse_result.as_list()[0]
                 self.assertIsInstance(result_expression, Sum)
                 self.assertEqual(
                     expr,

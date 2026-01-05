@@ -497,17 +497,6 @@ class NxMixedGraph:
         return rv
 
     @classmethod
-    def from_str_adj(
-        cls,
-        nodes: Iterable[str | Variable] | None = None,
-        directed: Mapping[str | Variable, Iterable[str | Variable]] | None = None,
-        undirected: Mapping[str | Variable, Iterable[str | Variable]] | None = None,
-    ) -> NxMixedGraph:
-        """Make a mixed graph from a pair of adjacency lists of strings."""
-        warnings.warn("directly use from_adj", DeprecationWarning, stacklevel=2)
-        return cls.from_adj(nodes=nodes, directed=directed, undirected=undirected)
-
-    @classmethod
     @open_file(1)  # type:ignore
     def from_causalfusion_path(cls, file) -> NxMixedGraph:  # type:ignore[no-untyped-def]
         """Load a graph from a CausalFusion JSON file."""
@@ -561,7 +550,7 @@ class NxMixedGraph:
         )
 
     def get_intervened_ancestors(
-        self, interventions: Variable | set[Variable], outcomes: Variable | set[Variable]
+        self, interventions: Variable | Iterable[Variable], outcomes: Variable | Iterable[Variable]
     ) -> set[Variable]:
         """Get the ancestors of outcomes in a graph that has been intervened on.
 
@@ -573,7 +562,7 @@ class NxMixedGraph:
         return self.remove_in_edges(interventions).ancestors_inclusive(outcomes)
 
     def get_no_effect_on_outcomes(
-        self, interventions: set[Variable], outcomes: set[Variable]
+        self, interventions: Variable | Iterable[Variable], outcomes: Variable | Iterable[Variable]
     ) -> set[Variable]:
         """Find nodes in the graph which have no effect on the outcomes.
 
@@ -582,6 +571,7 @@ class NxMixedGraph:
 
         :returns: Set of nodes
         """
+        interventions = _ensure_set(interventions)
         return (
             set(self.nodes())
             - interventions

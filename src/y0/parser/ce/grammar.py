@@ -46,39 +46,39 @@ def _make_product(_s, _l, tokens: ParseResults) -> Expression:  # type:ignore[no
 
 
 # auto-product
-rr = OneOrMore(probability_pe | qfactor_pe | expr).setParseAction(_make_product)
+rr = OneOrMore(probability_pe | qfactor_pe | expr).set_parse_action(_make_product)
 
 sum_pe = (
     Suppress("\\sum_{")
-    + Optional(Group(variables_pe).setResultsName("ranges"))
+    + Optional(Group(variables_pe).set_results_name("ranges"))
     + Suppress("}")
-    + rr.setResultsName("expression")
+    + rr.set_results_name("expression")
 )
-sum_pe.setName("sum")
-sum_pe.setParseAction(_make_sum)
+sum_pe.set_name("sum")
+sum_pe.set_parse_action(_make_sum)
 
 fraction_pe = (
     Suppress("\\frac_{")
-    + rr.setResultsName("numerator")
+    + rr.set_results_name("numerator")
     + Suppress("}{")
-    + rr.setResultsName("denominator")
+    + rr.set_results_name("denominator")
     + Suppress("}")
 )
-fraction_pe.setName("fraction")
-fraction_pe.setParseAction(_make_frac)
+fraction_pe.set_name("fraction")
+fraction_pe.set_parse_action(_make_frac)
 
 expr << (probability_pe | qfactor_pe | sum_pe | fraction_pe)
 
 # TODO enable products?
 
 grammar = StringStart() + expr + StringEnd()
-grammar.setName("probabilityGrammar")
+grammar.set_name("probabilityGrammar")
 
 
 def parse_causaleffect(s: str) -> Expression:
     """Parse a causaleffect probability expression."""
     try:
-        x = grammar.parseString(s)
+        x = grammar.parse_string(s)
     except ParseException:
         logger.warning("could not parse %s", s)
         raise
