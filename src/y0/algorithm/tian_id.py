@@ -271,9 +271,7 @@ def compute_c_factor_conditioning_on_topological_predecessors(
             conditioned_variables = graph_probability_parents.union(preceding_variables)  # V^(i-1)
             pp = PopulationProbability(
                 population=graph_probability.population,
-                distribution=Distribution(
-                    children=(variable,), parents=tuple(conditioned_variables)
-                ),
+                distribution=Distribution(children={variable}, parents=conditioned_variables),
             )
             population_probabilities.append(pp)
         logger.debug(

@@ -58,18 +58,15 @@ def chain_expand(
 
     >>> assert chain_expand(P(X, Y, Z | A)) == P(X | Y, Z, A) * P(Y | Z, A) * P(Z | A)
     """
-    if reorder:
-        _ordering = ensure_ordering(p, ordering=ordering)
-        if any(v not in _ordering for v in p.children):
-            raise ValueError
-        ordered_children = tuple(v for v in _ordering if v in p.children)
-    else:
-        ordered_children = p.children
+    ordering = ensure_ordering(p, ordering=ordering)
+    if any(v not in ordering for v in p.children):
+        raise ValueError
+    ordered_children = tuple(v for v in ordering if v in p.children)
 
     return Product.safe(
         p._new(
-            Distribution(children=(ordered_children[i],)).given(
-                ordered_children[i + 1 :] + p.parents
+            Distribution(children={ordered_children[i]}).given(
+                p.parents.union(ordered_children[i + 1 :])
             )
         )
         for i in range(len(ordered_children))

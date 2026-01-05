@@ -283,8 +283,8 @@ class Variable(Element):
         """
         if not isinstance(parents, Distribution):
             return Distribution(
-                children=(self,),
-                parents=_upgrade_ordering(parents),
+                children={self},
+                parents=_upgrade_variables_set(parents),
             )
         elif parents.is_conditioned():
             raise TypeError("can not be given a distribution that has conditionals")
@@ -292,7 +292,7 @@ class Variable(Element):
             # The parents variable is actually a Distribution instance with no parents,
             #  so its children become the parents for the new Markov Kernel distribution
             return Distribution(
-                children=(self,),
+                children={self},
                 parents=parents.children,  # don't think about this too hard
             )
 
@@ -308,7 +308,7 @@ class Variable(Element):
         .. note:: This function can be accessed with the and & operator.
         """
         return Distribution(
-            children=_upgrade_ordering((self, *_upgrade_variables(children))),
+            children={self} | _upgrade_variables_set(children),
         )
 
     def __and__(self, children: VariableHint) -> Distribution:
@@ -509,8 +509,8 @@ class Distribution(Element):
     ``P(X | Y)`` means that ``X`` is a child and ``Y`` is a parent.
     """
 
-    children: tuple[Variable, ...]
-    parents: tuple[Variable, ...] = field(default_factory=tuple)
+    children: set[Variable]
+    parents: set[Variable] = field(default_factory=set)
 
     def __post_init__(self) -> None:
         if isinstance(self.children, list | Variable):
@@ -543,7 +543,7 @@ class Distribution(Element):
             # There are no distributions (e.g., no conditionals were given with the | already)
             if 0 == len(dist_pos):
                 return Distribution(
-                    children=_upgrade_ordering(cast(VariableHint, extended_args)),
+                    children=_upgrade_variables_set(cast(VariableHint, extended_args)),
                 )
 
             # A single conditional was given. Everything before it should be considered
@@ -554,8 +554,8 @@ class Distribution(Element):
                 dist = cast(Distribution, extended_args[i])
                 post = cast(Iterable[str | Variable], extended_args[i + 1 :])
                 return Distribution(
-                    children=_sorted_variables((*_upgrade_ordering(pre), *dist.children)),
-                    parents=_sorted_variables((*dist.parents, *_upgrade_ordering(post))),
+                    children=dist.children | _upgrade_variables_set(pre),
+                    parents=dist.parents | _upgrade_variables_set(post),
                 )
 
             # Multiple conditionals were detected. This isn't allowed.
@@ -565,14 +565,14 @@ class Distribution(Element):
             raise ValueError("can not use args/parents when giving an iterable as first argument")
         else:
             return Distribution(
-                children=_upgrade_ordering(distribution),
+                children=_upgrade_variables_set(distribution),
             )
 
     def _to_x(self, func: Callable[[Iterable[Variable]], str]) -> str:
-        children = func(self.children)
+        children = func(_sorted_variables(self.children))
         if not self.parents:
             return children
-        return f"{children} | {func(self.parents)}"
+        return f"{children} | {func(_sorted_variables(self.parents))}"
 
     def to_text(self) -> str:
         """Output this distribution in the internal string format."""
@@ -597,10 +597,10 @@ class Distribution(Element):
     def intervene(self, variables: VariableHint) -> Distribution:
         """Return a new distribution that has the given intervention(s) on all variables."""
         # check that the variables aren't in any of them yet
-        variables = _upgrade_ordering(variables)
+        variables = _upgrade_variables(variables)
         return Distribution(
-            children=tuple(child.intervene(variables) for child in self.children),
-            parents=tuple(parent.intervene(variables) for parent in self.parents),
+            children={child.intervene(variables) for child in self.children},
+            parents={parent.intervene(variables) for parent in self.parents},
         )
 
     def __matmul__(self, variables: VariableHint) -> Distribution:
@@ -609,7 +609,7 @@ class Distribution(Element):
     def uncondition(self) -> Distribution:
         """Return a new distribution that is not conditioned on the parents."""
         return Distribution(
-            children=(*self.children, *self.parents),
+            children=self.children | self.parents,
         )
 
     def joint(self, children: VariableHint) -> Distribution:
@@ -621,7 +621,7 @@ class Distribution(Element):
         .. note:: This function can be accessed with the and & operator.
         """
         return Distribution(
-            children=_upgrade_ordering((*self.children, *_upgrade_variables(children))),
+            children=self.children | _upgrade_variables_set(children),
             parents=self.parents,
         )
 
@@ -641,7 +641,7 @@ class Distribution(Element):
         if not isinstance(parents, Distribution):
             return Distribution(
                 children=self.children,
-                parents=_upgrade_ordering((*self.parents, *_upgrade_variables(parents))),
+                parents=self.parents | _upgrade_variables_set(parents),
             )
         elif parents.is_conditioned():
             raise TypeError("can not be given a distribution that has conditionals")
@@ -650,10 +650,7 @@ class Distribution(Element):
             #  so its children get appended as parents for the new mixed distribution
             return Distribution(
                 children=self.children,
-                parents=(
-                    *self.parents,
-                    *parents.children,
-                ),  # don't think about this too hard
+                parents=self.parents | parents.children,  # don't think about this too hard
             )
 
     def __or__(self, parents: VariableHint | Distribution) -> Distribution:
@@ -768,7 +765,7 @@ class Probability(Expression):
 
     def _get_key(self):  # type:ignore
         # TODO incorporate more information from children and parents
-        return 0, self.children[0].name
+        return 0, tuple(sorted(c.name for c in self.children))
 
     def to_text(self) -> str:
         """Output this probability in the internal string format."""
@@ -785,8 +782,8 @@ class Probability(Expression):
         # check that there's only one intervention set and that it's not an empty one
         if len(intervention_sets) == 1 and (interventions := intervention_sets.pop()):
             unintervened_distribution = Distribution(
-                parents=tuple(Variable(name=v.name, star=v.star) for v in self.parents),
-                children=tuple(Variable(name=v.name, star=v.star) for v in self.children),
+                parents={Variable(name=v.name, star=v.star) for v in self.parents},
+                children={Variable(name=v.name, star=v.star) for v in self.children},
             )
             return interventions, unintervened_distribution
         else:
@@ -815,12 +812,12 @@ class Probability(Expression):
         return f"P_{{{intervention_str}}}({unintervened_distribution.to_latex()})"
 
     @property
-    def parents(self) -> tuple[Variable, ...]:
+    def parents(self) -> set[Variable]:
         """Get the distribution's parents."""
         return self.distribution.parents
 
     @property
-    def children(self) -> tuple[Variable, ...]:
+    def children(self) -> set[Variable]:
         """Get the distribution's children."""
         return self.distribution.children
 
@@ -1652,11 +1649,16 @@ def _sorted_variables(variables: Iterable[Variable]) -> tuple[Variable, ...]:
     return tuple(sorted(variables, key=_variable_sort_key))
 
 
+def _upgrade_variables_set(variables: VariableHint) -> set[Variable]:
+    if isinstance(variables, str | Variable):
+        return {Variable.norm(variables)}
+    else:
+        return {Variable.norm(variable) for variable in variables}
+
+
 def _upgrade_variables(variables: VariableHint) -> tuple[Variable, ...]:
-    if isinstance(variables, str):
-        return (Variable(variables),)
-    elif isinstance(variables, Variable):
-        return (variables,)
+    if isinstance(variables, str | Variable):
+        return (Variable.norm(variables),)
     else:
         return tuple(Variable.norm(variable) for variable in variables)
 
@@ -1759,7 +1761,7 @@ class PopulationProbability(Probability):
         return PopulationProbability(population=self.population, distribution=distribution)
 
     def _get_key(self):  # type:ignore
-        return -1, self.population, self.children[0].name
+        return -1, self.population, tuple(sorted(c.name for c in self.children))
 
     def to_y0(self) -> str:
         """Output this probability instance as y0 internal DSL code."""
