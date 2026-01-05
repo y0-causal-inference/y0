@@ -62,6 +62,8 @@ def _identify(  # noqa:C901
 
     # line 1
     if not treatments:
+        # FIXME why is estimand passed here? Why not Probability.safe(nodes)?
+        #  this is a problem when recurring on a subgraph -
         return Sum.safe(expression=estimand, ranges=nodes.difference(outcomes))
 
     # line 2
@@ -73,6 +75,8 @@ def _identify(  # noqa:C901
         return _identify(
             outcomes=outcomes,
             treatments=treatments & outcomes_and_ancestors,
+            # FIXME there's a closed form way for calculating this that isn't
+            #  based on an external estimand. should use that instead.
             estimand=Sum.safe(expression=estimand, ranges=not_outcomes_or_ancestors),
             graph=graph.subgraph(outcomes_and_ancestors),
             ordering=ordering,
@@ -89,12 +93,15 @@ def _identify(  # noqa:C901
             ordering=ordering,
         )
 
-    # line 4
-    graph_without_treatments = graph.remove_nodes_from(treatments)
+    # line 4.1 C(G \ X) = {S1, ..., Sk}
+    graph_without_treatments: Annotated[NxMixedGraph, InPaperAs(r"G \setminus \mathbf{X}")] = (
+        graph.remove_nodes_from(treatments)
+    )
     districts_without_treatment: Annotated[
         set[frozenset[Variable]], InPaperAs(r"C(G \setminus \mathbf{X})")
     ] = graph_without_treatments.districts()
     if not graph_without_treatments.is_connected():
+        # line 4.2a
         expression = Product.safe(
             _identify(
                 outcomes=set(district_without_treatment),
@@ -105,6 +112,7 @@ def _identify(  # noqa:C901
             )
             for district_without_treatment in districts_without_treatment
         )
+        # line 4.2b
         return Sum.safe(
             expression=expression,
             ranges=nodes.difference(outcomes | treatments),
@@ -125,6 +133,11 @@ def _identify(  # noqa:C901
     # TODO move this up, but causes some errors
     if ordering is None:
         ordering = graph.topological_sort()
+    else:
+        # in case ordering was passed in, remove any variables
+        # that are irrelevant to the current graph. these might
+        # exist if the sort was run on a supergraph
+        ordering = [v for v in ordering if v in nodes]
 
     # line 6, if S ∈ C(G)
     if district_without_treatment in graph.districts():
