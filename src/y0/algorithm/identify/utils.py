@@ -112,7 +112,6 @@ class Query:
                     "if any children or parents are counterfactual variables, all parents have to be"
                 )
 
-            # todo get sets of interventions on all variables
             intervention_sets: set[frozenset[Variable]] = {
                 cast(CounterfactualVariable, c).interventions
                 for c in chain(query.children, query.parents)
