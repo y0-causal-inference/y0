@@ -33,7 +33,6 @@ def idc(
             outcomes=identification.outcomes,
             conditions=identification.conditions,
             condition=condition,
-            separation_implementation="sigma",
         ):
             return idc(
                 identification.exchange_observation_with_action(condition), ordering=ordering

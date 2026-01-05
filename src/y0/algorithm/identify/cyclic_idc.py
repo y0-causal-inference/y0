@@ -3,8 +3,8 @@
 from collections.abc import Iterable, Sequence
 
 from .cyclic_id import cyclic_id
-from .id_c import rule_2_of_do_calculus_applies
 from .utils import Identification
+from ..do_calculus import rule_2_of_do_calculus_applies
 from ...dsl import Expression, Variable
 from ...graph import NxMixedGraph
 
@@ -28,7 +28,12 @@ def cyclic_idc(
     )
     for condition in identification.conditions:
         if rule_2_of_do_calculus_applies(
-            identification=identification, condition=condition, separation_implementation="sigma"
+            graph=identification.graph,
+            treatments=identification.treatments,
+            outcomes=identification.outcomes,
+            conditions=identification.conditions,
+            condition=condition,
+            separation_implementation="sigma",
         ):
             modified = identification.exchange_observation_with_action(condition)
             return cyclic_idc(
