@@ -250,7 +250,7 @@ class TestIdentify(cases.GraphTestCase):
             self.assertEqual(id_out, line_7(id_in, ordering=id_in.graph.topological_sort()))
             self.assert_expr_equal(
                 # actual P(Y1)
-                Sum.safe(expression=P(Y1 | (W1, X)) * P(W1), ranges=[W1]), identify(id_in),
+                Sum.safe(expression=P(Y1 | (W1, X)) * P(W1), ranges=[W1]), identify(id_in)
             )
 
     def test_figure_2a(self):
