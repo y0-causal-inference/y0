@@ -123,7 +123,7 @@ __all__ = [
 T_co = TypeVar("T_co", covariant=True)
 
 
-def _to_interventions(variables: Sequence[Variable]) -> frozenset[Intervention]:
+def _to_interventions(variables: Iterable[Variable]) -> frozenset[Intervention]:
     return frozenset(
         (
             variable
@@ -259,7 +259,7 @@ class Variable(Element):
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        interventions = _to_interventions(_upgrade_variables(variables))
+        interventions = _to_interventions(_upgrade_variables_set(variables))
         return CounterfactualVariable(
             name=self.name,
             star=self.star,
@@ -455,7 +455,7 @@ class CounterfactualVariable(Variable):
 
         .. note:: This function can be accessed with the matmult @ operator.
         """
-        _interventions = _to_interventions(_upgrade_variables(variables))
+        _interventions = _to_interventions(_upgrade_variables_set(variables))
         interventions = self.interventions | _interventions
         self._raise_for_overlapping_interventions(interventions)
         return CounterfactualVariable(
@@ -596,7 +596,7 @@ class Distribution(Element):
     def intervene(self, variables: VariableHint) -> Distribution:
         """Return a new distribution that has the given intervention(s) on all variables."""
         # check that the variables aren't in any of them yet
-        variables = _upgrade_variables(variables)
+        variables = _upgrade_variables_set(variables)
         return Distribution(
             children=frozenset(child.intervene(variables) for child in self.children),
             parents=frozenset(parent.intervene(variables) for parent in self.parents),
@@ -705,7 +705,7 @@ class Expression(Element, ABC):
         >>> assert P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
         >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
         """
-        ranges_ = {r.get_base() for r in _upgrade_variables(ranges)}
+        ranges_ = {r.get_base() for r in _upgrade_variables_set(ranges)}
         ranges_complement = {c.get_base() for c in self._iter_variables()} - ranges_
         return self.normalize_marginalize(ranges_complement)
 
@@ -725,7 +725,7 @@ class Expression(Element, ABC):
         """
         return Sum.safe(
             expression=self,
-            ranges={r.get_base() for r in _upgrade_variables(ranges)},
+            ranges={r.get_base() for r in _upgrade_variables_set(ranges)},
         )
 
     def simplify(self) -> Expression:
@@ -871,7 +871,7 @@ class Probability(Expression):
         >>> assert P(A, B).conditional(A) == P(A, B) / Sum[B](P(A, B))
         >>> assert P(A, B, C).conditional([A, B]) == P(A, B, C) / Sum[C](P(A, B, C))
         """
-        ranges_ = {r.get_base() for r in _upgrade_variables(ranges)}
+        ranges_ = {r.get_base() for r in _upgrade_variables_set(ranges)}
         ranges_complement = {
             c.get_base() for c in self._iter_variables() if not isinstance(c, Intervention)
         } - ranges_
@@ -1540,7 +1540,7 @@ class QFactor(Expression):
         """Create a Q factor with various input types."""
         return cls(
             domain=cls._prepare_domain(domain, *args),
-            codomain=frozenset(_upgrade_variables(codomain)),
+            codomain=_upgrade_variables_set(codomain),
         )
 
     @staticmethod
@@ -1550,10 +1550,10 @@ class QFactor(Expression):
     ) -> frozenset[Variable]:
         """Prepare a list of variables from a potentially unruly set of args and variadic args."""
         if isinstance(arg, str | Variable):
-            return frozenset((Variable.norm(arg), *_upgrade_ordering(args)))
+            return frozenset([Variable.norm(arg)]) | _upgrade_variables_set(args)
         if args:
             raise ValueError("can not use variadic arguments with combination of first arg")
-        return frozenset(_upgrade_ordering(arg))
+        return _upgrade_variables_set(arg)
 
     @classmethod
     def __class_getitem__(cls, codomain: Variable | Iterable[Variable]) -> QBuilder[QFactor]:
@@ -1655,15 +1655,8 @@ def _upgrade_variables_set(variables: VariableHint) -> frozenset[Variable]:
         return frozenset(Variable.norm(variable) for variable in variables)
 
 
-def _upgrade_variables(variables: VariableHint) -> tuple[Variable, ...]:
-    if isinstance(variables, str | Variable):
-        return (Variable.norm(variables),)
-    else:
-        return tuple(Variable.norm(variable) for variable in variables)
-
-
 def _upgrade_ordering(variables: VariableHint) -> tuple[Variable, ...]:
-    return _sorted_variables(set(_upgrade_variables(variables)))
+    return _sorted_variables(_upgrade_variables_set(variables))
 
 
 OrderingHint = None | Iterable[str | Variable]
