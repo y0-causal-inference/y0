@@ -122,12 +122,9 @@ class Query:
 
     def exchange_observation_with_action(self, variables: Variable | Iterable[Variable]) -> Query:
         """Move the condition variable(s) to the treatments."""
-        if isinstance(variables, Variable):
-            variables = {variables}
-        else:
-            variables = set(variables)
-        if any(v not in self.conditions for v in variables):
-            raise ValueError
+        variables = _ensure_set(variables)
+        if missing := (variables - self.conditions):
+            raise ValueError(f"variables don't appear in conditions: {missing}")
         return Query(
             outcomes=self.outcomes,
             treatments=self.treatments | variables,
@@ -136,12 +133,9 @@ class Query:
 
     def exchange_action_with_observation(self, variables: Variable | Iterable[Variable]) -> Query:
         """Move the treatment variable(s) to the conditions."""
-        if isinstance(variables, Variable):
-            variables = {variables}
-        else:
-            variables = set(variables)
-        if any(v not in self.treatments for v in variables):
-            raise ValueError
+        variables = _ensure_set(variables)
+        if missing := (variables - self.treatments):
+            raise ValueError(f"variables don't appear in treatments: {missing}")
         return Query(
             outcomes=self.outcomes,
             treatments=self.treatments - variables,
@@ -167,14 +161,12 @@ class Query:
     @property
     def expression(self) -> Expression:
         """Return the query as a Probabilistic expression."""
-        if self.conditions and self.treatments:
-            return P[self.treatments](self.outcomes | self.conditions)
+        distribution = Distribution.safe(self.outcomes)
+        if self.conditions:
+            distribution = distribution.given(self.conditions)
         elif self.treatments:
-            return P[self.treatments](self.outcomes)
-        elif self.conditions:
-            return P(self.outcomes | self.conditions)
-        else:
-            return P(self.outcomes)
+            distribution = distribution.intervene(self.treatments)
+        return Probability(distribution)
 
 
 def _unexp_interventions(variables: Iterable[Variable]) -> bool:

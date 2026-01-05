@@ -1,10 +1,12 @@
 """An implementation of the identification algorithm."""
 
 from collections.abc import Sequence
+from typing import Annotated
 
 from .utils import Identification, Unidentifiable
 from ...dsl import Expression, P, Probability, Product, Sum, Variable
 from ...graph import NxMixedGraph
+from ...util import InPaperAs
 
 __all__ = [
     "identify",
@@ -27,54 +29,118 @@ def identify(
     See also :func:`identify_outcomes` for a more idiomatic way of running the ID
     algorithm given a graph, treatments, and outcomes.
     """
-    graph = identification.graph
-    treatments = identification.treatments
-    outcomes = identification.outcomes
-    vertices = set(graph.nodes())
+    return _identify(
+        graph=identification.graph,
+        treatments=identification.treatments,
+        outcomes=identification.outcomes,
+        # estimand begins as the joint distribution over all
+        # nodes in the graph and is progressively refined
+        estimand=identification.estimand,
+        ordering=ordering,
+    )
+
+
+def _identify(
+    graph: NxMixedGraph,
+    treatments: Annotated[set[Variable], InPaperAs("x")],
+    outcomes: Annotated[set[Variable], InPaperAs("y")],
+    estimand: Expression,
+    *,
+    ordering: Sequence[Variable] | None = None,
+) -> Expression:
+    """Run the ID algorithm from [shpitser2006]_.
+
+    :param ordering: A topological ordering of the variables. If not passed, is
+        calculated from the directed component of the mixed graph.
+
+    :returns: the expression corresponding to the identification
+
+    :raises Unidentifiable: If no appropriate identification can be found
+    """
+    # see page 5 of https://cdn.aaai.org/AAAI/2006/AAAI06-191.pdf
+    nodes: Annotated[set[Variable], InPaperAs(r"\mathbf{v}")] = set(graph.nodes())
 
     # line 1
     if not treatments:
-        return line_1(identification)
+        return Sum.safe(expression=estimand, ranges=nodes.difference(outcomes))
 
     # line 2
     outcomes_and_ancestors = graph.ancestors_inclusive(outcomes)
-    not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
+    not_outcomes_or_ancestors: Annotated[set[Variable], InPaperAs(r"An(\mathbf{Y})_G")] = (
+        nodes.difference(outcomes_and_ancestors)
+    )
     if not_outcomes_or_ancestors:
-        return identify(line_2(identification), ordering=ordering)
+        return _identify(
+            outcomes=outcomes,
+            treatments=treatments & outcomes_and_ancestors,
+            estimand=Sum.safe(expression=estimand, ranges=not_outcomes_or_ancestors),
+            graph=graph.subgraph(outcomes_and_ancestors),
+            ordering=ordering,
+        )
 
     # line 3
     no_effect_on_outcome = graph.get_no_effect_on_outcomes(treatments, outcomes)
     if no_effect_on_outcome:
-        return identify(line_3(identification), ordering=ordering)
+        return _identify(
+            outcomes=outcomes,
+            treatments=treatments | no_effect_on_outcome,
+            estimand=estimand,
+            graph=graph,
+            ordering=ordering,
+        )
 
     # line 4
     graph_without_treatments = graph.remove_nodes_from(treatments)
+    districts_without_treatment: Annotated[
+        set[frozenset[Variable]], InPaperAs(r"C(G \setminus \mathbf{X})")
+    ] = graph_without_treatments.districts()
     if not graph_without_treatments.is_connected():
         expression = Product.safe(
-            identify(query, ordering=ordering) for query in line_4(identification)
+            _identify(
+                outcomes=set(district_without_treatment),
+                treatments=nodes - district_without_treatment,
+                estimand=estimand,
+                graph=graph,
+                ordering=ordering,
+            )
+            for district_without_treatment in districts_without_treatment
         )
         return Sum.safe(
             expression=expression,
-            ranges=vertices.difference(outcomes | treatments),
+            ranges=nodes.difference(outcomes | treatments),
         )
 
     # line 5
-    if graph.is_connected():  # e.g., there's only 1 c-component, and it encompasses all vertices
-        raise Unidentifiable(graph.nodes(), graph_without_treatments.districts())
+    if graph.is_connected():  # e.g., there's only 1 c-component, and it encompasses all nodes
+        raise Unidentifiable(graph.nodes(), districts_without_treatment)
 
     # line 6
-    district_without_treatment = _get_single_district(graph_without_treatments)
+    if len(districts_without_treatment) != 1: # pragma: no cover
+        raise RuntimeError
+
+    district_without_treatment = next(iter(districts_without_treatment))
 
     if ordering is None:
         ordering = graph.topological_sort()
 
     if district_without_treatment in graph.districts():
-        expression = _district_product(district_without_treatment, ordering)
-        ranges = district_without_treatment - outcomes
-        return Sum.safe(expression=expression, ranges=ranges)
+        return Sum.safe(
+            expression=_district_product(district_without_treatment, ordering),
+            ranges=district_without_treatment - outcomes,
+        )
 
     # line 7
-    return identify(line_7(identification, ordering=ordering), ordering=ordering)
+    for district in graph.districts():
+        if district_without_treatment < district:
+            return _identify(
+                graph=graph.subgraph(district),
+                outcomes=outcomes,
+                treatments=treatments & district,
+                estimand=_district_product(district, ordering),
+                ordering=ordering,
+            )
+
+    raise RuntimeError # pragma: no cover
 
 
 def _get_single_district(graph: NxMixedGraph) -> frozenset[Variable]:
@@ -84,7 +150,9 @@ def _get_single_district(graph: NxMixedGraph) -> frozenset[Variable]:
     return districts.pop()
 
 
-def line_1(identification: Identification) -> Expression:
+def line_1(
+    identification: Identification,
+) -> Annotated[Expression, InPaperAs(r"\sum_{v - y} P(\mathbf{v})")]:
     r"""Run line 1 of identification algorithm.
 
     If no action has been taken, the effect on :math:`\mathbf Y` is just the marginal of
@@ -96,10 +164,10 @@ def line_1(identification: Identification) -> Expression:
     :returns: The marginal of the outcome variables
     """
     outcomes = identification.outcomes
-    vertices = set(identification.graph.nodes())
+    nodes = set(identification.graph.nodes())
     return Sum.safe(
         expression=identification.estimand,
-        ranges=vertices.difference(outcomes),
+        ranges=nodes.difference(outcomes),
     )
 
 
@@ -125,20 +193,25 @@ def line_2(identification: Identification) -> Identification:
     graph = identification.graph
     treatments = identification.treatments
     outcomes = identification.outcomes
+    nodes = set(graph.nodes())
 
-    vertices = set(graph.nodes())
     outcomes_and_ancestors = graph.ancestors_inclusive(outcomes)
-    not_outcomes_or_ancestors = vertices.difference(outcomes_and_ancestors)
-    outcome_ancestral_graph = graph.subgraph(outcomes_and_ancestors)
+    not_outcomes_or_ancestors = nodes.difference(outcomes_and_ancestors)
 
     if not not_outcomes_or_ancestors:
         raise ValueError("line 2 precondition not met")
-    return Identification.from_parts(
-        outcomes=outcomes,
-        treatments=treatments & outcomes_and_ancestors,
-        estimand=Sum.safe(expression=identification.estimand, ranges=not_outcomes_or_ancestors),
-        graph=outcome_ancestral_graph,
+
+    reduced_treatments: Annotated[set[Variable], InPaperAs(r"x ^ An(\mathbf{Y})_G")] = (
+        treatments & outcomes_and_ancestors
     )
+
+    identification = Identification.from_parts(
+        outcomes=outcomes,
+        treatments=reduced_treatments,
+        estimand=Sum.safe(expression=identification.estimand, ranges=not_outcomes_or_ancestors),
+        graph=graph.subgraph(outcomes_and_ancestors),
+    )
+    return identification
 
 
 def line_3(identification: Identification) -> Identification:
@@ -190,17 +263,21 @@ def line_4(identification: Identification) -> list[Identification]:
     treatments = identification.treatments
     estimand = identification.estimand
     graph = identification.graph
-    vertices = set(graph.nodes())
+    nodes = set(graph.nodes())
 
     # line 4
-    graph_without_treatments = graph.remove_nodes_from(treatments)
-    districts_without_treatment = graph_without_treatments.districts()
+    graph_without_treatments: Annotated[NxMixedGraph, InPaperAs(r"G \setminus \mathbf{X}")] = (
+        graph.remove_nodes_from(treatments)
+    )
+    districts_without_treatment: Annotated[
+        set[frozenset[Variable]], InPaperAs(r"C(G \setminus \mathbf{X})")
+    ] = graph_without_treatments.districts()
     if len(districts_without_treatment) <= 1:
         raise ValueError("Line 4 precondition not met")
     return [
         Identification.from_parts(
-            outcomes=set(district_without_treatment),
-            treatments=vertices - district_without_treatment,
+            outcomes=district_without_treatment,
+            treatments=nodes - district_without_treatment,
             estimand=estimand,
             graph=graph,
         )
@@ -223,13 +300,13 @@ def line_5(identification: Identification) -> None:
     """
     treatments = identification.treatments
     graph = identification.graph
-    vertices = set(graph.nodes())
+    nodes = set(graph.nodes())
     graph_without_treatments = graph.remove_nodes_from(treatments)
     districts_without_treatment = graph_without_treatments.districts()
 
     # line 5
     districts = graph.districts()
-    if districts == {frozenset(vertices)}:
+    if districts == {frozenset(nodes)}:
         raise Unidentifiable(districts, districts_without_treatment)
 
 
@@ -316,14 +393,14 @@ def line_7(
 
     graph_without_treatments = graph.remove_nodes_from(treatments)
     # line 7 precondition requires single district
-    district_without_treatments = _get_single_district(graph_without_treatments)
+    district_without_treatment = _get_single_district(graph_without_treatments)
 
     if ordering is None:
         ordering = graph.topological_sort()
 
     # line 7
     for district in graph.districts():
-        if district_without_treatments < district:
+        if district_without_treatment < district:
             return Identification.from_parts(
                 outcomes=outcomes,
                 treatments=treatments & district,
