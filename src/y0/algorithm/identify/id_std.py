@@ -110,26 +110,30 @@ def _identify(  # noqa:C901
             ranges=nodes.difference(outcomes | treatments),
         )
 
-    # line 5
+    # line 5, if C(G) = {G},
     if graph.is_connected():  # e.g., there's only 1 c-component, and it encompasses all nodes
         raise Unidentifiable(graph.nodes(), districts_without_treatment)
 
-    # line 6
     if len(districts_without_treatment) != 1:  # pragma: no cover
         raise RuntimeError
 
-    district_without_treatment = next(iter(districts_without_treatment))
+    # line 4.3, C(G \setminus X) = {S}
+    district_without_treatment: Annotated[frozenset[Variable], InPaperAs("S")] = next(
+        iter(districts_without_treatment)
+    )
 
+    # TODO move this up, but causes some errors
     if ordering is None:
         ordering = graph.topological_sort()
 
+    # line 6, if S ∈ C(G)
     if district_without_treatment in graph.districts():
         return Sum.safe(
             expression=_district_product(district_without_treatment, ordering),
             ranges=district_without_treatment - outcomes,
         )
 
-    # line 7
+    # line 7, if (∃S')S ⊂ S' ∈ C(G)
     for district in graph.districts():
         if district_without_treatment < district:
             return _identify(
