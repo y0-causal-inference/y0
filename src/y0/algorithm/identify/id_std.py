@@ -40,7 +40,7 @@ def identify(
     )
 
 
-def _identify(
+def _identify(  # noqa:C901
     graph: NxMixedGraph,
     treatments: Annotated[set[Variable], InPaperAs("x")],
     outcomes: Annotated[set[Variable], InPaperAs("y")],
@@ -115,7 +115,7 @@ def _identify(
         raise Unidentifiable(graph.nodes(), districts_without_treatment)
 
     # line 6
-    if len(districts_without_treatment) != 1: # pragma: no cover
+    if len(districts_without_treatment) != 1:  # pragma: no cover
         raise RuntimeError
 
     district_without_treatment = next(iter(districts_without_treatment))
@@ -140,7 +140,7 @@ def _identify(
                 ordering=ordering,
             )
 
-    raise RuntimeError # pragma: no cover
+    raise RuntimeError  # pragma: no cover
 
 
 def _get_single_district(graph: NxMixedGraph) -> frozenset[Variable]:

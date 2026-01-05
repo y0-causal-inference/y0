@@ -2,16 +2,14 @@
 
 from collections.abc import Sequence
 
-from y0.graph import NxMixedGraph
-
 from .id_std import identify
 from .utils import Identification
 from ..conditional_independencies import are_d_separated
 from ...dsl import Expression, Variable
+from ...graph import NxMixedGraph
 
 __all__ = [
     "idc",
-    "rule_2_of_do_calculus_applies",
 ]
 
 
@@ -30,7 +28,7 @@ def idc(
     Raises "Unidentifiable" if no appropriate identification can be found.
     """
     for condition in identification.conditions:
-        if _rule_2_helper(
+        if rule_2_of_do_calculus_applies(
             graph=identification.graph,
             treatments=identification.treatments,
             outcomes=identification.outcomes,
@@ -46,36 +44,7 @@ def idc(
     return id_estimand.normalize_marginalize(identification.outcomes)
 
 
-def rule_2_of_do_calculus_applies(identification: Identification, condition: Variable) -> bool:
-    r"""Check if Rule 2 of the Do-Calculus applies to the conditioned variable.
-
-    :param identification: The identification tuple
-    :param condition: The condition to check
-
-    :returns: If rule 2 applies, see below.
-
-    If Rule 2 of the do calculus applies to the conditioned variable, then it can be
-    converted to a do variable.
-
-    .. math::
-
-        \newcommand\ci{\perp\!\!\!\perp}
-        \newcommand{\ubar}[1]{\underset{\bar{}}{#1}}
-        \newcommand{\obar}[1]{\overset{\bar{}}{#1}}
-        \text{if } (\exists Z \in \mathbf{Z})(\mathbf{Y} \ci Z | \mathbf{X}, \mathbf{Z}
-        - \{Z\})_{G_{\bar{\mathbf{X}}\ubar{Z}}} \\
-        \text{then } P(\mathbf{Y}|do(\mathbf{X}),\mathbf{Z}) = P(\mathbf Y|do(\mathbf X), do(Z), \mathbf{Z} - \{Z\})
-    """
-    return _rule_2_helper(
-        graph=identification.graph,
-        treatments=identification.treatments,
-        outcomes=identification.outcomes,
-        conditions=identification.conditions,
-        condition=condition,
-    )
-
-
-def _rule_2_helper(
+def rule_2_of_do_calculus_applies(
     graph: NxMixedGraph,
     *,
     treatments: set[Variable],
