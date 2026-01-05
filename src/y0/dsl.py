@@ -1653,10 +1653,6 @@ def _upgrade_variables_set(variables: VariableHint) -> frozenset[Variable]:
         return frozenset(Variable.norm(variable) for variable in variables)
 
 
-def _upgrade_ordering(variables: VariableHint) -> tuple[Variable, ...]:
-    return _sorted_variables(_upgrade_variables_set(variables))
-
-
 OrderingHint = None | Iterable[str | Variable]
 
 
@@ -1675,7 +1671,7 @@ def ensure_ordering(
     :returns: The ordering
     """
     if ordering is not None:
-        return _upgrade_ordering(ordering)
+        return tuple(Variable.norm(n) for n in ordering)
     # use alphabetical ordering
     return _sorted_variables(expression.get_variables())
 

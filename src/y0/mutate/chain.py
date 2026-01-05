@@ -1,5 +1,7 @@
 """Operations for mutating and simplifying expressions."""
 
+import warnings
+
 from ..dsl import (
     Distribution,
     Expression,
@@ -18,7 +20,7 @@ __all__ = [
 
 
 def chain_expand(
-    p: Probability, *, reorder: bool = True, ordering: OrderingHint = None
+    p: Probability, *, reorder: bool | None = None, ordering: OrderingHint = None
 ) -> Expression:
     r"""Expand a probability distribution to a product of conditional probabilities on single variables.
 
@@ -58,6 +60,8 @@ def chain_expand(
 
     >>> assert chain_expand(P(X, Y, Z | A)) == P(X | Y, Z, A) * P(Y | Z, A) * P(Z | A)
     """
+    if reorder is not None:
+        warnings.warn("reorder argument doesn't do anything anymore", DeprecationWarning, stacklevel=2)
     ordering = ensure_ordering(p, ordering=ordering)
     if any(v not in ordering for v in p.children):
         raise ValueError
