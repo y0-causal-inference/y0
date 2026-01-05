@@ -111,7 +111,7 @@ class TestGraph(unittest.TestCase):
         """Test that all ADMGs can be converted to NxMixedGraph."""
         from ananke.graphs import ADMG
 
-        expected = NxMixedGraph.from_str_adj(
+        expected = NxMixedGraph.from_adj(
             directed={"W": [], "X": ["Y"], "Y": ["Z"], "Z": []},
             undirected={"W": [], "X": ["Z"], "Y": [], "Z": []},
         )
@@ -126,7 +126,7 @@ class TestGraph(unittest.TestCase):
         """Test the adjacency graph is not a multigraph."""
         directed = {"a": ["b", "c"], "b": ["a"], "c": []}
         expected = NxMixedGraph.from_str_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
-        self.assertEqual(expected, NxMixedGraph.from_str_adj(directed=directed))
+        self.assertEqual(expected, NxMixedGraph.from_adj(directed=directed))
 
     def test_is_acyclic(self):
         """Test the directed edges are acyclic."""
@@ -285,7 +285,7 @@ class TestGraph(unittest.TestCase):
     @ANANKE_REQUIRED
     def test_pre(self):
         """Test getting the pre-ordering for a given node or set of nodes."""
-        g1 = NxMixedGraph.from_str_adj(
+        g1 = NxMixedGraph.from_adj(
             directed={"1": ["2", "3"], "2": ["4", "5"], "3": ["4"], "4": ["5"]}
         )
         g1_ananke = g1.to_admg()

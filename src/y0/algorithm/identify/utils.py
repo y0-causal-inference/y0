@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any
+from itertools import chain
+from typing import Any, cast
 
 import networkx as nx
 
@@ -11,7 +12,6 @@ from y0.dsl import (
     CounterfactualVariable,
     Distribution,
     Expression,
-    Intervention,
     P,
     Probability,
     Variable,
@@ -101,33 +101,34 @@ class Query:
         outcomes = {child.get_base() for child in query.children}  # clean counterfactuals
         conditions = {parent.get_base() for parent in query.parents}
 
-        first_child = query.children[0]
-        if not isinstance(first_child, CounterfactualVariable):
-            if _unexp_interventions(query.children) or _unexp_interventions(query.parents):
-                raise ValueError("Inconsistent usage of interventions")
-            treatments = set()
-        else:
-            interventions = set(first_child.interventions)
-            if _ragged_interventions(query.children, interventions) or _ragged_interventions(
-                query.parents, interventions
-            ):
-                raise ValueError("Inconsistent usage of interventions")
-            treatments = {intervention.get_base() for intervention in first_child.interventions}
+        treatments: set[Variable]
+        if any(isinstance(c, CounterfactualVariable) for c in chain(query.children, query.parents)):
+            if not all(isinstance(c, CounterfactualVariable) for c in query.children):
+                raise ValueError(
+                    "if any children or parents are counterfactual variables, all children have to be"
+                )
+            if not all(isinstance(c, CounterfactualVariable) for c in query.parents):
+                raise ValueError(
+                    "if any children or parents are counterfactual variables, all parents have to be"
+                )
 
-        return Query(
-            outcomes=outcomes,
-            treatments=treatments,
-            conditions=conditions,
-        )
+            intervention_sets: set[frozenset[Variable]] = {
+                cast(CounterfactualVariable, c).interventions
+                for c in chain(query.children, query.parents)
+            }
+            if len(intervention_sets) != 1:
+                raise ValueError("inconsistent usage of interventions")
+            treatments = {x.get_base() for x in next(iter(intervention_sets))}
+        else:
+            treatments = set()
+
+        return Query(outcomes=outcomes, treatments=treatments, conditions=conditions)
 
     def exchange_observation_with_action(self, variables: Variable | Iterable[Variable]) -> Query:
         """Move the condition variable(s) to the treatments."""
-        if isinstance(variables, Variable):
-            variables = {variables}
-        else:
-            variables = set(variables)
-        if any(v not in self.conditions for v in variables):
-            raise ValueError
+        variables = _ensure_set(variables)
+        if missing := (variables - self.conditions):
+            raise ValueError(f"variables don't appear in conditions: {missing}")
         return Query(
             outcomes=self.outcomes,
             treatments=self.treatments | variables,
@@ -136,12 +137,9 @@ class Query:
 
     def exchange_action_with_observation(self, variables: Variable | Iterable[Variable]) -> Query:
         """Move the treatment variable(s) to the conditions."""
-        if isinstance(variables, Variable):
-            variables = {variables}
-        else:
-            variables = set(variables)
-        if any(v not in self.treatments for v in variables):
-            raise ValueError
+        variables = _ensure_set(variables)
+        if missing := (variables - self.treatments):
+            raise ValueError(f"variables don't appear in treatments: {missing}")
         return Query(
             outcomes=self.outcomes,
             treatments=self.treatments - variables,
@@ -167,25 +165,12 @@ class Query:
     @property
     def expression(self) -> Expression:
         """Return the query as a Probabilistic expression."""
-        if self.conditions and self.treatments:
-            return P[self.treatments](self.outcomes | self.conditions)
+        distribution = Distribution.safe(self.outcomes)
+        if self.conditions:
+            distribution = distribution.given(self.conditions)
         elif self.treatments:
-            return P[self.treatments](self.outcomes)
-        elif self.conditions:
-            return P(self.outcomes | self.conditions)
-        else:
-            return P(self.outcomes)
-
-
-def _unexp_interventions(variables: Iterable[Variable]) -> bool:
-    return any(isinstance(c, CounterfactualVariable) for c in variables)
-
-
-def _ragged_interventions(variables: Iterable[Variable], interventions: set[Intervention]) -> bool:
-    return not all(
-        isinstance(child, CounterfactualVariable) and set(child.interventions) == interventions
-        for child in variables
-    )
+            distribution = distribution.intervene(self.treatments)
+        return Probability(distribution)
 
 
 class Identification:

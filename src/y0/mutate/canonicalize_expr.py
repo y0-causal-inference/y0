@@ -60,8 +60,8 @@ class Canonicalizer:
     def _canonicalize_probability(self, expression: Probability) -> Probability:
         return expression._new(
             Distribution(
-                children=self._sorted(expression.children),
-                parents=self._sorted(expression.parents),
+                children=expression.children,
+                parents=expression.parents,
             )
         )
 
