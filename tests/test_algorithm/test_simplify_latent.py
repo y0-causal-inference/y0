@@ -167,8 +167,8 @@ class TestSimplify(unittest.TestCase):
     def test_unidirectional_latents_amidst_other_rules(self):
         """Test remove unidirectional latents amidst other rules.
 
-        Rules being tested are: Transform latents with parents (Akt),
-        remove widow latents (Erk), unidirectional latents (Akt) and redundant latents (IGF).
+        Rules being tested are: Transform latents with parents (Akt), remove widow
+        latents (Erk), unidirectional latents (Akt) and redundant latents (IGF).
         """
         # Original graph
         actual_graph = _dag_from_adj_str(
@@ -207,8 +207,8 @@ class TestSimplify(unittest.TestCase):
     def test_simplify_latent_dag_for_sample_graph_0(self):
         """Test latent simplification for a simple network.
 
-        Rules being tested are: Transform latents with parents (U3), remove widow latents(U5),
-        unidirectional latents (U4) and redundant latents (U2).
+        Rules being tested are: Transform latents with parents (U3), remove widow
+        latents(U5), unidirectional latents (U4) and redundant latents (U2).
         """
         # Original graph
         actual_graph = _dag_from_adj_str(
@@ -281,8 +281,8 @@ class TestSimplify(unittest.TestCase):
     def test_simplify_latent_dag_for_sample_graph_2(self):
         """Test latent simplification for a simple network.
 
-        Rules being tested are: Transform latents with parents (PI3K),
-        remove unidirectional latents (PI3K) and redundant latents (IGF).
+        Rules being tested are: Transform latents with parents (PI3K), remove
+        unidirectional latents (PI3K) and redundant latents (IGF).
         """
         # Original graph
         actual_graph = _dag_from_adj_str(
@@ -319,8 +319,8 @@ class TestSimplify(unittest.TestCase):
     def test_simplify_latent_dag_for_sample_graph_3(self):
         """Test latent simplification for a simple network.
 
-        Rules being tested are: Transform latents with parents (Ras),
-        remove redundant latents (IGF).
+        Rules being tested are: Transform latents with parents (Ras), remove redundant
+        latents (IGF).
         """
         # Original graph
         actual_graph = _dag_from_adj_str(
@@ -358,8 +358,8 @@ class TestSimplify(unittest.TestCase):
     def test_simplify_latent_dag_for_sample_graph_4(self):
         """Test latent simplification for a simple network.
 
-        Transform latents with parents (Raf, Akt), remove unidirectional latents (Akt, Raf) and
-        redundant latents (IGF).
+        Transform latents with parents (Raf, Akt), remove unidirectional latents (Akt,
+        Raf) and redundant latents (IGF).
         """
         # Original graph
         actual_graph = _dag_from_adj_str(
@@ -398,8 +398,8 @@ class TestSimplify(unittest.TestCase):
     def test_simplify_latent_dag_for_sample_graph_5(self):
         """Test latent simplification for a simple network.
 
-        Rules being tested are: Transform latents with parents (PKA, Raf),
-        remove widow latents (P38, Jnk, Akt) and unidirectional latents (Raf).
+        Rules being tested are: Transform latents with parents (PKA, Raf), remove widow
+        latents (P38, Jnk, Akt) and unidirectional latents (Raf).
         """
         # Original graph
         actual_graph = _dag_from_adj_str(
@@ -440,8 +440,8 @@ class TestSimplify(unittest.TestCase):
     def test_simplify_latent_dag_for_sample_graph_6(self):
         """Test latent simplification for a simple network.
 
-        Rules being tested are: Transform latents with parents (PKA, PKC),
-        remove widow latents (Akt) and redundant nodes (PKC).
+        Rules being tested are: Transform latents with parents (PKA, PKC), remove widow
+        latents (Akt) and redundant nodes (PKC).
         """
         # Original graph
         actual_graph = _dag_from_adj_str(

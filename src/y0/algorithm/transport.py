@@ -22,7 +22,7 @@ from y0.dsl import (
     Sum,
     Variable,
     Zero,
-    _upgrade_variables,
+    _upgrade_variables_set,
 )
 from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import canonicalize
@@ -38,8 +38,8 @@ logger = logging.getLogger(__name__)
 
 def get_nodes_to_transport(
     *,
-    surrogate_interventions: set[Variable] | Variable,
-    surrogate_outcomes: set[Variable] | Variable,
+    surrogate_interventions: Variable | Iterable[Variable],
+    surrogate_outcomes: Variable | Iterable[Variable],
     graph: NxMixedGraph,
 ) -> set[Variable]:
     """Identify which nodes the transport nodes should point to.
@@ -47,10 +47,12 @@ def get_nodes_to_transport(
     :param surrogate_interventions: The interventions performed in an experiment.
     :param surrogate_outcomes: The outcomes observed in an experiment.
     :param graph: The graph of the target domain.
-    :returns: A set of variables representing target domain nodes where transportability nodes should be added.
+
+    :returns: A set of variables representing target domain nodes where transportability
+        nodes should be added.
     """
-    surrogate_interventions = set(_upgrade_variables(surrogate_interventions))
-    surrogate_outcomes = set(_upgrade_variables(surrogate_outcomes))
+    surrogate_interventions = _upgrade_variables_set(surrogate_interventions)
+    surrogate_outcomes = _upgrade_variables_set(surrogate_outcomes)
 
     # Find the c_component with surrogate_outcomes
     c_component_surrogate_outcomes: set[Variable] = set()
@@ -78,7 +80,9 @@ def transport_variable(variable: Variable) -> Variable:
     """Create a transport Variable by adding the transport prefix to a variable.
 
     :param variable: variable that the transport node will point to
+
     :returns: Variable with _TRANSPORT_PREFIX and variable name
+
     :raises TypeError: If a non-standard variable is passed
     """
     if isinstance(variable, CounterfactualVariable | Intervention):
@@ -90,6 +94,7 @@ def is_transport_node(node: Variable) -> bool:
     """Check if a Variable is a transport node.
 
     :param node: A node to evaluate.
+
     :returns: boolean True if node is a transport node, False otherwise.
     """
     return not isinstance(node, CounterfactualVariable | Intervention) and node.name.startswith(
@@ -101,6 +106,7 @@ def get_transport_nodes(graph: NxMixedGraph) -> set[Variable]:
     """Find all the transport nodes in a graph.
 
     :param graph: an NxMixedGraph which may have transport nodes
+
     :returns: Set containing all transport nodes in the graph
     """
     return {node for node in graph.nodes() if is_transport_node(node)}
@@ -110,6 +116,7 @@ def get_regular_nodes(graph: NxMixedGraph) -> set[Variable]:
     """Find all the nodes in a graph which are not transport nodes.
 
     :param graph: an NxMixedGraph
+
     :returns: Set containing all nodes which are not transport nodes
     """
     return {node for node in graph.nodes() if not is_transport_node(node)}
@@ -130,6 +137,7 @@ def create_transport_diagram(
 
     :param nodes_to_transport: nodes which have transport nodes pointing to them.
     :param graph: The graph of the target domain.
+
     :returns: graph with transport nodes added
     """
     rv = NxMixedGraph()
@@ -186,8 +194,12 @@ def surrogate_to_transport(
     :param graph: The graph of the target domain.
     :param surrogate_outcomes: A dictionary of outcomes in other populations
     :param surrogate_interventions: A dictionary of interventions in other populations
-    :returns: An octuple representing the query transformation of a surrogate outcome query.
-    :raises ValueError: if surrogate outcomes' and surrogate interventions' keys do not correspond
+
+    :returns: An octuple representing the query transformation of a surrogate outcome
+        query.
+
+    :raises ValueError: if surrogate outcomes' and surrogate interventions' keys do not
+        correspond
     """
     if set(surrogate_outcomes) != set(surrogate_interventions):
         raise ValueError("Inconsistent surrogate outcome and intervention domains")
@@ -225,6 +237,7 @@ def trso_line1(
     :param target_outcomes: A set of nodes that comprise our target outcomes.
     :param expression: The distribution in the current domain.
     :param graph: The graph with transport nodes in this domain.
+
     :returns: Sum over the probabilities of nodes other than target outcomes.
     """
     return Sum.safe(expression, get_regular_nodes(graph) - target_outcomes)
@@ -237,8 +250,11 @@ def trso_line2(
     """Restrict the interventions and diagram to only include ancestors of target variables.
 
     :param query: A TRSO query
-    :param outcomes_ancestors: the ancestors of target variables in transportability_diagram
+    :param outcomes_ancestors: the ancestors of target variables in
+        transportability_diagram
+
     :returns: A TRSO query with modified attributes.
+
     :raises TypeError: if the new query's expression is not a population probability
     """
     new_query = deepcopy(query)
@@ -275,6 +291,7 @@ def trso_line3(query: TRSOQuery, additional_interventions: set[Variable]) -> TRS
 
     :param query: A TRSO query
     :param additional_interventions: interventions to be added to target_interventions
+
     :returns: A TRSO query with modified attributes.
     """
     new_query = deepcopy(query)
@@ -289,7 +306,9 @@ def trso_line4(
     """Find the trso inputs for each C-component.
 
     :param query: A TRSO query
-    :param components: Set of c_components of transportability_diagram without target_interventions
+    :param components: Set of c_components of transportability_diagram without
+        target_interventions
+
     :returns: Dictionary with components as keys TRSOQuery objects as values
     """
     graph = query.graphs[query.domain]
@@ -306,6 +325,7 @@ def trso_line6(query: TRSOQuery) -> dict[Population, TRSOQuery]:
     """Find the active interventions for each domain, remove available experiments from interventions.
 
     :param query: A TRSO query
+
     :returns: Dictionary with domains as keys TRSOQuery objects as values
     """
     expressions = {}
@@ -324,6 +344,7 @@ def _line_6_helper(query: TRSOQuery, domain: Population, graph: NxMixedGraph) ->
     :param query: A TRSO query
     :param domain: A given population
     :param graph: A NxMixedGraph
+
     :returns: A TRSO query or None
     """
     surrogate_interventions = query.surrogate_interventions[domain]
@@ -353,9 +374,12 @@ def activate_domain_and_interventions(
     :param expression: A probability expression.
     :param interventions: Set of active interventions
     :param domain: A given population
+
     :returns: A new expression, intervened
+
     :raises NotImplementedError: If an expression type that is not handled gets passed
-    :raises TypeError: if the expression is a probability but not a population probability
+    :raises TypeError: if the expression is a probability but not a population
+        probability
     """
     if isinstance(expression, Probability):
         if not isinstance(expression, PopulationProbability):
@@ -397,7 +421,9 @@ def all_transports_d_separated(
     :param graph: The graph with transport nodes in this domain.
     :param target_interventions: Set of target interventions
     :param target_outcomes: Set of target interventions
-    :returns: True if all interventions are d-separated from all outcomes, False otherwise.
+
+    :returns: True if all interventions are d-separated from all outcomes, False
+        otherwise.
     """
     transportability_nodes = get_transport_nodes(graph)
     graph_without_interventions = graph.remove_in_edges(target_interventions)
@@ -418,8 +444,11 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     """Get the probability in the case with exactly one districts_without_interventions and it is present in districts.
 
     :param query: A TRSO query
-    :param district: The C-component present in both districts_without_interventions and districts
+    :param district: The C-component present in both districts_without_interventions and
+        districts
+
     :returns: An Expression
+
     :raises RuntimeError: If the query's expression is zero. This should never happen
     """
     logger.debug(
@@ -460,8 +489,11 @@ def trso_line10(
     """Update the TRSO query to restrict interventions and graph to district.
 
     :param query: A TRSO query
-    :param district: The C-component of districts which contains district_without_interventions
-    :param new_surrogate_interventions: Dict mapping domains to interventions performed in that domain.
+    :param district: The C-component of districts which contains
+        district_without_interventions
+    :param new_surrogate_interventions: Dict mapping domains to interventions performed
+        in that domain.
+
     :returns: A modified TRSOQuery
     """
     ordering = list(query.graphs[query.domain].topological_sort())
@@ -487,7 +519,9 @@ def trso(query: TRSOQuery) -> Expression | None:  # noqa:C901
     """Run the TRSO algorithm to evaluate a transport problem.
 
     :param query: A TRSO query, which contains 8 instance variables needed for TRSO
+
     :returns: An Expression evaluating the given query, or None
+
     :raises RuntimeError: when an impossible condition is met
     """
     # Check that domain is in query.domains
@@ -655,6 +689,7 @@ def check_and_raise_missing(nodes: set[Variable], graph: NxMixedGraph, name: str
     :param nodes: A set of nodes that should be in the graph.
     :param graph: An NxMixedGraph(), the graph of the target domain.
     :param name: Name of the set of nodes
+
     :raises ValueError: If any element of nodes is not in the graph.
     """
     missing_nodes = nodes - graph.nodes()
@@ -675,18 +710,22 @@ def identify_target_outcomes(
 ) -> Expression | None:
     r"""Get the estimand for the target outcome givne the surrogate outcomes.
 
-    .. seealso:: Originally described in https://arxiv.org/abs/1806.07172.
+    .. seealso::
+
+        Originally described in https://arxiv.org/abs/1806.07172.
 
     :param target_outcomes: A set of target variables for causal effects.
     :param target_interventions: A set of interventions for the target domain.
     :param graph: The graph of the target domain.
     :param surrogate_outcomes: A dictionary of outcomes in other populations
     :param surrogate_interventions: A dictionary of interventions in other populations
+
     :returns: An Expression evaluating the given query, or None
+
     :raises ValueError: If the target outcomes and target interventions intersect
 
-    The example from figure 8 of the original paper can be executed with
-    the following code:
+    The example from figure 8 of the original paper can be executed with the following
+    code:
 
     .. code-block:: python
 
@@ -702,9 +741,8 @@ def identify_target_outcomes(
             surrogate_interventions={Pi1: {X1}, Pi2: {X2}},
         )
 
-    This returns the following estimand:
-    $\sum_{W, Z} P(W, Z) \frac{P_{X_1}^{π_1}(W, Y_1, Z)}{P_{X_1}(W, Z)}
-    \frac{P_{X_2}^{π_2}(W, X_1, Y_2, Z)}{P_{X_2}(W, X_1, Z)}$
+    This returns the following estimand: $\sum_{W, Z} P(W, Z) \frac{P_{X_1}^{π_1}(W,
+    Y_1, Z)}{P_{X_1}(W, Z)} \frac{P_{X_2}^{π_2}(W, X_1, Y_2, Z)}{P_{X_2}(W, X_1, Z)}$
     """
     # TODO add vanilla identification check?
     # vanilla_estimand = identify_outcomes(

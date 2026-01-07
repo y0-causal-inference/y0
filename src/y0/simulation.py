@@ -143,9 +143,9 @@ def get_fits_df(fits_dict: FitsDict) -> pd.DataFrame:
 class LinearSCM:
     """A data structure for a simulation.
 
-    Provides an implementation of the simulation presented in Figure 1 and Example 2.2 in
-    `Graphical criteria for efficient total effect estimation via adjustment in causal
-    linear models <https://arxiv.org/abs/1907.02435>`_
+    Provides an implementation of the simulation presented in Figure 1 and Example 2.2
+    in `Graphical criteria for efficient total effect estimation via adjustment in
+    causal linear models <https://arxiv.org/abs/1907.02435>`_
     """
 
     #: The generator functions for all nodes
@@ -165,12 +165,14 @@ class LinearSCM:
         """Prepare a simulation.
 
         :param graph: The ADMG
-        :param generators: Generator functions for each node. If none given, defaults to uniformly
-            distributed between -1.0 and 1.0.
+        :param generators: Generator functions for each node. If none given, defaults to
+            uniformly distributed between -1.0 and 1.0.
         :param data: If given, estimates weights.
-        :param weights: Weights for each directed edge. If none given, defaults to uniformly distributed
-            weights between -1.0 and 1.0.
-        :raises ValueError: if the generators or weights are given and don't match the graph
+        :param weights: Weights for each directed edge. If none given, defaults to
+            uniformly distributed weights between -1.0 and 1.0.
+
+        :raises ValueError: if the generators or weights are given and don't match the
+            graph
         """
         self.graph = graph
 
@@ -215,7 +217,7 @@ class LinearSCM:
     def trial(self) -> Mapping[Variable, float]:
         """Perform a single trial.
 
-        :return: A mapping from variable names to simulation values
+        :returns: A mapping from variable names to simulation values
         """
         values: MutableMapping[Variable, float] = {}
         for node in self.graph.topological_sort():

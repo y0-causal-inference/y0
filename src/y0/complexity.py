@@ -36,9 +36,10 @@ def complexity(expr: Expression) -> float:
     parts of each expression are added up, counting the number of variables in each.
 
     :param expr: The input expression
-    :return: The complexity of the expression
-    :raises TypeError:
-        Raised if an invalid expression type is used
+
+    :returns: The complexity of the expression
+
+    :raises TypeError: Raised if an invalid expression type is used
     """
     if isinstance(expr, One | Zero):
         return CONST_CONST

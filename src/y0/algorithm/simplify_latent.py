@@ -1,7 +1,7 @@
 """Implement Robin Evans' simplification algorithms from [evans2012]_ and [evans2016]_.
 
 .. [evans2012] `Constraints on marginalised DAGs
-      <https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf>`_
+    <https://www.fields.utoronto.ca/programs/scientific/11-12/graphicmodels/Evans.pdf>`_
 """
 
 import itertools as itt
@@ -38,10 +38,11 @@ def evans_simplify(
     """Reduce the ADMG based on Evans' simplification rules in [evans2012]_ and [evans2016]_.
 
     :param graph: an NxMixedGraph
-    :param latents: Additional variables to mark as latent, in addition to the
-        ones created by undirected edges
+    :param latents: Additional variables to mark as latent, in addition to the ones
+        created by undirected edges
     :param tag: The tag for which variables are latent
-    :return: the new graph after simplification
+
+    :returns: the new graph after simplification
     """
     if tag is None:
         tag = DEFAULT_TAG
@@ -89,6 +90,7 @@ def iter_latents(graph: nx.DiGraph, *, tag: str | None = None) -> Iterable[Varia
 
     :param graph: A latent variable DAG
     :param tag: The tag for which variables are latent
+
     :yields: Nodes that are latent
     """
     if tag is None:
@@ -106,6 +108,7 @@ def remove_widow_latents(
 
     :param graph: A latent variable DAG
     :param tag: The tag for which variables are latent
+
     :returns: The graph, modified in place
     """
     remove = set(iter_widow_latents(graph, tag=tag))
@@ -120,6 +123,7 @@ def remove_unidirectional_latents(
 
     :param graph: A latent variable DAG
     :param tag: The tag for which variables are latent
+
     :returns: The graph, modified in place
     """
     remove = set(iter_unidirectional_latents(graph, tag=tag))
@@ -132,6 +136,7 @@ def iter_widow_latents(graph: nx.DiGraph, *, tag: str | None = None) -> Iterable
 
     :param graph: A latent variable DAG
     :param tag: The tag for which variables are latent
+
     :yields: Nodes with no children
     """
     for node in iter_latents(graph, tag=tag):
@@ -144,6 +149,7 @@ def iter_unidirectional_latents(graph: nx.DiGraph, *, tag: str | None = None) ->
 
     :param graph: A latent variable DAG
     :param tag: The tag for which variables are latent
+
     :yields: Nodes with one child
     """
     for node in iter_latents(graph, tag=tag):
@@ -158,11 +164,12 @@ def transform_latents_with_parents(
 ) -> nx.DiGraph:
     """Transform latent variables with parents into exogenous latent variables.
 
-     An exogenous latent variable is a node with no parents.
+        An exogenous latent variable is a node with no parents.
 
     :param graph: A latent variable DAG
     :param tag: The tag for which variables are latent
     :param suffix: The suffix to postpend to transformed latent variables.
+
     :returns: The graph, modified in place
     """
     if tag is None:
@@ -188,7 +195,9 @@ def iter_middle_latents(
 
     :param graph: A latent variable DAG
     :param tag: The tag for which variables are latent
-    :yields: Nodes with both parents and children, along with the set of parents and set of children
+
+    :yields: Nodes with both parents and children, along with the set of parents and set
+        of children
     """
     for node in iter_latents(graph, tag=tag):
         parents = set(graph.predecessors(node))
@@ -205,11 +214,12 @@ def remove_redundant_latents(
 ) -> tuple[nx.DiGraph, set[Variable]]:
     """Remove redundant latent variables.
 
-    W is a redundant latent variable if children of W are
-    a subset of another latent variable.
+    W is a redundant latent variable if children of W are a subset of another latent
+    variable.
 
     :param graph: A latent variable DAG
     :param tag: The tag for which variables are latent
+
     :returns: The graph, modified in place
     """
     _assert_variable_nodes(graph)

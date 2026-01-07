@@ -1,5 +1,6 @@
-Installation
-============
+##############
+ Installation
+##############
 
 The most recent release can be installed from `PyPI <https://pypi.org/project/y0>`_ with
 uv:
@@ -14,8 +15,9 @@ or with pip:
 
     $ python3 -m pip install y0
 
-Installing from git
--------------------
+*********************
+ Installing from git
+*********************
 
 The most recent code and data can be installed directly from GitHub with uv:
 
@@ -29,8 +31,9 @@ or with pip:
 
     $ python3 -m pip install git+https://github.com/y0-causal-inference/y0.git
 
-Installing for development
---------------------------
+****************************
+ Installing for development
+****************************
 
 To install in development mode with uv:
 

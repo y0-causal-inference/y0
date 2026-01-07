@@ -1,9 +1,12 @@
 """Test the probability DSL."""
 
+import importlib.util
 import unittest
 from typing import ClassVar
 
 from y0.dsl import (
+    X1,
+    Y2,
     A,
     B,
     C,
@@ -12,6 +15,7 @@ from y0.dsl import (
     Distribution,
     Element,
     Expression,
+    Fraction,
     Intervention,
     One,
     P,
@@ -32,6 +36,10 @@ from y0.dsl import (
 from y0.parser import parse_y0
 
 V = Variable("V")
+
+
+def _f(*x: Variable) -> frozenset[Variable]:
+    return frozenset(x)
 
 
 class TestDSL(unittest.TestCase):
@@ -64,6 +72,25 @@ class TestDSL(unittest.TestCase):
         """Test the variable DSL object."""
         self.assert_text("A", Variable("A"))
         self.assert_text("A", A)  # shorthand for testing purposes
+        self.assert_text("A", Variable["A"])
+
+    @unittest.skipUnless(importlib.util.find_spec("sympy"), "sympy not installed")
+    def test_sympy(self) -> None:
+        """Test variable to sympy."""
+        Variable("A").to_sympy()
+
+    def test_type_errors(self) -> None:
+        """Test type errors."""
+        with self.assertRaises(TypeError):
+            Variable(name=5)  # type:ignore
+        with self.assertRaises(TypeError):
+            Variable.norm(5)  # type:ignore
+        with self.assertRaises(ValueError):
+            Intervention("A", star=None)
+        with self.assertRaises(ValueError):
+            CounterfactualVariable("A", star=True, interventions=frozenset())
+        with self.assertRaises(TypeError):
+            CounterfactualVariable("A", star=True, interventions=frozenset([Variable("B")]))  # type:ignore
 
     def test_stop_the_madness(self):
         """Test that a variable can not be named "P"."""
@@ -73,7 +100,7 @@ class TestDSL(unittest.TestCase):
             _ = Variable("Q")
 
     def test_intervention(self):
-        """Test the invervention DSL object."""
+        """Test the intervention DSL object."""
         self.assert_text("+W", Intervention("W", star=True))
         self.assert_text("-W", Intervention("W", star=False))
         self.assert_text("W", W)  # shorthand for testing purposes
@@ -177,7 +204,7 @@ class TestDSL(unittest.TestCase):
     def test_conditional_distribution(self):
         """Test the :class:`Distribution` DSL object."""
         # Normal instantiation
-        self.assert_text("A | B", Distribution((A,), (B,)))
+        self.assert_text("A | B", Distribution(_f(A), _f(B)))
 
         # Instantiation with list-based operand to or | operator
         self.assert_text("A | B", Variable("A") | (B,))
@@ -205,29 +232,29 @@ class TestDSL(unittest.TestCase):
 
     def test_joint_distribution(self):
         """Test the JointProbability DSL object."""
-        self.assert_text("A, B", Distribution((A, B)))
+        self.assert_text("A, B", Distribution(_f(A, B)))
         self.assert_text("A, B", A & B)
-        self.assert_text("A, B, C", Distribution((A, B, C)))
+        self.assert_text("A, B, C", Distribution(_f(A, B, C)))
         self.assert_text("A, B, C", A & B & C)
 
     def test_probability(self):
         """Test generation of probabilities."""
         # Make sure there are children
         with self.assertRaises(ValueError):
-            Distribution(())
+            Distribution(set())
 
         self.assert_text("P(A)", P(A))
         self.assert_text("P(A)", P("A"))
-        self.assert_text("P(A)", P(Distribution((A,))))
+        self.assert_text("P(A)", P(Distribution(_f(A))))
 
         # Test markov kernel with single parent (AKA has only one child variable)
         self.assert_text("P(A | B)", P(A | B))
-        self.assert_text("P(A | B)", P(Distribution((A,), (B,))))
+        self.assert_text("P(A | B)", P(Distribution(_f(A), _f(B))))
         self.assert_text("P(A | B)", P(A | [B]))
 
         # Test markov kernel with multiple parents
         self.assert_text("P(A | B, C)", P(A | B, C))
-        self.assert_text("P(A | B, C)", P(Distribution((A,), (B,)) | C))
+        self.assert_text("P(A | B, C)", P(Distribution(_f(A), _f(B)) | C))
         self.assert_text("P(A | B, C)", P(A | [B, C]))
         self.assert_text("P(A | B, C)", P(A | B | C))
         self.assert_text("P(A | B, C)", P(A | B & C))
@@ -250,27 +277,70 @@ class TestDSL(unittest.TestCase):
 
         # Test mixed with single conditional
         self.assert_text("P(A, B | C)", P(A, B | C))
-        self.assert_text("P(A, B | C)", P(Distribution((A, B), (C,))))
-        self.assert_text("P(A, B | C)", P(Distribution((A, B), (C,))))
-        self.assert_text("P(A, B | C)", P(Distribution((A, B)) | C))
+        self.assert_text(
+            "P(A, B | C)",
+            P(
+                Distribution(
+                    _f(A, B),
+                    _f(
+                        C,
+                    ),
+                )
+            ),
+        )
+        self.assert_text(
+            "P(A, B | C)",
+            P(
+                Distribution(
+                    _f(A, B),
+                    _f(
+                        C,
+                    ),
+                )
+            ),
+        )
+        self.assert_text("P(A, B | C)", P(Distribution(_f(A, B)) | C))
         self.assert_text("P(A, B | C)", P(A & B | C))
 
         # Test mixed with multiple conditionals
         self.assert_text("P(A, B | C, D)", P(A, B | C, D))
-        self.assert_text("P(A, B | C, D)", P(Distribution((A, B), (C, D))))
-        self.assert_text("P(A, B | C, D)", P(Distribution((A, B)) | C | D))
-        self.assert_text("P(A, B | C, D)", P(Distribution((A, B), (C,)) | D))
+        self.assert_text("P(A, B | C, D)", P(Distribution(_f(A, B), _f(C, D))))
+        self.assert_text("P(A, B | C, D)", P(Distribution(_f(A, B)) | C | D))
+        self.assert_text(
+            "P(A, B | C, D)",
+            P(
+                Distribution(
+                    _f(A, B),
+                    _f(
+                        C,
+                    ),
+                )
+                | D
+            ),
+        )
         self.assert_text("P(A, B | C, D)", P(A & B | C | D))
         self.assert_text("P(A, B | C, D)", P(A & B | (C, D)))
-        self.assert_text("P(A, B | C, D)", P(A & B | Distribution((C, D))))
+        self.assert_text("P(A, B | C, D)", P(A & B | Distribution(_f(C, D))))
         self.assert_text("P(A, B | C, D)", P(A & B | C & D))
 
     def test_conditioning_errors(self):
         """Test erroring on conditionals."""
         for expression in [
-            Distribution((B,), (C,)),
-            Distribution((B, C), (D,)),
-            Distribution((B, C), (D, W)),
+            Distribution(
+                _f(
+                    B,
+                ),
+                _f(
+                    C,
+                ),
+            ),
+            Distribution(
+                _f(B, C),
+                _f(
+                    D,
+                ),
+            ),
+            Distribution(_f(B, C), _f(D, W)),
         ]:
             with self.assertRaises(TypeError):
                 _ = A | expression
@@ -578,3 +648,31 @@ class TestZero(unittest.TestCase):
                 self.assertEqual(zero, zero * expr, msg=f"Got {zero * expr}")
             with self.subTest(expr=expr.to_y0(), direction="left"):
                 self.assertEqual(zero, expr * zero, msg=f"Got {expr * zero}")
+
+    def test_probability_multiply(self) -> None:
+        """Test probability with other operations."""
+        self.assertEqual(P(A), P(A) / One())
+        self.assertEqual(
+            Fraction(P(A), Product.safe([P(B), P(C)])), P(A) / Product.safe([P(B), P(C)])
+        )
+        self.assertEqual(Fraction(P(A) * P(C), P(B)), P(A) / Fraction(P(B), P(C)))
+
+    def test_simplify_product(self) -> None:
+        """Test simplifying products."""
+        self.assertEqual(Zero(), Product((P(A), Zero())).simplify())
+        self.assertEqual(Zero(), Product((Zero(), P(A))).simplify())
+        self.assertEqual(One(), Product((One(), One())).simplify())
+        self.assertEqual(P(A), Product((One(), P(A))).simplify())
+        self.assertEqual(P(A), Product((P(A), One())).simplify())
+        self.assertEqual(P(A) * P(B), Product((One(), P(A), P(B))).simplify())
+        self.assertEqual(P(A) * P(B), Product((P(A), One(), P(B))).simplify())
+
+        self.assertEqual(
+            Fraction(P(A) * P(B), P(C)), Product((P(A), Fraction(P(B), P(C)))).simplify()
+        )
+        self.assertEqual(Fraction(P(A), P(C)), Product((P(A), Fraction(One(), P(C)))).simplify())
+
+    def test_simplify_sum(self) -> None:
+        """Test simplifying sums."""
+        x = Sum(P(W, X1, Y2, Z), frozenset([Y2]))
+        self.assertEqual(P(W, X1, Z), x.simplify())

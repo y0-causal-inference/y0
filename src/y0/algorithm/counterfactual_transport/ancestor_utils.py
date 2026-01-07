@@ -20,23 +20,24 @@ logger = logging.getLogger(__file__)
 def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set[Variable]:
     """Get the ancestors of a counterfactual variable.
 
-    This follows [correa22a]_, Definition 2.1 and Example 2.1.
-    If the input variable has no interventions, the problem reduces to getting
-    ancestors in a graph.
+    This follows [correa22a]_, Definition 2.1 and Example 2.1. If the input variable has
+    no interventions, the problem reduces to getting ancestors in a graph.
 
     :param event: A single counterfactual variable.
     :param graph: The graph containing it.
-    :returns:
-        A set of counterfactual variables. [correa22a]_ consider
-        a "counterfactual variable" to also include variables with no interventions.
+
+    :returns: A set of counterfactual variables. [correa22a]_ consider a "counterfactual
+        variable" to also include variables with no interventions.
 
         .. note::
 
             In our case, we allow our returned set to include the "Variable" class for
             $Y_0$ syntax, and should test examples including ordinary variables as
             ancestors.
-    :raises TypeError:
-        get_ancestors_of_counterfactual only accepts a single Variable or CounterfactualVariable
+
+
+    :raises TypeError: get_ancestors_of_counterfactual only accepts a single Variable or
+        CounterfactualVariable
     """
     # There's a TypeError check here because it is easy for a user to pass a set of variables in, instead of
     # a single variable.
@@ -79,14 +80,15 @@ def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set
 def _minimize_set(*, graph: NxMixedGraph, variables: Iterable[Variable]) -> set[Variable]:
     r"""Minimize a set of counterfactual variables.
 
-    Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
-    $||\mathbf Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \in {\mathbf Y_*}$.
+    Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1. $||\mathbf
+    Y_*|| = {||Y_{\mathbf x}|| | Y_{\mathbf x}} \in {\mathbf Y_*}$.
 
-    :param variables: A set of counterfactual variables to minimize (some may have no interventions).
+    :param variables: A set of counterfactual variables to minimize (some may have no
+        interventions).
     :param graph: The graph containing them.
-    :returns:
-        A set of minimized counterfactual variables such that each minimized variable
-        is an element of the original set.
+
+    :returns: A set of minimized counterfactual variables such that each minimized
+        variable is an element of the original set.
     """
     return {minimize_counterfactual(variable, graph) for variable in variables}
 
@@ -96,12 +98,15 @@ def minimize_counterfactual(variable: Variable, graph: NxMixedGraph) -> Variable
 
     Source: last paragraph in Section 4 of [correa22a]_, before Section 4.1.
 
-    $||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect An(Y)_{G_{\overline(\mathbf X)}}$
-    and $\mathbf t = \mathbf x \intersect \mathbf T$.
+    $||Y_{\mathbf x}|| = Y_{\mathbf t}, where \mathbf T = \mathbf X \intersect
+    An(Y)_{G_{\overline(\mathbf X)}}$ and $\mathbf t = \mathbf x \intersect \mathbf T$.
 
-    :param variable: A counterfactual variable to minimize (which may have no interventions).
+    :param variable: A counterfactual variable to minimize (which may have no
+        interventions).
     :param graph: The graph containing them.
-    :returns: a minimized counterfactual variable which may omit some interventions from the original one.
+
+    :returns: a minimized counterfactual variable which may omit some interventions from
+        the original one.
     """
     if not isinstance(variable, CounterfactualVariable):
         return variable
@@ -144,25 +149,29 @@ def _get_conditioned_variables_in_ancestral_set(
     r"""Retrieve the intersection of the ancestral set of a root variable and a set of conditioned variables.
 
     This function computes $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$,
-    the conditioned variables that are ancestors of the input root variable $W_{\mathbf{t}}$.
+    the conditioned variables that are ancestors of the input root variable
+    $W_{\mathbf{t}}$.
 
-    Note that [correa22a]_ contains an apparent contradiction: Example 4.5 indicates that
-    this operator may return a set of counterfactual variables such as $\{Z_{x}\}$ in the text,
-    but in that case this function should compute
+    Note that [correa22a]_ contains an apparent contradiction: Example 4.5 indicates
+    that this operator may return a set of counterfactual variables such as $\{Z_{x}\}$
+    in the text, but in that case this function should compute
     $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))_{\mathbf{t}}$ and not
-    $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$. The ambiguity can best be
-    resolved with a correction to the article. Meanwhile, because in practice this function
-    is used to consider graphs removing edges out of the set of vertices that the function
-    returns, we implement it according to its definition in the text of [correa22a]_:
-    $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$.
+    $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$. The ambiguity can best
+    be resolved with a correction to the article. Meanwhile, because in practice this
+    function is used to consider graphs removing edges out of the set of vertices that
+    the function returns, we implement it according to its definition in the text of
+    [correa22a]_: $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$.
 
-    :param conditioned_variables: Following [correa22a]_ this is $\mathbf{X_{\ast}}$, a set of variables that
-           are conditioned on in a query. They may be Variable or CounterfactualVariable objects.
-    :param ancestral_set_root_variable: following [correa22a]_ this is $W_{\mathbf{t}}$, a variable
-           that the function uses to generate its ancestral set.
+    :param conditioned_variables: Following [correa22a]_ this is $\mathbf{X_{\ast}}$, a
+        set of variables that are conditioned on in a query. They may be Variable or
+        CounterfactualVariable objects.
+    :param ancestral_set_root_variable: following [correa22a]_ this is $W_{\mathbf{t}}$,
+        a variable that the function uses to generate its ancestral set.
     :param graph: the relevant graph (the target domain graph in [correa22a]_).
-    :returns: an expression for $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap An(W_{\mathbf{t}}))$,
-           that is, the conditioned variables that are ancestors of the input root variable $W_{\mathbf{t}}$.
+
+    :returns: an expression for $\mathbf{V}(\|\mathbf{X_{\ast}}\| \cap
+        An(W_{\mathbf{t}}))$, that is, the conditioned variables that are ancestors of
+        the input root variable $W_{\mathbf{t}}$.
     """
     minimized_conditioned_variables = _minimize_set(variables=conditioned_variables, graph=graph)
     ancestral_set = get_ancestors_of_counterfactual(ancestral_set_root_variable, graph)
@@ -181,21 +190,24 @@ def _get_ancestral_set_after_intervening_on_conditioned_variables(
 ) -> frozenset[Variable]:
     r"""Get a variable's ancestral set after first intervening on any conditioned variables that are its ancestors.
 
-    This function computes $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$,
+    This function computes
+    $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$,
     per [correa22a]_.
 
-    :param conditioned_variables: Following [correa22a]_ this is $\mathbf{X_{\ast}}$, a set of variables that
-           are conditioned on in a query. They may be Variable or CounterfactualVariable objects. This function
-           will not intervene on every one of these conditioned variables, just those that are ancestors of
-           the ancestral set root variable.
-    :param ancestral_set_root_variable: following [correa22a]_ this is $W_{\mathbf{t}}$, a variable
-           that the function uses to generate its ancestral set.
+    :param conditioned_variables: Following [correa22a]_ this is $\mathbf{X_{\ast}}$, a
+        set of variables that are conditioned on in a query. They may be Variable or
+        CounterfactualVariable objects. This function will not intervene on every one of
+        these conditioned variables, just those that are ancestors of the ancestral set
+        root variable.
+    :param ancestral_set_root_variable: following [correa22a]_ this is $W_{\mathbf{t}}$,
+        a variable that the function uses to generate its ancestral set.
     :param graph: the relevant graph (the target domain graph in [correa22a]_).
+
     :returns: a set of variables corresponding to
-           $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$,
-           that is, the ancestors of $W_{\mathbf{t}}$ in a graph intervening on those
-           conditioned variables that would otherwise be in $W_{\mathbf{t}}$'s ancestral set were the
-           interventions not applied.
+        $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$,
+        that is, the ancestors of $W_{\mathbf{t}}$ in a graph intervening on those
+        conditioned variables that would otherwise be in $W_{\mathbf{t}}$'s ancestral
+        set were the interventions not applied.
     """
     conditioned_variables_in_ancestral_set = _get_conditioned_variables_in_ancestral_set(
         conditioned_variables=conditioned_variables,
@@ -217,18 +229,22 @@ def _compute_ancestral_components_from_ancestral_sets(
     r"""Construct a set of ancestral components from ancestral sets following Definition 4.2 of [correa22a]_.
 
     Note: [correa22a]_ is silent regarding an algorithm for efficiently combining the input
-        ancestral sets for this function. This implementation runs in time $O(V^{3})$, where $V$
-        is the number of vertices in the graph. The implementation matches Correa and
-        Bareinboim's efficiency analysis in Appendix B of [correa22a]_.
+        ancestral sets for this function. This implementation runs in time $O(V^{3})$,
+        where $V$ is the number of vertices in the graph. The implementation matches
+        Correa and Bareinboim's efficiency analysis in Appendix B of [correa22a]_.
 
     :param ancestral_sets: These are the sets
-           $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$ in
-           Definition 4.2 of [correa22a]_. They are induced by $\mathbf{W_{\ast}}$, given $\mathbf{X_{\ast}}$.
-    :param graph: the relevant graph $\mathcal{G}$ (without intervening on any conditioned variables).
-    :returns: the sets $\mathbf{A}_{1},\mathbf{A}_{2},\ldots$ that form a partition over $An(\mathbf{W_{\ast}})$,
-           made of unions of the input ancestral sets. Two sets are combined via a union operation if they are
-           not disjoint or there exists a bidirected arrow in $\mathcal{G}$ connecting variables
-           in those sets. (Definition 4.2 of [correa22a]_.)
+        $An(W_{\mathbf{t}})_{\mathcal{G}_{\underline{\mathbf{X_{\ast}(W_{\mathbf{t}})}}}$
+        in Definition 4.2 of [correa22a]_. They are induced by $\mathbf{W_{\ast}}$,
+        given $\mathbf{X_{\ast}}$.
+    :param graph: the relevant graph $\mathcal{G}$ (without intervening on any
+        conditioned variables).
+
+    :returns: the sets $\mathbf{A}_{1},\mathbf{A}_{2},\ldots$ that form a partition over
+        $An(\mathbf{W_{\ast}})$, made of unions of the input ancestral sets. Two sets
+        are combined via a union operation if they are not disjoint or there exists a
+        bidirected arrow in $\mathcal{G}$ connecting variables in those sets.
+        (Definition 4.2 of [correa22a]_.)
     """
     # Initialization
 
@@ -371,16 +387,20 @@ def get_ancestral_components(
 ) -> frozenset[frozenset[Variable]]:
     r"""Compute a set of ancestral components corresponding to Definition 4.2 of [correa22a].
 
-    :param conditioned_variables: The set of variables $\mathbf{X_{\ast}}$ on which
-           a counterfactual query has been conditioned.
+    :param conditioned_variables: The set of variables $\mathbf{X_{\ast}}$ on which a
+        counterfactual query has been conditioned.
     :param root_variables: The set of variables $\mathbf{W_{\ast}}$, such that
-          $\mathbf{X_{\ast}} \subseteq \mathbf{W_{\ast}}$, that we use to construct ancestral sets
-          for each variable in $\mathbf{W_{\ast}}$ and ancestral components from those sets.
-    :param graph: the relevant graph $\mathcal{G}$ (without intervening on any conditioned variables).
-    :returns: the sets $\mathbf{A}_{1},\mathbf{A}_{2},\ldots$ that form a partition over $An(\mathbf{W_{\ast}})$,
-           made of unions of the input ancestral sets. Two sets are combined via a union operation if they are
-           not disjoint or there exists a bidirected arrow in $\mathcal{G}$ connecting variables
-           in those sets. (Definition 4.2 of [correa22a]_.)
+        $\mathbf{X_{\ast}} \subseteq \mathbf{W_{\ast}}$, that we use to construct
+        ancestral sets for each variable in $\mathbf{W_{\ast}}$ and ancestral components
+        from those sets.
+    :param graph: the relevant graph $\mathcal{G}$ (without intervening on any
+        conditioned variables).
+
+    :returns: the sets $\mathbf{A}_{1},\mathbf{A}_{2},\ldots$ that form a partition over
+        $An(\mathbf{W_{\ast}})$, made of unions of the input ancestral sets. Two sets
+        are combined via a union operation if they are not disjoint or there exists a
+        bidirected arrow in $\mathcal{G}$ connecting variables in those sets.
+        (Definition 4.2 of [correa22a]_.)
     """
     ancestral_sets: set[frozenset[Variable]] = {
         _get_ancestral_set_after_intervening_on_conditioned_variables(
@@ -406,16 +426,18 @@ def _merge_frozen_sets_with_common_vertices(
 ) -> set[frozenset[Variable]]:
     r"""Merge a set of frozen sets of counterfactual variables using common vertices.
 
-    Two sets get merged if they share a common graph vertex. That is, there exists a counterfactual
-    variable in the first set and a counterfactual variable in the first set such that both
-    counterfactual variables have the same base variable name. This algorithm treats input sets as
-    nodes in a graph, defines an edge in the graph in all cases for which two input sets share
-    a common vertex, computes the union of the vertices in each connected component in
-    the resulting graph as a frozen set, and returns the set of those frozen sets.
+    Two sets get merged if they share a common graph vertex. That is, there exists a
+    counterfactual variable in the first set and a counterfactual variable in the first
+    set such that both counterfactual variables have the same base variable name. This
+    algorithm treats input sets as nodes in a graph, defines an edge in the graph in all
+    cases for which two input sets share a common vertex, computes the union of the
+    vertices in each connected component in the resulting graph as a frozen set, and
+    returns the set of those frozen sets.
 
     Total running time: O(V^3) where V is the number of vertices in the graph.
 
     :param input_sets: the counterfactual variables in question.
+
     :returns: A set containing the merged frozen sets.
     """
     # From this StackOverflow post: https://stackoverflow.com/questions/42211947/merging-sets-with-common-elements
@@ -529,11 +551,11 @@ def _merge_frozen_sets_linked_by_bidirectional_edges(  # noqa:C901
 ) -> set[frozenset[Variable]]:
     r"""Merge a set of frozen sets of counterfactual variables using common bidirectional edges.
 
-    Two sets get merged if a bidirectional edge connects them.
-    Running time: O(V^3)
+    Two sets get merged if a bidirectional edge connects them. Running time: O(V^3)
 
     :param input_sets: the counterfactual variables in question.
     :param graph: the graph in question.
+
     :returns: A set containing the merged frozen sets.
     """
     # Modified from https://stackoverflow.com/questions/42211947/merging-sets-with-common-elements
@@ -594,6 +616,7 @@ def get_base_variables(variables: frozenset[Variable]) -> frozenset[Variable]:
     r"""Replace a set of counterfactual variables with a set of corresponding base variables.
 
     :param variables: the counterfactual variables in question.
+
     :returns: The base variables.
     """
     return frozenset(variable.get_base() for variable in variables)

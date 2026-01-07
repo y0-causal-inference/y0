@@ -33,9 +33,13 @@ class VermaConstraint(NamedTuple):
         """Extract content from each element in the vector returned by `verma.constraint`.
 
         :param element: An element in the vector returned by `verma.constraint`
+
         :returns: A Verma constraint tuple for the given element
 
-        .. seealso:: Extracting from R objects https://rpy2.github.io/doc/v3.4.x/html/vector.html#extracting-items
+        .. seealso::
+
+            Extracting from R objects
+            https://rpy2.github.io/doc/v3.4.x/html/vector.html#extracting-items
         """
         from .parser import parse_causaleffect
         from .r_utils import _extract, _parse_vars
@@ -93,9 +97,9 @@ def get_conditional_independence_tests() -> dict[CITest, CITestFunc]:
 class CITestTuple(NamedTuple):
     """A tuple containing the results from a PGMPy conditional independency test.
 
-    Note that continuous tests such as :func:`pgmpy.estimators.CITests.pearsonr`
-    do not have an associated _degrees of freedom_ (dof), so this field is set
-    to none in those cases.
+    Note that continuous tests such as :func:`pgmpy.estimators.CITests.pearsonr` do not
+    have an associated _degrees of freedom_ (dof), so this field is set to none in those
+    cases.
     """
 
     statistic: float
@@ -108,8 +112,7 @@ CITestResult = CITestTuple | bool
 
 @dataclass(frozen=True)
 class DSeparationJudgement:
-    """
-    Record if a left/right pair are d-separated given the conditions.
+    """Record if a left/right pair are d-separated given the conditions.
 
     By default, acts like a boolean, but also caries evidence graph.
     """
@@ -162,15 +165,16 @@ class DSeparationJudgement:
         :param boolean: Should results be returned as a pre-cutoff boolean?
         :param method: Conditional independence from :mod:`pgmpy` to use. If none,
             defaults to :func:`pgmpy.estimators.CITests.cressie_read`.
-        :param significance_level:
-            The statistical tests employ this value for
-            comparison with the p-value of the test to determine the independence of
-            the tested variables. If none, defaults to 0.01. Only applied if ``boolean=True``.
-        :returns:
-            Tests the null hypothesis that X is independent of Y given Zs.
-            If ``boolean=False``, returns a three-tuple of chi, dof, p_value.
-            If ``boolean=True``, make sure you also set ``significance_level=0.05`` or your preferred
-            value, then returns simply a boolean if the test fails.
+        :param significance_level: The statistical tests employ this value for
+            comparison with the p-value of the test to determine the independence of the
+            tested variables. If none, defaults to 0.01. Only applied if
+            ``boolean=True``.
+
+        :returns: Tests the null hypothesis that X is independent of Y given Zs. If
+            ``boolean=False``, returns a three-tuple of chi, dof, p_value. If
+            ``boolean=True``, make sure you also set ``significance_level=0.05`` or your
+            preferred value, then returns simply a boolean if the test fails.
+
         :raises ValueError: if any parts of the judgement aren't in the dataframe's
             columns
         """

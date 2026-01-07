@@ -1,6 +1,8 @@
 """An implementation of Sara Taheri's algorithm for using causal queries for experimental design.
 
-.. seealso:: https://docs.google.com/presentation/d/1klBOjGtRkXOMSDgOCLChBTBJZ0dFxJPn9IPRLAlv_N8/edit?usp=sharing
+.. seealso::
+
+    https://docs.google.com/presentation/d/1klBOjGtRkXOMSDgOCLChBTBJZ0dFxJPn9IPRLAlv_N8/edit?usp=sharing
 """
 
 import itertools as itt
@@ -64,10 +66,13 @@ def taheri_design_admg(
     :param graph: An ADMG
     :param cause: The node that gets perturbed.
     :param effect: The node that we're interested in.
-    :param tag: The key for node data describing whether it is latent.
-        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
-    :param stop: Largest combination to get (None means length of the list and is the default)
-    :return: A list of LV-DAG identifiability results. Will be length $2^{(\|V\| - 2 - # bidirected edges)}$
+    :param tag: The key for node data describing whether it is latent. If None, defaults
+        to :data:`y0.graph.DEFAULT_TAG`.
+    :param stop: Largest combination to get (None means length of the list and is the
+        default)
+
+    :returns: A list of LV-DAG identifiability results. Will be length $2^{(\|V\| - 2 -
+        # bidirected edges)}$
     """
     if tag is None:
         tag = DEFAULT_TAG
@@ -97,15 +102,18 @@ def taheri_design_dag(
     """Run the brute force implementation of the Taheri Design algorithm on a DAG.
 
     Identify all latent variable configurations inducible over the given DAG that result
-    in an identifiable ADMG under the causal query corresponding to the given cause/effect.
+    in an identifiable ADMG under the causal query corresponding to the given
+    cause/effect.
 
     :param graph: A regular DAG
     :param cause: The node that gets perturbed.
     :param effect: The node that we're interested in.
-    :param tag: The key for node data describing whether it is latent.
-        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
-    :param stop: Largest combination to get (None means length of the list and is the default)
-    :return: A list of LV-DAG identifiability results. Will be length $2^(|V| - 2)$
+    :param tag: The key for node data describing whether it is latent. If None, defaults
+        to :data:`y0.graph.DEFAULT_TAG`.
+    :param stop: Largest combination to get (None means length of the list and is the
+        default)
+
+    :returns: A list of LV-DAG identifiability results. Will be length $2^(|V| - 2)$
     """
     cause = Variable.norm(cause)
     effect = Variable.norm(effect)
@@ -206,14 +214,18 @@ def iterate_lvdags(
     """Iterate over all possible latent variable configurations for the given graph.
 
     :param graph: A regular DAG
-    :param fixed_observed: Nodes to skip in the power set of all possible latent variables. Often, the cause and
-        effect from a causal query will be used here to avoid setting them as latent (since they can not be).
-    :param fixed_latents: Nodes to skip in the power set of all possible latent variables. Often, latent nodes
-        from ADMG->LV-DAG conversion will go here.
-    :param tag: The key for node data describing whether it is latent.
-        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
-    :param stop: Largest combination to get (None means length of the list and is the default)
-    :yields: latent variable DAGs for all possible latent variable configurations over the original DAG
+    :param fixed_observed: Nodes to skip in the power set of all possible latent
+        variables. Often, the cause and effect from a causal query will be used here to
+        avoid setting them as latent (since they can not be).
+    :param fixed_latents: Nodes to skip in the power set of all possible latent
+        variables. Often, latent nodes from ADMG->LV-DAG conversion will go here.
+    :param tag: The key for node data describing whether it is latent. If None, defaults
+        to :data:`y0.graph.DEFAULT_TAG`.
+    :param stop: Largest combination to get (None means length of the list and is the
+        default)
+
+    :yields: latent variable DAGs for all possible latent variable configurations over
+        the original DAG
     """
     if tag is None:
         tag = DEFAULT_TAG

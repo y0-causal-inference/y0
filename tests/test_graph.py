@@ -1,11 +1,14 @@
 """Test graph construction and conversion."""
 
+from __future__ import annotations
+
 import unittest
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 import networkx as nx
-from pgmpy.models import DiscreteBayesianNetwork
 
+from tests import requires_pgmpy
 from y0.dsl import V1, V2, V3, V4, A, B, C, D, M, Variable, X, Y, Z
 from y0.examples import SARS_SMALL_GRAPH, Example, examples, napkin, verma_1
 from y0.graph import (
@@ -20,6 +23,9 @@ from y0.graph import (
     is_p_fixable,
 )
 from y0.resources import VIRAL_PATHOGENESIS_PATH
+
+if TYPE_CHECKING:
+    from pgmpy.models import DiscreteBayesianNetwork
 
 
 class TestGraph(unittest.TestCase):
@@ -105,7 +111,7 @@ class TestGraph(unittest.TestCase):
         """Test that all ADMGs can be converted to NxMixedGraph."""
         from ananke.graphs import ADMG
 
-        expected = NxMixedGraph.from_str_adj(
+        expected = NxMixedGraph.from_adj(
             directed={"W": [], "X": ["Y"], "Y": ["Z"], "Z": []},
             undirected={"W": [], "X": ["Z"], "Y": [], "Z": []},
         )
@@ -120,7 +126,7 @@ class TestGraph(unittest.TestCase):
         """Test the adjacency graph is not a multigraph."""
         directed = {"a": ["b", "c"], "b": ["a"], "c": []}
         expected = NxMixedGraph.from_str_edges(directed=[("a", "b"), ("a", "c"), ("b", "a")])
-        self.assertEqual(expected, NxMixedGraph.from_str_adj(directed=directed))
+        self.assertEqual(expected, NxMixedGraph.from_adj(directed=directed))
 
     def test_is_acyclic(self):
         """Test the directed edges are acyclic."""
@@ -279,7 +285,7 @@ class TestGraph(unittest.TestCase):
     @ANANKE_REQUIRED
     def test_pre(self):
         """Test getting the pre-ordering for a given node or set of nodes."""
-        g1 = NxMixedGraph.from_str_adj(
+        g1 = NxMixedGraph.from_adj(
             directed={"1": ["2", "3"], "2": ["4", "5"], "3": ["4"], "4": ["5"]}
         )
         g1_ananke = g1.to_admg()
@@ -387,8 +393,8 @@ class TestFixability(unittest.TestCase):
     def test_is_a_fixable(self):
         """Test checking for a-fixability.
 
-        Graphs 9, 10, and 11 are from https://gitlab.com/causal/ananke/-/blob/dev/tests/\
-        estimation/test_counterfactual_mean.py?ref_type=heads#L20-47
+        Graphs 9, 10, and 11 are from
+        https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_counterfactual_mean.py?ref_type=heads#L20-47
         """
         graph_1 = NxMixedGraph.from_str_edges(
             directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
@@ -473,8 +479,9 @@ class TestFixability(unittest.TestCase):
     def test_is_p_fixable(self):
         """Test checking for p-fixability.
 
-        .. seealso:: https://gitlab.com/causal/ananke/-/blob/dev/tests/\
-        estimation/test_counterfactual_mean.py?ref_type=heads#L151-212
+        .. seealso::
+
+            https://gitlab.com/causal/ananke/-/blob/dev/tests/estimation/test_counterfactual_mean.py?ref_type=heads#L151-212
         """
         graph_1 = NxMixedGraph.from_str_edges(
             directed=[("T", "M"), ("M", "L"), ("L", "Y")], undirected=[("M", "Y")]
@@ -641,6 +648,7 @@ def _ananke_p_fixable(graph: NxMixedGraph, treatment: Variable) -> bool:
     return 0 == len(admg.district(treatment.name).intersection(admg.children([treatment.name])))
 
 
+@requires_pgmpy
 class TestToBayesianNetwork(unittest.TestCase):
     """Tests converting a mixed graph to an equivalent :class:`pgmpy.DiscreteBayesianNetwork`."""
 
@@ -653,6 +661,8 @@ class TestToBayesianNetwork(unittest.TestCase):
 
     def test_graph_with_latents(self):
         """Tests converting a mixed graph with latents to an equivalent :class:`pgmpy.DiscreteBayesianNetwork`."""
+        from pgmpy.models import DiscreteBayesianNetwork
+
         graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)])
         expected = DiscreteBayesianNetwork(
             ebunch=[("X", "Y"), ("U_X_Y", "X"), ("U_X_Y", "Y")], latents=["U_X_Y"]
@@ -662,6 +672,8 @@ class TestToBayesianNetwork(unittest.TestCase):
 
     def test_graph_without_latents(self):
         """Tests converting a mixed graph without latents to an equivalent :class:`pgmpy.DiscreteBayesianNetwork`."""
+        from pgmpy.models import DiscreteBayesianNetwork
+
         graph = NxMixedGraph.from_edges(directed=[(X, Y)])
         expected = DiscreteBayesianNetwork(ebunch=[("X", "Y")])
         actual = graph.to_pgmpy_bayesian_network()

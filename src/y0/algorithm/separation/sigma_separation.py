@@ -26,23 +26,21 @@ def are_sigma_separated(
 ) -> bool:
     """Test if two variables are sigma-separated.
 
-    Sigma separation is a generalization of d-separation that
-    works not only for directed acyclic graphs, but also for
-    directed graphs containing cycles. It was originally introduced
-    in [forre2018]_.
+    Sigma separation is a generalization of d-separation that works not only for
+    directed acyclic graphs, but also for directed graphs containing cycles. It was
+    originally introduced in [forre2018]_.
 
-    We say that X and Y are σ-connected by Z or not
-    σ-separated by Z if there exists a path π (with some
-    n ≥ 1 nodes) in G with one endnode in X and
-    one endnode in Y that is Z-σ-open. σ-separated is the
-    opposite of σ-connected (logical not).
+    We say that X and Y are σ-connected by Z or not σ-separated by Z if there exists a
+    path π (with some n ≥ 1 nodes) in G with one endnode in X and one endnode in Y that
+    is Z-σ-open. σ-separated is the opposite of σ-connected (logical not).
 
     :param graph: Graph to test
     :param left: A node in the graph
     :param right: A node in the graph
     :param conditions: A collection of graph nodes
     :param cutoff: The maximum path length to check. By default, is unbounded.
-    :return: If a and b are sigma-separated.
+
+    :returns: If a and b are sigma-separated.
     """
     if conditions is None:
         conditions = set()
@@ -70,11 +68,12 @@ def is_z_sigma_open(
     r"""Check if a path is Z-sigma-open.
 
     :param graph: A mixed graph
-    :param path: A path in the graph. Denoted as $\pi$ in the paper. The
-        node in position $i$ in the path is denoted with $v_i$.
+    :param path: A path in the graph. Denoted as $\pi$ in the paper. The node in
+        position $i$ in the path is denoted with $v_i$.
     :param conditions: A set of nodes chosen as conditions, denoted by $Z$ in the paper
     :param sigma: The set of equivalence classes. Can be calculated with
         :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
+
     :returns: If the path is Z-sigma-open
 
     A path is $Z-\sigma-\text{open}$ if:
@@ -86,7 +85,8 @@ def is_z_sigma_open(
        2. (non-collider) left chain (:func:`is_non_collider_left_chain`)
        3. (non-collider) right chain (:func:`is_non_collider_left_chain`)
        4. (non-collider) fork (:func:`is_non_collider_fork`)
-       5. (non-collider) with undirected edge (:func:`is_non_collider_undirected`, not implemented)
+       5. (non-collider) with undirected edge (:func:`is_non_collider_undirected`, not
+          implemented)
     """
     if conditions is None:
         conditions = set()
@@ -161,7 +161,8 @@ def is_collider(
     :param middle: The second node in the subsequence, denoted as $v_i$ in the paper
     :param right: The third node in the subsequence, denoted as $v_{i+1}$ in the paper
     :param conditions: The conditional variables, denoted as $Z$ in the paper
-    :return: If the three nodes form a collider
+
+    :returns: If the three nodes form a collider
     """
     return (
         _has_either_edge(graph, left, middle)
@@ -187,7 +188,8 @@ def is_non_collider_left_chain(
     :param conditions: The conditional variables, denoted as $Z$ in the paper
     :param sigma: The set of equivalence classes. Can be calculated with
         :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
-    :return: If the three nodes form a non-collider (left chain) given the conditions.
+
+    :returns: If the three nodes form a non-collider (left chain) given the conditions.
     """
     return (
         _only_directed_edge(graph, middle, left)
@@ -213,7 +215,8 @@ def is_non_collider_right_chain(
     :param conditions: The conditional variables, denoted as $Z$ in the paper
     :param sigma: The set of equivalence classes. Can be calculated with
         :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
-    :return: If the three nodes form a non-collider (right chain) given the conditions.
+
+    :returns: If the three nodes form a non-collider (right chain) given the conditions.
     """
     return (
         _has_either_edge(graph, left, middle)
@@ -239,7 +242,8 @@ def is_non_collider_fork(
     :param conditions: The conditional variables, denoted as $Z$ in the paper
     :param sigma: The set of equivalence classes. Can be calculated with
         :func:`get_equivalence_classes`, denoted by $\sigma(v)$ in the paper.
-    :return: If the three nodes form a non-collider (fork) given the conditions.
+
+    :returns: If the three nodes form a non-collider (fork) given the conditions.
     """
     a = _only_directed_edge(graph, middle, left)
     b = _only_directed_edge(graph, middle, right)
@@ -252,22 +256,24 @@ def get_equivalence_classes(graph: NxMixedGraph) -> dict[Variable, set[Variable]
     """Get equivalence classes.
 
     :param graph: A mixed graph
-    :returns: A mapping from variables to their equivalence class,
-        defined as the second option from the paper (see below)
 
-    1. The finest/trivial σ-CG structure of
-       a mixed graph G is given by σ(v) := {v} for all
-       v ∈ V . In this way σ-separation in G coincides with
-       the usual notion of d-separation in a d-connection
-       graph (d-CG) G (see [19]). We will take this as the
-       definition of d-separation and d-CG in the following.
-    2. The coarsest σ-CG structure of a mixed graph G is
-       given by σ(v) := ScG(v) := AncG(v) ∩ DescG(v)
-       w.r.t. the underlying directed graph. Note that the
-       definition of strongly connected component totally
-       ignores the bi- and undirected edges of the σ-CG.
+    :returns: A mapping from variables to their equivalence class, defined as the second
+        option from the paper (see below)
+
+    1. The finest/trivial σ-CG structure of a mixed graph G is given by σ(v) := {v} for
+       all v ∈ V . In this way σ-separation in G coincides with the usual notion of
+       d-separation in a d-connection graph (d-CG) G (see [19]). We will take this as
+       the definition of d-separation and d-CG in the following.
+    2. The coarsest σ-CG structure of a mixed graph G is given by σ(v) := ScG(v) :=
+       AncG(v) ∩ DescG(v) w.r.t. the underlying directed graph. Note that the definition
+       of strongly connected component totally ignores the bi- and undirected edges of
+       the σ-CG.
     """
-    return {
-        node: graph.ancestors_inclusive(node).intersection(graph.descendants_inclusive(node))
-        for node in graph.nodes()
-    }
+    return {node: _get_scc(graph, node) for node in graph.nodes()}
+
+
+def _get_scc(graph: NxMixedGraph, node: Variable) -> set[Variable]:
+    # TODO: It might be faster to use strongly_connected_components:
+    # https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.\
+    # components.strongly_connected_components.html#networkx.algorithms.components.strongly_connected_components
+    return graph.ancestors_inclusive(node).intersection(graph.descendants_inclusive(node))

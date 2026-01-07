@@ -241,11 +241,14 @@ class NxMixedGraph:
     ) -> nx.DiGraph:
         """Create a labeled DAG where bi-directed edges are assigned as nodes upstream of their two incident nodes.
 
-        :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
-        :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
-        :param tag: The key for node data describing whether it is latent.
-            If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
-        :return: A latent variable DAG.
+        :param prefix: The prefix for latent variables. If none, defaults to
+            :data:`y0.graph.DEFAULT_PREFIX`.
+        :param start: The starting number for latent variables (defaults to 0, could be
+            changed to 1 if desired)
+        :param tag: The key for node data describing whether it is latent. If None,
+            defaults to :data:`y0.graph.DEFAULT_TAG`.
+
+        :returns: A latent variable DAG.
         """
         self.raise_on_counterfactual()
         return _latent_dag(
@@ -279,7 +282,9 @@ class NxMixedGraph:
 
         :returns: A causaleffect R object.
 
-        .. warning:: Appropriate R imports need to be done first for 'causaleffect' and 'igraph'.
+        .. warning::
+
+            Appropriate R imports need to be done first for 'causaleffect' and 'igraph'.
         """
         import rpy2.robjects
 
@@ -296,10 +301,12 @@ class NxMixedGraph:
     def moralize(self) -> NxMixedGraph:
         """Moralize the graph.
 
-        :returns: A moralized ADMG in which all nodes $U$ and $v$ that are parents of some
-            node $N$ are connected with an undirected edge.
+        :returns: A moralized ADMG in which all nodes $U$ and $v$ that are parents of
+            some node $N$ are connected with an undirected edge.
 
-        .. seealso:: https://en.wikipedia.org/wiki/Moral_graph
+        .. seealso::
+
+            https://en.wikipedia.org/wiki/Moral_graph
         """
         rv = NxMixedGraph(directed=self.directed.copy(), undirected=self.undirected.copy())
         # Moralize (link parents of mentioned nodes)
@@ -343,8 +350,8 @@ class NxMixedGraph:
 
         :param ax: Axis to draw on (if none specified, makes a new one)
         :param title: The optional title to show with the graph
-        :param prog: The pydot program to use, like dot, neato, osage, etc.
-            If none is given, uses osage for small graphs and dot for larger ones.
+        :param prog: The pydot program to use, like dot, neato, osage, etc. If none is
+            given, uses osage for small graphs and dot for larger ones.
         :param node_size: node size
         :param node_size_offset: node size offset
         :param line_widths: line widths
@@ -352,7 +359,8 @@ class NxMixedGraph:
         :param font_size: node text font size
         :param arrow_size: edge arrow size
         :param radius: bidirectional edge radius
-        :param latex: Parse string variables as y0 if possible to make pretty latex output
+        :param latex: Parse string variables as y0 if possible to make pretty latex
+            output
         """
         import matplotlib.pyplot as plt
 
@@ -489,17 +497,6 @@ class NxMixedGraph:
         return rv
 
     @classmethod
-    def from_str_adj(
-        cls,
-        nodes: Iterable[str | Variable] | None = None,
-        directed: Mapping[str | Variable, Iterable[str | Variable]] | None = None,
-        undirected: Mapping[str | Variable, Iterable[str | Variable]] | None = None,
-    ) -> NxMixedGraph:
-        """Make a mixed graph from a pair of adjacency lists of strings."""
-        warnings.warn("directly use from_adj", DeprecationWarning, stacklevel=2)
-        return cls.from_adj(nodes=nodes, directed=directed, undirected=undirected)
-
-    @classmethod
     @open_file(1)  # type:ignore
     def from_causalfusion_path(cls, file) -> NxMixedGraph:  # type:ignore[no-untyped-def]
         """Load a graph from a CausalFusion JSON file."""
@@ -520,10 +517,11 @@ class NxMixedGraph:
                 raise ValueError(f"unhandled edge type: {edge['type']}")
         return rv
 
-    def subgraph(self, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
+    def subgraph(self, /, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
         """Return a subgraph given a set of vertices.
 
         :param vertices: a subset of nodes
+
         :returns: A NxMixedGraph subgraph
         """
         vertices = _ensure_set(vertices)
@@ -533,10 +531,15 @@ class NxMixedGraph:
             undirected=_include_adjacent(self.undirected, vertices),
         )
 
+    def subgraph_without(self, /, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
+        """Construct a subgraph without the given nodes."""
+        return self.subgraph(set(self.nodes()) - _ensure_set(vertices))
+
     def remove_in_edges(self, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
         """Return a mutilated graph given a set of interventions.
 
         :param vertices: a subset of nodes from which to remove incoming edges
+
         :returns: A NxMixedGraph subgraph
         """
         vertices = _ensure_set(vertices)
@@ -547,25 +550,28 @@ class NxMixedGraph:
         )
 
     def get_intervened_ancestors(
-        self, interventions: Variable | set[Variable], outcomes: Variable | set[Variable]
+        self, interventions: Variable | Iterable[Variable], outcomes: Variable | Iterable[Variable]
     ) -> set[Variable]:
         """Get the ancestors of outcomes in a graph that has been intervened on.
 
         :param interventions: a set of interventions in the graph
         :param outcomes: a set of outcomes in the graph
+
         :returns: Set of nodes
         """
         return self.remove_in_edges(interventions).ancestors_inclusive(outcomes)
 
     def get_no_effect_on_outcomes(
-        self, interventions: set[Variable], outcomes: set[Variable]
+        self, interventions: Variable | Iterable[Variable], outcomes: Variable | Iterable[Variable]
     ) -> set[Variable]:
         """Find nodes in the graph which have no effect on the outcomes.
 
         :param interventions: a set of interventions in the graph
         :param outcomes: a set of outcomes in the graph
+
         :returns: Set of nodes
         """
+        interventions = _ensure_set(interventions)
         return (
             set(self.nodes())
             - interventions
@@ -576,19 +582,16 @@ class NxMixedGraph:
         """Return a subgraph that does not contain any of the specified vertices.
 
         :param vertices: a set of nodes to remove from graph
+
         :returns: A NxMixedGraph subgraph
         """
-        vertices = _ensure_set(vertices)
-        return self.from_edges(
-            nodes=self.nodes() - vertices,
-            directed=_exclude_adjacent(self.directed, vertices),
-            undirected=_exclude_adjacent(self.undirected, vertices),
-        )
+        return self.subgraph_without(vertices)
 
     def remove_out_edges(self, vertices: Variable | Iterable[Variable]) -> NxMixedGraph:
         """Return a subgraph that does not have any outgoing edges from any of the given vertices.
 
         :param vertices: a set of nodes whose outgoing edges get removed from the graph
+
         :returns: NxMixedGraph subgraph
         """
         vertices = _ensure_set(vertices)
@@ -636,7 +639,9 @@ class NxMixedGraph:
         """Intervene on the given variables.
 
         :param variables: A set of interventions
-        :returns: A graph that has been intervened on the given variables, with edges into the intervened nodes removed
+
+        :returns: A graph that has been intervened on the given variables, with edges
+            into the intervened nodes removed
         """
         return self.from_edges(
             nodes=[node.intervene(variables) for node in self.nodes()],
@@ -667,7 +672,8 @@ class NxMixedGraph:
         and parents of children of a given node.
 
         :param nodes: A node or nodes to get the Markov blanket from
-        :return: A set of variables comprising the Markov blanket
+
+        :returns: A set of variables comprising the Markov blanket
         """
         if isinstance(nodes, Variable):
             nodes = {nodes}
@@ -697,9 +703,11 @@ class NxMixedGraph:
         """Find all nodes prior to the given set of nodes under a topological sort order.
 
         :param nodes: iterable of nodes.
-        :param topological_sort_order: A valid topological sort order. If none given, calculates from the graph.
-        :return: list corresponding to the order up until the given nodes.
-            This does not include any of the nodes from the query.
+        :param topological_sort_order: A valid topological sort order. If none given,
+            calculates from the graph.
+
+        :returns: list corresponding to the order up until the given nodes. This does
+            not include any of the nodes from the query.
         """
         if not topological_sort_order:
             topological_sort_order = list(self.topological_sort())
@@ -741,7 +749,7 @@ def _descendants_inclusive(graph: nx.DiGraph, sources: set[Variable]) -> set[Var
 
 
 def _include_adjacent(
-    graph: nx.Graph, vertices: set[Variable]
+    graph: nx.Graph, vertices: Variable | Iterable[Variable]
 ) -> Collection[tuple[Variable, Variable]]:
     vertices = _ensure_set(vertices)
     return [(u, v) for u, v in graph.edges() if u in vertices and v in vertices]
@@ -777,11 +785,14 @@ def _latent_dag(
 
     :param di_edges: A list of directional edges
     :param bi_edges: A list of bidirectional edges
-    :param prefix: The prefix for latent variables. If none, defaults to :data:`y0.graph.DEFAULT_PREFIX`.
-    :param start: The starting number for latent variables (defaults to 0, could be changed to 1 if desired)
-    :param tag: The key for node data describing whether it is latent.
-        If None, defaults to :data:`y0.graph.DEFAULT_TAG`.
-    :return: A latent variable DAG.
+    :param prefix: The prefix for latent variables. If none, defaults to
+        :data:`y0.graph.DEFAULT_PREFIX`.
+    :param start: The starting number for latent variables (defaults to 0, could be
+        changed to 1 if desired)
+    :param tag: The key for node data describing whether it is latent. If None, defaults
+        to :data:`y0.graph.DEFAULT_TAG`.
+
+    :returns: A latent variable DAG.
     """
     if tag is None:
         tag = DEFAULT_TAG
@@ -852,16 +863,20 @@ def _ensure_set(vertices: Variable | Iterable[Variable]) -> set[Variable]:
 def is_a_fixable(graph: NxMixedGraph, treatments: Variable | Collection[Variable]) -> bool:
     """Check if the treatments are a-fixable.
 
-    A treatment is said to be a-fixable if it can be fixed by removing a single directed edge from the graph.
-    In other words, a treatment is a-fixable if it has exactly one descendant in its district.
+    A treatment is said to be a-fixable if it can be fixed by removing a single directed
+    edge from the graph. In other words, a treatment is a-fixable if it has exactly one
+    descendant in its district.
 
     This code was adapted from :mod:`ananke` ananke code at:
     https://gitlab.com/causal/ananke/-/blob/dev/ananke/estimation/counterfactual_mean.py?ref_type=heads#L58-65
 
     :param graph: A NxMixedGraph
     :param treatments: A list of treatments
-    :raises NotImplementedError: a-fixability on multiple treatments is an open research question
+
     :returns: bool
+
+    :raises NotImplementedError: a-fixability on multiple treatments is an open research
+        question
     """
     if not isinstance(treatments, Variable):
         raise NotImplementedError(
@@ -880,8 +895,11 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Variable | Collection[Variable
 
     :param graph: A NxMixedGraph
     :param treatments: A list of treatments
-    :raises NotImplementedError: p-fixability on multiple treatments is an open research question
+
     :returns: bool
+
+    :raises NotImplementedError: p-fixability on multiple treatments is an open research
+        question
     """
     if not isinstance(treatments, Variable):
         raise NotImplementedError(
@@ -895,13 +913,14 @@ def is_p_fixable(graph: NxMixedGraph, treatments: Variable | Collection[Variable
 def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
     """Check if the ADMG is a Markov blanket shielded.
 
-    Being Markov blanket (Mb) shielded means that two vertices are non-adjacent
-    only when they are absent from each others' Markov blankets.
+    Being Markov blanket (Mb) shielded means that two vertices are non-adjacent only
+    when they are absent from each others' Markov blankets.
 
     This code was adapted from :mod:`ananke` ananke code at:
     https://gitlab.com/causal/ananke/-/blob/dev/ananke/graphs/admg.py?ref_type=heads#L381-403
 
     :param graph: A NxMixedGraph
+
     :returns: bool
     """
     # Iterate over all pairs of vertices
@@ -936,7 +955,8 @@ def get_district_and_predecessors(
     :param nodes: List of nodes
     :param topological_sort_order: A valid topological sort order
 
-    :return: Set corresponding to union of district, predecessors and predecessors of district of a given set of nodes
+    :returns: Set corresponding to union of district, predecessors and predecessors of
+        district of a given set of nodes
     """
     if not topological_sort_order:
         topological_sort_order = list(graph.topological_sort())
@@ -962,9 +982,11 @@ def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bo
 def iter_moral_links(graph: NxMixedGraph) -> Iterable[tuple[Variable, Variable]]:
     """Generate links to ensure all co-parents in a graph are linked.
 
-    May generate links that already exist as we assume we are not working on a multi-graph.
+    May generate links that already exist as we assume we are not working on a
+    multi-graph.
 
     :param graph: Graph to process
+
     :yields: An collection of edges to add.
     """
     #  note that combinations(x, 2) returns an empty list when len(x) == 1
@@ -975,15 +997,16 @@ def iter_moral_links(graph: NxMixedGraph) -> Iterable[tuple[Variable, Variable]]
 
 def get_nodes_in_directed_paths(
     graph: NxMixedGraph,
-    sources: Variable | set[Variable],
-    targets: Variable | set[Variable],
+    sources: Variable | Iterable[Variable],
+    targets: Variable | Iterable[Variable],
 ) -> set[Variable]:
     """Get all nodes appearing in directed paths from sources to targets.
 
     :param graph: an NxMixedGraph
     :param sources: source nodes
     :param targets: target nodes
-    :return: the nodes on all causal paths from sources to targets
+
+    :returns: the nodes on all causal paths from sources to targets
     """
     sources = _ensure_set(sources)
     targets = _ensure_set(targets)

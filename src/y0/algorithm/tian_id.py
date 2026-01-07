@@ -1,10 +1,12 @@
 """An implementation of Tian and Pearl's identification algorithm from [tian03a]_.
 
 .. [tikka20a] https://github.com/santikka/causaleffect/blob/master/R/compute.c.factor.R.
+
 .. [tikka20b] https://github.com/santikka/causaleffect/blob/master/R/identify.R.
+
 .. [tian03a] Tian J, Pearl J (2003). `On the Identification of Causal Effects
-    <https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf>`_. Technical report, Department
-    of Computer Science, University of California, Los Angeles. R-290-L
+    <https://ftp.cs.ucla.edu/pub/stat_ser/R290-L.pdf>`_. Technical report, Department of
+    Computer Science, University of California, Los Angeles. R-290-L
 """
 
 import logging
@@ -46,28 +48,30 @@ def identify_district_variables(  # noqa:C901
 ) -> Expression | None:
     """Implement the IDENTIFY algorithm as presented in [tian03a]_ with pseudocode in [correa22a]_ (Algorithm 5).
 
-    Tikka and colleagues implemented this algorithm in the R package Causal Effect ([tikka20b]_). We draw from that
-    implementation. Their version also keeps track of the structure of calls, while this one does not.
+    Tikka and colleagues implemented this algorithm in the R package Causal Effect
+    ([tikka20b]_). We draw from that implementation. Their version also keeps track of
+    the structure of calls, while this one does not.
 
-    :param input_variables: The set of variables, C, for which we're checking if causal identification is possible.
+    :param input_variables: The set of variables, C, for which we're checking if causal
+        identification is possible.
     :param input_district: The C-component, T, containing C.
-    :param district_probability:
-        The expression $Q[T]$ as per [tian03a]_, Equation 34. Because T is a single district,
-        $Q[T]$ is the "post-intervention distribution of the variables in T, under an intervention that sets all
-        other variables to constants" (see Equation 36 of [tian03a]_).
+    :param district_probability: The expression $Q[T]$ as per [tian03a]_, Equation 34.
+        Because T is a single district, $Q[T]$ is the "post-intervention distribution of
+        the variables in T, under an intervention that sets all other variables to
+        constants" (see Equation 36 of [tian03a]_).
     :param graph: The relevant graph.
-    :param topo: A list of variables in topological order that includes all variables in the graph and may contain more.
+    :param topo: A list of variables in topological order that includes all variables in
+        the graph and may contain more.
+
     :returns: An expression for $Q[C]$ in terms of $Q$, or Fail.
 
-    :raises KeyError:
-        at least one input variable is not in the input district or at least one input district variable
-        is not in the topologically sorted list of graph variables.
-    :raises TypeError:
-        the subgraph of the input graph G comprised of the vertices in the input vertex set T should
-        have only district and has more.
-    :raises NotImplementedError:
-        If we get to the end of the conditional, which still needs an "else"
-
+    :raises KeyError: at least one input variable is not in the input district or at
+        least one input district variable is not in the topologically sorted list of
+        graph variables.
+    :raises TypeError: the subgraph of the input graph G comprised of the vertices in
+        the input vertex set T should have only district and has more.
+    :raises NotImplementedError: If we get to the end of the conditional, which still
+        needs an "else"
     """
     if not input_variables.intersection(input_district) == input_variables:
         # if not all(v in input_district for v in input_variables):
@@ -79,7 +83,7 @@ def identify_district_variables(  # noqa:C901
             "In identify_district_variables: at least one input district variable is not in the "
             "topologically sorted variable list."
         )
-    district_subgraph = graph.subgraph(vertices=input_district)  # $G_{T}$
+    district_subgraph = graph.subgraph(input_district)  # $G_{T}$
     if len(district_subgraph.districts()) > 1:
         raise TypeError(
             "In identify_district_variables: the subgraph of the input graph G comprised of the"
@@ -116,7 +120,7 @@ def identify_district_variables(  # noqa:C901
         logger.debug("   T = " + str(ancestral_set))
         rv = None
     elif input_variables.issubset(ancestral_set) and ancestral_set.issubset(input_district):
-        ancestral_set_subgraph = graph.subgraph(vertices=ordered_ancestral_set)
+        ancestral_set_subgraph = graph.subgraph(ordered_ancestral_set)
         ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
         targeted_ancestral_set_subgraph_district = ancestral_set_subgraph_districts[
             [
@@ -215,21 +219,26 @@ def compute_c_factor_conditioning_on_topological_predecessors(
 
     This algorithm uses part (i) of Lemma 1 of [tian03a]_.
 
-    :math: Let a topological order over $V$ be $V_{1} < \ldots < V_{n}$, and let
-        $V^{(i)}=\{V_{1},\ldots,V_{i}\}$, $i = 1,\ldots,n$, and $V^{(0)} = \emptyset$.
-        For any set $C$, let $G_{C}$ denote the subgraph of $G$ composed only of variables in $C$.
-        Then each c-factor $Q_{j}$, $j=1,\ldots,k$, is identifiable and is given by
-
-        \begin{equation}
-        $Q_{j} = \prod_\limit{\{i|V_{i}\in S_{j}\}}{P(v_i}|v^{(i-1}))}$.
-        \end{equation}
-
-    :param district: A list of variables comprising the district for which we're computing a C factor.
+    :param district: A list of variables comprising the district for which we're
+        computing a C factor.
     :param graph_probability: the Q value for the full graph.
     :param topo: a topological sort of the vertices in the graph.
-    :raises TypeError: the district or variable set from which it is drawn contained no variables.
-    :raises KeyError: a variable in the district is not in the topological sort of the graph vertices.
+
     :returns: An expression for Q[district].
+
+    :raises TypeError: the district or variable set from which it is drawn contained no
+        variables.
+    :raises KeyError: a variable in the district is not in the topological sort of the
+        graph vertices.
+
+    :math: Let a topological order over $V$ be $V_{1} < \ldots < V_{n}$, and let
+        $V^{(i)}=\{V_{1},\ldots,V_{i}\}$, $i = 1,\ldots,n$, and $V^{(0)} = \emptyset$.
+        For any set $C$, let $G_{C}$ denote the subgraph of $G$ composed only of
+        variables in $C$. Then each c-factor $Q_{j}$, $j=1,\ldots,k$, is identifiable
+        and is given by
+
+        \begin{equation} $Q_{j} = \prod_\limit{\{i|V_{i}\in
+        S_{j}\}}{P(v_i}|v^{(i-1}))}$. \end{equation}
     """
     # (Topological sort is O(V+E): https://stackoverflow.com/questions/31010922/)
     variables = set(topo)
@@ -263,7 +272,7 @@ def compute_c_factor_conditioning_on_topological_predecessors(
             pp = PopulationProbability(
                 population=graph_probability.population,
                 distribution=Distribution(
-                    children=(variable,), parents=tuple(conditioned_variables)
+                    children=frozenset([variable]), parents=frozenset(conditioned_variables)
                 ),
             )
             population_probabilities.append(pp)
@@ -302,32 +311,35 @@ def compute_q_value_of_variables_with_low_topological_ordering_indices(
 ) -> Expression:
     r"""Compute the Q value of a set of variables according to [tian03a]_, Equation 72.
 
-    :math: Let $H \subseteq V$, and assume that $H$ is partitioned into c-components $H_{1}, \dots, V_{h_{l}}$
-        in the subgraph $G_{H}$. Then we have...
+    :math: Let $H \subseteq V$, and assume that $H$ is partitioned into c-components
+        $H_{1}, \dots, V_{h_{l}}$ in the subgraph $G_{H}$. Then we have...
 
         (ii) Let $k$ be the number of variables in $H$, and let a topological order of
-        the variables in $H$ be $V_{h_{1}} < \cdots < V_{h_{k}}$ be the set of
-        variables in $G_{H}$. Let $H^{(i)} = {V_{h_{1}},\dots,V_{h_{i}}$ be the set of variables in $H$ ordered
-        before $V_{h_{i}}$ (including $V_{h_{i}}$), $i=1,\dots,k$, and $H^{(0)} = \emptyset$. Then each
-        $Q[H_{j}]$, $j = 1,\dots,l$, is computable from $Q[H]$ and is given by
+        the variables in $H$ be $V_{h_{1}} < \cdots < V_{h_{k}}$ be the set of variables
+        in $G_{H}$. Let $H^{(i)} = {V_{h_{1}},\dots,V_{h_{i}}$ be the set of variables
+        in $H$ ordered before $V_{h_{i}}$ (including $V_{h_{i}}$), $i=1,\dots,k$, and
+        $H^{(0)} = \emptyset$. Then each $Q[H_{j}]$, $j = 1,\dots,l$, is computable from
+        $Q[H]$ and is given by
 
-        \begin{equation}
-        $Q[H_{j} = \prod_{\{i|V_{h_{i}}\in H_{j}\}}{\frac{Q[H^{(i)}]}{Q[H^{(i-1)}]},$
-        \end{equation}
+        \begin{equation} $Q[H_{j} = \prod_{\{i|V_{h_{i}}\in
+        H_{j}\}}{\frac{Q[H^{(i)}]}{Q[H^{(i-1)}]},$ \end{equation}
 
         where each $Q[H^{(i)}], i = 0, 1, \dots\, k$, is given by
 
-        \begin{equation}
-        $Q[H^{(i)}] = \sum_{h \backslash h^{(i)}}{Q[H]}$.
+        \begin{equation} $Q[H^{(i)}] = \sum_{h \backslash h^{(i)}}{Q[H]}$.
         \end{equation}
 
     (The second equation above is Equation 72.)
 
     :param vertex: The $i^{th}$ variable in topological order
-    :param graph_probability: The probability of $H$ corresponding to $Q[H]$ in Equation 72.
+    :param graph_probability: The probability of $H$ corresponding to $Q[H]$ in Equation
+        72.
     :param topo: a topological sorting of the subgraph under analysis, $G_{H}$.
-    :raises KeyError: the input vertex is not in the variable set or not in the topological ordering of graph vertices.
+
     :returns: An expression for $Q[H^{(i)}]$.
+
+    :raises KeyError: the input vertex is not in the variable set or not in the
+        topological ordering of graph vertices.
     """
     # $Q[H^{(0)}] = Q[\emptyset] = 1$
     if vertex is None:
@@ -355,33 +367,35 @@ def compute_c_factor_marginalizing_over_topological_successors(
 ) -> Expression:
     r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, eqns. 71 and 72.
 
-    This algorithm uses part (ii) of Lemma 4 of [tian03a]_. The context for Equations 71 and 72 follow:
+    This algorithm uses part (ii) of Lemma 4 of [tian03a]_. The context for Equations 71
+    and 72 follow:
 
-    :math: Let $H \subseteq V$, and assume that $H$ is partitioned into c-components $H_{1}, \dots, V_{h_{l}}$
-        in the subgraph $G_{H}$. Then we have...
+    :param district: A list of variables comprising the district for which we're
+        computing a C factor.
+    :param graph_probability: The expression $Q$ corresponding to the set of variables
+        in $v$. It is $Q[A]$ on the line calling Lemma 4 in [tian03a]_, Figure 7.
+    :param topo: a topological ordering of the vertices in the subgraph $G_{H}$ in
+        question.
+
+    :returns: An expression for Q[district].
+
+    :math: Let $H \subseteq V$, and assume that $H$ is partitioned into c-components
+        $H_{1}, \dots, V_{h_{l}}$ in the subgraph $G_{H}$. Then we have...
 
         (ii) Let $k$ be the number of variables in $H$, and let a topological order of
-        the variables in $H$ be $V_{h_{1}} < \cdots < V_{h_{k}}$ be the set of
-        variables in $G_{H}$. Let $H^{(i)} = {V_{h_{1}},\dots,V_{h_{i}}$ be the set of variables in $H$ ordered
-        before $V_{h_{i}}$ (including $V_{h_{i}}$), $i=1,\dots,k$, and $H^{(0)} = \emptyset$. Then each
-        $Q[H_{j}]$, $j = 1,\dots,l$, is computable from $Q[H]$ and is given by
+        the variables in $H$ be $V_{h_{1}} < \cdots < V_{h_{k}}$ be the set of variables
+        in $G_{H}$. Let $H^{(i)} = {V_{h_{1}},\dots,V_{h_{i}}$ be the set of variables
+        in $H$ ordered before $V_{h_{i}}$ (including $V_{h_{i}}$), $i=1,\dots,k$, and
+        $H^{(0)} = \emptyset$. Then each $Q[H_{j}]$, $j = 1,\dots,l$, is computable from
+        $Q[H]$ and is given by
 
-        \begin{equation}
-        $Q[H_{j} = \prod_{\{i|V_{h_{i}}\in H_{j}\}}{\frac{Q[H^{(i)}]}{Q[H^{(i-1)}]},$
-        \end{equation}
+        \begin{equation} $Q[H_{j} = \prod_{\{i|V_{h_{i}}\in
+        H_{j}\}}{\frac{Q[H^{(i)}]}{Q[H^{(i-1)}]},$ \end{equation}
 
         where each $Q[H^{(i)}], i = 0, 1, \dots\, k$, is given by
 
-        \begin{equation}
-        $Q[H^{(i)}] = \sum_{h \backslash h^{(i)}}{Q[H]}$.
+        \begin{equation} $Q[H^{(i)}] = \sum_{h \backslash h^{(i)}}{Q[H]}$.
         \end{equation}
-
-    :param district: A list of variables comprising the district for which we're computing a C factor.
-    :param graph_probability:
-        The expression $Q$ corresponding to the set of variables in $v$. It is
-        $Q[A]$ on the line calling Lemma 4 in [tian03a]_, Figure 7.
-    :param topo: a topological ordering of the vertices in the subgraph $G_{H}$ in question.
-    :returns: An expression for Q[district].
     """
 
     def _get_expression_from_index(index: int) -> Expression:  # Compute $Q[H^{i}]$ given i
@@ -419,18 +433,22 @@ def compute_c_factor(
 ) -> Expression:
     """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_ and [tikka20a]_.
 
-    This algorithm uses both Lemma 1, part (i) of Tian03a (Equation 37) and Lemma 4 of Tian 03a (Equations 71 and 72).
+    This algorithm uses both Lemma 1, part (i) of Tian03a (Equation 37) and Lemma 4 of
+    Tian 03a (Equations 71 and 72).
 
-    :param district: A list of variables comprising the district C for which we're computing a C factor.
+    :param district: A list of variables comprising the district C for which we're
+        computing a C factor.
     :param subgraph_variables: The variables in the subgraph T under analysis.
-    :param subgraph_probability:
-        The expression Q corresponding to the set of variables in T. As an example, this
-        quantity would be Q[A] on the line calling Lemma 4 in [tian03a]_, Figure 7.
-    :param graph_topo:
-        A list of variables in topological order that includes all variables in G, where T is contained
-        in G.
-    :raises TypeError: In _compute_c_factor: expected the subgraph_probability parameter to be a simple probability.
+    :param subgraph_probability: The expression Q corresponding to the set of variables
+        in T. As an example, this quantity would be Q[A] on the line calling Lemma 4 in
+        [tian03a]_, Figure 7.
+    :param graph_topo: A list of variables in topological order that includes all
+        variables in G, where T is contained in G.
+
     :returns: An expression for Q[district].
+
+    :raises TypeError: In _compute_c_factor: expected the subgraph_probability parameter
+        to be a simple probability.
     """
     # The graph_topo is the ordering of vertices in G, but the lemmas use the topological sorting in a subgraph H of G.
     # We take in the topological ordering of G to make testing easier, as there could be multiple ways to
@@ -472,23 +490,23 @@ def compute_ancestral_set_q_value(
 
     This algorithm uses Lemma 3 of [tian03a]_ (Equation 69).
 
-    :math: Let $W \subseteq C \subseteq V$, and $W' = C \backslash W$. If $W$ is an ancestral set in the subgraph
-        $G_{C}$ $(An(W)_{G_{C}} = W)$, or equivalently, if none of the parents of $W$ is in
-        $W'$ $(Pa(W) \cap W' = \emptyset)$, then
+    :param ancestral_set: A set of variables (W in Equation 69, A in Figure 7 of
+        [tian03a]_) that comprise the ancestral set of some other variables (unspecified
+        in Equation 69, and C in Figure 7 of [tian03a]_).
+    :param subgraph_variables: The variables in the subgraph under analysis (C in
+        Equation 69, and T in Figure 7).
+    :param subgraph_probability: The expression Q corresponding to Q[C] in Equation 69
+        and Q[T] in Figure 7.
+    :param graph_topo: A list of variables in topological order that includes all
+        variables in the graph (i.e., V in Equation 69 and G in Figure 7).
 
-        \begin{equation}
-        \sum\limits_{W'}{Q[C]=Q[W]}
-        \end{equation}
-
-    :param ancestral_set:
-        A set of variables (W in Equation 69, A in Figure 7 of [tian03a]_) that comprise the
-        ancestral set of some other variables (unspecified in Equation 69, and C in Figure 7 of [tian03a]_).
-    :param subgraph_variables: The variables in the subgraph under analysis (C in Equation 69, and T in Figure 7).
-    :param subgraph_probability: The expression Q corresponding to Q[C] in Equation 69 and Q[T] in Figure 7.
-    :param graph_topo:
-        A list of variables in topological order that includes all variables in the graph
-        (i.e., V in Equation 69 and G in Figure 7).
     :returns: An expression for Q[ancestral_set].
+
+    :math: Let $W \subseteq C \subseteq V$, and $W' = C \backslash W$. If $W$ is an
+        ancestral set in the subgraph $G_{C}$ $(An(W)_{G_{C}} = W)$, or equivalently, if
+        none of the parents of $W$ is in $W'$ $(Pa(W) \cap W' = \emptyset)$, then
+
+        \begin{equation} \sum\limits_{W'}{Q[C]=Q[W]} \end{equation}
     """
     # T\A is W', so Sum_{T\A}{Q[T]} = Q[A], corresponding to Sum_{W'}{Q[C]} = Q[W] in Equation 69
     # The next two lines are included so the summation shows the marginalization variables in topological order

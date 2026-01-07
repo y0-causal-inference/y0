@@ -6,6 +6,7 @@ import warnings
 import numpy as np
 import pandas as pd
 
+from tests import requires_pgmpy
 from y0.algorithm.conditional_independencies import get_conditional_independencies
 from y0.algorithm.falsification import get_falsifications, get_graph_falsifications
 from y0.examples import asia_example, frontdoor_example
@@ -15,6 +16,7 @@ from y0.struct import get_conditional_independence_tests
 class TestFalsification(unittest.TestCase):
     """Test the falsifiable implications."""
 
+    @requires_pgmpy
     def test_discrete_graph_falsifications(self):
         """Test the asia graph against data generated from it."""
         for method in [None, *get_conditional_independence_tests()]:
@@ -28,6 +30,7 @@ class TestFalsification(unittest.TestCase):
                 self.assertEqual(0, len(issues.failures))
                 self.assertGreater(len(issues.evidence), 0)
 
+    @requires_pgmpy
     def test_method_mismatch(self):
         """Test when the wrong test is given."""
         data_continuous = pd.DataFrame(
@@ -59,6 +62,7 @@ class TestFalsification(unittest.TestCase):
         # TODO get a graph where we know what the outcome should be, this
         #  should be available in https://github.com/y0-causal-inference/eliater/pull/1
 
+    @requires_pgmpy
     def test_falsifications(self):
         """Test the asia graph against data generated from it, passing in the implications to test."""
         implications = get_conditional_independencies(asia_example.graph)
