@@ -55,21 +55,33 @@ class TestStructure(unittest.TestCase):
         self, expected: HierarchicalCausalModel, actual: HierarchicalCausalModel
     ) -> None:
         """Test all parts of two HCMs are equal."""
-        self.assertEqual(expected.get_observed(), actual.get_observed())
-        self.assertEqual(expected.get_unobserved(), actual.get_unobserved())
-        self.assertEqual(expected.get_units(), actual.get_units())
-        self.assertEqual(expected.get_subunits(), actual.get_subunits())
-        self.assertEqual(set(expected.edges()), set(actual.edges()))
+        self.assertEqual(
+            expected.get_observed(), actual.get_observed(), msg="observed are different"
+        )
+        self.assertEqual(
+            expected.get_unobserved(), actual.get_unobserved(), msg="unobserved are different"
+        )
+        self.assertEqual(expected.get_units(), actual.get_units(), msg="units are different")
+        self.assertEqual(
+            expected.get_subunits(), actual.get_subunits(), msg="subunits are different"
+        )
+        self.assertEqual(set(expected.edges()), set(actual.edges()), msg="edges are different")
 
     def assert_hscm_equal(
         self, expected: HierarchicalStructuralCausalModel, actual: HierarchicalStructuralCausalModel
     ) -> None:
         """Test all parts of two HSCMs are equal."""
-        self.assertEqual(expected.get_observed(), actual.get_observed())
-        self.assertEqual(expected.get_unobserved(), actual.get_unobserved())
-        self.assertEqual(expected.get_units(), actual.get_units())
-        self.assertEqual(expected.get_subunits(), actual.get_subunits())
-        self.assertEqual(set(expected.edges()), set(actual.edges()))
+        self.assertEqual(
+            expected.get_observed(), actual.get_observed(), msg="observed are different"
+        )
+        self.assertEqual(
+            expected.get_unobserved(), actual.get_unobserved(), msg="unobserved are different"
+        )
+        self.assertEqual(expected.get_units(), actual.get_units(), msg="units are different")
+        self.assertEqual(
+            expected.get_subunits(), actual.get_subunits(), msg="subunits are different"
+        )
+        self.assertEqual(set(expected.edges()), set(actual.edges()), msg="edges are different")
         self.assertEqual(expected.get_exogenous_noise(), actual.get_exogenous_noise())
 
     def test_instrument_hcm_from_list(self) -> None:
