@@ -111,6 +111,9 @@ def get_school_confounder_interference_hscm() -> HierarchicalStructuralCausalMod
     hscm.add_subunits([student_tutoring, student_test_score])
     return hscm
 
+get_confounder_interference_hscm = get_school_confounder_interference_hscm
+get_confounder_interference_hcm = get_school_confounder_interference_hcm
+get_confounder_interference_hcgm = get_school_confounder_interference_hcgm
 
 def get_instrument_hcm() -> HierarchicalCausalModel:
     """Pytest fixture for the Instrument HCM in Figure 2 (i)."""
