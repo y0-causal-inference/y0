@@ -133,7 +133,8 @@ class TestInitializeDistrictDistribution(cases.GraphTestCase):
 class TestInitializeComponentDistribution(cases.GraphTestCase):
     """Tests for district initialization (Proposition 9.8).
 
-    This function implements the core conditional probability construction from Proposition 9.8.
+    This function implements the core conditional probability construction from
+    Proposition 9.8.
     """
 
     def test_no_predecessors_cases(self) -> None:

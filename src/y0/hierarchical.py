@@ -1,6 +1,8 @@
 """Implementation of algorithms from Hierarchical Causal Models by E.N. Weinstein and D.M. Blei.
 
-.. seealso:: https://arxiv.org/abs/2401.05330
+.. seealso::
+
+    https://arxiv.org/abs/2401.05330
 """
 
 from __future__ import annotations
@@ -173,7 +175,9 @@ class HierarchicalCausalModel:
         :param observed_units: a list of names for the observed unit variables
         :param unobserved_units: a list of names for the unobserved unit variables
         :param edges: a list of edges
-        :returns: a hierarchical causal model with subunit variables in the :data:`SUBUNITS_KEY` subgraph
+
+        :returns: a hierarchical causal model with subunit variables in the
+            :data:`SUBUNITS_KEY` subgraph
         """
         if observed_subunits is None:
             observed_subunits = []
@@ -248,11 +252,13 @@ class HierarchicalCausalModel:
     def to_admg(self, *, return_hcgm: bool = False) -> NxMixedGraph:
         """Return a collapsed hierarchical causal model.
 
-        :param return_hcgm:
-            if True, returns the intermediate hierarchical causal
+        :param return_hcgm: if True, returns the intermediate hierarchical causal
             graphical models (HCGM) with subunits and promoted Q variables
-        :raises NotImplementedError: currently cannot handle unobserved subunit variables
+
         :returns: a mixed graph
+
+        :raises NotImplementedError: currently cannot handle unobserved subunit
+            variables
         """
         if (self.get_unobserved() & self.get_subunits()) != set():
             raise NotImplementedError("Currently cannot handle unobserved subunit variables.")
@@ -383,9 +389,9 @@ class HierarchicalStructuralCausalModel(HierarchicalCausalModel):
     def to_admg(self, *, return_hcgm: bool = False) -> NxMixedGraph:
         """Return a collapsed hierarchical causal model.
 
-        :param return_hcgm:
-            if True, returns the intermediate hierarchical causal
+        :param return_hcgm: if True, returns the intermediate hierarchical causal
             graphical models (HCGM) with subunits and promoted Q variables
+
         :returns: a mixed graph
         """
         return self.to_hcm().to_admg(return_hcgm=return_hcgm)
@@ -431,6 +437,7 @@ def get_ancestors(subunit_graph: SubunitGraph, start_node: VHint) -> set[Variabl
 
     :param subunit_graph: A subunit graph
     :param start_node: the node to start the search from
+
     :returns: set of all ancestor nodes
     """
     start_node = _upgrade(start_node)
@@ -535,10 +542,14 @@ def augment_from_mechanism(
 
     :param collapsed: NxMixedGraph of the input collapsed model
     :param aug: new variable to add into the collapsed model
-    :param mechanism: collection of variables in the collapsed model that determine the augmentation_variable
-    :raises TypeError: if any of the parts of the mechanism aren't q-variables
-    :raises ValueError: input mechanism variables must be contained in the collapsed model
+    :param mechanism: collection of variables in the collapsed model that determine the
+        augmentation_variable
+
     :returns: NxMixedGraph of the augmented model
+
+    :raises TypeError: if any of the parts of the mechanism aren't q-variables
+    :raises ValueError: input mechanism variables must be contained in the collapsed
+        model
     """
     aug = _str_or_q(aug)
     augmented = collapsed.copy()
@@ -610,12 +621,18 @@ def marginalize_augmented_model(
     """Marginalize out a given collection of variables from an augmented model.
 
     :param augmented: NxMixedGraph of the input augmented model
-    :param augmentation_variable: the variable that was previously augmented into the model
-    :param marginal_parents: collection of parents of the augmentation variable to be marginalized out.
-    :raises ValueError: augmentation_variable must be in the augmented model
-    :raises ValueError: marginal_parents cannot be all the parents of augmentation_variable
-    :raises ValueError: augmentation_variable must be the only child of the each marginal parent
+    :param augmentation_variable: the variable that was previously augmented into the
+        model
+    :param marginal_parents: collection of parents of the augmentation variable to be
+        marginalized out.
+
     :returns: NxMixedGraph of the marginalized model
+
+    :raises ValueError: augmentation_variable must be in the augmented model
+    :raises ValueError: marginal_parents cannot be all the parents of
+        augmentation_variable
+    :raises ValueError: augmentation_variable must be the only child of the each
+        marginal parent
     """
     augmentation_variable = _str_or_q(augmentation_variable)
     marginal_parents = [_str_or_q(mp) for mp in marginal_parents]
