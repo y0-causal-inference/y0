@@ -27,9 +27,9 @@ def rule_2_of_do_calculus_applies(
     r"""Check if Rule 2 of the Do-Calculus applies to the conditioned variable.
 
     :param graph: The graph
-    :param treatments:
-    :param conditions:
-    :param outcomes:
+    :param treatments: The treatments
+    :param conditions: The conditions
+    :param outcomes: The outcomes
     :param condition: The condition to check
 
     :returns: If rule 2 applies, see below.
