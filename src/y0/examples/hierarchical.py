@@ -66,6 +66,7 @@ def get_school_confounder_interference_hcm() -> HierarchicalCausalModel:
     hcm.add_observed_node(A)
     hcm.add_observed_node(Y)
     hcm.add_observed_node(Z)
+    hcm.add_unobserved_node(U)
     hcm.add_edge(U, A)
     hcm.add_edge(A, Y)
     hcm.add_edge(U, Y)
@@ -96,18 +97,18 @@ def get_school_confounder_interference_hcgm() -> HierarchicalCausalModel:
 
 def get_school_confounder_interference_hscm() -> HierarchicalStructuralCausalModel:
     """Pytest fixture for the Confounder Interference HSCM in Sec. 2.3 Eqn. (9)."""
-    student_tutoring, student_test_score, school_budget = A, Y, U
+    student_tutoring, student_test_score, school_budget, school_zoom = A, Y, U, Z
     hscm = HierarchicalStructuralCausalModel()
     hscm.add_observed_node(student_tutoring)
-    hscm.add_observed_node(student_tutoring)
+    hscm.add_observed_node(school_zoom)
     hscm.add_observed_node(student_test_score)
     hscm.add_unobserved_node(school_budget)
     hscm.add_edge(school_budget, student_tutoring)
-    hscm.add_edge(student_tutoring, student_tutoring)
-    hscm.add_edge(school_budget, student_tutoring)
+    hscm.add_edge(student_tutoring, school_zoom)
+    hscm.add_edge(school_budget, student_test_score)
     hscm.add_edge(student_tutoring, student_test_score)
-    hscm.add_edge(student_test_score, student_tutoring)
-    hscm.add_subunits([student_tutoring, student_tutoring])
+    hscm.add_edge(school_zoom, student_test_score)
+    hscm.add_subunits([student_tutoring, student_test_score])
     return hscm
 
 
