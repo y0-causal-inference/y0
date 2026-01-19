@@ -62,9 +62,7 @@ def _identify(  # noqa:C901
 
     # line 1
     if not treatments:
-        # FIXME why is estimand passed here? Why not Probability.safe(nodes)?
-        #  this is a problem when recurring on a subgraph -
-        return Sum.safe(expression=estimand, ranges=nodes.difference(outcomes))
+        return Sum.safe(expression=Probability.safe(nodes), ranges=nodes.difference(outcomes))
 
     # line 2
     outcomes_and_ancestors = graph.ancestors_inclusive(outcomes)
