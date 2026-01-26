@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/cthoyt/cookiecutter-snekpack",
-  "commit": "f38be0e121ffa090bae855982c1e297fc4dcfb22",
+  "commit": "51c129dd1be40ae2826e9c4a79c953dd842a92cd",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -24,7 +24,7 @@
       "__runner_tests": "py",
       "__gh_slug": "y0-causal-inference/y0",
       "_template": "https://github.com/cthoyt/cookiecutter-snekpack",
-      "_commit": "f38be0e121ffa090bae855982c1e297fc4dcfb22"
+      "_commit": "51c129dd1be40ae2826e9c4a79c953dd842a92cd"
     }
   },
   "directory": null
