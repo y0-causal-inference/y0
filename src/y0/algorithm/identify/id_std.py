@@ -1,4 +1,4 @@
-"""An implementation of the identification algorithm."""
+"""An implementation of the identification algorithm from [shpitser2006]_."""
 
 from collections.abc import Sequence
 from typing import Annotated
