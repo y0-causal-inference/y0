@@ -249,6 +249,7 @@ class TestIdentify(cases.GraphTestCase):
             id_in = identification["id_in"][0]
             self.assertEqual(id_out, line_7(id_in, ordering=id_in.graph.topological_sort()))
             self.assert_expr_equal(
+                # actual P(Y1)
                 Sum.safe(expression=P(Y1 | (W1, X)) * P(W1), ranges=[W1]), identify(id_in)
             )
 
@@ -295,6 +296,7 @@ class TestIdentify(cases.GraphTestCase):
         #     P_XYZ * Sum[Y, Z](P_XYZ) / Sum[Y](P_XYZ) / Sum[X](Sum[Y, Z](P_XYZ))
         # )
         cond_expr = Sum[Z](Sum[X](P(Y | X, Z) * P(X)) * P(Z | X))
+        # actual = Sum[Z](P(Y) * P(Z | X))
         self.assert_identify(cond_expr, graph, P(Y @ X))
 
     def test_figure_3a(self):
@@ -303,4 +305,5 @@ class TestIdentify(cases.GraphTestCase):
         cond_expr = Sum[W2](
             Sum[W1, X, Y1, Y2](P(W1, W2, X, Y1, Y2)) * Sum[W1](P(W1) * P(Y1 | W1, X)) * P(Y2 | W2)
         )
+        # actual Sum[W2](P(W2) * P(Y1) * P(Y2 | W2))
         self.assert_identify(cond_expr, graph, P(Y1 @ X, Y2 @ X))
