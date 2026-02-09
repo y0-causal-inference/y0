@@ -1,0 +1,176 @@
+diff a/tox.ini b/tox.ini	(rejected hunks)
+@@ -32,143 +32,86 @@ envlist =
+ 
+ [testenv]
+ description = Run unit and integration tests.
+-# Runs on the "tests" directory by default, or passes the positional
+-# arguments from `tox -e py <posargs_1> ... <posargs_n>
++skip_install = true
++allowlist_externals =
++    uv
++    uvx
+ commands =
+-    coverage run -p -m pytest --durations=20 {posargs:tests}
+-    coverage combine
+-    coverage xml
+-# See the [dependency-groups] entry in pyproject.toml for "tests"
+-dependency_groups =
+-    tests
++    uvx --from rust-just just test
+ 
+ [testenv:coverage-clean]
+ description = Remove testing coverage artifacts.
+-deps = coverage[toml]
+-skip_install = true
+-commands = coverage erase
++commands =
++    uvx --from rust-just just coverage-clean
++
++[testenv:coverage-report]
++commands =
++    uvx --from rust-just just coverage-report
+ 
+ [testenv:doctests]
+ description = Test that documentation examples run properly.
+ commands =
+-    # note that the package name is required for discovery
+-    xdoctest -m src/y0
+-dependency_groups =
+-    doctests
++    uvx --from rust-just just doctests
+ 
+ [testenv:treon]
+-description = Test that notebooks can run to completion
++description = Test that notebooks can be run to completion
+ commands =
+-    treon notebooks/
+-deps =
+-    treon
++    uvx --from rust-just just treon
+ 
+ [testenv:format]
+-description = Format the code in a deterministic way using ruff. Note that ruff check should come before ruff format when using --fix (ref: https://github.com/astral-sh/ruff-pre-commit/blob/main/README.md)
+-dependency_groups =
+-    lint
+-skip_install = true
++description = Format the code.
+ commands =
+-    ruff check --fix
+-    ruff format
++    uvx --from rust-just just format
+ 
+ [testenv:format-docs]
+ description = Run documentation linters.
+-# note that this doesn't work with sphinx-click
+-# or any other extension that adds extra directives
+-# See the [dependency-groups] entry in pyproject.toml for "rstfmt"
+-dependency_groups =
+-    format-docs
+-skip_install = true
+ commands =
+-    docstrfmt src/ tests/ docs/ --no-docstring-trailing-line
++    uvx --from rust-just just format-docs
+ 
+ [testenv:format-markdown]
+ description = Run markdown formatter.
+-skip_install = true
+-allowlist_externals =
+-    npx
+ commands =
+-    npx --yes prettier --write --prose-wrap always "**/*.md"
++    uvx --from rust-just just format-markdown
+ 
+ [testenv:lint]
+ description = Check code quality using ruff and other tools.
+-skip_install = true
+-dependency_groups =
+-    lint
+ commands =
+-    ruff check
+-    ruff format --check
++    uvx --from rust-just just lint
+ 
+ [testenv:lint-markdown]
+ description = Check markdown is properly formatted.
+-# inspired by https://github.com/astral-sh/uv/blob/98523e2014e9a5c69706623344026d76296e178f/.github/workflows/ci.yml#L67C1-L70C61
+-skip_install = true
+-allowlist_externals =
+-    npx
+ commands =
+-    npx --yes prettier --check --prose-wrap always "**/*.md"
++    uvx --from rust-just just lint-markdown
+ 
+ [testenv:pyroma]
+-dependency_groups =
+-    pyroma
+-skip_install = true
+-commands = pyroma --min=10 .
+-description = Run the pyroma tool to check the package friendliness of the project.
++description = Check the metadata health of the project
++commands =
++    uvx --from rust-just just pyroma
+ 
+ [testenv:mypy]
+-description = Run the mypy tool to check static typing on the project. Installs the package to make sure all type stubs get recognized.
+-dependency_groups =
+-    typing
+-commands = mypy --ignore-missing-imports --strict src/ tests/
++description = Run the mypy tool to check static typing on the project.
++commands =
++    uvx --from rust-just just mypy
+ 
+ [testenv:docs-lint]
+-skip_install = true
+-dependency_groups =
+-    docs-lint
+-commands =
+-    doc8 docs/source/
+ description = Run the doc8 tool to check the style of the RST files in the project docs.
++commands =
++    uvx --from rust-just just docs-lint
+ 
+ [testenv:docstr-coverage]
+ description = Run the docstr-coverage tool to check documentation coverage.
+-skip_install = true
+-deps =
+-    docstr-coverage
+ commands =
+-    docstr-coverage src/ tests/ --skip-private --skip-magic
++    uvx --from rust-just just docstr-coverage
+ 
+ [testenv:docs]
+ description = Build the documentation locally, allowing warnings.
+-dependency_groups =
+-    # See the [dependency-groups] entry in pyproject.toml for "docs"
+-    docs
+-    # You might need to add additional extras if your documentation covers it
+ commands =
+-    python -m sphinx -b html -d docs/build/doctrees docs/source docs/build/html
++    uvx --from rust-just just docs
+ 
+ [testenv:docs-test]
+ description = Test building the documentation in an isolated environment. Warnings are considered as errors via -W.
+-changedir = docs
+-dependency_groups =
+-    {[testenv:docs]dependency_groups}
+-commands =
+-    mkdir -p {envtmpdir}
+-    cp -r source {envtmpdir}/source
+-    python -m sphinx -W -b html     -d {envtmpdir}/build/doctrees {envtmpdir}/source {envtmpdir}/build/html
+-    # python -m sphinx -W -b coverage -d {envtmpdir}/build/doctrees {envtmpdir}/source {envtmpdir}/build/coverage
+-    # cat {envtmpdir}/build/coverage/c.txt
+-    # cat {envtmpdir}/build/coverage/python.txt
+-allowlist_externals =
+-    cp
+-    cat
+-    mkdir
+-
+-[testenv:coverage-report]
+-deps = coverage[toml]
+-skip_install = true
+ commands =
+-    coverage report
++    uvx --from rust-just just docs-test
+ 
+ ####################
+ # Deployment tools #
