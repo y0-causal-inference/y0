@@ -15,6 +15,8 @@ from ..ioscm.utils import (
     get_graph_consolidated_districts,
     get_strongly_connected_components,
 )
+from y0.algorithm.tian_id import compute_ancestral_set_q_value
+
 from ...dsl import Expression, Probability, Product, Variable
 from ...graph import NxMixedGraph, _ensure_set
 from ...util import InPaperAs
@@ -393,6 +395,58 @@ def identify_through_scc_decomposition(
         distribution=district_distribution,
         _recursion_level=_recursion_level + 1,
     )
+    
+
+def identify_district_variables_cyclic(
+    *,
+    input_variables: frozenset[Variable],
+    input_district: frozenset[Variable],
+    district_probability: Expression,
+    graph: NxMixedGraph,
+    topo: list[Variable],
+) -> Expression | None:
+    
+    from y0.algorithm.tian_id import compute_ancestral_set_q_value
+    
+    # find the ancestral set A
+    district_subgraph = graph.subgraph(input_district)
+    ancestral_set = frozenset(
+        district_subgraph.ancestors_inclusive(input_variables)
+        
+    )
+    
+    ancestral_set_probability = compute_ancestral_set_q_value(
+        ancestral_set=ancestral_set,
+        subgraph_variables=input_district,
+        subgraph_probability=district_probability,
+        graph_topo=topo,
+    )
+    
+    # check the cases - if A = C
+    if ancestral_set == input_variables:
+        return ancestral_set_probability
+    
+    
+    if ancestral_set == input_district:
+        # check for confounding via the graph 
+        has_confounding = len(district_subgraph.undirected.edges()) > 0
+        
+        if not has_confounding:
+            return None
+        
+        from y0.algorithm.tian_id import compute_c_factor_marginalizing_over_topological_successors
+        
+        subgraph_topo = [v for v in topo if v in input_district]
+        return compute_c_factor_marginalizing_over_topological_successors(
+            district=input_variables,
+            graph_probability=ancestral_set_probability,
+            topo=subgraph_topo,
+        )
+        
+  
+    
+
+
 
 
 def compute_scc_distributions(
