@@ -122,4 +122,50 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         self.assertIsInstance(result, Fraction)
         
         
+    def test_case_3_triggers_recursion(self):
+        
+        
+        graph = NxMixedGraph.from_edges(
+            directed=[(Z2, Z1), (Z1, X), (X, Y)],
+            undirected=[(Z2, X), (Z2, Y)]
+        )
+        
+        result = identify_district_variables_cyclic(
+            input_variables=frozenset({Y}),
+            input_district=frozenset({Z2, X, Y}),
+            district_probability=P(Z2, X, Y),
+            graph=graph,
+            topo=[Z2, Z1, X, Y],
+        )
+        
+        
+        self.assertIsInstance(result, Fraction)
     
+
+    def test_napkin_full_integration(self):
+        """Integration test: full cyclic_id() on napkin graph gives correct formula."""
+        from y0.algorithm.identify.cyclic_id import cyclic_id
+    
+        graph = NxMixedGraph.from_edges(
+            directed=[(Z2, Z1), (Z1, X), (X, Y)],
+            undirected=[(Z2, X), (Z2, Y)]
+        )
+    
+        result = cyclic_id(
+            graph=graph,
+            outcomes={Y},
+            interventions={X},
+        )
+        
+        print(f"result = {result}")
+        print(f"result latex = {result.to_latex()}")
+    
+
+        # P(Y | do(X)) = Sum[Z2](P(Y,X|Z1,Z2) * P(Z2)) / Sum[Z2](P(X|Z1,Z2) * P(Z2))
+        inner_term = P(X, Y, Z1, Z2) * P(Z2) / P(Z1, Z2)
+        numerator = Sum[Z2](inner_term)
+        denominator = Sum[Y](Sum[Z2](inner_term))
+        expected = Fraction(numerator, denominator)
+        
+        
+        self.assert_expr_equal(expected, result)
