@@ -1,0 +1,12 @@
+diff a/README.md b/README.md	(rejected hunks)
+@@ -28,8 +28,8 @@
+     <a href="https://github.com/y0-causal-inference/y0/blob/main/.github/CODE_OF_CONDUCT.md">
+         <img src="https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg" alt="Contributor Covenant"/></a>
+     <!-- uncomment if you archive on zenodo
+-    <a href="https://zenodo.org/badge/latestdoi/XXXXXX">
+-        <img src="https://zenodo.org/badge/XXXXXX.svg" alt="DOI"></a>
++    <a href="https://doi.org/10.5281/zenodo.XXXXXX">
++        <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXX.svg" alt="DOI"></a>
+     -->
+ </p>
+ 
