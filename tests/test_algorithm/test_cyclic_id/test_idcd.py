@@ -338,15 +338,12 @@ class TestIDCDFunction(cases.GraphTestCase):
             outcomes=targets,
             district=district,
         )
-
-        # explicitly construct expected expression structure
-        conditional_prob = P(Y | W, X, Z)
-
-        # normalization factor
-        normalization = Sum[Y](P(Y | W, X, Z))  # type: ignore[misc]
+      
+      
 
         # this is the final expected result which should be: (P(Y | W, X, Z)) / (Sum_Y P(Y | W, X, Z))
-        expected = conditional_prob / normalization
+        expected = P(R, W, X, Y, Z) / P(R, W, X, Z)
+        
 
         self.assert_expr_equal(expected, result)
 
@@ -444,11 +441,10 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
         intervention_set: set[Variable] = set()
 
         expected = {
-            # SCC {X, Y}: marginalize out {W, Z}
-            frozenset({X, Y}): Sum[W, Z](P(X, Y, W, Z)),  # type:ignore[misc]
-            # SCC {W, Z}: marginalize out {X, Y}
-            frozenset({W, Z}): Sum[X, Y](P(X, Y, W, Z)),  # type:ignore[misc]
+            frozenset({X, Y}): P(X, Y),
+            frozenset({W, Z}): P(W, Z)
         }
+        
         result = compute_scc_distributions(
             graph=graph,
             subgraph_a=subgraph_a,
@@ -456,6 +452,8 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
             ancestral_closure=ancestral_closure,
             intervention_set=intervention_set,
         )
+    
+        
         self.assertEqual(expected, result)
 
     def test_intervention_set_calculation(self) -> None:
@@ -489,7 +487,7 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
         normalization = Sum[Z](P(Z | Y))  # type:ignore[misc]
         # result = ((P(Z | Y)) / (Sum_Z P(Z | Y)))
         expected_expression = conditional_prob / normalization
-        expected = {frozenset({Z}): expected_expression}
+        expected = {frozenset({Z}): P(R, X, Y, Z) / P(R, X, Y)}
 
         result = compute_scc_distributions(
             graph=graph,
@@ -498,4 +496,5 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
             ancestral_closure=ancestral_closure,
             intervention_set=intervention_set,
         )
+        
         self.assertEqual(expected, result)

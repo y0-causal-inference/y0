@@ -406,7 +406,7 @@ def _get_projected_subgraph(
     graph: NxMixedGraph,
     vertices: frozenset[Variable],
 ) -> NxMixedGraph:
-    """Get subgraph of vertices with projected bidirected edges.
+    r"""Get subgraph of vertices with projected bidirected edges.
     
     Implements Definition B.1 (Marginalization of DMGs):
     For any two nodes u, v in vertices: adds u↔v if they are connected
@@ -453,6 +453,25 @@ def identify_district_variables_cyclic(
     topo: list[Variable],
 ) -> Expression | None:
     
+    r"""
+    Generalized district identification for line 23 in IDCD.
+    
+    This is a generalized version of identify_district_variables from 
+    the Tian & Pearl implementation, and checks for confounding.
+    
+    Three cases:
+    - Base Case 1 (A == C): Return Q[A] directly 
+    - Base Case 2 (A == T): Return None/FAIL
+    - Case 3 (C ⊂ A ⊂ T): Recurse on smaller district T' found in G[A]
+    
+    :param input_variables: Target variables C to identify
+    :param input_district: Consolidated district T containing C
+    :param district_probability: Distribution Q[T] over the district
+    :param graph: Full causal graph G
+    :param topo: Topological/apt-order of variables
+    :returns: Identified distribution Q[C] or None if unidentifiable    
+    """
+    
     
     # find the ancestral set A
     district_subgraph = graph.subgraph(input_district)
@@ -472,37 +491,25 @@ def identify_district_variables_cyclic(
     if ancestral_set == input_variables:
         return ancestral_set_probability
     
-    
+    # if A = T
+    # if the ancestral set = district, then the identification fails and cannot isolate
+    # target variables from confounding
     if ancestral_set == input_district:
-        # check for confounding via the graph 
-        projected_district_subgraph = _get_projected_subgraph(graph, input_district)
-        has_confounding = len(projected_district_subgraph.undirected.edges()) > 0
-        
-        if not has_confounding:
-            return None
-        
-     
-        
-        subgraph_topo = [v for v in topo if v in input_district]
-        return compute_c_factor_marginalizing_over_topological_successors(
-            district=input_variables,
-            graph_probability=ancestral_set_probability,
-            topo=subgraph_topo,
-        )
-        
+        return None
+   
+    # recursive case  
+    # Find the sub district T' containing C in the induced subgraph G[A]
+    # 
     if input_variables.issubset(ancestral_set) and ancestral_set.issubset(input_district):
+        print("Hit recursive case 3")
         
         ordered_ancestral_set = [v for v in topo if v in ancestral_set]
-        ancestral_set_subgraph = _get_projected_subgraph(graph, ancestral_set)
-        
-        # DEBUG
-        print(f"ancestral_set = {ancestral_set}")
-        print(f"ancestral_set_subgraph undirected edges = {list(ancestral_set_subgraph.undirected.edges())}")
-        ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
-        print(f"districts in G[A] = {ancestral_set_subgraph_districts}")
-        
+        # G[A]: induced subgraph on ancestral set
+        ancestral_set_subgraph = graph.subgraph(ancestral_set)
+                     
         ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
         
+        # find district T' containing target variables C
         targeted_ancestral_set_subgraph_district = frozenset(
             ancestral_set_subgraph_districts[
                 [
@@ -513,42 +520,18 @@ def identify_district_variables_cyclic(
         )
         
         subgraph_topo = [v for v in topo if v in ancestral_set]
-        
-        t_prime_subgraph = ancestral_set_subgraph.subgraph(
-            targeted_ancestral_set_subgraph_district
-        )
      
-        has_confounding = len(t_prime_subgraph.undirected.edges()) > 0
-        
-        print(f"T' = {targeted_ancestral_set_subgraph_district}")
-        print(f"T' subgraph undirected edges = {list(t_prime_subgraph.undirected.edges())}")
-        print(f"has_confounding in T' = {len(t_prime_subgraph.undirected.edges()) > 0}")
-        print(f"subgraph_topo = {subgraph_topo}")
-        print(f"ancestral_set_probability = {ancestral_set_probability}")
-        print(f"type(ancestral_set_probability) = {type(ancestral_set_probability)}")
-        
-        if has_confounding:
-            print("taking lemma 4")
-            targeted_district_probability = (
-                compute_c_factor_marginalizing_over_topological_successors(
-                    district=targeted_ancestral_set_subgraph_district,
-                    graph_probability=ancestral_set_probability,
-                    topo=subgraph_topo,
-                )
-            )
-        
-        else:
-            print("taking lemma 1")
-            targeted_district_probability = (
-                compute_c_factor_conditioning_on_topological_predecessors(
+     
+        # using Lemma 4 to extract Q[T'] from Q[A] which works for both confounded and unconfounded T'
+        targeted_district_probability = (
+            compute_c_factor_marginalizing_over_topological_successors(
                 district=targeted_ancestral_set_subgraph_district,
                 graph_probability=ancestral_set_probability,
                 topo=subgraph_topo,
-                )
             )
-        print(f"targeted_district_probability = {targeted_district_probability}")
-        print(f"type= {type(targeted_district_probability)}")
             
+        )            
+        # recurse with a smaller district
         return identify_district_variables_cyclic(
             input_variables=input_variables,
             input_district=targeted_ancestral_set_subgraph_district,
@@ -556,8 +539,6 @@ def identify_district_variables_cyclic(
             graph=graph,
             topo=topo,
         )
-        
-    raise NotImplementedError("Unexpected state in identify_district_variables_cyclic")
         
         
         
@@ -600,14 +581,10 @@ def compute_scc_distributions(
     apt_order_a = get_apt_order(subgraph_a)
     full_apt_order = get_apt_order(graph)
     
-    print(f"full apt order = {full_apt_order}")
     scc_distributions = {}
     for scc in relevant_sccs:
-        projected_subgraph_a = _get_projected_subgraph(graph, frozenset(ancestral_closure))
         consolidated_district = get_consolidated_district(graph, scc)
         
-        print(f"scc = {scc}")
-        print(f"consolidated_district = {consolidated_district}")
         
         initial_distribution = initialize_district_distribution(
             graph=graph,
@@ -615,9 +592,6 @@ def compute_scc_distributions(
             ordering=full_apt_order,
         )
         
-        print(f"consolidated district = {consolidated_district}")
-        print(f"initial_distribution = {initial_distribution}")
-        print(f"type = {type(initial_distribution)}")
         
         result = identify_district_variables_cyclic(
             input_variables=scc,
@@ -626,9 +600,7 @@ def compute_scc_distributions(
             graph=graph,
             topo=full_apt_order,
         )
-        
-        print(f"result = {result}")
-        
+                
         scc_distributions[scc] = result
         
     return scc_distributions

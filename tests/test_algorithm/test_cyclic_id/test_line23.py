@@ -2,12 +2,13 @@
 
 
 
-import unittest
 from tests.test_algorithm import cases
 from y0.examples import napkin
-from y0.algorithm.identify.cyclic_id import identify_district_variables_cyclic
-from y0.dsl import X, Y, Z1, Z2, P, Sum, Fraction, Variable
+from y0.algorithm.identify.cyclic_id import cyclic_id
+from y0.algorithm.identify.cyclic_id import identify_district_variables_cyclic, _get_projected_subgraph
+from y0.dsl import W3, X, Y, Z1, Z2, P, Sum, Fraction, Variable
 from y0.graph import NxMixedGraph
+import networkx as nx
 
 
 class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
@@ -34,7 +35,8 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         
     def test_base_case_1(self):
         """
-        When A=C, it should return Q[C] = Sum[T\C]Q.
+        When the ancestral set = input variables, return the district probability.
+        Expected: P(Y) - no marginzalization needed.
         """
         graph = NxMixedGraph.from_edges(
             directed=[],
@@ -52,6 +54,11 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         self.assert_expr_equal(P(Y), result)
         
     def test_base_case_1_marginalization(self):
+        """
+        Graph: X -> Y, disconnected Z1
+        District T = {Y, Z1}, Target = {Y}
+        Expected: Sum[Z1](P(Y, Z1)) - marginalize out Z1
+        """
         graph = NxMixedGraph.from_edges(
             directed=[(X, Y)],
             undirected=[]
@@ -71,6 +78,7 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         self.assert_expr_equal(expected, result)
         
     def test_base_case_1_multiple_variables(self):
+        """Base Case 1: Multiple Target variables (|C| > 1)"""
         graph = NxMixedGraph.from_edges(
             directed=[(X, Y), (X, Z1)],
             undirected=[]
@@ -84,10 +92,11 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
             topo=[X, Y, Z1],
         )
         
-        
+        # No marginalization, ancestral set = input variables = input district
         self.assert_expr_equal(P(Y, Z1), result)
         
     def test_base_case_2_no_confounding_returns_none(self):
+        """Base Case 2: Ancestral set = input district, should return None"""
         
         graph = NxMixedGraph.from_edges(
             directed=[(X, Y)],
@@ -102,27 +111,12 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
             topo=[X, Y],
         )
         
+        # if ancestral set is equal to the input district, should return a FAIL/None
         self.assertIsNone(result)
         
-    def test_base_case_2_with_confounding_returns_fraction(self):
-        
-        graph = NxMixedGraph.from_edges(
-            directed=[(X, Y)],
-            undirected=[(X, Y)]
-        )
-        
-        result = identify_district_variables_cyclic(
-            input_variables=frozenset({Y}),
-            input_district=frozenset({X, Y}),
-            district_probability=P(X, Y),
-            graph=graph,
-            topo=[X, Y],
-        )
-        
-        self.assertIsInstance(result, Fraction)
-        
-        
     def test_case_3_triggers_recursion(self):
+        """Base Case 3: C ⊂ A ⊂ T triggers recursion with Lemma 4.
+        """
         
         
         graph = NxMixedGraph.from_edges(
@@ -143,9 +137,7 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
     
 
     def test_napkin_full_integration(self):
-        """Integration test: full cyclic_id() on napkin graph gives correct formula."""
-        from y0.algorithm.identify.cyclic_id import cyclic_id
-    
+        
         graph = NxMixedGraph.from_edges(
             directed=[(Z2, Z1), (Z1, X), (X, Y)],
             undirected=[(Z2, X), (Z2, Y)]
@@ -155,17 +147,124 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
             graph=graph,
             outcomes={Y},
             interventions={X},
-        )
+        )    
         
-        print(f"result = {result}")
-        print(f"result latex = {result.to_latex()}")
-    
-
-        # P(Y | do(X)) = Sum[Z2](P(Y,X|Z1,Z2) * P(Z2)) / Sum[Z2](P(X|Z1,Z2) * P(Z2))
         inner_term = P(X, Y, Z1, Z2) * P(Z2) / P(Z1, Z2)
         numerator = Sum[Z2](inner_term)
         denominator = Sum[Y](Sum[Z2](inner_term))
         expected = Fraction(numerator, denominator)
         
-        
         self.assert_expr_equal(expected, result)
+        
+   
+    def test_acyclic_no_confounding_simple_dag(self):
+        """Regression test: Simple DAG with no confounding still works with no errors."""
+        
+        graph = NxMixedGraph.from_edges(
+            directed=[(X, Y)],
+            undirected=[]
+        )
+        
+        result = identify_district_variables_cyclic(
+            input_variables=frozenset({Y}),
+            input_district=frozenset({X, Y}),
+            district_probability=P(X, Y),
+            graph=graph,
+            topo=[X, Y],
+        )
+        # no confounding = None
+        self.assertIsNone(result)
+        
+    def test_projected_subgraph_bidirected_chain(self):
+        
+        Za = Variable("Za")
+        Zb = Variable("Zb")
+        
+        graph = NxMixedGraph.from_edges(
+            directed=[],
+            undirected=[(X, Za), (Za, Zb), (Zb, Y)]
+        )
+        
+        projected = _get_projected_subgraph(graph, frozenset({X, Y}))
+        
+        self.assertTrue(projected.undirected.has_edge(X, Y))
+        
+        self.assertNotIn(Za, projected.nodes())
+        self.assertNotIn(Zb, projected.nodes())
+        
+    def test_incorrect_input_c_not_subset_of_t(self):
+        """Input Validation: Input variables must be a subset of T"""
+        
+        graph = NxMixedGraph.from_edges(
+            directed=[(X, Y)],
+            undirected=[]
+        )
+        
+        with self.assertRaises(nx.NetworkXError):
+            identify_district_variables_cyclic(
+                input_variables=frozenset({Z1}),
+                input_district=frozenset({X, Y}),
+                district_probability=P(X, Y),
+                graph=graph,
+                topo=[X, Y, Z1],
+            )
+    
+    
+    def test_bow_arc_unidentifiable(self):
+        """Regression test: Bow arc structure is unidentifiable."""
+        
+        graph = NxMixedGraph.from_edges(
+            directed=[(X, Y)],
+            undirected=[(X, Y)]
+        )
+        
+        input_district = frozenset({X, Y})
+        target = frozenset({Y})
+        q_t = P(X, Y)
+        
+        result = identify_district_variables_cyclic(
+            input_variables=target,
+            input_district=input_district,
+            district_probability=q_t,
+            graph=graph,
+            topo=[X, Y]
+        )
+        
+        self.assertIsNone(result)
+        
+        
+    def test_tian_pearl_figure_9_deep_recursion(self):
+        """Uses figure 9 of the Tian & Pearl algorithm."""
+        
+        
+        W1 = Variable("W1")
+        W2 = Variable("W2")
+        W3 = Variable("W3")
+        W4 = Variable("W4")
+        W5 = Variable("W5")
+    
+        graph = NxMixedGraph.from_edges(
+            directed=[(W1, W2), (W2, X), (W3, W4), (W4, X), (X, Y)],
+            undirected=[(W1, W3), (W3, W5), (W4, W5), (W2, W3), (W1, X), (W1, Y)]
+        )
+        
+        topo = [W3, W5, W4, W1, W2, X, Y]
+        input_district = frozenset(graph.nodes())
+        target = frozenset({Y})
+        
+        # Initial distribution Q[V] = P(V)
+        q_v = P(W3, W5, W4, W1, W2, X, Y)
+
+        result = identify_district_variables_cyclic(
+            input_variables=target,
+            input_district=input_district,
+            district_probability=q_v,
+            graph=graph,
+            topo=topo
+        )
+
+        # Expected: Non-None result (identifiable)
+        # Should be a Fraction (ratio formula from 3 levels of recursion)
+        self.assertIsNotNone(result, "Figure 9 should be identifiable")
+        self.assertIsInstance(result, Fraction, "Should produce ratio formula")         
+    
