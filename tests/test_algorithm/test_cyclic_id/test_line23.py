@@ -1,13 +1,21 @@
-"""Tests for the line 23 fix in the cyclic ID algorithm"""
+"""Tests for the line 23 fix in the cyclic ID algorithm
+
+This module tests:
+1. identify_district_variables_cyclic()
+2. initial_distribution parameter - an optional parameter to add interventional data
+"""
 
 
 
+from y0 import graph
+from IPython.display import display, Math
 from tests.test_algorithm import cases
 from y0.examples import napkin
 from y0.algorithm.identify.cyclic_id import cyclic_id
 from y0.algorithm.identify.cyclic_id import identify_district_variables_cyclic, _get_projected_subgraph
-from y0.dsl import W3, X, Y, Z1, Z2, P, Sum, Fraction, Variable
+from y0.dsl import W3, X, Y, Z1, Z2, P, Sum, Fraction, Variable, Z
 from y0.graph import NxMixedGraph
+from y0.algorithm.identify.utils import Unidentifiable
 import networkx as nx
 
 
@@ -155,6 +163,7 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         expected = Fraction(numerator, denominator)
         
         self.assert_expr_equal(expected, result)
+        print(result)
         
    
     def test_acyclic_no_confounding_simple_dag(self):
@@ -174,7 +183,7 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         )
         # no confounding = None
         self.assertIsNone(result)
-        
+           
     def test_projected_subgraph_bidirected_chain(self):
         
         Za = Variable("Za")
@@ -267,4 +276,189 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         # Should be a Fraction (ratio formula from 3 levels of recursion)
         self.assertIsNotNone(result, "Figure 9 should be identifiable")
         self.assertIsInstance(result, Fraction, "Should produce ratio formula")         
+        
+class TestInitialDistributionParameter(cases.GraphTestCase):
     
+    def test_ecoli_bow_arc_unidentifiable_without_intervention(self):
+        """E.coli: Bow-arc (soxR → soxS with soxR ↔ soxS) is unidentifiable.
+    
+        Direct confounding between intervention and outcome makes the query fail.
+        """
+    
+        fur = Variable("fur")
+        fnr = Variable("fnr")
+        soxR = Variable("soxR")
+        oxyR = Variable("oxyR")
+        soxS = Variable("soxS")
+    
+        # E.coli network with bow-arc: soxR → soxS AND soxR ↔ soxS
+        graph = NxMixedGraph.from_edges(
+            directed=[
+                (fur, soxR),
+                (soxR, oxyR),
+                (oxyR, fur),
+                (fnr, fnr),
+                (fnr, soxR),
+                (soxR, soxS),  # Directed
+            ],
+            undirected=[
+                (soxR, soxS),  # Confounded (bow-arc!)
+            ]
+        )
+    
+        # Query P(soxS | do(soxR)) - should FAIL due to bow-arc
+        with self.assertRaises(Unidentifiable):
+                cyclic_id(
+                    graph=graph,
+                    outcomes={soxS},
+                    interventions={soxR},
+                )
+   
+    
+    def test_broken_bow_arc_different_interventions(self):
+        """Bow-arc: P(Y|do(X)) fails observationally, succeeds with P[do(Z)](V).
+    
+        Graph: Z → X, Z → Y, X → Y (Z is the confounder)
+        Intervention on Z breaks the X-Y confounding path.
+        """
+ 
+        
+        # Z confounds X and Y
+        graph = NxMixedGraph.from_edges(
+            directed=[(Z, X), (Z, Y), (X, Y)],
+            undirected=[]
+        )
+    
+        # Observational: Should succeed (Z is observed, back-door criterion)
+        # But let's test with interventional data
+    
+        # With P[do(Z)](V): breaks confounding!
+        interventional_dist = P[Z](X, Y, Z)
+    
+        result = cyclic_id(
+            graph=graph,
+            outcomes={Y},
+            interventions={X},  # ← Different from Z!
+            base_distribution=interventional_dist,
+        )
+    
+        self.assertIsNotNone(result)
+        print(f"\nResult with do(Z) data: {result}")
+        print(f"LaTeX: {result.to_latex()}")
+    
+        # Should be non-trivial (not just "1")
+        variables = result.get_variables()
+        self.assertTrue(len(variables) > 0, "Result should contain variables")
+        
+    def test_manual_vs_automatic_graph_mutilation(self):
+        """Verify automatic mutilation matches manual graph surgery."""
+    
+  
+        # Original graph with Z
+        graph_with_z = NxMixedGraph.from_edges(
+            directed=[(Z, X), (Z, Y), (X, Y)],
+            undirected=[]
+        )
+    
+        # Manually mutilated graph (remove Z)
+        graph_without_z = NxMixedGraph.from_edges(
+            directed=[(X, Y)],  # Z edges removed!
+            undirected=[]
+        )
+    
+        # METHOD 1: Automatic (with interventional data)
+        interventional_dist = P[Z](X, Y, Z)
+        result_automatic = cyclic_id(
+            graph=graph_with_z,
+            outcomes={Y},
+            interventions={X},
+            base_distribution=interventional_dist,
+        )
+    
+        # METHOD 2: Manual (query on pre-mutilated graph with observational data)
+        # Use P(X,Y) as if Z never existed
+        result_manual = cyclic_id(
+            graph=graph_without_z,
+            outcomes={Y},
+            interventions={X},
+            # No base_distribution - using observational P(X,Y)
+        )
+    
+        print(f"\nAutomatic (with P[do(Z)](V)): {result_automatic}")
+        print(f"Manual (pre-mutilated graph):  {result_manual}")
+    
+        # They should be equivalent!
+        self.assertEqual(
+            result_automatic, 
+            result_manual,
+            "Automatic mutilation should match manual graph surgery"
+        )
+    def test_scc_cycle_breaker_with_interventional_data(self):
+            """SCC cycle breaker: X→Y→Z→X unidentifiable, identifiable with P[do(Z)](V)."""
+            from y0.algorithm.identify.cyclic_id import cyclic_id
+            from y0.algorithm.identify import Unidentifiable
+        
+            # Simple 3-node cycle
+            graph = NxMixedGraph.from_edges(
+                directed=[(X, Y), (Y, Z), (Z, X)]
+            )
+            
+            # Observational: FAIL (all in same SCC)
+            with self.assertRaises(Unidentifiable):
+                cyclic_id(graph, outcomes={Y}, interventions={X})
+            
+            # With do(Z) data: breaks cycle!
+            int_data = P[Z](X, Y, Z)
+            result = cyclic_id(
+                graph, 
+                outcomes={Y}, 
+                interventions={X}, 
+                base_distribution=int_data
+            )
+            
+            self.assertIsNotNone(result)
+            print(f"\nSCC cycle break result: {result}")
+
+
+    def test_mediated_bow_arc_break_with_interventional_data(self):
+            """Mediated bow-arc: X→Z→Y with X↔Z unidentifiable, identifiable with P[do(Z)](V)."""
+            from y0.algorithm.identify.cyclic_id import cyclic_id
+            from y0.algorithm.identify import Unidentifiable
+            
+            # X→Z→Y with X↔Z
+            graph = NxMixedGraph.from_edges(
+                directed=[(X, Z), (Z, Y)],
+                undirected=[(X, Z)]
+            )
+            
+            # Observational: FAIL (bow-arc on mediator)
+            with self.assertRaises(Unidentifiable):
+                cyclic_id(graph, outcomes={Y}, interventions={X})
+            
+            # With do(Z) data: breaks bow-arc!
+            int_data = P[Z](X, Y, Z)
+            result = cyclic_id(
+                graph,
+                outcomes={Y},
+                interventions={X},
+                base_distribution=int_data
+            )
+            
+            self.assertIsNotNone(result)
+            print(f"\nMediated bow-arc break result: {result}")
+            
+            
+    def test_overlapping_interventions_raises_error(self):
+        """Verify error when J ∩ W ≠ ∅"""
+        graph = NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z)])
+    
+        # Try to query P(Z|do(X)) with P[do(X)](V) - X in both!
+        with self.assertRaises(ValueError) as cm:
+            cyclic_id(
+                graph,
+                outcomes={Z},
+                interventions={X},  # Same as intervention in data!
+                base_distribution=P[X](X, Y, Z)
+            )
+    
+        self.assertIn("must be disjoint", str(cm.exception))

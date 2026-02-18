@@ -21,7 +21,7 @@ from y0.algorithm.tian_id import (
             compute_c_factor_conditioning_on_topological_predecessors,
         )
 
-from ...dsl import Expression, Probability, Product, Variable
+from ...dsl import Expression, Probability, Product, Variable, Distribution
 from ...graph import NxMixedGraph, _ensure_set
 from ...util import InPaperAs
 
@@ -46,6 +46,7 @@ def cyclic_id(  # noqa:C901
     interventions: Annotated[Variable | Iterable[Variable], InPaperAs("W")],
     *,
     ordering: Sequence[Variable] | None = None,
+    base_distribution: Expression | None = None
 ) -> Annotated[Expression, InPaperAs(r"P(Y \mid do(W))")]:
     """Identify causal effects in cyclic graphs.
 
@@ -54,6 +55,9 @@ def cyclic_id(  # noqa:C901
     :param interventions: Intervention variables $W$
     :param ordering: Ordering of variables in the graph. If not given, an apt-order is
         calculated with :func:`get_apt_order`
+    :param initial_distribution: Optional interventional distribution P[do(J)](V).
+    If provided, identifies P(Y|do(W)) given data from do(J) experiment.
+    If None, uses observational data P(V).
 
     :returns: Identified causal effect $P(Y | do(W))$
 
@@ -86,6 +90,37 @@ def cyclic_id(  # noqa:C901
 
     if outcomes & interventions:
         raise ValueError("Outcomes and interventions must be disjoint sets.")
+    
+    intervention_j = set()
+    if base_distribution is not None:
+        intervention_j_original, unintervened_dist = base_distribution._help_level_2_distribution()
+        intervention_j = {v.get_base() if hasattr(v, 'get_base') else v for v in intervention_j_original}
+        
+        if intervention_j & interventions:
+            raise ValueError(
+                f"Background interventions J={intervention_j} and foreground interventions"
+                f"W={interventions} must be disjoint. Cannot intervene on same variable"
+                f"in both data and the query."
+            )
+        
+        # mutilate the graph        
+        graph = graph.remove_nodes_from(intervention_j)
+        
+        # mutilate the distribution 
+        if unintervened_dist is not None:
+            
+            remaining_children = unintervened_dist.children - intervention_j
+            remaining_parents = unintervened_dist.parents - intervention_j 
+            
+            new_dist = Distribution(
+                children=remaining_children,
+                parents=remaining_parents
+            )
+            base_distribution = Probability(new_dist)
+        else:
+            base_distribution = base_distribution.marginalize(intervention_j)
+          
+
 
     # line 3: compute ancestral closure H in the mutilated graph G \ W
     graph_minus_interventions = graph.remove_nodes_from(interventions)
@@ -110,6 +145,7 @@ def cyclic_id(  # noqa:C901
             graph=graph,
             district=consolidated_district_of_c,
             ordering=ordering,
+            base_distribution=base_distribution,
         )
 
         try:
@@ -649,6 +685,7 @@ def initialize_district_distribution(
     graph: NxMixedGraph,
     district: set[Variable],
     ordering: Sequence[Variable],
+    base_distribution: set[Variable] | None = None,
 ) -> Expression:
     """Initialize the probability distribution for a given district before identification.
 
@@ -660,20 +697,26 @@ def initialize_district_distribution(
     :param graph: The mixed graph representing the causal structure.
     :param district: The set of variables in the district to initialize.
     :param ordering: Apt-order of variables in the graph.
+    :param intervention: Optional intervention set do(J) to apply to the distribution.
 
     :returns: Initial distribution for the district
     """
     # find all SCCs (feedback loops) within the district
     district_subgraph = graph.subgraph(district)
     sccs = get_strongly_connected_components(district_subgraph)
+    
     return Product.safe(
-        initialize_component_distribution(set(scc), _get_predecessors(scc, ordering))
+        initialize_component_distribution(
+            set(scc),
+            _get_predecessors(scc, ordering),
+            base_distribution
+        )
         for scc in sccs
     ).simplify()
 
 
 def initialize_component_distribution(
-    nodes: set[Variable], predecessors: set[Variable]
+    nodes: set[Variable], predecessors: set[Variable], base_distribution: Expression | None = None,
 ) -> Expression:
     """Initialize the probability distribution for a component given its predecessors.
 
@@ -682,10 +725,27 @@ def initialize_component_distribution(
 
     :param nodes: The component nodes (SCC)
     :param predecessors: The predecessor nodes in apt-order.
-
+    :param base_distribution: Optional interventional distribution P[do(J)][V]
     :returns: Conditional probability P(nodes | predecessors)
     """
+    
+    if base_distribution is None:
+        if not predecessors:
+            return Probability.safe(nodes)
+        return Probability.safe(nodes | predecessors).conditional(predecessors)
+    # Interventional case - use provided distribution
+    # Marginalize to S ∪ P
+    vars_to_keep = nodes | predecessors
+    all_vars = base_distribution.get_variables()
+    vars_to_marginalize = all_vars - vars_to_keep
+    
+    if vars_to_marginalize:
+        marginalized = base_distribution.marginalize(vars_to_marginalize)
+    else:
+        marginalized = base_distribution
+    
+    # Condition on predecessors if any
     if not predecessors:
-        return Probability.safe(nodes)
-
-    return Probability.safe(nodes | predecessors).conditional(predecessors)
+        return marginalized
+    
+    return marginalized.conditional(predecessors)
