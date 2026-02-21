@@ -52,6 +52,7 @@ authors:
       - type: software
         degree: supporting
   - name: Emily Dogbatse
+    orcid: 0009-0002-4354-3593
     affiliation: 2
     roles:
       - type: software
