@@ -377,9 +377,8 @@ $ tox -e finish
 This script does the following:
 
 1. Uses [bump-my-version](https://github.com/callowayproject/bump-my-version) to
-   switch the version number in the `pyproject.toml`, `CITATION.cff`,
-   `src/y0/version.py`, and [`docs/source/conf.py`](docs/source/conf.py) to not
-   have the `-dev` suffix
+   switch the version number in the `pyproject.toml`, `src/y0/version.py`, and
+   [`docs/source/conf.py`](docs/source/conf.py) to not have the `-dev` suffix
 2. Packages the code in both a tar archive and a wheel using
    [`uv build`](https://docs.astral.sh/uv/guides/publish/#building-your-package)
 3. Uploads to PyPI using

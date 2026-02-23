@@ -1,0 +1,34 @@
+diff a/.github/workflows/tests.yml b/.github/workflows/tests.yml	(rejected hunks)
+@@ -28,9 +28,9 @@ jobs:
+         python-version: [ "3.14", "3.10" ]
+         tox-command: [ "lint", "pyroma", "mypy" ]
+     steps:
+-      - uses: actions/checkout@v4
++      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+       - name: "Install uv"
+-        uses: "astral-sh/setup-uv@v3"
++        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+         with:
+           enable-cache: true
+           cache-dependency-glob: "pyproject.toml"
+@@ -78,9 +78,9 @@ jobs:
+         os: [ ubuntu-latest ]
+         python-version: [ "3.14", "3.10" ]
+     steps:
+-      - uses: actions/checkout@v4
++      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+       - name: "Install uv"
+-        uses: "astral-sh/setup-uv@v3"
++        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+         with:
+           enable-cache: true
+           cache-dependency-glob: "pyproject.toml"
+@@ -91,7 +91,7 @@ jobs:
+         run:
+           uvx -p ${{ matrix.python-version }} --with tox-uv tox -e doctests
+       - name: Upload coverage report to codecov
+-        uses: codecov/codecov-action@v4
++        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+         if: success()
+         with:
+           file: coverage.xml
