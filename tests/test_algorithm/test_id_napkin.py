@@ -1,7 +1,6 @@
 from tests.test_algorithm import cases
-from y0.algorithm.identify import identify_outcomes, identify
-from y0.algorithm.tian_id import identify_district_variables
-from y0.algorithm.identify.utils import Identification, Query, Unidentifiable
+from y0.algorithm.identify import identify, identify_outcomes
+from y0.algorithm.identify.utils import Identification
 from y0.dsl import Z1, Z2, Fraction, P, Sum, X, Y
 from y0.examples import napkin
 
@@ -22,9 +21,9 @@ class TestNapkinIdentification(cases.GraphTestCase):
         denominator = Sum[Z1](P(X | Z1, Z2) * P(Z2))
         expected = Fraction(numerator, denominator)
         expected = P(Y | X)
-        #result = expected
+        # result = expected
         # main check
-        #self.assertIsInstance(result, Fraction)
+        # self.assertIsInstance(result, Fraction)
 
         # verify mathematical equivalence
         self.assert_expr_equal(expected, result)
@@ -47,11 +46,10 @@ class TestNapkinIdentification(cases.GraphTestCase):
         print("Identified estimand:", result)
 
         # main check
-        #self.assertIsInstance(result, Fraction)
+        # self.assertIsInstance(result, Fraction)
 
         # verify mathematical equivalence
         self.assert_expr_equal(expected, result)
-
 
     def test_napkin_tian_identify_returns_correct_estimand(self) -> None:
         """Testing that id_std returns correct estimand formula for the napkin graph."""
@@ -79,5 +77,3 @@ class TestNapkinIdentification(cases.GraphTestCase):
 
     def test_napkin_counterfactual_transportability(self) -> None:
         """Testing that counterfactual transportability generates correct estimand for the napkin graph."""
-
-    

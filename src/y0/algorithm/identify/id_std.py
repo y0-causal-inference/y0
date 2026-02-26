@@ -189,10 +189,10 @@ def line_1(
     """
     outcomes = identification.outcomes
     nodes = set(identification.graph.nodes())
-    # see https://github.com/y0-causal-inference/y0/pull/363 for discussion on why this is the case. 
-    # in short, the original paper's presentation of line 1 is a bit misleading, 
-    # since it seems to suggest that the estimand is passed through unchanged, 
-    # but in fact the estimand is always the joint distribution over all variables in the graph, 
+    # see https://github.com/y0-causal-inference/y0/pull/363 for discussion on why this is the case.
+    # in short, the original paper's presentation of line 1 is a bit misleading,
+    # since it seems to suggest that the estimand is passed through unchanged,
+    # but in fact the estimand is always the joint distribution over all variables in the graph,
     # and line 1 just marginalizes out the non-outcome variables.
     # return Sum.safe(
     #     expression=identification.estimand,
