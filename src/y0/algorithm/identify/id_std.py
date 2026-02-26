@@ -203,6 +203,7 @@ def line_1(
         ranges=nodes.difference(outcomes),
     )
 
+
 def line_2(identification: Identification) -> Identification:
     r"""Run line 2 of the identification algorithm.
 
