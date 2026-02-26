@@ -1,3 +1,5 @@
+"""Tests for the napkin graph."""
+
 from tests.test_algorithm import cases
 from y0.algorithm.identify import identify, identify_outcomes
 from y0.algorithm.identify.utils import Identification
