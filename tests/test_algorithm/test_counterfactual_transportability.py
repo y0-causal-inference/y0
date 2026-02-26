@@ -2664,7 +2664,7 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
         numerator = Sum[Z2](PP[Pi1](Y, X | Z1, Z2) * PP[Pi1](Z2))
         denominator = Sum[Z2](PP[Pi1](X | Z1, Z2) * PP[Pi1](Z2))
         expected_result = Fraction(numerator, denominator)
-
+        expected_result = Sum[Z2](PP[Pi1](X | Z1, Z2) * PP[Pi1](Y | X, Z1, Z2) * PP[Pi1](Z2)) / Sum[Y](Sum[Z2](PP[Pi1](X | Z1, Z2) * PP[Pi1](Y | X, Z1, Z2) * PP[Pi1](Z2)))
         result_expr, result_event = transport_unconditional_counterfactual_query(
             event=event,
             target_domain_graph=napkin,

@@ -78,6 +78,7 @@ __all__ = [
     "line_5_example",
     "line_6_example",
     "line_7_example",
+    "new_napkin",
     "napkin",
     "napkin_example",
     "tikka_figure_2",
@@ -174,7 +175,7 @@ instrumental_variable_example = Example(
 
 #: Treatment: X
 #: Outcome: Y
-napkin = NxMixedGraph.from_edges(
+napkin = graph=NxMixedGraph.from_edges(
     directed=[
         (Z2, Z1),
         (Z1, X),
@@ -184,8 +185,24 @@ napkin = NxMixedGraph.from_edges(
         (Z2, X),
         (Z2, Y),
     ],
-)
+)   
 
+
+new_napkin = Example(
+    name="New Napkin Graph",
+    reference='J. Pearl and D. Mackenzie. 2018. "The Book of Why: The New Science of Cause and Effect."',
+    graph=NxMixedGraph.from_edges(
+    directed=[
+        (W, Z),
+        (Z, X),
+        (X, Y),
+    ],
+    undirected=[
+        (W, X),
+        (W, Y),
+    ],
+    )   
+)
 
 def generate_napkin_data(
     num_samples: int, treatments: dict[Variable, float] | None = None, *, seed: int | None = None
