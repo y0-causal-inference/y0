@@ -64,14 +64,17 @@ def _identify(  # noqa:C901
     if not treatments:
         # FIXME why is estimand passed here? Why not Probability.safe(nodes)?
         #  this is a problem when recurring on a subgraph -
-        return Sum.safe(expression=estimand, ranges=nodes.difference(outcomes))
-
+        estimand = Sum.safe(expression=estimand, ranges=nodes.difference(outcomes))
+        #estimand = Sum.safe(expression=Probability.safe(nodes), ranges=nodes.difference(outcomes))
+        print("Line 1 reached with estimand:", estimand)
+        return estimand
     # line 2
     outcomes_and_ancestors = graph.ancestors_inclusive(outcomes)
     not_outcomes_or_ancestors: Annotated[set[Variable], InPaperAs(r"An(\mathbf{Y})_G")] = (
         nodes.difference(outcomes_and_ancestors)
     )
     if not_outcomes_or_ancestors:
+        print("Line 2 reached with outcomes_and_ancestors:", outcomes_and_ancestors)
         return _identify(
             outcomes=outcomes,
             treatments=treatments & outcomes_and_ancestors,
@@ -85,6 +88,7 @@ def _identify(  # noqa:C901
     # line 3
     no_effect_on_outcome = graph.get_no_effect_on_outcomes(treatments, outcomes)
     if no_effect_on_outcome:
+        print("Line 3 reached with no_effect_on_outcome:", no_effect_on_outcome)
         return _identify(
             outcomes=outcomes,
             treatments=treatments | no_effect_on_outcome,
@@ -113,6 +117,7 @@ def _identify(  # noqa:C901
             for district_without_treatment in districts_without_treatment
         )
         # line 4.2b
+        print("Line 4.2 reached with expression:", expression)
         return Sum.safe(
             expression=expression,
             ranges=nodes.difference(outcomes | treatments),
@@ -141,6 +146,7 @@ def _identify(  # noqa:C901
 
     # line 6, if S ∈ C(G)
     if district_without_treatment in graph.districts():
+        print("Line 6 reached with expression:", _district_product(district_without_treatment, ordering))
         return Sum.safe(
             expression=_district_product(district_without_treatment, ordering),
             ranges=district_without_treatment - outcomes,
@@ -149,6 +155,7 @@ def _identify(  # noqa:C901
     # line 7, if (∃S')S ⊂ S' ∈ C(G)
     for district in graph.districts():
         if district_without_treatment < district:
+            print("Line 7 reached with estimand:", _district_product(district, ordering))
             return _identify(
                 graph=graph.subgraph(district),
                 outcomes=outcomes,
@@ -182,8 +189,17 @@ def line_1(
     """
     outcomes = identification.outcomes
     nodes = set(identification.graph.nodes())
+    # see https://github.com/y0-causal-inference/y0/pull/363 for discussion on why this is the case.
+    # in short, the original paper's presentation of line 1 is a bit misleading,
+    # since it seems to suggest that the estimand is passed through unchanged,
+    # but in fact the estimand is always the joint distribution over all variables in the graph,
+    # and line 1 just marginalizes out the non-outcome variables.
+    # return Sum.safe(
+    #     expression=identification.estimand,
+    #     ranges=nodes.difference(outcomes),
+    # )
     return Sum.safe(
-        expression=identification.estimand,
+        expression=Probability.safe(nodes),
         ranges=nodes.difference(outcomes),
     )
 

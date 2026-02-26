@@ -112,6 +112,7 @@ def cyclic_id(  # noqa:C901
                 outcomes=set(district_c),
                 district=consolidated_district_of_c,
                 distribution=initial_distribution,
+                ordering=ordering,
             )
         except Unidentifiable as e:
             # lines 6-8: if that fails, then return FAIL or raise Unidentifiable
@@ -139,6 +140,7 @@ def idcd(
     district: Annotated[set[Variable], InPaperAs("D")],
     *,
     distribution: Annotated[Expression, InPaperAs("Q[D]")] | None = None,
+    ordering: Sequence[Variable] | None = None,
     _recursion_level: int = 0,
 ) -> Annotated[Expression, InPaperAs("Q[C]")]:
     r"""Identify causal effects within consolidated districts of cyclic graphs.
@@ -215,7 +217,7 @@ def idcd(
 
     # lines 21-26
     return identify_through_scc_decomposition(
-        graph, outcomes, ancestral_closure, _recursion_level=_recursion_level
+        graph, outcomes, ancestral_closure, ordering=ordering, _recursion_level=_recursion_level
     )
 
 
@@ -320,6 +322,7 @@ def identify_through_scc_decomposition(
     outcomes: set[Variable],
     ancestral_closure: set[Variable],
     *,
+    ordering: Sequence[Variable] | None = None,
     _recursion_level: int = 0,
 ) -> Expression:
     r"""Identify causal effect through SCC decomposition.
@@ -375,6 +378,7 @@ def identify_through_scc_decomposition(
             relevant_sccs=relevant_sccs,
             ancestral_closure=ancestral_closure,
             intervention_set=intervention_set,
+            ordering=ordering,
         )
     )
 
@@ -401,6 +405,7 @@ def compute_scc_distributions(
     relevant_sccs: list[frozenset[Variable]],
     ancestral_closure: Annotated[set[Variable], InPaperAs("A")],
     intervention_set: Annotated[set[Variable], InPaperAs("J")],
+    ordering: Sequence[Variable] | None = None,
 ) -> dict[frozenset[Variable], Expression]:
     r"""Compute distributions for each strongly connected component (SCC).
 
@@ -420,10 +425,14 @@ def compute_scc_distributions(
     :param relevant_sccs: SCCs to process.
     :param ancestral_closure: Ancestral closure.
     :param intervention_set: Set of variables under intervention.
+    :param ordering: Ordering of variables in the full graph. If not given, an apt-order
+        is calculated from the subgraph.
 
     :returns: Dictionary mapping each SCC to its conditional distribution. Keys are
         frozensets of Variables (the SCCs), and values are symbolic Expressions.
     """
+    if ordering is None:
+        ordering = get_apt_order(subgraph_a)
     apt_order_a = get_apt_order(subgraph_a)
     scc_distributions = {
         scc: identify_outcomes(
@@ -432,7 +441,7 @@ def compute_scc_distributions(
             treatments=intervention_set,
             conditions=get_apt_order_predecessors(scc, apt_order_a, ancestral_closure) or None,
             strict=True,
-            ordering=apt_order_a,
+            ordering=ordering,
         )
         for scc in relevant_sccs
     }

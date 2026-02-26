@@ -81,6 +81,8 @@ from y0.dsl import (
     W5,
     X1,
     X2,
+    Z1,
+    Z2,
     CounterfactualVariable,
     Fraction,
     Intervention,
@@ -98,6 +100,7 @@ from y0.dsl import (
     Z,
     Zero,
 )
+from y0.examples import napkin
 from y0.graph import NxMixedGraph
 
 logger = logging.getLogger(__name__)
@@ -2640,6 +2643,39 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
             [PP[Pi1](Y | W, X, Z), PP[Pi1](W | X), PP[Pi2](X | Z), PP[Pi2](Z)]
         )
         expected_result = Sum.safe(expected_result_part_1, [Z, W])
+        logger.debug("Result_expr = " + result_expr.to_latex())
+        logger.debug("Result_event = " + str(result_event))
+        self.assert_expr_equal(expected_result, result_expr)
+
+    def test_transport_unconditional_counterfactual_query_0(self):
+        """Test of Algorithm 2 of [correa22a]_.
+
+        Source: Napkin problem
+        """
+        event = [(Y @ -X, -Y)]
+        domain_graphs = [
+            (
+                napkin,
+                list(napkin.topological_sort()),
+            ),
+        ]
+        domain_data = [(set(), PP[Pi1](X, Y, Z1, Z2))]
+
+        numerator = Sum[Z2](PP[Pi1](Y, X | Z1, Z2) * PP[Pi1](Z2))
+        denominator = Sum[Z2](PP[Pi1](X | Z1, Z2) * PP[Pi1](Z2))
+        expected_result = Fraction(numerator, denominator)
+        expected_result = Sum[Z2](PP[Pi1](X | Z1, Z2) * PP[Pi1](Y | X, Z1, Z2) * PP[Pi1](Z2)) / Sum[
+            Y
+        ](Sum[Z2](PP[Pi1](X | Z1, Z2) * PP[Pi1](Y | X, Z1, Z2) * PP[Pi1](Z2)))
+        result_expr, result_event = transport_unconditional_counterfactual_query(
+            event=event,
+            target_domain_graph=napkin,
+            domain_graphs=domain_graphs,
+            domain_data=domain_data,
+        )
+        print("Expected_result = " + expected_result.to_latex())
+        print("Result_expr = " + result_expr.to_latex())
+        print("Result_event = " + str(result_event))
         logger.debug("Result_expr = " + result_expr.to_latex())
         logger.debug("Result_event = " + str(result_event))
         self.assert_expr_equal(expected_result, result_expr)
