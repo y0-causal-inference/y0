@@ -77,15 +77,15 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
         )
 
         expression = result[cycle_scc]
-        
+
         self.assertIsInstance(expression, Fraction, "Expected a Fraction expression")
         expression = cast(Fraction, expression)
-        
+
         all_vars = expression.get_variables()
-        
+
         self.assertTrue(
             {X, W, Z, R}.issubset(all_vars),
-            f"expression should contain {{X, W, Z, R}}, got {all_vars}"
+            f"expression should contain {{X, W, Z, R}}, got {all_vars}",
         )
 
     def test_line_23_first_scc_has_no_predecessors(self) -> None:
@@ -156,7 +156,6 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
             ancestral_closure=ancestral_closure,
             intervention_set=intervention_set,
         )
-        
 
         # verify all the SCCs are processed:
         self.assertEqual(2, len(result), "Should have results for all 2 SCCs")
@@ -169,13 +168,13 @@ class TestLine23SymbolicStructure(cases.GraphTestCase):
         # expr_r = expression for R
         expr_cycle = result[scc_cycle]
         self.assertIsInstance(expr_cycle, Fraction, "Cycle SCC should be a Fraction.")
-        
+
         all_vars = expr_cycle.get_variables()
         self.assertTrue(
             {R, X, W, Z}.issubset(all_vars),
-            f"expression should contain {{R, X, W, Z}}, got {all_vars}"
+            f"expression should contain {{R, X, W, Z}}, got {all_vars}",
         )
-       
+
     def test_line_23_handles_single_node_scc(self) -> None:
         """Test Line 23 handles single-node SCCs correctly."""
         graph = simple_cyclic_graph_1
