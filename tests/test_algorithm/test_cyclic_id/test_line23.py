@@ -7,8 +7,11 @@ This module tests:
 import networkx as nx
 
 from tests.test_algorithm import cases
-from y0.algorithm.identify.cyclic_id import cyclic_id, identify_district_variables_cyclic, Unidentifiable
-from y0.dsl import Z1, Z2, Fraction, P, Sum, Variable, X, Y, Z
+from y0.algorithm.identify.cyclic_id import (
+    cyclic_id,
+    identify_district_variables_cyclic,
+)
+from y0.dsl import Z1, Z2, Fraction, P, Sum, Variable, X, Y
 from y0.graph import NxMixedGraph
 
 
@@ -176,4 +179,3 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
 
         self.assertIsInstance(result_cyclic, Fraction, "should produce ratio fraction form")
         self.assertIn(Y, result_cyclic.get_variables(), "Result should contain outcome variable Y")
-

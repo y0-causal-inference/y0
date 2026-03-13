@@ -3,9 +3,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from matplotlib.pylab import inner
-from networkx import nodes
-
 from tests.test_algorithm import cases
 from tests.test_algorithm.test_ioscm import simple_cyclic_graph_1, simple_cyclic_graph_2
 from y0.algorithm.identify import Unidentifiable
@@ -18,7 +15,7 @@ from y0.algorithm.identify.cyclic_id import (
     validate_preconditions,
 )
 from y0.algorithm.ioscm.utils import get_apt_order
-from y0.dsl import P, R, Fraction, Sum, Variable, W, X, Y, Z, Product
+from y0.dsl import P, R, Sum, Variable, W, X, Y, Z
 from y0.graph import NxMixedGraph
 
 
@@ -341,18 +338,16 @@ class TestIDCDFunction(cases.GraphTestCase):
             outcomes=targets,
             district=district,
         )
-        
+
         # print(f"RESULT TYPE: {type(result)}")
         # print(f"RESULT: {result}")
         # print(f"RESULT LATEX: {result.to_latex()}")
-        
+
         # self.assertIsNotNone(result)
-      
-      
 
         # # this is the final expected result which should be: (P(Y | W, X, Z)) / (Sum_Y P(Y | W, X, Z))
-        expected = ((P(R, W, X, Y, Z) / P(R, W, X, Z)))
-        
+        expected = P(R, W, X, Y, Z) / P(R, W, X, Z)
+
         self.assert_expr_equal(expected, result)
 
     def test_simple_unidentifiable_graph(self) -> None:
@@ -448,11 +443,8 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
         # added for documentation - original_distribution = P(X, Y, W, Z)
         intervention_set: set[Variable] = set()
 
-        expected = {
-            frozenset({X, Y}): P(X, Y),
-            frozenset({W, Z}): P(W, Z)
-        }
-        
+        expected = {frozenset({X, Y}): P(X, Y), frozenset({W, Z}): P(W, Z)}
+
         result = compute_scc_distributions(
             graph=graph,
             subgraph_a=subgraph_a,
@@ -460,8 +452,7 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
             ancestral_closure=ancestral_closure,
             intervention_set=intervention_set,
         )
-    
-        
+
         self.assertEqual(expected, result)
 
     # def test_intervention_set_calculation(self) -> None:
@@ -504,9 +495,9 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
     #         ancestral_closure=ancestral_closure,
     #         intervention_set=intervention_set,
     #     )
-        
+
     #     self.assertEqual(expected, result)
-    
+
     def test_intervention_set_calculation(self) -> None:
         """Test that intervention sets are calculated correctly for SCCs."""
         graph = NxMixedGraph.from_edges(
@@ -530,9 +521,7 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
 
         # Expected: simple marginalization, no extra conditioning
         # Base Case 1 returns Q[A] directly without conditioning on intervention context
-        expected = {
-            frozenset({Z}): P(R, X, Y, Z) / P(R, X, Y)
-        }
+        expected = {frozenset({Z}): P(R, X, Y, Z) / P(R, X, Y)}
 
         result = compute_scc_distributions(
             graph=graph,

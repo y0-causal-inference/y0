@@ -1,4 +1,3 @@
-
 """Tests for the base_distribution parameter of the cyclic ID algorithm.
 
 This module tests:
@@ -10,7 +9,6 @@ from tests.test_algorithm import cases
 from y0.algorithm.identify.cyclic_id import Unidentifiable, cyclic_id
 from y0.dsl import P, X, Y, Z
 from y0.graph import NxMixedGraph
-
 
 
 class TestInitialDistributionParameter(cases.GraphTestCase):
@@ -94,8 +92,6 @@ class TestInitialDistributionParameter(cases.GraphTestCase):
             cyclic_id(graph, outcomes={Z}, interventions={X}, base_distribution=P[X](X, Y, Z))
 
         self.assertIn("must be disjoint", str(cm.exception))
-        
-    
 
     def test_identifiable_stays_identifiable_with_base_distribution(self):
         """Identifiable query stays identifiable when base_distribution is added.
@@ -107,7 +103,7 @@ class TestInitialDistributionParameter(cases.GraphTestCase):
         graph = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y)], undirected=[])
 
         # without base_distribution
-        result_without = cyclic_id(graph, outcomes={Y}, interventions={X})
+        cyclic_id(graph, outcomes={Y}, interventions={X})
 
         # with base_distribution - adding Z intervention as background
         result_with = cyclic_id(
@@ -116,7 +112,6 @@ class TestInitialDistributionParameter(cases.GraphTestCase):
 
         self.assertIsNotNone(result_with)
         expected = P(X, Y) / P(X)
-        
+
         # both should be identifiable and equal
         self.assert_expr_equal(expected, result_with)
-        
