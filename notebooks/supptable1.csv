@@ -1,0 +1,141 @@
+Perturbation Name,scRNA/sgRNA spacer,Experiment,Distance (bp) from either ORF (CRISPRi) or TSS (CRISPRa),CRISPR type
+poxB,CCCGATGAAAGGAATATCAT,Single guide pilot experiment,91,CRISPRa
+aroL,TGGTGGCTGGAAGTGCAACG,"Single guide pilot experiment, Multi-guide genetic interactions library, high-throughput pooled library",70,CRISPRa
+fadR,ACTCTTCCGCGAAACCCGCC,Single guide pilot experiment,23,CRISPRi
+lacI,GCTGGCCTGGTTCACCACGC,"Single guide pilot experiment, Multi-guide genetic interactions library",64,CRISPRi
+tyrR,ATTCGCGGGTCAGACCGAGT,"Single guide pilot experiment, Multi-guide genetic interactions library",29,CRISPRi
+aroF,AAGGGTTGAAAGCGCGACTA,Multi-guide genetic interactions library,70,CRISPRa
+aroH,GCCCATGATATCGAGGATCT,Multi-guide genetic interactions library,81,CRISPRa
+lacZ,GGCACGACAGGTTTCCCGAC,Multi-guide genetic interactions library,79,CRISPRa
+trpR,CTGCTGAATAGGGTGATTGT,Multi-guide genetic interactions library,5,CRISPRi
+arcA,ATCACTGTCAACTTATTACG,High-throughput pooled library,81,CRISPRa
+argP,GCGGGTAACATTTGTATCCG,High-throughput pooled library,79,CRISPRa
+torR,TCACTAAACCATAATTCTAC,High-throughput pooled library,89,CRISPRa
+torR,CACTAAACCATAATTCTACA,High-throughput pooled library,90,CRISPRa
+lrp,CATGCCAGATATTCATTAAC,High-throughput pooled library,81,CRISPRa
+lrp,ATGCCAGATATTCATTAACA,High-throughput pooled library,82,CRISPRa
+lrp,TGCCAGATATTCATTAACAG,High-throughput pooled library,83,CRISPRa
+lrp,CGCCCCTGTTAATGAATATC,High-throughput pooled library,68,CRISPRa
+aroK,TTTTACGGCTGTTTACTCAC,High-throughput pooled library,92,CRISPRa control
+aroK,TGAGTAAACAGCCGTAAAAG,High-throughput pooled library,71,CRISPRa control
+rpoS,GTTCACGATACGCTGACCTG,High-throughput pooled library,69,CRISPRa
+rpoS,CGCTGCGGCAAATAACGCAG,High-throughput pooled library,70,CRISPRa
+rpoS,TTTCCTGGTTATTTTGCCGC,High-throughput pooled library,68,CRISPRa
+gadE,TTGATCCTAAGTAAGATTCC,High-throughput pooled library,71,CRISPRa
+rpoH,GTGACATAGAGATGAAATAC,High-throughput pooled library,93,CRISPRa
+glnG,CTCCGTGAAAGCGATCACAA,High-throughput pooled library,79,CRISPRa
+gcvR,TGTCGCGATTGTTACTCCGA,High-throughput pooled library,83,CRISPRa
+phnF,GAATTCGATGACAGTGCGGG,High-throughput pooled library,71,CRISPRa
+phnF,CAACGCAATAACCCGCCGGG,High-throughput pooled library,82,CRISPRa
+yciT,CAATACGTTCGGCAACGCGC,High-throughput pooled library,79,CRISPRa
+yciT,AATACGTTCGGCAACGCGCT,High-throughput pooled library,80,CRISPRa
+yneJ,CTTCATACCATGACTCATAA,High-throughput pooled library,72,CRISPRa
+ygbI,GCACTGTCATATGTCCGCGC,High-throughput pooled library,71,CRISPRa
+ygbI,ACGGGATCTGAGTTTCATGT,High-throughput pooled library,93,CRISPRa
+ynfL,AGCCGTACTACAACTGTTGA,High-throughput pooled library,69,CRISPRa
+ytfH,CTTCCCATGATCGCTATTAC,High-throughput pooled library,72,CRISPRa
+ytfH,GCACCAGTAATAGCGATCAT,High-throughput pooled library,80,CRISPRa
+lgoR,AGCAGCCGAAAGAATTAGTC,High-throughput pooled library,90,CRISPRa
+bdcR,CTCATCCTCGGTGGCAGTCG,High-throughput pooled library,90,CRISPRa
+cecR,TTTTAGCAACGCCAGTCACA,High-throughput pooled library,69,CRISPRa
+yeiE,CTTATGCCCGGTTAAAGGAG,High-throughput pooled library,72,CRISPRa
+yeiE,TTATGCCCGGTTAAAGGAGA,High-throughput pooled library,73,CRISPRa
+yafC,TATGCCATGCGCTATGTTGC,High-throughput pooled library,73,CRISPRa
+yafC,TTGCCGGACAACCTGCGGAA,High-throughput pooled library,89,CRISPRa
+ybaQ,TATCATGCTAGCGCGCGGTG,High-throughput pooled library,72,CRISPRa
+yheO,AAAAAAACCGCCGCCTGGTC,High-throughput pooled library,81,CRISPRa
+CRISPRa off 1,GTTTGCCAAAGAGCGATGAG,High-throughput pooled library,No binding,CRISPRa off-target
+CRISPRa off 14,ACATTTGTCACACTCATAGG,High-throughput pooled library,No binding,CRISPRa off-target
+CRISPRa off 20,TATCCAAGACCCTCAGAAAC,High-throughput pooled library,No binding,CRISPRa off-target
+CRISPRa off 26,CTTCTCAACATCCACTCCCG,High-throughput pooled library,No binding,CRISPRa off-target
+CRISPRa AAV,GGGGCCACTAGGGACAGGAT,Single guide pilot experiment,No binding,CRISPRa off-target
+iclR,CAATCCACTCCAGTAATTTC,High-throughput pooled library,92,CRISPRi
+arcA,AACAGAAGACCGTTCTTACC,High-throughput pooled library,174,CRISPRi
+arcA,GATTGATATCCATGATCACC,High-throughput pooled library,149,CRISPRi
+marA,CCAGTGACAGTGGCGATTCC,High-throughput pooled library,62,CRISPRi
+argR,TGTACGTACAGCACCAAACT,High-throughput pooled library,151,CRISPRi
+argR,GTACACCCAGTTCAGCTGGC,High-throughput pooled library,203,CRISPRi
+trpR,CGACAAAACGTAACCACTCC,High-throughput pooled library,47,CRISPRi
+trpR,TTTGGTAGGCATTCTTAAGC,High-throughput pooled library,71,CRISPRi
+crp,ACAAGAACCATTCGAGAGTC,High-throughput pooled library,26,CRISPRi
+crp,CACCCTGATTCAGATAGGAG,High-throughput pooled library,182,CRISPRi
+crp,GTACCCATGCGCTACGTTCC,High-throughput pooled library,239,CRISPRi
+cra,AGCCCAGCTGCCACGGCGTT,High-throughput pooled library,144,CRISPRi
+torR,ATACCCCTCCTGAGTGAAGT,High-throughput pooled library,61,CRISPRi
+torR,TGTAATCGCGCCTGGGTAAC,High-throughput pooled library,36,CRISPRi
+uxuR,GTAAGGTCTTTGCGCAGAGG,High-throughput pooled library,10,CRISPRi
+uxuR,GGATCATCGCCCCGACTTCC,High-throughput pooled library,32,CRISPRi
+glpR,CCACGGCGTGTTAACCGAAC,High-throughput pooled library,180,CRISPRi
+glpR,CCGCCAGCTCATTGAGGTCG,High-throughput pooled library,113,CRISPRi
+cpxR,AAGCGCCTGTTCCCCATCGT,High-throughput pooled library,94,CRISPRi
+cpxR,CTCGGTCATCATCAACTAAC,High-throughput pooled library,14,CRISPRi
+lrp,TACGGTCGAGATCTTTGCCA,High-throughput pooled library,20,CRISPRi
+lrp,CGACGCACACGCTCAAGGCA,High-throughput pooled library,129,CRISPRi
+hns,TTGCCTGCGCACGAAGAGTA,High-throughput pooled library,35,CRISPRi
+glaR,CATCGCTTCCATATTGGCGC,High-throughput pooled library,238,CRISPRi
+glaR,CACTAACATCGCTTCCATAT,High-throughput pooled library,244,CRISPRi
+pdhR,TTGCCAGTTCGCGTTCCGGT,High-throughput pooled library,101,CRISPRi
+pdhR,TTTGCCAGTTCGCGTTCCGG,High-throughput pooled library,102,CRISPRi
+marR,TGTGCCGCGGTAATATCCAG,High-throughput pooled library,53,CRISPRi
+marR,GAGTAATACACGCCGCGCAG,High-throughput pooled library,84,CRISPRi
+rpoS,GTGAATAACCAATCTCACCA,High-throughput pooled library,53,CRISPRi
+rpoS,CGCGTCCAACACACGCTGTG,High-throughput pooled library,80,CRISPRi
+glnG,ATATCTGAAAGCAGCACATC,High-throughput pooled library,185,CRISPRi
+phoB,CATCACCACTGGAATATCCC,High-throughput pooled library,47,CRISPRi
+phoB,ACATCACCACTGGAATATCC,High-throughput pooled library,43,CRISPRi
+gcvR,GTTCACAATTCCAGGGCGAT,High-throughput pooled library,132,CRISPRi
+phnF,CCAGCACGCCGACGCCCTGA,High-throughput pooled library,70,CRISPRi
+phnF,TTTTTCCACCAGTTGGTCGA,High-throughput pooled library,77,CRISPRi
+ycjW,ACCCGAAGAGGTCAGCGCGC,High-throughput pooled library,114,CRISPRi
+yidZ,AGCGACTTACTCACCGCCGA,High-throughput pooled library,93,CRISPRi
+yidZ,GCGGTGAGTTCACAAAGAGC,High-throughput pooled library,92,CRISPRi
+yfeC,GGCGCATCACCAGAAAGGGC,High-throughput pooled library,6,CRISPRi
+yciT,AACCAGCGACGCGGCAAACT,High-throughput pooled library,46,CRISPRi
+yciT,AAACAGCAAAGCCATGTGCA,High-throughput pooled library,101,CRISPRi
+punR,GAGAAACCACGCTCCAGCAG,High-throughput pooled library,143,CRISPRi
+punR,CCACTCTTCCAGCTGACGCA,High-throughput pooled library,100,CRISPRi
+ybcM,CGACACAAAGCTGGCATAAG,High-throughput pooled library,64,CRISPRi
+yneJ,CTGGGTTATGCTGCCAGCTT,High-throughput pooled library,161,CRISPRi
+yneJ,GATGCACTTTTGCTGCAGCC,High-throughput pooled library,109,CRISPRi
+yjhI,CCATACCAACCCATGCAATG,High-throughput pooled library,100,CRISPRi
+yjhI,CATACCAACCCATGCAATGT,High-throughput pooled library,101,CRISPRi
+yfiE,CGCGGGTAAGGCACATCCGT,High-throughput pooled library,110,CRISPRi
+yfiE,AAAGGAACCCTCTTCCACCA,High-throughput pooled library,52,CRISPRi
+ygbI,GGTTCATGCGCCACGCGTCC,High-throughput pooled library,218,CRISPRi
+ygbI,TTTTTGTAAATCCCGACGAA,High-throughput pooled library,175,CRISPRi
+ygbI,ATGATTTGGCGACGCTCTAC,High-throughput pooled library,52,CRISPRi
+ynfL,GCGGTTGCGAAATATTCAGG,High-throughput pooled library,32,CRISPRi
+ynfL,CGGTTGCGAAATATTCAGGC,High-throughput pooled library,23,CRISPRi
+sfsB,AAACCCGCAATGATGTCAGC,High-throughput pooled library,9,CRISPRi
+sfsB,AACCCAGGGGTCAGTTCCCA,High-throughput pooled library,99,CRISPRi
+ytfH,GTTTCAACACCTCGCGCGAC,High-throughput pooled library,138,CRISPRi
+ytfH,TGTTTCAACACCTCGCGCGA,High-throughput pooled library,166,CRISPRi
+sgcR,GATACTGGTTGACAATATAC,High-throughput pooled library,14,CRISPRi
+sgcR,CCATGGCCTGCTGTGTGGAG,High-throughput pooled library,92,CRISPRi
+lgoR,CTTTGCGATGGAAGTGGGGA,High-throughput pooled library,8,CRISPRi
+yqeI,GCGAAATCCGCGTCTGATAA,High-throughput pooled library,75,CRISPRi
+ytfA,TTTCTTCCCTTCATCCAATA,High-throughput pooled library,44,CRISPRi
+bdcR,GCGAAACGTCTGGGACGACC,High-throughput pooled library,135,CRISPRi
+plaR,CGGCAATAAATTTGGTGGTC,High-throughput pooled library,37,CRISPRi
+plaR,GTAATCCCTGCAATAAGCGA,High-throughput pooled library,149,CRISPRi
+cecR,TTCTTTCGAACCGAAGTAGT,High-throughput pooled library,71,CRISPRi
+cecR,CGAACCGAAGTAGTAGGTGA,High-throughput pooled library,64,CRISPRi
+decR,AGCCAGTGCCTGCAAAGAGA,High-throughput pooled library,12,CRISPRi
+yeiE,GCCAAGCTGCCCTTCCAGGT,High-throughput pooled library,99,CRISPRi
+yafC,GCCCTAATTGTTCCGCTGCC,High-throughput pooled library,118,CRISPRi
+yafC,AATGGCGAGTTCTTCCGACG,High-throughput pooled library,65,CRISPRi
+yddM,CCTGAATAATGTCCCCCGGG,High-throughput pooled library,6,CRISPRi
+ybaQ,TCATAGAGAAGAATATCTCC,High-throughput pooled library,119,CRISPRi
+ybaQ,CCCAAAGATCAACCGCCGCC,High-throughput pooled library,27,CRISPRi
+yheO,CGTGCAGCATACGTAGCGCC,High-throughput pooled library,26,CRISPRi
+yheO,CGTAGCGCCAGGTCAGTAAT,High-throughput pooled library,23,CRISPRi
+fnr,GCCGTATAATTCGCTTTTCC,High-throughput pooled library,8,CRISPRi
+fnr,CGCCGTATAATTCGCTTTTC,High-throughput pooled library,9,CRISPRi
+CRISPRi off 4,ACATTTGTCACACTCATAGG,High-throughput pooled library,No binding,CRISPRi off-target
+CRISPRi off 10,TATCCAAGACCCTCAGAAAC,High-throughput pooled library,No binding,CRISPRi off-target
+CRISPRi off 22,ACGTCTCTCGTATGTGAGGA,High-throughput pooled library,No binding,CRISPRi off-target
+CRISPRi off 33,ATGTGGAGTTCCGAGCAGCA,High-throughput pooled library,No binding,CRISPRi off-target
+CRISPRi off 37,TCAAACCTTACGATGATCCC,High-throughput pooled library,No binding,CRISPRi off-target
+CRISPRi off 48,CGCTCCGAATCAGGAGTTCC,High-throughput pooled library,No binding,CRISPRi off-target
+CRISPRi off 52,CCGTCCAGGCGTCACAAGGT,High-throughput pooled library,No binding,CRISPRi off-target
+CRISPRi AAV,GGGGCCACTAGGGACAGGAT,Single guide pilot experiment,No binding,CRISPRi off-target
