@@ -56,8 +56,8 @@ def cyclic_id(  # noqa:C901
     :param ordering: Ordering of variables in the graph. If not given, an apt-order is
         calculated with :func:`get_apt_order`
     :param base_distribution: Optional interventional distribution P[do(J)](V).
-    If provided, identifies P(Y|do(W)) given data from do(J) experiment.
-    If None, uses observational data P(V).
+        If provided, identifies P(Y|do(W)) given data from do(J) experiment.
+        If None, uses observational data P(V).
 
     :returns: Identified causal effect $P(Y | do(W))$
 
