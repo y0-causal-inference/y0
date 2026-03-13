@@ -9,7 +9,7 @@ from y0.graph import NxMixedGraph
 class TestGetProjectedSubgraph(cases.GraphTestCase):
     """Projection correctly adds a new bidirected edge when path exists through marginalized nodes."""
 
-    def test_projection_adds_edge(self):
+    def test_projection_adds_edge(self) -> None:
         """Edge is added when path exists through marginalized nodes."""
         cases = [
             ([], [(X, Z), (Z, Y)], {X, Y}, X, Y),  # single hop
@@ -24,7 +24,7 @@ class TestGetProjectedSubgraph(cases.GraphTestCase):
                 result = _get_projected_subgraph(graph, frozenset(vertices))
                 self.assertTrue(result.undirected.has_edge(u, v))
 
-    def test_projection_does_not_add_edge(self):
+    def test_projection_does_not_add_edge(self) -> None:
         """No projection when path doesn't exist through only marginalized nodes."""
         cases = [
             ([], [(X, W1), (Z, Y)], {X, Y}, X, Y),  # disconnected components
@@ -38,7 +38,7 @@ class TestGetProjectedSubgraph(cases.GraphTestCase):
 
     # ------------------------------------------------------------------------------
 
-    def test_preserved_directed_edges(self):
+    def test_preserved_directed_edges(self) -> None:
         """Case 2: Directed edges between vertices in A are preserved as-is.
 
         Graph: X→Y
@@ -55,7 +55,7 @@ class TestGetProjectedSubgraph(cases.GraphTestCase):
         self.assertTrue(result.directed.has_edge(X, Y))
         self.assertEqual(set(result.nodes()), {X, Y})
 
-    def test_path_blocked_by_observed_node(self):
+    def test_path_blocked_by_observed_node(self) -> None:
         """Case 4: No projection when intermediate node is in A (not marginalized).
 
         Graph: X↔Y↔Z

@@ -18,7 +18,7 @@ from y0.graph import NxMixedGraph
 class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
     """Tests for the generalized identify_district_variables function for the cyclic ID algorithm."""
 
-    def test_base_case_1(self):
+    def test_base_case_1(self) -> None:
         """When the ancestral set = input variables, return the district probability."""
         graph = NxMixedGraph.from_edges(directed=[], undirected=[])
 
@@ -30,9 +30,11 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
             topo=[Y],
         )
 
+        if result is None:
+            self.fail("Expected non-None result from identify_district_variables_cyclic")
         self.assert_expr_equal(P(Y), result)
 
-    def test_base_case_1_marginalization(self):
+    def test_base_case_1_marginalization(self) -> None:
         """Marginalize out Z1 when input district = {Y, Z1} but target = {Y}."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[])
 
@@ -46,10 +48,12 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
             topo=[X, Y, Z1],
         )
 
-        expected = Sum[Z1](P(Y, Z1))
+        expected = Sum.safe(P(Y, Z1), Z1)
+        if result is None:
+            self.fail("Expected non-None result from identify_district_variables_cyclic")
         self.assert_expr_equal(expected, result)
 
-    def test_base_case_1_multiple_variables(self):
+    def test_base_case_1_multiple_variables(self) -> None:
         """Base Case 1: Multiple Target variables (|C| > 1)."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z1)], undirected=[])
 
@@ -62,9 +66,11 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         )
 
         # No marginalization, ancestral set = input variables = input district
+        if result is None:
+            self.fail("Expected non-None result from identify_district_variables_cyclic")
         self.assert_expr_equal(P(Y, Z1), result)
 
-    def test_base_case_2_no_confounding_returns_none(self):
+    def test_base_case_2_no_confounding_returns_none(self) -> None:
         """Base Case 2: Ancestral set = input district, should return None."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[])
 
@@ -79,7 +85,7 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         # if ancestral set is equal to the input district, should return a FAIL/None
         self.assertIsNone(result)
 
-    def test_case_3_triggers_recursion(self):
+    def test_case_3_triggers_recursion(self) -> None:
         """Base Case 3: C ⊂ A ⊂ T triggers recursion with Lemma 4."""
         graph = NxMixedGraph.from_edges(
             directed=[(Z2, Z1), (Z1, X), (X, Y)], undirected=[(Z2, X), (Z2, Y)]
@@ -94,11 +100,12 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         )
 
         inner_term = P(X, Y, Z2)
-        expected = Fraction(Sum[Z2](inner_term), Sum[Y](Sum[Z2](inner_term)))
-
+        expected = Fraction(Sum.safe(inner_term, Z2), Sum.safe(Sum.safe(inner_term, Z2), Y))
+        if result is None:
+            self.fail("Expected non-None result from identify_district_variables_cyclic")
         self.assert_expr_equal(expected, result)
 
-    def test_napkin_full_integration(self):
+    def test_napkin_full_integration(self) -> None:
         """Integration test that calls the cyclic ID to ensure the right estimand."""
         graph = NxMixedGraph.from_edges(
             directed=[(Z2, Z1), (Z1, X), (X, Y)], undirected=[(Z2, X), (Z2, Y)]
@@ -111,13 +118,14 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         )
 
         inner_term = P(X, Y, Z1, Z2) * P(Z2) / P(Z1, Z2)
-        numerator = Sum[Z2](inner_term)
-        denominator = Sum[Y](Sum[Z2](inner_term))
+        numerator = Sum.safe(inner_term, Z2)
+        denominator = Sum.safe(Sum.safe(inner_term, Z2), Y)
         expected = Fraction(numerator, denominator)
-
+        if result is None:
+            self.fail("Expected non-None result from identify_district_variables_cyclic")
         self.assert_expr_equal(expected, result)
 
-    def test_incorrect_input_c_not_subset_of_t(self):
+    def test_incorrect_input_c_not_subset_of_t(self) -> None:
         """Input Validation: Input variables must be a subset of T."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[])
 
@@ -130,7 +138,7 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
                 topo=[X, Y, Z1],
             )
 
-    def test_bow_arc_unidentifiable(self):
+    def test_bow_arc_unidentifiable(self) -> None:
         """Regression test: Bow arc structure is unidentifiable."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)])
 
@@ -148,7 +156,7 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
 
         self.assertIsNone(result)
 
-    def test_tian_pearl_figure_9_deep_recursion(self):
+    def test_tian_pearl_figure_9_deep_recursion(self) -> None:
         """Uses figure 9 of the Tian & Pearl paper to make sure recursion is happening correctly."""
         W1 = Variable("W1")  # noqa: N806
         W2 = Variable("W2")  # noqa: N806
@@ -178,4 +186,6 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
             self.fail(f"Should be Identifiable but raised: {e}")
 
         self.assertIsInstance(result_cyclic, Fraction, "should produce ratio fraction form")
+        if result_cyclic is None:
+            self.fail("Expected non-None result from identify_district_variables_cyclic")
         self.assertIn(Y, result_cyclic.get_variables(), "Result should contain outcome variable Y")

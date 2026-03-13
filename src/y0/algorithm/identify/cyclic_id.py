@@ -25,6 +25,7 @@ from ...graph import NxMixedGraph, _ensure_set
 from ...util import InPaperAs
 
 __all__ = [
+    "Unidentifiable",
     "compute_scc_distributions",
     "cyclic_id",
     "get_apt_order_predecessors",
@@ -45,7 +46,7 @@ def cyclic_id(  # noqa:C901
     interventions: Annotated[Variable | Iterable[Variable], InPaperAs("W")],
     *,
     ordering: Sequence[Variable] | None = None,
-    base_distribution: Expression | None = None,
+    base_distribution: Probability | None = None,
 ) -> Annotated[Expression, InPaperAs(r"P(Y \mid do(W))")]:
     """Identify causal effects in cyclic graphs.
 
@@ -90,12 +91,14 @@ def cyclic_id(  # noqa:C901
     if outcomes & interventions:
         raise ValueError("Outcomes and interventions must be disjoint sets.")
 
-    intervention_j = set()
+    intervention_j: set[Variable] = set()
+    base_dist: Expression | None = base_distribution
     if base_distribution is not None:
         intervention_j_original, unintervened_dist = base_distribution._help_level_2_distribution()
-        intervention_j = {
-            v.get_base() if hasattr(v, "get_base") else v for v in intervention_j_original
-        }
+        if intervention_j_original is not None:
+            intervention_j = {
+                v.get_base() if hasattr(v, "get_base") else v for v in intervention_j_original
+            }
 
         if intervention_j & interventions:
             raise ValueError(
@@ -113,9 +116,9 @@ def cyclic_id(  # noqa:C901
             remaining_parents = unintervened_dist.parents - intervention_j
 
             new_dist = Distribution(children=remaining_children, parents=remaining_parents)
-            base_distribution = Probability(new_dist)
+            base_dist = Probability(new_dist)
         else:
-            base_distribution = base_distribution.marginalize(intervention_j)
+            base_dist = base_distribution.marginalize(intervention_j)
 
     # line 3: compute ancestral closure H in the mutilated graph G \ W
     graph_minus_interventions = graph.remove_nodes_from(interventions)
@@ -140,7 +143,7 @@ def cyclic_id(  # noqa:C901
             graph=graph,
             district=consolidated_district_of_c,
             ordering=ordering,
-            base_distribution=base_distribution,
+            base_distribution=base_dist,
         )
 
         try:
@@ -611,6 +614,7 @@ def identify_district_variables_cyclic(
             intervention_set=intervention_set,
             background_interventions=background_interventions,
         )
+    return None
 
 
 def compute_scc_distributions(
@@ -664,7 +668,8 @@ def compute_scc_distributions(
             intervention_set=intervention_set,
             background_interventions=background_interventions,
         )
-
+        if result is None:
+            raise Unidentifiable(f"identify_district_variables_cyclic returned None for SCC {scc}")
         scc_distributions[scc] = result
 
     return scc_distributions
@@ -713,7 +718,7 @@ def initialize_district_distribution(
     graph: NxMixedGraph,
     district: set[Variable],
     ordering: Sequence[Variable],
-    base_distribution: set[Variable] | None = None,
+    base_distribution: Expression | None = None,
 ) -> Expression:
     """Initialize the probability distribution for a given district before identification.
 
