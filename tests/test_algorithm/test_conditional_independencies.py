@@ -7,10 +7,12 @@ import unittest
 from collections.abc import Iterable
 from functools import partial
 from itertools import combinations, groupby
+from unittest import mock
 
 from tests import requires_pgmpy
 from y0.algorithm.conditional_independencies import (
     are_d_separated,
+    d_separations,
     get_conditional_independencies,
 )
 from y0.dsl import AA, B, C, D, E, F, G, Variable, X, Y
@@ -428,3 +430,85 @@ class TestGetConditionalIndependencies(unittest.TestCase):
                         len(parallel_by_pair[pair].conditions),
                         len(serial_by_pair[pair].conditions),
                     )
+
+    def test_parallel_separator_search_matches_serial_with_batch_size(self):
+        """Test explicit batch sizing preserves serial separator-search semantics."""
+        graph = NxMixedGraph.from_str_edges(
+            directed=[
+                ("L0_0", "L1_0"),
+                ("L0_0", "L1_1"),
+                ("L0_1", "L1_0"),
+                ("L0_1", "L1_1"),
+                ("L1_0", "L2_0"),
+                ("L1_0", "L2_1"),
+                ("L1_1", "L2_0"),
+                ("L1_1", "L2_1"),
+            ]
+        )
+        serial = get_conditional_independencies(graph, max_conditions=2)
+        parallel = get_conditional_independencies(graph, max_conditions=2, n_jobs=2, batch_size=1)
+        self.assertEqual(
+            {(judgement.left.name, judgement.right.name) for judgement in serial},
+            {(judgement.left.name, judgement.right.name) for judgement in parallel},
+        )
+
+    def test_parallel_return_all_matches_serial(self):
+        """Test return_all path works with parallel options."""
+        graph = NxMixedGraph.from_str_edges(
+            directed=[
+                ("X", "Z"),
+                ("Z", "Y"),
+                ("W", "Z"),
+            ]
+        )
+        serial = get_conditional_independencies(graph, max_conditions=2, return_all=True)
+        parallel = get_conditional_independencies(
+            graph,
+            max_conditions=2,
+            return_all=True,
+            n_jobs=2,
+            batch_size=1,
+        )
+        self.assertEqual(serial, parallel)
+
+    def test_parallel_separator_search_falls_back_to_threads(self):
+        """Test thread fallback is used when process pools are unavailable."""
+        graph = NxMixedGraph.from_str_edges(
+            directed=[
+                ("X", "Z"),
+                ("Z", "Y"),
+                ("W", "Z"),
+            ]
+        )
+
+        class FailingProcessPoolExecutor:
+            def __init__(self, *args, **kwargs):
+                raise PermissionError("simulated sandbox restriction")
+
+        with mock.patch(
+            "y0.algorithm.conditional_independencies.ProcessPoolExecutor",
+            FailingProcessPoolExecutor,
+        ):
+            serial = get_conditional_independencies(graph, max_conditions=2)
+            parallel = get_conditional_independencies(
+                graph,
+                max_conditions=2,
+                n_jobs=2,
+                batch_size=1,
+            )
+        self.assertEqual(
+            {(judgement.left.name, judgement.right.name) for judgement in serial},
+            {(judgement.left.name, judgement.right.name) for judgement in parallel},
+        )
+
+    def test_parallel_d_separations_verbose(self):
+        """Test verbose parallel d-separations path returns judgements."""
+        graph = NxMixedGraph.from_str_edges(
+            directed=[
+                ("X", "Z"),
+                ("Z", "Y"),
+                ("W", "Z"),
+            ]
+        )
+        judgements = list(d_separations(graph, max_conditions=2, n_jobs=2, batch_size=1, verbose=True))
+        self.assertTrue(judgements)
