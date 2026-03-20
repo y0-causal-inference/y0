@@ -17,7 +17,7 @@ def _r_exp(x: float | np.ndarray[Any, np.dtype[Any]]) -> float:
 
 
 def generate_data_for_frontdoor(
-    num_samples: int, treatments: dict[Variable, float] | None = None, *, seed: int | None = None
+    num_samples: int, *, treatments: dict[Variable, float] | None = None, seed: int | None = None
 ) -> pd.DataFrame:
     """Generate testing data for the front-door case study.
 

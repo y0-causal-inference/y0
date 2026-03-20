@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Protocol, cast
 
 import pandas as pd
 
@@ -14,8 +14,22 @@ from y0.graph import NxMixedGraph
 from y0.struct import DSeparationJudgement, VermaConstraint
 
 __all__ = [
+    "DataGenerator",
     "Example",
 ]
+
+
+class DataGenerator(Protocol):
+    """A data generator function."""
+
+    def __call__(
+        self,
+        num_samples: int,
+        *,
+        treatments: dict[Variable, float] | None = None,
+        seed: int | None = None,
+    ) -> pd.DataFrame:
+        """Generate synthetic data."""
 
 
 @dataclass
@@ -33,7 +47,7 @@ class Example:
     #: Example queries are just to give an idea to a new user
     #: what might be interesting to use in the ID algorithm
     example_queries: list[Query] | None = None
-    generate_data: Callable[[int, dict[Variable, float] | None], pd.DataFrame] | None = None
+    generate_data: DataGenerator | None = None
 
     def generate_ate(
         self,
@@ -43,12 +57,11 @@ class Example:
         outcome: Variable,
         treatment_0: float = 0.0,
         treatment_1: float = 1.0,
-        **kwargs: Any,
     ) -> float:
         """Calculate the ATE for a single treatment/outcome pair."""
         if self.generate_data is None:
             raise TypeError(f"no generation method provided in example: {self.name}")
 
-        data_1 = self.generate_data(num_samples, {treatment: treatment_1}, **kwargs)
-        data_0 = self.generate_data(num_samples, {treatment: treatment_0}, **kwargs)
+        data_1 = self.generate_data(num_samples, treatments={treatment: treatment_1})
+        data_0 = self.generate_data(num_samples, treatments={treatment: treatment_0})
         return cast(float, data_1.mean()[outcome.name] - data_0.mean()[outcome.name])
