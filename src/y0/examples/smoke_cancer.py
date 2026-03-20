@@ -14,8 +14,8 @@ __all__ = [
 
 def generate_data_for_smoke_cancer(
     num_samples: int,
-    treatments: dict[Variable, float] | None = None,
     *,
+    treatments: dict[Variable, float] | None = None,
     seed: int | None = None,
 ) -> pd.DataFrame:
     """Generate testing data for the smoking/cancer case study.

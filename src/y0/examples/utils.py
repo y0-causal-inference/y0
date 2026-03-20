@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol, cast
+from typing import Protocol, cast
 
 import pandas as pd
 
@@ -25,9 +25,9 @@ class DataGenerator(Protocol):
     def __call__(
         self,
         num_samples: int,
+        *,
         treatments: dict[Variable, float] | None = None,
         seed: int | None = None,
-        **kwargs: Any,
     ) -> pd.DataFrame:
         """Generate synthetic data."""
 
@@ -57,12 +57,11 @@ class Example:
         outcome: Variable,
         treatment_0: float = 0.0,
         treatment_1: float = 1.0,
-        **kwargs: Any,
     ) -> float:
         """Calculate the ATE for a single treatment/outcome pair."""
         if self.generate_data is None:
             raise TypeError(f"no generation method provided in example: {self.name}")
 
-        data_1 = self.generate_data(num_samples, {treatment: treatment_1}, **kwargs)
-        data_0 = self.generate_data(num_samples, {treatment: treatment_0}, **kwargs)
+        data_1 = self.generate_data(num_samples, treatments={treatment: treatment_1})
+        data_0 = self.generate_data(num_samples, treatments={treatment: treatment_0})
         return cast(float, data_1.mean()[outcome.name] - data_0.mean()[outcome.name])
