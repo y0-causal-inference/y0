@@ -150,6 +150,7 @@ class DSeparationJudgement:
             and tuple(sorted(self.conditions, key=str)) == self.conditions
         )
 
+    # docstr-coverage:excused `overload`
     @overload
     def test(
         self,
@@ -161,6 +162,7 @@ class DSeparationJudgement:
         _method_checked: bool = ...,
     ) -> bool: ...
 
+    # docstr-coverage:excused `overload`
     @overload
     def test(
         self,

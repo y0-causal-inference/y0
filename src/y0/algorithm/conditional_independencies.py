@@ -68,6 +68,7 @@ def add_ci_undirected_edges(
     return rv
 
 
+# docstr-coverage:excused `overload`
 @overload
 def test_conditional_independencies(
     graph: NxMixedGraph,
@@ -81,6 +82,7 @@ def test_conditional_independencies(
 ) -> list[tuple[DSeparationJudgement, bool]]: ...
 
 
+# docstr-coverage:excused `overload`
 @overload
 def test_conditional_independencies(
     graph: NxMixedGraph,
