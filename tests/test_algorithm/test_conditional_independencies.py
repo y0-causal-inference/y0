@@ -77,7 +77,7 @@ class TestDSeparation(unittest.TestCase):
             directed=[("a", "b"), ("b", "c")],
         )
         links: set[frozenset[Variable]] = {frozenset(e) for e in iter_moral_links(graph)}
-        self.assertEqual([], links, msg="Unexpected moral links added.")
+        self.assertEqual(set(), links, msg="Unexpected moral links added.")
 
         graph = NxMixedGraph.from_str_edges(
             nodes=("a", "b", "c"),
@@ -85,7 +85,7 @@ class TestDSeparation(unittest.TestCase):
         )
         links = {frozenset(e) for e in iter_moral_links(graph)}
         self.assertEqual(
-            frozenset([(Variable("a"), Variable("b"))]),
+            {frozenset([Variable("a"), Variable("b")])},
             links,
             msg="Moral links not as expected in single-link case.",
         )
@@ -96,8 +96,9 @@ class TestDSeparation(unittest.TestCase):
         )
         links = {frozenset(e) for e in iter_moral_links(graph)}
         self.assertEqual(
-            frozenset(
-                [
+            {
+                frozenset(e)
+                for e in [
                     (Variable("a"), Variable("b")),
                     (Variable("a"), Variable("aa")),
                     (Variable("a"), Variable("bb")),
@@ -105,7 +106,7 @@ class TestDSeparation(unittest.TestCase):
                     (Variable("aa"), Variable("bb")),
                     (Variable("b"), Variable("bb")),
                 ]
-            ),
+            },
             links,
             msg="Moral links not as expected in multi-link case.",
         )
@@ -116,7 +117,10 @@ class TestDSeparation(unittest.TestCase):
         )
         links = {frozenset(e) for e in iter_moral_links(graph)}
         self.assertEqual(
-            frozenset([(Variable("a"), Variable("b")), (Variable("c"), Variable("d"))]),
+            {
+                frozenset(e)
+                for e in [(Variable("a"), Variable("b")), (Variable("c"), Variable("d"))]
+            },
             links,
             msg="Moral links not as expected in multi-site case.",
         )
