@@ -76,16 +76,16 @@ class TestDSeparation(unittest.TestCase):
             nodes=("a", "b", "c"),
             directed=[("a", "b"), ("b", "c")],
         )
-        links = list(iter_moral_links(graph))
+        links: set[frozenset[Variable]] = {frozenset(e) for e in iter_moral_links(graph)}
         self.assertEqual([], links, msg="Unexpected moral links added.")
 
         graph = NxMixedGraph.from_str_edges(
             nodes=("a", "b", "c"),
             directed=[("a", "c"), ("b", "c")],
         )
-        links = {tuple(sorted(e)) for e in iter_moral_links(graph)}
+        links = {frozenset(e) for e in iter_moral_links(graph)}
         self.assertEqual(
-            {(Variable("a"), Variable("b"))},
+            frozenset([(Variable("a"), Variable("b"))]),
             links,
             msg="Moral links not as expected in single-link case.",
         )
@@ -94,16 +94,18 @@ class TestDSeparation(unittest.TestCase):
             nodes=("a", "b", "aa", "bb", "c"),
             directed=[("a", "c"), ("b", "c"), ("aa", "c"), ("bb", "c")],
         )
-        links = {tuple(sorted(e)) for e in iter_moral_links(graph)}
+        links = {frozenset(e) for e in iter_moral_links(graph)}
         self.assertEqual(
-            {
-                (Variable("a"), Variable("b")),
-                (Variable("a"), Variable("aa")),
-                (Variable("a"), Variable("bb")),
-                (Variable("aa"), Variable("b")),
-                (Variable("aa"), Variable("bb")),
-                (Variable("b"), Variable("bb")),
-            },
+            frozenset(
+                [
+                    (Variable("a"), Variable("b")),
+                    (Variable("a"), Variable("aa")),
+                    (Variable("a"), Variable("bb")),
+                    (Variable("aa"), Variable("b")),
+                    (Variable("aa"), Variable("bb")),
+                    (Variable("b"), Variable("bb")),
+                ]
+            ),
             links,
             msg="Moral links not as expected in multi-link case.",
         )
@@ -112,9 +114,9 @@ class TestDSeparation(unittest.TestCase):
             nodes=("a", "b", "c", "d", "e"),
             directed=[("a", "c"), ("b", "c"), ("c", "e"), ("d", "e")],
         )
-        links = {tuple(sorted(e)) for e in iter_moral_links(graph)}
+        links = {frozenset(e) for e in iter_moral_links(graph)}
         self.assertEqual(
-            {(Variable("a"), Variable("b")), (Variable("c"), Variable("d"))},
+            frozenset([(Variable("a"), Variable("b")), (Variable("c"), Variable("d"))]),
             links,
             msg="Moral links not as expected in multi-site case.",
         )
@@ -179,7 +181,9 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             "Judgements do not find same separable pairs",
         )
 
-        def _get_match(ref, options):
+        def _get_match(
+            ref: DSeparationJudgement, options: set[DSeparationJudgement]
+        ) -> DSeparationJudgement | None:
             """Find a judgement that has the same left/right pair as the reference judgement."""
             for alt in options:
                 if ref.left == alt.left and ref.right == alt.right:
@@ -189,7 +193,8 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         for judgement in asserted_judgements:
             with self.subTest(name=judgement):
                 matching = _get_match(judgement, observed_judgements)
-                self.assertIsNotNone(matching, "No matching judgement found.")
+                if matching is None:
+                    raise self.fail("No matching judgement found.")
                 self.assertGreaterEqual(
                     len(judgement.conditions),
                     len(matching.conditions),
@@ -233,6 +238,8 @@ class TestGetConditionalIndependencies(unittest.TestCase):
     @requires_pgmpy
     def test_ci_test_continuous(self) -> None:
         """Test conditional independency test on continuous data."""
+        if frontdoor_example.generate_data is None:
+            raise self.fail()
         data = frontdoor_example.generate_data(500)  # continuous
         judgement = DSeparationJudgement(
             left=X,
@@ -243,7 +250,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         test_result_bool = judgement.test(data, method="pearson", boolean=True)
         self.assertIsInstance(test_result_bool, bool)
 
-        test_result_tuple = judgement.test(data, method="pearson", boolean=False)
+        test_result_tuple: CITestTuple = judgement.test(data, method="pearson", boolean=False)
         self.assertIsInstance(test_result_tuple, CITestTuple)
         self.assertIsNone(test_result_tuple.dof)
 
@@ -256,6 +263,8 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         """Test conditional independency test on discrete data."""
         from pgmpy.estimators import CITests
 
+        if frontdoor_backdoor_example.generate_data is None:
+            raise self.fail()
         data = frontdoor_backdoor_example.generate_data(500)  # discrete
         judgement = DSeparationJudgement(
             left=X,
@@ -267,7 +276,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             test_result_bool = judgement.test(data, method=method, boolean=True)
             self.assertIsInstance(test_result_bool, bool)
 
-            test_result_tuple = judgement.test(data, method=method, boolean=False)
+            test_result_tuple: CITestTuple = judgement.test(data, method=method, boolean=False)
             self.assertIsInstance(test_result_tuple, CITestTuple)
             self.assertIsNotNone(test_result_tuple.dof)
 

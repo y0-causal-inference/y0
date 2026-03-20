@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import lru_cache, partial
-from typing import Any, Literal, NamedTuple, cast
+from typing import Any, Literal, NamedTuple, cast, overload
 
 import pandas as pd
 
@@ -149,6 +149,28 @@ class DSeparationJudgement:
             and isinstance(self.conditions, tuple)
             and tuple(sorted(self.conditions, key=str)) == self.conditions
         )
+
+    @overload
+    def test(
+        self,
+        df: pd.DataFrame,
+        *,
+        boolean: Literal[True] = ...,
+        method: CITest | None = ...,
+        significance_level: float | None = ...,
+        _method_checked: bool = ...,
+    ) -> bool: ...
+
+    @overload
+    def test(
+        self,
+        df: pd.DataFrame,
+        *,
+        boolean: Literal[False] = ...,
+        method: CITest | None = ...,
+        significance_level: float | None = ...,
+        _method_checked: bool = ...,
+    ) -> CITestTuple: ...
 
     def test(
         self,

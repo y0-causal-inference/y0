@@ -3,7 +3,7 @@
 from collections.abc import Callable, Iterable, Sequence
 from functools import partial
 from itertools import combinations, groupby
-from typing import Any
+from typing import Any, TypeAlias
 
 import networkx as nx
 import pandas as pd
@@ -21,6 +21,7 @@ from ..struct import (
 from ..util.combinatorics import powerset
 
 __all__ = [
+    "Policy",
     "add_ci_undirected_edges",
     "are_d_separated",
     "get_conditional_independencies",
@@ -111,7 +112,8 @@ def test_conditional_independencies(
     ]
 
 
-Policy = Callable[[DSeparationJudgement], Any]
+#: A policy for reducing conditional independencies
+Policy: TypeAlias = Callable[[DSeparationJudgement], Any]
 
 
 def get_conditional_independencies(

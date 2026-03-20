@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 import pandas as pd
 
@@ -14,8 +14,22 @@ from y0.graph import NxMixedGraph
 from y0.struct import DSeparationJudgement, VermaConstraint
 
 __all__ = [
+    "DataGenerator",
     "Example",
 ]
+
+
+class DataGenerator(Protocol):
+    """A data generator function."""
+
+    def __call__(
+        self,
+        num_samples: int,
+        treatments: dict[Variable, float] | None = None,
+        seed: int | None = None,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        """Generate synthetic data."""
 
 
 @dataclass
@@ -33,7 +47,7 @@ class Example:
     #: Example queries are just to give an idea to a new user
     #: what might be interesting to use in the ID algorithm
     example_queries: list[Query] | None = None
-    generate_data: Callable[[int, dict[Variable, float] | None], pd.DataFrame] | None = None
+    generate_data: DataGenerator | None = None
 
     def generate_ate(
         self,
