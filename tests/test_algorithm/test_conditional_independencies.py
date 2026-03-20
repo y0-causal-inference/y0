@@ -5,6 +5,8 @@ from __future__ import annotations
 import typing
 import unittest
 from collections.abc import Iterable
+from functools import partial
+from itertools import combinations, groupby
 
 from tests import requires_pgmpy
 from y0.algorithm.conditional_independencies import (
@@ -21,6 +23,7 @@ from y0.examples import (
 )
 from y0.graph import NxMixedGraph, iter_moral_links
 from y0.struct import CITestTuple, DSeparationJudgement
+from y0.util.combinatorics import powerset
 
 
 class TestDSeparation(unittest.TestCase):
@@ -274,3 +277,154 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         # Test that an error is thrown if using a continous test on discrete data
         with self.assertRaises(ValueError):
             judgement.test(data, method="pearson", boolean=True)
+
+    def test_optimized_separator_search_matches_legacy(self):
+        """Test optimized separator search preserves legacy pair coverage and condition complexity."""
+
+        def legacy_judgement_grouper(
+            judgement: DSeparationJudgement,
+        ) -> tuple[Variable, Variable]:
+            return judgement.left, judgement.right
+
+        def legacy_topological_policy(
+            judgement: DSeparationJudgement, order: list[Variable]
+        ) -> tuple[int, int]:
+            return (
+                len(judgement.conditions),
+                sum(order.index(v) for v in judgement.conditions),
+            )
+
+        def legacy_get_topological_policy(graph: NxMixedGraph):
+            order = list(graph.topological_sort())
+            return partial(legacy_topological_policy, order=order)
+
+        def legacy_minimal(
+            judgements: Iterable[DSeparationJudgement],
+            graph: NxMixedGraph,
+        ) -> set[DSeparationJudgement]:
+            policy = legacy_get_topological_policy(graph)
+            judgements = sorted(judgements, key=legacy_judgement_grouper)
+            return {
+                min(vs, key=policy)
+                for _, vs in groupby(judgements, legacy_judgement_grouper)
+            }
+
+        def legacy_d_separations(
+            graph: NxMixedGraph,
+            *,
+            max_conditions: int | None = None,
+        ) -> Iterable[DSeparationJudgement]:
+            vertices = set(graph.nodes())
+            for a, b in combinations(vertices, 2):
+                for conditions in powerset(vertices - {a, b}, stop=max_conditions):
+                    judgement = are_d_separated(graph, a, b, conditions=conditions)
+                    if judgement.separated:
+                        yield judgement
+                        break
+
+        def legacy_get_conditional_independencies(
+            graph: NxMixedGraph,
+            *,
+            max_conditions: int | None = None,
+        ) -> set[DSeparationJudgement]:
+            return legacy_minimal(
+                legacy_d_separations(graph, max_conditions=max_conditions),
+                graph,
+            )
+
+        def build_separator_search_graph(width: int = 4, depth: int = 3) -> NxMixedGraph:
+            directed = []
+            layers = []
+            for layer_index in range(depth):
+                layer = [f"L{layer_index}_{node_index}" for node_index in range(width)]
+                layers.append(layer)
+            for source_layer, target_layer in zip(layers, layers[1:], strict=False):
+                for source in source_layer:
+                    for target in target_layer:
+                        directed.append((source, target))
+            return NxMixedGraph.from_str_edges(directed=directed)
+
+        def build_ci_throughput_graph(
+            components: int = 4, chain_length: int = 4
+        ) -> NxMixedGraph:
+            directed = []
+            for component_index in range(components):
+                prefix = f"C{component_index}"
+                for node_index in range(chain_length - 1):
+                    directed.append(
+                        (f"{prefix}_{node_index}", f"{prefix}_{node_index + 1}")
+                    )
+            return NxMixedGraph.from_str_edges(directed=directed)
+
+        for graph in [
+            build_separator_search_graph(),
+            build_ci_throughput_graph(),
+        ]:
+            with self.subTest(graph=graph):
+                observed = get_conditional_independencies(graph, max_conditions=2)
+                expected = legacy_get_conditional_independencies(graph, max_conditions=2)
+
+                observed_pairs = {(judgement.left.name, judgement.right.name) for judgement in observed}
+                expected_pairs = {(judgement.left.name, judgement.right.name) for judgement in expected}
+                self.assertEqual(expected_pairs, observed_pairs)
+
+                observed_by_pair = {
+                    (judgement.left.name, judgement.right.name): judgement for judgement in observed
+                }
+                for judgement in expected:
+                    pair = (judgement.left.name, judgement.right.name)
+                    self.assertLessEqual(
+                        len(observed_by_pair[pair].conditions),
+                        len(judgement.conditions),
+                    )
+
+    def test_parallel_separator_search_matches_serial(self):
+        """Test parallel separator search matches serial output semantics."""
+
+        def build_separator_search_graph(width: int = 4, depth: int = 3) -> NxMixedGraph:
+            directed = []
+            layers = []
+            for layer_index in range(depth):
+                layer = [f"L{layer_index}_{node_index}" for node_index in range(width)]
+                layers.append(layer)
+            for source_layer, target_layer in zip(layers, layers[1:], strict=False):
+                for source in source_layer:
+                    for target in target_layer:
+                        directed.append((source, target))
+            return NxMixedGraph.from_str_edges(directed=directed)
+
+        def build_ci_throughput_graph(
+            components: int = 4, chain_length: int = 4
+        ) -> NxMixedGraph:
+            directed = []
+            for component_index in range(components):
+                prefix = f"C{component_index}"
+                for node_index in range(chain_length - 1):
+                    directed.append(
+                        (f"{prefix}_{node_index}", f"{prefix}_{node_index + 1}")
+                    )
+            return NxMixedGraph.from_str_edges(directed=directed)
+
+        for graph in [
+            build_separator_search_graph(),
+            build_ci_throughput_graph(),
+        ]:
+            with self.subTest(graph=graph):
+                serial = get_conditional_independencies(graph, max_conditions=2)
+                parallel = get_conditional_independencies(graph, max_conditions=2, n_jobs=2)
+
+                serial_pairs = {(judgement.left.name, judgement.right.name) for judgement in serial}
+                parallel_pairs = {(judgement.left.name, judgement.right.name) for judgement in parallel}
+                self.assertEqual(serial_pairs, parallel_pairs)
+
+                serial_by_pair = {
+                    (judgement.left.name, judgement.right.name): judgement for judgement in serial
+                }
+                parallel_by_pair = {
+                    (judgement.left.name, judgement.right.name): judgement for judgement in parallel
+                }
+                for pair in serial_pairs:
+                    self.assertLessEqual(
+                        len(parallel_by_pair[pair].conditions),
+                        len(serial_by_pair[pair].conditions),
+                    )

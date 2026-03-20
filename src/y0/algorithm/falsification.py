@@ -43,6 +43,8 @@ def get_graph_falsifications(
     *,
     significance_level: float | None = None,
     max_given: int | None = None,
+    n_jobs: int | None = None,
+    batch_size: int | None = None,
     verbose: bool = False,
     method: CITest | None = None,
     sep: str | None = None,
@@ -54,6 +56,8 @@ def get_graph_falsifications(
     :param significance_level: Significance for p-value test
     :param max_given: The maximum set size in the power set of the vertices minus the
         d-separable pairs
+    :param n_jobs: Number of worker processes to use for separator search
+    :param batch_size: Number of node pairs to submit per separator-search worker task
     :param verbose: If true, use tqdm for status updates.
     :param method: Conditional independence from :mod:`pgmpy` to use. If none, defaults
         to :func:`pgmpy.estimators.CITests.cressie_read`.
@@ -61,7 +65,13 @@ def get_graph_falsifications(
 
     :returns: Falsifications report
     """
-    judgements = get_conditional_independencies(graph, max_conditions=max_given, verbose=verbose)
+    judgements = get_conditional_independencies(
+        graph,
+        max_conditions=max_given,
+        n_jobs=n_jobs,
+        batch_size=batch_size,
+        verbose=verbose,
+    )
     return get_falsifications(
         judgements=judgements,
         df=df,

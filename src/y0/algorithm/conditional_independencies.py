@@ -1,9 +1,10 @@
 """An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from collections.abc import Callable, Iterable, Sequence
 from functools import partial
-from itertools import combinations, groupby
-from typing import Any
+from itertools import combinations, groupby, islice
+from typing import Any, NamedTuple
 
 import networkx as nx
 import pandas as pd
@@ -114,11 +115,29 @@ def test_conditional_independencies(
 Policy = Callable[[DSeparationJudgement], Any]
 
 
+class _PairSeparationContext(NamedTuple):
+    """Pair-specific graph state reused across conditioning sets."""
+
+    evidence_graph: nx.Graph
+    condition_candidates: tuple[Variable, ...]
+
+
+class _PairBatchTask(NamedTuple):
+    """A batch of pair searches to evaluate in one worker."""
+
+    graph: NxMixedGraph
+    pairs: tuple[tuple[Variable, Variable], ...]
+    max_conditions: int | None
+    return_all: bool
+
+
 def get_conditional_independencies(
     graph: NxMixedGraph,
     *,
     policy: Policy | None = None,
     max_conditions: int | None = None,
+    n_jobs: int | None = None,
+    batch_size: int | None = None,
     **kwargs: Any,
 ) -> set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
@@ -138,10 +157,26 @@ def get_conditional_independencies(
 
         Original issue https://github.com/y0-causal-inference/y0/issues/24
     """
+    if not kwargs.get("return_all", False):
+        return set(
+            d_separations(
+                graph,
+                max_conditions=max_conditions,
+                n_jobs=n_jobs,
+                batch_size=batch_size,
+                **kwargs,
+            )
+        )
     if policy is None:
         policy = get_topological_policy(graph)
     return minimal(
-        d_separations(graph, max_conditions=max_conditions, **kwargs),
+        d_separations(
+            graph,
+            max_conditions=max_conditions,
+            n_jobs=n_jobs,
+            batch_size=batch_size,
+            **kwargs,
+        ),
         policy=policy,
     )
 
@@ -207,6 +242,102 @@ def _len_lex(judgement: DSeparationJudgement) -> tuple[int, str]:
     return len(judgement.conditions), ",".join(c.name for c in judgement.conditions)
 
 
+def _prepare_pair_separation_context(
+    graph: NxMixedGraph,
+    a: Variable,
+    b: Variable,
+) -> _PairSeparationContext:
+    named = {a, b}
+    keep = graph.ancestors_inclusive(named)
+    evidence_graph = graph.subgraph(keep).moralize().disorient()
+    condition_candidates = _order_condition_candidates(
+        evidence_graph,
+        a,
+        b,
+        candidates=set(evidence_graph.nodes) - named,
+    )
+    return _PairSeparationContext(
+        evidence_graph=evidence_graph,
+        condition_candidates=condition_candidates,
+    )
+
+
+def _order_condition_candidates(
+    evidence_graph: nx.Graph,
+    a: Variable,
+    b: Variable,
+    *,
+    candidates: Iterable[Variable],
+) -> tuple[Variable, ...]:
+    """Prioritize nodes closer to the queried pair for earlier separator discovery."""
+    a_distances = nx.single_source_shortest_path_length(evidence_graph, a)
+    b_distances = nx.single_source_shortest_path_length(evidence_graph, b)
+
+    def key(node: Variable) -> tuple[float, float, float, str]:
+        a_distance = a_distances.get(node, float("inf"))
+        b_distance = b_distances.get(node, float("inf"))
+        return (a_distance + b_distance, min(a_distance, b_distance), a_distance, str(node))
+
+    return tuple(sorted(candidates, key=key))
+
+
+def _is_d_separated_in_context(
+    context: _PairSeparationContext,
+    a: Variable,
+    b: Variable,
+    *,
+    conditions: Iterable[Variable],
+) -> bool:
+    conditions = set(conditions)
+    if conditions:
+        evidence_graph = context.evidence_graph.subgraph(set(context.evidence_graph.nodes) - conditions)
+    else:
+        evidence_graph = context.evidence_graph
+    return not nx.has_path(evidence_graph, a, b)
+
+
+def _chunked(
+    iterable: Iterable[tuple[Variable, Variable]],
+    size: int,
+) -> Iterable[tuple[tuple[Variable, Variable], ...]]:
+    iterator = iter(iterable)
+    while chunk := tuple(islice(iterator, size)):
+        yield chunk
+
+
+def _get_pair_batch_size(pair_count: int, *, n_jobs: int) -> int:
+    return max(1, pair_count // (n_jobs * 4))
+
+
+def _search_pair_batch(task: _PairBatchTask) -> list[DSeparationJudgement]:
+    judgements = []
+    for a, b in task.pairs:
+        context = _prepare_pair_separation_context(task.graph, a, b)
+        for conditions in powerset(context.condition_candidates, stop=task.max_conditions):
+            if _is_d_separated_in_context(context, a, b, conditions=conditions):
+                judgements.append(
+                    DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=True)
+                )
+                if not task.return_all:
+                    break
+    return judgements
+
+
+def _parallel_search_pair_batches(
+    tasks: Sequence[_PairBatchTask],
+    *,
+    n_jobs: int,
+) -> Iterable[list[DSeparationJudgement]]:
+    try:
+        with ProcessPoolExecutor(max_workers=n_jobs) as executor:
+            yield from executor.map(_search_pair_batch, tasks)
+            return
+    except PermissionError:
+        pass
+    with ThreadPoolExecutor(max_workers=n_jobs) as executor:
+        yield from executor.map(_search_pair_batch, tasks)
+
+
 def are_d_separated(
     graph: NxMixedGraph,
     a: Variable,
@@ -256,12 +387,8 @@ def are_d_separated(
     # Filter to ancestors
     keep = graph.ancestors_inclusive(named)
     evidence_graph = graph.subgraph(keep).moralize().disorient()
-
-    keep = set(evidence_graph.nodes) - set(conditions)
-    evidence_graph = evidence_graph.subgraph(keep)
-
-    # check for path....
-    separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
+    context = _PairSeparationContext(evidence_graph=evidence_graph, condition_candidates=())
+    separated = _is_d_separated_in_context(context, a, b, conditions=conditions)
 
     return DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=separated)
 
@@ -272,6 +399,8 @@ def d_separations(
     max_conditions: int | None = None,
     verbose: bool | None = False,
     return_all: bool | None = False,
+    n_jobs: int | None = None,
+    batch_size: int | None = None,
 ) -> Iterable[DSeparationJudgement]:
     """Generate d-separations in the provided graph.
 
@@ -280,20 +409,48 @@ def d_separations(
     :param return_all: If false (default) only returns the first d-separation per
         left/right pair.
     :param verbose: If true, prints extra output with tqdm
+    :param n_jobs: Number of worker processes. Defaults to serial execution.
+    :param batch_size: Number of pairs to submit per worker task.
 
     :yields: True d-separation judgements
     """
-    vertices = set(graph.nodes())
-    for a, b in tqdm(
-        combinations(vertices, 2),
-        disable=not verbose,
-        desc="Checking d-separations",
-        unit="pair",
-        total=len(vertices) * (len(vertices) - 1) // 2,
-    ):
-        for conditions in powerset(vertices - {a, b}, stop=max_conditions):
-            judgement = are_d_separated(graph, a, b, conditions=conditions)
-            if judgement.separated:
-                yield judgement
-                if not return_all:
-                    break
+    vertices = tuple(sorted(graph.nodes(), key=str))
+    pairs = tuple(combinations(vertices, 2))
+    if n_jobs is None or n_jobs <= 1:
+        for a, b in tqdm(
+            pairs,
+            disable=not verbose,
+            desc="Checking d-separations",
+            unit="pair",
+            total=len(pairs),
+        ):
+            context = _prepare_pair_separation_context(graph, a, b)
+            for conditions in powerset(context.condition_candidates, stop=max_conditions):
+                if _is_d_separated_in_context(context, a, b, conditions=conditions):
+                    yield DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=True)
+                    if not return_all:
+                        break
+        return
+
+    if batch_size is None:
+        batch_size = _get_pair_batch_size(len(pairs), n_jobs=n_jobs)
+    tasks = [
+        _PairBatchTask(
+            graph=graph,
+            pairs=pair_batch,
+            max_conditions=max_conditions,
+            return_all=bool(return_all),
+        )
+        for pair_batch in _chunked(pairs, batch_size)
+    ]
+    iterator = tasks
+    if verbose:
+        iterator = tqdm(
+            tasks,
+            disable=not verbose,
+            desc="Checking d-separations",
+            unit="batch",
+            total=len(tasks),
+        )
+    for judgements in _parallel_search_pair_batches(tuple(iterator), n_jobs=n_jobs):
+        yield from judgements
