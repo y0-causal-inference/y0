@@ -119,7 +119,7 @@ def get_conditional_independencies(
     *,
     policy: Policy | None = None,
     max_conditions: int | None = None,
-    **kwargs: Any,
+    return_all: bool | None = False,
 ) -> set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
 
@@ -130,7 +130,8 @@ def get_conditional_independencies(
     :param policy: Retention policy when more than one conditional independency option
         exists (see minimal for details)
     :param max_conditions: Longest set of conditions to investigate
-    :param kwargs: Other keyword arguments are passed to :func:`d_separations`
+    :param return_all: If false (default) only returns the first d-separation per
+        left/right pair.
 
     :returns: A set of conditional dependencies
 
@@ -141,7 +142,7 @@ def get_conditional_independencies(
     if policy is None:
         policy = get_topological_policy(graph)
     return minimal(
-        d_separations(graph, max_conditions=max_conditions, **kwargs),
+        d_separations(graph, max_conditions=max_conditions, return_all=return_all),
         policy=policy,
     )
 
@@ -281,7 +282,7 @@ def d_separations(
         left/right pair.
     :param verbose: If true, prints extra output with tqdm
 
-    :yields: True d-separation judgements
+    :yields: True d-separation judgments
     """
     vertices = set(graph.nodes())
     for a, b in tqdm(
