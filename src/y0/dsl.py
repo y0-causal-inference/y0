@@ -229,11 +229,11 @@ class Variable(Element):
         >>> Variable("X", star=False).to_latex()
         'X^{-}'
         >>> Variable("X1").to_latex()
-        '{X_{1}}'
+        'X_{1}'
         >>> Variable("X1", star=True).to_latex()
         '{X_{1}}^{+}'
         >>> Variable("X12").to_latex()
-        '{X_{12}}'
+        'X_{12}'
         """
         # if it ends with a number, use that as a subscript
         ending_numeric = 0
@@ -243,7 +243,18 @@ class Variable(Element):
         sign = self._get_sign(latex=True)
         if not ending_numeric:
             return self.name + sign
-        return f"{{{self.name[:-ending_numeric]}_{{{self.name[-ending_numeric:]}}}}}{sign}"
+        beginning = self.name[:-ending_numeric]
+        # if len(beginning) > 1:
+        #     beginning = "{" + beginning + "}"
+        if "_" in beginning:
+            raise ValueError("can't make latex when underscores are in name")
+        ending = self.name[-ending_numeric:]
+        if len(ending) > 1:
+            ending = "{" + ending + "}"
+        if self.star is None:
+            return f"{beginning}_{ending}"
+        else:
+            return f"{{{beginning}_{ending}}}{sign}"
 
     def to_y0(self) -> str:
         """Output this variable instance as y0 internal DSL code."""

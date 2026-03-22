@@ -427,6 +427,15 @@ class TestDSL(unittest.TestCase):
             with self.subTest(expression=str(expression)):
                 self.assertEqual(variables, expression.get_variables())
 
+    def test_to_latex(self) -> None:
+        """Test outputting latex."""
+        self.assertEqual("X", Variable("X").to_latex())
+        self.assertEqual("X^{+}", Variable("X", star=True).to_latex())
+        self.assertEqual("X^{-}", Variable("X", star=False).to_latex())
+        self.assertEqual("X_1", Variable("X1").to_latex())
+        self.assertEqual("X_{12}", Variable("X12").to_latex())
+        self.assertEqual("{X_1}^{+}", Variable("X1", star=True).to_latex())
+
 
 class TestCounterfactual(unittest.TestCase):
     """Tests for counterfactuals."""
