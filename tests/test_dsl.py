@@ -435,6 +435,17 @@ class TestDSL(unittest.TestCase):
         self.assertEqual("X_1", Variable("X1").to_latex())
         self.assertEqual("X_{12}", Variable("X12").to_latex())
         self.assertEqual("{X_1}^{+}", Variable("X1", star=True).to_latex())
+        self.assertEqual("{X_{12}}^{+}", Variable("X12", star=True).to_latex())
+
+    def test_counterfactual_to_latex(self) -> None:
+        """Test outputting latex for counterfactual variables."""
+        self.assertEqual('X_{Y^{-}}', (Variable("X") @ Variable("Y")).to_latex())
+        self.assertEqual('{X_1}_{Y^{-}}', (Variable("X1") @ Variable("Y")).to_latex())
+        self.assertEqual('{X_{12}}_{Y^{-}}', (Variable("X12") @ Variable("Y")).to_latex())
+        self.assertEqual('X^{+}_{Y^{-}}', (+Variable("X") @ Variable("Y")).to_latex())
+        self.assertEqual('{{X_1}^{+}}_{Y^{-}}', (+Variable("X1") @ Variable("Y")).to_latex())
+        self.assertEqual('{{X_{12}}^{+}}_{Y^{-}}', (+Variable("X12") @ Variable("Y")).to_latex())
+        self.assertEqual('{{X_{12}}^{+}}_{Y^{-}, Z^{-}}', (+Variable("X12") @ Variable("Y") @ Variable("Z")).to_latex())
 
 
 class TestCounterfactual(unittest.TestCase):

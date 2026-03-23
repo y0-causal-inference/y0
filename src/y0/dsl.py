@@ -395,24 +395,12 @@ class CounterfactualVariable(Variable):
         """Output this counterfactual variable in the LaTeX string format.
 
         :returns: A latex representation of this counterfactual variable
-
-        >>> (Variable("X") @ Variable("Y")).to_latex()
-        'X_{Y^{-}}'
-        >>> (Variable("X1") @ Variable("Y")).to_latex()
-        '{X_{1}}_{Y^{-}}'
-        >>> (Variable("X12") @ Variable("Y")).to_latex()
-        '{X_{12}}_{Y^{-}}'
-        >>> (+Variable("X") @ Variable("Y")).to_latex()
-        'X^{+}_{Y^{-}}'
-        >>> (+Variable("X1") @ Variable("Y")).to_latex()
-        '{X_{1}}^{+}_{Y^{-}}'
-        >>> (+Variable("X12") @ Variable("Y")).to_latex()
-        '{X_{12}}^{+}_{Y^{-}}'
-        >>> (+Variable("X12") @ Variable("Y") @ Variable("Z")).to_latex()
-        '{X_{12}}^{+}_{Y^{-}, Z^{-}}'
         """
         intervention_latex = _list_to_latex(_sort_interventions(self.interventions))
-        return f"{super().to_latex()}_{{{intervention_latex}}}"
+        inner = super().to_latex()
+        if "_" in inner:
+            inner = "{" + inner + "}"
+        return f"{inner}_{{{intervention_latex}}}"
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
