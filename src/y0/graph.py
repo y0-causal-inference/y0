@@ -315,6 +315,11 @@ class NxMixedGraph:
             rv.add_undirected_edge(u, v)
         return rv
 
+    def _ipython_display_(self) -> None:
+        from IPython.display import Markdown, display_markdown
+
+        display_markdown(Markdown(self.to_mermaid_block()))
+
     def to_mermaid_block(self) -> str:
         """Get a mermaid codeblock that can be used in Markdown."""
         return f"```mermaid\n{self.to_mermaid_str()}\n```"
