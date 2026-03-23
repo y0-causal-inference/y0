@@ -231,9 +231,11 @@ class Variable(Element):
         >>> Variable("X1").to_latex()
         'X_1'
         >>> Variable("X1", star=True).to_latex()
-        '{X_{1}}^{+}'
+        '{X_1}^{+}'
         >>> Variable("X12").to_latex()
         'X_{12}'
+        >>> Variable("X12", star=True).to_latex()
+        '{X_{12}}^{+}'
         """
         # if it ends with a number, use that as a subscript
         ending_numeric = 0
