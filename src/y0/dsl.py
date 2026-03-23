@@ -229,7 +229,7 @@ class Variable(Element):
         >>> Variable("X", star=False).to_latex()
         'X^{-}'
         >>> Variable("X1").to_latex()
-        'X_{1}'
+        'X_1'
         >>> Variable("X1", star=True).to_latex()
         '{X_{1}}^{+}'
         >>> Variable("X12").to_latex()
