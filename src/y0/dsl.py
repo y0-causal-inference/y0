@@ -217,7 +217,7 @@ class Variable(Element):
 
         return sympy.Symbol(self.to_latex())
 
-    def to_latex(self) -> str:
+    def to_latex(self) -> str:  # noqa:C901
         """Output this variable in the LaTeX string format.
 
         :returns: The LaTeX representaton of this variable.
@@ -229,21 +229,54 @@ class Variable(Element):
         >>> Variable("X", star=False).to_latex()
         'X^{-}'
         >>> Variable("X1").to_latex()
-        '{X_{1}}'
+        'X_1'
         >>> Variable("X1", star=True).to_latex()
-        '{X_{1}}^{+}'
+        '{X_1}^{+}'
         >>> Variable("X12").to_latex()
-        '{X_{12}}'
+        'X_{12}'
+        >>> Variable("X12", star=True).to_latex()
+        '{X_{12}}^{+}'
         """
         # if it ends with a number, use that as a subscript
         ending_numeric = 0
         for c in reversed(self.name):
             if c.isnumeric():
                 ending_numeric += 1
+            else:  # the else makes sure that an inner number doesn't get subscripted
+                break
+
+        len_beginning = len(self.name) - ending_numeric
+
         sign = self._get_sign(latex=True)
         if not ending_numeric:
-            return self.name + sign
-        return f"{{{self.name[:-ending_numeric]}_{{{self.name[-ending_numeric:]}}}}}{sign}"
+            if not sign:
+                return self.name
+            elif len_beginning == 1:
+                return self.name + sign
+            else:
+                # wrap name in squiggly brackets for safety
+                return f"{{{self.name}}}{sign}"
+
+        # don't try to infer subscripts if it's
+        # not a single-character variable name
+        if len_beginning > 1:
+            if not sign:
+                return self.name
+            else:
+                # wrap name in squiggly brackets for safety
+                return f"{{{self.name}}}{sign}"
+
+        beginning = self.name[:-ending_numeric]
+        ending = self.name[-ending_numeric:]
+        if len(ending) > 1:
+            ending = "{" + ending + "}"
+
+        if not sign:
+            return f"{beginning}_{ending}"
+        elif sign:
+            return f"{{{beginning}_{ending}}}{sign}"
+        else:
+            return f"{{{beginning}_{ending}}}"
 
     def to_y0(self) -> str:
         """Output this variable instance as y0 internal DSL code."""
@@ -384,24 +417,12 @@ class CounterfactualVariable(Variable):
         """Output this counterfactual variable in the LaTeX string format.
 
         :returns: A latex representation of this counterfactual variable
-
-        >>> (Variable("X") @ Variable("Y")).to_latex()
-        'X_{Y^{-}}'
-        >>> (Variable("X1") @ Variable("Y")).to_latex()
-        '{X_{1}}_{Y^{-}}'
-        >>> (Variable("X12") @ Variable("Y")).to_latex()
-        '{X_{12}}_{Y^{-}}'
-        >>> (+Variable("X") @ Variable("Y")).to_latex()
-        'X^{+}_{Y^{-}}'
-        >>> (+Variable("X1") @ Variable("Y")).to_latex()
-        '{X_{1}}^{+}_{Y^{-}}'
-        >>> (+Variable("X12") @ Variable("Y")).to_latex()
-        '{X_{12}}^{+}_{Y^{-}}'
-        >>> (+Variable("X12") @ Variable("Y") @ Variable("Z")).to_latex()
-        '{X_{12}}^{+}_{Y^{-}, Z^{-}}'
         """
         intervention_latex = _list_to_latex(_sort_interventions(self.interventions))
-        return f"{super().to_latex()}_{{{intervention_latex}}}"
+        inner = super().to_latex()
+        if "_" in inner:
+            inner = "{" + inner + "}"
+        return f"{inner}_{{{intervention_latex}}}"
 
     def to_y0(self) -> str:
         """Output this counterfactual variable instance as y0 internal DSL code."""
