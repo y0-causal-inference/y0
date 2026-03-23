@@ -217,7 +217,7 @@ class Variable(Element):
 
         return sympy.Symbol(self.to_latex())
 
-    def to_latex(self) -> str:
+    def to_latex(self) -> str:  # noqa:C901
         """Output this variable in the LaTeX string format.
 
         :returns: The LaTeX representaton of this variable.
@@ -242,21 +242,41 @@ class Variable(Element):
         for c in reversed(self.name):
             if c.isnumeric():
                 ending_numeric += 1
+            else:  # the else makes sure that an inner number doesn't get subscripted
+                break
+
+        len_beginning = len(self.name) - ending_numeric
+
         sign = self._get_sign(latex=True)
         if not ending_numeric:
-            return self.name + sign
+            if not sign:
+                return self.name
+            elif len_beginning == 1:
+                return self.name + sign
+            else:
+                # wrap name in squiggly brackets for safety
+                return f"{{{self.name}}}{sign}"
+
+        # don't try to infer subscripts if it's
+        # not a single-character variable name
+        if len_beginning > 1:
+            if not sign:
+                return self.name
+            else:
+                # wrap name in squiggly brackets for safety
+                return f"{{{self.name}}}{sign}"
+
         beginning = self.name[:-ending_numeric]
-        # if len(beginning) > 1:
-        #     beginning = "{" + beginning + "}"
-        if "_" in beginning:
-            raise ValueError("can't make latex when underscores are in name")
         ending = self.name[-ending_numeric:]
         if len(ending) > 1:
             ending = "{" + ending + "}"
-        if self.star is None:
+
+        if not sign:
             return f"{beginning}_{ending}"
-        else:
+        elif sign:
             return f"{{{beginning}_{ending}}}{sign}"
+        else:
+            return f"{{{beginning}_{ending}}}"
 
     def to_y0(self) -> str:
         """Output this variable instance as y0 internal DSL code."""

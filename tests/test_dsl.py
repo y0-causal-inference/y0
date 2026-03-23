@@ -436,6 +436,9 @@ class TestDSL(unittest.TestCase):
         self.assertEqual("X_{12}", Variable("X12").to_latex())
         self.assertEqual("{X_1}^{+}", Variable("X1", star=True).to_latex())
         self.assertEqual("{X_{12}}^{+}", Variable("X12", star=True).to_latex())
+        # test that inner number doesn't cause a subscript
+        self.assertEqual("PI3K", Variable("PI3K").to_latex())
+        self.assertEqual("ADAM17", Variable("ADAM17").to_latex())
 
     def test_counterfactual_to_latex(self) -> None:
         """Test outputting latex for counterfactual variables."""
