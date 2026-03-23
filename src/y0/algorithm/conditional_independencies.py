@@ -3,7 +3,7 @@
 from collections.abc import Callable, Iterable, Sequence
 from functools import partial
 from itertools import combinations, groupby
-from typing import Any
+from typing import Any, Literal, TypeAlias, overload
 
 import networkx as nx
 import pandas as pd
@@ -21,6 +21,7 @@ from ..struct import (
 from ..util.combinatorics import powerset
 
 __all__ = [
+    "Policy",
     "add_ci_undirected_edges",
     "are_d_separated",
     "get_conditional_independencies",
@@ -67,6 +68,34 @@ def add_ci_undirected_edges(
     return rv
 
 
+# docstr-coverage:excused `overload`
+@overload
+def test_conditional_independencies(
+    graph: NxMixedGraph,
+    data: pd.DataFrame,
+    *,
+    method: CITest | None = ...,
+    boolean: Literal[True] = ...,
+    significance_level: float | None = ...,
+    _method_checked: bool = ...,
+    max_conditions: int | None = ...,
+) -> list[tuple[DSeparationJudgement, bool]]: ...
+
+
+# docstr-coverage:excused `overload`
+@overload
+def test_conditional_independencies(
+    graph: NxMixedGraph,
+    data: pd.DataFrame,
+    *,
+    method: CITest | None = ...,
+    boolean: Literal[False] = ...,
+    significance_level: float | None = ...,
+    _method_checked: bool = ...,
+    max_conditions: int | None = ...,
+) -> list[tuple[DSeparationJudgement, CITestTuple]]: ...
+
+
 def test_conditional_independencies(
     graph: NxMixedGraph,
     data: pd.DataFrame,
@@ -76,7 +105,7 @@ def test_conditional_independencies(
     significance_level: float | None = None,
     _method_checked: bool = False,
     max_conditions: int | None = None,
-) -> list[tuple[DSeparationJudgement, bool | CITestTuple]]:
+) -> list[tuple[DSeparationJudgement, CITestTuple]] | list[tuple[DSeparationJudgement, bool]]:
     """Gets CIs with :func:`get_conditional_independencies` then tests them against data.
 
     :param graph: An acyclic directed mixed graph
@@ -99,7 +128,7 @@ def test_conditional_independencies(
     return [
         (
             judgement,
-            judgement.test(
+            judgement.test(  # type:ignore[call-overload]
                 data,
                 boolean=boolean,
                 method=method,
@@ -111,7 +140,8 @@ def test_conditional_independencies(
     ]
 
 
-Policy = Callable[[DSeparationJudgement], Any]
+#: A policy for reducing conditional independencies
+Policy: TypeAlias = Callable[[DSeparationJudgement], Any]
 
 
 def get_conditional_independencies(
@@ -119,7 +149,8 @@ def get_conditional_independencies(
     *,
     policy: Policy | None = None,
     max_conditions: int | None = None,
-    **kwargs: Any,
+    return_all: bool | None = False,
+    verbose: bool = False,
 ) -> set[DSeparationJudgement]:
     """Get the conditional independencies from the given ADMG.
 
@@ -130,7 +161,9 @@ def get_conditional_independencies(
     :param policy: Retention policy when more than one conditional independency option
         exists (see minimal for details)
     :param max_conditions: Longest set of conditions to investigate
-    :param kwargs: Other keyword arguments are passed to :func:`d_separations`
+    :param return_all: If false (default) only returns the first d-separation per
+        left/right pair.
+    :param verbose: Should a progress bar be shown?
 
     :returns: A set of conditional dependencies
 
@@ -141,7 +174,7 @@ def get_conditional_independencies(
     if policy is None:
         policy = get_topological_policy(graph)
     return minimal(
-        d_separations(graph, max_conditions=max_conditions, **kwargs),
+        d_separations(graph, max_conditions=max_conditions, return_all=return_all, verbose=verbose),
         policy=policy,
     )
 
@@ -281,7 +314,7 @@ def d_separations(
         left/right pair.
     :param verbose: If true, prints extra output with tqdm
 
-    :yields: True d-separation judgements
+    :yields: True d-separation judgments
     """
     vertices = set(graph.nodes())
     for a, b in tqdm(
