@@ -245,6 +245,7 @@ def _order_condition_candidates(
     b_distances = nx.single_source_shortest_path_length(evidence_graph, b)
 
     def key(node: Variable) -> tuple[float, float, float, str]:
+        """Rank condition candidates by closeness to the queried pair."""
         a_distance = a_distances.get(node, float("inf"))
         b_distance = b_distances.get(node, float("inf"))
         return (a_distance + b_distance, min(a_distance, b_distance), a_distance, str(node))
