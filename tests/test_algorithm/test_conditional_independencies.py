@@ -297,17 +297,20 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         def legacy_judgement_grouper(
             judgement: DSeparationJudgement,
         ) -> tuple[Variable, Variable]:
+            """Group legacy judgements by queried pair."""
             return judgement.left, judgement.right
 
         def legacy_topological_policy(
             judgement: DSeparationJudgement, order: list[Variable]
         ) -> tuple[int, int]:
+            """Apply the legacy topological tie-breaker."""
             return (
                 len(judgement.conditions),
                 sum(order.index(v) for v in judgement.conditions),
             )
 
         def legacy_get_topological_policy(graph: NxMixedGraph):
+            """Build the legacy topological policy for the given graph."""
             order = list(graph.topological_sort())
             return partial(legacy_topological_policy, order=order)
 
@@ -315,6 +318,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             judgements: Iterable[DSeparationJudgement],
             graph: NxMixedGraph,
         ) -> set[DSeparationJudgement]:
+            """Reproduce the legacy minimal-judgement reduction."""
             policy = legacy_get_topological_policy(graph)
             judgements = sorted(judgements, key=legacy_judgement_grouper)
             return {
@@ -327,6 +331,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             *,
             max_conditions: int | None = None,
         ) -> Iterable[DSeparationJudgement]:
+            """Reproduce the legacy exhaustive separator search."""
             vertices = set(graph.nodes())
             for a, b in combinations(vertices, 2):
                 for conditions in powerset(vertices - {a, b}, stop=max_conditions):
@@ -340,12 +345,14 @@ class TestGetConditionalIndependencies(unittest.TestCase):
             *,
             max_conditions: int | None = None,
         ) -> set[DSeparationJudgement]:
+            """Reproduce legacy conditional independencies for regression comparison."""
             return legacy_minimal(
                 legacy_d_separations(graph, max_conditions=max_conditions),
                 graph,
             )
 
         def build_separator_search_graph(width: int = 4, depth: int = 3) -> NxMixedGraph:
+            """Build a small dense layered graph that stresses separator search."""
             directed = []
             layers = []
             for layer_index in range(depth):
@@ -360,6 +367,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         def build_ci_throughput_graph(
             components: int = 4, chain_length: int = 4
         ) -> NxMixedGraph:
+            """Build disconnected chains that yield many implied independencies."""
             directed = []
             for component_index in range(components):
                 prefix = f"C{component_index}"
