@@ -1,4 +1,4 @@
-"""Tests for the line 23 fix in the cyclic ID algorithm.
+"""Tests for the identification of district variables for different branch cases.
 
 This module tests:
 1. identify_district_variables_cyclic()
