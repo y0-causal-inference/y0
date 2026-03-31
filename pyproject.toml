@@ -240,9 +240,7 @@ ignore = [
 # Ignore commented out code in Sphinx configuration file
 "docs/source/conf.py" = ["ERA001"]
 # Prints are okay in notebooks
-"notebooks/**/*.ipynb" = ["T201", "S101", "N811", "N802", "N803", "C401", "C408", "B905", "RUF001"]
-# Prints are okay in utility scripts under notebooks/
-"notebooks/*.py" = ["T201"]
+"notebooks/**/*.ipynb" = ["T201", "S101", "N811", "N802", "N803"]
 "src/y0/algorithm/separation/sigma_separation.py" = ["RUF002", "RUF003"]
 "src/y0/algorithm/separation/__init__.py" = ["RUF002", "RUF003"]
 
