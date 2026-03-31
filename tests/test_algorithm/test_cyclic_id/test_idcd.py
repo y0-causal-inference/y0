@@ -339,13 +339,7 @@ class TestIDCDFunction(cases.GraphTestCase):
             district=district,
         )
 
-        # print(f"RESULT TYPE: {type(result)}")
-        # print(f"RESULT: {result}")
-        # print(f"RESULT LATEX: {result.to_latex()}")
-
-        # self.assertIsNotNone(result)
-
-        # # this is the final expected result which should be: (P(Y | W, X, Z)) / (Sum_Y P(Y | W, X, Z))
+        # this is the final expected result which should be: (P(Y | W, X, Z)) / (Sum_Y P(Y | W, X, Z))
         expected = P(R, W, X, Y, Z) / P(R, W, X, Z)
 
         self.assert_expr_equal(expected, result)
@@ -454,49 +448,6 @@ class TestComputeSCCDistributions(cases.GraphTestCase):
         )
 
         self.assertEqual(expected, result)
-
-    # def test_intervention_set_calculation(self) -> None:
-    #     """Test that intervention sets are calculated correctly for SCCs."""
-    #     graph = NxMixedGraph.from_edges(
-    #         directed=[
-    #             (R, X),
-    #             (X, Y),
-    #             (Y, Z),
-    #         ]
-    #     )
-
-    #     # subgraph induced by ancestral closure {Y, Z}
-    #     subgraph_a = graph.subgraph({Y, Z})
-
-    #     # one SCC
-    #     relevant_sccs = [frozenset({Z})]
-    #     ancestral_closure = {Y, Z}
-
-    #     # ancestral closure is {Y, Z}
-    #     # So intervention_set should be nodes - ancestral_closure = {R, X, Y, Z} - {Y, Z} = {R, X}
-
-    #     # added for documentation - the original_distribution = P(R, X, Y, Z)
-
-    #     # intervention set: nodes outside ancestral closure
-    #     nodes = set(graph.nodes())
-    #     intervention_set = nodes - ancestral_closure  # should be {R, X}
-
-    #     # expected output should be P(Z | Y, R, X) or Z conditioned on Y (its predecessor in apt-order), normalized
-    #     conditional_prob = P(Z | Y)
-    #     normalization = Sum[Z](P(Z | Y))  # type:ignore[misc]
-    #     # result = ((P(Z | Y)) / (Sum_Z P(Z | Y)))
-    #     expected_expression = conditional_prob / normalization
-    #     expected = {frozenset({Z}): P(R, X, Y, Z) / P(R, X, Y)}
-
-    #     result = compute_scc_distributions(
-    #         graph=graph,
-    #         subgraph_a=subgraph_a,
-    #         relevant_sccs=relevant_sccs,
-    #         ancestral_closure=ancestral_closure,
-    #         intervention_set=intervention_set,
-    #     )
-
-    #     self.assertEqual(expected, result)
 
     def test_intervention_set_calculation(self) -> None:
         """Test that intervention sets are calculated correctly for SCCs."""
