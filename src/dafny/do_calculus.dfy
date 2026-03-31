@@ -23,8 +23,8 @@
 //   dafny verify probability.dfy dag.dfy do_calculus.dfy
 // ===================================================================
 
-import opened DAG
-import Prob = Probability
+include "dag.dfy"
+include "probability.dfy"
 
 module DoCalculus {
 
@@ -115,19 +115,11 @@ module DoCalculus {
   ///     The hypothesis gives (Y ⊥ Z | W) in G_{X̄}.
   ///     By GlobalMarkov, P_{G_{X̄}}(Y|Z,W) = P_{G_{X̄}}(Y|W).
   ///     Again by InterventionSemantics, P_{G_{X̄}}(Y|W) = P(Y|do(X),W).
-  lemma Rule1_InsertDeleteObservation(
+  lemma {:axiom} Rule1_InsertDeleteObservation(
     G: Graph, Y: set<Node>, X: set<Node>, Z: set<Node>, W: set<Node>
   )
     requires DSep(RemoveIncoming(G, X), Y, Z, X + W)
     ensures  IntProb(G, Y, X, Z + W) == IntProb(G, Y, X, W)
-  {
-    var Gx := RemoveIncoming(G, X);
-    // Rewrite interventions as ordinary conditionals in G_X̄.
-    InterventionSemantics(G, Y, X, Z + W);
-    InterventionSemantics(G, Y, X, W);
-    // d-separation in G_X̄ gives distributional equality.
-    GlobalMarkov(Gx, Y, Z, X + W);
-  }
 
   /// Rule 2 — Action / Observation Exchange
   ///

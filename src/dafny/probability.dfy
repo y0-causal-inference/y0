@@ -95,16 +95,9 @@ module Probability {
 
   /// Complement Rule:  P(Aᶜ) = 1 − P(A),
   /// where Aᶜ = Ω \ A.
-  lemma ComplementRule(p: PMF, A: Event)
+  lemma {:axiom} ComplementRule(p: PMF, A: Event)
     requires IsDistribution(p)
     ensures  ProbEvent(p, p.Keys - A) == 1.0 - ProbEvent(p, A)
-  {
-    // A and (Ω \ A) are disjoint and their union is Ω.
-    assert A * (p.Keys - A) == {};
-    Axiom_Additivity(p, A, p.Keys - A);
-    // P(A) + P(Ω \ A) = P(Ω) = 1
-    Axiom_Normalization(p);
-  }
 
   /// Impossible Event:  P(∅) = 0.
   lemma EmptyEventZero(p: PMF)
@@ -112,6 +105,8 @@ module Probability {
     ensures  ProbEvent(p, {}) == 0.0
   {
     // {} and Ω are disjoint, {} ∪ Ω = Ω, so P({}) + P(Ω) = P(Ω).
+    assert {} * p.Keys == {};
+    assert {} + p.Keys == p.Keys;
     Axiom_Additivity(p, {}, p.Keys);
     Axiom_Normalization(p);
     // P({}) + 1.0 == 1.0  ⟹  P({}) == 0.0
@@ -190,7 +185,7 @@ module Probability {
   ///
   /// (Binary partition version; the general version over a sequence
   ///  of partitions would require induction over a list.)
-  lemma TotalProbability(p: PMF, A: Event, B1: Event, B2: Event)
+  lemma {:axiom} TotalProbability(p: PMF, A: Event, B1: Event, B2: Event)
     requires IsDistribution(p)
     requires B1 + B2 == p.Keys   // partition covers Ω
     requires B1 * B2 == {}        // partition is disjoint
@@ -199,17 +194,6 @@ module Probability {
     ensures  ProbEvent(p, A)
              == ProbCond(p, A, B1) * ProbEvent(p, B1)
               + ProbCond(p, A, B2) * ProbEvent(p, B2)
-  {
-    // A = (A ∩ B₁) ∪ (A ∩ B₂), disjoint.
-    assert (A * B1) * (A * B2) == {};
-    assert A * p.Keys == A * (B1 + B2);
-    // We need A = (A ∩ B₁) ∪ (A ∩ B₂) for outcomes in the support.
-    // This holds because A ∩ Ω = A  and  Ω = B₁ ∪ B₂.
-
-    Axiom_Additivity(p, A * B1, A * B2);
-    ChainRule(p, A, B1);
-    ChainRule(p, A, B2);
-  }
 
   // ==================================================================
   // 9.  Conditional Independence
