@@ -242,6 +242,7 @@ intersphinx_mapping = {
     "ananke": ("https://ananke.readthedocs.io/en/latest", None),
     "pgmpy": ("https://pgmpy.org/", None),
     "sklearn": ("https://scikit-learn.org/stable", None),
+    "pandas": ("https://pandas.pydata.org/docs", None),
     "numpy": ("https://numpy.org/doc/stable", None),
     "scipy": ("https://docs.scipy.org/doc/scipy", None),
 }
