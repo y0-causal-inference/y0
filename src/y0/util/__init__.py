@@ -13,4 +13,4 @@ class InPaperAs:
         self.value = value
 
     def __repr__(self) -> str:
-        return f"InPaperAs({self.value!r})"
+        return f'InPaperAs("{self.value}")'
