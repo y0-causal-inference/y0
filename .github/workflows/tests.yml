@@ -6,13 +6,13 @@ name: Tests
 
 # by default, give the GITHUB_TOKEN no permissions
 # See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token
-permissions: { }
+permissions: {}
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   lint:
@@ -25,12 +25,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.14", "3.11" ]
-        tox-command: [ "lint", "pyroma", "mypy" ]
+        python-version: ["3.14", "3.11"]
+        tox-command: ["lint", "pyroma", "mypy"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: "Install uv"
-        uses: "astral-sh/setup-uv@v3"
+        uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
         with:
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
@@ -54,11 +54,11 @@ jobs:
         # We only test documentation on the latest version
         # sphinx 8.0 / sphinx-rtd-theme 3.0 discontinued Python 3.9 support
         # a year early, which prompted re-thinking about this.
-        python-version: [ "3.14" ]
+        python-version: ["3.14"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: "Install uv"
-        uses: "astral-sh/setup-uv@v3"
+        uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
         with:
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
@@ -74,11 +74,14 @@ jobs:
       - name: Lint documentation
         run: uvx -p ${{ matrix.python-version }} --with tox-uv tox -e docs-lint
       - name: Check docstring coverage
-        run: uvx -p ${{ matrix.python-version }} --with tox-uv tox -e docstr-coverage
+        run:
+          uvx -p ${{ matrix.python-version }} --with tox-uv tox -e
+          docstr-coverage
       - name: Check documentation build with Sphinx
         run: uvx -p ${{ matrix.python-version }} --with tox-uv tox -e docs-test
       - name: Lint markdown
-        run: uvx -p ${{ matrix.python-version }} --with tox-uv tox -e lint-markdown
+        run:
+          uvx -p ${{ matrix.python-version }} --with tox-uv tox -e lint-markdown
 
   tests:
     name: Tests
@@ -87,12 +90,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
-        python-version: [ "3.14", "3.11" ]
+        os: [ubuntu-latest]
+        python-version: ["3.14", "3.11"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: "Install uv"
-        uses: "astral-sh/setup-uv@v3"
+        uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
         with:
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
@@ -106,16 +109,13 @@ jobs:
         run: |
           sudo apt-get install graphviz libgraphviz-dev
       - name: Test with pytest and generate coverage file
-        run:
-          uvx -p ${{ matrix.python-version }} --with tox-uv tox -e py
+        run: uvx -p ${{ matrix.python-version }} --with tox-uv tox -e py
       - name: Run doctests
-        run:
-          uvx -p ${{ matrix.python-version }} --with tox-uv tox -e doctests
+        run: uvx -p ${{ matrix.python-version }} --with tox-uv tox -e doctests
       - name: Run notebook tests
-        run:
-          uvx -p ${{ matrix.python-version }} --with tox-uv tox -e treon
+        run: uvx -p ${{ matrix.python-version }} --with tox-uv tox -e treon
       - name: Upload coverage report to codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         if: success()
         with:
           file: coverage.xml

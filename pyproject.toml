@@ -56,10 +56,10 @@ license-files = [
 
 requires-python = ">=3.11"
 dependencies = [
-    "more_itertools", # missing from itertools in stdlib
+    "more-itertools", # missing from itertools in stdlib
     "tqdm", # progress bars
     "click",
-    "more_click",
+    "more-click",
     "pyparsing",
     "networkx",
     "tabulate",

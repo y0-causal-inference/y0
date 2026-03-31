@@ -188,7 +188,7 @@ napkin = NxMixedGraph.from_edges(
 
 
 def generate_napkin_data(
-    num_samples: int, treatments: dict[Variable, float] | None = None, *, seed: int | None = None
+    num_samples: int, *, treatments: dict[Variable, float] | None = None, seed: int | None = None
 ) -> pd.DataFrame:
     """Generate testing data for the napkin graph.
 
@@ -1481,36 +1481,40 @@ p_ipw_graph = NxMixedGraph.from_str_edges(
 )
 
 
-def _generate_p_ipw(size: int, interventions: dict[Variable, float] | None = None) -> pd.DataFrame:
-    if interventions is not None:
+def _generate_p_ipw(
+    num_samples: int, *, treatments: dict[Variable, float] | None = None, seed: int | None = None
+) -> pd.DataFrame:
+    if treatments is not None:
         raise NotImplementedError
-    u1 = np.random.binomial(1, 0.4, size)
-    u2 = np.random.uniform(0, 1.5, size)
-    u3 = np.random.binomial(1, 0.6, size)
-    u4 = np.random.uniform(-1, 0.2, size)
-    u5 = np.random.binomial(1, 0.3, size)
-    u6 = np.random.uniform(0.5, 1.5, size)
+    if seed is not None:
+        raise NotImplementedError
+    u1 = np.random.binomial(1, 0.4, num_samples)
+    u2 = np.random.uniform(0, 1.5, num_samples)
+    u3 = np.random.binomial(1, 0.6, num_samples)
+    u4 = np.random.uniform(-1, 0.2, num_samples)
+    u5 = np.random.binomial(1, 0.3, num_samples)
+    u6 = np.random.uniform(0.5, 1.5, num_samples)
 
     p_z1 = expit(0.4 - u1 + u2)
-    z1 = np.random.binomial(1, p_z1, size)
+    z1 = np.random.binomial(1, p_z1, num_samples)
 
     p_c1 = expit(-0.1 + u1 - u2)  # + 0.5*Z1)
-    c1 = np.random.binomial(1, p_c1, size)
+    c1 = np.random.binomial(1, p_c1, num_samples)
 
-    c2 = 1 + u3 - u4 + np.random.normal(0, 1, size)
+    c2 = 1 + u3 - u4 + np.random.normal(0, 1, num_samples)
 
-    z2 = -0.5 + u3 - u4 + np.random.normal(0, 1, size)
+    z2 = -0.5 + u3 - u4 + np.random.normal(0, 1, num_samples)
 
     p_t = expit(0.5 + 0.5 * c1 - 0.4 * c2 - 0.4 * u5 + 0.4 * u6)
-    t = np.random.binomial(1, p_t, size)
+    t = np.random.binomial(1, p_t, num_samples)
 
     p_m = expit(-0.3 + 1.5 * t - 0.3 * c2)
-    m = np.random.binomial(1, p_m, size)
+    m = np.random.binomial(1, p_m, num_samples)
 
     p_l = expit(0.75 - 0.8 * m - 0.4 * c1 - 0.3 * c2 - 0.4 * u5 + 0.5 * u6)
-    l_values = np.random.binomial(1, p_l, size)
+    l_values = np.random.binomial(1, p_l, num_samples)
 
-    y_values = 1 + 1 * l_values + c2 + np.random.normal(0, 1, size)
+    y_values = 1 + 1 * l_values + c2 + np.random.normal(0, 1, num_samples)
 
     return pd.DataFrame(
         {"C1": c1, "C2": c2, "Z1": z1, "Z2": z2, "T": t, "M": m, "L": l_values, "Y": y_values}

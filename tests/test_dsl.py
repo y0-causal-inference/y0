@@ -427,6 +427,32 @@ class TestDSL(unittest.TestCase):
             with self.subTest(expression=str(expression)):
                 self.assertEqual(variables, expression.get_variables())
 
+    def test_to_latex(self) -> None:
+        """Test outputting latex."""
+        self.assertEqual("X", Variable("X").to_latex())
+        self.assertEqual("X^{+}", Variable("X", star=True).to_latex())
+        self.assertEqual("X^{-}", Variable("X", star=False).to_latex())
+        self.assertEqual("X_1", Variable("X1").to_latex())
+        self.assertEqual("X_{12}", Variable("X12").to_latex())
+        self.assertEqual("{X_1}^{+}", Variable("X1", star=True).to_latex())
+        self.assertEqual("{X_{12}}^{+}", Variable("X12", star=True).to_latex())
+        # test that inner number doesn't cause a subscript
+        self.assertEqual("PI3K", Variable("PI3K").to_latex())
+        self.assertEqual("ADAM17", Variable("ADAM17").to_latex())
+
+    def test_counterfactual_to_latex(self) -> None:
+        """Test outputting latex for counterfactual variables."""
+        self.assertEqual("X_{Y^{-}}", (Variable("X") @ Variable("Y")).to_latex())
+        self.assertEqual("{X_1}_{Y^{-}}", (Variable("X1") @ Variable("Y")).to_latex())
+        self.assertEqual("{X_{12}}_{Y^{-}}", (Variable("X12") @ Variable("Y")).to_latex())
+        self.assertEqual("X^{+}_{Y^{-}}", (+Variable("X") @ Variable("Y")).to_latex())
+        self.assertEqual("{{X_1}^{+}}_{Y^{-}}", (+Variable("X1") @ Variable("Y")).to_latex())
+        self.assertEqual("{{X_{12}}^{+}}_{Y^{-}}", (+Variable("X12") @ Variable("Y")).to_latex())
+        self.assertEqual(
+            "{{X_{12}}^{+}}_{Y^{-}, Z^{-}}",
+            (+Variable("X12") @ Variable("Y") @ Variable("Z")).to_latex(),
+        )
+
 
 class TestCounterfactual(unittest.TestCase):
     """Tests for counterfactuals."""

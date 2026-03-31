@@ -13,6 +13,7 @@ from itertools import chain, combinations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     cast,
 )
 
@@ -313,6 +314,23 @@ class NxMixedGraph:
         for u, v in iter_moral_links(self):
             rv.add_undirected_edge(u, v)
         return rv
+
+    def to_mermaid_block(self) -> str:
+        """Get a mermaid codeblock that can be used in Markdown."""
+        return f"```mermaid\n{self.to_mermaid_str()}\n```"
+
+    def to_mermaid_str(self, layout: Literal["LR", "TB"] = "LR") -> str:
+        """Create a mermaid graph string."""
+        rv = f"graph {layout}\n"
+        node_to_id = {node: i for i, node in enumerate(self.nodes(), start=1)}
+        for node in self.nodes():
+            rv += f"  {node_to_id[node]}([$${node.to_latex()}$$])\n"
+            # rv += f"  {node_to_id[node]}[{node.to_text()}]\n"
+        for left, right in self.directed.edges():
+            rv += f"  {node_to_id[left]} --> {node_to_id[right]}\n"
+        for left, right in self.undirected.edges():
+            rv += f"  {node_to_id[left]} -.- {node_to_id[right]}\n"
+        return rv.rstrip()
 
     def _layout(self, prog: str) -> LayoutDict:
         joint = self.joint()
