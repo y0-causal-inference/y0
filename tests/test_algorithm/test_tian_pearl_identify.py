@@ -798,8 +798,8 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
         self.assertRaises(
             KeyError,
             compute_q_value_of_variables_with_low_topological_ordering_indices,
-            vertex={R},
-            graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
+            node={R},
+            expression=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             ordering=ordering,
         )
 

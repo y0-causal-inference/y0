@@ -101,7 +101,7 @@ def _any_variables_with_inconsistent_values(
     # Part 1 of Line 2:
     # :math: **if** there exists $Y_{\mathbf{x}}\in \mathbf{Y}_\ast$ with
     # two or more different values in  $\mathbf{y_\ast}$ **then return** 0.
-    # Note this definition has to do with counterfactual values, and is different than
+    # Note this definition has to do with counterfactual values, and is different from
     # the "inconsistent counterfactual factor" definition in Definition 4.1 of [correa22a]_.
     if any(
         len(value_set) > 1 and None in value_set
@@ -202,7 +202,7 @@ def _split_event_by_reflexivity(event: Event) -> tuple[Event, Event]:
         objects, and the values as Intervention objects.
 
     :returns: Two events, one containing variables in :math: $Y_{\mathbf{x}} \in
-        \mathbf{Y}_\ast$} and one containing variables in :math: $Y_{y} \in
+        \mathbf{Y}_\ast$ and one containing variables in :math: $Y_{y} \in
         \mathbf{Y}_\ast$. Note that only if minimization has already taken place (which
         is the case here), variables that are not counterfactual variables are
         considered the equivalent of :math: $Y_{\mathbf{y} \in \mathbf{Y}_\ast$ and fall
@@ -677,8 +677,8 @@ def do_counterfactual_factor_factorization(
 
         :math:Sum_{ \mathbf d_* \backslash \mathbf y_*} P*( \mathbf d_* ), where
         :math:\mathbf D_* = An( \mathbf Y_* ), and where P*( \mathbf d_* ) has been
-        further decomposed as per :math: P*( \mathbf d_* ) = prod_{j}(P*( \mathbf
-        c_{j*}) (Equation 15).
+        further decomposed as per $P*(\mathbf d_*) = prod_{j}(P*(\mathbf c_{j*})$
+        (Equation 15).
 
     :raises TypeError: do_counterfactual_factorization() requires at least one variable
         in the query variable set.
