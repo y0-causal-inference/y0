@@ -41,6 +41,7 @@ from y0.algorithm.counterfactual_transport.api import (
     _event_from_counterfactuals,
     _event_from_counterfactuals_strict,
     _initialize_conditional_transportability_data_structures,
+    _is_valid_ordering,
     _no_intervention_variables_in_domain,
     _no_transportability_nodes_in_domain,
     _reduce_reflexive_counterfactual_variables_to_interventions,
@@ -50,7 +51,6 @@ from y0.algorithm.counterfactual_transport.api import (
     _transport_conditional_counterfactual_query_line_2,
     _transport_conditional_counterfactual_query_line_4,
     _transport_unconditional_counterfactual_query_line_2,
-    _valid_topo_list,
     _validate_transport_conditional_counterfactual_query_input,
     _validate_transport_conditional_counterfactual_query_line_4_output,
     _validate_transport_unconditional_counterfactual_query_input,
@@ -5155,10 +5155,10 @@ class TestTransportConditionalCounterfactualQueryUtils(cases.GraphTestCase):
             ],
         )
         topo = list(graph.topological_sort())
-        self.assertTrue(_valid_topo_list([X1, X2, Z, W, Y], graph))
-        self.assertTrue(_valid_topo_list(topo, graph))
-        self.assertFalse(_valid_topo_list([X1, Z, X2, W, Y], graph))
-        self.assertTrue(_valid_topo_list([X2, W, X1, Z, Y], graph))
+        self.assertTrue(_is_valid_ordering([X1, X2, Z, W, Y], graph))
+        self.assertTrue(_is_valid_ordering(topo, graph))
+        self.assertFalse(_is_valid_ordering([X1, Z, X2, W, Y], graph))
+        self.assertTrue(_is_valid_ordering([X2, W, X1, Z, Y], graph))
 
 
 class TestTransportUnconditionalCounterfactualQueryPreprocessing(cases.GraphTestCase):

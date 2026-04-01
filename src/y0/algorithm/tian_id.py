@@ -10,7 +10,7 @@
 """
 
 import logging
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 
 from y0.dsl import (
     Distribution,
@@ -40,11 +40,11 @@ logger = logging.getLogger(__name__)
 
 def identify_district_variables(  # noqa:C901
     *,
-    input_variables: frozenset[Variable],
-    input_district: frozenset[Variable],
+    input_variables: set[Variable],
+    input_district: set[Variable],
     district_probability: Expression,
     graph: NxMixedGraph,
-    topo: list[Variable],
+    ordering: Sequence[Variable],
 ) -> Expression | None:
     """Implement the IDENTIFY algorithm as presented in [tian03a]_ with pseudocode in [correa22a]_ (Algorithm 5).
 
@@ -60,7 +60,7 @@ def identify_district_variables(  # noqa:C901
         the variables in T, under an intervention that sets all other variables to
         constants" (see Equation 36 of [tian03a]_).
     :param graph: The relevant graph.
-    :param topo: A list of variables in topological order that includes all variables in
+    :param ordering: A list of variables in topological order that includes all variables in
         the graph and may contain more.
 
     :returns: An expression for $Q[C]$ in terms of $Q$, or Fail.
@@ -73,12 +73,12 @@ def identify_district_variables(  # noqa:C901
     :raises NotImplementedError: If we get to the end of the conditional, which still
         needs an "else"
     """
-    if not input_variables.intersection(input_district) == input_variables:
+    if input_variables.intersection(input_district) != input_variables:
         # if not all(v in input_district for v in input_variables):
         raise KeyError(
             "In identify_district_variables: at least one of the input variables C is not in the input district T."
         )
-    if not input_district.intersection(set(topo)) == input_district:
+    if input_district.intersection(ordering) != input_district:
         raise KeyError(
             "In identify_district_variables: at least one input district variable is not in the "
             "topologically sorted variable list."
@@ -98,12 +98,12 @@ def identify_district_variables(  # noqa:C901
         )
 
     # A = Ancestors of C in $G_{T}$
-    ancestral_set = frozenset(district_subgraph.ancestors_inclusive(input_variables))
+    ancestral_set = district_subgraph.ancestors_inclusive(input_variables)
 
     # Next, Tikka has an additional line intersecting the ancestral set with the set T in case any C was not in T,
     # but we raise an error in that case as a pre-processing step, so we omit that line.
 
-    ordered_ancestral_set = [a for a in topo if a in ancestral_set]
+    ordered_ancestral_set = [a for a in ordering if a in ancestral_set]
     if ancestral_set == input_variables:
         logger.debug("In identify_district_variables: A = C. Applying Lemma 3.")
         logger.debug("   Subgraph_probability = " + district_probability.to_latex())
@@ -111,7 +111,7 @@ def identify_district_variables(  # noqa:C901
             ancestral_set=ancestral_set,
             subgraph_variables=input_district,
             subgraph_probability=district_probability,
-            graph_topo=topo,
+            ordering=ordering,
         )
         logger.debug("   Returning Q value: " + rv.to_latex())
     elif ancestral_set == input_district:
@@ -122,11 +122,14 @@ def identify_district_variables(  # noqa:C901
     elif input_variables.issubset(ancestral_set) and ancestral_set.issubset(input_district):
         ancestral_set_subgraph = graph.subgraph(ordered_ancestral_set)
         ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
-        targeted_ancestral_set_subgraph_district = ancestral_set_subgraph_districts[
-            [
-                input_variables.issubset(district) for district in ancestral_set_subgraph_districts
-            ].index(True)
-        ]
+        targeted_ancestral_set_subgraph_district = set(
+            ancestral_set_subgraph_districts[
+                [
+                    input_variables.issubset(district)
+                    for district in ancestral_set_subgraph_districts
+                ].index(True)
+            ]
+        )
         # t_prime = [district for district in ancestral_set_subgraph_districts if
         #             input_variables.intersect(district)==input_variables][0]
         # ordered_t_prime_vertices = [v for v in topo if v in t_prime]
@@ -136,7 +139,7 @@ def identify_district_variables(  # noqa:C901
                 ancestral_set=ancestral_set,
                 subgraph_variables=input_district,
                 subgraph_probability=district_probability,  # Q[T]
-                graph_topo=topo,
+                ordering=ordering,
             )
         elif isinstance(district_probability, Probability):
             logger.debug(
@@ -174,7 +177,7 @@ def identify_district_variables(  # noqa:C901
             district=targeted_ancestral_set_subgraph_district,
             subgraph_variables=ancestral_set,
             subgraph_probability=ancestral_set_probability,
-            graph_topo=topo,
+            ordering=ordering,
         )
         logger.debug(
             "In identify_district_variables: about to recursively call identify_district_variables."
@@ -183,13 +186,13 @@ def identify_district_variables(  # noqa:C901
         logger.debug("    T' = " + str(targeted_ancestral_set_subgraph_district))
         logger.debug("    Q[T'] =" + str(targeted_ancestral_set_subgraph_district_probability))
         logger.debug("    graph nodes = " + str(list(graph.nodes())))
-        logger.debug("    topo = " + str(topo))
+        logger.debug("    topo = " + str(ordering))
         rv = identify_district_variables(
             input_variables=input_variables,
             input_district=targeted_ancestral_set_subgraph_district,
             district_probability=targeted_ancestral_set_subgraph_district_probability,
             graph=graph,
-            topo=topo,
+            ordering=ordering,
         )
         logger.debug(
             "In identify_district_variables: returned from recursive call to identify_district_variables."
@@ -200,20 +203,11 @@ def identify_district_variables(  # noqa:C901
     return rv
 
 
-def _do_identify_district_variables_line_1(
-    input_variables: set[Variable],
-    input_district: set[Variable],
-    graph: NxMixedGraph,
-) -> set[Variable] | None:
-    """Implement line 1 of the IDENTIFY algorithm in [tian03a]_ and [correa22a]_ (Algorithm 5)."""
-    raise NotImplementedError("Unimplemented function: _do_identify_district_variables_line_1")
-
-
 def compute_c_factor_conditioning_on_topological_predecessors(
     *,
     district: Collection[Variable],
     graph_probability: Probability,
-    topo: list[Variable],
+    ordering: Sequence[Variable],
 ) -> Expression:
     r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, Equation 37.
 
@@ -222,7 +216,7 @@ def compute_c_factor_conditioning_on_topological_predecessors(
     :param district: A list of variables comprising the district for which we're
         computing a C factor.
     :param graph_probability: the Q value for the full graph.
-    :param topo: a topological sort of the vertices in the graph.
+    :param ordering: a topological sort of the vertices in the graph.
 
     :returns: An expression for Q[district].
 
@@ -241,9 +235,9 @@ def compute_c_factor_conditioning_on_topological_predecessors(
         S_{j}\}}{P(v_i}|v^{(i-1}))}$. \end{equation}
     """
     # (Topological sort is O(V+E): https://stackoverflow.com/questions/31010922/)
-    variables = set(topo)
+    variables = set(ordering)
     logger.debug(
-        "In _compute_c_factor_conditioning_on_topological_predecessors: topo = " + str(topo)
+        "In _compute_c_factor_conditioning_on_topological_predecessors: topo = " + str(ordering)
     )
     logger.debug(
         "In _compute_c_factor_conditioning_on_topological_predecessors: graph_probability = "
@@ -267,7 +261,7 @@ def compute_c_factor_conditioning_on_topological_predecessors(
         # (but not Lemma 4), we have to make sure we're also conditioning on those variables.
         graph_probability_parents = set(graph_probability.parents)
         for variable in district:
-            preceding_variables = topo[: topo.index(variable)]
+            preceding_variables = ordering[: ordering.index(variable)]
             conditioned_variables = graph_probability_parents.union(preceding_variables)  # V^(i-1)
             pp = PopulationProbability(
                 population=graph_probability.population,
@@ -291,7 +285,7 @@ def compute_c_factor_conditioning_on_topological_predecessors(
         # (but not Lemma 4), we have to make sure we're also conditioning on those variables.
         graph_probability_parents = set(graph_probability.parents)
         for variable in district:
-            preceding_variables = topo[: topo.index(variable)]
+            preceding_variables = ordering[: ordering.index(variable)]
             conditioned_variables = graph_probability_parents.union(preceding_variables)  # V^(i-1)
             probability = P(variable | conditioned_variables)  # v_i
             probabilities.append(probability)
@@ -307,7 +301,7 @@ def compute_q_value_of_variables_with_low_topological_ordering_indices(
     *,
     vertex: Variable | None,
     graph_probability: Expression,  # Q[H]
-    topo: list[Variable],
+    ordering: Sequence[Variable],
 ) -> Expression:
     r"""Compute the Q value of a set of variables according to [tian03a]_, Equation 72.
 
@@ -334,7 +328,7 @@ def compute_q_value_of_variables_with_low_topological_ordering_indices(
     :param vertex: The $i^{th}$ variable in topological order
     :param graph_probability: The probability of $H$ corresponding to $Q[H]$ in Equation
         72.
-    :param topo: a topological sorting of the subgraph under analysis, $G_{H}$.
+    :param ordering: a topological sorting of the subgraph under analysis, $G_{H}$.
 
     :returns: An expression for $Q[H^{(i)}]$.
 
@@ -344,13 +338,13 @@ def compute_q_value_of_variables_with_low_topological_ordering_indices(
     # $Q[H^{(0)}] = Q[\emptyset] = 1$
     if vertex is None:
         return One()
-    variables = set(topo)
+    variables = set(ordering)
     logger.debug(
         "In _compute_q_value_of_variables_with_low_topological_ordering_indices: input vertex is "
         + str(vertex)
     )
     logger.debug("   and variables are " + str(variables))
-    logger.debug("   and topo is " + str(topo))
+    logger.debug("   and topo is " + str(ordering))
     if vertex not in variables:
         raise KeyError(
             "In _compute_q_value_of_variables_with_low_topological_ordering_indices: input vertex "
@@ -358,12 +352,12 @@ def compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex,
         )
 
-    ranges = topo[topo.index(vertex) + 1 :]
+    ranges = ordering[ordering.index(vertex) + 1 :]
     return Sum.safe(graph_probability, ranges)
 
 
 def compute_c_factor_marginalizing_over_topological_successors(
-    *, district: Collection[Variable], graph_probability: Expression, topo: list[Variable]
+    *, district: Collection[Variable], graph_probability: Expression, ordering: Sequence[Variable]
 ) -> Expression:
     r"""Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_, eqns. 71 and 72.
 
@@ -374,7 +368,7 @@ def compute_c_factor_marginalizing_over_topological_successors(
         computing a C factor.
     :param graph_probability: The expression $Q$ corresponding to the set of variables
         in $v$. It is $Q[A]$ on the line calling Lemma 4 in [tian03a]_, Figure 7.
-    :param topo: a topological ordering of the vertices in the subgraph $G_{H}$ in
+    :param ordering: a topological ordering of the vertices in the subgraph $G_{H}$ in
         question.
 
     :returns: An expression for Q[district].
@@ -400,23 +394,20 @@ def compute_c_factor_marginalizing_over_topological_successors(
 
     def _get_expression_from_index(index: int) -> Expression:  # Compute $Q[H^{i}]$ given i
         current_index_expr = compute_q_value_of_variables_with_low_topological_ordering_indices(
-            vertex=topo[index], graph_probability=graph_probability, topo=topo
+            vertex=ordering[index], graph_probability=graph_probability, ordering=ordering
         )
         if index == 0:
             return current_index_expr
         previous_index_expr = compute_q_value_of_variables_with_low_topological_ordering_indices(
-            vertex=topo[index - 1], graph_probability=graph_probability, topo=topo
+            vertex=ordering[index - 1], graph_probability=graph_probability, ordering=ordering
         )
-        rv = Fraction(current_index_expr, previous_index_expr)
-        return rv
+        return Fraction(current_index_expr, previous_index_expr)
 
     expressions = []
-    for _, vertex in enumerate(district):
-        logger.debug("In Lemma 4(ii): vertex = " + str(vertex))
-        index = topo.index(vertex)
+    for vertex in district:
+        index = ordering.index(vertex)
         expression = _get_expression_from_index(index)
         expressions.append(expression)
-        logger.debug("\nIndex = %d, Q[H^(i)] = %s", index, expression)
 
     rv = Product.safe(expressions)
     # TODO: We can simplify this product by cancelling terms in the numerator and denominator.
@@ -429,7 +420,7 @@ def compute_c_factor(
     district: Collection[Variable],
     subgraph_variables: Collection[Variable],
     subgraph_probability: Expression,
-    graph_topo: list[Variable],
+    ordering: Sequence[Variable],
 ) -> Expression:
     """Compute the Q value associated with the C-component (district) in a graph as per [tian03a]_ and [tikka20a]_.
 
@@ -442,7 +433,7 @@ def compute_c_factor(
     :param subgraph_probability: The expression Q corresponding to the set of variables
         in T. As an example, this quantity would be Q[A] on the line calling Lemma 4 in
         [tian03a]_, Figure 7.
-    :param graph_topo: A list of variables in topological order that includes all
+    :param ordering: A list of variables in topological order that includes all
         variables in G, where T is contained in G.
 
     :returns: An expression for Q[district].
@@ -454,37 +445,30 @@ def compute_c_factor(
     # We take in the topological ordering of G to make testing easier, as there could be multiple ways to
     # sort the vertices in H topologically. It is also faster as topological sort is O(V+E) and getting
     # subgraph_topo below is O(V).
-    subgraph_topo = [v for v in graph_topo if v in subgraph_variables]
-    logger.debug("In _compute_c_factor: graph_topo = " + str(graph_topo))
-    logger.debug("In _compute_c_factor: subgraph_topo = " + str(subgraph_topo))
+    subgraph_ordering = [v for v in ordering if v in subgraph_variables]
+
     if isinstance(subgraph_probability, Fraction | Product | Sum):
-        logger.debug(
-            "In _compute_c_factor: calling _compute_c_factor_marginalizing_over_topological_successors"
-        )
         # Lemma 4
-        rv = compute_c_factor_marginalizing_over_topological_successors(
-            district=district, graph_probability=subgraph_probability, topo=subgraph_topo
+        return compute_c_factor_marginalizing_over_topological_successors(
+            district=district, graph_probability=subgraph_probability, ordering=subgraph_ordering
         )
-        logger.debug("Returning from _compute_c_factor: " + str(rv))
-        return rv
-    if not isinstance(subgraph_probability, Probability):
+    elif isinstance(subgraph_probability, Probability):
+        # Lemma 1
+        return compute_c_factor_conditioning_on_topological_predecessors(
+            district=district, graph_probability=subgraph_probability, ordering=subgraph_ordering
+        )
+    else:
         raise TypeError(
-            "In _compute_c_factor: expected the subgraph_probability "
-            + str(subgraph_probability)
-            + " to be a simple probability."
+            f"Expected fraction, product, sum, or probability. got: {subgraph_probability}"
         )
-    # Lemma 1
-    return compute_c_factor_conditioning_on_topological_predecessors(
-        district=district, graph_probability=subgraph_probability, topo=subgraph_topo
-    )
 
 
 def compute_ancestral_set_q_value(
     *,
-    ancestral_set: frozenset[Variable],  # A
-    subgraph_variables: frozenset[Variable],  # T
+    ancestral_set: set[Variable],  # A
+    subgraph_variables: set[Variable],  # T
     subgraph_probability: Expression,
-    graph_topo: list[Variable],  # topological ordering of variables in a graph containing T
+    ordering: Sequence[Variable],  # topological ordering of variables in a graph containing T
 ) -> Expression:
     r"""Compute the Q value associated with a subgraph as per Equation 69 of [tian03a]_.
 
@@ -497,7 +481,7 @@ def compute_ancestral_set_q_value(
         Equation 69, and T in Figure 7).
     :param subgraph_probability: The expression Q corresponding to Q[C] in Equation 69
         and Q[T] in Figure 7.
-    :param graph_topo: A list of variables in topological order that includes all
+    :param ordering: A list of variables in topological order that includes all
         variables in the graph (i.e., V in Equation 69 and G in Figure 7).
 
     :returns: An expression for Q[ancestral_set].
@@ -511,5 +495,5 @@ def compute_ancestral_set_q_value(
     # T\A is W', so Sum_{T\A}{Q[T]} = Q[A], corresponding to Sum_{W'}{Q[C]} = Q[W] in Equation 69
     # The next two lines are included so the summation shows the marginalization variables in topological order
     marginalization_set = subgraph_variables - ancestral_set
-    marginalization_variables = [v for v in graph_topo if v in marginalization_set]
+    marginalization_variables = [v for v in ordering if v in marginalization_set]
     return Sum.safe(subgraph_probability, marginalization_variables)

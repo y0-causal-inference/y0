@@ -169,7 +169,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset({R, X, W, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
-            topo=list(soft_interventions_figure_3_graph.topological_sort()),
+            ordering=soft_interventions_figure_3_graph.topological_sort(),
         )
         # Raises a KeyError because a variable in T is not in the topo.
         self.assertRaises(
@@ -179,7 +179,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset({R, X, W, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
-            topo=[W, X, Z, Y],
+            ordering=[W, X, Z, Y],
         )
         # Raises a TypeError because G_{X,Y,Z} has two districts and there should be at most one.
         # {X,Y} happen to be in two different districts of G_{X,Y,Z}.
@@ -190,7 +190,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset({X, Y, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
-            topo=list(soft_interventions_figure_3_graph.topological_sort()),
+            ordering=list(soft_interventions_figure_3_graph.topological_sort()),
         )
         # Raises a TypeError because the input district probability has an unrecognized format.
         test_4_identify_input_variables = {Z}  # A
@@ -203,7 +203,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset(test_4_identify_input_district),
             district_probability=[],
             graph=soft_interventions_figure_1b_graph,
-            topo=list(soft_interventions_figure_1b_graph.topological_sort()),
+            ordering=list(soft_interventions_figure_1b_graph.topological_sort()),
         )
         self.assertRaises(
             TypeError,
@@ -212,7 +212,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset(test_4_identify_input_district),
             district_probability=One(),
             graph=soft_interventions_figure_1b_graph,
-            topo=list(soft_interventions_figure_1b_graph.topological_sort()),
+            ordering=list(soft_interventions_figure_1b_graph.topological_sort()),
         )
         self.assertRaises(
             TypeError,
@@ -221,7 +221,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset(test_4_identify_input_district),
             district_probability=Zero(),
             graph=soft_interventions_figure_1b_graph,
-            topo=list(soft_interventions_figure_1b_graph.topological_sort()),
+            ordering=list(soft_interventions_figure_1b_graph.topological_sort()),
         )
 
     def test_identify_1(self):
@@ -244,7 +244,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset(test_1_identify_input_district),
             district_probability=test_1_district_probability,
             graph=soft_interventions_figure_1b_graph,
-            topo=list(soft_interventions_figure_1b_graph.topological_sort()),
+            ordering=list(soft_interventions_figure_1b_graph.topological_sort()),
         )
         logger.debug("Result of identify() call for test_identify_1 is " + result.to_latex())
         self.assert_expr_equal(result, PP[Pi1](Z | X1))
@@ -263,7 +263,7 @@ class TestIdentify(cases.GraphTestCase):
                 W, R, X, Z, Y
             ),  # This is a c-factor if the input variables comprise a c-component
             graph=soft_interventions_figure_2a_graph,
-            topo=list(soft_interventions_figure_2a_graph.topological_sort()),
+            ordering=list(soft_interventions_figure_2a_graph.topological_sort()),
         )
         logger.debug("Result of identify() call for test_identify_2 part 1 is " + str(result1))
         self.assertIsNone(result1)
@@ -272,7 +272,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset({R, X, W, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Z),
             graph=soft_interventions_figure_3_graph.subgraph({R, Z, X, W}),
-            topo=list(soft_interventions_figure_3_graph.topological_sort()),
+            ordering=list(soft_interventions_figure_3_graph.topological_sort()),
         )
         self.assertIsNone(result2)
 
@@ -290,7 +290,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset(test_3_identify_input_district),
             district_probability=test_3_district_probability,
             graph=soft_interventions_figure_2d_graph,
-            topo=list(soft_interventions_figure_2d_graph.topological_sort()),
+            ordering=list(soft_interventions_figure_2d_graph.topological_sort()),
         )
         logger.debug("Result of identify() call for test_identify_3 is " + str(result1))
         self.assertIsNone(result1)
@@ -299,7 +299,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset({R, X, W, Y, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
-            topo=list(soft_interventions_figure_3_graph.topological_sort()),
+            ordering=list(soft_interventions_figure_3_graph.topological_sort()),
         )
         logger.debug("Result of identify() call for test_identify_3 is " + str(result2))
         self.assertIsNone(result2)
@@ -346,7 +346,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset({X, Y, W1, W2, W3, W4, W5}),
             district_probability=P(W1, W2, W3, W4, W5, X, Y),
             graph=tian_pearl_figure_9a_graph,
-            topo=list(tian_pearl_figure_9a_graph.topological_sort()),
+            ordering=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
         self.assert_expr_equal(result_4, expected_result)
 
@@ -387,7 +387,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset({X, Y, W1, W2, W3, W4, W5}),
             district_probability=PP[Pi1](W1, W2, W3, W4, W5, X, Y),
             graph=tian_pearl_figure_9a_graph,
-            topo=list(tian_pearl_figure_9a_graph.topological_sort()),
+            ordering=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
         logger.debug("Result from identify_district_variables: " + result_4.to_latex())
         logger.debug("  Expected result: " + expected_result.to_latex())
@@ -423,7 +423,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             district=[Y, W1, W3, W2, X],
             subgraph_variables=[X, W4, W2, W3, W1, Y],
             subgraph_probability=P(W1, W2, W3, W4, X, Y),
-            graph_topo=list(tian_pearl_figure_9a_graph.topological_sort()),
+            ordering=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
         self.assert_expr_equal(result_1, self.expected_result_1)
 
@@ -433,7 +433,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             district=[W1, X, Y],
             subgraph_variables=[W1, W2, X, Y],
             subgraph_probability=Sum.safe(self.expected_result_1, [W3]),
-            graph_topo=list(tian_pearl_figure_9a_graph.topological_sort()),
+            ordering=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
         self.assert_expr_equal(result_2, self.expected_result_2)
 
@@ -443,7 +443,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             district=[Y],
             subgraph_variables=[X, Y],
             subgraph_probability=Sum.safe(self.expected_result_2, [W1]),
-            graph_topo=list(tian_pearl_figure_9a_graph.topological_sort()),
+            ordering=list(tian_pearl_figure_9a_graph.topological_sort()),
         )
         expected_result_3 = Fraction(
             Sum.safe(self.expected_result_2, [W1]),
@@ -456,7 +456,7 @@ class TestComputeCFactor(cases.GraphTestCase):
 
         Source: [tian03a], the example in section 4.6.
         """
-        topo = list(tian_pearl_figure_9a_graph.topological_sort())
+        ordering = list(tian_pearl_figure_9a_graph.topological_sort())
         district = [W1, W3, W2, X, Y]
         subgraph_variables = [W1, W3, W2, W4, X, Y]
         subgraph_probability = P(W1, W3, W2, W4, X, Y)
@@ -471,7 +471,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             district=district,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,
-            graph_topo=topo,
+            ordering=ordering,
         )
         self.assert_expr_equal(result_4, expected_result_4)
         # TODO: As a test, have Q condition on variables in the C factor and see what happens
@@ -488,7 +488,7 @@ class TestComputeCFactor(cases.GraphTestCase):
         part of the input Q value for the graph. Source: [tian03a], the example in
         section 4.6.
         """
-        topo = list(tian_pearl_figure_9a_graph.topological_sort())
+        ordering = list(tian_pearl_figure_9a_graph.topological_sort())
         district = [W1, W3, W2, X, Y]
         subgraph_variables = [W1, W3, W2, W4, X, Y]
         subgraph_probability = P(W1, W3, W2, W4, X, Y | W5)
@@ -503,7 +503,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             district=district,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,
-            graph_topo=topo,
+            ordering=ordering,
         )
         self.assert_expr_equal(result_5, expected_result_5)
 
@@ -514,7 +514,7 @@ class TestComputeCFactor(cases.GraphTestCase):
         part of the input Q value for the graph. Source: [tian03a], the example in
         section 4.6.
         """
-        topo = list(tian_pearl_figure_9a_graph.topological_sort())
+        ordering = list(tian_pearl_figure_9a_graph.topological_sort())
         district = [W1, W3, W2, X, Y]
         subgraph_variables = [W1, W3, W2, W4, X, Y]
         subgraph_probability = PP[Pi2](W1, W3, W2, W4, X, Y | W5)
@@ -529,7 +529,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             district=district,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,
-            graph_topo=topo,
+            ordering=ordering,
         )
         logger.debug(
             "In test_compute_c_factor_5_with_population_probabilities: expected_result = "
@@ -550,7 +550,7 @@ class TestComputeCFactor(cases.GraphTestCase):
         """
         # TODO: Discuss whether we want identify_district_variables() and _compute_c_factor()
         # to handle expressions of type One, Zero, or QFactor.
-        topo = list(tian_pearl_figure_9a_graph.topological_sort())
+        ordering = tian_pearl_figure_9a_graph.topological_sort()
         district = [W1, W3, W2, X, Y]
         subgraph_variables = [W1, W3, W2, W4, X, Y]
         subgraph_probability = One()
@@ -560,7 +560,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             district=district,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,
-            graph_topo=topo,
+            ordering=ordering,
         )
 
 
@@ -572,11 +572,11 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
 
         Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
-        topo = [W1, W3, W2, W4, X, Y]
+        ordering = [W1, W3, W2, W4, X, Y]
         part_1_graph = tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
         result_1 = compute_c_factor_conditioning_on_topological_predecessors(
             district=[Y, W1, W3, W2, X],
-            topo=topo,
+            ordering=ordering,
             graph_probability=part_1_graph.joint_probability(),
         )
         self.assert_expr_equal(
@@ -596,7 +596,7 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
             TypeError,
             compute_c_factor_conditioning_on_topological_predecessors,
             district=[],
-            topo=topo,
+            ordering=ordering,
             graph_probability=part_1_graph.joint_probability(),
         )
         # District variable not in topo set
@@ -604,7 +604,7 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
             KeyError,
             compute_c_factor_conditioning_on_topological_predecessors,
             district=[Y, W1, W3, W2, X, Z],
-            topo=topo,
+            ordering=ordering,
             graph_probability=part_1_graph.joint_probability(),
         )
 
@@ -615,10 +615,10 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
         example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
         # working with tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
-        topo = [W1, W3, W2, W4, X, Y]
+        ordering = [W1, W3, W2, W4, X, Y]
         result_1 = compute_c_factor_conditioning_on_topological_predecessors(
             district=[Y, W1, W3, W2, X],
-            topo=topo,
+            ordering=ordering,
             graph_probability=P(Y, X, W1, W2, W3, W4 | W5),
         )
         self.assert_expr_equal(
@@ -719,7 +719,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={W1, X, Y},
             graph_probability=Sum.safe(self.result_piece, [W3]),
-            topo=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
+            ordering=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
         )
         logger.debug(
             "In first test of Lemma 4(ii): expecting this result: " + str(self.expected_result_1)
@@ -738,7 +738,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1, [W1]),
-            topo=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
+            ordering=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
         )
         self.assert_expr_equal(result, self.expected_result_2)
 
@@ -750,7 +750,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={W1, X, Y},
             graph_probability=Sum.safe(self.result_piece_pp, [W3]),
-            topo=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
+            ordering=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
         )
         logger.debug(
             "In first test of Lemma 4(ii): expecting this result: "
@@ -771,7 +771,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1_pp, [W1]),
-            topo=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
+            ordering=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
         )
         logger.debug("Expected result = " + self.expected_result_2_pp.to_latex())
         self.assert_expr_equal(result, self.expected_result_2_pp)
@@ -785,11 +785,11 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
 
         Source: RJC's mind.
         """
-        topo = list(figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort())
+        ordering = figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()
         result = compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=W,
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            topo=topo,
+            ordering=ordering,
         )
         self.assert_expr_equal(
             result, Sum.safe(P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z), [Y])
@@ -800,7 +800,7 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
             compute_q_value_of_variables_with_low_topological_ordering_indices,
             vertex={R},
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            topo=topo,
+            ordering=ordering,
         )
 
     def test_compute_q_value_of_variables_with_low_topological_ordering_indices_part_2(self):
@@ -808,11 +808,11 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
 
         Source: RJC's mind.
         """
-        topo = list(figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort())
+        ordering = figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()
         result = compute_q_value_of_variables_with_low_topological_ordering_indices(
             vertex=None,
             graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
-            topo=topo,
+            ordering=ordering,
         )
         self.assert_expr_equal(result, One())
 
@@ -825,7 +825,7 @@ class TestComputeAncestralSetQValue(cases.GraphTestCase):
 
         Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
-        topo = [W1, W3, W5, W2, W4, X, Y]
+        ordering = [W1, W3, W5, W2, W4, X, Y]
         # Q_T = Q[{W1, W2, W3, X, Y}]
         subgraph_probability = Product.safe(
             [
@@ -843,7 +843,7 @@ class TestComputeAncestralSetQValue(cases.GraphTestCase):
             ancestral_set=ancestral_set,
             subgraph_variables=subgraph_variables,
             subgraph_probability=subgraph_probability,
-            graph_topo=topo,
+            ordering=ordering,
         )
         expected_result_1 = Sum.safe(subgraph_probability, [W3])
         self.assert_expr_equal(expected_result_1, result_1)
