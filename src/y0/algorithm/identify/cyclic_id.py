@@ -4,10 +4,8 @@
 """
 
 import logging
-from collections.abc import Collection, Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from typing import Annotated
-
-import networkx as nx
 
 from y0.algorithm.tian_id import (
     compute_ancestral_set_q_value,
@@ -23,7 +21,7 @@ from ..ioscm.utils import (
     get_strongly_connected_components,
 )
 from ...dsl import Distribution, Expression, Probability, Product, Variable
-from ...graph import NxMixedGraph, _ensure_set
+from ...graph import NxMixedGraph, _ensure_set, get_projected_subgraph
 from ...util import InPaperAs
 
 __all__ = [
@@ -451,50 +449,6 @@ def identify_through_scc_decomposition(
         background_interventions=background_interventions,
         _recursion_level=_recursion_level + 1,
     )
-
-
-# TODO more detailed documentation, add explicit reference to specific paper.
-# TODO split into own PR, since this is self-contained and independent
-def get_projected_subgraph(
-    graph: NxMixedGraph,
-    nodes: Collection[Variable],
-) -> NxMixedGraph:
-    r"""Get subgraph of vertices with projected bidirected edges.
-
-    Implements Definition B.1 (Marginalization of DMGs):
-    For any two nodes u, v in vertices: adds u↔v if they are connected
-    by a path of bidirected edges where ALL intermediate nodes are
-    outside vertices (i.e., in the marginalized set W = V \ A).
-
-    :param graph: The full causal graph
-    :param nodes: The set of vertices to keep (A)
-    :returns: Subgraph with projected bidirected edges
-    """
-    # W = nodes being marginalized out
-    marginalized_nodes = set(graph.nodes()) - set(nodes)
-
-    # Start with standard subgraph
-    subgraph = graph.subgraph(nodes)
-
-    # TODO simply use `for u, v in itt.combinations(nodes):`
-    # For each pair of vertices, check if connected via bidirected
-    # path through ONLY marginalized nodes
-    nodes_list = list(nodes)
-    for i, u in enumerate(nodes_list):
-        for v in nodes_list[i + 1 :]:
-            if subgraph.undirected.has_edge(u, v):
-                continue  # Already directly connected
-
-            # Build temporary graph: only u, v, and marginalized nodes
-            # connected by bidirected edges
-            temp_nodes = {u, v} | marginalized_nodes
-            temp_graph = graph.undirected.subgraph(temp_nodes)
-
-            # Check if u and v are connected through marginalized nodes
-            if nx.has_path(temp_graph, u, v):
-                subgraph.add_undirected_edge(u, v)
-
-    return subgraph
 
 
 def identify_district_variables_cyclic(

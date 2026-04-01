@@ -1,9 +1,8 @@
 """Tests for _get_projected_subgraph_ function inside the cyclic ID algorithm."""
 
 from tests.test_algorithm import cases
-from y0.algorithm.identify.cyclic_id import get_projected_subgraph
 from y0.dsl import W1, W2, W3, Z2, A, B, X, Y, Z
-from y0.graph import NxMixedGraph
+from y0.graph import NxMixedGraph, get_projected_subgraph
 
 
 class TestGetProjectedSubgraph(cases.GraphTestCase):
