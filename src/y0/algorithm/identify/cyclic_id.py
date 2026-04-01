@@ -4,8 +4,10 @@
 """
 
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from typing import Annotated
+
+import networkx as nx
 
 from y0.algorithm.tian_id import (
     compute_ancestral_set_q_value,
@@ -99,6 +101,8 @@ def cyclic_id(  # noqa:C901
             intervention_j = {
                 v.get_base() if hasattr(v, "get_base") else v for v in intervention_j_original
             }
+        else:
+            raise NotImplementedError()
 
         if intervention_j & interventions:
             raise ValueError(
@@ -413,11 +417,11 @@ def identify_through_scc_decomposition(
     logger.debug(f"[{_recursion_level}]: Found - {len(relevant_sccs)} relevant SCCs")
 
     nodes: Annotated[set[Variable], InPaperAs("V")] = set(graph.nodes())
+    intervention_set: Annotated[set[Variable], InPaperAs("J")] = nodes - ancestral_closure
 
-    background_interventions = background_interventions or set()
-    intervention_set: Annotated[set[Variable], InPaperAs("J")] = (
-        nodes - ancestral_closure
-    ) | background_interventions
+    # TODO explain why with a code comment
+    if background_interventions is not None:
+        intervention_set.update(background_interventions)
 
     # line 23 - Construct distributions for each SCC
     scc_distributions: Annotated[dict[frozenset[Variable], Expression], InPaperAs("R_A")] = (
@@ -449,9 +453,11 @@ def identify_through_scc_decomposition(
     )
 
 
-def _get_projected_subgraph(
+# TODO more detailed documentation, add explicit reference to specific paper.
+# TODO split into own PR, since this is self-contained and independent
+def get_projected_subgraph(
     graph: NxMixedGraph,
-    vertices: frozenset[Variable],
+    nodes: Collection[Variable],
 ) -> NxMixedGraph:
     r"""Get subgraph of vertices with projected bidirected edges.
 
@@ -461,22 +467,21 @@ def _get_projected_subgraph(
     outside vertices (i.e., in the marginalized set W = V \ A).
 
     :param graph: The full causal graph
-    :param vertices: The set of vertices to keep (A)
+    :param nodes: The set of vertices to keep (A)
     :returns: Subgraph with projected bidirected edges
     """
-    import networkx as nx
-
     # W = nodes being marginalized out
-    marginalized_nodes = set(graph.nodes()) - set(vertices)
+    marginalized_nodes = set(graph.nodes()) - set(nodes)
 
     # Start with standard subgraph
-    subgraph = graph.subgraph(vertices)
+    subgraph = graph.subgraph(nodes)
 
+    # TODO simply use `for u, v in itt.combinations(nodes):`
     # For each pair of vertices, check if connected via bidirected
     # path through ONLY marginalized nodes
-    vertex_list = list(vertices)
-    for i, u in enumerate(vertex_list):
-        for v in vertex_list[i + 1 :]:
+    nodes_list = list(nodes)
+    for i, u in enumerate(nodes_list):
+        for v in nodes_list[i + 1 :]:
             if subgraph.undirected.has_edge(u, v):
                 continue  # Already directly connected
 
@@ -494,13 +499,13 @@ def _get_projected_subgraph(
 
 def identify_district_variables_cyclic(
     *,
-    input_variables: frozenset[Variable],
-    input_district: frozenset[Variable],
+    input_variables: set[Variable],
+    input_district: set[Variable],
     district_probability: Expression,
     graph: NxMixedGraph,
-    topo: list[Variable],
-    intervention_set: set[Variable] | None = None,
-    background_interventions: set[Variable] | None = None,
+    ordering: list[Variable],  # FIXME bad variable name
+    intervention_set: set[Variable] | None = None,  # FIXME undocumented
+    background_interventions: set[Variable] | None = None,  # FIXME undocumented
 ) -> Expression | None:
     r"""
     Generalized district identification for line 23 in IDCD.
@@ -509,6 +514,7 @@ def identify_district_variables_cyclic(
     the Tian & Pearl implementation, and checks for confounding.
 
     Three cases:
+
     - Base Case 1 (A == C): Return Q[A] directly
     - Base Case 2 (A == T): Return None/FAIL
     - Case 3 (C ⊂ A ⊂ T): Recurse on smaller district T' found in G[A]
@@ -517,12 +523,12 @@ def identify_district_variables_cyclic(
     :param input_district: Consolidated district T containing C
     :param district_probability: Distribution Q[T] over the district
     :param graph: Full causal graph G
-    :param topo: Topological/apt-order of variables
+    :param ordering: A topological or apt-order of variables
     :returns: Identified distribution Q[C] or None if unidentifiable
     """
     # find the ancestral set A
     district_subgraph = graph.subgraph(input_district)
-    ancestral_set = frozenset(district_subgraph.ancestors_inclusive(input_variables))
+    ancestral_set = district_subgraph.ancestors_inclusive(input_variables)
 
     # check the cases - if A = C
     if ancestral_set == input_variables:
@@ -530,7 +536,7 @@ def identify_district_variables_cyclic(
             ancestral_set=ancestral_set,
             subgraph_variables=input_district,
             subgraph_probability=district_probability,
-            graph_topo=topo,
+            ordering=ordering,
         )
     # if A = T
     # if the ancestral set = district, then the identification fails and cannot isolate
@@ -538,39 +544,36 @@ def identify_district_variables_cyclic(
     if ancestral_set == input_district:
         return None
 
-    # recursive case
-    # Find the sub district T' containing C in the induced subgraph G[A]
-    #
+    # TODO unnest (flip condition and return none early)
+    # recursive case: find the sub-district T' containing C in the induced subgraph G[A]
     if input_variables.issubset(ancestral_set) and ancestral_set.issubset(input_district):
-        ordered_ancestral_set = [v for v in topo if v in ancestral_set]
+        ordered_ancestral_set = [v for v in ordering if v in ancestral_set]
 
         ancestral_set_probability_q_a = compute_ancestral_set_q_value(
             ancestral_set=ancestral_set,
             subgraph_variables=input_district,
             subgraph_probability=district_probability,
-            graph_topo=topo,
+            ordering=ordering,
         )
 
-        subgraph_topo = [v for v in topo if v in ancestral_set]
+        subgraph_ordering = [v for v in ordering if v in ancestral_set]
 
         all_nodes = set(graph.nodes())
         full_surgery_set = (all_nodes - set(ancestral_set)) | (background_interventions or set())
         surgical_graph = graph.remove_in_edges(full_surgery_set)
 
         # G[A]: induced subgraph on ancestral set
-        ancestral_set_subgraph = _get_projected_subgraph(
-            surgical_graph, frozenset(ordered_ancestral_set)
-        )
+        ancestral_set_subgraph = get_projected_subgraph(surgical_graph, ordered_ancestral_set)
 
         ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
 
         # find district T' containing target variables C
-        targeted_ancestral_set_subgraph_district = frozenset(
+        targeted_ancestral_set_subgraph_district = set(
             ancestral_set_subgraph_districts[
                 [
                     input_variables.issubset(district)
                     for district in ancestral_set_subgraph_districts
-                ].index(True)
+                ].index(True)  # FIXME what is going on here?
             ]
         )
         if (
@@ -584,16 +587,16 @@ def identify_district_variables_cyclic(
                 compute_c_factor_marginalizing_over_topological_successors(
                     district=targeted_ancestral_set_subgraph_district,
                     graph_probability=ancestral_set_probability_q_a,
-                    topo=subgraph_topo,
+                    ordering=subgraph_ordering,
                 )
             )
-        else:
+        else:  # TODO unnest
             if isinstance(ancestral_set_probability_q_a, Probability):
                 targeted_ancestral_set_subgraph_district_probability = (
                     compute_c_factor_conditioning_on_topological_predecessors(
                         district=targeted_ancestral_set_subgraph_district,
                         graph_probability=ancestral_set_probability_q_a,
-                        topo=subgraph_topo,
+                        ordering=subgraph_ordering,
                     )
                 )
             else:
@@ -601,7 +604,7 @@ def identify_district_variables_cyclic(
                     compute_c_factor_marginalizing_over_topological_successors(
                         district=targeted_ancestral_set_subgraph_district,
                         graph_probability=ancestral_set_probability_q_a,
-                        topo=subgraph_topo,
+                        ordering=subgraph_ordering,
                     )
                 )
         # recurse with a smaller district
@@ -610,7 +613,7 @@ def identify_district_variables_cyclic(
             input_district=targeted_ancestral_set_subgraph_district,
             district_probability=targeted_ancestral_set_subgraph_district_probability,
             graph=graph,
-            topo=topo,
+            ordering=ordering,
             intervention_set=intervention_set,
             background_interventions=background_interventions,
         )
@@ -619,11 +622,11 @@ def identify_district_variables_cyclic(
 
 def compute_scc_distributions(
     graph: Annotated[NxMixedGraph, InPaperAs("G")],
-    subgraph_a: Annotated[NxMixedGraph, InPaperAs("G[A]")],
+    subgraph_a: Annotated[NxMixedGraph, InPaperAs("G[A]")],  # FIXME unused?
     relevant_sccs: list[frozenset[Variable]],
-    ancestral_closure: Annotated[set[Variable], InPaperAs("A")],
+    ancestral_closure: Annotated[set[Variable], InPaperAs("A")],  # FIXME unused?
     intervention_set: Annotated[set[Variable], InPaperAs("J")],
-    background_interventions: set[Variable] | None = None,
+    background_interventions: set[Variable] | None = None,  # FIXME undocumented?
 ) -> dict[frozenset[Variable], Expression]:
     r"""Compute distributions for each strongly connected component (SCC).
 
@@ -660,11 +663,11 @@ def compute_scc_distributions(
         )
 
         result = identify_district_variables_cyclic(
-            input_variables=scc,
-            input_district=frozenset(consolidated_district),
+            input_variables=set(scc),
+            input_district=consolidated_district,
             district_probability=initial_distribution,
             graph=graph,
-            topo=full_apt_order,
+            ordering=full_apt_order,
             intervention_set=intervention_set,
             background_interventions=background_interventions,
         )
@@ -676,7 +679,7 @@ def compute_scc_distributions(
 
 
 def get_apt_order_predecessors(
-    scc: frozenset[Variable],
+    scc: Iterable[Variable],
     apt_order: list[Variable],
     ancestral_closure: set[Variable],
 ) -> set[Variable]:

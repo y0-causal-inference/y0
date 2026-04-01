@@ -23,11 +23,11 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         graph = NxMixedGraph.from_edges(directed=[], undirected=[])
 
         result = identify_district_variables_cyclic(
-            input_variables=frozenset({Y}),
-            input_district=frozenset({Y}),
+            input_variables={Y},
+            input_district={Y},
             district_probability=P(Y),
             graph=graph,
-            topo=[Y],
+            ordering=[Y],
         )
 
         if result is None:
@@ -41,11 +41,11 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         graph.add_node(Z1)  # Add disconnected node Z1
 
         result = identify_district_variables_cyclic(
-            input_variables=frozenset({Y}),
-            input_district=frozenset({Y, Z1}),
+            input_variables={Y},
+            input_district={Y, Z1},
             district_probability=P(Y, Z1),
             graph=graph,
-            topo=[X, Y, Z1],
+            ordering=[X, Y, Z1],
         )
 
         expected = Sum.safe(P(Y, Z1), Z1)
@@ -58,11 +58,11 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         graph = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z1)], undirected=[])
 
         result = identify_district_variables_cyclic(
-            input_variables=frozenset({Y, Z1}),
-            input_district=frozenset({Y, Z1}),
+            input_variables={Y, Z1},
+            input_district={Y, Z1},
             district_probability=P(Y, Z1),
             graph=graph,
-            topo=[X, Y, Z1],
+            ordering=[X, Y, Z1],
         )
 
         # No marginalization, ancestral set = input variables = input district
@@ -75,11 +75,11 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[])
 
         result = identify_district_variables_cyclic(
-            input_variables=frozenset({Y}),
-            input_district=frozenset({X, Y}),
+            input_variables={Y},
+            input_district={X, Y},
             district_probability=P(X, Y),
             graph=graph,
-            topo=[X, Y],
+            ordering=[X, Y],
         )
 
         # if ancestral set is equal to the input district, should return a FAIL/None
@@ -92,11 +92,11 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
         )
 
         result = identify_district_variables_cyclic(
-            input_variables=frozenset({Y}),
-            input_district=frozenset({Z2, X, Y}),
+            input_variables={Y},
+            input_district={Z2, X, Y},
             district_probability=P(Z2, X, Y),
             graph=graph,
-            topo=[Z2, Z1, X, Y],
+            ordering=[Z2, Z1, X, Y],
         )
 
         inner_term = P(X, Y, Z2)
@@ -131,19 +131,19 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
 
         with self.assertRaises(nx.NetworkXError):
             identify_district_variables_cyclic(
-                input_variables=frozenset({Z1}),
-                input_district=frozenset({X, Y}),
+                input_variables={Z1},
+                input_district={X, Y},
                 district_probability=P(X, Y),
                 graph=graph,
-                topo=[X, Y, Z1],
+                ordering=[X, Y, Z1],
             )
 
     def test_bow_arc_unidentifiable(self) -> None:
         """Regression test: Bow arc structure is unidentifiable."""
         graph = NxMixedGraph.from_edges(directed=[(X, Y)], undirected=[(X, Y)])
 
-        input_district = frozenset({X, Y})
-        target = frozenset({Y})
+        input_district = {X, Y}
+        target = {Y}
         q_t = P(X, Y)
 
         result = identify_district_variables_cyclic(
@@ -151,7 +151,7 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
             input_district=input_district,
             district_probability=q_t,
             graph=graph,
-            topo=[X, Y],
+            ordering=[X, Y],
         )
 
         self.assertIsNone(result)
@@ -169,18 +169,18 @@ class TestIdentifyDistrictVariablesCyclic(cases.GraphTestCase):
             undirected=[(W1, W3), (W3, W5), (W4, W5), (W2, W3), (W1, X), (W1, Y)],
         )
 
-        topo = [W3, W5, W4, W1, W2, X, Y]
-        input_district = frozenset(graph.nodes())
+        ordering = [W3, W5, W4, W1, W2, X, Y]
+        input_district = set(graph.nodes())
 
         q_v = P(W3, W5, W4, W1, W2, X, Y)
 
         try:
             result_cyclic = identify_district_variables_cyclic(
-                input_variables=frozenset({Y}),
+                input_variables={Y},
                 input_district=input_district,
                 district_probability=q_v,
                 graph=graph,
-                topo=topo,
+                ordering=ordering,
             )
         except Exception as e:
             self.fail(f"Should be Identifiable but raised: {e}")

@@ -1,7 +1,7 @@
 """Tests for _get_projected_subgraph_ function inside the cyclic ID algorithm."""
 
 from tests.test_algorithm import cases
-from y0.algorithm.identify.cyclic_id import _get_projected_subgraph
+from y0.algorithm.identify.cyclic_id import get_projected_subgraph
 from y0.dsl import W1, W2, W3, Z2, A, B, X, Y, Z
 from y0.graph import NxMixedGraph
 
@@ -21,7 +21,7 @@ class TestGetProjectedSubgraph(cases.GraphTestCase):
         for directed, undirected, vertices, u, v in cases:
             with self.subTest(vertices=vertices, u=u, v=v):
                 graph = NxMixedGraph.from_edges(directed=directed, undirected=undirected)
-                result = _get_projected_subgraph(graph, frozenset(vertices))
+                result = get_projected_subgraph(graph, frozenset(vertices))
                 self.assertTrue(result.undirected.has_edge(u, v))
 
     def test_projection_does_not_add_edge(self) -> None:
@@ -33,7 +33,7 @@ class TestGetProjectedSubgraph(cases.GraphTestCase):
         for directed, undirected, vertices, u, v in cases:
             with self.subTest(vertices=vertices, u=u, v=v):
                 graph = NxMixedGraph.from_edges(directed=directed, undirected=undirected)
-                result = _get_projected_subgraph(graph, frozenset(vertices))
+                result = get_projected_subgraph(graph, frozenset(vertices))
                 self.assertFalse(result.undirected.has_edge(u, v))
 
     # ------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ class TestGetProjectedSubgraph(cases.GraphTestCase):
             undirected=[],
         )
 
-        result = _get_projected_subgraph(graph, frozenset({X, Y}))
+        result = get_projected_subgraph(graph, frozenset({X, Y}))
 
         self.assertTrue(result.directed.has_edge(X, Y))
         self.assertEqual(set(result.nodes()), {X, Y})
@@ -67,7 +67,7 @@ class TestGetProjectedSubgraph(cases.GraphTestCase):
             undirected=[(X, Y), (Y, Z)],
         )
 
-        result = _get_projected_subgraph(graph, frozenset({X, Y, Z}))
+        result = get_projected_subgraph(graph, frozenset({X, Y, Z}))
 
         self.assertTrue(result.undirected.has_edge(X, Y))
         self.assertTrue(result.undirected.has_edge(Y, Z))
