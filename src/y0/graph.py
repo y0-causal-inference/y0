@@ -728,7 +728,7 @@ class NxMixedGraph:
             not include any of the nodes from the query.
         """
         if not topological_sort_order:
-            topological_sort_order = list(self.topological_sort())
+            topological_sort_order = self.topological_sort()
         node_set = _ensure_set(nodes)
         pre = []
         for node in topological_sort_order:
@@ -977,7 +977,7 @@ def get_district_and_predecessors(
         district of a given set of nodes
     """
     if not topological_sort_order:
-        topological_sort_order = list(graph.topological_sort())
+        topological_sort_order = graph.topological_sort()
 
     # Get the subgraph corresponding to the nodes and nodes prior to them
     pre = graph.pre(nodes, topological_sort_order)
