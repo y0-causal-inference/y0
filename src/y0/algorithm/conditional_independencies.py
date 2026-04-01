@@ -217,16 +217,16 @@ def get_topological_policy(
 
     :returns: A function suitable for use as a sort key on d-separations
     """
-    order = list(graph.topological_sort())
-    return partial(_topological_policy, order=order)
+    ordering = graph.topological_sort()
+    return partial(_topological_policy, ordering=ordering)
 
 
 def _topological_policy(
-    judgement: DSeparationJudgement, order: Sequence[Variable]
+    judgement: DSeparationJudgement, ordering: Sequence[Variable]
 ) -> tuple[int, int]:
     return (
         len(judgement.conditions),
-        sum(order.index(v) for v in judgement.conditions),
+        sum(ordering.index(v) for v in judgement.conditions),
     )
 
 

@@ -41,6 +41,7 @@ from y0.algorithm.counterfactual_transport.api import (
     _event_from_counterfactuals,
     _event_from_counterfactuals_strict,
     _initialize_conditional_transportability_data_structures,
+    _is_valid_ordering,
     _no_intervention_variables_in_domain,
     _no_transportability_nodes_in_domain,
     _reduce_reflexive_counterfactual_variables_to_interventions,
@@ -50,7 +51,6 @@ from y0.algorithm.counterfactual_transport.api import (
     _transport_conditional_counterfactual_query_line_2,
     _transport_conditional_counterfactual_query_line_4,
     _transport_unconditional_counterfactual_query_line_2,
-    _valid_topo_list,
     _validate_transport_conditional_counterfactual_query_input,
     _validate_transport_conditional_counterfactual_query_line_4_output,
     _validate_transport_unconditional_counterfactual_query_input,
@@ -115,9 +115,10 @@ figure_1_graph_no_transportability_nodes = NxMixedGraph.from_edges(
     ],
     undirected=[(Z, X)],
 )
-figure_1_graph_no_transportability_nodes_topo = list(
+figure_1_graph_no_transportability_nodes_topo = (
     figure_1_graph_no_transportability_nodes.topological_sort()
 )
+
 
 # The graph for Domain 1 as described by the text of Example 1.1 and
 # Figure 1 of [correa22a]_. The graph isn't in any figures in the
@@ -126,9 +127,10 @@ figure_1_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
     directed=[(X, Z), (X, Y), (Z, Y), (transport_variable(Y), Y)],
     undirected=[],
 )
-figure_1_graph_domain_1_with_interventions_topo = list(
+figure_1_graph_domain_1_with_interventions_topo = (
     figure_1_graph_domain_1_with_interventions.topological_sort()
 )
+
 
 # From [correa22a]_, Figure 2a.
 figure_2a_graph = NxMixedGraph.from_edges(
@@ -147,7 +149,7 @@ figure_2_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
     directed=[(X, Y), (X, W), (W, Y), (Z, Y), (transport_variable(Z), Z)],
     undirected=[(W, Y)],
 )
-figure_2_graph_domain_1_with_interventions_topo = list(
+figure_2_graph_domain_1_with_interventions_topo = (
     figure_2_graph_domain_1_with_interventions.topological_sort()
 )
 
@@ -176,7 +178,7 @@ figure_2_graph_domain_2 = NxMixedGraph.from_edges(
     ],
     undirected=[(Z, X), (W, Y)],
 )
-figure_2_graph_domain_2_topo = list(figure_2_graph_domain_2.topological_sort())
+figure_2_graph_domain_2_topo = figure_2_graph_domain_2.topological_sort()
 
 # From [correa20a]_, Figure 1a.
 soft_interventions_figure_1a_graph = NxMixedGraph.from_edges(
@@ -1730,22 +1732,18 @@ class TestRemoveTransportabilityVertices(cases.GraphTestCase):
                 (W, Y),
             ],
         )
-        input_vertices = set(test_graph_1.topological_sort())
+        input_vertices = test_graph_1.topological_sort()
         expected_result = frozenset({W, X, Y, Z})
-        self.assertSetEqual(
-            expected_result, _remove_transportability_vertices(vertices=input_vertices)
-        )
+        self.assertSetEqual(expected_result, _remove_transportability_vertices(input_vertices))
         test_graph_2 = NxMixedGraph.from_edges(
             directed=[(X, Y), (X, W), (W, Y), (Z, Y)],
             undirected=[
                 (W, Y),
             ],
         )
-        input_vertices_2 = set(test_graph_2.topological_sort())
+        input_vertices_2 = test_graph_2.topological_sort()
         expected_result_2 = frozenset({W, X, Y, Z})
-        self.assertSetEqual(
-            expected_result_2, _remove_transportability_vertices(vertices=input_vertices_2)
-        )
+        self.assertSetEqual(expected_result_2, _remove_transportability_vertices(input_vertices_2))
 
 
 class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
@@ -1815,7 +1813,7 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
                 (W, Y),
             ],
         )
-        graph_1_topo = list(graph_1.topological_sort())
+        graph_1_topo = graph_1.topological_sort()
         district = {W, Y}
         domain_graphs = [
             (graph_1, graph_1_topo),
@@ -1848,7 +1846,7 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
                 (Z, X),
             ],
         )
-        graph_1_topo = list(graph_1.topological_sort())
+        graph_1_topo = graph_1.topological_sort()
         graph_2 = NxMixedGraph.from_edges(
             directed=[
                 (Z, X),
@@ -1860,7 +1858,7 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
                 (W, Y),
             ],
         )
-        graph_2_topo = list(graph_2.topological_sort())
+        graph_2_topo = graph_2.topological_sort()
         domain_data = [({W}, PP[Pi1](W, X, Y, Z)), ({Y}, PP[Pi2](W, X, Y, Z))]
         self.assertIsNone(
             transport_district_intervening_on_parents(
@@ -1882,7 +1880,7 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
                 (Z, X),
             ],
         )
-        graph_1_topo = list(graph_1.topological_sort())
+        graph_1_topo = graph_1.topological_sort()
         graph_2 = NxMixedGraph.from_edges(
             directed=[
                 (Z, X),
@@ -1894,7 +1892,7 @@ class TestTransportDistrictInterveningOnParents(cases.GraphTestCase):
                 (W, Y),
             ],
         )
-        graph_2_topo = list(graph_2.topological_sort())
+        graph_2_topo = graph_2.topological_sort()
         domain_data = [(set(), PP[Pi1](W, X, Y, Z)), ({Y}, PP[Pi2](W, X, Y, Z))]
         self.assertIsNone(
             transport_district_intervening_on_parents(
@@ -2973,7 +2971,7 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
                 (Z, X),
             ],
         )
-        graph_1_topo = list(graph_1.topological_sort())
+        graph_1_topo = graph_1.topological_sort()
         # Let's say graph 2 is a stochastic intervention where Y is a function of W and Z,
         # but not X.
         graph_2 = NxMixedGraph.from_edges(
@@ -2985,7 +2983,7 @@ class TestTransportUnconditionalCounterfactualQuery(cases.GraphTestCase):
             ],
             undirected=[],
         )
-        graph_2_topo = list(graph_2.topological_sort())
+        graph_2_topo = graph_2.topological_sort()
         domain_data = [(set(), PP[Pi1](W, X, Y, Z)), ({Y}, PP[Pi2](W, X, Y, Z))]
         query_result = transport_unconditional_counterfactual_query(
             event=[(Y @ -X, -Y), (X, -X)],
@@ -3943,7 +3941,7 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
                 (W, Y),
             ],
         )
-        graph_1_topo = list(graph_1.topological_sort())
+        graph_1_topo = graph_1.topological_sort()
 
         # From [correa22a]_, Figure 3b, with an extra vertex R that is a descendent of Y.
         graph_2 = NxMixedGraph.from_edges(
@@ -3958,7 +3956,7 @@ class TestTransportConditionalCounterfactualQuery(cases.GraphTestCase):
             ],
             undirected=[(Z, X), (W, Y)],
         )
-        graph_2_topo = list(graph_2.topological_sort())
+        graph_2_topo = graph_2.topological_sort()
         domain_graphs = [
             (
                 graph_1,
@@ -5154,11 +5152,11 @@ class TestTransportConditionalCounterfactualQueryUtils(cases.GraphTestCase):
                 (Z, Y),
             ],
         )
-        topo = list(graph.topological_sort())
-        self.assertTrue(_valid_topo_list([X1, X2, Z, W, Y], graph))
-        self.assertTrue(_valid_topo_list(topo, graph))
-        self.assertFalse(_valid_topo_list([X1, Z, X2, W, Y], graph))
-        self.assertTrue(_valid_topo_list([X2, W, X1, Z, Y], graph))
+        topo = graph.topological_sort()
+        self.assertTrue(_is_valid_ordering([X1, X2, Z, W, Y], graph))
+        self.assertTrue(_is_valid_ordering(topo, graph))
+        self.assertFalse(_is_valid_ordering([X1, Z, X2, W, Y], graph))
+        self.assertTrue(_is_valid_ordering([X2, W, X1, Z, Y], graph))
 
 
 class TestTransportUnconditionalCounterfactualQueryPreprocessing(cases.GraphTestCase):
