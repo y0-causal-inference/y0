@@ -16,19 +16,19 @@ module CausalCocycle {
   // ------------------------------------------------------------------
 
   /// (ID)  Transporting from treatment x to itself leaves the outcome unchanged.
-  predicate Identity<X(==), Y(==)>(T: (X, X, Y) -> Y) {
+  ghost predicate Identity<X(!new), Y(!new)>(T: (X, X, Y) -> Y) {
     forall x: X, y: Y :: T(x, x, y) == y
   }
 
   /// (PI)  The composed transport through any intermediate x' equals the
   ///       direct transport: the result is path-independent.
-  predicate PathIndependence<X(==), Y(==)>(T: (X, X, Y) -> Y) {
+  ghost predicate PathIndependence<X(!new), Y(!new)>(T: (X, X, Y) -> Y) {
     forall x: X, x': X, x'': X, y: Y ::
       T(x'', x', T(x', x, y)) == T(x'', x, y)
   }
 
   /// T is a cocycle iff it satisfies both (ID) and (PI).
-  predicate IsCocycle<X(==), Y(==)>(T: (X, X, Y) -> Y) {
+  ghost predicate IsCocycle<X(!new), Y(!new)>(T: (X, X, Y) -> Y) {
     Identity(T) && PathIndependence(T)
   }
 
@@ -42,7 +42,7 @@ module CausalCocycle {
   ///   T(x', x, T(x, x', y))
   ///     = T(x', x', y)   [by (PI) with x'' ← x', x' ← x, x ← x']
   ///     = y              [by (ID)]
-  lemma Invertibility<X(==), Y(==)>(T: (X, X, Y) -> Y, x: X, x': X, y: Y)
+  lemma Invertibility<X(!new), Y(!new)>(T: (X, X, Y) -> Y, x: X, x': X, y: Y)
     requires IsCocycle(T)
     ensures T(x', x, T(x, x', y)) == y
   {
@@ -56,7 +56,7 @@ module CausalCocycle {
   }
 
   /// Symmetry of invertibility (the other direction).
-  lemma InvertibilitySymm<X(==), Y(==)>(T: (X, X, Y) -> Y, x: X, x': X, y: Y)
+  lemma InvertibilitySymm<X(!new), Y(!new)>(T: (X, X, Y) -> Y, x: X, x': X, y: Y)
     requires IsCocycle(T)
     ensures T(x, x', T(x', x, y)) == y
   {
@@ -65,7 +65,7 @@ module CausalCocycle {
 
   /// Transitivity: T(x'', x, ·) is the composition of x → x' and x' → x''.
   /// This is exactly (PI), stated as a named lemma for clarity.
-  lemma Transitivity<X(==), Y(==)>(T: (X, X, Y) -> Y, x: X, x': X, x'': X, y: Y)
+  lemma Transitivity<X(!new), Y(!new)>(T: (X, X, Y) -> Y, x: X, x': X, x'': X, y: Y)
     requires IsCocycle(T)
     ensures T(x'', x', T(x', x, y)) == T(x'', x, y)
   {}  // Dafny discharges this directly from PathIndependence.
@@ -79,7 +79,7 @@ module CausalCocycle {
 
   /// A family of bijections on Y, one per treatment level x,
   /// together with their pointwise inverses.
-  predicate InverseFamily<X(==), Y(==)>(
+  ghost predicate InverseFamily<X(!new), Y(!new)>(
     f:    X -> (Y -> Y),
     fInv: X -> (Y -> Y)
   ) {
@@ -89,7 +89,7 @@ module CausalCocycle {
   }
 
   /// The coboundary built from (f, fInv): T(x, x', y) = f_x( fInv_{x'}(y) ).
-  function Coboundary<X(==), Y(==)>(
+  function Coboundary<X(==,!new), Y(==,!new)>(
     f:    X -> (Y -> Y),
     fInv: X -> (Y -> Y)
   ): (X, X, Y) -> Y
@@ -105,7 +105,7 @@ module CausalCocycle {
   ///          = f_{x''}( fInv_{x'}( f_{x'}( fInv_x(y) ) ) )
   ///          = f_{x''}( fInv_x(y) )    ← fInv_{x'} ∘ f_{x'} = id
   ///          = Coboundary(x'', x, y)
-  lemma CoboundaryIsCocycle<X(==), Y(==)>(
+  lemma CoboundaryIsCocycle<X(!new), Y(!new)>(
     f:    X -> (Y -> Y),
     fInv: X -> (Y -> Y)
   )
@@ -143,7 +143,7 @@ module CausalCocycle {
   // ------------------------------------------------------------------
 
   /// The constant transport (do nothing regardless of treatment change) is a cocycle.
-  lemma ConstantCocycleIsValid<X(==), Y(==)>()
+  lemma ConstantCocycleIsValid<X(!new), Y(!new)>()
     ensures IsCocycle<X, Y>((x, x', y) => y)
   {}  // Both (ID) and (PI) hold trivially since T is the constant y.
 
