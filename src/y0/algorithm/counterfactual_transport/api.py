@@ -753,7 +753,7 @@ def counterfactual_factors_are_transportable(
     return not any(transport_variable(factor.get_base()) in nodes for factor in factors)
 
 
-def _remove_transportability_vertices(*, vertices: Collection[Variable]) -> set[Variable]:
+def _remove_transportability_vertices(vertices: Collection[Variable]) -> set[Variable]:
     """Remove the transportability nodes from a set of vertices.
 
     :param vertices: The input vertices.
