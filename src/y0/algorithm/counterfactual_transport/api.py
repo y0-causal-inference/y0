@@ -2782,9 +2782,9 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
 def _is_valid_ordering(ordering: Sequence[Variable], graph: NxMixedGraph) -> bool:
     r"""Verify that a list of vertices is in topologically sorted order for a given graph.
 
-    :param ordering: A candidate list of graph vertices. This function assumes every vertex
-        in topo is somewhere in the graph and every graph vertex is in topo (that is,
-        this information has already been verified).
+    :param ordering: A candidate list of graph vertices. This function assumes every
+        vertex in topo is somewhere in the graph and every graph vertex is in topo (that
+        is, this information has already been verified).
     :param graph: The graph in question.
 
     :returns: True if the list is in a valid topologically sorted order, False

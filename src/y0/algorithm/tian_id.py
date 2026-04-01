@@ -60,8 +60,8 @@ def identify_district_variables(  # noqa:C901
         the variables in T, under an intervention that sets all other variables to
         constants" (see Equation 36 of [tian03a]_).
     :param graph: The relevant graph.
-    :param ordering: A list of variables in topological order that includes all variables in
-        the graph and may contain more.
+    :param ordering: A list of variables in topological order that includes all
+        variables in the graph and may contain more.
 
     :returns: An expression for $Q[C]$ in terms of $Q$, or Fail.
 
@@ -312,8 +312,7 @@ def compute_q_value_of_variables_with_low_topological_ordering_indices(
     (The second equation above is Equation 72.)
 
     :param node: The $i^{th}$ variable in topological order
-    :param expression: The probability of $H$ corresponding to $Q[H]$ in Equation
-        72.
+    :param expression: The probability of $H$ corresponding to $Q[H]$ in Equation 72.
     :param ordering: a topological sorting of the subgraph under analysis, $G_{H}$.
 
     :returns: An expression for $Q[H^{(i)}]$.
