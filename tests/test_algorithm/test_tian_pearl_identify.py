@@ -1,3 +1,5 @@
+# mypy: disable-error-code="index"
+
 """Tests for Tian and Pearl's Identify algorithm.
 
 .. [huang08a] https://link.springer.com/article/10.1007/s10472-008-9101-x.
@@ -158,7 +160,7 @@ class TestIdentify(cases.GraphTestCase):
     4.
     """
 
-    def test_identify_preprocessing(self):
+    def test_identify_preprocessing(self) -> None:
         """Test the preprocessing checks in this implementation of IDENTIFY."""
         # Raises a TypeError because the graph has only one C-component: {R,X,W,Z,Y} and our input district T
         # is a subset and therefore not a C-component.
@@ -190,7 +192,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset({X, Y, Z}),
             district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
-            ordering=list(soft_interventions_figure_3_graph.topological_sort()),
+            ordering=soft_interventions_figure_3_graph.topological_sort(),
         )
         # Raises a TypeError because the input district probability has an unrecognized format.
         test_4_identify_input_variables = {Z}  # A
@@ -203,7 +205,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset(test_4_identify_input_district),
             district_probability=[],
             graph=soft_interventions_figure_1b_graph,
-            ordering=list(soft_interventions_figure_1b_graph.topological_sort()),
+            ordering=soft_interventions_figure_1b_graph.topological_sort(),
         )
         self.assertRaises(
             TypeError,
@@ -212,7 +214,7 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset(test_4_identify_input_district),
             district_probability=One(),
             graph=soft_interventions_figure_1b_graph,
-            ordering=list(soft_interventions_figure_1b_graph.topological_sort()),
+            ordering=soft_interventions_figure_1b_graph.topological_sort(),
         )
         self.assertRaises(
             TypeError,
@@ -221,10 +223,10 @@ class TestIdentify(cases.GraphTestCase):
             input_district=frozenset(test_4_identify_input_district),
             district_probability=Zero(),
             graph=soft_interventions_figure_1b_graph,
-            ordering=list(soft_interventions_figure_1b_graph.topological_sort()),
+            ordering=soft_interventions_figure_1b_graph.topological_sort(),
         )
 
-    def test_identify_1(self):
+    def test_identify_1(self) -> None:
         """Test Line 2 of Algorithm 5 of [correa22a]_.
 
         This tests the case where A == C.
@@ -240,16 +242,15 @@ class TestIdentify(cases.GraphTestCase):
         #   so I'm probably missing something simple.
         # test_1_district_probability = PP[pi1](Z | X1)  # Q
         result = identify_district_variables(
-            input_variables=frozenset(test_1_identify_input_variables),
-            input_district=frozenset(test_1_identify_input_district),
+            input_variables=test_1_identify_input_variables,
+            input_district=test_1_identify_input_district,
             district_probability=test_1_district_probability,
             graph=soft_interventions_figure_1b_graph,
-            ordering=list(soft_interventions_figure_1b_graph.topological_sort()),
+            ordering=soft_interventions_figure_1b_graph.topological_sort(),
         )
-        logger.debug("Result of identify() call for test_identify_1 is " + result.to_latex())
-        self.assert_expr_equal(result, PP[Pi1](Z | X1))
+        self.assert_expr_equal(PP[Pi1](Z | X1), result)
 
-    def test_identify_2(self):
+    def test_identify_2(self) -> None:
         """Test Line 3 of Algorithm 5 of [correa22a]_.
 
         This tests the case where A == T. Sources: a modification of the example
@@ -257,26 +258,25 @@ class TestIdentify(cases.GraphTestCase):
         [correa20a]_.
         """
         result1 = identify_district_variables(
-            input_variables=frozenset({R, Y}),
-            input_district=frozenset({W, R, X, Z, Y}),
+            input_variables={R, Y},
+            input_district={W, R, X, Z, Y},
             district_probability=PP[TARGET_DOMAIN](
                 W, R, X, Z, Y
             ),  # This is a c-factor if the input variables comprise a c-component
             graph=soft_interventions_figure_2a_graph,
-            ordering=list(soft_interventions_figure_2a_graph.topological_sort()),
+            ordering=soft_interventions_figure_2a_graph.topological_sort(),
         )
-        logger.debug("Result of identify() call for test_identify_2 part 1 is " + str(result1))
         self.assertIsNone(result1)
         result2 = identify_district_variables(
-            input_variables=frozenset({Z, R}),
-            input_district=frozenset({R, X, W, Z}),
+            input_variables={Z, R},
+            input_district={R, X, W, Z},
             district_probability=PP[TARGET_DOMAIN](R, W, X, Z),
             graph=soft_interventions_figure_3_graph.subgraph({R, Z, X, W}),
-            ordering=list(soft_interventions_figure_3_graph.topological_sort()),
+            ordering=soft_interventions_figure_3_graph.topological_sort(),
         )
         self.assertIsNone(result2)
 
-    def test_identify_3(self):
+    def test_identify_3(self) -> None:
         """Test Lines 4-7 of Algorithm 5 of [correa22a]_.
 
         Source: the example in section 4 of [correa20a]_, which returns FAIL (i.e.,
@@ -286,25 +286,23 @@ class TestIdentify(cases.GraphTestCase):
         test_3_identify_input_district = {R, X, W, Y}
         test_3_district_probability = PP[Pi1]((Y, W)).conditional([R, X, Z]) * PP[Pi1](R, X)
         result1 = identify_district_variables(
-            input_variables=frozenset(test_3_identify_input_variables),
-            input_district=frozenset(test_3_identify_input_district),
+            input_variables=test_3_identify_input_variables,
+            input_district=test_3_identify_input_district,
             district_probability=test_3_district_probability,
             graph=soft_interventions_figure_2d_graph,
-            ordering=list(soft_interventions_figure_2d_graph.topological_sort()),
+            ordering=soft_interventions_figure_2d_graph.topological_sort(),
         )
-        logger.debug("Result of identify() call for test_identify_3 is " + str(result1))
         self.assertIsNone(result1)
         result2 = identify_district_variables(
-            input_variables=frozenset({Z, R}),
-            input_district=frozenset({R, X, W, Y, Z}),
+            input_variables={Z, R},
+            input_district={R, X, W, Y, Z},
             district_probability=PP[TARGET_DOMAIN](R, W, X, Y, Z),
             graph=soft_interventions_figure_3_graph,
-            ordering=list(soft_interventions_figure_3_graph.topological_sort()),
+            ordering=soft_interventions_figure_3_graph.topological_sort(),
         )
-        logger.debug("Result of identify() call for test_identify_3 is " + str(result2))
         self.assertIsNone(result2)
 
-    def test_identify_4(self):
+    def test_identify_4(self) -> None:
         """Further test Lines 4-7 of Algorithm 5 of [correa22a]_.
 
         Source: the example from page 29 of [tian03a]_.
@@ -342,15 +340,15 @@ class TestIdentify(cases.GraphTestCase):
             Sum.safe(Sum.safe(result_piece_2, [W1]), [Y]),
         )  # Q[X,Y]/Q[X]
         result_4 = identify_district_variables(
-            input_variables=frozenset({Y}),
-            input_district=frozenset({X, Y, W1, W2, W3, W4, W5}),
+            input_variables={Y},
+            input_district={X, Y, W1, W2, W3, W4, W5},
             district_probability=P(W1, W2, W3, W4, W5, X, Y),
             graph=tian_pearl_figure_9a_graph,
-            ordering=list(tian_pearl_figure_9a_graph.topological_sort()),
+            ordering=tian_pearl_figure_9a_graph.topological_sort(),
         )
-        self.assert_expr_equal(result_4, expected_result)
+        self.assert_expr_equal(expected_result, result_4)
 
-    def test_identify_4_with_population_probabilities(self):
+    def test_identify_4_with_population_probabilities(self) -> None:
         """Further test Lines 4-7 of Algorithm 5 of [correa22a]_.
 
         Source: the example from page 29 of [tian03a]_, requiring all probabilities be
@@ -383,15 +381,13 @@ class TestIdentify(cases.GraphTestCase):
             Sum.safe(Sum.safe(result_piece_2, [W1]), [Y]),
         )  # Q[X,Y]/Q[X]
         result_4 = identify_district_variables(
-            input_variables=frozenset({Y}),
-            input_district=frozenset({X, Y, W1, W2, W3, W4, W5}),
+            input_variables={Y},
+            input_district={X, Y, W1, W2, W3, W4, W5},
             district_probability=PP[Pi1](W1, W2, W3, W4, W5, X, Y),
             graph=tian_pearl_figure_9a_graph,
-            ordering=list(tian_pearl_figure_9a_graph.topological_sort()),
+            ordering=tian_pearl_figure_9a_graph.topological_sort(),
         )
-        logger.debug("Result from identify_district_variables: " + result_4.to_latex())
-        logger.debug("  Expected result: " + expected_result.to_latex())
-        self.assert_expr_equal(result_4, expected_result)
+        self.assert_expr_equal(expected_result, result_4)
 
 
 class TestComputeCFactor(cases.GraphTestCase):
@@ -417,46 +413,46 @@ class TestComputeCFactor(cases.GraphTestCase):
         [expected_result_2_part_1, expected_result_2_part_2, expected_result_2_part_3]
     )
 
-    def test_compute_c_factor_1(self):
+    def test_compute_c_factor_1(self) -> None:
         """First test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
         result_1 = compute_c_factor(
             district=[Y, W1, W3, W2, X],
             subgraph_variables=[X, W4, W2, W3, W1, Y],
             subgraph_probability=P(W1, W2, W3, W4, X, Y),
-            ordering=list(tian_pearl_figure_9a_graph.topological_sort()),
+            ordering=tian_pearl_figure_9a_graph.topological_sort(),
         )
-        self.assert_expr_equal(result_1, self.expected_result_1)
+        self.assert_expr_equal(self.expected_result_1, result_1)
 
-    def test_compute_c_factor_2(self):
+    def test_compute_c_factor_2(self) -> None:
         """Second test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
         result_2 = compute_c_factor(
             district=[W1, X, Y],
             subgraph_variables=[W1, W2, X, Y],
             subgraph_probability=Sum.safe(self.expected_result_1, [W3]),
-            ordering=list(tian_pearl_figure_9a_graph.topological_sort()),
+            ordering=tian_pearl_figure_9a_graph.topological_sort(),
         )
-        self.assert_expr_equal(result_2, self.expected_result_2)
+        self.assert_expr_equal(self.expected_result_2, result_2)
 
-    def test_compute_c_factor_3(self):
+    def test_compute_c_factor_3(self) -> None:
         """Third test of the compute C factor subroutine, based on the example on page 29 of [tian03a]."""
         result_3 = compute_c_factor(
             district=[Y],
             subgraph_variables=[X, Y],
             subgraph_probability=Sum.safe(self.expected_result_2, [W1]),
-            ordering=list(tian_pearl_figure_9a_graph.topological_sort()),
+            ordering=tian_pearl_figure_9a_graph.topological_sort(),
         )
         expected_result_3 = Fraction(
             Sum.safe(self.expected_result_2, [W1]),
             Sum.safe(Sum.safe(self.expected_result_2, [W1]), [Y]),
         )  # Q[X,Y]/Q[X]
-        self.assert_expr_equal(result_3, expected_result_3)
+        self.assert_expr_equal(expected_result_3, result_3)
 
-    def test_compute_c_factor_4(self):
+    def test_compute_c_factor_4(self) -> None:
         """Fourth test of the Compute C Factor function.
 
         Source: [tian03a], the example in section 4.6.
         """
-        ordering = list(tian_pearl_figure_9a_graph.topological_sort())
+        ordering = tian_pearl_figure_9a_graph.topological_sort()
         district = [W1, W3, W2, X, Y]
         subgraph_variables = [W1, W3, W2, W4, X, Y]
         subgraph_probability = P(W1, W3, W2, W4, X, Y)
@@ -473,7 +469,7 @@ class TestComputeCFactor(cases.GraphTestCase):
             subgraph_probability=subgraph_probability,
             ordering=ordering,
         )
-        self.assert_expr_equal(result_4, expected_result_4)
+        self.assert_expr_equal(expected_result_4, result_4)
         # TODO: As a test, have Q condition on variables in the C factor and see what happens
         #       when you apply Lemma 4(ii) but especially Lemma 1.
         # TODO: Currently when the input Q is an instance of Sum, we immediately
@@ -481,17 +477,17 @@ class TestComputeCFactor(cases.GraphTestCase):
         #       have a sum applied to a simple probability. Make sure we can't
         #       have Q set to something like $Sum_{W3}{W4 | W3}$.
 
-    def test_compute_c_factor_5(self):
+    def test_compute_c_factor_5(self) -> None:
         """Fifth test of the Compute C Factor function.
 
         Testing Lemma 1 as called from _compute_c_factor, conditioning on a variable as
         part of the input Q value for the graph. Source: [tian03a], the example in
         section 4.6.
         """
-        ordering = list(tian_pearl_figure_9a_graph.topological_sort())
+        ordering = tian_pearl_figure_9a_graph.topological_sort()
         district = [W1, W3, W2, X, Y]
         subgraph_variables = [W1, W3, W2, W4, X, Y]
-        subgraph_probability = P(W1, W3, W2, W4, X, Y | W5)
+        subgraph_probability = P(W1, W3, W2, W4, X, Y | W5)  # type:ignore[arg-type]
         expected_result_5 = (
             P(Y | [W1, W2, W3, W4, X, W5])
             * P(X | [W1, W2, W3, W4, W5])
@@ -505,16 +501,16 @@ class TestComputeCFactor(cases.GraphTestCase):
             subgraph_probability=subgraph_probability,
             ordering=ordering,
         )
-        self.assert_expr_equal(result_5, expected_result_5)
+        self.assert_expr_equal(expected_result_5, result_5)
 
-    def test_compute_c_factor_5_with_population_probabilities(self):
+    def test_compute_c_factor_5_with_population_probabilities(self) -> None:
         """Fifth test of the Compute C Factor function, using population probabilities.
 
         Testing Lemma 1 as called from _compute_c_factor, conditioning on a variable as
         part of the input Q value for the graph. Source: [tian03a], the example in
         section 4.6.
         """
-        ordering = list(tian_pearl_figure_9a_graph.topological_sort())
+        ordering = tian_pearl_figure_9a_graph.topological_sort()
         district = [W1, W3, W2, X, Y]
         subgraph_variables = [W1, W3, W2, W4, X, Y]
         subgraph_probability = PP[Pi2](W1, W3, W2, W4, X, Y | W5)
@@ -531,17 +527,9 @@ class TestComputeCFactor(cases.GraphTestCase):
             subgraph_probability=subgraph_probability,
             ordering=ordering,
         )
-        logger.debug(
-            "In test_compute_c_factor_5_with_population_probabilities: expected_result = "
-            + expected_result_5.to_latex()
-        )
-        logger.debug(
-            "In test_compute_c_factor_5_with_population_probabilities: result = "
-            + result_5.to_latex()
-        )
-        self.assert_expr_equal(result_5, expected_result_5)
+        self.assert_expr_equal(expected_result_5, result_5)
 
-    def test_compute_c_factor_6(self):
+    def test_compute_c_factor_6(self) -> None:
         """Sixth test of the Compute C Factor function.
 
         Here we test a case in which the input probability is neither a product, sum,
@@ -567,30 +555,28 @@ class TestComputeCFactor(cases.GraphTestCase):
 class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCase):
     """Test the use of Lemma 1, part (i), of [tian03a]_ to compute a C factor."""
 
-    def test_compute_c_factor_conditioning_on_topological_predecessors_part_1(self):
+    def test_compute_c_factor_conditioning_on_topological_predecessors_part_1(self) -> None:
         """First test of Lemma 1, part (i) (Equation 37 in [tian03a]_.
 
         Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
         ordering = [W1, W3, W2, W4, X, Y]
         part_1_graph = tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
-        result_1 = compute_c_factor_conditioning_on_topological_predecessors(
+        actual = compute_c_factor_conditioning_on_topological_predecessors(
             district=[Y, W1, W3, W2, X],
             ordering=ordering,
             graph_probability=part_1_graph.joint_probability(),
         )
-        self.assert_expr_equal(
-            result_1,
-            Product.safe(
-                [
-                    P(W1),
-                    P(W3 | W1),
-                    P(W2 | (W3, W1)),
-                    P(X | (W1, W3, W2, W4)),
-                    P(Y | (W1, W3, W2, W4, X)),
-                ]
-            ),
+        expected = Product.safe(
+            [
+                P(W1),
+                P(W3 | W1),
+                P(W2 | (W3, W1)),
+                P(X | (W1, W3, W2, W4)),
+                P(Y | (W1, W3, W2, W4, X)),
+            ]
         )
+        self.assert_expr_equal(expected, actual)
         # District contains no variables
         self.assertRaises(
             TypeError,
@@ -608,7 +594,7 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
             graph_probability=part_1_graph.joint_probability(),
         )
 
-    def test_compute_c_factor_conditioning_on_topological_predecessors_part_2(self):
+    def test_compute_c_factor_conditioning_on_topological_predecessors_part_2(self) -> None:
         """Second test of Lemma 1, part (i) (Equation 37 in [tian03a]_.
 
         This one handles a graph_probability conditioning on variables. Source: The
@@ -616,23 +602,21 @@ class TestComputeCFactorConditioningOnTopologicalPredecessors(cases.GraphTestCas
         """
         # working with tian_pearl_figure_9a_graph.subgraph([Y, X, W1, W2, W3, W4])
         ordering = [W1, W3, W2, W4, X, Y]
-        result_1 = compute_c_factor_conditioning_on_topological_predecessors(
+        actual = compute_c_factor_conditioning_on_topological_predecessors(
             district=[Y, W1, W3, W2, X],
             ordering=ordering,
-            graph_probability=P(Y, X, W1, W2, W3, W4 | W5),
+            graph_probability=P(Y, X, W1, W2, W3, W4 | W5),  # type:ignore[arg-type]
         )
-        self.assert_expr_equal(
-            result_1,
-            Product.safe(
-                [
-                    P(W1 | W5),
-                    P(W3 | (W1, W5)),
-                    P(W2 | (W3, W1, W5)),
-                    P(X | (W1, W3, W2, W4, W5)),
-                    P(Y | (W1, W3, W2, W4, X, W5)),
-                ]
-            ),
+        expected = Product.safe(
+            [
+                P(W1 | W5),
+                P(W3 | (W1, W5)),
+                P(W2 | (W3, W1, W5)),
+                P(X | (W1, W3, W2, W4, W5)),
+                P(Y | (W1, W3, W2, W4, X, W5)),
+            ]
         )
+        self.assert_expr_equal(expected, actual)
 
 
 class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCase):
@@ -683,15 +667,13 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
     expected_result_2 = Fraction(expected_result_2_num, expected_result_2_den)
 
     # Same thing, but with population probabilities
-    # @cthoyt mypy throws an error for each appearance of PP[] below:
-    # error: Value of type "type[PopulationProbabilityBuilderType]" is not indexable  [index]
     result_piece_pp = Product.safe(
         [
-            PP[Pi1](W1),  # type: ignore[index]
-            PP[Pi1](W3 | W1),  # type: ignore[index]
-            PP[Pi1](W2 | (W3, W1)),  # type: ignore[index]
-            PP[Pi1](X | (W1, W3, W2, W4)),  # type: ignore[index]
-            PP[Pi1](Y | (W1, W3, W2, W4, X)),  # type: ignore[index]
+            PP[Pi1](W1),
+            PP[Pi1](W3 | W1),
+            PP[Pi1](W2 | (W3, W1)),
+            PP[Pi1](X | (W1, W3, W2, W4)),
+            PP[Pi1](Y | (W1, W3, W2, W4, X)),
         ]
     )
     expected_result_1_part_1_pp = Fraction(
@@ -711,7 +693,7 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
     expected_result_2_den_pp = Sum.safe(Sum.safe(expected_result_1_pp, [W1]), [Y])
     expected_result_2_pp = Fraction(expected_result_2_num_pp, expected_result_2_den_pp)
 
-    def test_compute_c_factor_marginalizing_over_topological_successors_part_1(self):
+    def test_compute_c_factor_marginalizing_over_topological_successors_part_1(self) -> None:
         """First test of Lemma 4, part (ii) (Equations 71 and 72 in [tian03a]_.
 
         Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
@@ -719,30 +701,23 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={W1, X, Y},
             graph_probability=Sum.safe(self.result_piece, [W3]),
-            ordering=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
+            ordering=tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort(),
         )
-        logger.debug(
-            "In first test of Lemma 4(ii): expecting this result: " + str(self.expected_result_1)
-        )
-        self.assert_expr_equal(result, self.expected_result_1)
+        self.assert_expr_equal(self.expected_result_1, result)
 
-    def test_compute_c_factor_marginalizing_over_topological_successors_part_2(self):
+    def test_compute_c_factor_marginalizing_over_topological_successors_part_2(self) -> None:
         """Second test of Lemma 4, part (ii) (Equations 71 and 72 in [tian03a]_.
 
         Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
-        logger.debug(
-            "In second test of Lemma 4(ii): expecting this result: " + str(self.expected_result_2)
-        )
-        logger.debug("Expected_result_1 = " + str(self.expected_result_1))
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1, [W1]),
-            ordering=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
+            ordering=tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort(),
         )
-        self.assert_expr_equal(result, self.expected_result_2)
+        self.assert_expr_equal(self.expected_result_2, result)
 
-    def test_compute_c_factor_marginalizing_over_topological_successors_part_3(self):
+    def test_compute_c_factor_marginalizing_over_topological_successors_part_3(self) -> None:
         """First test of Equations 71 and 72 in [tian03a]_ using population probabilities.
 
         Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
@@ -750,37 +725,29 @@ class TestComputeCFactorMarginalizingOverTopologicalSuccessors(cases.GraphTestCa
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={W1, X, Y},
             graph_probability=Sum.safe(self.result_piece_pp, [W3]),
-            ordering=list(tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort()),
+            ordering=tian_pearl_figure_9a_graph.subgraph({W1, W2, X, Y}).topological_sort(),
         )
-        logger.debug(
-            "In first test of Lemma 4(ii): expecting this result: "
-            + self.expected_result_1_pp.to_latex()
-        )
-        self.assert_expr_equal(result, self.expected_result_1_pp)
+        self.assert_expr_equal(self.expected_result_1_pp, result)
 
-    def test_compute_c_factor_marginalizing_over_topological_successors_part_4(self):
+    def test_compute_c_factor_marginalizing_over_topological_successors_part_4(self) -> None:
         """Second test of Equations 71 and 72 in [tian03a]_ using population probabilities.
 
         Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
         """
-        logger.debug(
-            "In second test of Lemma 4(ii): expecting this result: "
-            + self.expected_result_2.to_latex()
-        )
-        logger.debug("Expected_result_1 = " + self.expected_result_1_pp.to_latex())
         result = compute_c_factor_marginalizing_over_topological_successors(
             district={Y},
             graph_probability=Sum.safe(self.expected_result_1_pp, [W1]),
-            ordering=list(tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort()),
+            ordering=tian_pearl_figure_9a_graph.subgraph({X, Y}).topological_sort(),
         )
-        logger.debug("Expected result = " + self.expected_result_2_pp.to_latex())
-        self.assert_expr_equal(result, self.expected_result_2_pp)
+        self.assert_expr_equal(self.expected_result_2_pp, result)
 
 
 class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphTestCase):
     """Test the use of Equation 72 in Lemma 1, part (ii), of [tian03a]_."""
 
-    def test_compute_q_value_of_variables_with_low_topological_ordering_indices_part_1(self):
+    def test_compute_q_value_of_variables_with_low_topological_ordering_indices_part_1(
+        self,
+    ) -> None:
         """First test of Equation 72 in [tian03a]_.
 
         Source: RJC's mind.
@@ -792,7 +759,8 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
             ordering=ordering,
         )
         self.assert_expr_equal(
-            result, Sum.safe(P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z), [Y])
+            Sum.safe(P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z), [Y]),
+            result,
         )
         # Variable not in the graph
         self.assertRaises(
@@ -803,7 +771,9 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
             ordering=ordering,
         )
 
-    def test_compute_q_value_of_variables_with_low_topological_ordering_indices_part_2(self):
+    def test_compute_q_value_of_variables_with_low_topological_ordering_indices_part_2(
+        self,
+    ) -> None:
         r"""Second test of Equation 72 in [tian03a]_, checking $Q[H^{(0)}]=Q[\emptyset]$.
 
         Source: RJC's mind.
@@ -814,13 +784,13 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
             expression=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             ordering=ordering,
         )
-        self.assert_expr_equal(result, One())
+        self.assert_expr_equal(One(), result)
 
 
 class TestComputeAncestralSetQValue(cases.GraphTestCase):
     """Test the use of Lemma 3 (i.e., Equation 69) of [tian03a]_ to compute a C factor."""
 
-    def test_compute_ancestral_set_q_value_part_1(self):
+    def test_compute_ancestral_set_q_value_part_1(self) -> None:
         """First test of Lemma 3 in [tian03a]_ (Equation 69).
 
         Source: The example on p. 30 of [tian03a]_, run initially through [tikka20a]_.
