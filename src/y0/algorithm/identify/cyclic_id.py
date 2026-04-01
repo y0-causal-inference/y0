@@ -55,9 +55,9 @@ def cyclic_id(  # noqa:C901
     :param interventions: Intervention variables $W$
     :param ordering: Ordering of variables in the graph. If not given, an apt-order is
         calculated with :func:`get_apt_order`
-    :param base_distribution: Optional interventional distribution P[do(J)](V).
-        If provided, identifies P(Y|do(W)) given data from do(J) experiment.
-        If None, uses observational data P(V).
+    :param base_distribution: Optional interventional distribution P[do(J)](V). If
+        provided, identifies P(Y|do(W)) given data from do(J) experiment. If None, uses
+        observational data P(V).
 
     :returns: Identified causal effect $P(Y | do(W))$
 
@@ -461,11 +461,10 @@ def identify_district_variables_cyclic(
     intervention_set: set[Variable] | None = None,  # FIXME undocumented
     background_interventions: set[Variable] | None = None,  # FIXME undocumented
 ) -> Expression | None:
-    r"""
-    Generalized district identification for line 23 in IDCD.
+    r"""Generalized district identification for line 23 in IDCD.
 
-    This is a generalized version of identify_district_variables from
-    the Tian & Pearl implementation, and checks for confounding.
+    This is a generalized version of identify_district_variables from the Tian & Pearl
+    implementation, and checks for confounding.
 
     Three cases:
 
@@ -478,6 +477,7 @@ def identify_district_variables_cyclic(
     :param district_probability: Distribution Q[T] over the district
     :param graph: Full causal graph G
     :param ordering: A topological or apt-order of variables
+
     :returns: Identified distribution Q[C] or None if unidentifiable
     """
     # find the ancestral set A
@@ -584,10 +584,10 @@ def compute_scc_distributions(
 ) -> dict[frozenset[Variable], Expression]:
     r"""Compute distributions for each strongly connected component (SCC).
 
-    For each SCC, compute its conditional distribution by calling the identify_district_variables_cyclic function
-    with apt-order substituted for topological order. This
-    implements Line 23 of Algorithm 1 from the paper: In paper notation: $R_A[S] ← P(S |
-    Pred^G_<(S) ∩ A, do(J U V A))$ where:
+    For each SCC, compute its conditional distribution by calling the
+    identify_district_variables_cyclic function with apt-order substituted for
+    topological order. This implements Line 23 of Algorithm 1 from the paper: In paper
+    notation: $R_A[S] ← P(S | Pred^G_<(S) ∩ A, do(J U V A))$ where:
 
     - $S$ is a strongly connected component (SCC)
     - $Pred^G_<(S)$ are S's predecessors in apt-order
@@ -716,6 +716,7 @@ def initialize_component_distribution(
     :param nodes: The component nodes (SCC)
     :param predecessors: The predecessor nodes in apt-order.
     :param base_distribution: Optional interventional distribution P[do(J)][V]
+
     :returns: Conditional probability P(nodes | predecessors)
     """
     if base_distribution is None:

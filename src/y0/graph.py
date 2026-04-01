@@ -1083,13 +1083,13 @@ def get_projected_subgraph(
 ) -> NxMixedGraph:
     r"""Get subgraph of vertices with projected bidirected edges.
 
-    Implements Definition B.1 (Marginalization of DMGs):
-    For any two nodes u, v in vertices: adds u↔v if they are connected
-    by a path of bidirected edges where ALL intermediate nodes are
-    outside vertices (i.e., in the marginalized set W = V \ A).
+    Implements Definition B.1 (Marginalization of DMGs): For any two nodes u, v in
+    vertices: adds u↔v if they are connected by a path of bidirected edges where ALL
+    intermediate nodes are outside vertices (i.e., in the marginalized set W = V A).
 
     :param graph: The full causal graph
     :param nodes: The set of vertices to keep (A)
+
     :returns: Subgraph with projected bidirected edges
     """
     # W = nodes being marginalized out

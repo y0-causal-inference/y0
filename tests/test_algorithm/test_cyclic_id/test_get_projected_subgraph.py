@@ -35,19 +35,12 @@ class TestGetProjectedSubgraph(cases.GraphTestCase):
                 result = get_projected_subgraph(graph, frozenset(vertices))
                 self.assertFalse(result.undirected.has_edge(u, v))
 
-    # ------------------------------------------------------------------------------
-
     def test_preserved_directed_edges(self) -> None:
         """Case 2: Directed edges between vertices in A are preserved as-is.
 
-        Graph: X→Y
-        Vertices (A): {X, Y}
-        Expected: X→Y is preserved.
+        Graph: X→Y Vertices (A): {X, Y} Expected: X→Y is preserved.
         """
-        graph = NxMixedGraph.from_edges(
-            directed=[(X, Y)],
-            undirected=[],
-        )
+        graph = NxMixedGraph.from_edges(directed=[(X, Y)])
 
         result = get_projected_subgraph(graph, frozenset({X, Y}))
 
@@ -57,14 +50,10 @@ class TestGetProjectedSubgraph(cases.GraphTestCase):
     def test_path_blocked_by_observed_node(self) -> None:
         """Case 4: No projection when intermediate node is in A (not marginalized).
 
-        Graph: X↔Y↔Z
-        Vertices (A): {X, Y, Z}
-        Expected: Original edges X↔Y and Y↔Z preserved, but no X↔Z added.
+        Graph: X↔Y↔Z Vertices (A): {X, Y, Z} Expected: Original edges X↔Y and Y↔Z
+        preserved, but no X↔Z added.
         """
-        graph = NxMixedGraph.from_edges(
-            directed=[],
-            undirected=[(X, Y), (Y, Z)],
-        )
+        graph = NxMixedGraph.from_edges(undirected=[(X, Y), (Y, Z)])
 
         result = get_projected_subgraph(graph, frozenset({X, Y, Z}))
 
