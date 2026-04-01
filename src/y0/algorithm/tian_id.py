@@ -107,18 +107,17 @@ def identify_district_variables(  # noqa:C901
     if ancestral_set == input_variables:
         logger.debug("In identify_district_variables: A = C. Applying Lemma 3.")
         logger.debug("   Subgraph_probability = " + district_probability.to_latex())
-        rv = compute_ancestral_set_q_value(
+        return compute_ancestral_set_q_value(
             ancestral_set=ancestral_set,
             subgraph_variables=input_district,
             subgraph_probability=district_probability,
             ordering=ordering,
         )
-        logger.debug("   Returning Q value: " + rv.to_latex())
     elif ancestral_set == input_district:
         logger.debug("In identify_district_variables: A = T. Returning None (i.e., FAIL).")
         logger.debug("   A = " + str(input_district))
         logger.debug("   T = " + str(ancestral_set))
-        rv = None
+        return None
     elif input_variables.issubset(ancestral_set) and ancestral_set.issubset(input_district):
         ancestral_set_subgraph = graph.subgraph(ordered_ancestral_set)
         ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
@@ -142,25 +141,17 @@ def identify_district_variables(  # noqa:C901
                 ordering=ordering,
             )
         elif isinstance(district_probability, Probability):
-            logger.debug(
-                "About to get ancestral_set_probability. district_probability = "
-                + district_probability.to_latex()
-            )
-            logger.debug(
-                "   Is the district_probability a PopulationProbability? "
-                + str(isinstance(district_probability, PopulationProbability))
+            distribution = (
+                ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
+                | district_probability.parents
             )
             if isinstance(district_probability, PopulationProbability):
                 ancestral_set_probability = PopulationProbability(
                     population=district_probability.population,
-                    distribution=ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
-                    | district_probability.parents,
+                    distribution=distribution,
                 )
             else:
-                ancestral_set_probability = P(
-                    ordered_ancestral_set[0].joint(ordered_ancestral_set[1:])
-                    | district_probability.parents
-                )
+                ancestral_set_probability = P(distribution)
             logger.debug(
                 "Got ancestral_set_probability. Result = " + ancestral_set_probability.to_latex()
             )
@@ -187,20 +178,15 @@ def identify_district_variables(  # noqa:C901
         logger.debug("    Q[T'] =" + str(targeted_ancestral_set_subgraph_district_probability))
         logger.debug("    graph nodes = " + str(list(graph.nodes())))
         logger.debug("    topo = " + str(ordering))
-        rv = identify_district_variables(
+        return identify_district_variables(
             input_variables=input_variables,
             input_district=targeted_ancestral_set_subgraph_district,
             district_probability=targeted_ancestral_set_subgraph_district_probability,
             graph=graph,
             ordering=ordering,
         )
-        logger.debug(
-            "In identify_district_variables: returned from recursive call to identify_district_variables."
-        )
-        logger.debug("    Return value = " + str(rv))
     else:
         raise NotImplementedError
-    return rv
 
 
 def compute_c_factor_conditioning_on_topological_predecessors(
