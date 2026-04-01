@@ -12,7 +12,6 @@ from y0.algorithm.tian_id import (
     compute_c_factor_conditioning_on_topological_predecessors,
     compute_c_factor_marginalizing_over_topological_successors,
 )
-
 from .utils import Unidentifiable
 from ..ioscm.utils import (
     get_apt_order,
@@ -120,6 +119,7 @@ def cyclic_id(  # noqa:C901
             new_dist = Distribution(children=remaining_children, parents=remaining_parents)
             base_dist = Probability(new_dist)
         else:
+            # FIXME untested
             base_dist = base_distribution.marginalize(intervention_j)
 
     # line 3: compute ancestral closure H in the mutilated graph G \ W
@@ -530,6 +530,7 @@ def identify_district_variables_cyclic(
                 ].index(True)  # FIXME what is going on here?
             ]
         )
+
         if (
             surgical_graph.subgraph(
                 targeted_ancestral_set_subgraph_district
@@ -544,23 +545,24 @@ def identify_district_variables_cyclic(
                     ordering=subgraph_ordering,
                 )
             )
-        else:  # TODO unnest
-            if isinstance(ancestral_set_probability_q_a, Probability):
-                targeted_ancestral_set_subgraph_district_probability = (
-                    compute_c_factor_conditioning_on_topological_predecessors(
-                        district=targeted_ancestral_set_subgraph_district,
-                        graph_probability=ancestral_set_probability_q_a,
-                        ordering=subgraph_ordering,
-                    )
+        elif isinstance(ancestral_set_probability_q_a, Probability):
+            # FIXME untested
+            targeted_ancestral_set_subgraph_district_probability = (
+                compute_c_factor_conditioning_on_topological_predecessors(
+                    district=targeted_ancestral_set_subgraph_district,
+                    graph_probability=ancestral_set_probability_q_a,
+                    ordering=subgraph_ordering,
                 )
-            else:
-                targeted_ancestral_set_subgraph_district_probability = (
-                    compute_c_factor_marginalizing_over_topological_successors(
-                        district=targeted_ancestral_set_subgraph_district,
-                        graph_probability=ancestral_set_probability_q_a,
-                        ordering=subgraph_ordering,
-                    )
+            )
+        else:
+            targeted_ancestral_set_subgraph_district_probability = (
+                compute_c_factor_marginalizing_over_topological_successors(
+                    district=targeted_ancestral_set_subgraph_district,
+                    graph_probability=ancestral_set_probability_q_a,
+                    ordering=subgraph_ordering,
                 )
+            )
+
         # recurse with a smaller district
         return identify_district_variables_cyclic(
             input_variables=input_variables,
@@ -571,6 +573,8 @@ def identify_district_variables_cyclic(
             intervention_set=intervention_set,
             background_interventions=background_interventions,
         )
+
+    # FIXME untested
     return None
 
 
@@ -626,6 +630,7 @@ def compute_scc_distributions(
             background_interventions=background_interventions,
         )
         if result is None:
+            # FIXME untested
             raise Unidentifiable(f"identify_district_variables_cyclic returned None for SCC {scc}")
         scc_distributions[scc] = result
 
