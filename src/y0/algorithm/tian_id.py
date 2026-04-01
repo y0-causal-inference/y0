@@ -299,8 +299,8 @@ def compute_c_factor_conditioning_on_topological_predecessors(
 
 def compute_q_value_of_variables_with_low_topological_ordering_indices(
     *,
-    vertex: Variable | None,
-    graph_probability: Expression,  # Q[H]
+    node: Variable | None,
+    expression: Expression,  # Q[H]
     ordering: Sequence[Variable],
 ) -> Expression:
     r"""Compute the Q value of a set of variables according to [tian03a]_, Equation 72.
@@ -325,8 +325,8 @@ def compute_q_value_of_variables_with_low_topological_ordering_indices(
 
     (The second equation above is Equation 72.)
 
-    :param vertex: The $i^{th}$ variable in topological order
-    :param graph_probability: The probability of $H$ corresponding to $Q[H]$ in Equation
+    :param node: The $i^{th}$ variable in topological order
+    :param expression: The probability of $H$ corresponding to $Q[H]$ in Equation
         72.
     :param ordering: a topological sorting of the subgraph under analysis, $G_{H}$.
 
@@ -336,24 +336,22 @@ def compute_q_value_of_variables_with_low_topological_ordering_indices(
         topological ordering of graph vertices.
     """
     # $Q[H^{(0)}] = Q[\emptyset] = 1$
-    if vertex is None:
+    if node is None:
         return One()
-    variables = set(ordering)
     logger.debug(
         "In _compute_q_value_of_variables_with_low_topological_ordering_indices: input vertex is "
-        + str(vertex)
+        + str(node)
     )
-    logger.debug("   and variables are " + str(variables))
-    logger.debug("   and topo is " + str(ordering))
-    if vertex not in variables:
+    logger.debug("   and ordering is %s", ordering)
+    if node not in ordering:
         raise KeyError(
             "In _compute_q_value_of_variables_with_low_topological_ordering_indices: input vertex "
             + "%s is not in the input graph.",
-            vertex,
+            node,
         )
 
-    ranges = ordering[ordering.index(vertex) + 1 :]
-    return Sum.safe(graph_probability, ranges)
+    ranges = ordering[ordering.index(node) + 1 :]
+    return Sum.safe(expression, ranges)
 
 
 def compute_c_factor_marginalizing_over_topological_successors(
@@ -394,24 +392,17 @@ def compute_c_factor_marginalizing_over_topological_successors(
 
     def _get_expression_from_index(index: int) -> Expression:  # Compute $Q[H^{i}]$ given i
         current_index_expr = compute_q_value_of_variables_with_low_topological_ordering_indices(
-            vertex=ordering[index], graph_probability=graph_probability, ordering=ordering
+            node=ordering[index], expression=graph_probability, ordering=ordering
         )
         if index == 0:
             return current_index_expr
         previous_index_expr = compute_q_value_of_variables_with_low_topological_ordering_indices(
-            vertex=ordering[index - 1], graph_probability=graph_probability, ordering=ordering
+            node=ordering[index - 1], expression=graph_probability, ordering=ordering
         )
         return Fraction(current_index_expr, previous_index_expr)
 
-    expressions = []
-    for vertex in district:
-        index = ordering.index(vertex)
-        expression = _get_expression_from_index(index)
-        expressions.append(expression)
-
-    rv = Product.safe(expressions)
-    # TODO: We can simplify this product by cancelling terms in the numerator and denominator.
-    logger.debug("Returning product: %s", rv)
+    rv = Product.safe(_get_expression_from_index(ordering.index(vertex)) for vertex in district)
+    # TODO simplify this product by cancelling terms in the numerator and denominator.
     return rv
 
 

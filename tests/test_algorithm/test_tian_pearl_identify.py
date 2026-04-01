@@ -787,8 +787,8 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
         """
         ordering = figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()
         result = compute_q_value_of_variables_with_low_topological_ordering_indices(
-            vertex=W,
-            graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
+            node=W,
+            expression=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             ordering=ordering,
         )
         self.assert_expr_equal(
@@ -810,8 +810,8 @@ class TestComputeQValueOfVariablesWithLowTopologicalOrderingIndices(cases.GraphT
         """
         ordering = figure_2a_graph.subgraph({Z, X, Y, W}).topological_sort()
         result = compute_q_value_of_variables_with_low_topological_ordering_indices(
-            vertex=None,
-            graph_probability=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
+            node=None,
+            expression=P(Y | W, X, Z) * P(W | X, Z) * P(X | Z) * P(Z),
             ordering=ordering,
         )
         self.assert_expr_equal(result, One())
