@@ -7,17 +7,17 @@ import logging
 from collections.abc import Iterable, Sequence
 from typing import Annotated
 
-from y0.algorithm.tian_id import (
-    compute_ancestral_set_q_value,
-    compute_c_factor_conditioning_on_topological_predecessors,
-    compute_c_factor_marginalizing_over_topological_successors,
-)
 from .utils import Unidentifiable
 from ..ioscm.utils import (
     get_apt_order,
     get_consolidated_district,
     get_graph_consolidated_districts,
     get_strongly_connected_components,
+)
+from ..tian_id import (
+    compute_ancestral_set_q_value,
+    compute_c_factor_conditioning_on_topological_predecessors,
+    compute_c_factor_marginalizing_over_topological_successors,
 )
 from ...dsl import Distribution, Expression, Probability, Product, Variable
 from ...graph import NxMixedGraph, _ensure_set, get_projected_subgraph
@@ -498,84 +498,84 @@ def identify_district_variables_cyclic(
     if ancestral_set == input_district:
         return None
 
-    # TODO unnest (flip condition and return none early)
+    if not input_variables.issubset(ancestral_set) or not ancestral_set.issubset(input_district):
+        # FIXME unttested
+        return None
+
     # recursive case: find the sub-district T' containing C in the induced subgraph G[A]
-    if input_variables.issubset(ancestral_set) and ancestral_set.issubset(input_district):
-        ordered_ancestral_set = [v for v in ordering if v in ancestral_set]
 
-        ancestral_set_probability_q_a = compute_ancestral_set_q_value(
-            ancestral_set=ancestral_set,
-            subgraph_variables=input_district,
-            subgraph_probability=district_probability,
-            ordering=ordering,
+    ordered_ancestral_set = [v for v in ordering if v in ancestral_set]
+
+    ancestral_set_probability_q_a = compute_ancestral_set_q_value(
+        ancestral_set=ancestral_set,
+        subgraph_variables=input_district,
+        subgraph_probability=district_probability,
+        ordering=ordering,
+    )
+
+    # FIXME redundant of ordered_ancestral_set
+    subgraph_ordering = [v for v in ordering if v in ancestral_set]
+
+    all_nodes = set(graph.nodes())
+    full_surgery_set = (all_nodes - set(ancestral_set)) | (background_interventions or set())
+    surgical_graph = graph.remove_in_edges(full_surgery_set)
+
+    # G[A]: induced subgraph on ancestral set
+    ancestral_set_subgraph = get_projected_subgraph(surgical_graph, ordered_ancestral_set)
+
+    ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
+
+    # find district T' containing target variables C
+    targeted_ancestral_set_subgraph_district = set(
+        ancestral_set_subgraph_districts[
+            [
+                input_variables.issubset(district) for district in ancestral_set_subgraph_districts
+            ].index(True)  # FIXME what is going on here?
+        ]
+    )
+
+    if (
+        surgical_graph.subgraph(
+            targeted_ancestral_set_subgraph_district
+        ).undirected.number_of_edges()
+        > 0
+    ):
+        # using Lemma 4 to extract Q[T'] from Q[A] which works for both confounded and unconfounded T'
+        targeted_ancestral_set_subgraph_district_probability = (
+            compute_c_factor_marginalizing_over_topological_successors(
+                district=targeted_ancestral_set_subgraph_district,
+                graph_probability=ancestral_set_probability_q_a,
+                ordering=subgraph_ordering,
+            )
+        )
+    elif isinstance(ancestral_set_probability_q_a, Probability):
+        # FIXME untested
+        targeted_ancestral_set_subgraph_district_probability = (
+            compute_c_factor_conditioning_on_topological_predecessors(
+                district=targeted_ancestral_set_subgraph_district,
+                graph_probability=ancestral_set_probability_q_a,
+                ordering=subgraph_ordering,
+            )
+        )
+    else:
+        targeted_ancestral_set_subgraph_district_probability = (
+            compute_c_factor_marginalizing_over_topological_successors(
+                district=targeted_ancestral_set_subgraph_district,
+                graph_probability=ancestral_set_probability_q_a,
+                ordering=subgraph_ordering,
+            )
         )
 
-        subgraph_ordering = [v for v in ordering if v in ancestral_set]
-
-        all_nodes = set(graph.nodes())
-        full_surgery_set = (all_nodes - set(ancestral_set)) | (background_interventions or set())
-        surgical_graph = graph.remove_in_edges(full_surgery_set)
-
-        # G[A]: induced subgraph on ancestral set
-        ancestral_set_subgraph = get_projected_subgraph(surgical_graph, ordered_ancestral_set)
-
-        ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
-
-        # find district T' containing target variables C
-        targeted_ancestral_set_subgraph_district = set(
-            ancestral_set_subgraph_districts[
-                [
-                    input_variables.issubset(district)
-                    for district in ancestral_set_subgraph_districts
-                ].index(True)  # FIXME what is going on here?
-            ]
-        )
-
-        if (
-            surgical_graph.subgraph(
-                targeted_ancestral_set_subgraph_district
-            ).undirected.number_of_edges()
-            > 0
-        ):
-            # using Lemma 4 to extract Q[T'] from Q[A] which works for both confounded and unconfounded T'
-            targeted_ancestral_set_subgraph_district_probability = (
-                compute_c_factor_marginalizing_over_topological_successors(
-                    district=targeted_ancestral_set_subgraph_district,
-                    graph_probability=ancestral_set_probability_q_a,
-                    ordering=subgraph_ordering,
-                )
-            )
-        elif isinstance(ancestral_set_probability_q_a, Probability):
-            # FIXME untested
-            targeted_ancestral_set_subgraph_district_probability = (
-                compute_c_factor_conditioning_on_topological_predecessors(
-                    district=targeted_ancestral_set_subgraph_district,
-                    graph_probability=ancestral_set_probability_q_a,
-                    ordering=subgraph_ordering,
-                )
-            )
-        else:
-            targeted_ancestral_set_subgraph_district_probability = (
-                compute_c_factor_marginalizing_over_topological_successors(
-                    district=targeted_ancestral_set_subgraph_district,
-                    graph_probability=ancestral_set_probability_q_a,
-                    ordering=subgraph_ordering,
-                )
-            )
-
-        # recurse with a smaller district
-        return identify_district_variables_cyclic(
-            input_variables=input_variables,
-            input_district=targeted_ancestral_set_subgraph_district,
-            district_probability=targeted_ancestral_set_subgraph_district_probability,
-            graph=graph,
-            ordering=ordering,
-            intervention_set=intervention_set,
-            background_interventions=background_interventions,
-        )
-
-    # FIXME untested
-    return None
+    # recurse with a smaller district
+    return identify_district_variables_cyclic(
+        input_variables=input_variables,
+        input_district=targeted_ancestral_set_subgraph_district,
+        district_probability=targeted_ancestral_set_subgraph_district_probability,
+        graph=graph,
+        ordering=ordering,
+        intervention_set=intervention_set,
+        background_interventions=background_interventions,
+    )
 
 
 def compute_scc_distributions(
