@@ -202,11 +202,11 @@ def _order_condition_candidates(
     return condition_candidates
 
 
-def _get_key(a_distances, b_distances) -> Callable[[Variable], tuple[float, float, float, str]]:
+def _get_key(a_distances: dict[Variable, int], b_distances: dict[Variable, float]) -> Callable[[Variable], tuple[float, float, float, str]]:
     def key(node: Variable) -> tuple[float, float, float, str]:
         """Rank condition candidates by closeness to the queried pair."""
-        a_distance = a_distances.get(node, float("inf"))
-        b_distance = b_distances.get(node, float("inf"))
+        a_distance: float = a_distances.get(node, float("inf"))
+        b_distance: float = b_distances.get(node, float("inf"))
         # TODO what is the meaning of this key?
         return (a_distance + b_distance, min(a_distance, b_distance), a_distance, str(node))
 
@@ -390,7 +390,7 @@ def d_separations(
 
     :yields: True d-separation judgments
     """
-    n_nodes = graph.number_of_nodes()
+    n_nodes = graph.directed.number_of_nodes()
     for a, b in tqdm(
         combinations(graph.nodes(), 2),
         disable=not verbose,
