@@ -390,13 +390,13 @@ def d_separations(
 
     :yields: True d-separation judgments
     """
-    vertices = tuple(sorted(graph.nodes(), key=str))
+    n_nodes = graph.number_of_nodes()
     for a, b in tqdm(
-        combinations(vertices, 2),
+        combinations(graph.nodes(), 2),
         disable=not verbose,
         desc="Checking d-separations",
         unit="pair",
-        total=len(vertices) * (len(vertices) - 1) // 2,
+        total=n_nodes * (n_nodes - 1) // 2,
     ):
         context = PairSeparationContext.prepare(graph, a, b)
         for conditions in powerset(context.condition_candidates, stop=max_conditions):
