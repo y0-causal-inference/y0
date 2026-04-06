@@ -1,6 +1,6 @@
 """An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Collection, Iterable, Sequence
 from functools import partial
 from itertools import combinations, groupby
 from typing import Any, Literal, NamedTuple, Self, TypeAlias, overload
@@ -176,13 +176,12 @@ class PairSeparationContext(NamedTuple):
         a: Variable,
         b: Variable,
         *,
-        conditions: Iterable[Variable],
+        conditions: Collection[Variable] | None = None,
     ) -> bool:
         """Check if the variables are d-separated."""
-        conditions = set(conditions)
         if conditions:
             evidence_graph = self.evidence_graph.subgraph(
-                set(self.evidence_graph.nodes) - conditions
+                set(self.evidence_graph.nodes).difference(conditions)
             )
         else:
             evidence_graph = self.evidence_graph
@@ -392,13 +391,12 @@ def d_separations(
     :yields: True d-separation judgments
     """
     vertices = tuple(sorted(graph.nodes(), key=str))
-    pairs = tuple(combinations(vertices, 2))
     for a, b in tqdm(
-        pairs,
+        combinations(vertices, 2),
         disable=not verbose,
         desc="Checking d-separations",
         unit="pair",
-        total=len(pairs),
+        total=len(vertices) * (len(vertices) - 1) // 2,
     ):
         context = PairSeparationContext.prepare(graph, a, b)
         for conditions in powerset(context.condition_candidates, stop=max_conditions):

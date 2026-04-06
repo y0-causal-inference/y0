@@ -56,10 +56,7 @@ def _legacy_minimal(
     """Reproduce the legacy minimal-judgement reduction."""
     policy = _legacy_get_topological_policy(graph)
     judgements = sorted(judgements, key=_legacy_judgement_grouper)
-    return {
-        min(vs, key=policy)
-        for _, vs in groupby(judgements, _legacy_judgement_grouper)
-    }
+    return {min(vs, key=policy) for _, vs in groupby(judgements, _legacy_judgement_grouper)}
 
 
 def _legacy_d_separations(
