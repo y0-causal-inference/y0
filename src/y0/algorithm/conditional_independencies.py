@@ -398,6 +398,7 @@ def d_separations(
         unit="pair",
         total=n_nodes * (n_nodes - 1) // 2,
     ):
+        # FIXME why can't conditions be applied when preparing the graph here?
         context = PairSeparationContext.prepare(graph, a, b)
         for conditions in powerset(context.condition_candidates, stop=max_conditions):
             if context.is_d_separated(a, b, conditions=conditions):
