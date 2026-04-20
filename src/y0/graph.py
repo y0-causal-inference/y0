@@ -1073,3 +1073,47 @@ def sympy_nested(glyph: str, *variables: Variable) -> sympy.Symbol:
 
     inner_latex = ",".join(variable.to_latex() for variable in variables)
     return sympy.Symbol(rf"{glyph}_{{{inner_latex}}}")
+
+
+# TODO more detailed documentation, add explicit reference to specific paper.
+# TODO split into own PR, since this is self-contained and independent
+def get_projected_subgraph(
+    graph: NxMixedGraph,
+    nodes: Collection[Variable],
+) -> NxMixedGraph:
+    r"""Get subgraph of vertices with projected bidirected edges.
+
+    Implements Definition B.1 (Marginalization of DMGs): For any two nodes u, v in
+    vertices: adds u↔v if they are connected by a path of bidirected edges where ALL
+    intermediate nodes are outside vertices (i.e., in the marginalized set W = V A).
+
+    :param graph: The full causal graph
+    :param nodes: The set of vertices to keep (A)
+
+    :returns: Subgraph with projected bidirected edges
+    """
+    # W = nodes being marginalized out
+    marginalized_nodes = set(graph.nodes()) - set(nodes)
+
+    # Start with standard subgraph
+    subgraph = graph.subgraph(nodes)
+
+    # TODO simply use `for u, v in itt.combinations(nodes):`
+    # For each pair of vertices, check if connected via bidirected
+    # path through ONLY marginalized nodes
+    nodes_list = list(nodes)
+    for i, u in enumerate(nodes_list):
+        for v in nodes_list[i + 1 :]:
+            if subgraph.undirected.has_edge(u, v):
+                continue  # Already directly connected
+
+            # Build temporary graph: only u, v, and marginalized nodes
+            # connected by bidirected edges
+            temp_nodes = {u, v} | marginalized_nodes
+            temp_graph = graph.undirected.subgraph(temp_nodes)
+
+            # Check if u and v are connected through marginalized nodes
+            if nx.has_path(temp_graph, u, v):
+                subgraph.add_undirected_edge(u, v)
+
+    return subgraph

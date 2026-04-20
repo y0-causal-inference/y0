@@ -7,7 +7,6 @@ import logging
 from collections.abc import Iterable, Sequence
 from typing import Annotated
 
-from .api import identify_outcomes
 from .utils import Unidentifiable
 from ..ioscm.utils import (
     get_apt_order,
@@ -15,11 +14,17 @@ from ..ioscm.utils import (
     get_graph_consolidated_districts,
     get_strongly_connected_components,
 )
-from ...dsl import Expression, Probability, Product, Variable
-from ...graph import NxMixedGraph, _ensure_set
+from ..tian_id import (
+    compute_ancestral_set_q_value,
+    compute_c_factor_conditioning_on_topological_predecessors,
+    compute_c_factor_marginalizing_over_topological_successors,
+)
+from ...dsl import Distribution, Expression, Probability, Product, Variable
+from ...graph import NxMixedGraph, _ensure_set, get_projected_subgraph
 from ...util import InPaperAs
 
 __all__ = [
+    "Unidentifiable",
     "compute_scc_distributions",
     "cyclic_id",
     "get_apt_order_predecessors",
@@ -40,6 +45,7 @@ def cyclic_id(  # noqa:C901
     interventions: Annotated[Variable | Iterable[Variable], InPaperAs("W")],
     *,
     ordering: Sequence[Variable] | None = None,
+    base_distribution: Probability | None = None,
 ) -> Annotated[Expression, InPaperAs(r"P(Y \mid do(W))")]:
     """Identify causal effects in cyclic graphs.
 
@@ -48,6 +54,9 @@ def cyclic_id(  # noqa:C901
     :param interventions: Intervention variables $W$
     :param ordering: Ordering of variables in the graph. If not given, an apt-order is
         calculated with :func:`get_apt_order`
+    :param base_distribution: Optional interventional distribution P[do(J)](V). If
+        provided, identifies P(Y|do(W)) given data from do(J) experiment. If None, uses
+        observational data P(V).
 
     :returns: Identified causal effect $P(Y | do(W))$
 
@@ -81,6 +90,38 @@ def cyclic_id(  # noqa:C901
     if outcomes & interventions:
         raise ValueError("Outcomes and interventions must be disjoint sets.")
 
+    intervention_j: set[Variable] = set()
+    base_dist: Expression | None = base_distribution
+    if base_distribution is not None:
+        intervention_j_original, unintervened_dist = base_distribution._help_level_2_distribution()
+        if intervention_j_original is not None:
+            intervention_j = {
+                v.get_base() if hasattr(v, "get_base") else v for v in intervention_j_original
+            }
+        else:
+            raise NotImplementedError()
+
+        if intervention_j & interventions:
+            raise ValueError(
+                f"Background interventions J={intervention_j} and foreground interventions"
+                f"W={interventions} must be disjoint. Cannot intervene on same variable"
+                f"in both data and the query."
+            )
+
+        # mutilate the graph
+        graph = graph.remove_nodes_from(intervention_j)
+
+        # mutilate the distribution
+        if unintervened_dist is not None:
+            remaining_children = unintervened_dist.children - intervention_j
+            remaining_parents = unintervened_dist.parents - intervention_j
+
+            new_dist = Distribution(children=remaining_children, parents=remaining_parents)
+            base_dist = Probability(new_dist)
+        else:
+            # FIXME untested
+            base_dist = base_distribution.marginalize(intervention_j)
+
     # line 3: compute ancestral closure H in the mutilated graph G \ W
     graph_minus_interventions = graph.remove_nodes_from(interventions)
     ancestral_closure = graph_minus_interventions.ancestors_inclusive(outcomes)
@@ -104,6 +145,7 @@ def cyclic_id(  # noqa:C901
             graph=graph,
             district=consolidated_district_of_c,
             ordering=ordering,
+            base_distribution=base_dist,
         )
 
         try:
@@ -112,6 +154,8 @@ def cyclic_id(  # noqa:C901
                 outcomes=set(district_c),
                 district=consolidated_district_of_c,
                 distribution=initial_distribution,
+                # Change #1 - added background intervention parameter
+                background_interventions=intervention_j,
             )
         except Unidentifiable as e:
             # lines 6-8: if that fails, then return FAIL or raise Unidentifiable
@@ -139,6 +183,7 @@ def idcd(
     district: Annotated[set[Variable], InPaperAs("D")],
     *,
     distribution: Annotated[Expression, InPaperAs("Q[D]")] | None = None,
+    background_interventions: set[Variable] | None = None,
     _recursion_level: int = 0,
 ) -> Annotated[Expression, InPaperAs("Q[C]")]:
     r"""Identify causal effects within consolidated districts of cyclic graphs.
@@ -215,7 +260,11 @@ def idcd(
 
     # lines 21-26
     return identify_through_scc_decomposition(
-        graph, outcomes, ancestral_closure, _recursion_level=_recursion_level
+        graph,
+        outcomes,
+        ancestral_closure,
+        background_interventions=background_interventions,
+        _recursion_level=_recursion_level,
     )
 
 
@@ -320,6 +369,7 @@ def identify_through_scc_decomposition(
     outcomes: set[Variable],
     ancestral_closure: set[Variable],
     *,
+    background_interventions: set[Variable] | None = None,
     _recursion_level: int = 0,
 ) -> Expression:
     r"""Identify causal effect through SCC decomposition.
@@ -367,6 +417,10 @@ def identify_through_scc_decomposition(
     nodes: Annotated[set[Variable], InPaperAs("V")] = set(graph.nodes())
     intervention_set: Annotated[set[Variable], InPaperAs("J")] = nodes - ancestral_closure
 
+    # TODO explain why with a code comment
+    if background_interventions is not None:
+        intervention_set.update(background_interventions)
+
     # line 23 - Construct distributions for each SCC
     scc_distributions: Annotated[dict[frozenset[Variable], Expression], InPaperAs("R_A")] = (
         compute_scc_distributions(
@@ -375,6 +429,7 @@ def identify_through_scc_decomposition(
             relevant_sccs=relevant_sccs,
             ancestral_closure=ancestral_closure,
             intervention_set=intervention_set,
+            background_interventions=background_interventions,
         )
     )
 
@@ -391,23 +446,152 @@ def identify_through_scc_decomposition(
         outcomes=outcomes,
         district=consolidated_district,
         distribution=district_distribution,
+        background_interventions=background_interventions,
         _recursion_level=_recursion_level + 1,
+    )
+
+
+def identify_district_variables_cyclic(
+    *,
+    input_variables: set[Variable],
+    input_district: set[Variable],
+    district_probability: Expression,
+    graph: NxMixedGraph,
+    ordering: list[Variable],  # FIXME bad variable name
+    intervention_set: set[Variable] | None = None,  # FIXME undocumented
+    background_interventions: set[Variable] | None = None,  # FIXME undocumented
+) -> Expression | None:
+    r"""Generalized district identification for line 23 in IDCD.
+
+    This is a generalized version of identify_district_variables from the Tian & Pearl
+    implementation, and checks for confounding.
+
+    Three cases:
+
+    - Base Case 1 (A == C): Return Q[A] directly
+    - Base Case 2 (A == T): Return None/FAIL
+    - Case 3 (C ⊂ A ⊂ T): Recurse on smaller district T' found in G[A]
+
+    :param input_variables: Target variables C to identify
+    :param input_district: Consolidated district T containing C
+    :param district_probability: Distribution Q[T] over the district
+    :param graph: Full causal graph G
+    :param ordering: A topological or apt-order of variables
+
+    :returns: Identified distribution Q[C] or None if unidentifiable
+    """
+    # find the ancestral set A
+    district_subgraph = graph.subgraph(input_district)
+    ancestral_set = district_subgraph.ancestors_inclusive(input_variables)
+
+    # check the cases - if A = C
+    if ancestral_set == input_variables:
+        return compute_ancestral_set_q_value(
+            ancestral_set=ancestral_set,
+            subgraph_variables=input_district,
+            subgraph_probability=district_probability,
+            ordering=ordering,
+        )
+    # if A = T
+    # if the ancestral set = district, then the identification fails and cannot isolate
+    # target variables from confounding
+    if ancestral_set == input_district:
+        return None
+
+    if not input_variables.issubset(ancestral_set) or not ancestral_set.issubset(input_district):
+        # FIXME unttested
+        return None
+
+    # recursive case: find the sub-district T' containing C in the induced subgraph G[A]
+
+    ordered_ancestral_set = [v for v in ordering if v in ancestral_set]
+
+    ancestral_set_probability_q_a = compute_ancestral_set_q_value(
+        ancestral_set=ancestral_set,
+        subgraph_variables=input_district,
+        subgraph_probability=district_probability,
+        ordering=ordering,
+    )
+
+    # FIXME redundant of ordered_ancestral_set
+    subgraph_ordering = [v for v in ordering if v in ancestral_set]
+
+    all_nodes = set(graph.nodes())
+    full_surgery_set = (all_nodes - set(ancestral_set)) | (background_interventions or set())
+    surgical_graph = graph.remove_in_edges(full_surgery_set)
+
+    # G[A]: induced subgraph on ancestral set
+    ancestral_set_subgraph = get_projected_subgraph(surgical_graph, ordered_ancestral_set)
+
+    ancestral_set_subgraph_districts = list(ancestral_set_subgraph.districts())
+
+    # find district T' containing target variables C
+    targeted_ancestral_set_subgraph_district = set(
+        ancestral_set_subgraph_districts[
+            [
+                input_variables.issubset(district) for district in ancestral_set_subgraph_districts
+            ].index(True)  # FIXME what is going on here?
+        ]
+    )
+
+    if (
+        surgical_graph.subgraph(
+            targeted_ancestral_set_subgraph_district
+        ).undirected.number_of_edges()
+        > 0
+    ):
+        # using Lemma 4 to extract Q[T'] from Q[A] which works for both confounded and unconfounded T'
+        targeted_ancestral_set_subgraph_district_probability = (
+            compute_c_factor_marginalizing_over_topological_successors(
+                district=targeted_ancestral_set_subgraph_district,
+                graph_probability=ancestral_set_probability_q_a,
+                ordering=subgraph_ordering,
+            )
+        )
+    elif isinstance(ancestral_set_probability_q_a, Probability):
+        # FIXME untested
+        targeted_ancestral_set_subgraph_district_probability = (
+            compute_c_factor_conditioning_on_topological_predecessors(
+                district=targeted_ancestral_set_subgraph_district,
+                graph_probability=ancestral_set_probability_q_a,
+                ordering=subgraph_ordering,
+            )
+        )
+    else:
+        targeted_ancestral_set_subgraph_district_probability = (
+            compute_c_factor_marginalizing_over_topological_successors(
+                district=targeted_ancestral_set_subgraph_district,
+                graph_probability=ancestral_set_probability_q_a,
+                ordering=subgraph_ordering,
+            )
+        )
+
+    # recurse with a smaller district
+    return identify_district_variables_cyclic(
+        input_variables=input_variables,
+        input_district=targeted_ancestral_set_subgraph_district,
+        district_probability=targeted_ancestral_set_subgraph_district_probability,
+        graph=graph,
+        ordering=ordering,
+        intervention_set=intervention_set,
+        background_interventions=background_interventions,
     )
 
 
 def compute_scc_distributions(
     graph: Annotated[NxMixedGraph, InPaperAs("G")],
-    subgraph_a: Annotated[NxMixedGraph, InPaperAs("G[A]")],
+    subgraph_a: Annotated[NxMixedGraph, InPaperAs("G[A]")],  # FIXME unused?
     relevant_sccs: list[frozenset[Variable]],
-    ancestral_closure: Annotated[set[Variable], InPaperAs("A")],
+    ancestral_closure: Annotated[set[Variable], InPaperAs("A")],  # FIXME unused?
     intervention_set: Annotated[set[Variable], InPaperAs("J")],
+    background_interventions: set[Variable] | None = None,  # FIXME undocumented?
 ) -> dict[frozenset[Variable], Expression]:
     r"""Compute distributions for each strongly connected component (SCC).
 
-    For each SCC, compute its conditional distribution by calling the ID algorithm
-    (:func:`identify_outcomes`) with apt-order substituted for topological order. This
-    implements Line 23 of Algorithm 1 from the paper: In paper notation: $R_A[S] ← P(S |
-    Pred^G_<(S) ∩ A, do(J U V A))$ where:
+    For each SCC, compute its conditional distribution by calling the
+    identify_district_variables_cyclic function with apt-order substituted for
+    topological order. This implements Line 23 of Algorithm 1 from the paper: In paper
+    notation: $R_A[S] ← P(S | Pred^G_<(S) ∩ A, do(J U V A))$ where:
 
     - $S$ is a strongly connected component (SCC)
     - $Pred^G_<(S)$ are S's predecessors in apt-order
@@ -424,23 +608,37 @@ def compute_scc_distributions(
     :returns: Dictionary mapping each SCC to its conditional distribution. Keys are
         frozensets of Variables (the SCCs), and values are symbolic Expressions.
     """
-    apt_order_a = get_apt_order(subgraph_a)
-    scc_distributions = {
-        scc: identify_outcomes(
+    full_apt_order = get_apt_order(graph)
+
+    scc_distributions = {}
+    for scc in relevant_sccs:
+        consolidated_district = get_consolidated_district(graph, scc)
+
+        initial_distribution = initialize_district_distribution(
             graph=graph,
-            outcomes=scc,
-            treatments=intervention_set,
-            conditions=get_apt_order_predecessors(scc, apt_order_a, ancestral_closure) or None,
-            strict=True,
-            ordering=apt_order_a,
+            district=consolidated_district,
+            ordering=full_apt_order,
         )
-        for scc in relevant_sccs
-    }
+
+        result = identify_district_variables_cyclic(
+            input_variables=set(scc),
+            input_district=consolidated_district,
+            district_probability=initial_distribution,
+            graph=graph,
+            ordering=full_apt_order,
+            intervention_set=intervention_set,
+            background_interventions=background_interventions,
+        )
+        if result is None:
+            # FIXME untested
+            raise Unidentifiable(f"identify_district_variables_cyclic returned None for SCC {scc}")
+        scc_distributions[scc] = result
+
     return scc_distributions
 
 
 def get_apt_order_predecessors(
-    scc: frozenset[Variable],
+    scc: Iterable[Variable],
     apt_order: list[Variable],
     ancestral_closure: set[Variable],
 ) -> set[Variable]:
@@ -482,6 +680,7 @@ def initialize_district_distribution(
     graph: NxMixedGraph,
     district: set[Variable],
     ordering: Sequence[Variable],
+    base_distribution: Expression | None = None,
 ) -> Expression:
     """Initialize the probability distribution for a given district before identification.
 
@@ -493,20 +692,26 @@ def initialize_district_distribution(
     :param graph: The mixed graph representing the causal structure.
     :param district: The set of variables in the district to initialize.
     :param ordering: Apt-order of variables in the graph.
+    :param intervention: Optional intervention set do(J) to apply to the distribution.
 
     :returns: Initial distribution for the district
     """
     # find all SCCs (feedback loops) within the district
     district_subgraph = graph.subgraph(district)
     sccs = get_strongly_connected_components(district_subgraph)
+
     return Product.safe(
-        initialize_component_distribution(set(scc), _get_predecessors(scc, ordering))
+        initialize_component_distribution(
+            set(scc), _get_predecessors(scc, ordering), base_distribution
+        )
         for scc in sccs
     ).simplify()
 
 
 def initialize_component_distribution(
-    nodes: set[Variable], predecessors: set[Variable]
+    nodes: set[Variable],
+    predecessors: set[Variable],
+    base_distribution: Expression | None = None,
 ) -> Expression:
     """Initialize the probability distribution for a component given its predecessors.
 
@@ -515,10 +720,27 @@ def initialize_component_distribution(
 
     :param nodes: The component nodes (SCC)
     :param predecessors: The predecessor nodes in apt-order.
+    :param base_distribution: Optional interventional distribution P[do(J)][V]
 
     :returns: Conditional probability P(nodes | predecessors)
     """
-    if not predecessors:
-        return Probability.safe(nodes)
+    if base_distribution is None:
+        if not predecessors:
+            return Probability.safe(nodes)
+        return Probability.safe(nodes | predecessors).conditional(predecessors)
+    # Interventional case - use provided distribution
+    # Marginalize to S U P
+    vars_to_keep = nodes | predecessors
+    all_vars = base_distribution.get_variables()
+    vars_to_marginalize = all_vars - vars_to_keep
 
-    return Probability.safe(nodes | predecessors).conditional(predecessors)
+    if vars_to_marginalize:
+        marginalized = base_distribution.marginalize(vars_to_marginalize)
+    else:
+        marginalized = base_distribution
+
+    # Condition on predecessors if any
+    if not predecessors:
+        return marginalized
+
+    return marginalized.conditional(predecessors)
