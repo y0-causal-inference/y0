@@ -110,6 +110,7 @@ unimplemented for the last 15 years of publications including:
 | Counterfactual Transportability | [Correia, Lee, Bareinboim, 2022](https://proceedings.mlr.press/v162/correa22a.html) |
 | Hierarchical Causal Models      | [Weinstein and Blei, 2024](https://arxiv.org/abs/2401.05330)                        |
 | Cyclic ID                       | [Forré and Mooij, 2019](https://arxiv.org/abs/1901.00433v2)                         |
+| Cyclic IDC                      | _ours_                                                                              |
 
 Apply an algorithm to an Acyclic Directed Mixed Graph (ADMG) and a causal query
 to generate an estimand represented in the DSL like:
