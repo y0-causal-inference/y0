@@ -8,8 +8,83 @@ from ..graph import NxMixedGraph
 from ..util import InPaperAs
 
 __all__ = [
+    "rule_1_of_do_calculus_applies",
     "rule_2_of_do_calculus_applies",
+    "rule_3_of_do_calculus_applies",
+    "satisfies_backdoor",
+    "satisfies_frontdoor",
 ]
+
+
+def rule_1_of_do_calculus_applies(
+    graph: NxMixedGraph,
+    *,
+    treatments: set[Variable],
+    outcomes: set[Variable],
+    conditions: set[Variable],
+    observation: Variable,
+) -> bool:
+    """Check if Rule 1 of the Do-Calculus applies. Ref: do_calculus.dfy Rule1_InsertDeleteObservation."""
+    mutilated = graph.remove_in_edges(treatments)
+    return all(
+        are_d_separated(mutilated, outcome, observation, conditions=treatments | conditions)
+        for outcome in outcomes
+    )
+
+
+def rule_3_of_do_calculus_applies(
+    graph: NxMixedGraph,
+    *,
+    treatments: set[Variable],
+    outcomes: set[Variable],
+    conditions: set[Variable],
+    action: Variable,
+) -> bool:
+    """Check if Rule 3 of the Do-Calculus applies. Ref: do_calculus.dfy Rule3_InsertDeleteAction."""
+    gx = graph.remove_in_edges(treatments)
+    ancestors_of_w = gx.ancestors_inclusive(conditions)
+    # Only remove in-edges of action if it is NOT an ancestor of any condition
+    z_not_anc = {action} - ancestors_of_w
+    gxz = gx.remove_in_edges(z_not_anc)
+    return all(
+        are_d_separated(gxz, outcome, action, conditions=treatments | conditions)
+        for outcome in outcomes
+    )
+
+
+def satisfies_backdoor(
+    graph: NxMixedGraph,
+    *,
+    outcomes: set[Variable],
+    treatments: set[Variable],
+    adjustment: set[Variable],
+) -> bool:
+    """Check if adjustment set satisfies the backdoor criterion. Ref: do_calculus.dfy BackdoorAdjustment."""
+    # (i) No adjustment variable may be a proper descendant of any treatment
+    descendants_of_x = graph.descendants_inclusive(treatments)
+    if adjustment & (descendants_of_x - treatments):
+        return False
+    # (ii) Adjustment blocks all backdoor paths (paths through X's parents).
+    # Check Y ⊥ X | Z in G with X's outgoing edges removed — this removes causal
+    # paths and leaves only backdoor paths, matching Dafny DSep which ignores
+    # direct single-step trails between the query nodes.
+    g_xout = graph.remove_out_edges(treatments)
+    return all(
+        are_d_separated(g_xout, outcome, treatment, conditions=adjustment)
+        for outcome in outcomes
+        for treatment in treatments
+    )
+
+
+def satisfies_frontdoor(
+    graph: NxMixedGraph,
+    *,
+    outcomes: set[Variable],
+    treatments: set[Variable],
+    mediators: set[Variable],
+) -> bool:
+    """Check if mediator set satisfies the frontdoor criterion. Ref: do_calculus.dfy FrontdoorCriterion."""
+    raise NotImplementedError
 
 
 # TODO implement rule 1 condition

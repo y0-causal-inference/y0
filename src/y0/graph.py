@@ -629,9 +629,17 @@ class NxMixedGraph:
         sources = _ensure_set(sources)
         return _descendants_inclusive(self.directed, sources)
 
+    def non_descendants(self, node: Variable) -> set[Variable]:
+        """Return all nodes that are not descendants of node (excluding node itself). Ref: dag.dfy NonDescendants."""
+        return set(self.nodes()) - self.descendants_inclusive(node)
+
     def topological_sort(self) -> list[Variable]:
         """Get a topological sort from the directed component of the mixed graph."""
         return list(nx.topological_sort(self.directed))
+
+    def is_acyclic(self) -> bool:
+        """Return True if the directed component is acyclic. Ref: dag.dfy IsDAG."""
+        return nx.is_directed_acyclic_graph(self.directed)
 
     def get_c_components(self) -> list[frozenset[Variable]]:
         """Get the co-components (i.e., districts) in the undirected portion of the graph."""

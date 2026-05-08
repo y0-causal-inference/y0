@@ -596,8 +596,10 @@ def _gen_local_markov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, li
             tests.append((
                 "test_local_markov_chain",
                 f'''    def test_local_markov_chain(self):
-        """Every node v: {{v}} ⊥ NonDesc(v) | Pa(v).
+        """Every node v: {{v}} ⊥ (NonDesc(v) minus Pa(v)) | Pa(v).
 
+        Nodes that are both non-descendants and parents are already conditioned
+        on, so they are excluded from the d-separation query.
         Ref: dag.dfy:{lemma.line} {lemma.name}
         """
         A, B, C = Variable("A"), Variable("B"), Variable("C")
@@ -605,7 +607,7 @@ def _gen_local_markov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, li
         for node in [A, B, C]:
             non_desc = chain.non_descendants(node)
             parents = set(chain.directed.predecessors(node))
-            for nd in non_desc:
+            for nd in non_desc - parents:
                 judgement = are_d_separated(chain, node, nd, conditions=parents)
                 self.assertTrue(
                     judgement.separated,
@@ -629,14 +631,14 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
         """Rule 1 does NOT apply: M is not d-sep from Y given X in G_{{X̄}}.
 
         Graph: X->M->Y with do(X). G_{{X̄}} same (X is source).
-        (Y ⊥ M | {{X}}) fails because M->Y is active.
+        (Y ⊥ M | {{X}}) fails because the path M->Y remains active.
         Ref: do_calculus.dfy:{lemma.line} {lemma.name}
         """
         X, M, Y = Variable("X"), Variable("M"), Variable("Y")
         graph = NxMixedGraph.from_edges(directed=[(X, M), (M, Y)])
         self.assertFalse(
             rule_1_of_do_calculus_applies(
-                graph, treatments={{X}}, outcomes={{Y}}, conditions={{M}}, observation=M,
+                graph, treatments={{X}}, outcomes={{Y}}, conditions=set(), observation=M,
             )
         )''',
                 [],
@@ -644,13 +646,15 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
             tests.append((
                 "test_rule_1_applies_isolated_node",
                 f'''    def test_rule_1_applies_isolated_node(self):
-        """Rule 1 applies: isolated Z is trivially d-sep from Y.
+        """Rule 1 applies: Z is d-sep from Y given X in G_{{X̄}}.
 
-        Graph: X->Y, Z (isolated). Z d-sep from Y in G_{{X̄}}.
+        Graph: X->Y, X->Z. Z and Y share parent X only.
+        After removing in-edges of X: X, Y, Z all have no edges.
+        Y ⊥ Z | X (conditioning on X, the path Y<-X->Z is blocked).
         Ref: do_calculus.dfy:{lemma.line} {lemma.name}
         """
         X, Y, Z = Variable("X"), Variable("Y"), Variable("Z")
-        graph = NxMixedGraph.from_edges(nodes=[Z], directed=[(X, Y)])
+        graph = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z)])
         self.assertTrue(
             rule_1_of_do_calculus_applies(
                 graph, treatments={{X}}, outcomes={{Y}}, conditions=set(), observation=Z,
@@ -685,14 +689,15 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
             tests.append((
                 "test_rule_3_isolated_action",
                 f'''    def test_rule_3_isolated_action(self):
-        """Rule 3: do(Z) deletable when Z is isolated (no effect on Y).
+        """Rule 3: do(Z) deletable when Z has no path to Y after mutilation.
 
-        Graph: X->Y, Z (isolated). Z not ancestor of W={{}}.
-        G_{{X̄, Z̄}} = same. (Y ⊥ Z | X) holds.
+        Graph: X->Y, X->Z. Z not ancestor of W={{}} (empty conditions).
+        G_{{X̄}}: same (X is source). G_{{X̄,Z̄}}: remove Z's in-edges (X->Z gone).
+        In G_{{X̄,Z̄}}: only X->Y; Y ⊥ Z | X holds.
         Ref: do_calculus.dfy:{lemma.line} {lemma.name}
         """
         X, Y, Z = Variable("X"), Variable("Y"), Variable("Z")
-        graph = NxMixedGraph.from_edges(nodes=[Z], directed=[(X, Y)])
+        graph = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z)])
         self.assertTrue(
             rule_3_of_do_calculus_applies(
                 graph, treatments={{X}}, outcomes={{Y}}, conditions=set(), action=Z,
@@ -813,18 +818,153 @@ def _gen_probability_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
             tests.append((
                 "test_bayes_theorem",
                 f'''    def test_bayes_theorem(self):
-        """P(A | B) = P(B | A) * P(A) / P(B).
+        """P(A | B) = P(A, B) / Sum_A P(A, B).
 
+        bayes_expand() uses the marginalization form, which is equivalent to
+        P(B|A)*P(A)/P(B) but expressed via Sum.
         Ref: probability.dfy:{lemma.line} {lemma.name}
         """
-        from y0.dsl import A, B, Fraction, P
+        from y0.dsl import A, B, P, Sum
         from y0.mutate.chain import bayes_expand
 
         result = bayes_expand(P(A | B))
-        expected = Fraction(P(B | A) * P(A), P(B))
+        expected = P(A, B) / Sum[A](P(A, B))
         self.assertEqual(expected, result)''',
                 [],
             ))
+
+    return tests
+
+
+def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, list]]:
+    """Generate algebraic identity tests from probability.dfy axioms.
+
+    The Dafny spec defines Kolmogorov axioms over numerical PMFs.  The y0 DSL
+    is a *symbolic* algebra, so we test the algebraic consequences that the DSL
+    must satisfy: multiplicative identity (One), absorbing element (Zero),
+    joint-distribution commutativity (from Independent_Symmetric), and
+    conditional-distribution commutativity (from CondIndep_Symmetric).
+    """
+    tests = []
+
+    # Find relevant lemmas to attach line refs
+    axiom_norm_line = ""
+    empty_event_line = ""
+    indep_sym_line = ""
+    condindep_sym_line = ""
+    for lemma in lemmas:
+        if lemma.name == "Axiom_Normalization":
+            axiom_norm_line = f"probability.dfy:{lemma.line}"
+        elif lemma.name == "EmptyEventZero":
+            empty_event_line = f"probability.dfy:{lemma.line}"
+        elif lemma.name == "Independent_Symmetric":
+            indep_sym_line = f"probability.dfy:{lemma.line}"
+        elif lemma.name == "CondIndep_Symmetric":
+            condindep_sym_line = f"probability.dfy:{lemma.line}"
+
+    # One is multiplicative identity (Axiom_Normalization consequence)
+    tests.append((
+        "test_one_is_multiplicative_identity_left",
+        f'''    def test_one_is_multiplicative_identity_left(self):
+        """One() * P(A) == P(A).
+
+        Ref: {axiom_norm_line} Axiom_Normalization (algebraic consequence)
+        """
+        from y0.dsl import A, One, P
+
+        self.assertEqual(P(A), One() * P(A))''',
+        [],
+    ))
+    tests.append((
+        "test_one_is_multiplicative_identity_right",
+        f'''    def test_one_is_multiplicative_identity_right(self):
+        """P(A, B) * One() == P(A, B).
+
+        Ref: {axiom_norm_line} Axiom_Normalization (algebraic consequence)
+        """
+        from y0.dsl import A, B, One, P
+
+        self.assertEqual(P(A, B), P(A, B) * One())''',
+        [],
+    ))
+
+    # Zero is multiplicative absorber (EmptyEventZero consequence)
+    tests.append((
+        "test_zero_is_absorbing_left",
+        f'''    def test_zero_is_absorbing_left(self):
+        """Zero() * P(A, B) == Zero().
+
+        Ref: {empty_event_line} EmptyEventZero (algebraic consequence)
+        """
+        from y0.dsl import A, B, P, Zero
+
+        self.assertEqual(Zero(), Zero() * P(A, B))''',
+        [],
+    ))
+    tests.append((
+        "test_zero_is_absorbing_right",
+        f'''    def test_zero_is_absorbing_right(self):
+        """P(A, B) * Zero() == Zero().
+
+        Ref: {empty_event_line} EmptyEventZero (algebraic consequence)
+        """
+        from y0.dsl import A, B, P, Zero
+
+        self.assertEqual(Zero(), P(A, B) * Zero())''',
+        [],
+    ))
+    tests.append((
+        "test_zero_divided_by_nonzero",
+        f'''    def test_zero_divided_by_nonzero(self):
+        """Zero() / P(A) == Zero().
+
+        Ref: {empty_event_line} EmptyEventZero (algebraic consequence)
+        """
+        from y0.dsl import A, P, Zero
+
+        self.assertEqual(Zero(), Zero() / P(A))''',
+        [],
+    ))
+
+    # Joint distribution commutativity (Independent_Symmetric)
+    tests.append((
+        "test_joint_commutativity_two_vars",
+        f'''    def test_joint_commutativity_two_vars(self):
+        """P(A, B) == P(B, A).
+
+        Ref: {indep_sym_line} Independent_Symmetric (joint commutativity)
+        """
+        from y0.dsl import A, B, P
+
+        self.assertEqual(P(A, B), P(B, A))''',
+        [],
+    ))
+    tests.append((
+        "test_joint_commutativity_three_vars",
+        f'''    def test_joint_commutativity_three_vars(self):
+        """P(A, B, C) == P(C, A, B) (any permutation).
+
+        Ref: {indep_sym_line} Independent_Symmetric (joint commutativity)
+        """
+        from y0.dsl import A, B, C, P
+
+        self.assertEqual(P(A, B, C), P(C, A, B))''',
+        [],
+    ))
+
+    # Conditional distribution child commutativity (CondIndep_Symmetric)
+    tests.append((
+        "test_conditional_child_commutativity",
+        f'''    def test_conditional_child_commutativity(self):
+        """P(A, B | C) == P(B, A | C).
+
+        Ref: {condindep_sym_line} CondIndep_Symmetric (conditional commutativity)
+        """
+        from y0.dsl import A, B, C, P
+
+        self.assertEqual(P(A & B | C), P(B & A | C))''',
+        [],
+    ))
 
     return tests
 
@@ -838,11 +978,12 @@ def generate_test_file(dag_spec: DafnySpec, dc_spec: DafnySpec, prob_spec: Dafny
     local_markov_tests = _gen_local_markov_tests(dag_spec.lemmas)
     do_calc_tests = _gen_do_calculus_tests(dc_spec.lemmas)
     prob_tests = _gen_probability_tests(prob_spec.lemmas)
+    algebraic_tests = _gen_algebraic_identity_tests(prob_spec.lemmas)
 
     # Collect needed implementations
     needed_impls: dict[str, str] = {}
     for group in [surgery_tests, ancestry_tests, dsep_tests, semigraphoid_tests,
-                  local_markov_tests, do_calc_tests, prob_tests]:
+                  local_markov_tests, do_calc_tests, prob_tests, algebraic_tests]:
         for _, _, impls in group:
             for name, code in impls:
                 needed_impls[name] = code
@@ -969,6 +1110,21 @@ class TestProbabilityAxioms(unittest.TestCase):
     """Tests aligning y0 DSL with probability.dfy axioms."""
 ''')
     for _, body, _ in prob_tests:
+        parts.append(body)
+        parts.append("")
+
+    # ── Algebraic identity tests
+    parts.append('''
+class TestAlgebraicIdentities(unittest.TestCase):
+    """Tests for algebraic consequences of Kolmogorov axioms on the symbolic DSL.
+
+    The Dafny spec defines Kolmogorov axioms over numerical PMFs.
+    These tests verify the algebraic identities that the symbolic
+    DSL must satisfy as consequences of those axioms.
+    Ref: probability.dfy §§2-5, 9.
+    """
+''')
+    for _, body, _ in algebraic_tests:
         parts.append(body)
         parts.append("")
 

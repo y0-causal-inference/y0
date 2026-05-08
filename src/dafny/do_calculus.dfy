@@ -182,7 +182,7 @@ module DoCalculus {
   /// If Z satisfies the backdoor criterion for (X → Y) in G:
   ///
   ///   (i)  No z ∈ Z is a descendant of any x ∈ X.
-  ///   (ii) Z d-separates Y from X in G_{X̄}.
+  ///   (ii) Z d-separates Y from X in G_{X̲}  (X's *outgoing* edges removed).
   ///
   /// Then:  P(Y | do(X)) = P(Y | X, Z)
   ///   (the causal effect is identified from observational data).
@@ -193,8 +193,11 @@ module DoCalculus {
       // (i) No descendant of X in Z (except X nodes themselves)
       (forall x, z ::
          x in X && z in Z && IsAncestor(G, x, z) ==> x == z)
-      // (ii) Z d-separates Y from X in G_{X̄}
-      && DSep(RemoveIncoming(G, X), Y, X, Z)
+      // (ii) Z d-separates Y from X in G with X's *outgoing* edges removed.
+      //      Using RemoveOutgoing (rather than RemoveIncoming) makes causal paths
+      //      physically absent, so standard d-separation applies directly without
+      //      relying on the |trail| <= 1 short-circuit in TrailBlocked.
+      && DSep(RemoveOutgoing(G, X), Y, X, Z)
     ensures IntProb(G, Y, X, {}) == IntProb(G, Y, {}, X + Z)
 
   // ==================================================================

@@ -20,13 +20,14 @@
                                       ┌────────────────────────────┐
                                       │  tests/test_dafny_         │
                                       │  correspondence.py         │
-                                      │  (auto-generated, ≈30     │
+                                      │  (auto-generated, ≈43     │
                                       │   test methods)            │
                                       └────────────┬───────────────┘
                                                    │ pytest
                                                    ▼
                                       ┌────────────────────────────┐
                                       │  src/y0/graph.py           │
+                                      │  src/y0/dsl.py             │
                                       │  src/y0/algorithm/         │
                                       │    do_calculus.py           │
                                       │  src/y0/mutate/chain.py    │
@@ -42,6 +43,10 @@
 | `src/dafny/dag.dfy` | Dafny spec: DAG, surgery, ancestry, d-separation, semi-graphoid, Local Markov |
 | `src/dafny/do_calculus.dfy` | Dafny spec: Rules 1–3, backdoor, frontdoor criteria |
 | `src/dafny/probability.dfy` | Dafny spec: Kolmogorov axioms, chain rule, Bayes' theorem |
+
+The generator produces two kinds of tests from `probability.dfy`:
+1. **Algebraic identity tests** — derived from axioms (`Axiom_Normalization` → `One()`, `EmptyEventZero` → `Zero()`, `Independent_Symmetric` → joint commutativity, `CondIndep_Symmetric` → conditional commutativity)
+2. **Transformation tests** — derived from lemmas (`ChainRule` → `chain_expand()`, `BayesTheorem` → `bayes_expand()`)
 
 ### Regenerating Tests
 
@@ -77,6 +82,10 @@ This overwrites `tests/test_dafny_correspondence.py`. All test logic flows from 
 | `ChainRule` | `chain_expand()` | `src/y0/mutate/chain.py` |
 | `BayesTheorem` | `bayes_expand()` | `src/y0/mutate/chain.py` |
 | `CondIndep` | `DSeparationJudgement` | `src/y0/struct.py` |
+| `Axiom_Normalization` | `One() * expr == expr` (algebraic) | `src/y0/dsl.py` |
+| `EmptyEventZero` | `Zero() * expr == Zero()` (algebraic) | `src/y0/dsl.py` |
+| `Independent_Symmetric` | `P(A, B) == P(B, A)` (algebraic) | `src/y0/dsl.py` |
+| `CondIndep_Symmetric` | `P(A & B \| C) == P(B & A \| C)` (algebraic) | `src/y0/dsl.py` |
 
 ---
 
@@ -90,7 +99,7 @@ This overwrites `tests/test_dafny_correspondence.py`. All test logic flows from 
 python scripts/generate_dafny_conformance_tests.py
 ```
 
-The generator parses all three `.dfy` files and emits 8 test classes covering 30 test methods:
+The generator parses all three `.dfy` files and emits 8 test classes covering 43 test methods:
 
 | Test class | Dafny section | # tests |
 |---|---|---|
@@ -101,10 +110,17 @@ The generator parses all three `.dfy` files and emits 8 test classes covering 30
 | `TestLocalMarkov` | dag.dfy §8 — Local Markov Property | 1 |
 | `TestDoCalculusRules` | do_calculus.dfy §4–7 — Rules 1–3, Backdoor, Frontdoor | 8 |
 | `TestProbabilityAxioms` | probability.dfy — Chain Rule, Bayes | 3 |
+| `TestAlgebraicIdentities` | probability.dfy §§2–5, 9 — Kolmogorov algebraic consequences | 8 |
+
+The `TestAlgebraicIdentities` class tests symbolic consequences of the Kolmogorov axioms:
+- `One()` as multiplicative identity (from `Axiom_Normalization`)
+- `Zero()` as multiplicative absorber (from `EmptyEventZero`)
+- Joint distribution commutativity (from `Independent_Symmetric`)
+- Conditional distribution commutativity (from `CondIndep_Symmetric`)
 
 ### Task 0.2: Run tests, triage failures
 
-**Status:** `[ ]` not started
+**Status:** `[x]` done
 
 ```bash
 pytest tests/test_dafny_correspondence.py -v 2>&1 | tail -40
@@ -127,8 +143,9 @@ pytest tests/test_dafny_correspondence.py -v 2>&1 | tail -40
 | Backdoor tests (2) | **FAIL** | `satisfies_backdoor` not yet implemented |
 | Frontdoor tests (2) | **FAIL** | `satisfies_frontdoor` not yet implemented |
 | Probability tests (3) | PASS | Existing `chain_expand` / `bayes_expand` |
+| Algebraic identity tests (8) | PASS | Existing `One`, `Zero`, `Distribution` |
 
-**Expected: ~19 PASS, ~11 FAIL**
+**Expected: ~27 PASS, ~11 FAIL**
 
 ---
 
@@ -136,7 +153,7 @@ pytest tests/test_dafny_correspondence.py -v 2>&1 | tail -40
 
 ### Task 1.1: Add `NxMixedGraph.is_acyclic()`
 
-**Status:** `[ ]` not started
+**Status:** `[x]` done
 
 **Dafny predicate:** `IsDAG(G)` (dag.dfy)
 **Fixes test:** `TestAncestryLemmas::test_chain_is_dag`
@@ -153,7 +170,7 @@ def is_acyclic(self) -> bool:
 
 ### Task 1.2: Add `NxMixedGraph.non_descendants()`
 
-**Status:** `[ ]` not started
+**Status:** `[x]` done
 
 **Dafny function:** `NonDescendants(G, v) = Nodes(G) - Descendants(G, {v})` (dag.dfy)
 **Fixes tests:** `test_non_descendants`, `test_non_descendants_of_source`, `test_local_markov_chain`
@@ -182,7 +199,7 @@ Implement the missing Rules 1 and 3 plus backdoor/frontdoor criteria. All tests 
 
 ### Task 2.1: `rule_1_of_do_calculus_applies` — Rule 1 Insertion/Deletion of Observations
 
-**Status:** `[ ]` not started
+**Status:** `[x]` done
 
 **Dafny lemma:** `Rule1_InsertDeleteObservation` (do_calculus.dfy)
 **Fixes tests:** `test_rule_1_does_not_apply_chain`, `test_rule_1_applies_isolated_node`
@@ -214,7 +231,7 @@ def rule_1_of_do_calculus_applies(
 
 ### Task 2.2: `rule_3_of_do_calculus_applies` — Rule 3 Insertion/Deletion of Actions
 
-**Status:** `[ ]` not started
+**Status:** `[x]` done
 
 **Dafny lemma:** `Rule3_InsertDeleteAction` (do_calculus.dfy)
 **Fixes test:** `test_rule_3_isolated_action`
@@ -250,12 +267,14 @@ def rule_3_of_do_calculus_applies(
 
 ### Task 2.3: `satisfies_backdoor` — Backdoor Criterion
 
-**Status:** `[ ]` not started
+**Status:** `[x]` done
 
 **Dafny lemma:** `BackdoorAdjustment` (do_calculus.dfy)
 **Fixes tests:** `test_backdoor_simple`, `test_backdoor_fails_descendant`
 
-Add to `src/y0/algorithm/do_calculus.py`:
+> **Spec change:** The original Dafny spec used `DSep(RemoveIncoming(G, X), Y, X, Z)`, which only worked accidentally because `TrailBlocked` has a `|trail| <= 1` short-circuit that silently ignores direct single-step trails. This was changed to `DSep(RemoveOutgoing(G, X), Y, X, Z)` — physically cutting causal edges from X — which is the standard textbook formulation and maps directly to the Python implementation without relying on that quirk.
+
+Implemented in `src/y0/algorithm/do_calculus.py`:
 
 ```python
 def satisfies_backdoor(
@@ -268,25 +287,23 @@ def satisfies_backdoor(
     """Check if adjustment set Z satisfies the backdoor criterion.
 
     (i) No z in Z is a descendant of any x in X (except x itself).
-    (ii) Z d-separates Y from X in G_{X̄}.
+    (ii) Z d-separates Y from X in G_{X̲}  (X's outgoing edges removed).
     Ref: do_calculus.dfy BackdoorAdjustment
     """
     descendants_of_x = graph.descendants_inclusive(treatments)
     if adjustment & (descendants_of_x - treatments):
         return False
-    mutilated = graph.remove_in_edges(treatments)
+    g_xout = graph.remove_out_edges(treatments)
     return all(
-        are_d_separated(mutilated, outcome, treatment, conditions=adjustment)
+        are_d_separated(g_xout, outcome, treatment, conditions=adjustment)
         for outcome in outcomes
         for treatment in treatments
     )
 ```
 
-**Verify:** `pytest tests/test_dafny_correspondence.py -k backdoor -v`
-
 ### Task 2.4: `satisfies_frontdoor` — Frontdoor Criterion
 
-**Status:** `[ ]` not started
+**Status:** `[-]` in progress
 
 **Dafny lemma:** `FrontdoorCriterion` (do_calculus.dfy)
 **Fixes tests:** `test_frontdoor_classic`, `test_frontdoor_fails_no_mediator`
@@ -338,13 +355,13 @@ git commit -m "feat: implement Rules 1, 3, backdoor, frontdoor per do_calculus.d
 
 ### Task 3.1: Full conformance suite — all green
 
-**Status:** `[ ]` not started
+**Status:** `[ ]` blocked on Task 2.4
 
 ```bash
 pytest tests/test_dafny_correspondence.py -v
 ```
 
-Expected: **30/30 PASS**
+Expected: **43/43 PASS**
 
 ### Task 3.2: Existing test suite — no regressions
 
@@ -362,18 +379,78 @@ Expected: No new failures.
 
 ---
 
+## Phase 4: Numerical Kolmogorov Axiom Verification (Future Work)
+
+> **Status:** Not yet planned for this branch. Added for completeness.
+
+The symbolic conformance tests (Phase 0 `TestAlgebraicIdentities`) verify *algebraic consequences* of the Kolmogorov axioms — commutativity, identity elements, absorbing elements. However, three core axioms are inherently *numerical* and cannot be tested symbolically:
+
+| Dafny axiom | Statement | Why symbolic DSL can't test it |
+|---|---|---|
+| `Axiom_NonNegativity` | P(A) ≥ 0 | DSL doesn't evaluate to numbers |
+| `Axiom_Normalization` | P(Ω) = 1 | DSL doesn't know about sample spaces |
+| `Axiom_Additivity` | P(A ∪ B) = P(A) + P(B) when A ∩ B = ∅ | DSL has no set-union operation |
+
+### Approach: Concrete PMF Evaluation
+
+Build a small evaluator that takes a y0 `Expression` and a concrete joint distribution (e.g., a pandas DataFrame or numpy array), evaluates the expression numerically, and checks the axioms hold:
+
+```python
+# Sketch — not yet implemented
+class ConcreteEvaluator:
+    """Evaluate y0 Expressions against a concrete joint distribution."""
+    def __init__(self, joint: pd.DataFrame):
+        # joint is a DataFrame with columns for each variable and a 'prob' column
+        self.joint = joint
+
+    def evaluate(self, expr: Expression) -> float:
+        """Recursively evaluate a symbolic expression to a number."""
+        ...
+
+# Tests would look like:
+def test_axiom_nonnegativity(evaluator, event):
+    assert evaluator.evaluate(P(event)) >= 0.0
+
+def test_axiom_normalization(evaluator, all_vars):
+    assert abs(evaluator.evaluate(Sum[all_vars](P(*all_vars))) - 1.0) < 1e-10
+
+def test_axiom_additivity(evaluator, A_event, B_event):
+    # given A ∩ B = ∅
+    p_union = evaluator.evaluate(P(A_event) + P(B_event))
+    p_a = evaluator.evaluate(P(A_event))
+    p_b = evaluator.evaluate(P(B_event))
+    assert abs(p_union - p_a - p_b) < 1e-10
+```
+
+### Derived laws also testable numerically
+
+- `ComplementRule`: P(Aᶜ) = 1 − P(A)
+- `Monotonicity`: A ⊆ B ⟹ P(A) ≤ P(B)
+- `ProbAtMostOne`: P(A) ≤ 1
+- `InclusionExclusion`: P(A ∪ B) = P(A) + P(B) − P(A ∩ B)
+- `TotalProbability`: P(A) = P(A|B₁)P(B₁) + P(A|B₂)P(B₂)
+
+### Prerequisites
+
+- A concrete expression evaluator (may leverage `y0.simulation` or build a new `y0.evaluate` module)
+- Parametric test fixtures generating random valid PMFs
+- Integration with the generator script to emit parametrized pytest tests
+
+---
+
 ## Progress Tracker
 
 | Phase | Task | Description | Status |
 |---|---|---|---|
 | 0 | 0.1 | Run generator → emit `tests/test_dafny_correspondence.py` | `[x]` |
-| 0 | 0.2 | Run tests, triage pass/fail | `[ ]` |
-| 1 | 1.1 | Add `NxMixedGraph.is_acyclic()` | `[ ]` |
-| 1 | 1.2 | Add `NxMixedGraph.non_descendants()` | `[ ]` |
-| 2 | 2.1 | Implement `rule_1_of_do_calculus_applies` | `[ ]` |
-| 2 | 2.2 | Implement `rule_3_of_do_calculus_applies` | `[ ]` |
-| 2 | 2.3 | Implement `satisfies_backdoor` | `[ ]` |
-| 2 | 2.4 | Implement `satisfies_frontdoor` | `[ ]` |
+| 0 | 0.2 | Run tests, triage pass/fail | `[x]` |
+| 1 | 1.1 | Add `NxMixedGraph.is_acyclic()` | `[x]` |
+| 1 | 1.2 | Add `NxMixedGraph.non_descendants()` | `[x]` |
+| 2 | 2.1 | Implement `rule_1_of_do_calculus_applies` | `[x]` |
+| 2 | 2.2 | Implement `rule_3_of_do_calculus_applies` | `[x]` |
+| 2 | 2.3 | Implement `satisfies_backdoor` + fix Dafny spec | `[x]` |
+| 2 | 2.4 | Implement `satisfies_frontdoor` | `[-]` |
 | 3 | 3.1 | Full conformance suite — all green | `[ ]` |
 | 3 | 3.2 | Existing test suite — no regressions | `[ ]` |
 | 3 | 3.3 | Update plan — mark complete | `[ ]` |
+| 4 | — | Numerical Kolmogorov axiom verification | *future work* |
