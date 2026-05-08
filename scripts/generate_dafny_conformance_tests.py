@@ -969,6 +969,350 @@ def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, s
     return tests
 
 
+def _gen_numerical_kolmogorov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, list]]:
+    """Generate numerical Kolmogorov axiom tests from probability.dfy.
+
+    These tests verify Dafny axioms and derived laws against a ConcreteDistribution
+    (discrete PMF). Each test uses a reproducible seed for determinism.
+    """
+    tests = []
+
+    # Build line-ref map
+    refs = {}
+    for lemma in lemmas:
+        refs[lemma.name] = f"probability.dfy:{lemma.line}"
+
+    tests.append((
+        "test_nonneg_all_outcomes",
+        f'''    def test_nonneg_all_outcomes(self):
+        """All event probabilities are non-negative.
+
+        Ref: {refs.get('Axiom_NonNegativity', 'probability.dfy')} Axiom_NonNegativity
+        """
+        for a in self.dist.values(self.A):
+            for b in self.dist.values(self.B):
+                p = self.dist.prob_event({{self.A: a, self.B: b}})
+                self.assertGreaterEqual(p, 0.0)''',
+        [],
+    ))
+
+    tests.append((
+        "test_normalization",
+        f'''    def test_normalization(self):
+        """Sum of all atomic probabilities equals 1.
+
+        Ref: {refs.get('Axiom_Normalization', 'probability.dfy')} Axiom_Normalization
+        """
+        total = sum(
+            self.dist.prob_event({{self.A: a, self.B: b}})
+            for a in self.dist.values(self.A)
+            for b in self.dist.values(self.B)
+        )
+        self.assertAlmostEqual(total, 1.0, places=10)''',
+        [],
+    ))
+
+    tests.append((
+        "test_additivity_disjoint",
+        f'''    def test_additivity_disjoint(self):
+        """P(A=0) + P(A=1) = P(A=0 or A=1) = sum over all B.
+
+        Ref: {refs.get('Axiom_Additivity', 'probability.dfy')} Axiom_Additivity
+        """
+        p_a0 = self.dist.prob_marginal({{self.A: 0}})
+        p_a1 = self.dist.prob_marginal({{self.A: 1}})
+        p_union = sum(
+            self.dist.prob_event({{self.A: a, self.B: b}})
+            for a in [0, 1]
+            for b in self.dist.values(self.B)
+        )
+        self.assertAlmostEqual(p_a0 + p_a1, p_union, places=10)''',
+        [],
+    ))
+
+    tests.append((
+        "test_complement_rule",
+        f'''    def test_complement_rule(self):
+        """P(A=0) + P(A!=0) = 1.
+
+        Ref: {refs.get('ComplementRule', 'probability.dfy')} ComplementRule
+        """
+        p_a0 = self.dist.prob_marginal({{self.A: 0}})
+        p_not_a0 = sum(
+            self.dist.prob_marginal({{self.A: a}})
+            for a in self.dist.values(self.A) if a != 0
+        )
+        self.assertAlmostEqual(p_a0 + p_not_a0, 1.0, places=10)''',
+        [],
+    ))
+
+    tests.append((
+        "test_empty_event_zero",
+        f'''    def test_empty_event_zero(self):
+        """P(impossible event) = 0.
+
+        Ref: {refs.get('EmptyEventZero', 'probability.dfy')} EmptyEventZero
+        """
+        p = self.dist.prob_event({{self.A: 999}})
+        self.assertAlmostEqual(p, 0.0, places=10)''',
+        [],
+    ))
+
+    tests.append((
+        "test_monotonicity",
+        f'''    def test_monotonicity(self):
+        """P(A=0, B=0) <= P(A=0).
+
+        Ref: {refs.get('Monotonicity', 'probability.dfy')} Monotonicity
+        """
+        p_joint = self.dist.prob_event({{self.A: 0, self.B: 0}})
+        p_marginal = self.dist.prob_marginal({{self.A: 0}})
+        self.assertLessEqual(p_joint, p_marginal + 1e-12)''',
+        [],
+    ))
+
+    tests.append((
+        "test_prob_at_most_one",
+        f'''    def test_prob_at_most_one(self):
+        """Every marginal probability <= 1.
+
+        Ref: {refs.get('ProbAtMostOne', 'probability.dfy')} ProbAtMostOne
+        """
+        for a in self.dist.values(self.A):
+            p = self.dist.prob_marginal({{self.A: a}})
+            self.assertLessEqual(p, 1.0 + 1e-12)''',
+        [],
+    ))
+
+    tests.append((
+        "test_inclusion_exclusion",
+        f'''    def test_inclusion_exclusion(self):
+        """P(A=0 or B=0) = P(A=0) + P(B=0) - P(A=0, B=0).
+
+        Ref: {refs.get('InclusionExclusion', 'probability.dfy')} InclusionExclusion
+        """
+        p_a0 = self.dist.prob_marginal({{self.A: 0}})
+        p_b0 = self.dist.prob_marginal({{self.B: 0}})
+        p_both = self.dist.prob_event({{self.A: 0, self.B: 0}})
+        # P(A=0 or B=0) = sum of rows where A=0 or B=0
+        p_union = sum(
+            self.dist.prob_event({{self.A: a, self.B: b}})
+            for a in self.dist.values(self.A)
+            for b in self.dist.values(self.B)
+            if a == 0 or b == 0
+        )
+        self.assertAlmostEqual(p_union, p_a0 + p_b0 - p_both, places=10)''',
+        [],
+    ))
+
+    tests.append((
+        "test_chain_rule_numerical",
+        f'''    def test_chain_rule_numerical(self):
+        """P(A, B) = P(A | B) * P(B) for all value combinations.
+
+        Ref: {refs.get('ChainRule', 'probability.dfy')} ChainRule
+        """
+        for a in self.dist.values(self.A):
+            for b in self.dist.values(self.B):
+                p_joint = self.dist.prob_event({{self.A: a, self.B: b}})
+                p_b = self.dist.prob_marginal({{self.B: b}})
+                if p_b > 0:
+                    p_a_given_b = self.dist.prob_cond({{self.A: a}}, given={{self.B: b}})
+                    self.assertAlmostEqual(p_joint, p_a_given_b * p_b, places=10)''',
+        [],
+    ))
+
+    tests.append((
+        "test_bayes_theorem_numerical",
+        f'''    def test_bayes_theorem_numerical(self):
+        """P(A | B) = P(B | A) * P(A) / P(B).
+
+        Ref: {refs.get('BayesTheorem', 'probability.dfy')} BayesTheorem
+        """
+        for a in self.dist.values(self.A):
+            for b in self.dist.values(self.B):
+                p_a = self.dist.prob_marginal({{self.A: a}})
+                p_b = self.dist.prob_marginal({{self.B: b}})
+                if p_a > 0 and p_b > 0:
+                    p_a_given_b = self.dist.prob_cond({{self.A: a}}, given={{self.B: b}})
+                    p_b_given_a = self.dist.prob_cond({{self.B: b}}, given={{self.A: a}})
+                    self.assertAlmostEqual(
+                        p_a_given_b, p_b_given_a * p_a / p_b, places=10,
+                    )''',
+        [],
+    ))
+
+    tests.append((
+        "test_total_probability_numerical",
+        f'''    def test_total_probability_numerical(self):
+        """P(A=a) = sum_b P(A=a | B=b) * P(B=b).
+
+        Ref: {refs.get('TotalProbability', 'probability.dfy')} TotalProbability
+        """
+        for a in self.dist.values(self.A):
+            p_a = self.dist.prob_marginal({{self.A: a}})
+            total = sum(
+                self.dist.prob_cond({{self.A: a}}, given={{self.B: b}})
+                * self.dist.prob_marginal({{self.B: b}})
+                for b in self.dist.values(self.B)
+                if self.dist.prob_marginal({{self.B: b}}) > 0
+            )
+            self.assertAlmostEqual(p_a, total, places=10)''',
+        [],
+    ))
+
+    tests.append((
+        "test_cond_indep_symmetric_numerical",
+        f'''    def test_cond_indep_symmetric_numerical(self):
+        """Symmetry of conditional independence: if P(A,B|C)=P(A|C)P(B|C) then P(B,A|C)=P(B|C)P(A|C).
+
+        Tests that P(A, B | C=c) == P(B, A | C=c) numerically (joint is commutative).
+        Ref: {refs.get('CondIndep_Symmetric', 'probability.dfy')} CondIndep_Symmetric
+        """
+        C = Variable("C")
+        dist3 = ConcreteDistribution.from_random([self.A, self.B, C], n_values=2, seed=99)
+        for c in dist3.values(C):
+            for a in dist3.values(self.A):
+                for b in dist3.values(self.B):
+                    p_ab_c = dist3.prob_cond({{self.A: a, self.B: b}}, given={{C: c}})
+                    p_ba_c = dist3.prob_cond({{self.B: b, self.A: a}}, given={{C: c}})
+                    self.assertAlmostEqual(p_ab_c, p_ba_c, places=10)''',
+        [],
+    ))
+
+    return tests
+
+
+def _gen_numerical_interventional_tests() -> list[tuple[str, str, list]]:
+    """Generate numerical tests for interventional distributions.
+
+    These verify the backdoor and frontdoor adjustment formulas
+    against ConcreteDistribution.do_graph() (truncated factorization).
+    Ref: interventional.dfy TruncatePMF / do_calculus.dfy BackdoorAdjustment, FrontdoorCriterion
+    """
+    tests = []
+
+    tests.append((
+        "test_backdoor_adjustment_numerical",
+        '''    def test_backdoor_adjustment_numerical(self):
+        """P(Y=y | do(X=x)) == sum_z P(Y=y | X=x, Z=z) * P(Z=z).
+
+        Uses DAG: Z -> X -> Y, Z -> Y.  Z satisfies the backdoor
+        criterion for (X -> Y): no descendant of X, and blocks all
+        backdoor paths X <- Z -> Y.
+        Ref: interventional.dfy TruncatePMF / do_calculus.dfy BackdoorAdjustment
+        """
+        X = Variable("X")
+        Y = Variable("Y")
+        Z = Variable("Z")
+        # DAG: Z -> X -> Y, Z -> Y  (Z is a confounder)
+        dist = ConcreteDistribution.from_dag(
+            directed_edges=[(Z, X), (X, Y), (Z, Y)],
+            variables=[X, Y, Z],
+            n_values=2,
+            seed=42,
+        )
+        for x in dist.values(X):
+            for y in dist.values(Y):
+                # LHS: P(Y=y | do(X=x)) via truncated factorization
+                p_do = dist.do_graph({X: x}).prob_marginal({Y: y})
+                # RHS: backdoor adjustment formula
+                p_adj = sum(
+                    dist.prob_cond({Y: y}, given={X: x, Z: z})
+                    * dist.prob_marginal({Z: z})
+                    for z in dist.values(Z)
+                    if dist.prob_marginal({X: x, Z: z}) > 0
+                )
+                self.assertAlmostEqual(p_do, p_adj, places=10)''',
+        [],
+    ))
+
+    tests.append((
+        "test_frontdoor_adjustment_numerical",
+        '''    def test_frontdoor_adjustment_numerical(self):
+        """P(Y=y | do(X=x)) == sum_m P(M=m|X=x) * sum_x' P(Y=y|X=x',M=m) * P(X=x').
+
+        Uses DAG: X -> M -> Y  (M is a mediator, no confounding).
+        The frontdoor formula should hold.
+        Ref: interventional.dfy TruncatePMF / do_calculus.dfy FrontdoorCriterion
+        """
+        X = Variable("X")
+        Y = Variable("Y")
+        M = Variable("M")
+        # DAG: X -> M -> Y  (M is a mediator, no confounding)
+        dist = ConcreteDistribution.from_dag(
+            directed_edges=[(X, M), (M, Y)],
+            variables=[X, Y, M],
+            n_values=2,
+            seed=77,
+        )
+        for x in dist.values(X):
+            for y in dist.values(Y):
+                # LHS: P(Y=y | do(X=x)) via truncated factorization
+                p_do = dist.do_graph({X: x}).prob_marginal({Y: y})
+                # RHS: frontdoor adjustment formula
+                p_adj = 0.0
+                for m in dist.values(M):
+                    p_m_given_x = dist.prob_cond({M: m}, given={X: x})
+                    inner = sum(
+                        dist.prob_cond({Y: y}, given={X: xp, M: m})
+                        * dist.prob_marginal({X: xp})
+                        for xp in dist.values(X)
+                        if dist.prob_marginal({X: xp, M: m}) > 0
+                    )
+                    p_adj += p_m_given_x * inner
+                self.assertAlmostEqual(p_do, p_adj, places=10)''',
+        [],
+    ))
+
+    tests.append((
+        "test_truncate_empty_is_identity",
+        '''    def test_truncate_empty_is_identity(self):
+        """do_graph({}) should return a distribution equivalent to the original.
+
+        Ref: interventional.dfy TruncatePMF_Empty
+        """
+        X = Variable("X")
+        Y = Variable("Y")
+        dist = ConcreteDistribution.from_dag(
+            directed_edges=[(X, Y)],
+            variables=[X, Y],
+            n_values=2,
+            seed=42,
+        )
+        trivial = dist.do_graph({})
+        for x in dist.values(X):
+            for y in dist.values(Y):
+                p_orig = dist.prob_event({X: x, Y: y})
+                p_trunc = trivial.prob_event({X: x, Y: y})
+                self.assertAlmostEqual(p_orig, p_trunc, places=10)''',
+        [],
+    ))
+
+    tests.append((
+        "test_truncate_is_valid_distribution",
+        '''    def test_truncate_is_valid_distribution(self):
+        """Truncated PMF via do_graph must remain a valid distribution.
+
+        Ref: interventional.dfy TruncatePMF_IsDistribution
+        """
+        X = Variable("X")
+        Y = Variable("Y")
+        dist = ConcreteDistribution.from_dag(
+            directed_edges=[(X, Y)],
+            variables=[X, Y],
+            n_values=2,
+            seed=42,
+        )
+        for x in dist.values(X):
+            truncated = dist.do_graph({X: x})
+            self.assertTrue(truncated.is_valid())''',
+        [],
+    ))
+
+    return tests
+
+
 def generate_test_file(dag_spec: DafnySpec, dc_spec: DafnySpec, prob_spec: DafnySpec) -> str:
     """Generate the full test file from parsed specs."""
     surgery_tests = _gen_surgery_tests(dag_spec.lemmas)
@@ -979,11 +1323,14 @@ def generate_test_file(dag_spec: DafnySpec, dc_spec: DafnySpec, prob_spec: Dafny
     do_calc_tests = _gen_do_calculus_tests(dc_spec.lemmas)
     prob_tests = _gen_probability_tests(prob_spec.lemmas)
     algebraic_tests = _gen_algebraic_identity_tests(prob_spec.lemmas)
+    numerical_tests = _gen_numerical_kolmogorov_tests(prob_spec.lemmas)
+    interventional_tests = _gen_numerical_interventional_tests()
 
     # Collect needed implementations
     needed_impls: dict[str, str] = {}
     for group in [surgery_tests, ancestry_tests, dsep_tests, semigraphoid_tests,
-                  local_markov_tests, do_calc_tests, prob_tests, algebraic_tests]:
+                  local_markov_tests, do_calc_tests, prob_tests, algebraic_tests,
+                  numerical_tests, interventional_tests]:
         for _, _, impls in group:
             for name, code in impls:
                 needed_impls[name] = code
@@ -1011,6 +1358,7 @@ from y0.algorithm.do_calculus import (
 )
 from y0.dsl import Variable
 from y0.graph import NxMixedGraph
+from y0.probability import ConcreteDistribution
 ''')
 
     # ── Surgery tests
@@ -1125,6 +1473,42 @@ class TestAlgebraicIdentities(unittest.TestCase):
     """
 ''')
     for _, body, _ in algebraic_tests:
+        parts.append(body)
+        parts.append("")
+
+    # ── Numerical Kolmogorov tests
+    parts.append('''
+class TestNumericalKolmogorov(unittest.TestCase):
+    """Numerical verification of Kolmogorov axioms and derived laws.
+
+    Uses ConcreteDistribution (a discrete PMF) to verify that probability
+    axioms hold numerically, not just symbolically.
+    Ref: probability.dfy §§2-8.
+    """
+
+    def setUp(self) -> None:
+        """Create a reproducible random PMF over A, B."""
+        self.A = Variable("A")
+        self.B = Variable("B")
+        self.dist = ConcreteDistribution.from_random(
+            [self.A, self.B], n_values=2, seed=42
+        )
+''')
+    for _, body, _ in numerical_tests:
+        parts.append(body)
+        parts.append("")
+
+    # ── Numerical Interventional tests
+    parts.append('''
+class TestNumericalInterventional(unittest.TestCase):
+    """Numerical verification of interventional distribution formulas.
+
+    Verifies backdoor/frontdoor adjustment formulas and TruncatePMF
+    properties against ConcreteDistribution.intervene().
+    Ref: interventional.dfy, do_calculus.dfy §§6-7.
+    """
+''')
+    for _, body, _ in interventional_tests:
         parts.append(body)
         parts.append("")
 
