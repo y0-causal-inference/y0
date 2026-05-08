@@ -303,7 +303,18 @@ def satisfies_backdoor(
 
 ### Task 2.4: `satisfies_frontdoor` — Frontdoor Criterion
 
-**Status:** `[-]` in progress
+**Status:** `[x]` done
+
+> **Spec change:** The original Dafny conditions used `RemoveIncoming` for both frontdoor sub-conditions. Neither translated directly to Python for ADMGs because:
+> - Condition ii (`DSep(RemoveIncoming(G, X), M, X, {})`) left the direct X→M causal edge present, which `are_d_separated` flags as an active path (unlike Dafny's `|trail|≤1` short-circuit).
+> - Condition iii (`DSep(RemoveIncoming(RemoveOutgoing(G, X), M), Y, X, M)`) failed for ADMGs with bidirected edges like X↔Y which create open paths Dafny's pure-DAG model doesn't represent.
+>
+> The fix: map to Pearl's textbook three-condition frontdoor criterion, using `RemoveOutgoing` to make causal paths physically absent:
+> - Condition (i): **structural** — every directed X→Y path passes through M (checked with `nx.all_simple_paths`)
+> - Condition (ii): `DSep(RemoveOutgoing(G, X), M, X, {})` — no unblocked backdoor from X to M
+> - Condition (iii): `DSep(RemoveOutgoing(G, M), M, Y, X)` — all backdoor paths from M to Y blocked by X
+>
+> Both `do_calculus.dfy` and `do_calculus.py` were updated to use this formulation.
 
 **Dafny lemma:** `FrontdoorCriterion` (do_calculus.dfy)
 **Fixes tests:** `test_frontdoor_classic`, `test_frontdoor_fails_no_mediator`
@@ -355,7 +366,7 @@ git commit -m "feat: implement Rules 1, 3, backdoor, frontdoor per do_calculus.d
 
 ### Task 3.1: Full conformance suite — all green
 
-**Status:** `[ ]` blocked on Task 2.4
+**Status:** `[x]` done — 43/43 PASS
 
 ```bash
 pytest tests/test_dafny_correspondence.py -v
@@ -365,7 +376,7 @@ Expected: **43/43 PASS**
 
 ### Task 3.2: Existing test suite — no regressions
 
-**Status:** `[ ]` not started
+**Status:** `[x]` done — 546 passed, 15 skipped, 0 failures
 
 ```bash
 pytest tests/ -v --tb=short
@@ -375,7 +386,7 @@ Expected: No new failures.
 
 ### Task 3.3: Update this plan — mark all tasks complete
 
-**Status:** `[ ]` not started
+**Status:** `[x]` done
 
 ---
 
@@ -449,8 +460,8 @@ def test_axiom_additivity(evaluator, A_event, B_event):
 | 2 | 2.1 | Implement `rule_1_of_do_calculus_applies` | `[x]` |
 | 2 | 2.2 | Implement `rule_3_of_do_calculus_applies` | `[x]` |
 | 2 | 2.3 | Implement `satisfies_backdoor` + fix Dafny spec | `[x]` |
-| 2 | 2.4 | Implement `satisfies_frontdoor` | `[-]` |
-| 3 | 3.1 | Full conformance suite — all green | `[ ]` |
-| 3 | 3.2 | Existing test suite — no regressions | `[ ]` |
-| 3 | 3.3 | Update plan — mark complete | `[ ]` |
+| 2 | 2.4 | Implement `satisfies_frontdoor` + fix Dafny spec | `[x]` |
+| 3 | 3.1 | Full conformance suite — all green | `[x]` |
+| 3 | 3.2 | Existing test suite — no regressions | `[x]` |
+| 3 | 3.3 | Update plan — mark complete | `[x]` |
 | 4 | — | Numerical Kolmogorov axiom verification | *future work* |
