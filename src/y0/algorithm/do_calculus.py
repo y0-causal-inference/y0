@@ -1,5 +1,6 @@
 """Do Calculus."""
 
+import networkx as nx
 from typing import Annotated
 
 from .conditional_independencies import are_d_separated
@@ -83,8 +84,36 @@ def satisfies_frontdoor(
     treatments: set[Variable],
     mediators: set[Variable],
 ) -> bool:
-    """Check if mediator set satisfies the frontdoor criterion. Ref: do_calculus.dfy FrontdoorCriterion."""
-    raise NotImplementedError
+    """Check if mediator set satisfies the frontdoor criterion.
+
+    Three conditions (Pearl 2000, Theorem 3.3.4):
+      (i)  M intercepts all directed paths from X to Y (structural check).
+      (ii) M ⊥ X | {} in G with X's outgoing edges removed.
+           Ref: do_calculus.dfy FrontdoorCriterion DSep(RemoveOutgoing(G, X), M, X, {})
+      (iii) M ⊥ Y | X in G with M's outgoing edges removed.
+           Ref: do_calculus.dfy FrontdoorCriterion DSep(RemoveOutgoing(G, M), M, Y, X)
+    """
+    # (i) Every directed path from any treatment to any outcome must pass through M.
+    for treatment in treatments:
+        for outcome in outcomes:
+            for path in nx.all_simple_paths(graph.directed, treatment, outcome):
+                if not any(node in mediators for node in path[1:-1]):
+                    return False
+    # (ii) No unblocked backdoor path from X to M: M ⊥ X | {} in G_{X̲}.
+    g_xout = graph.remove_out_edges(treatments)
+    if not all(
+        are_d_separated(g_xout, mediator, treatment, conditions=set()).separated
+        for mediator in mediators
+        for treatment in treatments
+    ):
+        return False
+    # (iii) All backdoor paths from M to Y blocked by X: M ⊥ Y | X in G_{M̲}.
+    g_mout = graph.remove_out_edges(mediators)
+    return all(
+        are_d_separated(g_mout, mediator, outcome, conditions=treatments).separated
+        for mediator in mediators
+        for outcome in outcomes
+    )
 
 
 # TODO implement rule 1 condition

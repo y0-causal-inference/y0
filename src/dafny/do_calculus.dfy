@@ -207,16 +207,25 @@ module DoCalculus {
   /// If M satisfies the frontdoor criterion for (X → Y) in G:
   ///
   ///   (i)   M intercepts all directed paths from X to Y.
+  ///         (Structural: no directed x→y path exists avoiding all nodes in M.
+  ///          Not expressible as a DSep query; checked separately.)
   ///   (ii)  No unblocked back-door paths from X to M.
+  ///         Using RemoveOutgoing(G, X) eliminates causal X→M edges so that
+  ///         standard d-separation checks only backdoor paths, without
+  ///         relying on the |trail| <= 1 short-circuit in TrailBlocked.
   ///   (iii) All back-door paths from M to Y are blocked by X.
+  ///         Using RemoveOutgoing(G, M) eliminates causal M→Y edges so that
+  ///         d-separation checks only backdoor paths from M to Y.
   ///
   /// Then:  P(Y | do(X)) = P(Y | do(M))
   lemma {:axiom} FrontdoorCriterion(
     G: Graph, Y: set<Node>, X: set<Node>, M: set<Node>
   )
     requires
-      DSep(RemoveIncoming(G, X), M, X, {})
-      && DSep(RemoveIncoming(RemoveOutgoing(G, X), M), Y, X, M)
+      // (ii) No unblocked backdoor from X to M in G_{X̲} (X outgoing removed)
+      DSep(RemoveOutgoing(G, X), M, X, {})
+      // (iii) All backdoor paths from M to Y blocked by X in G_{M̲} (M outgoing removed)
+      && DSep(RemoveOutgoing(G, M), M, Y, X)
     ensures IntProb(G, Y, X, {}) == IntProb(G, Y, M, {})
 
 }  // end module DoCalculus
