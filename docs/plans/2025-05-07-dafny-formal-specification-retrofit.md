@@ -174,18 +174,6 @@ git add src/y0/graph.py
 git commit -m "feat: add is_acyclic() and non_descendants() per dag.dfy IsDAG/NonDescendants"
 ```
 
-**Step 4: Run tests to verify they pass**
-
-Run: `pytest tests/test_dafny_correspondence.py::TestAncestryLemmas -v`
-Expected: PASS
-
-**Step 5: Commit**
-
-```bash
-git add tests/test_dafny_correspondence.py src/y0/graph.py
-git commit -m "feat: add NxMixedGraph.is_acyclic() per dag.dfy IsDAG"
-```
-
 ---
 
 ## Phase 2: Do-Calculus Rules
@@ -210,91 +198,28 @@ def rule_1_of_do_calculus_applies(
     conditions: set[Variable],
     observation: Variable,
 ) -> bool:
-    r"""Check if Rule 1 of the Do-Calculus applies.
+    """Check if Rule 1 of the Do-Calculus applies.
 
     Condition: (Y ⊥ Z | X, W) in G_{X̄}
-
-    If true, the observation Z can be inserted/deleted:
-    P(Y | do(X), Z, W) = P(Y | do(X), W)
-
     Ref: do_calculus.dfy Rule1_InsertDeleteObservation
-
-    :param graph: The causal graph
-    :param treatments: The do-variables X
-    :param outcomes: The outcome variables Y
-    :param conditions: The conditioning variables W
-    :param observation: The observation Z to test for insertion/deletion
-    :returns: True if Rule 1 applies
     """
     mutilated = graph.remove_in_edges(treatments)
     return all(
-        are_d_separated(
-            mutilated, outcome, observation, conditions=treatments | conditions
-        )
+        are_d_separated(mutilated, outcome, observation, conditions=treatments | conditions)
         for outcome in outcomes
     )
 ```
 
-**Step 4: Run tests**
+**Verify:** `pytest tests/test_dafny_correspondence.py -k rule_1 -v`
 
-Run: `pytest tests/test_dafny_correspondence.py::TestDoCalculusRules -v`
-Expected: PASS
-
-**Step 5: Commit**
-
-```bash
-git add src/y0/algorithm/do_calculus.py tests/test_dafny_correspondence.py
-git commit -m "feat: implement Rule 1 of do-calculus per do_calculus.dfy Rule1_InsertDeleteObservation"
-```
-
----
-
-### Task 4.2: Rule 3 — Insertion/Deletion of Actions
+### Task 2.2: `rule_3_of_do_calculus_applies` — Rule 3 Insertion/Deletion of Actions
 
 **Status:** `[ ]` not started
 
-**Dafny lemma:** `Rule3_InsertDeleteAction` (do_calculus.dfy lines 118–130)
+**Dafny lemma:** `Rule3_InsertDeleteAction` (do_calculus.dfy)
+**Fixes test:** `test_rule_3_isolated_action`
 
-**Files:**
-- Modify: `tests/test_dafny_correspondence.py`
-- Modify: `src/y0/algorithm/do_calculus.py`
-
-**Step 1: Write the failing test**
-
-```python
-from y0.algorithm.do_calculus import rule_3_of_do_calculus_applies
-
-
-class TestDoCalculusRule3(unittest.TestCase):
-    """Tests for Rule 3 of do-calculus. Ref: do_calculus.dfy Rule3_InsertDeleteAction."""
-
-    def test_rule_3_applies_when_action_has_no_effect(self):
-        """Rule 3: do(Z) can be deleted when Z has no causal effect on Y.
-
-        Graph: X->Y, Z (isolated node). do(X), do(Z).
-        G_{X̄} = same (X is source). Z̄(W) = Z (Z not ancestor of W={}).
-        G_{X̄, Z̄} = remove incoming to Z in G_{X̄} = same (Z is source).
-        (Y ⊥ Z | X) in that graph => True (Z is isolated).
-        """
-        X, Y, Z = Variable("X"), Variable("Y"), Variable("Z")
-        graph = NxMixedGraph.from_edges(nodes=[Z], directed=[(X, Y)])
-        self.assertTrue(
-            rule_3_of_do_calculus_applies(
-                graph,
-                treatments={X},
-                outcomes={Y},
-                conditions=set(),
-                action=Z,
-            )
-        )
-```
-
-**Step 2: Run test to verify it fails**
-
-Run: `pytest tests/test_dafny_correspondence.py::TestDoCalculusRule3 -v`
-Expected: FAIL with `ImportError`
-
-**Step 3: Write minimal implementation**
+Add to `src/y0/algorithm/do_calculus.py`:
 
 ```python
 def rule_3_of_do_calculus_applies(
@@ -305,22 +230,11 @@ def rule_3_of_do_calculus_applies(
     conditions: set[Variable],
     action: Variable,
 ) -> bool:
-    r"""Check if Rule 3 of the Do-Calculus applies.
+    """Check if Rule 3 of the Do-Calculus applies.
 
     Let Z̄(W) = Z \ An_{G_{X̄}}(W).
     Condition: (Y ⊥ Z | X, W) in G_{X̄, Z̄(W)_bar}
-
-    If true, the action do(Z) can be inserted/deleted:
-    P(Y | do(X), do(Z), W) = P(Y | do(X), W)
-
     Ref: do_calculus.dfy Rule3_InsertDeleteAction
-
-    :param graph: The causal graph
-    :param treatments: The do-variables X
-    :param outcomes: The outcome variables Y
-    :param conditions: The conditioning variables W
-    :param action: The action variable Z to test for insertion/deletion
-    :returns: True if Rule 3 applies
     """
     gx = graph.remove_in_edges(treatments)
     ancestors_of_w = gx.ancestors_inclusive(conditions) if conditions else set()
@@ -332,64 +246,16 @@ def rule_3_of_do_calculus_applies(
     )
 ```
 
-**Step 4: Run tests**
+**Verify:** `pytest tests/test_dafny_correspondence.py -k rule_3 -v`
 
-Run: `pytest tests/test_dafny_correspondence.py::TestDoCalculusRule3 -v`
-Expected: PASS
-
-**Step 5: Commit**
-
-```bash
-git add src/y0/algorithm/do_calculus.py tests/test_dafny_correspondence.py
-git commit -m "feat: implement Rule 3 of do-calculus per do_calculus.dfy Rule3_InsertDeleteAction"
-```
-
----
-
-## Phase 5: Backdoor and Frontdoor Criteria
-
-### Task 5.1: `satisfies_backdoor` predicate
+### Task 2.3: `satisfies_backdoor` — Backdoor Criterion
 
 **Status:** `[ ]` not started
 
-**Dafny lemma:** `BackdoorAdjustment` (do_calculus.dfy lines 140–153)
+**Dafny lemma:** `BackdoorAdjustment` (do_calculus.dfy)
+**Fixes tests:** `test_backdoor_simple`, `test_backdoor_fails_descendant`
 
-**Files:**
-- Modify: `tests/test_dafny_correspondence.py`
-- Modify: `src/y0/algorithm/do_calculus.py`
-
-**Step 1: Write the failing test**
-
-```python
-from y0.algorithm.do_calculus import satisfies_backdoor
-
-
-class TestBackdoorCriterion(unittest.TestCase):
-    """Tests for Backdoor Criterion. Ref: do_calculus.dfy §6."""
-
-    def test_backdoor_simple(self):
-        """Z satisfies backdoor for X->Y when Z blocks backdoor paths.
-
-        Graph: Z->X->Y, Z->Y. Z is a valid backdoor set.
-        (i) Z is not a descendant of X.
-        (ii) Z d-separates Y from X in G_{X̄}.
-        """
-        X, Y, Z = Variable("X"), Variable("Y"), Variable("Z")
-        graph = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
-        self.assertTrue(satisfies_backdoor(graph, outcomes={Y}, treatments={X}, adjustment={Z}))
-
-    def test_backdoor_fails_for_descendant(self):
-        """M does NOT satisfy backdoor for X->M->Y because M is a descendant of X."""
-        X, M, Y = Variable("X"), Variable("M"), Variable("Y")
-        graph = NxMixedGraph.from_edges(directed=[(X, M), (M, Y)])
-        self.assertFalse(satisfies_backdoor(graph, outcomes={Y}, treatments={X}, adjustment={M}))
-```
-
-**Step 2: Run test to verify it fails**
-
-Expected: FAIL with `ImportError`
-
-**Step 3: Write minimal implementation**
+Add to `src/y0/algorithm/do_calculus.py`:
 
 ```python
 def satisfies_backdoor(
@@ -399,24 +265,15 @@ def satisfies_backdoor(
     treatments: set[Variable],
     adjustment: set[Variable],
 ) -> bool:
-    r"""Check if adjustment set Z satisfies the backdoor criterion for (X -> Y).
+    """Check if adjustment set Z satisfies the backdoor criterion.
 
     (i) No z in Z is a descendant of any x in X (except x itself).
     (ii) Z d-separates Y from X in G_{X̄}.
-
     Ref: do_calculus.dfy BackdoorAdjustment
-
-    :param graph: The causal graph
-    :param outcomes: Outcome variables Y
-    :param treatments: Treatment variables X
-    :param adjustment: Adjustment set Z
-    :returns: True if the backdoor criterion is satisfied
     """
-    # (i) No descendant of X in Z
     descendants_of_x = graph.descendants_inclusive(treatments)
     if adjustment & (descendants_of_x - treatments):
         return False
-    # (ii) Z d-separates Y from X in G_{X̄}
     mutilated = graph.remove_in_edges(treatments)
     return all(
         are_d_separated(mutilated, outcome, treatment, conditions=adjustment)
@@ -425,71 +282,16 @@ def satisfies_backdoor(
     )
 ```
 
-**Step 4: Run tests**
+**Verify:** `pytest tests/test_dafny_correspondence.py -k backdoor -v`
 
-Run: `pytest tests/test_dafny_correspondence.py::TestBackdoorCriterion -v`
-Expected: PASS
-
-**Step 5: Commit**
-
-```bash
-git add src/y0/algorithm/do_calculus.py tests/test_dafny_correspondence.py
-git commit -m "feat: add satisfies_backdoor() per do_calculus.dfy BackdoorAdjustment"
-```
-
----
-
-### Task 5.2: `satisfies_frontdoor` predicate
+### Task 2.4: `satisfies_frontdoor` — Frontdoor Criterion
 
 **Status:** `[ ]` not started
 
-**Dafny lemma:** `FrontdoorCriterion` (do_calculus.dfy lines 160–175)
+**Dafny lemma:** `FrontdoorCriterion` (do_calculus.dfy)
+**Fixes tests:** `test_frontdoor_classic`, `test_frontdoor_fails_no_mediator`
 
-**Files:**
-- Modify: `tests/test_dafny_correspondence.py`
-- Modify: `src/y0/algorithm/do_calculus.py`
-
-**Step 1: Write the failing test**
-
-```python
-from y0.algorithm.do_calculus import satisfies_frontdoor
-
-
-class TestFrontdoorCriterion(unittest.TestCase):
-    """Tests for Frontdoor Criterion. Ref: do_calculus.dfy §7."""
-
-    def test_frontdoor_classic(self):
-        """M satisfies frontdoor for X->Y with confounding X<->Y.
-
-        Graph: X->M->Y, X<->Y (bidirected). M is the frontdoor set.
-        """
-        X, M, Y = Variable("X"), Variable("M"), Variable("Y")
-        graph = NxMixedGraph.from_edges(
-            directed=[(X, M), (M, Y)],
-            undirected=[(X, Y)],
-        )
-        self.assertTrue(
-            satisfies_frontdoor(graph, outcomes={Y}, treatments={X}, mediators={M})
-        )
-
-    def test_frontdoor_fails_without_mediator(self):
-        """Direct path X->Y with confounding: no valid frontdoor set."""
-        X, Y = Variable("X"), Variable("Y")
-        graph = NxMixedGraph.from_edges(
-            directed=[(X, Y)],
-            undirected=[(X, Y)],
-        )
-        # Empty set doesn't satisfy frontdoor
-        self.assertFalse(
-            satisfies_frontdoor(graph, outcomes={Y}, treatments={X}, mediators=set())
-        )
-```
-
-**Step 2: Run test to verify it fails**
-
-Expected: FAIL with `ImportError`
-
-**Step 3: Write minimal implementation**
+Add to `src/y0/algorithm/do_calculus.py`:
 
 ```python
 def satisfies_frontdoor(
@@ -499,21 +301,12 @@ def satisfies_frontdoor(
     treatments: set[Variable],
     mediators: set[Variable],
 ) -> bool:
-    r"""Check if mediator set M satisfies the frontdoor criterion for (X -> Y).
+    """Check if mediator set M satisfies the frontdoor criterion.
 
-    (i) M intercepts all directed paths from X to Y.
-    (ii) No unblocked back-door paths from X to M.
-    (iii) All back-door paths from M to Y are blocked by X.
-
+    Condition 1: DSep(RemoveIncoming(G, X), M, X, {})
+    Condition 2: DSep(RemoveIncoming(RemoveOutgoing(G, X), M), Y, X, M)
     Ref: do_calculus.dfy FrontdoorCriterion
-
-    :param graph: The causal graph
-    :param outcomes: Outcome variables Y
-    :param treatments: Treatment variables X
-    :param mediators: Mediator set M
-    :returns: True if the frontdoor criterion is satisfied
     """
-    # Condition from Dafny: DSep(RemoveIncoming(G, X), M, X, {})
     gx = graph.remove_in_edges(treatments)
     cond1 = all(
         are_d_separated(gx, mediator, treatment, conditions=set())
@@ -522,116 +315,50 @@ def satisfies_frontdoor(
     )
     if not cond1:
         return False
-    # Condition from Dafny: DSep(RemoveIncoming(RemoveOutgoing(G, X), M), Y, X, M)
     gx_out = graph.remove_out_edges(treatments)
     gx_out_m = gx_out.remove_in_edges(mediators)
-    cond2 = all(
+    return all(
         are_d_separated(gx_out_m, outcome, treatment, conditions=mediators)
         for outcome in outcomes
         for treatment in treatments
     )
-    return cond2
 ```
 
-**Step 4: Run tests**
+**Verify:** `pytest tests/test_dafny_correspondence.py -k frontdoor -v`
 
-Run: `pytest tests/test_dafny_correspondence.py::TestFrontdoorCriterion -v`
-Expected: PASS
-
-**Step 5: Commit**
-
+**Commit after Phase 2:**
 ```bash
-git add src/y0/algorithm/do_calculus.py tests/test_dafny_correspondence.py
-git commit -m "feat: add satisfies_frontdoor() per do_calculus.dfy FrontdoorCriterion"
+git add src/y0/algorithm/do_calculus.py
+git commit -m "feat: implement Rules 1, 3, backdoor, frontdoor per do_calculus.dfy"
 ```
 
 ---
 
-## Phase 6: Probability DSL Alignment
+## Phase 3: Final Verification
 
-### Task 6.1: Verify `chain_expand` matches Dafny `ChainRule`
-
-**Status:** `[ ]` not started
-
-**Dafny lemma:** `ChainRule` (probability.dfy lines 126–133)
-
-**Files:**
-- Modify: `tests/test_dafny_correspondence.py`
-
-**Step 1: Write the tests**
-
-```python
-from y0.dsl import P, A, B, C
-from y0.mutate.chain import chain_expand
-
-
-class TestProbabilityAxioms(unittest.TestCase):
-    """Tests aligning y0 DSL with probability.dfy axioms."""
-
-    def test_chain_rule_two_vars(self):
-        """P(A, B) = P(A | B) * P(B). Ref: probability.dfy ChainRule."""
-        result = chain_expand(P(A, B))
-        expected = P(A | B) * P(B)
-        self.assertEqual(expected, result)
-
-    def test_chain_rule_three_vars(self):
-        """P(A, B, C) = P(A | B, C) * P(B | C) * P(C). Ref: probability.dfy ChainRule (iterated)."""
-        result = chain_expand(P(A, B, C))
-        expected = P(A | B, C) * P(B | C) * P(C)
-        self.assertEqual(expected, result)
-```
-
-**Step 2: Run tests**
-
-Run: `pytest tests/test_dafny_correspondence.py::TestProbabilityAxioms -v`
-Expected: PASS
-
-**Step 3: Commit**
-
-```bash
-git add tests/test_dafny_correspondence.py
-git commit -m "test: verify chain_expand matches probability.dfy ChainRule"
-```
-
----
-
-### Task 6.2: Verify `bayes_expand` matches Dafny `BayesTheorem`
+### Task 3.1: Full conformance suite — all green
 
 **Status:** `[ ]` not started
 
-**Dafny lemma:** `BayesTheorem` (probability.dfy lines 138–153)
-
-**Files:**
-- Modify: `tests/test_dafny_correspondence.py`
-
-**Step 1: Write the tests**
-
-```python
-from y0.mutate.chain import bayes_expand
-from y0.dsl import Fraction
-
-
-class TestBayesTheorem(unittest.TestCase):
-    """Tests aligning bayes_expand with probability.dfy BayesTheorem."""
-
-    def test_bayes_two_vars(self):
-        """P(A | B) = P(B | A) * P(A) / P(B). Ref: probability.dfy BayesTheorem."""
-        result = bayes_expand(P(A | B))
-        expected = Fraction(P(B | A) * P(A), P(B))
-        self.assertEqual(expected, result)
+```bash
+pytest tests/test_dafny_correspondence.py -v
 ```
 
-**Step 2: Run tests**
+Expected: **30/30 PASS**
 
-Run: `pytest tests/test_dafny_correspondence.py::TestBayesTheorem -v`
-Expected: PASS
+### Task 3.2: Existing test suite — no regressions
 
-**Step 3: Commit**
+**Status:** `[ ]` not started
 
 ```bash
-git add tests/test_dafny_correspondence.py
-git commit -m "test: verify bayes_expand matches probability.dfy BayesTheorem"
+pytest tests/ -v --tb=short
 ```
+
+Expected: No new failures.
+
+### Task 3.3: Update this plan — mark all tasks complete
+
+**Status:** `[ ]` not started
 
 ---
 
@@ -639,19 +366,14 @@ git commit -m "test: verify bayes_expand matches probability.dfy BayesTheorem"
 
 | Phase | Task | Description | Status |
 |---|---|---|---|
-| 1 | 1.1 | Surgery identity tests (`RemoveIncoming/Outgoing_Empty`) | `[ ]` |
-| 1 | 1.2 | Surgery preservation tests (`NoParents`, `PreservesOthers`) | `[ ]` |
-| 1 | 1.3 | Surgery on ADMG with bidirected edges | `[ ]` |
-| 2 | 2.1 | Ancestry reflexivity and transitivity | `[ ]` |
-| 2 | 2.2 | `is_acyclic` predicate (`IsDAG`) | `[ ]` |
-| 2 | 2.3 | `non_descendants` method (`NonDescendants`) | `[ ]` |
-| 3 | 3.1 | Chain graph d-separation | `[ ]` |
-| 3 | 3.2 | Semi-graphoid: Symmetry | `[ ]` |
-| 3 | 3.3 | Semi-graphoid: Decomposition, Weak Union, Contraction | `[ ]` |
-| 3 | 3.4 | Local Markov Property | `[ ]` |
-| 4 | 4.1 | Rule 1 — Insertion/Deletion of Observations | `[ ]` |
-| 4 | 4.2 | Rule 3 — Insertion/Deletion of Actions | `[ ]` |
-| 5 | 5.1 | `satisfies_backdoor` predicate | `[ ]` |
-| 5 | 5.2 | `satisfies_frontdoor` predicate | `[ ]` |
-| 6 | 6.1 | `chain_expand` ↔ `ChainRule` | `[ ]` |
-| 6 | 6.2 | `bayes_expand` ↔ `BayesTheorem` | `[ ]` |
+| 0 | 0.1 | Run generator → emit `tests/test_dafny_correspondence.py` | `[x]` |
+| 0 | 0.2 | Run tests, triage pass/fail | `[ ]` |
+| 1 | 1.1 | Add `NxMixedGraph.is_acyclic()` | `[ ]` |
+| 1 | 1.2 | Add `NxMixedGraph.non_descendants()` | `[ ]` |
+| 2 | 2.1 | Implement `rule_1_of_do_calculus_applies` | `[ ]` |
+| 2 | 2.2 | Implement `rule_3_of_do_calculus_applies` | `[ ]` |
+| 2 | 2.3 | Implement `satisfies_backdoor` | `[ ]` |
+| 2 | 2.4 | Implement `satisfies_frontdoor` | `[ ]` |
+| 3 | 3.1 | Full conformance suite — all green | `[ ]` |
+| 3 | 3.2 | Existing test suite — no regressions | `[ ]` |
+| 3 | 3.3 | Update plan — mark complete | `[ ]` |
