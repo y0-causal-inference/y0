@@ -4,11 +4,56 @@
 
 **Goal:** Retrofit `graph.py` (ADMG) and `dsl.py` (probability DSL) so that their operations are formally specified by the Dafny code in `src/dafny/`.
 
-**Architecture:** The Dafny specs define three layers — probability axioms (`probability.dfy`), DAG structure + d-separation + semi-graphoid axioms (`dag.dfy`), and Pearl's do-calculus rules (`do_calculus.dfy`). We align the Python implementation to these specs bottom-up: first graph operations, then d-separation properties, then do-calculus rules. Each task adds tests first that encode exact Dafny lemma semantics, then adds minimal Python code to pass.
+**Architecture:** Dafny serves as a *verified oracle* — its specs define the ground truth for probability axioms (`probability.dfy`), DAG structure + d-separation + semi-graphoid axioms (`dag.dfy`), and Pearl's do-calculus rules (`do_calculus.dfy`). Rather than manually translating each Dafny lemma into Python tests, we use an **auto-generated conformance test suite** that parses the Dafny `.dfy` files and emits a pytest module. The implementation work then follows a strict Red→Green→Refactor loop: run the generated tests, observe failures, implement the minimal Python code to make them pass.
 
 **Tech Stack:** Python 3.11+, pytest, networkx, y0 DSL
 
-**Dafny ↔ Python correspondence table:**
+## Verified Oracle Approach
+
+```
+┌──────────────────┐      parse       ┌────────────────────────────┐
+│  src/dafny/*.dfy │ ──────────────►  │  scripts/generate_dafny_   │
+│  (verified specs)│                  │  conformance_tests.py      │
+└──────────────────┘                  └────────────┬───────────────┘
+                                                   │ emit
+                                                   ▼
+                                      ┌────────────────────────────┐
+                                      │  tests/test_dafny_         │
+                                      │  correspondence.py         │
+                                      │  (auto-generated, ≈30     │
+                                      │   test methods)            │
+                                      └────────────┬───────────────┘
+                                                   │ pytest
+                                                   ▼
+                                      ┌────────────────────────────┐
+                                      │  src/y0/graph.py           │
+                                      │  src/y0/algorithm/         │
+                                      │    do_calculus.py           │
+                                      │  src/y0/mutate/chain.py    │
+                                      └────────────────────────────┘
+```
+
+### Key Files
+
+| File | Role |
+|------|------|
+| `scripts/generate_dafny_conformance_tests.py` | Generator — parses `.dfy`, emits test module |
+| `tests/test_dafny_correspondence.py` | **Auto-generated** — do not edit manually |
+| `src/dafny/dag.dfy` | Dafny spec: DAG, surgery, ancestry, d-separation, semi-graphoid, Local Markov |
+| `src/dafny/do_calculus.dfy` | Dafny spec: Rules 1–3, backdoor, frontdoor criteria |
+| `src/dafny/probability.dfy` | Dafny spec: Kolmogorov axioms, chain rule, Bayes' theorem |
+
+### Regenerating Tests
+
+When a Dafny spec changes, regenerate:
+
+```bash
+python scripts/generate_dafny_conformance_tests.py
+```
+
+This overwrites `tests/test_dafny_correspondence.py`. All test logic flows from the Dafny source.
+
+## Dafny ↔ Python Correspondence Table
 
 | Dafny construct | Python equivalent | File |
 |---|---|---|
@@ -16,286 +61,117 @@
 | `Nodes(G)` | `graph.nodes()` | `src/y0/graph.py` |
 | `Parents(G, v)` | `set(graph.directed.predecessors(v))` | `src/y0/graph.py` |
 | `Children(G, u)` | `set(graph.directed.successors(u))` | `src/y0/graph.py` |
-| `IsDAG(G)` | `nx.is_directed_acyclic_graph(graph.directed)` | `src/y0/graph.py` |
+| `IsDAG(G)` | `graph.is_acyclic()` | `src/y0/graph.py` |
 | `IsTopologicalSort(G, ord)` | `graph.topological_sort()` | `src/y0/graph.py` |
 | `Ancestors(G, W)` | `graph.ancestors_inclusive(W)` | `src/y0/graph.py` |
 | `Descendants(G, W)` | `graph.descendants_inclusive(W)` | `src/y0/graph.py` |
+| `NonDescendants(G, v)` | `graph.non_descendants(v)` | `src/y0/graph.py` |
 | `RemoveIncoming(G, X)` | `graph.remove_in_edges(X)` | `src/y0/graph.py` |
 | `RemoveOutgoing(G, X)` | `graph.remove_out_edges(X)` | `src/y0/graph.py` |
 | `DSep(G, Y, Z, W)` | `are_d_separated(graph, y, z, conditions=W)` | `src/y0/algorithm/conditional_independencies.py` |
-| `NonDescendants(G, v)` | *(not yet implemented)* | `src/y0/graph.py` |
-| `IntProb(G, Y, doX, obsW)` | `rule_2_of_do_calculus_applies(...)` (partial) | `src/y0/algorithm/do_calculus.py` |
-| `Rule1` | *(not yet implemented)* | `src/y0/algorithm/do_calculus.py` |
+| `Rule1` | `rule_1_of_do_calculus_applies(...)` | `src/y0/algorithm/do_calculus.py` |
 | `Rule2` | `rule_2_of_do_calculus_applies(...)` | `src/y0/algorithm/do_calculus.py` |
-| `Rule3` | *(not yet implemented)* | `src/y0/algorithm/do_calculus.py` |
-| `BackdoorAdjustment` | *(not yet standalone)* | `src/y0/algorithm/do_calculus.py` |
-| `FrontdoorCriterion` | *(not yet standalone)* | `src/y0/algorithm/do_calculus.py` |
+| `Rule3` | `rule_3_of_do_calculus_applies(...)` | `src/y0/algorithm/do_calculus.py` |
+| `BackdoorAdjustment` | `satisfies_backdoor(...)` | `src/y0/algorithm/do_calculus.py` |
+| `FrontdoorCriterion` | `satisfies_frontdoor(...)` | `src/y0/algorithm/do_calculus.py` |
 | `ChainRule` | `chain_expand()` | `src/y0/mutate/chain.py` |
 | `BayesTheorem` | `bayes_expand()` | `src/y0/mutate/chain.py` |
 | `CondIndep` | `DSeparationJudgement` | `src/y0/struct.py` |
 
 ---
 
-## Phase 1: Graph Surgery Lemmas
+## Phase 0: Generate Conformance Test Suite
 
-Align `NxMixedGraph` graph surgery methods with `dag.dfy` surgery lemmas.
+### Task 0.1: Run the generator to produce `tests/test_dafny_correspondence.py`
 
-### Task 1.1: Surgery identity tests — `RemoveIncoming(G, {}) == G` and `RemoveOutgoing(G, {}) == G`
+**Status:** `[x]` done
+
+```bash
+python scripts/generate_dafny_conformance_tests.py
+```
+
+The generator parses all three `.dfy` files and emits 8 test classes covering 30 test methods:
+
+| Test class | Dafny section | # tests |
+|---|---|---|
+| `TestSurgeryLemmas` | dag.dfy §4 — Graph Surgery | 7 |
+| `TestAncestryLemmas` | dag.dfy §2–3 — Acyclicity & Ancestry | 8 |
+| `TestDSeparation` | dag.dfy §6 — D-Separation | 3 |
+| `TestSemiGraphoidAxioms` | dag.dfy §7 — Semi-Graphoid | 3 |
+| `TestLocalMarkov` | dag.dfy §8 — Local Markov Property | 1 |
+| `TestDoCalculusRules` | do_calculus.dfy §4–7 — Rules 1–3, Backdoor, Frontdoor | 8 |
+| `TestProbabilityAxioms` | probability.dfy — Chain Rule, Bayes | 3 |
+
+### Task 0.2: Run tests, triage failures
 
 **Status:** `[ ]` not started
 
-**Dafny lemma:** `RemoveIncoming_Empty`, `RemoveOutgoing_Empty` (dag.dfy lines 139-163)
-
-**Files:**
-- Test: `tests/test_dafny_correspondence.py`
-
-**Step 1: Write the failing tests**
-
-```python
-"""Tests verifying Python graph operations match Dafny formal specifications."""
-
-import unittest
-
-from y0.dsl import Variable, W, X, Y, Z
-from y0.graph import NxMixedGraph
-
-
-class TestSurgeryLemmas(unittest.TestCase):
-    """Tests corresponding to dag.dfy §4 Graph Surgery lemmas."""
-
-    def setUp(self) -> None:
-        """Build the three-node chain A -> B -> C from dag.dfy §9."""
-        self.A = Variable("A")
-        self.B = Variable("B")
-        self.C = Variable("C")
-        self.chain = NxMixedGraph.from_edges(
-            directed=[(self.A, self.B), (self.B, self.C)]
-        )
-
-    def test_remove_incoming_empty_is_identity(self):
-        """RemoveIncoming(G, {}) == G. Ref: dag.dfy RemoveIncoming_Empty."""
-        self.assertEqual(self.chain, self.chain.remove_in_edges(set()))
-
-    def test_remove_outgoing_empty_is_identity(self):
-        """RemoveOutgoing(G, {}) == G. Ref: dag.dfy RemoveOutgoing_Empty."""
-        self.assertEqual(self.chain, self.chain.remove_out_edges(set()))
-```
-
-**Step 2: Run tests to verify they pass (these exercise existing code)**
-
-Run: `pytest tests/test_dafny_correspondence.py -v`
-Expected: PASS (these operations already work)
-
-**Step 3: Commit**
-
 ```bash
-git add tests/test_dafny_correspondence.py
-git commit -m "test: add surgery identity tests from dag.dfy RemoveIncoming_Empty/RemoveOutgoing_Empty"
+pytest tests/test_dafny_correspondence.py -v 2>&1 | tail -40
 ```
+
+**Expected triage:**
+
+| Category | Expected result | Reason |
+|---|---|---|
+| Surgery tests (7) | PASS | Existing `remove_in_edges` / `remove_out_edges` |
+| Ancestry tests (6 of 8) | PASS | Existing `ancestors_inclusive` / `descendants_inclusive` / `topological_sort` |
+| `test_chain_is_dag` | **FAIL** | `NxMixedGraph.is_acyclic()` not yet implemented |
+| `test_non_descendants*` (2) | **FAIL** | `NxMixedGraph.non_descendants()` not yet implemented |
+| D-Separation tests (3) | PASS | Existing `are_d_separated` |
+| Semi-Graphoid tests (3) | PASS | Existing `are_d_separated` |
+| Local Markov test (1) | **FAIL** | Depends on `non_descendants()` |
+| Rule 1 tests (2) | **FAIL** | `rule_1_of_do_calculus_applies` not yet implemented |
+| Rule 2 test (1) | PASS | Existing `rule_2_of_do_calculus_applies` |
+| Rule 3 test (1) | **FAIL** | `rule_3_of_do_calculus_applies` not yet implemented |
+| Backdoor tests (2) | **FAIL** | `satisfies_backdoor` not yet implemented |
+| Frontdoor tests (2) | **FAIL** | `satisfies_frontdoor` not yet implemented |
+| Probability tests (3) | PASS | Existing `chain_expand` / `bayes_expand` |
+
+**Expected: ~19 PASS, ~11 FAIL**
 
 ---
 
-### Task 1.2: Surgery preservation tests — nodes in X lose parents, nodes outside X keep parents
+## Phase 1: Graph Predicates (make ancestry/DAG tests green)
+
+### Task 1.1: Add `NxMixedGraph.is_acyclic()`
 
 **Status:** `[ ]` not started
 
-**Dafny lemma:** `RemoveIncoming_NoParents`, `RemoveIncoming_PreservesOthers` (dag.dfy lines 148-158)
+**Dafny predicate:** `IsDAG(G)` (dag.dfy)
+**Fixes test:** `TestAncestryLemmas::test_chain_is_dag`
 
-**Files:**
-- Modify: `tests/test_dafny_correspondence.py`
-
-**Step 1: Write the failing tests**
+Add to `src/y0/graph.py`:
 
 ```python
-    def test_remove_incoming_no_parents_for_target(self):
-        """Nodes in X lose all parents. Ref: dag.dfy RemoveIncoming_NoParents."""
-        mutilated = self.chain.remove_in_edges({self.B})
-        self.assertEqual(set(), set(mutilated.directed.predecessors(self.B)))
-
-    def test_remove_incoming_preserves_others(self):
-        """Nodes outside X keep their parents. Ref: dag.dfy RemoveIncoming_PreservesOthers."""
-        mutilated = self.chain.remove_in_edges({self.B})
-        # C's parent (B) is unaffected
-        self.assertEqual({self.B}, set(mutilated.directed.predecessors(self.C)))
-
-    def test_remove_outgoing_removes_children(self):
-        """Nodes in X lose all children. Ref: dag.dfy RemoveOutgoing (dual)."""
-        mutilated = self.chain.remove_out_edges({self.B})
-        self.assertEqual(set(), set(mutilated.directed.successors(self.B)))
-
-    def test_remove_outgoing_preserves_others(self):
-        """Nodes outside X keep their children. Ref: dag.dfy RemoveOutgoing (dual)."""
-        mutilated = self.chain.remove_out_edges({self.B})
-        self.assertEqual({self.B}, set(mutilated.directed.successors(self.A)))
+def is_acyclic(self) -> bool:
+    """Check if the directed component is acyclic. Ref: dag.dfy IsDAG."""
+    return nx.is_directed_acyclic_graph(self.directed)
 ```
 
-**Step 2: Run tests**
+**Verify:** `pytest tests/test_dafny_correspondence.py::TestAncestryLemmas::test_chain_is_dag -v`
 
-Run: `pytest tests/test_dafny_correspondence.py::TestSurgeryLemmas -v`
-Expected: PASS
+### Task 1.2: Add `NxMixedGraph.non_descendants()`
 
-**Step 3: Commit**
+**Status:** `[ ]` not started
 
+**Dafny function:** `NonDescendants(G, v) = Nodes(G) - Descendants(G, {v})` (dag.dfy)
+**Fixes tests:** `test_non_descendants`, `test_non_descendants_of_source`, `test_local_markov_chain`
+
+Add to `src/y0/graph.py`:
+
+```python
+def non_descendants(self, node: Variable) -> set[Variable]:
+    """Get non-descendants of a node. Ref: dag.dfy NonDescendants."""
+    return set(self.nodes()) - self.descendants_inclusive(node)
+```
+
+**Verify:** `pytest tests/test_dafny_correspondence.py -k "non_descendants or local_markov" -v`
+
+**Commit after both:**
 ```bash
-git add tests/test_dafny_correspondence.py
-git commit -m "test: add surgery preservation tests from dag.dfy RemoveIncoming_NoParents/PreservesOthers"
-```
-
----
-
-### Task 1.3: Surgery on graph with bidirected edges
-
-**Status:** `[ ]` not started
-
-**Dafny note:** Dafny `Graph` models only directed edges. `NxMixedGraph` also has bidirected (undirected). Surgery on incoming edges must also remove bidirected edges to/from X. Verify this behavior.
-
-**Files:**
-- Modify: `tests/test_dafny_correspondence.py`
-
-**Step 1: Write the failing tests**
-
-```python
-    def test_remove_incoming_also_removes_bidirected(self):
-        """RemoveIncoming on ADMG also removes bidirected edges to X."""
-        graph = NxMixedGraph.from_edges(
-            directed=[(self.A, self.B), (self.B, self.C)],
-            undirected=[(self.A, self.B)],
-        )
-        mutilated = graph.remove_in_edges({self.B})
-        # B should have no directed parents
-        self.assertEqual(set(), set(mutilated.directed.predecessors(self.B)))
-        # B should have no bidirected neighbors
-        self.assertEqual(set(), set(mutilated.undirected.neighbors(self.B)))
-```
-
-**Step 2: Run test**
-
-Run: `pytest tests/test_dafny_correspondence.py::TestSurgeryLemmas::test_remove_incoming_also_removes_bidirected -v`
-Expected: PASS (existing behavior)
-
-**Step 3: Commit**
-
-```bash
-git add tests/test_dafny_correspondence.py
-git commit -m "test: verify surgery removes bidirected edges (ADMG extension of dag.dfy)"
-```
-
----
-
-## Phase 2: Ancestry and DAG Predicates
-
-Align `ancestors_inclusive`, `descendants_inclusive`, `topological_sort`, and acyclicity checks with `dag.dfy` §2–3.
-
-### Task 2.1: Ancestry reflexivity and transitivity on the chain graph
-
-**Status:** `[ ]` not started
-
-**Dafny lemma:** `Ancestor_Reflexive` (dag.dfy line 114), `Ancestors`/`Descendants` ghost functions
-
-**Files:**
-- Modify: `tests/test_dafny_correspondence.py`
-
-**Step 1: Write the failing tests**
-
-```python
-class TestAncestryLemmas(unittest.TestCase):
-    """Tests corresponding to dag.dfy §3 Ancestry."""
-
-    def setUp(self) -> None:
-        """Build the three-node chain A -> B -> C from dag.dfy §9."""
-        self.A = Variable("A")
-        self.B = Variable("B")
-        self.C = Variable("C")
-        self.chain = NxMixedGraph.from_edges(
-            directed=[(self.A, self.B), (self.B, self.C)]
-        )
-
-    def test_ancestor_reflexive(self):
-        """Every node is its own ancestor. Ref: dag.dfy Ancestor_Reflexive."""
-        for node in [self.A, self.B, self.C]:
-            self.assertIn(node, self.chain.ancestors_inclusive(node))
-
-    def test_ancestor_transitive(self):
-        """Ancestry is transitive: A ancestor of B, B ancestor of C => A ancestor of C."""
-        self.assertIn(self.A, self.chain.ancestors_inclusive(self.C))
-
-    def test_descendant_reflexive(self):
-        """Every node is its own descendant. Ref: dag.dfy Descendants definition."""
-        for node in [self.A, self.B, self.C]:
-            self.assertIn(node, self.chain.descendants_inclusive(node))
-
-    def test_descendant_transitive(self):
-        """Descendancy is transitive."""
-        self.assertIn(self.C, self.chain.descendants_inclusive(self.A))
-
-    def test_ancestors_of_chain_endpoint(self):
-        """Ancestors(G, {C}) = {A, B, C} in the chain graph. Ref: dag.dfy Ancestors."""
-        self.assertEqual(
-            {self.A, self.B, self.C},
-            self.chain.ancestors_inclusive(self.C),
-        )
-
-    def test_descendants_of_chain_start(self):
-        """Descendants(G, {A}) = {A, B, C} in the chain graph. Ref: dag.dfy Descendants."""
-        self.assertEqual(
-            {self.A, self.B, self.C},
-            self.chain.descendants_inclusive(self.A),
-        )
-```
-
-**Step 2: Run tests**
-
-Run: `pytest tests/test_dafny_correspondence.py::TestAncestryLemmas -v`
-Expected: PASS
-
-**Step 3: Commit**
-
-```bash
-git add tests/test_dafny_correspondence.py
-git commit -m "test: add ancestry reflexivity/transitivity tests from dag.dfy §3"
-```
-
----
-
-### Task 2.2: `is_acyclic` predicate — wrap `IsDAG`
-
-**Status:** `[ ]` not started
-
-**Dafny predicate:** `IsDAG(G)` (dag.dfy line 73)
-
-**Files:**
-- Modify: `tests/test_dafny_correspondence.py`
-- Modify: `src/y0/graph.py` (add `is_acyclic` method)
-
-**Step 1: Write the failing test**
-
-```python
-    def test_chain_is_dag(self):
-        """The chain graph is a DAG. Ref: dag.dfy IsDAG, ChainGraph_IsDAG."""
-        self.assertTrue(self.chain.is_acyclic())
-
-    def test_topological_sort_exists(self):
-        """A DAG admits a topological sort. Ref: dag.dfy IsTopologicalSort."""
-        order = self.chain.topological_sort()
-        self.assertEqual(3, len(order))
-        # parent must appear before child
-        self.assertLess(order.index(self.A), order.index(self.B))
-        self.assertLess(order.index(self.B), order.index(self.C))
-```
-
-**Step 2: Run test to verify it fails**
-
-Run: `pytest tests/test_dafny_correspondence.py::TestAncestryLemmas::test_chain_is_dag -v`
-Expected: FAIL with `AttributeError: 'NxMixedGraph' object has no attribute 'is_acyclic'`
-
-**Step 3: Write minimal implementation**
-
-Add to `NxMixedGraph` in `src/y0/graph.py`:
-
-```python
-    def is_acyclic(self) -> bool:
-        """Check if the directed component is acyclic. Ref: dag.dfy IsDAG."""
-        return nx.is_directed_acyclic_graph(self.directed)
+git add src/y0/graph.py
+git commit -m "feat: add is_acyclic() and non_descendants() per dag.dfy IsDAG/NonDescendants"
 ```
 
 **Step 4: Run tests to verify they pass**
