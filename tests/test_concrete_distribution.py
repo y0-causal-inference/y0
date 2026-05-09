@@ -15,6 +15,7 @@ class TestConcreteDistribution(unittest.TestCase):
     """Test ConcreteDistribution construction and basic queries."""
 
     def setUp(self):
+        """Set up test fixtures."""
         self.A = Variable("A")
         self.B = Variable("B")
         self.dist = ConcreteDistribution.from_random(
@@ -85,25 +86,25 @@ class TestConcreteDistribution(unittest.TestCase):
 
     def test_three_vars(self):
         """Construction with 3 variables works correctly."""
-        C = Variable("C")
+        c = Variable("C")
         dist3 = ConcreteDistribution.from_random(
-            [self.A, self.B, C], n_values=2, seed=99
+            [self.A, self.B, c], n_values=2, seed=99
         )
         self.assertTrue(dist3.is_valid())
         total = sum(
-            dist3.prob_event({self.A: a, self.B: b, C: c})
+            dist3.prob_event({self.A: a, self.B: b, c: cv})
             for a in range(2)
             for b in range(2)
-            for c in range(2)
+            for cv in range(2)
         )
         self.assertAlmostEqual(total, 1.0, places=10)
 
     def test_from_dag(self):
         """from_dag produces a valid Markov-compatible distribution."""
-        C = Variable("C")
+        c = Variable("C")
         dist = ConcreteDistribution.from_dag(
-            directed_edges=[(self.A, self.B), (self.B, C)],
-            variables=[self.A, self.B, C],
+            directed_edges=[(self.A, self.B), (self.B, c)],
+            variables=[self.A, self.B, c],
             n_values=2,
             seed=42,
         )

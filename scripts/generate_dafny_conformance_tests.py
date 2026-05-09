@@ -16,7 +16,6 @@ Output:
 from __future__ import annotations
 
 import re
-import textwrap
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -1516,7 +1515,7 @@ class TestNumericalInterventional(unittest.TestCase):
     if needed_impls:
         parts.append("")
         parts.append("# ── Implementation stubs needed ──")
-        parts.append(f"# The following methods/functions must exist for these tests to pass:")
+        parts.append("# The following methods/functions must exist for these tests to pass:")
         for name in needed_impls:
             parts.append(f"#   - {name}")
         parts.append("")

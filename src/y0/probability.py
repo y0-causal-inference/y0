@@ -9,7 +9,6 @@ Ref: probability.dfy IsDistribution / ProbEvent / ProbCond
 
 from __future__ import annotations
 
-from collections.abc import Collection
 from itertools import product as cartesian_product
 from typing import Any
 
@@ -37,6 +36,7 @@ class ConcreteDistribution:
         _cpds: dict | None = None,
         _parents: dict | None = None,
     ) -> None:
+        """Initialize with a DataFrame of outcomes and probabilities."""
         self._df = df
         self._variables = list(variables)
         self._cpds = _cpds
@@ -63,7 +63,10 @@ class ConcreteDistribution:
         names = [v.name for v in variables]
         domain = list(cartesian_product(*[range(n_values)] * len(variables)))
         probs = rng.dirichlet(np.ones(len(domain)))
-        rows = [dict(zip(names, vals)) | {"prob": p} for vals, p in zip(domain, probs)]
+        rows = [
+            dict(zip(names, vals, strict=True)) | {"prob": p}
+            for vals, p in zip(domain, probs, strict=True)
+        ]
         df = pd.DataFrame(rows)
         return cls(df, variables)
 
@@ -105,14 +108,14 @@ class ConcreteDistribution:
         names = [v.name for v in variables]
         rows = []
         for vals in cartesian_product(*[range(n_values)] * len(variables)):
-            assignment = dict(zip(variables, vals))
+            assignment = dict(zip(variables, vals, strict=True))
             prob = 1.0
             for var in variables:
                 pa = parents[var]
                 pa_vals = tuple(assignment[p] for p in pa)
                 var_val = assignment[var]
                 prob *= cpds[var][pa_vals][var_val]
-            rows.append(dict(zip(names, vals)) | {"prob": prob})
+            rows.append(dict(zip(names, vals, strict=True)) | {"prob": prob})
 
         df = pd.DataFrame(rows)
         return cls(df, variables, _cpds=cpds, _parents=parents)
@@ -193,7 +196,7 @@ class ConcreteDistribution:
         n_values = len(self._df[names[0]].unique())
         rows = []
         for vals in cartesian_product(*[range(n_values)] * len(self._variables)):
-            assignment = dict(zip(self._variables, vals))
+            assignment = dict(zip(self._variables, vals, strict=True))
             # Skip rows inconsistent with intervention
             if not all(assignment[v] == val for v, val in intervention.items()):
                 continue
@@ -206,7 +209,10 @@ class ConcreteDistribution:
                 pa_vals = tuple(assignment[p] for p in pa)
                 var_val = assignment[var]
                 prob *= self._cpds[var][pa_vals][var_val]
-            rows.append(dict(zip(names, [assignment[v] for v in self._variables])) | {"prob": prob})
+            rows.append(
+                dict(zip(names, [assignment[v] for v in self._variables], strict=True))
+                | {"prob": prob}
+            )
 
         df = pd.DataFrame(rows)
         total = df["prob"].sum()

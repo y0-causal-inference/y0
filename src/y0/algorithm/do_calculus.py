@@ -1,7 +1,8 @@
 """Do Calculus."""
 
-import networkx as nx
 from typing import Annotated
+
+import networkx as nx
 
 from .conditional_independencies import are_d_separated
 from ..dsl import Variable

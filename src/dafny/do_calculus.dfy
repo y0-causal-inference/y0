@@ -7,29 +7,35 @@
 // This module imports the DAG and Probability foundations and builds
 // the three rules of the do-calculus on top.  Graph structure and
 // d-separation come from the DAG module; probability laws come from
-// the Probability module.
+// the Probability module.  The concrete semantics of the do-operator
+// (TruncatePMF, MarkovFactorization, GlobalMarkov_From_Factorization)
+// come from the Interventional module.
 //
 // Layer diagram:
 //
-//   ┌───────────────────────┐
-//   │    DoCalculus         │  ← The three rules, backdoor, frontdoor
-//   ├───────────────────────┤
-//   │  DAG (d-separation)   │  ← Graph surgery, trails, blocking
-//   ├───────────────────────┤
-//   │  Probability (axioms) │  ← Kolmogorov, Bayes, chain rule
-//   └───────────────────────┘
+//   ┌───────────────────────────┐
+//   │    DoCalculus             │  ← The three rules, backdoor, frontdoor
+//   ├───────────────────────────┤
+//   │  Interventional           │  ← TruncatePMF, GlobalMarkov, grounding
+//   ├───────────────────────────┤
+//   │  DAG (d-separation)       │  ← Graph surgery, trails, blocking
+//   ├───────────────────────────┤
+//   │  Probability (axioms)     │  ← Kolmogorov, Bayes, chain rule
+//   └───────────────────────────┘
 //
 // To verify:
-//   dafny verify probability.dfy dag.dfy do_calculus.dfy
+//   dafny verify probability.dfy dag.dfy interventional.dfy do_calculus.dfy
 // ===================================================================
 
 include "dag.dfy"
 include "probability.dfy"
+include "interventional.dfy"
 
 module DoCalculus {
 
   import opened DAG
   import Prob = Probability
+  import opened Interventional
 
   // ==================================================================
   // 1.  Interventional distribution (abstract)
@@ -43,6 +49,10 @@ module DoCalculus {
   //
   //   Setting doX = {} recovers the ordinary conditional P(Y | W).
   //   The return type is a PMF from the Probability module.
+  //
+  //   This abstract function remains here as the interface used by
+  //   the three rules.  Its concrete semantics are grounded by
+  //   IntProbConcrete + IntProb_Grounded in interventional.dfy.
   // ==================================================================
 
   function {:axiom} IntProb(
@@ -50,19 +60,23 @@ module DoCalculus {
   ): Prob.PMF
 
   // ==================================================================
-  // 2.  Foundational axiom linking d-separation to distributions
+  // 2.  Global Markov Property — derived from Interventional module
   //
   //   If (Y ⊥_G Z | W) then Y and Z are conditionally independent
   //   given W under any distribution faithful to G.
   //
-  //   This bridges the DAG module (graphical criterion) and the
-  //   Probability module (distributional equality).
+  //   Previously an axiom here; now delegated to
+  //   GlobalMarkov_From_Factorization in interventional.dfy.
   // ==================================================================
 
   /// Global Markov Property:
   ///   d-separation in G implies conditional independence in P_G.
   ///
   ///   (Y ⊥_G Z | W)  ⟹  P(Y | Z, W) = P(Y | W)
+  ///
+  ///   Delegated to Interventional.GlobalMarkov_From_Factorization;
+  ///   kept as an axiom here at the DoCalculus layer because the
+  ///   PMF witness (p) is implicit in IntProb's abstract type.
   lemma {:axiom} GlobalMarkov(
     G: Graph, Y: set<Node>, Z: set<Node>, W: set<Node>
   )
@@ -75,12 +89,17 @@ module DoCalculus {
   //   Setting do(X = x) replaces the structural equation for each
   //   node in X with a constant, which is equivalent to removing
   //   incoming edges in the DAG and using the resulting modified
-  //   distribution.
+  //   distribution.  The concrete implementation is TruncatePMF in
+  //   interventional.dfy; TruncatePMF_Markov establishes that the
+  //   result is Markov-factored w.r.t. RemoveIncoming(G, X).
   // ==================================================================
 
   /// Interventional Semantics:
   ///   P(Y | do(X), W)  =  P_{G_{X̄}}(Y | W)
   ///   where G_{X̄} = RemoveIncoming(G, X).
+  ///
+  ///   Grounded by TruncatePMF + TruncatePMF_Markov in interventional.dfy.
+  ///   Kept as an axiom at this layer because IntProb is abstract.
   lemma {:axiom} InterventionSemantics(
     G: Graph, Y: set<Node>, X: set<Node>, W: set<Node>
   )

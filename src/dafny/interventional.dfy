@@ -219,4 +219,18 @@ module Interventional {
     // d-separation implies conditional independence:
     // for all assignments, P(Y | Z, W) == P(Y | W)
 
+  // ==================================================================
+  // 7.  Marginalization
+  //
+  //   Marginalizing a PMF sums out a set of variables.
+  //   Σ_W P(V) yields a distribution over V \ W.
+  // ==================================================================
+
+  // Marginalize: Σ_W P(V)
+  ghost function {:axiom} Marginalize(p: Prob.PMF, W: set<Node>): Prob.PMF
+
+  lemma {:axiom} Marginalize_IsDistribution(p: Prob.PMF, W: set<Node>)
+    requires Prob.IsDistribution(p)
+    ensures Prob.IsDistribution(Marginalize(p, W))
+
 }  // end module Interventional

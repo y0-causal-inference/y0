@@ -243,6 +243,10 @@ ignore = [
 "notebooks/**/*.ipynb" = ["T201", "S101", "N811", "N802", "N803"]
 "src/y0/algorithm/separation/sigma_separation.py" = ["RUF002", "RUF003"]
 "src/y0/algorithm/separation/__init__.py" = ["RUF002", "RUF003"]
+# Auto-generated conformance tests use uppercase Variable names (X, Y, Z) by design
+"tests/test_dafny_correspondence.py" = ["N806", "RUF001", "RUF002"]
+# Generator script has math symbols in docstrings and complex main function
+"scripts/generate_dafny_conformance_tests.py" = ["RUF001", "C901", "T201"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

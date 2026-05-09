@@ -230,4 +230,15 @@ module Probability {
     assert A * B == B * A;
   }
 
+  // ==================================================================
+  // 8.  Products of PMFs
+  // ==================================================================
+
+  // Product of a sequence of PMFs.
+  ghost function {:axiom} ProductPMF(ps: seq<PMF>): PMF
+
+  lemma {:axiom} ProductPMF_IsDistribution(ps: seq<PMF>)
+    requires forall i :: 0 <= i < |ps| ==> IsDistribution(ps[i])
+    ensures IsDistribution(ProductPMF(ps))
+
 }  // end module Probability

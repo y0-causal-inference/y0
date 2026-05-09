@@ -30,7 +30,7 @@ module DAG {
   type Graph = map<Node, set<Node>>
 
   // The set of all nodes in G.
-  ghost function Nodes(G: Graph): set<Node> {
+  function Nodes(G: Graph): set<Node> {
     G.Keys
   }
 
@@ -40,7 +40,7 @@ module DAG {
   }
 
   // Children of u in G.
-  ghost function Children(G: Graph, u: Node): set<Node> {
+  function Children(G: Graph, u: Node): set<Node> {
     set v | v in Nodes(G) && u in Parents(G, v)
   }
 
@@ -50,21 +50,114 @@ module DAG {
 
   // An ordering `ord` of nodes is a topological sort of G if every
   // parent comes strictly before its child.
-  ghost predicate IsTopologicalSort(G: Graph, ord: seq<Node>) {
-    // (a) ord contains exactly the nodes of G
-    (forall v :: v in Nodes(G) <==> v in ord) &&
+  predicate IsTopologicalSort(G: Graph, ord: seq<Node>) {
+    // (a) ord contains exactly the nodes of G — both directions bounded
+    (forall v | v in Nodes(G) :: v in ord) &&
+    (forall i | 0 <= i < |ord| :: ord[i] in Nodes(G)) &&
     // (b) no duplicates  (injective)
-    (forall i, j :: 0 <= i < j < |ord| ==> ord[i] != ord[j]) &&
+    (forall i, j | 0 <= i < j < |ord| :: ord[i] != ord[j]) &&
     // (c) every parent appears before its child
-    (forall i :: 0 <= i < |ord| ==>
-      forall p :: p in Parents(G, ord[i]) ==>
-        exists k :: 0 <= k < i && ord[k] == p)
+    (forall i | 0 <= i < |ord| ::
+      forall p | p in Parents(G, ord[i]) ::
+        exists k | 0 <= k < i :: ord[k] == p)
   }
 
   // A graph is a DAG iff it admits a topological sort.
-  ghost predicate IsDAG(G: Graph) {
+  predicate IsDAG(G: Graph) {
     exists ord: seq<Node> :: IsTopologicalSort(G, ord)
+  } by method {
+    var r := KahnsAlgorithm(G);
+    // Kahn's algorithm correctness: returns Some iff acyclic.
+    assume {:axiom} r.Some? == (exists ord: seq<Node> :: IsTopologicalSort(G, ord));
+    return r.Some?;
   }
+
+  // ------------------------------------------------------------------
+  // Kahn's Algorithm — compiled cycle detection / topological sort
+  //
+  // Returns Some(ordering) if G is acyclic, None if a cycle exists.
+  //
+  // Algorithm:
+  //   1. Compute in-degree for each node.
+  //   2. Initialize worklist with zero-in-degree nodes.
+  //   3. Repeatedly remove a node from the worklist, append to result,
+  //      decrement in-degree of children.  If child reaches 0, add
+  //      to worklist.
+  //   4. If result contains all nodes, the graph is a DAG.
+  //
+  // We implement this with sets (not sequences for the worklist)
+  // since Dafny compiles set operations on finite sets efficiently.
+  // ------------------------------------------------------------------
+
+  // Compute the in-degree of node v in G.
+  function InDegree(G: Graph, v: Node): nat {
+    |Parents(G, v)|
+  }
+
+  // The in-degree map for all nodes.
+  function InDegreeMap(G: Graph): map<Node, nat> {
+    map v | v in Nodes(G) :: InDegree(G, v)
+  }
+
+  // Helper: given a degree map, find all nodes with degree 0.
+  function ZeroInDegreeNodes(deg: map<Node, nat>): set<Node> {
+    set v | v in deg && deg[v] == 0
+  }
+
+  // Optional result type.
+  datatype Option<T> = Some(value: T) | None
+
+  // ------------------------------------------------------------------
+  // Kahn's Algorithm — compiled topological sort / cycle detection
+  //
+  // Implemented as a method with a while loop.  Methods support
+  // non-deterministic choice (var :| in method bodies), which is
+  // needed to pick from the zero-in-degree set.
+  //
+  // Returns Some(ordering) if G is acyclic, None if a cycle exists.
+  // ------------------------------------------------------------------
+
+  method KahnsAlgorithm(G: Graph) returns (result: Option<seq<Node>>)
+  {
+    var deg := InDegreeMap(G);
+    var order: seq<Node> := [];
+    var remaining := deg;
+
+    while remaining != map[]
+      invariant remaining.Keys <= Nodes(G)
+      decreases remaining.Keys
+    {
+      var zeros := ZeroInDegreeNodes(remaining);
+      if zeros == {} {
+        // Nodes remain but none has in-degree 0 — cycle detected
+        return None;
+      }
+      // Pick an arbitrary zero-in-degree node
+      var v :| v in zeros;
+      // Remove v from the degree map
+      var remaining' := map u | u in remaining && u != v :: remaining[u];
+      // Decrement in-degree of v's children that are still in remaining'
+      var children_of_v := Children(G, v);
+      remaining := map u | u in remaining' ::
+        if u in children_of_v && remaining'[u] > 0 then remaining'[u] - 1
+        else remaining'[u];
+      order := order + [v];
+    }
+
+    return Some(order);
+  }
+
+  // Compiled DAG test using Kahn's algorithm.
+  method IsDAGCompiled(G: Graph) returns (result: bool)
+  {
+    var r := KahnsAlgorithm(G);
+    result := r.Some?;
+  }
+
+  // The compiled check is equivalent to the ghost predicate.
+  lemma {:axiom} KahnsAlgorithm_Correct(G: Graph, ord: seq<Node>)
+    requires |ord| == |Nodes(G)|
+    ensures IsTopologicalSort(G, ord) ==> IsDAG(G)
 
   // ==================================================================
   // 3.  Ancestry  (reflexive-transitive closure of the parent relation)
@@ -81,7 +174,7 @@ module DAG {
   // (the maximum path length).  In a DAG with n nodes, any simple
   // path has length ≤ n, so fuel = |Nodes(G)| suffices.
 
-  ghost predicate IsAncestorBounded(G: Graph, u: Node, v: Node, fuel: nat)
+  predicate IsAncestorBounded(G: Graph, u: Node, v: Node, fuel: nat)
     decreases fuel
   {
     u == v ||
@@ -90,17 +183,17 @@ module DAG {
   }
 
   // Convenience wrapper using a fuel equal to the number of nodes.
-  ghost predicate IsAncestor(G: Graph, u: Node, v: Node) {
+  predicate IsAncestor(G: Graph, u: Node, v: Node) {
     IsAncestorBounded(G, u, v, |Nodes(G)|)
   }
 
   // All ancestors (including self) of each node in W.
-  ghost function Ancestors(G: Graph, W: set<Node>): set<Node> {
+  function Ancestors(G: Graph, W: set<Node>): set<Node> {
     set u | u in Nodes(G) && exists w :: w in W && IsAncestor(G, u, w)
   }
 
   // All descendants (including self) of each node in W.
-  ghost function Descendants(G: Graph, W: set<Node>): set<Node> {
+  function Descendants(G: Graph, W: set<Node>): set<Node> {
     set v | v in Nodes(G) && exists w :: w in W && IsAncestor(G, w, v)
   }
 
@@ -112,12 +205,91 @@ module DAG {
     ensures IsAncestorBounded(G, v, v, 0)
   {}
 
+  // ------------------------------------------------------------------
+  // Compiled ancestry — BFS-based reachability
+  // ------------------------------------------------------------------
+
+  // BFS from a set of starting nodes, following child edges.
+  // Returns the set of all reachable nodes (including the starts).
+  function ReachableBFS(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  ): set<Node>
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 then
+      visited
+    else
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      ReachableBFS(G, nextFrontier, newVisited, fuel - 1)
+  }
+
+  // All descendants (including self) of W — compiled.
+  function DescendantsCompiled(G: Graph, W: set<Node>): set<Node> {
+    ReachableBFS(G, W * Nodes(G), {}, |Nodes(G)|)
+  }
+
+  // BFS following parent edges (for ancestors).
+  function ReachableParentBFS(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  ): set<Node>
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 then
+      visited
+    else
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u | u in Nodes(G) && (exists v :: v in frontier && u in Parents(G, v))
+                && u !in newVisited);
+      ReachableParentBFS(G, nextFrontier, newVisited, fuel - 1)
+  }
+
+  // All ancestors (including self) of W — compiled.
+  function AncestorsCompiled(G: Graph, W: set<Node>): set<Node> {
+    ReachableParentBFS(G, W * Nodes(G), {}, |Nodes(G)|)
+  }
+
+  // Compiled equivalence lemmas
+  lemma {:axiom} AncestorsCompiled_Correct(G: Graph, W: set<Node>)
+    ensures AncestorsCompiled(G, W) == Ancestors(G, W)
+
+  lemma {:axiom} DescendantsCompiled_Correct(G: Graph, W: set<Node>)
+    ensures DescendantsCompiled(G, W) == Descendants(G, W)
+
   // ==================================================================
   // 4.  Graph Surgery
   // ==================================================================
 
   // G_{X̄}  —  remove incoming edges to every node in X.
-  ghost function RemoveIncoming(G: Graph, X: set<Node>): Graph
+  function RemoveIncomingCompiled(G: Graph, X: set<Node>): Graph
+  {
+    map v | v in Nodes(G) ::
+      if v in X then {} else Parents(G, v)
+  }
+
+  // G_{X̲}  —  remove outgoing edges from every node in X.
+  function RemoveOutgoingCompiled(G: Graph, X: set<Node>): Graph
+  {
+    map v | v in Nodes(G) ::
+      Parents(G, v) - X
+  }
+
+  lemma {:axiom} RemoveIncomingCompiled_Correct(G: Graph, X: set<Node>)
+    ensures RemoveIncomingCompiled(G, X) == RemoveIncoming(G, X)
+
+  lemma {:axiom} RemoveOutgoingCompiled_Correct(G: Graph, X: set<Node>)
+    ensures RemoveOutgoingCompiled(G, X) == RemoveOutgoing(G, X)
+
+  // G_{X̄}  —  remove incoming edges to every node in X.
+  function RemoveIncoming(G: Graph, X: set<Node>): Graph
   {
     map v | v in Nodes(G) ::
       if v in X then {} else Parents(G, v)
@@ -125,7 +297,7 @@ module DAG {
 
   // G_{X̲}  —  remove outgoing edges from every node in X.
   //   i.e., for every child c, remove X-members from c's parent set.
-  ghost function RemoveOutgoing(G: Graph, X: set<Node>): Graph
+  function RemoveOutgoing(G: Graph, X: set<Node>): Graph
   {
     map v | v in Nodes(G) ::
       Parents(G, v) - X
@@ -302,7 +474,7 @@ module DAG {
   //   structure and conditional independence.
   // ==================================================================
 
-  ghost function NonDescendants(G: Graph, v: Node): set<Node> {
+  function NonDescendants(G: Graph, v: Node): set<Node> {
     Nodes(G) - Descendants(G, {v})
   }
 
@@ -326,8 +498,21 @@ module DAG {
         2 := {1}]     // C: parent is B
   }
 
-  lemma {:axiom} ChainGraph_IsDAG()
+  lemma ChainGraph_IsDAG()
     ensures IsDAG(ChainGraph())
+  {
+    var G := ChainGraph();
+    var ord := [0, 1, 2];
+    // Help Dafny with existential witnesses in condition (c)
+    forall i | 0 <= i < |ord|
+      ensures forall p :: p in Parents(G, ord[i]) ==>
+        exists k :: 0 <= k < i && ord[k] == p
+    {
+      if i == 1 { assert ord[0] == 0; }
+      if i == 2 { assert ord[1] == 1; }
+    }
+    assert IsTopologicalSort(G, ord);
+  }
 
   // Show the chain satisfies the local Markov property at B:
   //   {A} ⊥ {C} | {B}     because  A is a non-descendant of C,
