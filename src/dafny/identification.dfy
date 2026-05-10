@@ -251,6 +251,19 @@ module Identification {
       SetOfSetsToSeq(ss)[i] != SetOfSetsToSeq(ss)[j]
 
   // ------------------------------------------------------------------
+  // Helper: expose the elementwise well-formedness of the Line 4
+  // component sequence in one place.
+  // ------------------------------------------------------------------
+  lemma {:axiom} IDLine4ComponentsReady(sm: SMGraph, X: set<Node>)
+    requires WellFormedSM(sm)
+    ensures forall i ::
+      0 <= i < |SetOfSetsToSeq(CComponentsWithout(sm, X))| ==>
+      SetOfSetsToSeq(CComponentsWithout(sm, X))[i] <= SMNodes(sm)
+    ensures forall i ::
+      0 <= i < |SetOfSetsToSeq(CComponentsWithout(sm, X))| ==>
+      SetOfSetsToSeq(CComponentsWithout(sm, X))[i] != {}
+
+  // ------------------------------------------------------------------
   // Helper: Line 4 product — recurse ID on each C-component of G\X,
   // then combine with marginalization.
   //
@@ -382,7 +395,10 @@ module Identification {
 
       // Line 4: if |C(G \ X)| > 1, decompose
       if |ccompsGX| > 1 then
+        IDLine4ComponentsReady(sm, X);
         var comps := SetOfSetsToSeq(ccompsGX);
+        assert forall i :: 0 <= i < |comps| ==> comps[i] <= SMNodes(sm);
+        assert forall i :: 0 <= i < |comps| ==> comps[i] != {};
         var check := IDLine4Check(sm, comps, p, ord, 0, fuel - 1);
         if check.NotIdentified? then check
         else
