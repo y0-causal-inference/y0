@@ -193,6 +193,128 @@ flowchart LR
 5. Register source linkage in oracle metadata.
 6. Run gates: line build, line smoke, parity test file, broad identification verify.
 
+### Concrete Migration Plan: Single-File Full ID Runtime
+
+Objective: move from per-line extracted modules to one executable entrypoint in
+`identification.dfy` while preserving generated-vs-handwritten parity and
+keeping rollback simple.
+
+#### Phase 0: Freeze Baseline and Guard Rails
+
+Commit-ready tasks:
+
+- [ ] Record baseline commit and keep per-line path as fallback default.
+- [ ] Capture baseline gate outputs (parity file, broad Dafny verify, line smokes).
+- [ ] Add a migration tracking note with known risk points (line 3 and line 7 recursion).
+
+Acceptance criteria:
+
+1. Baseline commit hash and gate command outputs are recorded in this plan.
+2. Current generated engine still routes through existing line-specific bridges.
+3. No functional changes merged in this phase.
+
+#### Phase 1: Add Single Executable Dafny Entrypoint
+
+Commit-ready tasks:
+
+- [ ] Add one public executable method in `src/dafny/identification.dfy` for full-ID IR output.
+- [ ] Keep IR document schema in the same file aligned with Python canonical validator.
+- [ ] Implement deterministic helpers for all set-to-sequence emission paths.
+- [ ] Ensure line 5 fail/hedge remains root-level fail output shape.
+
+Acceptance criteria:
+
+1. `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch` passes.
+2. New method can be translated to Python without parse/type errors.
+3. Emitted IR validates through canonicalization without schema changes.
+
+#### Phase 2: Internalize Lines 1-7 Under One Dispatcher
+
+Commit-ready tasks:
+
+- [ ] Consolidate line-specific executable logic as internal methods in `src/dafny/identification.dfy`.
+- [ ] Replace external transform handoffs with internal recursion where valid.
+- [ ] Keep explicit route order checks matching handwritten line order: 1, 2, 3, 4, 5, 6, 7.
+- [ ] Maintain deterministic ordering contracts for all recursive branches.
+
+Acceptance criteria:
+
+1. Full-entrypoint output matches per-line path on representative cases for lines 1-7.
+2. Recursive branches (line 3 and line 7) produce stable outputs across repeated runs.
+3. Hedge failures remain classifiable with expected witness fields.
+
+#### Phase 3: Replace Build/Smoke Tooling with Full Runtime Scripts
+
+Commit-ready tasks:
+
+- [ ] Add `scripts/build_dafny_id_full_extracted.sh`.
+- [ ] Add `scripts/check_dafny_id_full_runtime.py`.
+- [ ] Keep old line-specific scripts for one transition window.
+- [ ] Add smoke cases for identifiable path, line-3-like recursive path, line-7-like recursive path, and hedge fail path.
+
+Acceptance criteria:
+
+1. New full build script verifies and translates from `src/dafny/identification.dfy` only.
+2. New full smoke script exits zero and prints deterministic payloads.
+3. Existing line scripts remain runnable as rollback path.
+
+#### Phase 4: Bridge and Dispatcher Cutover (Safe Fallback)
+
+Commit-ready tasks:
+
+- [ ] Add one full-runtime bridge function in `src/y0/algorithm/identify/id_extracted_bridge.py`.
+- [ ] Add full-runtime availability error type and loader.
+- [ ] Update `src/y0/algorithm/identify/id_generated.py` to try full runtime first, then fallback to handwritten.
+- [ ] Keep line-specific route code behind a temporary compatibility flag until parity confidence is met.
+
+Acceptance criteria:
+
+1. Generated engine result is canonically equal to handwritten on baseline parity suite.
+2. If full runtime is unavailable, fallback path is unchanged and green.
+3. No route-order regressions in existing route/fallback tests.
+
+#### Phase 5: Test/Oracle Migration and Parity Lock
+
+Commit-ready tasks:
+
+- [ ] Add full-runtime route/fallback tests in `tests/test_algorithm/test_id_generated_parity.py`.
+- [ ] Extend `tests/data/generated/dafny_oracle/id_cases.v1.json` with full-runtime source anchors.
+- [ ] Keep line-specific parity tests until full-runtime path is stable for one full cycle.
+- [ ] Add one real end-to-end case each for line 3 and line 7 recursion-sensitive behavior.
+
+Acceptance criteria:
+
+1. `pytest tests/test_algorithm/test_id_generated_parity.py -q` is green.
+2. Full-runtime oracle cases validate and are deterministic between runs.
+3. Broad Dafny verification gate stays green after each migration commit.
+
+#### Phase 6: Decommission Per-Line Scaffolding
+
+Commit-ready tasks:
+
+- [ ] Remove line-specific route imports/functions from generated path.
+- [ ] Remove deprecated line-specific bridge helpers and scripts.
+- [ ] Remove line-specific extracted Dafny modules after final fallback window.
+- [ ] Update plan/docs to reflect single-file runtime architecture as default.
+
+Acceptance criteria:
+
+1. Full-runtime path is the only active generated route.
+2. Parity and broad verification gates remain green post-removal.
+3. Rollback instructions are documented at final cutover commit.
+
+#### Gate Matrix (Run At Each Phase Boundary)
+
+1. `python scripts/check_dafny_id_full_runtime.py` (or phase-equivalent smoke before full script exists)
+2. `pytest tests/test_algorithm/test_id_generated_parity.py -q`
+3. `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
+
+#### Rollback Rule
+
+If any phase fails acceptance criteria, revert only that phase's migration
+commit(s), keep prior phase green state, and continue from last passing
+checkpoint.
+
     - fail -> raise Unidentifiable(F, Fprime)
 
 8. Mapping from ID lines to preferred IR constructors:
