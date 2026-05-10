@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "source": {
+    "dafny_files": [
+      "src/dafny/identification.dfy"
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "id.line4.frontdoor_small.identifiable",
+      "module": "identification",
+      "anchor": {
+        "symbol": "ID_Line4",
+        "line": 584
+      },
+      "query": {
+        "graph_id": "frontdoor_small",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Z",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "1",
+          "engine": "id",
+          "query": {
+            "graph_id": "frontdoor_small",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Z",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "sum",
+            "over": [
+              "Z"
+            ],
+            "body": {
+              "tag": "product",
+              "factors": [
+                {
+                  "tag": "prob",
+                  "vars": [
+                    "Z"
+                  ],
+                  "given": [
+                    "X"
+                  ],
+                  "intervened": []
+                },
+                {
+                  "tag": "sum",
+                  "over": [
+                    "X"
+                  ],
+                  "body": {
+                    "tag": "prob",
+                    "vars": [
+                      "Y",
+                      "X"
+                    ],
+                    "given": [
+                      "Z"
+                    ],
+                    "intervened": []
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line5.figure1a.hedge",
+      "module": "identification",
+      "anchor": {
+        "symbol": "ID_Line5",
+        "line": 617
+      },
+      "query": {
+        "graph_id": "figure1a_like",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "exception",
+        "value": {
+          "type": "Unidentifiable",
+          "classification": "hedge",
+          "witness": {
+            "F_nodes": [
+              "X",
+              "Y"
+            ],
+            "Fprime_nodes": [
+              "Y"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
