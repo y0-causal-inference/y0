@@ -133,3 +133,83 @@ def test_generated_falls_back_when_not_line1(monkeypatch: pytest.MonkeyPatch) ->
         pytest.fail("generated fallback path does not match handwritten expression")
     if calls != ["supports"]:
         pytest.fail(f"unexpected generated fallback routing calls: {calls!r}")
+
+
+def test_generated_prefers_extracted_for_line2(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Generated engine should route line-2 queries through extracted runtime when available."""
+    # Line 2 applies when V ≠ An(Y): a graph with nodes not in the ancestral set
+    x = Variable("X")
+    y = Variable("Y")
+    graph = NxMixedGraph.from_edges(directed=[(x, y)])
+    query = P(y @ ~x)
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    calls: list[str] = []
+
+    def _fake_supports_line1(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line1")
+        return False
+
+    def _fake_supports_line2(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line2")
+        return True
+
+    def _fake_extracted_line2(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        calls.append("extracted_line2")
+        return P(y @ ~x)
+
+    monkeypatch.setattr(id_generated_module, "supports_query_line1", _fake_supports_line1)
+    monkeypatch.setattr(id_generated_module, "supports_query_line2", _fake_supports_line2)
+    monkeypatch.setattr(id_generated_module, "identify_line2_from_extracted", _fake_extracted_line2)
+
+    result = identify_with_engine(identification, engine="generated")
+    if not canonical_expr_equal(result, P(y @ ~x)):
+        pytest.fail("generated engine did not return extracted line-2 expression")
+    if calls != ["supports_line1", "supports_line2", "extracted_line2"]:
+        pytest.fail(f"unexpected generated routing calls: {calls!r}")
+
+
+def test_generated_falls_back_when_not_line2(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Generated engine should fallback when line 2 is not available."""
+    graph, query = _identifiable_case()
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    calls: list[str] = []
+
+    def _fake_supports_line1(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line1")
+        return False
+
+    def _fake_supports_line2(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line2")
+        return False
+
+    def _unexpected_extracted_line2(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        pytest.fail("extracted line-2 path should not be called")
+
+    monkeypatch.setattr(id_generated_module, "supports_query_line1", _fake_supports_line1)
+    monkeypatch.setattr(id_generated_module, "supports_query_line2", _fake_supports_line2)
+    monkeypatch.setattr(
+        id_generated_module, "identify_line2_from_extracted", _unexpected_extracted_line2
+    )
+
+    handwritten = identify_with_engine(identification, engine="handwritten")
+    generated = identify_with_engine(identification, engine="generated")
+    if not canonical_expr_equal(handwritten, generated):
+        pytest.fail("generated fallback path does not match handwritten expression")
+    if calls != ["supports_line1", "supports_line2"]:
+        pytest.fail(f"unexpected generated fallback routing calls: {calls!r}")

@@ -160,6 +160,8 @@ plugins = []
 exclude = '''(?x)(
         ^src/y0/algorithm/identify/_dafny_id_line1_extracted_py/
     | ^src/dafny/id_line1_extracted-py/
+    | ^\.cache/y0/dafny/id_line1_extracted_py/
+    | ^\.cache/y0/dafny/id_line2_extracted_py/
 )$'''
 
 # Doc8, see https://doc8.readthedocs.io/en/stable/readme.html#ini-file-usage

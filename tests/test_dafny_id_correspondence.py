@@ -20,6 +20,9 @@ def _fixture_path() -> Path:
     "case_id",
     [
         "id.line1.extracted.identifiable",
+        # TODO: Line 2 cases require IR schema extension for "recursive" node type
+        # "id.line2.chain_with_isolated.reduction",
+        # "id.line2.multipath_with_irrelevant.reduction",
         "id.line4.frontdoor_small.identifiable",
         "id.line5.figure1a.hedge",
     ],

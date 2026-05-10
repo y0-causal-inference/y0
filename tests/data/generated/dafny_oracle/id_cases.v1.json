@@ -3,7 +3,8 @@
   "source": {
     "dafny_files": [
       "src/dafny/identification.dfy",
-      "src/dafny/id_line1_extracted.dfy"
+      "src/dafny/id_line1_extracted.dfy",
+      "src/dafny/id_line2_extracted.dfy"
     ]
   },
   "cases": [
@@ -172,6 +173,115 @@
             ],
             "Fprime_nodes": [
               "Y"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line2.chain_with_isolated.reduction",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine2ToIR",
+        "line": 87
+      },
+      "query": {
+        "graph_id": "chain_isolated",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Y",
+          "Z"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "2",
+          "engine": "id",
+          "query": {
+            "graph_id": "chain_isolated",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Y",
+              "Z"
+            ]
+          },
+          "result": {
+            "tag": "recursive",
+            "reduced_nodes": [
+              "X",
+              "Y"
+            ],
+            "reduced_treatments": [
+              "X"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line2.multipath_with_irrelevant.reduction",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine2ToIR",
+        "line": 87
+      },
+      "query": {
+        "graph_id": "multipath_irrelevant",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Z",
+          "Y",
+          "W"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "2",
+          "engine": "id",
+          "query": {
+            "graph_id": "multipath_irrelevant",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Z",
+              "Y",
+              "W"
+            ]
+          },
+          "result": {
+            "tag": "recursive",
+            "reduced_nodes": [
+              "X",
+              "Z",
+              "Y"
+            ],
+            "reduced_treatments": [
+              "X"
             ]
           }
         }

@@ -10,8 +10,11 @@ from collections.abc import Sequence
 
 from .id_extracted_bridge import (
     ExtractedLine1UnavailableError,
+    ExtractedLine2UnavailableError,
     identify_line1_from_extracted,
+    identify_line2_from_extracted,
     supports_query_line1,
+    supports_query_line2,
 )
 from .id_std import identify as identify_handwritten
 from .utils import Identification
@@ -36,5 +39,10 @@ def identify_generated(
         try:
             return identify_line1_from_extracted(identification, ordering=ordering)
         except ExtractedLine1UnavailableError:
+            pass
+    if supports_query_line2(identification):
+        try:
+            return identify_line2_from_extracted(identification, ordering=ordering)
+        except ExtractedLine2UnavailableError:
             pass
     return identify_handwritten(identification, ordering=ordering)
