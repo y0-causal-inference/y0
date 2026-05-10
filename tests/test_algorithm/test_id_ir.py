@@ -10,6 +10,10 @@ from y0.algorithm.identify.id_ir import (
     canonicalize_ir_document,
     validate_ir_document,
 )
+from y0.algorithm.identify.id_ir_to_dsl import ir_doc_to_expression
+from y0.algorithm.identify.utils import Unidentifiable
+from y0.dsl import Expression
+from y0.mutate.canonicalize_expr import canonicalize
 
 
 def _fixture_path() -> Path:
@@ -91,3 +95,35 @@ def test_canonical_ordering_stable() -> None:
         pytest.fail("expected merged sum ordering to be ['W', 'Z']")
     if canonical_reversed != canonical:
         pytest.fail("expected canonicalization to be stable under factor order changes")
+
+
+def test_ir_to_dsl_translation_for_identifiable_cases() -> None:
+    """Each identifiable IR fixture should translate to a canonicalizable DSL expression."""
+    payload = json.loads(_fixture_path().read_text())
+    cases = payload["cases"]
+    identifiable_cases = [case for case in cases if case["result"]["tag"] != "fail"]
+
+    if not identifiable_cases:
+        pytest.fail("expected at least one identifiable IR fixture")
+
+    for case in identifiable_cases:
+        expression = ir_doc_to_expression(case)
+        if not isinstance(expression, Expression):
+            pytest.fail(f"expected Expression output for case {case['query']['graph_id']}")
+
+        ordering = case["query"]["ordering"]
+        canonicalized_once = canonicalize(expression, ordering=ordering)
+        canonicalized_twice = canonicalize(canonicalized_once, ordering=ordering)
+        if canonicalized_once != canonicalized_twice:
+            pytest.fail(f"expected stable canonicalization for case {case['query']['graph_id']}")
+
+
+def test_ir_fail_case_raises_unidentifiable() -> None:
+    """A hedge fail node should map to Unidentifiable during translation."""
+    payload = json.loads(_fixture_path().read_text())
+    fail_case = next((case for case in payload["cases"] if case["result"]["tag"] == "fail"), None)
+    if fail_case is None:
+        pytest.fail("expected at least one fail fixture case")
+
+    with pytest.raises(Unidentifiable):
+        ir_doc_to_expression(fail_case)
