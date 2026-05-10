@@ -250,6 +250,20 @@ module Identification {
     ensures forall i, j :: 0 <= i < j < |SetOfSetsToSeq(ss)| ==>
       SetOfSetsToSeq(ss)[i] != SetOfSetsToSeq(ss)[j]
 
+  // Generation-facing Line 4 component sequence wrapper.
+  // This indirection localizes the current set-to-sequence bridge so
+  // downstream codegen can swap in a stronger deterministic ordering
+  // contract without changing IDImpl control flow.
+  ghost function Line4ComponentsSeq(sm: SMGraph, X: set<Node>): seq<set<Node>>
+    requires WellFormedSM(sm)
+    ensures |Line4ComponentsSeq(sm, X)| == |CComponentsWithout(sm, X)|
+    ensures forall S :: S in CComponentsWithout(sm, X) <==> S in Line4ComponentsSeq(sm, X)
+    ensures forall i, j :: 0 <= i < j < |Line4ComponentsSeq(sm, X)| ==>
+      Line4ComponentsSeq(sm, X)[i] != Line4ComponentsSeq(sm, X)[j]
+  {
+    SetOfSetsToSeq(CComponentsWithout(sm, X))
+  }
+
   // ------------------------------------------------------------------
   // Helper: expose the elementwise well-formedness of the Line 4
   // component sequence in one place.
@@ -257,11 +271,11 @@ module Identification {
   lemma {:axiom} IDLine4ComponentsReady(sm: SMGraph, X: set<Node>)
     requires WellFormedSM(sm)
     ensures forall i ::
-      0 <= i < |SetOfSetsToSeq(CComponentsWithout(sm, X))| ==>
-      SetOfSetsToSeq(CComponentsWithout(sm, X))[i] <= SMNodes(sm)
+      0 <= i < |Line4ComponentsSeq(sm, X)| ==>
+      Line4ComponentsSeq(sm, X)[i] <= SMNodes(sm)
     ensures forall i ::
-      0 <= i < |SetOfSetsToSeq(CComponentsWithout(sm, X))| ==>
-      SetOfSetsToSeq(CComponentsWithout(sm, X))[i] != {}
+      0 <= i < |Line4ComponentsSeq(sm, X)| ==>
+      Line4ComponentsSeq(sm, X)[i] != {}
 
   // ------------------------------------------------------------------
   // Helper: Line 4 product — recurse ID on each C-component of G\X,
@@ -340,6 +354,18 @@ module Identification {
   // Uses an explicit fuel parameter for termination. The paper's
   // Lemma 3 proves the algorithm always terminates; fuel = |V|^2
   // suffices since each call either shrinks V or grows X.
+  //
+  // Generation contract (IR mapping):
+  //   - Line 1  -> sum(prob(...))
+  //   - Line 2  -> sum(reduced-ancestral-body)
+  //   - Line 3  -> recursive body with expanded treatment context
+  //   - Line 4  -> sum(product(subcalls over C(G\X)))
+  //   - Line 5  -> fail(hedge witness)
+  //   - Line 6  -> sum(product(local conditionals from Q[S]))
+  //   - Line 7  -> recursive subproblem expression on S'
+  //
+  // The generator should treat this branch structure as authoritative for
+  // result-shape selection, while PMF-level internals remain proof-facing.
   // ==================================================================
   ghost function IDImpl(
     sm: SMGraph,
@@ -396,7 +422,7 @@ module Identification {
       // Line 4: if |C(G \ X)| > 1, decompose
       if |ccompsGX| > 1 then
         IDLine4ComponentsReady(sm, X);
-        var comps := SetOfSetsToSeq(ccompsGX);
+        var comps := Line4ComponentsSeq(sm, X);
         assert forall i :: 0 <= i < |comps| ==> comps[i] <= SMNodes(sm);
         assert forall i :: 0 <= i < |comps| ==> comps[i] != {};
         var check := IDLine4Check(sm, comps, p, ord, 0, fuel - 1);

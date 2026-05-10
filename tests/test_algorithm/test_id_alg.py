@@ -1,6 +1,7 @@
 """Tests for the identify algorithm."""
 
 import itertools as itt
+from unittest.mock import patch
 
 import y0.examples
 from tests.test_algorithm import cases
@@ -32,6 +33,7 @@ from y0.dsl import (
     Probability,
     Product,
     Sum,
+    Variable,
     X,
     Y,
     Z,
@@ -190,6 +192,32 @@ class TestIdentify(cases.GraphTestCase):
                     graph=NxMixedGraph.from_edges(undirected=[(X, Y), (Y, Z)]),
                 )
             )
+
+    def test_line_4_deterministic_component_order(self):
+        """Line 4 should return subproblems in a deterministic district order."""
+        treatment = Variable("X0")
+        a = Variable("A")
+        b = Variable("B")
+
+        identification = Identification.from_parts(
+            outcomes={a},
+            treatments={treatment},
+            estimand=P(treatment, a, b),
+            graph=NxMixedGraph.from_edges(nodes=[treatment, a, b], directed=[(treatment, a)]),
+        )
+
+        original_districts = NxMixedGraph.districts
+
+        def _districts(graph: NxMixedGraph):
+            if set(graph.nodes()) == {a, b}:
+                return [frozenset({b}), frozenset({a})]
+            return original_districts(graph)
+
+        with patch.object(NxMixedGraph, "districts", autospec=True, side_effect=_districts):
+            parts = line_4(identification)
+
+        observed = [tuple(sorted(str(v) for v in part.outcomes)) for part in parts]
+        self.assertEqual([("A",), ("B",)], observed)
 
     def test_line_5(self):
         r"""Test line 5 of the identification algorithm.

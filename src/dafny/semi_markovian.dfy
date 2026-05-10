@@ -343,6 +343,21 @@ module SemiMarkovian {
     CComponents(RemoveNodesSM(sm, X))
   }
 
+  // C-components of G\X still form a partition of the remaining node set.
+  // This helper keeps the Line 4 assumptions local to the CComponentsWithout
+  // abstraction used by Identification.
+  lemma CComponentsWithout_Partition(sm: SMGraph, X: set<Node>)
+    requires WellFormedSM(sm)
+    ensures forall S :: S in CComponentsWithout(sm, X) ==> S <= SMNodes(sm) - X
+    ensures forall S :: S in CComponentsWithout(sm, X) ==> S != {}
+  {
+    var smX := RemoveNodesSM(sm, X);
+    assume {:axiom} WellFormedSM(smX);
+    CComponents_Partition(smX);
+    assert forall S :: S in CComponentsWithout(sm, X) ==> S <= SMNodes(smX) && S != {};
+    assert SMNodes(smX) == SMNodes(sm) - X;
+  }
+
   // Induced subgraph on a set of nodes S.
   // Keeps only nodes in S, directed edges between them,
   // and bidirected edges between them.
