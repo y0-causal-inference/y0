@@ -17,7 +17,12 @@ def _fixture_path() -> Path:
 
 
 @pytest.mark.parametrize(
-    "case_id", ["id.line4.frontdoor_small.identifiable", "id.line5.figure1a.hedge"]
+    "case_id",
+    [
+        "id.line1.extracted.identifiable",
+        "id.line4.frontdoor_small.identifiable",
+        "id.line5.figure1a.hedge",
+    ],
 )
 def test_dafny_id_case(case_id: str) -> None:
     """Generated ID oracle cases should match expected behavior."""

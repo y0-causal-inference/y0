@@ -157,6 +157,10 @@ skip = [
 # MyPy, see https://mypy.readthedocs.io/en/stable/config_file.html
 [tool.mypy]
 plugins = []
+exclude = '''(?x)(
+        ^src/y0/algorithm/identify/_dafny_id_line1_extracted_py/
+    | ^src/dafny/id_line1_extracted-py/
+)$'''
 
 # Doc8, see https://doc8.readthedocs.io/en/stable/readme.html#ini-file-usage
 [tool.doc8]

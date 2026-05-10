@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 from y0.algorithm.identify.utils import Unidentifiable
@@ -18,6 +18,38 @@ __all__ = [
 ]
 
 
+def _normalize_namedtuple_fields(value: object, converted: dict[str, object]) -> dict[str, object]:
+    def _normalize_field_name(key: str) -> str:
+        normalized = key[:-1] if key.endswith("_") else key
+        return normalized.replace("__", "_")
+
+    normalized = {
+        _normalize_field_name(key): mapped_value for key, mapped_value in converted.items()
+    }
+    class_name = type(value).__name__
+    tag_map = {
+        "IRNode_IRSum": "sum",
+        "IRNode_IRProduct": "product",
+        "IRNode_IRProb": "prob",
+        "IRNode_IRFrac": "frac",
+        "IRNode_IRFailHedge": "fail",
+    }
+    tag = tag_map.get(class_name)
+    if tag is not None:
+        normalized.setdefault("tag", tag)
+        if tag == "fail":
+            normalized.setdefault("kind", "hedge")
+    return normalized
+
+
+def _dafny_seq_to_jsonable(value: Any) -> object:
+    elements = list(value.Elements)
+    is_str = value.isStr
+    if is_str is True:
+        return "".join(str(item) for item in elements)
+    return [_to_jsonable(item) for item in elements]
+
+
 def _to_jsonable(value: object) -> object:
     """Recursively convert a Python object into JSON-compatible primitives."""
     if value is None or isinstance(value, str | int | float | bool):
@@ -26,13 +58,22 @@ def _to_jsonable(value: object) -> object:
     if isinstance(value, Mapping):
         return {str(key): _to_jsonable(mapped_value) for key, mapped_value in value.items()}
 
-    if isinstance(value, Sequence) and not isinstance(value, str | bytes):
-        return [_to_jsonable(item) for item in value]
-
     if hasattr(value, "_asdict"):
         as_dict = value._asdict
         if callable(as_dict):
-            return _to_jsonable(as_dict())
+            converted = _to_jsonable(as_dict())
+            if not isinstance(converted, dict):
+                return converted
+            return _normalize_namedtuple_fields(value, converted)
+
+    if hasattr(value, "Elements") and hasattr(value, "isStr"):
+        return _dafny_seq_to_jsonable(value)
+
+    if isinstance(value, Sequence) and not isinstance(value, str | bytes):
+        return [_to_jsonable(item) for item in value]
+
+    if isinstance(value, Iterable):
+        return [_to_jsonable(item) for item in value]
 
     if hasattr(value, "__dict__"):
         return {
@@ -49,6 +90,18 @@ def dafny_ir_doc_to_jsonable(doc: object) -> dict[str, object]:
     jsonable = _to_jsonable(doc)
     if not isinstance(jsonable, dict):
         raise TypeError("converted IR doc must be a dictionary")
+
+    for scalar_key in ("version", "engine"):
+        scalar_value = jsonable.get(scalar_key)
+        if isinstance(scalar_value, list) and all(isinstance(item, str) for item in scalar_value):
+            jsonable[scalar_key] = "".join(scalar_value)
+
+    query = jsonable.get("query")
+    if isinstance(query, dict):
+        graph_id = query.get("graph_id")
+        if isinstance(graph_id, list) and all(isinstance(item, str) for item in graph_id):
+            query["graph_id"] = "".join(graph_id)
+
     return jsonable
 
 

@@ -2,10 +2,63 @@
   "schema_version": 1,
   "source": {
     "dafny_files": [
-      "src/dafny/identification.dfy"
+      "src/dafny/identification.dfy",
+      "src/dafny/id_line1_extracted.dfy"
     ]
   },
   "cases": [
+    {
+      "case_id": "id.line1.extracted.identifiable",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine1ToIR",
+        "line": 44
+      },
+      "query": {
+        "graph_id": "smoke_line1",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [],
+        "ordering": [
+          "X",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "1",
+          "engine": "id",
+          "query": {
+            "graph_id": "smoke_line1",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [],
+            "ordering": [
+              "X",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "sum",
+            "over": [
+              "X"
+            ],
+            "body": {
+              "tag": "prob",
+              "vars": [
+                "X",
+                "Y"
+              ],
+              "given": [],
+              "intervened": []
+            }
+          }
+        }
+      }
+    },
     {
       "case_id": "id.line4.frontdoor_small.identifiable",
       "module": "identification",

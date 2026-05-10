@@ -27,12 +27,12 @@ def _fixture_path() -> Path:
 
 
 def test_fixture_loads() -> None:
-    """Fixture file should deserialize and contain exactly two seed cases."""
+    """Fixture file should deserialize and contain exactly three seed cases."""
     fixture = load_fixture(_fixture_path())
     if fixture["schema_version"] != 1:
         pytest.fail("expected schema_version=1")
-    if len(fixture["cases"]) != 2:
-        pytest.fail("expected exactly two seed cases")
+    if len(fixture["cases"]) != 3:
+        pytest.fail("expected exactly three seed cases")
 
 
 def test_case_iteration_order_stable() -> None:
@@ -51,6 +51,20 @@ def test_identifiable_case_executes() -> None:
     result = run_case(case)
     if not isinstance(result, Expression):
         pytest.fail("expected an Expression result for identifiable case")
+    assert_case(case, result)
+
+
+def test_extracted_line1_case_executes() -> None:
+    """The extracted line-1 case should execute to a valid expression."""
+    fixture = load_fixture(_fixture_path())
+    case = next(
+        case
+        for case in iter_cases(fixture, module="identification")
+        if case["case_id"] == "id.line1.extracted.identifiable"
+    )
+    result = run_case(case)
+    if not isinstance(result, Expression):
+        pytest.fail("expected Expression result for extracted line-1 case")
     assert_case(case, result)
 
 

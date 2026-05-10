@@ -258,6 +258,10 @@ celerybeat.pid
 .env
 .venv
 env/
+
+# Dafny translated Python artifacts (generated)
+src/dafny/*-py/
+src/y0/algorithm/identify/_dafny_id_line1_extracted_py/
 venv/
 ENV/
 env.bak/

@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from y0.algorithm.identify import Identification, Unidentifiable
+from y0.algorithm.identify import id_generated as id_generated_module
 from y0.algorithm.identify.id_dispatch import identify_with_engine
 from y0.dsl import Expression, P, Probability, Variable
 from y0.graph import NxMixedGraph
@@ -67,3 +68,68 @@ def test_generated_expression_canonicalization_stable() -> None:
     twice = canonicalize(once, ordering=ordering)
     if once != twice:
         pytest.fail("generated engine expression canonicalization is not stable")
+
+
+def test_generated_prefers_extracted_for_line1(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Generated engine should route line-1 queries through extracted runtime."""
+    x = Variable("X")
+    y = Variable("Y")
+    graph = NxMixedGraph.from_edges(directed=[(x, y)])
+    query = P(y)
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    calls: list[str] = []
+
+    def _fake_supports_line1(identification: Identification) -> bool:
+        del identification
+        calls.append("supports")
+        return True
+
+    def _fake_extracted(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        calls.append("extracted")
+        return P(y)
+
+    monkeypatch.setattr(id_generated_module, "supports_query_line1", _fake_supports_line1)
+    monkeypatch.setattr(id_generated_module, "identify_line1_from_extracted", _fake_extracted)
+
+    result = identify_with_engine(identification, engine="generated")
+    if not canonical_expr_equal(result, P(y)):
+        pytest.fail("generated engine did not return extracted line-1 expression")
+    if calls != ["supports", "extracted"]:
+        pytest.fail(f"unexpected generated routing calls: {calls!r}")
+
+
+def test_generated_falls_back_when_not_line1(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Generated engine should fallback to handwritten runtime for non-line1 queries."""
+    graph, query = _identifiable_case()
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    calls: list[str] = []
+
+    def _fake_supports_line1(identification: Identification) -> bool:
+        del identification
+        calls.append("supports")
+        return False
+
+    def _unexpected_extracted(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        pytest.fail("extracted path should not be called for non-line1 query")
+
+    monkeypatch.setattr(id_generated_module, "supports_query_line1", _fake_supports_line1)
+    monkeypatch.setattr(id_generated_module, "identify_line1_from_extracted", _unexpected_extracted)
+
+    handwritten = identify_with_engine(identification, engine="handwritten")
+    generated = identify_with_engine(identification, engine="generated")
+    if not canonical_expr_equal(handwritten, generated):
+        pytest.fail("generated fallback path does not match handwritten expression")
+    if calls != ["supports"]:
+        pytest.fail(f"unexpected generated fallback routing calls: {calls!r}")
