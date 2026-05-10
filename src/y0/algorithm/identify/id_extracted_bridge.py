@@ -22,18 +22,21 @@ from y0.dsl import Expression, P, Product, Variable
 __all__ = [
     "ExtractedLine1UnavailableError",
     "ExtractedLine2UnavailableError",
+    "ExtractedLine3UnavailableError",
     "ExtractedLine4UnavailableError",
     "ExtractedLine5UnavailableError",
     "ExtractedLine6UnavailableError",
     "ExtractedLine7UnavailableError",
     "identify_line1_from_extracted",
     "identify_line2_from_extracted",
+    "identify_line3_from_extracted",
     "identify_line4_from_extracted",
     "identify_line5_from_extracted",
     "identify_line6_from_extracted",
     "identify_line7_from_extracted",
     "supports_query_line1",
     "supports_query_line2",
+    "supports_query_line3",
     "supports_query_line4",
     "supports_query_line5",
     "supports_query_line6",
@@ -47,6 +50,10 @@ _ENV_EXTRACTED_DIR = "Y0_DAFNY_ID_LINE1_PY_DIR"
 _EXTRACTED_MODULE_NAME_L2 = "IDLine2Extracted"
 _EXTRACTED_METHOD_NAME_L2 = "IDLine2ToIR"
 _ENV_EXTRACTED_DIR_L2 = "Y0_DAFNY_ID_LINE2_PY_DIR"
+
+_EXTRACTED_MODULE_NAME_L3 = "IDLine3Extracted"
+_EXTRACTED_METHOD_NAME_L3 = "IDLine3Transform"
+_ENV_EXTRACTED_DIR_L3 = "Y0_DAFNY_ID_LINE3_PY_DIR"
 
 _EXTRACTED_MODULE_NAME_L4 = "IDLine4Extracted"
 _EXTRACTED_METHOD_NAME_L4 = "IDLine4ToIR"
@@ -71,6 +78,10 @@ class ExtractedLine1UnavailableError(RuntimeError):
 
 class ExtractedLine2UnavailableError(RuntimeError):
     """Raised when extracted Line-2 runtime is unavailable."""
+
+
+class ExtractedLine3UnavailableError(RuntimeError):
+    """Raised when extracted Line-3 runtime is unavailable."""
 
 
 class ExtractedLine4UnavailableError(RuntimeError):
@@ -271,6 +282,126 @@ def identify_line2_from_extracted(
     doc_json = dafny_ir_doc_to_jsonable(dafny_doc)
     canonical = canonicalize_and_validate_doc(doc_json)
     return ir_doc_to_expression(canonical)
+
+
+def _default_extracted_dir_l3() -> Path:
+    return _repo_root() / ".cache" / "y0" / "dafny" / "id_line3_extracted_py"
+
+
+def _resolve_extracted_dir_l3() -> Path:
+    value = os.environ.get(_ENV_EXTRACTED_DIR_L3)
+    return Path(value).expanduser().resolve() if value else _default_extracted_dir_l3()
+
+
+def _load_extracted_module_l3() -> ModuleType:
+    extracted_dir = _resolve_extracted_dir_l3()
+    if not extracted_dir.exists():
+        raise ExtractedLine3UnavailableError(
+            f"extracted line-3 directory not found at {extracted_dir}. "
+            "Run scripts/build_dafny_id_line3_extracted.sh first."
+        )
+    extracted_dir_str = str(extracted_dir)
+    if extracted_dir_str not in sys.path:
+        sys.path.insert(0, extracted_dir_str)
+    try:
+        return importlib.import_module(_EXTRACTED_MODULE_NAME_L3)
+    except Exception as error:  # pragma: no cover - import errors are environment-dependent
+        raise ExtractedLine3UnavailableError("failed to import extracted Dafny module") from error
+
+
+def supports_query_line3(identification: Identification) -> bool:
+    """Return true when query can be handled by extracted Line-3 transform."""
+    if not identification.treatments or identification.conditions:
+        return False
+
+    graph = identification.graph
+    nodes = set(graph.nodes())
+    if not nodes:
+        return False
+
+    outcomes_and_ancestors = graph.ancestors_inclusive(set(identification.outcomes))
+    if nodes != outcomes_and_ancestors:
+        return False
+
+    no_effect = graph.get_no_effect_on_outcomes(identification.treatments, identification.outcomes)
+    return bool(no_effect)
+
+
+def identify_line3_from_extracted(
+    identification: Identification,
+    *,
+    ordering: Sequence[Variable] | None = None,
+) -> Expression:
+    """Run extracted Dafny Line-3 transform, then recurse with handwritten identify."""
+    if not supports_query_line3(identification):
+        raise ExtractedLine3UnavailableError("query is not a supported Line-3 form")
+
+    module = _load_extracted_module_l3()
+    runner = getattr(module, "default__", None)
+    method = getattr(runner, _EXTRACTED_METHOD_NAME_L3, None)
+    if method is None:
+        raise ExtractedLine3UnavailableError(
+            f"extracted module does not provide {_EXTRACTED_METHOD_NAME_L3}"
+        )
+
+    try:
+        dafny_runtime = importlib.import_module("_dafny")
+    except Exception as error:  # pragma: no cover - environment-dependent import
+        raise ExtractedLine3UnavailableError(
+            "missing extracted Dafny runtime package _dafny"
+        ) from error
+
+    order = (
+        tuple(ordering) if ordering is not None else tuple(identification.graph.topological_sort())
+    )
+    order_names = [variable.name for variable in order]
+    outcomes = {variable.name for variable in identification.outcomes}
+    treatments = {variable.name for variable in identification.treatments}
+
+    seq_ctor = getattr(dafny_runtime, "SeqWithoutIsStrInference", None)
+    set_ctor = getattr(dafny_runtime, "Set", None)
+    if seq_ctor is None or set_ctor is None:
+        raise ExtractedLine3UnavailableError("_dafny sequence/set constructors unavailable")
+
+    edge_class = getattr(module, "Edge_Edge", None)
+    if edge_class is None:
+        raise ExtractedLine3UnavailableError("Edge class not found in extracted module")
+
+    directed_edges: list[Any] = []
+    for src, tgt in identification.graph.directed.edges():
+        directed_edges.append(edge_class(src.name, tgt.name))
+
+    all_nodes = [variable.name for variable in identification.graph.nodes()]
+
+    ok, no_effect_nodes_raw, expanded_treatments_raw = method(
+        seq_ctor(directed_edges),
+        seq_ctor(all_nodes),
+        set_ctor(outcomes),
+        set_ctor(treatments),
+        seq_ctor(order_names),
+    )
+    if not ok:
+        raise ExtractedLine3UnavailableError(
+            "extracted runtime rejected query (Line 3 does not apply)"
+        )
+
+    no_effect_nodes = {Variable(name) for name in _dafny_seq_to_str_list(no_effect_nodes_raw)}
+    if not no_effect_nodes:
+        raise ExtractedLine3UnavailableError("line-3 transform returned empty no-effect set")
+
+    expanded_treatments = {
+        Variable(name) for name in _dafny_seq_to_str_list(expanded_treatments_raw)
+    }
+    if not expanded_treatments:
+        raise ExtractedLine3UnavailableError("line-3 transform returned empty treatment set")
+
+    transformed_identification = Identification.from_parts(
+        outcomes=identification.outcomes,
+        treatments=expanded_treatments,
+        estimand=identification.estimand,
+        graph=identification.graph,
+    )
+    return identify_handwritten(transformed_identification, ordering=order)
 
 
 def _default_extracted_dir_l5() -> Path:

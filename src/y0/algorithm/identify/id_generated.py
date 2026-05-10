@@ -11,18 +11,21 @@ from collections.abc import Sequence
 from .id_extracted_bridge import (
     ExtractedLine1UnavailableError,
     ExtractedLine2UnavailableError,
-1    ExtractedLine4UnavailableError,
+    ExtractedLine3UnavailableError,
+    ExtractedLine4UnavailableError,
     ExtractedLine5UnavailableError,
     ExtractedLine6UnavailableError,
     ExtractedLine7UnavailableError,
     identify_line1_from_extracted,
     identify_line2_from_extracted,
+    identify_line3_from_extracted,
     identify_line4_from_extracted,
     identify_line5_from_extracted,
     identify_line6_from_extracted,
     identify_line7_from_extracted,
     supports_query_line1,
     supports_query_line2,
+    supports_query_line3,
     supports_query_line4,
     supports_query_line5,
     supports_query_line6,
@@ -56,6 +59,11 @@ def identify_generated(
         try:
             return identify_line2_from_extracted(identification, ordering=ordering)
         except ExtractedLine2UnavailableError:
+            pass
+    if supports_query_line3(identification):
+        try:
+            return identify_line3_from_extracted(identification, ordering=ordering)
+        except ExtractedLine3UnavailableError:
             pass
     if supports_query_line4(identification):
         try:

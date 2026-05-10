@@ -5,6 +5,7 @@
       "src/dafny/identification.dfy",
       "src/dafny/id_line1_extracted.dfy",
       "src/dafny/id_line2_extracted.dfy",
+      "src/dafny/id_line3_extracted.dfy",
       "src/dafny/id_line4_extracted.dfy",
       "src/dafny/id_line5_extracted.dfy",
       "src/dafny/id_line6_extracted.dfy",

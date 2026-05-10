@@ -119,6 +119,80 @@ Risks and mitigations (pre-committed):
 5. Risk: line 3 recursive IR nodes break canonical validator path.
    - Mitigation: keep narrow line 3 support initially; map canonicalization/shape failures to extracted-unavailable fallback.
 
+### Workflow: Visualize Existing Extracted Scaffolding and Insertion Points
+
+Use this workflow before implementing any new line slice so route order, support
+predicates, bridge hooks, and test coverage stay aligned.
+
+1. Build a one-screen topology view of extracted assets.
+
+```bash
+rg --files src/dafny scripts src/y0/algorithm/identify tests/test_algorithm \
+   | rg "id_line[0-9]+_extracted\.dfy|build_dafny_id_line[0-9]+_extracted\.sh|check_dafny_id_line[0-9]+_extracted_runtime\.py|id_extracted_bridge\.py|id_generated\.py|test_id_generated_parity\.py|id_cases\.v1\.json"
+```
+
+2. Visualize bridge scaffolding and existing line hooks.
+
+```bash
+rg -n "ExtractedLine[0-9]+UnavailableError|_EXTRACTED_MODULE_NAME_L[0-9]+|_EXTRACTED_METHOD_NAME_L[0-9]+|_ENV_EXTRACTED_DIR_L[0-9]+|supports_query_line[0-9]+|identify_line[0-9]+_from_extracted" src/y0/algorithm/identify/id_extracted_bridge.py
+```
+
+Expected output pattern per line N:
+1. constants: module/method/env names
+2. unavailable exception type
+3. loader resolver and module import helper
+4. supports_query_lineN predicate
+5. identify_lineN_from_extracted bridge function
+
+3. Visualize generated dispatcher route order (and insertion location).
+
+```bash
+rg -n "supports_query_line|identify_line[0-9]+_from_extracted|ExtractedLine[0-9]+UnavailableError|identify_handwritten" src/y0/algorithm/identify/id_generated.py
+```
+
+Insertion rule:
+1. add imports for the new line support and extracted function
+2. add one if/try/except block in strict numeric route order
+3. keep handwritten fallback as terminal path
+
+4. Visualize parity test hooks and route/fallback expectations.
+
+```bash
+rg -n "line[0-9]|supports_line|extracted_line|routing calls|fallback" tests/test_algorithm/test_id_generated_parity.py
+```
+
+For each new line N, add two tests:
+1. prefers extracted path when supports_query_lineN is true
+2. falls back cleanly when supports_query_lineN is false
+
+5. Visualize oracle linkage and source registration.
+
+```bash
+rg -n "dafny_files|id\.line[0-9]|anchor|expectation" tests/data/generated/dafny_oracle/id_cases.v1.json
+```
+
+6. Keep this architecture map in mind during insertion.
+
+```mermaid
+flowchart LR
+   A[src/dafny/id_lineN_extracted.dfy] --> B[scripts/build_dafny_id_lineN_extracted.sh]
+   B --> C[.cache/y0/dafny/id_lineN_extracted_py]
+   C --> D[src/y0/algorithm/identify/id_extracted_bridge.py]
+   D --> E[src/y0/algorithm/identify/id_generated.py]
+   E --> F[identify_with_engine generated]
+   D --> G[tests/test_algorithm/test_id_generated_parity.py]
+   A --> H[tests/data/generated/dafny_oracle/id_cases.v1.json]
+```
+
+7. Use this insertion checklist for a new line slice.
+
+1. Add extracted Dafny module and line-specific build/smoke scripts.
+2. Add bridge constants, loader, support predicate, and extracted call wrapper.
+3. Add generated dispatcher import and route block at correct order position.
+4. Add parity route/fallback tests and expected call-order assertions.
+5. Register source linkage in oracle metadata.
+6. Run gates: line build, line smoke, parity test file, broad identification verify.
+
     - fail -> raise Unidentifiable(F, Fprime)
 
 8. Mapping from ID lines to preferred IR constructors:
