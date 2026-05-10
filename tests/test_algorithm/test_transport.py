@@ -628,7 +628,7 @@ class TestTransport(cases.GraphTestCase):
         new_surrogate_interventions = {}
         line10_actual1 = trso_line10(line10_query1, district1, new_surrogate_interventions)
 
-        ordering = list(line10_query1.graphs[Pi2].topological_sort())
+        ordering = line10_query1.graphs[Pi2].topological_sort()
         i = ordering.index(Y2)
         pre_node = set(ordering[:i])
         prob = Probability.safe(Y2 | pre_node)
