@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Provide a repeatable, evidence-based evaluation template for deciding whether y0 should continue with Dafny as the primary formal method stack, or move core work to Lean.
+Provide a repeatable, evidence-based evaluation template for deciding whether y0
+should continue with Dafny as the primary formal method stack, or move core work
+to Lean.
 
 ## Scope of the spike
 
@@ -82,34 +84,41 @@ Use the same case IDs and expected outcomes in both tracks.
 
 ### Case group E: Concrete code extraction cases
 
-Applies to Dafny only. Lean extraction via Lean 4 lake build + FFI is scored separately in Category 6.
+Applies to Dafny only. Lean extraction via Lean 4 lake build + FFI is scored
+separately in Category 6.
 
 1. case_id: id.e1.translate-line1
-   - Input: rewrite ID Line 1 branch as a concrete Dafny method (no ghost, no axiom)
+   - Input: rewrite ID Line 1 branch as a concrete Dafny method (no ghost, no
+     axiom)
    - Run: dafny translate py on that method
    - Expected: runnable Python emitted that handles the empty-treatment case
-   - Stress area: can Dafny produce extractable code for even the simplest ID branch?
+   - Stress area: can Dafny produce extractable code for even the simplest ID
+     branch?
 
 2. case_id: id.e2.translate-line4
    - Input: rewrite ID Line 4 branch as a concrete Dafny method
    - Run: dafny translate py
    - Expected: runnable Python with deterministic district iteration
-   - Stress area: does set-iteration and C-component decomposition extract cleanly?
+   - Stress area: does set-iteration and C-component decomposition extract
+     cleanly?
 
 3. case_id: id.e3.translate-hedge-failure
    - Input: rewrite ID Line 5 hedge branch as a concrete Dafny method
    - Run: dafny translate py
-   - Expected: runnable Python that raises an appropriate exception with witness data
+   - Expected: runnable Python that raises an appropriate exception with witness
+     data
    - Stress area: does the failure path survive extraction without stripping?
 
 4. case_id: id.e4.extraction-parity
    - Input: run extracted Python against benchmark cases A-B
-   - Expected: extracted code produces same result class as handwritten identify()
+   - Expected: extracted code produces same result class as handwritten
+     identify()
    - Stress area: end-to-end extraction-to-parity for a realistic ID slice
 
 Note: each extraction case requires removing `ghost`, `{:axiom}`, and `assume`
-statements from the target branch before `dafny translate py` can succeed. Record
-the rewrite cost (LOC changed, axioms eliminated) as part of the required output.
+statements from the target branch before `dafny translate py` can succeed.
+Record the rewrite cost (LOC changed, axioms eliminated) as part of the required
+output.
 
 ---
 
@@ -169,11 +178,13 @@ concrete Dafny code (no ghost, no axiom, no assume) and how close that extracted
 code is to production-ready Python.
 
 1. At least one ID branch extracts successfully via `dafny translate py` (6)
-2. Extracted Python passes at least the A-B benchmark cases without modification (5)
-3. Rewrite cost per branch is acceptable (< 50 LOC changed per branch on average) (4)
+2. Extracted Python passes at least the A-B benchmark cases without modification
+   (5)
+3. Rewrite cost per branch is acceptable (< 50 LOC changed per branch on
+   average) (4)
 
-If this axis scores 0, it means Dafny is viable only as an oracle/verifier, not as
-a direct code generator for this problem. That is a meaningful result, not a
+If this axis scores 0, it means Dafny is viable only as an oracle/verifier, not
+as a direct code generator for this problem. That is a meaningful result, not a
 disqualifier.
 
 ## Pass/fail gate before scoring
@@ -187,7 +198,8 @@ A track is only score-eligible if all hard gates pass:
 
 For Dafny only, also record extraction gate outcome (does not block scoring):
 
-5. At least one ID branch attempted for concrete extraction via `dafny translate py`
+5. At least one ID branch attempted for concrete extraction via
+   `dafny translate py`
    - Result: extractable | partially-extractable | not-extractable
    - This gates Category 6 scoring but not overall eligibility
 
@@ -197,40 +209,41 @@ If a track fails any hard gate, mark as Not Ready and skip weighted scoring.
 
 ### Hard gates
 
-| Gate | Dafny | Lean | Notes |
-|---|---|---|---|
-| A-D cases pass |  |  |  |
-| Deterministic artifacts |  |  |  |
-| Clean env reproducibility |  |  |  |
-| Post-proof refactor passes |  |  |  |
+| Gate                       | Dafny | Lean | Notes |
+| -------------------------- | ----- | ---- | ----- |
+| A-D cases pass             |       |      |       |
+| Deterministic artifacts    |       |      |       |
+| Clean env reproducibility  |       |      |       |
+| Post-proof refactor passes |       |      |       |
 
 ### Extraction gate (Dafny only, does not block overall eligibility)
 
-| Branch | ghost_constructs_removed | extraction_status | parity_with_handwritten |
-|---|---:|---|---|
-| Line 1 |  |  |  |
-| Line 4 |  |  |  |
-| Line 5 (hedge) |  |  |  |
+| Branch         | ghost_constructs_removed | extraction_status | parity_with_handwritten |
+| -------------- | -----------------------: | ----------------- | ----------------------- |
+| Line 1         |                          |                   |                         |
+| Line 4         |                          |                   |                         |
+| Line 5 (hedge) |                          |                   |                         |
 
 ### Weighted scores
 
-| Category | Max | Dafny | Lean | Notes |
-|---|---:|---:|---:|---|
-| Semantic confidence | 30 |  |  |  |
-| Engineering throughput | 25 |  |  |  |
-| y0 integration | 20 |  |  |  |
-| Maintainability/onboarding | 15 |  |  |  |
-| CI reliability | 10 |  |  |  |
-| Extraction feasibility (Dafny only) | 15 | | N/A |  |
-| Total (Dafny) | 115 |  | — |  |
-| Total (Lean) | 100 | — |  |  |
+| Category                            | Max | Dafny | Lean | Notes |
+| ----------------------------------- | --: | ----: | ---: | ----- |
+| Semantic confidence                 |  30 |       |      |       |
+| Engineering throughput              |  25 |       |      |       |
+| y0 integration                      |  20 |       |      |       |
+| Maintainability/onboarding          |  15 |       |      |       |
+| CI reliability                      |  10 |       |      |       |
+| Extraction feasibility (Dafny only) |  15 |       |  N/A |       |
+| Total (Dafny)                       | 115 |       |    — |       |
+| Total (Lean)                        | 100 |     — |      |       |
 
 ## Decision rule
 
 1. If one track fails hard gates and the other passes: choose passing track.
 2. If both pass hard gates:
    - choose higher total score if delta is >= 10 points
-   - if delta is < 10 points, prefer the track with lower maintenance burden and better team fit
+   - if delta is < 10 points, prefer the track with lower maintenance burden and
+     better team fit
 3. If both fail hard gates: do not migrate; reduce scope and rerun spike.
 
 ## Suggested command checklist (per track)
@@ -243,10 +256,12 @@ If a track fails any hard gate, mark as Not Ready and skip weighted scoring.
 
 ### Additional steps for Dafny extraction axis
 
-6. For each target branch, strip ghost/axiom/assume and convert to concrete method
+6. For each target branch, strip ghost/axiom/assume and convert to concrete
+   method
 7. dafny translate py src/dafny/identification.dfy --output /tmp/id_extracted/
 8. Run /tmp/id_extracted/ against benchmark cases A-B
-9. Record extraction_status and parity_with_handwritten in the extraction gate table
+9. Record extraction_status and parity_with_handwritten in the extraction gate
+   table
 
 ## Reporting template
 

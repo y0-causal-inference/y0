@@ -88,11 +88,13 @@ def satisfies_frontdoor(
     """Check if mediator set satisfies the frontdoor criterion.
 
     Three conditions (Pearl 2000, Theorem 3.3.4):
-      (i)  M intercepts all directed paths from X to Y (structural check).
-      (ii) M ⊥ X | {} in G with X's outgoing edges removed.
-           Ref: do_calculus.dfy FrontdoorCriterion DSep(RemoveOutgoing(G, X), M, X, {})
-      (iii) M ⊥ Y | X in G with M's outgoing edges removed.
-           Ref: do_calculus.dfy FrontdoorCriterion DSep(RemoveOutgoing(G, M), M, Y, X)
+
+    1. M intercepts all directed paths from X to Y (structural check).
+    2. M ⊥ X | {} in G with X's outgoing edges removed.
+    3. M ⊥ Y | X in G with M's outgoing edges removed.
+
+    Ref: do_calculus.dfy FrontdoorCriterion DSep(RemoveOutgoing(G, X), M, X, {})
+    and DSep(RemoveOutgoing(G, M), M, Y, X).
     """
     # (i) Every directed path from any treatment to any outcome must pass through M.
     for treatment in treatments:

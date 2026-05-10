@@ -3,13 +3,16 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
-from y0.algorithm.identify import Identification, Unidentifiable
+from y0.algorithm.identify import Identification
 from y0.algorithm.identify.id_dispatch import identify_with_engine
-from y0.dsl import P, Variable
+from y0.dsl import Distribution, P, Probability, Variable
 from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import canonical_expr_equal
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -18,10 +21,11 @@ class Case:
 
     case_id: str
     graph: NxMixedGraph
-    query: object
+    query: Probability | Distribution
 
 
 def _cases() -> list[Case]:
+    """Return the benchmark case list used for engine comparison."""
     x = Variable("X")
     y = Variable("Y")
     z = Variable("Z")
@@ -56,12 +60,12 @@ def main() -> None:
 
         try:
             handwritten_expr = identify_with_engine(identification, engine="handwritten")
-        except Exception as error:  # noqa: BLE001
+        except Exception as error:
             handwritten_error = error
 
         try:
             generated_expr = identify_with_engine(identification, engine="generated")
-        except Exception as error:  # noqa: BLE001
+        except Exception as error:
             generated_error = error
 
         if handwritten_error or generated_error:
@@ -71,27 +75,33 @@ def main() -> None:
                 and type(handwritten_error) is type(generated_error)
             )
             if same_error_class:
-                print(f"[OK ] {case.case_id}: both raised {type(handwritten_error).__name__}")
+                logger.info(
+                    "[OK ] %s: both raised %s", case.case_id, type(handwritten_error).__name__
+                )
             else:
                 mismatches += 1
-                print(
-                    f"[ERR] {case.case_id}: handwritten={type(handwritten_error).__name__ if handwritten_error else 'none'} "
-                    f"generated={type(generated_error).__name__ if generated_error else 'none'}"
+                logger.error(
+                    "[ERR] %s: handwritten=%s generated=%s",
+                    case.case_id,
+                    type(handwritten_error).__name__ if handwritten_error else "none",
+                    type(generated_error).__name__ if generated_error else "none",
                 )
             continue
 
         if handwritten_expr is None or generated_expr is None:
             mismatches += 1
-            print(f"[ERR] {case.case_id}: missing expression output")
+            logger.error("[ERR] %s: missing expression output", case.case_id)
             continue
 
         if canonical_expr_equal(handwritten_expr, generated_expr):
-            print(f"[OK ] {case.case_id}: canonical expressions match")
+            logger.info("[OK ] %s: canonical expressions match", case.case_id)
         else:
             mismatches += 1
-            print(
-                f"[ERR] {case.case_id}: expression mismatch "
-                f"handwritten={handwritten_expr.to_text()} generated={generated_expr.to_text()}"
+            logger.error(
+                "[ERR] %s: expression mismatch handwritten=%s generated=%s",
+                case.case_id,
+                handwritten_expr.to_text(),
+                generated_expr.to_text(),
             )
 
     if mismatches:

@@ -13,8 +13,9 @@ from y0.algorithm.identify.id_oracle_types import load_fixture, save_fixture
 class _GeneratorModule(Protocol):
     """Typed subset of the generator module surface used by this test."""
 
-
-    def parse_dafny_file(self, path: Path) -> "_ParsedSpec": ...
+    def parse_dafny_file(self, path: Path) -> _ParsedSpec:
+        """Parse a Dafny file and return the parsed specification."""
+        ...
 
 
 class _ParsedLemma(Protocol):

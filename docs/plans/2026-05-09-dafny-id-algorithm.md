@@ -1,14 +1,22 @@
 # De-Axiomize Identification Lemmas — Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to
+> implement this plan task-by-task.
 
-**Goal:** Remove `{:axiom}` annotations from concrete example lemmas in `identification.dfy` by providing direct proofs, and document a confirmed bug in the `IsHedge` definition.
+**Goal:** Remove `{:axiom}` annotations from concrete example lemmas in
+`identification.dfy` by providing direct proofs, and document a confirmed bug in
+the `IsHedge` definition.
 
-**Architecture:** Non-identifiability lemmas construct explicit `(F, F')` hedge witnesses following the same pattern as the already-proved `BowArc_NotIdentifiable`. Identifiability proofs are deferred until a confirmed `IsHedge` definition bug is fixed.
+**Architecture:** Non-identifiability lemmas construct explicit `(F, F')` hedge
+witnesses following the same pattern as the already-proved
+`BowArc_NotIdentifiable`. Identifiability proofs are deferred until a confirmed
+`IsHedge` definition bug is fixed.
 
-**Tech Stack:** Dafny 4 (`/opt/homebrew/bin/dafny`), verified from `src/dafny/` directory
+**Tech Stack:** Dafny 4 (`/opt/homebrew/bin/dafny`), verified from `src/dafny/`
+directory
 
 **Verification command (run from repo root):**
+
 ```bash
 cd /Users/zuck016/Projects/CausalInference/y0-causal-inference/y0/src/dafny && /opt/homebrew/bin/dafny verify probability.dfy dag.dfy interventional.dfy do_calculus.dfy semi_markovian.dfy identification.dfy
 ```
@@ -19,9 +27,12 @@ cd /Users/zuck016/Projects/CausalInference/y0-causal-inference/y0/src/dafny && /
 
 ## Critical Finding: `IsHedge` definition bug (confirmed by Dafny)
 
-Our `IsHedge` predicate in `src/dafny/semi_markovian.dfy` (line ~607) is **too permissive**. It allows a false hedge for the frontdoor graph (`X→M→Y, X↔Y`), which IS identifiable per the paper and the Python ID algorithm.
+Our `IsHedge` predicate in `src/dafny/semi_markovian.dfy` (line ~607) is **too
+permissive**. It allows a false hedge for the frontdoor graph (`X→M→Y, X↔Y`),
+which IS identifiable per the paper and the Python ID algorithm.
 
 **The false hedge that Dafny verifies for the frontdoor graph:**
+
 ```dafny
 F  = SMGraph(map[0 := {}, 2 := {}], {BiEdge(0, 2)})  // nodes {X,Y}, no directed, bidirected X↔Y
 F' = SMGraph(map[2 := {}], {})                         // node {Y} only
@@ -29,10 +40,15 @@ F' = SMGraph(map[2 := {}], {})                         // node {Y} only
 ```
 
 **Consequence:**
-- `IsIdentifiable(sm, X, Y)` (defined as `!exists F, Fprime :: IsHedge(...)`) is too **restrictive** — it incorrectly returns `false` for identifiable graphs
-- The `ensures` of `Frontdoor_Identifiable`, `Figure1a_Identifiable`, `Markovian_AllIdentifiable`, and `MarkovianCompleteness` are **actually false** under the current definition
+
+- `IsIdentifiable(sm, X, Y)` (defined as `!exists F, Fprime :: IsHedge(...)`) is
+  too **restrictive** — it incorrectly returns `false` for identifiable graphs
+- The `ensures` of `Frontdoor_Identifiable`, `Figure1a_Identifiable`,
+  `Markovian_AllIdentifiable`, and `MarkovianCompleteness` are **actually
+  false** under the current definition
 - These lemmas **cannot** be proved until `IsHedge` is fixed
-- Non-identifiability proofs (constructing hedges) remain **safe** — the hedges we construct are genuine and satisfy the paper's (stricter) definition too
+- Non-identifiability proofs (constructing hedges) remain **safe** — the hedges
+  we construct are genuine and satisfy the paper's (stricter) definition too
 
 ---
 
@@ -40,23 +56,23 @@ F' = SMGraph(map[2 := {}], {})                         // node {Y} only
 
 ### In scope (this plan)
 
-| Task | What | Strategy |
-|------|------|----------|
-| 1 | `Figure1a_WellFormed` + `Figure1b_WellFormed` (new lemmas) | Topological sort witness `[0,1,2,3,4]` |
-| 2 | `Figure1b_NotIdentifiable` (de-axiomize) | Explicit hedge: F={2,3} with BiEdge(2,3), F'={3} |
-| 3 | `IsHedge` bug documentation | Add `// BUG:` comment block with analysis |
+| Task | What                                                       | Strategy                                         |
+| ---- | ---------------------------------------------------------- | ------------------------------------------------ |
+| 1    | `Figure1a_WellFormed` + `Figure1b_WellFormed` (new lemmas) | Topological sort witness `[0,1,2,3,4]`           |
+| 2    | `Figure1b_NotIdentifiable` (de-axiomize)                   | Explicit hedge: F={2,3} with BiEdge(2,3), F'={3} |
+| 3    | `IsHedge` bug documentation                                | Add `// BUG:` comment block with analysis        |
 
 ### Out of scope (blocked or requires infrastructure)
 
-| Lemma | Blocker |
-|-------|---------|
-| `Frontdoor_Identifiable` | `IsHedge` bug — ensures is **false** under current definition |
-| `Figure1a_Identifiable` | Same |
-| `Markovian_AllIdentifiable` | Same |
-| `MarkovianCompleteness` | Same |
-| `ID_Line1` through `ID_Line7` | Requires concrete `ID` function body |
-| `Theorem2–5`, `Corollary3` | Requires induction on ID recursion / PMF semantics |
-| All other `{:axiom}` lemmas | Requires concrete ID or deep semantic proofs |
+| Lemma                         | Blocker                                                       |
+| ----------------------------- | ------------------------------------------------------------- |
+| `Frontdoor_Identifiable`      | `IsHedge` bug — ensures is **false** under current definition |
+| `Figure1a_Identifiable`       | Same                                                          |
+| `Markovian_AllIdentifiable`   | Same                                                          |
+| `MarkovianCompleteness`       | Same                                                          |
+| `ID_Line1` through `ID_Line7` | Requires concrete `ID` function body                          |
+| `Theorem2–5`, `Corollary3`    | Requires induction on ID recursion / PMF semantics            |
+| All other `{:axiom}` lemmas   | Requires concrete ID or deep semantic proofs                  |
 
 ---
 
@@ -92,26 +108,35 @@ ghost predicate IsIdentifiable(sm, X, Y) {
 
 ## Reference: proof pattern for non-identifiability
 
-Follow the structure of `BowArc_NotIdentifiable` (line ~900 of `identification.dfy`):
+Follow the structure of `BowArc_NotIdentifiable` (line ~900 of
+`identification.dfy`):
 
 1. Construct concrete `F` and `Fprime` as `SMGraph` literal values
-2. Prove `IsDAG` for each via topological sort witness (`var ord := [...]; assert IsTopologicalSort(F.dag, ord);`)
-3. Prove `IsCForest` for each (`WellFormedSM` + assert `Children` empty + `AtMostOneChild`)
-4. Prove `IsSubgraphSM` relationships (`SMNodes` subset + parents subset + bidirected subset)
-5. Prove `RootSet(F) <= AncY` via `IsAncestorBounded` chain with explicit fuel values
+2. Prove `IsDAG` for each via topological sort witness
+   (`var ord := [...]; assert IsTopologicalSort(F.dag, ord);`)
+3. Prove `IsCForest` for each (`WellFormedSM` + assert `Children` empty +
+   `AtMostOneChild`)
+4. Prove `IsSubgraphSM` relationships (`SMNodes` subset + parents subset +
+   bidirected subset)
+5. Prove `RootSet(F) <= AncY` via `IsAncestorBounded` chain with explicit fuel
+   values
 6. Assert `IsHedge(sm, F, Fprime, X, Y)`
-7. Assert `!IsIdentifiable(sm, X, Y)` — Dafny derives this from the existential witness
+7. Assert `!IsIdentifiable(sm, X, Y)` — Dafny derives this from the existential
+   witness
 
 ---
 
 ## Task 1: Add WellFormed lemmas for Figure 1a and 1b
 
 **Files:**
+
 - Modify: `src/dafny/identification.dfy`
 
 ### Step 1: Add `Figure1a_WellFormed`
 
-Insert this lemma immediately after the `Figure1aGraph()` function (around line 1093) and before the `/// Figure 1(a) — P_x(Y1, Y2) IS identifiable.` doc comment:
+Insert this lemma immediately after the `Figure1aGraph()` function (around
+line 1093) and before the `/// Figure 1(a) — P_x(Y1, Y2) IS identifiable.` doc
+comment:
 
 ```dafny
   /// The Figure 1(a) graph is well-formed.
@@ -134,14 +159,18 @@ Insert this lemma immediately after the `Figure1aGraph()` function (around line 
 ```
 
 Find the exact insertion point by searching for this text in the file:
+
 ```
   /// Figure 1(a) — P_x(Y1, Y2) IS identifiable.
 ```
+
 Insert the new lemma **before** that line.
 
 ### Step 2: Add `Figure1b_WellFormed`
 
-Insert this lemma immediately after the `Figure1bGraph()` function (around line 1122) and before the `/// Figure 1(b) — P_x(Y1, Y2) is NOT identifiable.` doc comment:
+Insert this lemma immediately after the `Figure1bGraph()` function (around
+line 1122) and before the `/// Figure 1(b) — P_x(Y1, Y2) is NOT identifiable.`
+doc comment:
 
 ```dafny
   /// The Figure 1(b) graph is well-formed.
@@ -164,9 +193,11 @@ Insert this lemma immediately after the `Figure1bGraph()` function (around line 
 ```
 
 Find the exact insertion point by searching for this text in the file:
+
 ```
   /// Figure 1(b) — P_x(Y1, Y2) is NOT identifiable.
 ```
+
 Insert the new lemma **before** that line.
 
 ### Step 3: Verify
@@ -190,9 +221,11 @@ git commit -m "feat(dafny): add Figure1a_WellFormed and Figure1b_WellFormed lemm
 ## Task 2: Prove `Figure1b_NotIdentifiable` by hedge construction
 
 **Files:**
+
 - Modify: `src/dafny/identification.dfy`
 
 **Graph context:**
+
 ```
 Figure 1(b): nodes W1=0, W2=1, X=2, Y1=3, Y2=4
 Directed: 0→2, 1→2, 2→3, 2→4
@@ -201,16 +234,20 @@ Treatment X = {2}, Outcome Y = {3, 4}
 ```
 
 **Hedge construction (mini bow-arc on {X, Y1}):**
+
 ```
 F      = SMGraph(map[2 := {}, 3 := {}], {BiEdge(2, 3)})   // {X, Y1}, no directed, bidirected X↔Y1
 Fprime = SMGraph(map[3 := {}], {})                          // {Y1} only
 ```
 
 **Why the hedge works:**
+
 - `Gx = RemoveIncomingSM(sm, {2})` removes incoming edges to node 2
   - Result: `Gx.dag = map[0:={}, 1:={}, 2:={}, 3:={2}, 4:={2}]`
-  - Nodes 0 and 1 lose their children (2's parents removed), so `Children(Gx.dag, 0) = {}` and `Children(Gx.dag, 1) = {}`
-- `Ancestors(Gx.dag, {3,4}) = {2, 3, 4}` (2→3 and 2→4 in Gx; 0,1 have no children in Gx)
+  - Nodes 0 and 1 lose their children (2's parents removed), so
+    `Children(Gx.dag, 0) = {}` and `Children(Gx.dag, 1) = {}`
+- `Ancestors(Gx.dag, {3,4}) = {2, 3, 4}` (2→3 and 2→4 in Gx; 0,1 have no
+  children in Gx)
 - `RootSet(F) = {2, 3}` (both have no children in F)
 - `{2, 3} ⊆ {2, 3, 4}` ✓ and `{2, 3} ∩ {2} = {2} ≠ {}` ✓
 
@@ -325,7 +362,10 @@ Replace it with:
   }
 ```
 
-**NOTE:** The `ensures` changed from `WellFormedSM(sm) ==> !IsIdentifiable(...)` to the stronger `!IsIdentifiable(...)` (no implication), matching the style of `BowArc_NotIdentifiable`. This is correct because `!IsIdentifiable` follows directly from the existence of a hedge — well-formedness of `sm` is irrelevant.
+**NOTE:** The `ensures` changed from `WellFormedSM(sm) ==> !IsIdentifiable(...)`
+to the stronger `!IsIdentifiable(...)` (no implication), matching the style of
+`BowArc_NotIdentifiable`. This is correct because `!IsIdentifiable` follows
+directly from the existence of a hedge — well-formedness of `sm` is irrelevant.
 
 ### Step 2: Verify
 
@@ -333,7 +373,8 @@ Replace it with:
 cd /Users/zuck016/Projects/CausalInference/y0-causal-inference/y0/src/dafny && /opt/homebrew/bin/dafny verify probability.dfy dag.dfy interventional.dfy do_calculus.dfy semi_markovian.dfy identification.dfy
 ```
 
-Expected: 88–89 verified, 0 errors. The count increases because the axiom (0 verification conditions) became a proved lemma (several conditions).
+Expected: 88–89 verified, 0 errors. The count increases because the axiom (0
+verification conditions) became a proved lemma (several conditions).
 
 ### Step 3: Commit
 
@@ -351,11 +392,13 @@ Same mini bow-arc pattern as BowArc_NotIdentifiable."
 ## Task 3: Document `IsHedge` bug
 
 **Files:**
+
 - Modify: `src/dafny/semi_markovian.dfy`
 
 ### Step 1: Add bug documentation
 
-Find this exact text in `semi_markovian.dfy` (the doc comment immediately before `IsHedge`, around line 600):
+Find this exact text in `semi_markovian.dfy` (the doc comment immediately before
+`IsHedge`, around line 600):
 
 ```dafny
   /// A hedge for P_x(y) in graph sm.
@@ -426,30 +469,39 @@ Identifiability proofs are blocked until the definition is fixed."
 
 After completing all 3 tasks:
 
-| File | Change |
-|------|--------|
+| File                 | Change                                                                                                    |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
 | `identification.dfy` | +2 new lemmas (`Figure1a_WellFormed`, `Figure1b_WellFormed`), 1 de-axiomized (`Figure1b_NotIdentifiable`) |
-| `semi_markovian.dfy` | +bug documentation comment on `IsHedge` |
+| `semi_markovian.dfy` | +bug documentation comment on `IsHedge`                                                                   |
 
 **Expected final verification:** ~89 verified, 0 errors (up from 86)
 
 **Axiom scorecard:**
 
-| Lemma | Before | After |
-|-------|--------|-------|
-| `Figure1b_NotIdentifiable` | `{:axiom}` | **proved** |
-| `Frontdoor_Identifiable` | `{:axiom}` | `{:axiom}` (blocked: IsHedge bug) |
-| `Figure1a_Identifiable` | `{:axiom}` | `{:axiom}` (blocked: IsHedge bug) |
-| `Markovian_AllIdentifiable` | `{:axiom}` | `{:axiom}` (blocked: IsHedge bug) |
-| `MarkovianCompleteness` | `{:axiom}` | `{:axiom}` (blocked: IsHedge bug) |
-| All `ID_Line*` / Theorem / Corollary | `{:axiom}` | `{:axiom}` (needs concrete ID) |
+| Lemma                                | Before     | After                             |
+| ------------------------------------ | ---------- | --------------------------------- |
+| `Figure1b_NotIdentifiable`           | `{:axiom}` | **proved**                        |
+| `Frontdoor_Identifiable`             | `{:axiom}` | `{:axiom}` (blocked: IsHedge bug) |
+| `Figure1a_Identifiable`              | `{:axiom}` | `{:axiom}` (blocked: IsHedge bug) |
+| `Markovian_AllIdentifiable`          | `{:axiom}` | `{:axiom}` (blocked: IsHedge bug) |
+| `MarkovianCompleteness`              | `{:axiom}` | `{:axiom}` (blocked: IsHedge bug) |
+| All `ID_Line*` / Theorem / Corollary | `{:axiom}` | `{:axiom}` (needs concrete ID)    |
 
 ---
 
 ## Future work (separate plans)
 
-1. **Fix `IsHedge` definition** — study Theorem 3 proof in Shpitser & Pearl (2006) to identify the exact missing condition. Fix `IsHedge`, update `BowArc_NotIdentifiable` and `Figure1b_NotIdentifiable` if the hedge construction needs to change, then prove the identifiability lemmas.
+1. **Fix `IsHedge` definition** — study Theorem 3 proof in Shpitser & Pearl
+   (2006) to identify the exact missing condition. Fix `IsHedge`, update
+   `BowArc_NotIdentifiable` and `Figure1b_NotIdentifiable` if the hedge
+   construction needs to change, then prove the identifiability lemmas.
 
-2. **Implement concrete `ID` function** — replace `ghost function {:axiom} ID(...)` with a recursive ghost function implementing the 7 lines. Termination measure: `(|SMNodes(sm)|, |SMNodes(sm)| - |X|)` lexicographic. This unlocks `ID_Line1`, `ID_Line4`, `ID_Line6`.
+2. **Implement concrete `ID` function** — replace
+   `ghost function {:axiom} ID(...)` with a recursive ghost function
+   implementing the 7 lines. Termination measure:
+   `(|SMNodes(sm)|, |SMNodes(sm)| - |X|)` lexicographic. This unlocks
+   `ID_Line1`, `ID_Line4`, `ID_Line6`.
 
-3. **Prove `CComponents_Partition`** — prove `BidirectedConnected` is an equivalence relation (reflexive, symmetric, transitive), then CComponents are its equivalence classes.
+3. **Prove `CComponents_Partition`** — prove `BidirectedConnected` is an
+   equivalence relation (reflexive, symmetric, transitive), then CComponents are
+   its equivalence classes.

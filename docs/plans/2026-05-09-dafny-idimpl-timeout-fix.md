@@ -1,11 +1,12 @@
 # Fix Dafny timeout in Identification.IDImpl
 
-**Suggested commit title:** `fix(dafny): split Line 4 IDImpl proof to avoid verifier timeout`
+**Suggested commit title:**
+`fix(dafny): split Line 4 IDImpl proof to avoid verifier timeout`
 
 ## Commit message body
 
-Diagnose and fix a Dafny verifier timeout in `Identification.IDImpl`
-caused by the Line 4 decomposition branch in `identification.dfy`.
+Diagnose and fix a Dafny verifier timeout in `Identification.IDImpl` caused by
+the Line 4 decomposition branch in `identification.dfy`.
 
 The timeout was isolated to the `IDLine4Check` call in the `|C(G \ X)| > 1`
 case, where Dafny spent its time discharging quantifier-heavy preconditions for
@@ -18,8 +19,8 @@ the recursive helpers need for every component in that sequence:
 - each component is non-empty
 
 Use that lemma immediately before the Line 4 recursive calls and assert the
-elementwise facts on the local `comps` sequence before calling
-`IDLine4Check` and `IDLine4Product`.
+elementwise facts on the local `comps` sequence before calling `IDLine4Check`
+and `IDLine4Product`.
 
 This keeps the control flow unchanged while reducing the cost of the proof
 obligations enough for Dafny to verify within the default 30 second limit.
@@ -67,8 +68,8 @@ Those facts were available only indirectly through:
 - the definition and partition properties of `CComponents`
 - the axiomatized set-to-sequence correspondence of `SetOfSetsToSeq`
 
-That combination was enough to cause quantifier blow-up in the precondition
-VCs at the Line 4 call site.
+That combination was enough to cause quantifier blow-up in the precondition VCs
+at the Line 4 call site.
 
 ### Code change
 
@@ -121,5 +122,4 @@ Result: `98 verified, 0 errors`
 ## Notes
 
 This session focused on the `IDImpl` timeout only. Other unstaged workspace
-changes already present in the repository were not modified as part of this
-fix.
+changes already present in the repository were not modified as part of this fix.
