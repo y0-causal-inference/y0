@@ -11,12 +11,15 @@ from collections.abc import Sequence
 from .id_extracted_bridge import (
     ExtractedLine1UnavailableError,
     ExtractedLine2UnavailableError,
+    ExtractedLine4UnavailableError,
     ExtractedLine5UnavailableError,
     identify_line1_from_extracted,
     identify_line2_from_extracted,
+    identify_line4_from_extracted,
     identify_line5_from_extracted,
     supports_query_line1,
     supports_query_line2,
+    supports_query_line4,
     supports_query_line5,
 )
 from .id_std import identify as identify_handwritten
@@ -47,6 +50,11 @@ def identify_generated(
         try:
             return identify_line2_from_extracted(identification, ordering=ordering)
         except ExtractedLine2UnavailableError:
+            pass
+    if supports_query_line4(identification):
+        try:
+            return identify_line4_from_extracted(identification, ordering=ordering)
+        except ExtractedLine4UnavailableError:
             pass
     if supports_query_line5(identification):
         try:

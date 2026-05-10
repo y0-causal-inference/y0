@@ -35,6 +35,52 @@ Produce an auto-generated Python ID implementation that is behaviorally
 equivalent to the current handwritten implementation and is backed by Dafny
 specifications, generated conformance tests, and regression parity checks.
 
+## Status Update (2026-05-10)
+
+### What Has Been Accomplished
+
+1. Extracted runtime slices integrated for ID line 1, line 2, and line 5.
+2. Generated engine dispatch now routes through extracted line handlers in order,
+   with conservative fallback to handwritten logic when a slice is unavailable or
+   not applicable.
+3. Oracle fixtures and parity tests were extended to cover extracted line 5
+   hedge behavior.
+4. Line 5 work was checkpointed in commit `e443aea`.
+
+### Quality Evidence (Most Recent)
+
+1. `bash scripts/build_dafny_id_line5_extracted.sh`
+   - Passed: line 5 module verified and translated successfully.
+2. `python scripts/check_dafny_id_line5_extracted_runtime.py`
+   - Passed: canonical fail/hedge IR emitted with expected witness shape.
+3. `pytest tests/test_algorithm/test_id_generated_parity.py -q`
+   - Passed: 9 tests.
+4. `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
+   - Passed: 575 verified, 0 errors.
+
+Note: `--log-format:text` intermittently failed to return terminal output in this
+environment; redirecting verification output to a file and checking exit code is
+the reliable gate.
+
+### Current Direction (Next Slice)
+
+Execute line 4 next using the same extracted-first workflow:
+
+1. Add standalone executable module `src/dafny/id_line4_extracted.dfy` that
+   emits line 4 decomposition IR.
+2. Add build/smoke scripts for line 4 extraction in `scripts/`.
+3. Integrate line 4 support predicates and bridge invocation in generated
+   routing.
+4. Add/update oracle fixture cases for extracted line 4.
+5. Extend generated parity tests for line 4 route preference and fallback.
+6. Re-run quality gates (line 4 build/smoke + generated parity +
+   identification verification).
+
+### Deferred/Out-of-Scope For This Step
+
+1. Line 3 full recursive integration remains deferred due to prior IR-shape
+   compatibility risk; keep fallback-safe behavior unless revisited explicitly.
+
     - fail -> raise Unidentifiable(F, Fprime)
 
 8. Mapping from ID lines to preferred IR constructors:

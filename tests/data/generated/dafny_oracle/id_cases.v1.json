@@ -5,6 +5,7 @@
       "src/dafny/identification.dfy",
       "src/dafny/id_line1_extracted.dfy",
       "src/dafny/id_line2_extracted.dfy",
+      "src/dafny/id_line4_extracted.dfy",
       "src/dafny/id_line5_extracted.dfy"
     ]
   },
@@ -125,15 +126,28 @@
                     "X"
                   ],
                   "body": {
-                    "tag": "prob",
-                    "vars": [
-                      "Y",
-                      "X"
-                    ],
-                    "given": [
-                      "Z"
-                    ],
-                    "intervened": []
+                    "tag": "product",
+                    "factors": [
+                      {
+                        "tag": "prob",
+                        "vars": [
+                          "X"
+                        ],
+                        "given": [],
+                        "intervened": []
+                      },
+                      {
+                        "tag": "prob",
+                        "vars": [
+                          "Y"
+                        ],
+                        "given": [
+                          "X",
+                          "Z"
+                        ],
+                        "intervened": []
+                      }
+                    ]
                   }
                 }
               ]
@@ -336,6 +350,87 @@
             "Fprime_nodes": [
               "Y"
             ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line4.extracted.frontdoor_small.identifiable",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine4ToIR",
+        "line": 125
+      },
+      "query": {
+        "graph_id": "line4_frontdoor_small",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Z",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "4",
+          "engine": "id",
+          "query": {
+            "graph_id": "line4_frontdoor_small",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Z",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "sum",
+            "over": [
+              "Z"
+            ],
+            "body": {
+              "tag": "product",
+              "factors": [
+                {
+                  "tag": "prob",
+                  "vars": [
+                    "Z"
+                  ],
+                  "given": [
+                    "X"
+                  ],
+                  "intervened": []
+                },
+                {
+                  "tag": "sum",
+                  "over": [
+                    "X"
+                  ],
+                  "body": {
+                    "tag": "prob",
+                    "vars": [
+                      "Y",
+                      "X"
+                    ],
+                    "given": [
+                      "Z"
+                    ],
+                    "intervened": []
+                  }
+                }
+              ]
+            }
           }
         }
       }
