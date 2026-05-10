@@ -520,6 +520,11 @@ def test_generated_falls_back_when_not_line6(monkeypatch: pytest.MonkeyPatch) ->
         calls.append("supports_line6")
         return False
 
+    def _fake_supports_line7(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line7")
+        return False
+
     def _unexpected_extracted_line6(
         identification: Identification,
         *,
@@ -533,6 +538,7 @@ def test_generated_falls_back_when_not_line6(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(id_generated_module, "supports_query_line4", _fake_supports_line4)
     monkeypatch.setattr(id_generated_module, "supports_query_line5", _fake_supports_line5)
     monkeypatch.setattr(id_generated_module, "supports_query_line6", _fake_supports_line6)
+    monkeypatch.setattr(id_generated_module, "supports_query_line7", _fake_supports_line7)
     monkeypatch.setattr(
         id_generated_module, "identify_line6_from_extracted", _unexpected_extracted_line6
     )
@@ -547,5 +553,152 @@ def test_generated_falls_back_when_not_line6(monkeypatch: pytest.MonkeyPatch) ->
         "supports_line4",
         "supports_line5",
         "supports_line6",
+        "supports_line7",
+    ]:
+        pytest.fail(f"unexpected generated fallback routing calls: {calls!r}")
+
+
+def test_generated_prefers_extracted_for_line7(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Generated engine should route line-7 queries through extracted transform."""
+    x = Variable("X")
+    w = Variable("W")
+    y = Variable("Y")
+    graph = NxMixedGraph.from_edges(
+        directed=[(x, w), (w, y)],
+        undirected=[(x, w), (w, y)],
+    )
+    query = P(y @ ~x)
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    calls: list[str] = []
+
+    def _fake_supports_line1(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line1")
+        return False
+
+    def _fake_supports_line2(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line2")
+        return False
+
+    def _fake_supports_line4(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line4")
+        return False
+
+    def _fake_supports_line5(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line5")
+        return False
+
+    def _fake_supports_line6(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line6")
+        return False
+
+    def _fake_supports_line7(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line7")
+        return True
+
+    def _fake_extracted_line7(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        calls.append("extracted_line7")
+        return P(y @ ~x)
+
+    monkeypatch.setattr(id_generated_module, "supports_query_line1", _fake_supports_line1)
+    monkeypatch.setattr(id_generated_module, "supports_query_line2", _fake_supports_line2)
+    monkeypatch.setattr(id_generated_module, "supports_query_line4", _fake_supports_line4)
+    monkeypatch.setattr(id_generated_module, "supports_query_line5", _fake_supports_line5)
+    monkeypatch.setattr(id_generated_module, "supports_query_line6", _fake_supports_line6)
+    monkeypatch.setattr(id_generated_module, "supports_query_line7", _fake_supports_line7)
+    monkeypatch.setattr(id_generated_module, "identify_line7_from_extracted", _fake_extracted_line7)
+
+    result = identify_with_engine(identification, engine="generated")
+    if not canonical_expr_equal(result, P(y @ ~x)):
+        pytest.fail("generated engine did not return extracted line-7 expression")
+    if calls != [
+        "supports_line1",
+        "supports_line2",
+        "supports_line4",
+        "supports_line5",
+        "supports_line6",
+        "supports_line7",
+        "extracted_line7",
+    ]:
+        pytest.fail(f"unexpected generated routing calls: {calls!r}")
+
+
+def test_generated_falls_back_when_not_line7(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Generated engine should fallback when line 7 is not available."""
+    graph, query = _identifiable_case()
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    calls: list[str] = []
+
+    def _fake_supports_line1(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line1")
+        return False
+
+    def _fake_supports_line2(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line2")
+        return False
+
+    def _fake_supports_line4(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line4")
+        return False
+
+    def _fake_supports_line5(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line5")
+        return False
+
+    def _fake_supports_line6(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line6")
+        return False
+
+    def _fake_supports_line7(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line7")
+        return False
+
+    def _unexpected_extracted_line7(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        pytest.fail("extracted line-7 path should not be called")
+
+    monkeypatch.setattr(id_generated_module, "supports_query_line1", _fake_supports_line1)
+    monkeypatch.setattr(id_generated_module, "supports_query_line2", _fake_supports_line2)
+    monkeypatch.setattr(id_generated_module, "supports_query_line4", _fake_supports_line4)
+    monkeypatch.setattr(id_generated_module, "supports_query_line5", _fake_supports_line5)
+    monkeypatch.setattr(id_generated_module, "supports_query_line6", _fake_supports_line6)
+    monkeypatch.setattr(id_generated_module, "supports_query_line7", _fake_supports_line7)
+    monkeypatch.setattr(
+        id_generated_module, "identify_line7_from_extracted", _unexpected_extracted_line7
+    )
+
+    handwritten = identify_with_engine(identification, engine="handwritten")
+    generated = identify_with_engine(identification, engine="generated")
+    if not canonical_expr_equal(handwritten, generated):
+        pytest.fail("generated fallback path does not match handwritten expression")
+    if calls != [
+        "supports_line1",
+        "supports_line2",
+        "supports_line4",
+        "supports_line5",
+        "supports_line6",
+        "supports_line7",
     ]:
         pytest.fail(f"unexpected generated fallback routing calls: {calls!r}")
