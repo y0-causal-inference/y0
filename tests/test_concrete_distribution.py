@@ -18,9 +18,7 @@ class TestConcreteDistribution(unittest.TestCase):
         """Set up test fixtures."""
         self.A = Variable("A")
         self.B = Variable("B")
-        self.dist = ConcreteDistribution.from_random(
-            [self.A, self.B], n_values=2, seed=42
-        )
+        self.dist = ConcreteDistribution.from_random([self.A, self.B], n_values=2, seed=42)
 
     def test_is_valid(self):
         """A randomly generated PMF is a valid distribution."""
@@ -36,9 +34,7 @@ class TestConcreteDistribution(unittest.TestCase):
     def test_prob_event_sums_to_one(self):
         """Sum of all atomic probabilities equals 1."""
         total = sum(
-            self.dist.prob_event({self.A: a, self.B: b})
-            for a in range(2)
-            for b in range(2)
+            self.dist.prob_event({self.A: a, self.B: b}) for a in range(2) for b in range(2)
         )
         self.assertAlmostEqual(total, 1.0, places=10)
 
@@ -46,10 +42,7 @@ class TestConcreteDistribution(unittest.TestCase):
         """Marginal P(A=a) = sum_b P(A=a, B=b)."""
         for a in range(2):
             marginal = self.dist.prob_marginal({self.A: a})
-            joint_sum = sum(
-                self.dist.prob_event({self.A: a, self.B: b})
-                for b in range(2)
-            )
+            joint_sum = sum(self.dist.prob_event({self.A: a, self.B: b}) for b in range(2))
             self.assertAlmostEqual(marginal, joint_sum, places=10)
 
     def test_prob_cond(self):
@@ -77,19 +70,13 @@ class TestConcreteDistribution(unittest.TestCase):
         """Intervening on A=0 produces a valid distribution where P(A=1)=0."""
         intervened = self.dist.intervene({self.A: 0})
         self.assertTrue(intervened.is_valid())
-        self.assertAlmostEqual(
-            intervened.prob_marginal({self.A: 0}), 1.0, places=10
-        )
-        self.assertAlmostEqual(
-            intervened.prob_marginal({self.A: 1}), 0.0, places=10
-        )
+        self.assertAlmostEqual(intervened.prob_marginal({self.A: 0}), 1.0, places=10)
+        self.assertAlmostEqual(intervened.prob_marginal({self.A: 1}), 0.0, places=10)
 
     def test_three_vars(self):
         """Construction with 3 variables works correctly."""
         c = Variable("C")
-        dist3 = ConcreteDistribution.from_random(
-            [self.A, self.B, c], n_values=2, seed=99
-        )
+        dist3 = ConcreteDistribution.from_random([self.A, self.B, c], n_values=2, seed=99)
         self.assertTrue(dist3.is_valid())
         total = sum(
             dist3.prob_event({self.A: a, self.B: b, c: cv})
@@ -121,9 +108,7 @@ class TestConcreteDistribution(unittest.TestCase):
         truncated = dist.do_graph({self.A: 0})
         self.assertTrue(truncated.is_valid())
         # All rows have A=0
-        self.assertAlmostEqual(
-            truncated.prob_marginal({self.A: 0}), 1.0, places=10
-        )
+        self.assertAlmostEqual(truncated.prob_marginal({self.A: 0}), 1.0, places=10)
 
     def test_do_graph_empty(self):
         """do_graph({}) returns the original distribution."""

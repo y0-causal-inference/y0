@@ -137,10 +137,10 @@ def _collect_clauses(text: str, start: int) -> tuple[list[str], list[str], int]:
         end += len(line) + 1
         stripped = line.strip()
         if stripped.startswith("requires"):
-            clause = stripped[len("requires"):].strip()
+            clause = stripped[len("requires") :].strip()
             requires.append(clause)
         elif stripped.startswith("ensures"):
-            clause = stripped[len("ensures"):].strip()
+            clause = stripped[len("ensures") :].strip()
             ensures.append(clause)
         elif stripped.startswith("{") or stripped.startswith("//") or stripped == "":
             if stripped.startswith("{"):
@@ -253,80 +253,93 @@ def _gen_surgery_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, list]]:
     tests = []
     for lemma in lemmas:
         if lemma.name == "RemoveIncoming_Empty":
-            tests.append((
-                "test_remove_incoming_empty_is_identity",
-                f'''    def test_remove_incoming_empty_is_identity(self):
+            tests.append(
+                (
+                    "test_remove_incoming_empty_is_identity",
+                    f'''    def test_remove_incoming_empty_is_identity(self):
         """RemoveIncoming(G, {{}}) == G.
 
         Ref: dag.dfy:{lemma.line} {lemma.name}
         """
         self.assertEqual(self.chain, self.chain.remove_in_edges(set()))''',
-                [],
-            ))
+                    [],
+                )
+            )
         elif lemma.name == "RemoveOutgoing_Empty":
-            tests.append((
-                "test_remove_outgoing_empty_is_identity",
-                f'''    def test_remove_outgoing_empty_is_identity(self):
+            tests.append(
+                (
+                    "test_remove_outgoing_empty_is_identity",
+                    f'''    def test_remove_outgoing_empty_is_identity(self):
         """RemoveOutgoing(G, {{}}) == G.
 
         Ref: dag.dfy:{lemma.line} {lemma.name}
         """
         self.assertEqual(self.chain, self.chain.remove_out_edges(set()))''',
-                [],
-            ))
+                    [],
+                )
+            )
         elif lemma.name == "RemoveIncoming_NoParents":
-            tests.append((
-                "test_remove_incoming_no_parents_for_target",
-                f'''    def test_remove_incoming_no_parents_for_target(self):
+            tests.append(
+                (
+                    "test_remove_incoming_no_parents_for_target",
+                    f'''    def test_remove_incoming_no_parents_for_target(self):
         """Nodes in X lose all parents after incoming surgery.
 
         Ref: dag.dfy:{lemma.line} {lemma.name}
         """
         mutilated = self.chain.remove_in_edges({{self.B}})
         self.assertEqual(set(), set(mutilated.directed.predecessors(self.B)))''',
-                [],
-            ))
+                    [],
+                )
+            )
         elif lemma.name == "RemoveIncoming_PreservesOthers":
-            tests.append((
-                "test_remove_incoming_preserves_others",
-                f'''    def test_remove_incoming_preserves_others(self):
+            tests.append(
+                (
+                    "test_remove_incoming_preserves_others",
+                    f'''    def test_remove_incoming_preserves_others(self):
         """Nodes outside X keep their parents after incoming surgery.
 
         Ref: dag.dfy:{lemma.line} {lemma.name}
         """
         mutilated = self.chain.remove_in_edges({{self.B}})
         self.assertEqual({{self.B}}, set(mutilated.directed.predecessors(self.C)))''',
-                [],
-            ))
+                    [],
+                )
+            )
 
     # Dual tests for RemoveOutgoing (not explicit lemmas but follow from definition)
-    tests.append((
-        "test_remove_outgoing_removes_children",
-        '''    def test_remove_outgoing_removes_children(self):
+    tests.append(
+        (
+            "test_remove_outgoing_removes_children",
+            '''    def test_remove_outgoing_removes_children(self):
         """Nodes in X lose all children after outgoing surgery.
 
         Ref: dag.dfy RemoveOutgoing definition (dual of RemoveIncoming_NoParents)
         """
         mutilated = self.chain.remove_out_edges({self.B})
         self.assertEqual(set(), set(mutilated.directed.successors(self.B)))''',
-        [],
-    ))
-    tests.append((
-        "test_remove_outgoing_preserves_others",
-        '''    def test_remove_outgoing_preserves_others(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_remove_outgoing_preserves_others",
+            '''    def test_remove_outgoing_preserves_others(self):
         """Nodes outside X keep their children after outgoing surgery.
 
         Ref: dag.dfy RemoveOutgoing definition (dual of RemoveIncoming_PreservesOthers)
         """
         mutilated = self.chain.remove_out_edges({self.B})
         self.assertEqual({self.B}, set(mutilated.directed.successors(self.A)))''',
-        [],
-    ))
+            [],
+        )
+    )
 
     # ADMG extension: bidirected edge removal
-    tests.append((
-        "test_remove_incoming_also_removes_bidirected",
-        '''    def test_remove_incoming_also_removes_bidirected(self):
+    tests.append(
+        (
+            "test_remove_incoming_also_removes_bidirected",
+            '''    def test_remove_incoming_also_removes_bidirected(self):
         """RemoveIncoming on ADMG also removes bidirected edges to X.
 
         Ref: ADMG extension of dag.dfy RemoveIncoming (Dafny models directed-only)
@@ -338,8 +351,9 @@ def _gen_surgery_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, list]]:
         mutilated = graph.remove_in_edges({self.B})
         self.assertEqual(set(), set(mutilated.directed.predecessors(self.B)))
         self.assertEqual(set(), set(mutilated.undirected.neighbors(self.B)))''',
-        [],
-    ))
+            [],
+        )
+    )
 
     return tests
 
@@ -351,51 +365,60 @@ def _gen_ancestry_tests(
     tests = []
 
     # Ancestor_Reflexive
-    tests.append((
-        "test_ancestor_reflexive",
-        '''    def test_ancestor_reflexive(self):
+    tests.append(
+        (
+            "test_ancestor_reflexive",
+            '''    def test_ancestor_reflexive(self):
         """Every node is its own ancestor.
 
         Ref: dag.dfy Ancestor_Reflexive
         """
         for node in [self.A, self.B, self.C]:
             self.assertIn(node, self.chain.ancestors_inclusive(node))''',
-        [],
-    ))
-    tests.append((
-        "test_ancestor_transitive",
-        '''    def test_ancestor_transitive(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_ancestor_transitive",
+            '''    def test_ancestor_transitive(self):
         """Ancestry is transitive: A ancestor of B, B ancestor of C => A ancestor of C.
 
         Ref: dag.dfy IsAncestor (reflexive-transitive closure)
         """
         self.assertIn(self.A, self.chain.ancestors_inclusive(self.C))''',
-        [],
-    ))
-    tests.append((
-        "test_descendant_reflexive",
-        '''    def test_descendant_reflexive(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_descendant_reflexive",
+            '''    def test_descendant_reflexive(self):
         """Every node is its own descendant.
 
         Ref: dag.dfy Descendants definition
         """
         for node in [self.A, self.B, self.C]:
             self.assertIn(node, self.chain.descendants_inclusive(node))''',
-        [],
-    ))
-    tests.append((
-        "test_descendant_transitive",
-        '''    def test_descendant_transitive(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_descendant_transitive",
+            '''    def test_descendant_transitive(self):
         """Descendancy is transitive.
 
         Ref: dag.dfy Descendants definition
         """
         self.assertIn(self.C, self.chain.descendants_inclusive(self.A))''',
-        [],
-    ))
-    tests.append((
-        "test_ancestors_of_chain_endpoint",
-        '''    def test_ancestors_of_chain_endpoint(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_ancestors_of_chain_endpoint",
+            '''    def test_ancestors_of_chain_endpoint(self):
         """Ancestors(G, {C}) = {A, B, C} in the chain graph.
 
         Ref: dag.dfy Ancestors ghost function
@@ -404,11 +427,13 @@ def _gen_ancestry_tests(
             {self.A, self.B, self.C},
             self.chain.ancestors_inclusive(self.C),
         )''',
-        [],
-    ))
-    tests.append((
-        "test_descendants_of_chain_start",
-        '''    def test_descendants_of_chain_start(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_descendants_of_chain_start",
+            '''    def test_descendants_of_chain_start(self):
         """Descendants(G, {A}) = {A, B, C} in the chain graph.
 
         Ref: dag.dfy Descendants ghost function
@@ -417,30 +442,39 @@ def _gen_ancestry_tests(
             {self.A, self.B, self.C},
             self.chain.descendants_inclusive(self.A),
         )''',
-        [],
-    ))
+            [],
+        )
+    )
 
     # IsDAG
-    tests.append((
-        "test_chain_is_dag",
-        '''    def test_chain_is_dag(self):
+    tests.append(
+        (
+            "test_chain_is_dag",
+            '''    def test_chain_is_dag(self):
         """The chain graph is a DAG.
 
         Ref: dag.dfy IsDAG, ChainGraph_IsDAG
         """
         self.assertTrue(self.chain.is_acyclic())''',
-        [("is_acyclic", '''    def is_acyclic(self) -> bool:
+            [
+                (
+                    "is_acyclic",
+                    '''    def is_acyclic(self) -> bool:
         """Check if the directed component is acyclic.
 
         Ref: dag.dfy IsDAG
         """
-        return nx.is_directed_acyclic_graph(self.directed)''')],
-    ))
+        return nx.is_directed_acyclic_graph(self.directed)''',
+                )
+            ],
+        )
+    )
 
     # Topological sort
-    tests.append((
-        "test_topological_sort_valid",
-        '''    def test_topological_sort_valid(self):
+    tests.append(
+        (
+            "test_topological_sort_valid",
+            '''    def test_topological_sort_valid(self):
         """A DAG admits a topological sort where parents precede children.
 
         Ref: dag.dfy IsTopologicalSort
@@ -449,37 +483,47 @@ def _gen_ancestry_tests(
         self.assertEqual(3, len(order))
         self.assertLess(order.index(self.A), order.index(self.B))
         self.assertLess(order.index(self.B), order.index(self.C))''',
-        [],
-    ))
+            [],
+        )
+    )
 
     # NonDescendants
-    tests.append((
-        "test_non_descendants",
-        '''    def test_non_descendants(self):
+    tests.append(
+        (
+            "test_non_descendants",
+            '''    def test_non_descendants(self):
         """NonDescendants(G, B) = {A}.
 
         Ref: dag.dfy NonDescendants
         """
         result = self.chain.non_descendants(self.B)
         self.assertEqual({self.A}, result)''',
-        [("non_descendants", '''    def non_descendants(self, node: Variable) -> set[Variable]:
+            [
+                (
+                    "non_descendants",
+                    '''    def non_descendants(self, node: Variable) -> set[Variable]:
         """Get non-descendants of a node.
 
         Ref: dag.dfy NonDescendants
         """
-        return set(self.nodes()) - self.descendants_inclusive(node)''')],
-    ))
-    tests.append((
-        "test_non_descendants_of_source",
-        '''    def test_non_descendants_of_source(self):
+        return set(self.nodes()) - self.descendants_inclusive(node)''',
+                )
+            ],
+        )
+    )
+    tests.append(
+        (
+            "test_non_descendants_of_source",
+            '''    def test_non_descendants_of_source(self):
         """NonDescendants(G, A) = {} since A is the root.
 
         Ref: dag.dfy NonDescendants
         """
         result = self.chain.non_descendants(self.A)
         self.assertEqual(set(), result)''',
-        [],
-    ))
+            [],
+        )
+    )
 
     return tests
 
@@ -489,35 +533,40 @@ def _gen_dsep_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, list]]:
     tests = []
 
     # Chain d-sep example
-    tests.append((
-        "test_chain_a_indep_c_given_b",
-        '''    def test_chain_a_indep_c_given_b(self):
+    tests.append(
+        (
+            "test_chain_a_indep_c_given_b",
+            '''    def test_chain_a_indep_c_given_b(self):
         """A ⊥ C | {B} in chain A->B->C.
 
         Ref: dag.dfy Chain_A_indep_C_given_B
         """
         judgement = are_d_separated(self.chain, self.A, self.C, conditions=[self.B])
         self.assertTrue(judgement.separated)''',
-        [],
-    ))
-    tests.append((
-        "test_chain_a_not_indep_c_unconditional",
-        '''    def test_chain_a_not_indep_c_unconditional(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_chain_a_not_indep_c_unconditional",
+            '''    def test_chain_a_not_indep_c_unconditional(self):
         """A is NOT d-separated from C unconditionally in A->B->C.
 
         Ref: dag.dfy (negative case — no conditioning blocks the path)
         """
         judgement = are_d_separated(self.chain, self.A, self.C)
         self.assertFalse(judgement.separated)''',
-        [],
-    ))
+            [],
+        )
+    )
 
     # Semi-graphoid axioms
     for lemma in lemmas:
         if lemma.name == "DSep_Symmetry":
-            tests.append((
-                "test_dsep_symmetry",
-                f'''    def test_dsep_symmetry(self):
+            tests.append(
+                (
+                    "test_dsep_symmetry",
+                    f'''    def test_dsep_symmetry(self):
         """(Y ⊥ Z | W) => (Z ⊥ Y | W).
 
         Ref: dag.dfy:{lemma.line} {lemma.name}
@@ -525,8 +574,9 @@ def _gen_dsep_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, list]]:
         j1 = are_d_separated(self.chain, self.A, self.C, conditions=[self.B])
         j2 = are_d_separated(self.chain, self.C, self.A, conditions=[self.B])
         self.assertEqual(j1.separated, j2.separated)''',
-                [],
-            ))
+                    [],
+                )
+            )
 
     return tests
 
@@ -537,9 +587,10 @@ def _gen_semigraphoid_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, li
 
     for lemma in lemmas:
         if lemma.name == "DSep_Decomposition":
-            tests.append((
-                "test_decomposition",
-                f'''    def test_decomposition(self):
+            tests.append(
+                (
+                    "test_decomposition",
+                    f'''    def test_decomposition(self):
         """(Y ⊥ Z ∪ Z' | W) => (Y ⊥ Z | W).
 
         Chain A->B->C->D: B blocks all paths from A to C and D.
@@ -549,12 +600,14 @@ def _gen_semigraphoid_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, li
         j_d = are_d_separated(self.chain4, self.A, self.D, conditions=[self.B])
         self.assertTrue(j_c.separated, "Decomposition: A ⊥ C | {{B}}")
         self.assertTrue(j_d.separated, "Decomposition: A ⊥ D | {{B}}")''',
-                [],
-            ))
+                    [],
+                )
+            )
         elif lemma.name == "DSep_WeakUnion":
-            tests.append((
-                "test_weak_union",
-                f'''    def test_weak_union(self):
+            tests.append(
+                (
+                    "test_weak_union",
+                    f'''    def test_weak_union(self):
         """(Y ⊥ Z ∪ Z' | W) => (Y ⊥ Z | W ∪ Z').
 
         Chain A->B->C->D: A ⊥ C | {{B}} => A ⊥ C | {{B, D}}.
@@ -564,12 +617,14 @@ def _gen_semigraphoid_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, li
         self.assertTrue(j_base.separated)
         j_weak = are_d_separated(self.chain4, self.A, self.C, conditions=[self.B, self.D])
         self.assertTrue(j_weak.separated, "Weak union: A ⊥ C | {{B, D}}")''',
-                [],
-            ))
+                    [],
+                )
+            )
         elif lemma.name == "DSep_Contraction":
-            tests.append((
-                "test_contraction",
-                f'''    def test_contraction(self):
+            tests.append(
+                (
+                    "test_contraction",
+                    f'''    def test_contraction(self):
         """(Y ⊥ Z | W ∪ Z') ∧ (Y ⊥ Z' | W) => (Y ⊥ Z ∪ Z' | W).
 
         Chain A->B->C->D: premises A ⊥ D | {{B,C}} and A ⊥ C | {{B}}.
@@ -581,8 +636,9 @@ def _gen_semigraphoid_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, li
         self.assertTrue(j2.separated, "Premise 2: A ⊥ C | {{B}}")
         j3 = are_d_separated(self.chain4, self.A, self.D, conditions=[self.B])
         self.assertTrue(j3.separated, "Contraction: A ⊥ D | {{B}}")''',
-                [],
-            ))
+                    [],
+                )
+            )
 
     return tests
 
@@ -592,9 +648,10 @@ def _gen_local_markov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, li
     tests = []
     for lemma in lemmas:
         if lemma.name == "LocalMarkov":
-            tests.append((
-                "test_local_markov_chain",
-                f'''    def test_local_markov_chain(self):
+            tests.append(
+                (
+                    "test_local_markov_chain",
+                    f'''    def test_local_markov_chain(self):
         """Every node v: {{v}} ⊥ (NonDesc(v) minus Pa(v)) | Pa(v).
 
         Nodes that are both non-descendants and parents are already conditioned
@@ -612,8 +669,9 @@ def _gen_local_markov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, li
                     judgement.separated,
                     f"Local Markov violated: {{node}} not d-sep from {{nd}} given {{parents}}",
                 )''',
-                [],
-            ))
+                    [],
+                )
+            )
     return tests
 
 
@@ -624,9 +682,10 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
 
     for lemma in lemmas:
         if lemma.name == "Rule1_InsertDeleteObservation":
-            tests.append((
-                "test_rule_1_does_not_apply_chain",
-                f'''    def test_rule_1_does_not_apply_chain(self):
+            tests.append(
+                (
+                    "test_rule_1_does_not_apply_chain",
+                    f'''    def test_rule_1_does_not_apply_chain(self):
         """Rule 1 does NOT apply: M is not d-sep from Y given X in G_{{X̄}}.
 
         Graph: X->M->Y with do(X). G_{{X̄}} same (X is source).
@@ -640,11 +699,13 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
                 graph, treatments={{X}}, outcomes={{Y}}, conditions=set(), observation=M,
             )
         )''',
-                [],
-            ))
-            tests.append((
-                "test_rule_1_applies_isolated_node",
-                f'''    def test_rule_1_applies_isolated_node(self):
+                    [],
+                )
+            )
+            tests.append(
+                (
+                    "test_rule_1_applies_isolated_node",
+                    f'''    def test_rule_1_applies_isolated_node(self):
         """Rule 1 applies: Z is d-sep from Y given X in G_{{X̄}}.
 
         Graph: X->Y, X->Z. Z and Y share parent X only.
@@ -659,14 +720,16 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
                 graph, treatments={{X}}, outcomes={{Y}}, conditions=set(), observation=Z,
             )
         )''',
-                [],
-            ))
+                    [],
+                )
+            )
             impls.append(("rule_1_of_do_calculus_applies", ""))  # marker
 
         elif lemma.name == "Rule2_ActionObservationExchange":
-            tests.append((
-                "test_rule_2_chain",
-                f'''    def test_rule_2_chain(self):
+            tests.append(
+                (
+                    "test_rule_2_chain",
+                    f'''    def test_rule_2_chain(self):
         """Rule 2: action/observation exchange on a chain.
 
         Graph: X->Z->Y. Check condition in G_{{X̄, Z̲}}.
@@ -681,13 +744,15 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
                 graph, treatments={{X}}, outcomes={{Y}}, conditions={{Z}}, condition=Z,
             )
         )''',
-                [],
-            ))
+                    [],
+                )
+            )
 
         elif lemma.name == "Rule3_InsertDeleteAction":
-            tests.append((
-                "test_rule_3_isolated_action",
-                f'''    def test_rule_3_isolated_action(self):
+            tests.append(
+                (
+                    "test_rule_3_isolated_action",
+                    f'''    def test_rule_3_isolated_action(self):
         """Rule 3: do(Z) deletable when Z has no path to Y after mutilation.
 
         Graph: X->Y, X->Z. Z not ancestor of W={{}} (empty conditions).
@@ -702,14 +767,16 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
                 graph, treatments={{X}}, outcomes={{Y}}, conditions=set(), action=Z,
             )
         )''',
-                [],
-            ))
+                    [],
+                )
+            )
             impls.append(("rule_3_of_do_calculus_applies", ""))  # marker
 
         elif lemma.name == "BackdoorAdjustment":
-            tests.append((
-                "test_backdoor_simple",
-                f'''    def test_backdoor_simple(self):
+            tests.append(
+                (
+                    "test_backdoor_simple",
+                    f'''    def test_backdoor_simple(self):
         """Z satisfies backdoor when it blocks backdoor paths and is not a descendant of X.
 
         Graph: Z->X->Y, Z->Y.
@@ -718,11 +785,13 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
         X, Y, Z = Variable("X"), Variable("Y"), Variable("Z")
         graph = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
         self.assertTrue(satisfies_backdoor(graph, outcomes={{Y}}, treatments={{X}}, adjustment={{Z}}))''',
-                [],
-            ))
-            tests.append((
-                "test_backdoor_fails_descendant",
-                f'''    def test_backdoor_fails_descendant(self):
+                    [],
+                )
+            )
+            tests.append(
+                (
+                    "test_backdoor_fails_descendant",
+                    f'''    def test_backdoor_fails_descendant(self):
         """Backdoor fails when adjustment set contains a descendant of X.
 
         Graph: X->M->Y. M is a descendant of X.
@@ -731,14 +800,16 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
         X, M, Y = Variable("X"), Variable("M"), Variable("Y")
         graph = NxMixedGraph.from_edges(directed=[(X, M), (M, Y)])
         self.assertFalse(satisfies_backdoor(graph, outcomes={{Y}}, treatments={{X}}, adjustment={{M}}))''',
-                [],
-            ))
+                    [],
+                )
+            )
             impls.append(("satisfies_backdoor", ""))
 
         elif lemma.name == "FrontdoorCriterion":
-            tests.append((
-                "test_frontdoor_classic",
-                f'''    def test_frontdoor_classic(self):
+            tests.append(
+                (
+                    "test_frontdoor_classic",
+                    f'''    def test_frontdoor_classic(self):
         """M satisfies frontdoor for X->Y with confounding X<->Y.
 
         Graph: X->M->Y, X<->Y (bidirected).
@@ -752,11 +823,13 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
         self.assertTrue(
             satisfies_frontdoor(graph, outcomes={{Y}}, treatments={{X}}, mediators={{M}})
         )''',
-                [],
-            ))
-            tests.append((
-                "test_frontdoor_fails_no_mediator",
-                f'''    def test_frontdoor_fails_no_mediator(self):
+                    [],
+                )
+            )
+            tests.append(
+                (
+                    "test_frontdoor_fails_no_mediator",
+                    f'''    def test_frontdoor_fails_no_mediator(self):
         """Frontdoor fails with empty mediator set and direct confounding.
 
         Graph: X->Y, X<->Y.
@@ -770,8 +843,9 @@ def _gen_do_calculus_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
         self.assertFalse(
             satisfies_frontdoor(graph, outcomes={{Y}}, treatments={{X}}, mediators=set())
         )''',
-                [],
-            ))
+                    [],
+                )
+            )
             impls.append(("satisfies_frontdoor", ""))
 
     return tests
@@ -783,9 +857,10 @@ def _gen_probability_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
 
     for lemma in lemmas:
         if lemma.name == "ChainRule":
-            tests.append((
-                "test_chain_rule_two_vars",
-                f'''    def test_chain_rule_two_vars(self):
+            tests.append(
+                (
+                    "test_chain_rule_two_vars",
+                    f'''    def test_chain_rule_two_vars(self):
         """P(A, B) = P(A | B) * P(B).
 
         Ref: probability.dfy:{lemma.line} {lemma.name}
@@ -796,11 +871,13 @@ def _gen_probability_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
         result = chain_expand(P(A, B))
         expected = P(A | B) * P(B)
         self.assertEqual(expected, result)''',
-                [],
-            ))
-            tests.append((
-                "test_chain_rule_three_vars",
-                f'''    def test_chain_rule_three_vars(self):
+                    [],
+                )
+            )
+            tests.append(
+                (
+                    "test_chain_rule_three_vars",
+                    f'''    def test_chain_rule_three_vars(self):
         """P(A, B, C) = P(A | B, C) * P(B | C) * P(C).
 
         Ref: probability.dfy:{lemma.line} {lemma.name} (iterated)
@@ -811,12 +888,14 @@ def _gen_probability_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
         result = chain_expand(P(A, B, C))
         expected = P(A | B, C) * P(B | C) * P(C)
         self.assertEqual(expected, result)''',
-                [],
-            ))
+                    [],
+                )
+            )
         elif lemma.name == "BayesTheorem":
-            tests.append((
-                "test_bayes_theorem",
-                f'''    def test_bayes_theorem(self):
+            tests.append(
+                (
+                    "test_bayes_theorem",
+                    f'''    def test_bayes_theorem(self):
         """P(A | B) = P(A, B) / Sum_A P(A, B).
 
         bayes_expand() uses the marginalization form, which is equivalent to
@@ -829,8 +908,9 @@ def _gen_probability_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, str, lis
         result = bayes_expand(P(A | B))
         expected = P(A, B) / Sum[A](P(A, B))
         self.assertEqual(expected, result)''',
-                [],
-            ))
+                    [],
+                )
+            )
 
     return tests
 
@@ -862,9 +942,10 @@ def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, s
             condindep_sym_line = f"probability.dfy:{lemma.line}"
 
     # One is multiplicative identity (Axiom_Normalization consequence)
-    tests.append((
-        "test_one_is_multiplicative_identity_left",
-        f'''    def test_one_is_multiplicative_identity_left(self):
+    tests.append(
+        (
+            "test_one_is_multiplicative_identity_left",
+            f'''    def test_one_is_multiplicative_identity_left(self):
         """One() * P(A) == P(A).
 
         Ref: {axiom_norm_line} Axiom_Normalization (algebraic consequence)
@@ -872,11 +953,13 @@ def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, s
         from y0.dsl import A, One, P
 
         self.assertEqual(P(A), One() * P(A))''',
-        [],
-    ))
-    tests.append((
-        "test_one_is_multiplicative_identity_right",
-        f'''    def test_one_is_multiplicative_identity_right(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_one_is_multiplicative_identity_right",
+            f'''    def test_one_is_multiplicative_identity_right(self):
         """P(A, B) * One() == P(A, B).
 
         Ref: {axiom_norm_line} Axiom_Normalization (algebraic consequence)
@@ -884,13 +967,15 @@ def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, s
         from y0.dsl import A, B, One, P
 
         self.assertEqual(P(A, B), P(A, B) * One())''',
-        [],
-    ))
+            [],
+        )
+    )
 
     # Zero is multiplicative absorber (EmptyEventZero consequence)
-    tests.append((
-        "test_zero_is_absorbing_left",
-        f'''    def test_zero_is_absorbing_left(self):
+    tests.append(
+        (
+            "test_zero_is_absorbing_left",
+            f'''    def test_zero_is_absorbing_left(self):
         """Zero() * P(A, B) == Zero().
 
         Ref: {empty_event_line} EmptyEventZero (algebraic consequence)
@@ -898,11 +983,13 @@ def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, s
         from y0.dsl import A, B, P, Zero
 
         self.assertEqual(Zero(), Zero() * P(A, B))''',
-        [],
-    ))
-    tests.append((
-        "test_zero_is_absorbing_right",
-        f'''    def test_zero_is_absorbing_right(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_zero_is_absorbing_right",
+            f'''    def test_zero_is_absorbing_right(self):
         """P(A, B) * Zero() == Zero().
 
         Ref: {empty_event_line} EmptyEventZero (algebraic consequence)
@@ -910,11 +997,13 @@ def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, s
         from y0.dsl import A, B, P, Zero
 
         self.assertEqual(Zero(), P(A, B) * Zero())''',
-        [],
-    ))
-    tests.append((
-        "test_zero_divided_by_nonzero",
-        f'''    def test_zero_divided_by_nonzero(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_zero_divided_by_nonzero",
+            f'''    def test_zero_divided_by_nonzero(self):
         """Zero() / P(A) == Zero().
 
         Ref: {empty_event_line} EmptyEventZero (algebraic consequence)
@@ -922,13 +1011,15 @@ def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, s
         from y0.dsl import A, P, Zero
 
         self.assertEqual(Zero(), Zero() / P(A))''',
-        [],
-    ))
+            [],
+        )
+    )
 
     # Joint distribution commutativity (Independent_Symmetric)
-    tests.append((
-        "test_joint_commutativity_two_vars",
-        f'''    def test_joint_commutativity_two_vars(self):
+    tests.append(
+        (
+            "test_joint_commutativity_two_vars",
+            f'''    def test_joint_commutativity_two_vars(self):
         """P(A, B) == P(B, A).
 
         Ref: {indep_sym_line} Independent_Symmetric (joint commutativity)
@@ -936,11 +1027,13 @@ def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, s
         from y0.dsl import A, B, P
 
         self.assertEqual(P(A, B), P(B, A))''',
-        [],
-    ))
-    tests.append((
-        "test_joint_commutativity_three_vars",
-        f'''    def test_joint_commutativity_three_vars(self):
+            [],
+        )
+    )
+    tests.append(
+        (
+            "test_joint_commutativity_three_vars",
+            f'''    def test_joint_commutativity_three_vars(self):
         """P(A, B, C) == P(C, A, B) (any permutation).
 
         Ref: {indep_sym_line} Independent_Symmetric (joint commutativity)
@@ -948,13 +1041,15 @@ def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, s
         from y0.dsl import A, B, C, P
 
         self.assertEqual(P(A, B, C), P(C, A, B))''',
-        [],
-    ))
+            [],
+        )
+    )
 
     # Conditional distribution child commutativity (CondIndep_Symmetric)
-    tests.append((
-        "test_conditional_child_commutativity",
-        f'''    def test_conditional_child_commutativity(self):
+    tests.append(
+        (
+            "test_conditional_child_commutativity",
+            f'''    def test_conditional_child_commutativity(self):
         """P(A, B | C) == P(B, A | C).
 
         Ref: {condindep_sym_line} CondIndep_Symmetric (conditional commutativity)
@@ -962,8 +1057,9 @@ def _gen_algebraic_identity_tests(lemmas: list[DafnyLemma]) -> list[tuple[str, s
         from y0.dsl import A, B, C, P
 
         self.assertEqual(P(A & B | C), P(B & A | C))''',
-        [],
-    ))
+            [],
+        )
+    )
 
     return tests
 
@@ -981,26 +1077,29 @@ def _gen_numerical_kolmogorov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str,
     for lemma in lemmas:
         refs[lemma.name] = f"probability.dfy:{lemma.line}"
 
-    tests.append((
-        "test_nonneg_all_outcomes",
-        f'''    def test_nonneg_all_outcomes(self):
+    tests.append(
+        (
+            "test_nonneg_all_outcomes",
+            f'''    def test_nonneg_all_outcomes(self):
         """All event probabilities are non-negative.
 
-        Ref: {refs.get('Axiom_NonNegativity', 'probability.dfy')} Axiom_NonNegativity
+        Ref: {refs.get("Axiom_NonNegativity", "probability.dfy")} Axiom_NonNegativity
         """
         for a in self.dist.values(self.A):
             for b in self.dist.values(self.B):
                 p = self.dist.prob_event({{self.A: a, self.B: b}})
                 self.assertGreaterEqual(p, 0.0)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_normalization",
-        f'''    def test_normalization(self):
+    tests.append(
+        (
+            "test_normalization",
+            f'''    def test_normalization(self):
         """Sum of all atomic probabilities equals 1.
 
-        Ref: {refs.get('Axiom_Normalization', 'probability.dfy')} Axiom_Normalization
+        Ref: {refs.get("Axiom_Normalization", "probability.dfy")} Axiom_Normalization
         """
         total = sum(
             self.dist.prob_event({{self.A: a, self.B: b}})
@@ -1008,15 +1107,17 @@ def _gen_numerical_kolmogorov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str,
             for b in self.dist.values(self.B)
         )
         self.assertAlmostEqual(total, 1.0, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_additivity_disjoint",
-        f'''    def test_additivity_disjoint(self):
+    tests.append(
+        (
+            "test_additivity_disjoint",
+            f'''    def test_additivity_disjoint(self):
         """P(A=0) + P(A=1) = P(A=0 or A=1) = sum over all B.
 
-        Ref: {refs.get('Axiom_Additivity', 'probability.dfy')} Axiom_Additivity
+        Ref: {refs.get("Axiom_Additivity", "probability.dfy")} Axiom_Additivity
         """
         p_a0 = self.dist.prob_marginal({{self.A: 0}})
         p_a1 = self.dist.prob_marginal({{self.A: 1}})
@@ -1026,15 +1127,17 @@ def _gen_numerical_kolmogorov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str,
             for b in self.dist.values(self.B)
         )
         self.assertAlmostEqual(p_a0 + p_a1, p_union, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_complement_rule",
-        f'''    def test_complement_rule(self):
+    tests.append(
+        (
+            "test_complement_rule",
+            f'''    def test_complement_rule(self):
         """P(A=0) + P(A!=0) = 1.
 
-        Ref: {refs.get('ComplementRule', 'probability.dfy')} ComplementRule
+        Ref: {refs.get("ComplementRule", "probability.dfy")} ComplementRule
         """
         p_a0 = self.dist.prob_marginal({{self.A: 0}})
         p_not_a0 = sum(
@@ -1042,53 +1145,61 @@ def _gen_numerical_kolmogorov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str,
             for a in self.dist.values(self.A) if a != 0
         )
         self.assertAlmostEqual(p_a0 + p_not_a0, 1.0, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_empty_event_zero",
-        f'''    def test_empty_event_zero(self):
+    tests.append(
+        (
+            "test_empty_event_zero",
+            f'''    def test_empty_event_zero(self):
         """P(impossible event) = 0.
 
-        Ref: {refs.get('EmptyEventZero', 'probability.dfy')} EmptyEventZero
+        Ref: {refs.get("EmptyEventZero", "probability.dfy")} EmptyEventZero
         """
         p = self.dist.prob_event({{self.A: 999}})
         self.assertAlmostEqual(p, 0.0, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_monotonicity",
-        f'''    def test_monotonicity(self):
+    tests.append(
+        (
+            "test_monotonicity",
+            f'''    def test_monotonicity(self):
         """P(A=0, B=0) <= P(A=0).
 
-        Ref: {refs.get('Monotonicity', 'probability.dfy')} Monotonicity
+        Ref: {refs.get("Monotonicity", "probability.dfy")} Monotonicity
         """
         p_joint = self.dist.prob_event({{self.A: 0, self.B: 0}})
         p_marginal = self.dist.prob_marginal({{self.A: 0}})
         self.assertLessEqual(p_joint, p_marginal + 1e-12)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_prob_at_most_one",
-        f'''    def test_prob_at_most_one(self):
+    tests.append(
+        (
+            "test_prob_at_most_one",
+            f'''    def test_prob_at_most_one(self):
         """Every marginal probability <= 1.
 
-        Ref: {refs.get('ProbAtMostOne', 'probability.dfy')} ProbAtMostOne
+        Ref: {refs.get("ProbAtMostOne", "probability.dfy")} ProbAtMostOne
         """
         for a in self.dist.values(self.A):
             p = self.dist.prob_marginal({{self.A: a}})
             self.assertLessEqual(p, 1.0 + 1e-12)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_inclusion_exclusion",
-        f'''    def test_inclusion_exclusion(self):
+    tests.append(
+        (
+            "test_inclusion_exclusion",
+            f'''    def test_inclusion_exclusion(self):
         """P(A=0 or B=0) = P(A=0) + P(B=0) - P(A=0, B=0).
 
-        Ref: {refs.get('InclusionExclusion', 'probability.dfy')} InclusionExclusion
+        Ref: {refs.get("InclusionExclusion", "probability.dfy")} InclusionExclusion
         """
         p_a0 = self.dist.prob_marginal({{self.A: 0}})
         p_b0 = self.dist.prob_marginal({{self.B: 0}})
@@ -1101,15 +1212,17 @@ def _gen_numerical_kolmogorov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str,
             if a == 0 or b == 0
         )
         self.assertAlmostEqual(p_union, p_a0 + p_b0 - p_both, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_chain_rule_numerical",
-        f'''    def test_chain_rule_numerical(self):
+    tests.append(
+        (
+            "test_chain_rule_numerical",
+            f'''    def test_chain_rule_numerical(self):
         """P(A, B) = P(A | B) * P(B) for all value combinations.
 
-        Ref: {refs.get('ChainRule', 'probability.dfy')} ChainRule
+        Ref: {refs.get("ChainRule", "probability.dfy")} ChainRule
         """
         for a in self.dist.values(self.A):
             for b in self.dist.values(self.B):
@@ -1118,15 +1231,17 @@ def _gen_numerical_kolmogorov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str,
                 if p_b > 0:
                     p_a_given_b = self.dist.prob_cond({{self.A: a}}, given={{self.B: b}})
                     self.assertAlmostEqual(p_joint, p_a_given_b * p_b, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_bayes_theorem_numerical",
-        f'''    def test_bayes_theorem_numerical(self):
+    tests.append(
+        (
+            "test_bayes_theorem_numerical",
+            f'''    def test_bayes_theorem_numerical(self):
         """P(A | B) = P(B | A) * P(A) / P(B).
 
-        Ref: {refs.get('BayesTheorem', 'probability.dfy')} BayesTheorem
+        Ref: {refs.get("BayesTheorem", "probability.dfy")} BayesTheorem
         """
         for a in self.dist.values(self.A):
             for b in self.dist.values(self.B):
@@ -1138,15 +1253,17 @@ def _gen_numerical_kolmogorov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str,
                     self.assertAlmostEqual(
                         p_a_given_b, p_b_given_a * p_a / p_b, places=10,
                     )''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_total_probability_numerical",
-        f'''    def test_total_probability_numerical(self):
+    tests.append(
+        (
+            "test_total_probability_numerical",
+            f'''    def test_total_probability_numerical(self):
         """P(A=a) = sum_b P(A=a | B=b) * P(B=b).
 
-        Ref: {refs.get('TotalProbability', 'probability.dfy')} TotalProbability
+        Ref: {refs.get("TotalProbability", "probability.dfy")} TotalProbability
         """
         for a in self.dist.values(self.A):
             p_a = self.dist.prob_marginal({{self.A: a}})
@@ -1157,16 +1274,18 @@ def _gen_numerical_kolmogorov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str,
                 if self.dist.prob_marginal({{self.B: b}}) > 0
             )
             self.assertAlmostEqual(p_a, total, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_cond_indep_symmetric_numerical",
-        f'''    def test_cond_indep_symmetric_numerical(self):
+    tests.append(
+        (
+            "test_cond_indep_symmetric_numerical",
+            f'''    def test_cond_indep_symmetric_numerical(self):
         """Symmetry of conditional independence: if P(A,B|C)=P(A|C)P(B|C) then P(B,A|C)=P(B|C)P(A|C).
 
         Tests that P(A, B | C=c) == P(B, A | C=c) numerically (joint is commutative).
-        Ref: {refs.get('CondIndep_Symmetric', 'probability.dfy')} CondIndep_Symmetric
+        Ref: {refs.get("CondIndep_Symmetric", "probability.dfy")} CondIndep_Symmetric
         """
         C = Variable("C")
         dist3 = ConcreteDistribution.from_random([self.A, self.B, C], n_values=2, seed=99)
@@ -1176,8 +1295,9 @@ def _gen_numerical_kolmogorov_tests(lemmas: list[DafnyLemma]) -> list[tuple[str,
                     p_ab_c = dist3.prob_cond({{self.A: a, self.B: b}}, given={{C: c}})
                     p_ba_c = dist3.prob_cond({{self.B: b, self.A: a}}, given={{C: c}})
                     self.assertAlmostEqual(p_ab_c, p_ba_c, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
     return tests
 
@@ -1191,9 +1311,10 @@ def _gen_numerical_interventional_tests() -> list[tuple[str, str, list]]:
     """
     tests = []
 
-    tests.append((
-        "test_backdoor_adjustment_numerical",
-        '''    def test_backdoor_adjustment_numerical(self):
+    tests.append(
+        (
+            "test_backdoor_adjustment_numerical",
+            '''    def test_backdoor_adjustment_numerical(self):
         """P(Y=y | do(X=x)) == sum_z P(Y=y | X=x, Z=z) * P(Z=z).
 
         Uses DAG: Z -> X -> Y, Z -> Y.  Z satisfies the backdoor
@@ -1223,12 +1344,14 @@ def _gen_numerical_interventional_tests() -> list[tuple[str, str, list]]:
                     if dist.prob_marginal({X: x, Z: z}) > 0
                 )
                 self.assertAlmostEqual(p_do, p_adj, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_frontdoor_adjustment_numerical",
-        '''    def test_frontdoor_adjustment_numerical(self):
+    tests.append(
+        (
+            "test_frontdoor_adjustment_numerical",
+            '''    def test_frontdoor_adjustment_numerical(self):
         """P(Y=y | do(X=x)) == sum_m P(M=m|X=x) * sum_x' P(Y=y|X=x',M=m) * P(X=x').
 
         Uses DAG: X -> M -> Y  (M is a mediator, no confounding).
@@ -1261,12 +1384,14 @@ def _gen_numerical_interventional_tests() -> list[tuple[str, str, list]]:
                     )
                     p_adj += p_m_given_x * inner
                 self.assertAlmostEqual(p_do, p_adj, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_truncate_empty_is_identity",
-        '''    def test_truncate_empty_is_identity(self):
+    tests.append(
+        (
+            "test_truncate_empty_is_identity",
+            '''    def test_truncate_empty_is_identity(self):
         """do_graph({}) should return a distribution equivalent to the original.
 
         Ref: interventional.dfy TruncatePMF_Empty
@@ -1285,12 +1410,14 @@ def _gen_numerical_interventional_tests() -> list[tuple[str, str, list]]:
                 p_orig = dist.prob_event({X: x, Y: y})
                 p_trunc = trivial.prob_event({X: x, Y: y})
                 self.assertAlmostEqual(p_orig, p_trunc, places=10)''',
-        [],
-    ))
+            [],
+        )
+    )
 
-    tests.append((
-        "test_truncate_is_valid_distribution",
-        '''    def test_truncate_is_valid_distribution(self):
+    tests.append(
+        (
+            "test_truncate_is_valid_distribution",
+            '''    def test_truncate_is_valid_distribution(self):
         """Truncated PMF via do_graph must remain a valid distribution.
 
         Ref: interventional.dfy TruncatePMF_IsDistribution
@@ -1306,8 +1433,9 @@ def _gen_numerical_interventional_tests() -> list[tuple[str, str, list]]:
         for x in dist.values(X):
             truncated = dist.do_graph({X: x})
             self.assertTrue(truncated.is_valid())''',
-        [],
-    ))
+            [],
+        )
+    )
 
     return tests
 
@@ -1327,9 +1455,18 @@ def generate_test_file(dag_spec: DafnySpec, dc_spec: DafnySpec, prob_spec: Dafny
 
     # Collect needed implementations
     needed_impls: dict[str, str] = {}
-    for group in [surgery_tests, ancestry_tests, dsep_tests, semigraphoid_tests,
-                  local_markov_tests, do_calc_tests, prob_tests, algebraic_tests,
-                  numerical_tests, interventional_tests]:
+    for group in [
+        surgery_tests,
+        ancestry_tests,
+        dsep_tests,
+        semigraphoid_tests,
+        local_markov_tests,
+        do_calc_tests,
+        prob_tests,
+        algebraic_tests,
+        numerical_tests,
+        interventional_tests,
+    ]:
         for _, _, impls in group:
             for name, code in impls:
                 needed_impls[name] = code
@@ -1529,9 +1666,15 @@ def main() -> None:
     dc_spec = parse_dafny_file(DAFNY_DIR / "do_calculus.dfy")
     prob_spec = parse_dafny_file(DAFNY_DIR / "probability.dfy")
 
-    print(f"Parsed {dag_spec.path.name}: {len(dag_spec.lemmas)} lemmas, {len(dag_spec.functions)} functions")
-    print(f"Parsed {dc_spec.path.name}: {len(dc_spec.lemmas)} lemmas, {len(dc_spec.functions)} functions")
-    print(f"Parsed {prob_spec.path.name}: {len(prob_spec.lemmas)} lemmas, {len(prob_spec.functions)} functions")
+    print(
+        f"Parsed {dag_spec.path.name}: {len(dag_spec.lemmas)} lemmas, {len(dag_spec.functions)} functions"
+    )
+    print(
+        f"Parsed {dc_spec.path.name}: {len(dc_spec.lemmas)} lemmas, {len(dc_spec.functions)} functions"
+    )
+    print(
+        f"Parsed {prob_spec.path.name}: {len(prob_spec.lemmas)} lemmas, {len(prob_spec.functions)} functions"
+    )
 
     test_code = generate_test_file(dag_spec, dc_spec, prob_spec)
     OUTPUT.write_text(test_code)
