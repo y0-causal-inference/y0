@@ -90,7 +90,9 @@ def iter_cases(fixture: OracleFixture, module: str | None = None) -> Iterator[Or
     cases = fixture["cases"]
     if module is not None:
         cases = [case for case in cases if case["module"] == module]
-    yield from sorted(cases, key=lambda case: (case["module"], case["anchor"]["symbol"], case["case_id"]))
+    yield from sorted(
+        cases, key=lambda case: (case["module"], case["anchor"]["symbol"], case["case_id"])
+    )
 
 
 def normalize_expression(expr: Expression, ordering: Sequence[str]) -> Expression:

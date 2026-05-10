@@ -3,17 +3,38 @@
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
 import sys
+from pathlib import Path
+from typing import Protocol, cast
 
 from y0.algorithm.identify.id_oracle_types import load_fixture, save_fixture
+
+
+class _GeneratorModule(Protocol):
+    """Typed subset of the generator module surface used by this test."""
+
+
+    def parse_dafny_file(self, path: Path) -> "_ParsedSpec": ...
+
+
+class _ParsedLemma(Protocol):
+    """Typed subset of parsed Dafny lemmas used by this test."""
+
+    name: str
+
+
+class _ParsedSpec(Protocol):
+    """Typed subset of parsed Dafny spec used by this test."""
+
+    module: str
+    lemmas: list[_ParsedLemma]
 
 
 def _root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _load_generator_module() -> object:
+def _load_generator_module() -> _GeneratorModule:
     script_path = _root() / "scripts" / "generate_dafny_conformance_tests.py"
     spec = importlib.util.spec_from_file_location("_dafny_generator", script_path)
     if spec is None or spec.loader is None:
@@ -21,13 +42,13 @@ def _load_generator_module() -> object:
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
-    return module
+    return cast(_GeneratorModule, module)
 
 
 def test_identification_module_is_parsed() -> None:
     """The generator parser should extract declarations from identification.dfy."""
     module = _load_generator_module()
-    parse_dafny_file = getattr(module, "parse_dafny_file")
+    parse_dafny_file = module.parse_dafny_file
     spec = parse_dafny_file(_root() / "src" / "dafny" / "identification.dfy")
 
     if spec.module != "Identification":

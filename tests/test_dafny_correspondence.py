@@ -31,9 +31,7 @@ class TestSurgeryLemmas(unittest.TestCase):
         self.A = Variable("A")
         self.B = Variable("B")
         self.C = Variable("C")
-        self.chain = NxMixedGraph.from_edges(
-            directed=[(self.A, self.B), (self.B, self.C)]
-        )
+        self.chain = NxMixedGraph.from_edges(directed=[(self.A, self.B), (self.B, self.C)])
 
     def test_remove_incoming_empty_is_identity(self):
         """RemoveIncoming(G, {}) == G.
@@ -103,9 +101,7 @@ class TestAncestryLemmas(unittest.TestCase):
         self.A = Variable("A")
         self.B = Variable("B")
         self.C = Variable("C")
-        self.chain = NxMixedGraph.from_edges(
-            directed=[(self.A, self.B), (self.B, self.C)]
-        )
+        self.chain = NxMixedGraph.from_edges(directed=[(self.A, self.B), (self.B, self.C)])
 
     def test_ancestor_reflexive(self):
         """Every node is its own ancestor.
@@ -199,9 +195,7 @@ class TestDSeparation(unittest.TestCase):
         self.A = Variable("A")
         self.B = Variable("B")
         self.C = Variable("C")
-        self.chain = NxMixedGraph.from_edges(
-            directed=[(self.A, self.B), (self.B, self.C)]
-        )
+        self.chain = NxMixedGraph.from_edges(directed=[(self.A, self.B), (self.B, self.C)])
 
     def test_chain_a_indep_c_given_b(self):
         """A ⊥ C | {B} in chain A->B->C.
@@ -315,7 +309,11 @@ class TestDoCalculusRules(unittest.TestCase):
         graph = NxMixedGraph.from_edges(directed=[(X, M), (M, Y)])
         self.assertFalse(
             rule_1_of_do_calculus_applies(
-                graph, treatments={X}, outcomes={Y}, conditions=set(), observation=M,
+                graph,
+                treatments={X},
+                outcomes={Y},
+                conditions=set(),
+                observation=M,
             )
         )
 
@@ -331,7 +329,11 @@ class TestDoCalculusRules(unittest.TestCase):
         graph = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z)])
         self.assertTrue(
             rule_1_of_do_calculus_applies(
-                graph, treatments={X}, outcomes={Y}, conditions=set(), observation=Z,
+                graph,
+                treatments={X},
+                outcomes={Y},
+                conditions=set(),
+                observation=Z,
             )
         )
 
@@ -347,7 +349,11 @@ class TestDoCalculusRules(unittest.TestCase):
         # In G_{X̄, Z̲}: X->Z, Y isolated. (Y ⊥ Z | {X}) holds.
         self.assertTrue(
             rule_2_of_do_calculus_applies(
-                graph, treatments={X}, outcomes={Y}, conditions={Z}, condition=Z,
+                graph,
+                treatments={X},
+                outcomes={Y},
+                conditions={Z},
+                condition=Z,
             )
         )
 
@@ -363,7 +369,11 @@ class TestDoCalculusRules(unittest.TestCase):
         graph = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z)])
         self.assertTrue(
             rule_3_of_do_calculus_applies(
-                graph, treatments={X}, outcomes={Y}, conditions=set(), action=Z,
+                graph,
+                treatments={X},
+                outcomes={Y},
+                conditions=set(),
+                action=Z,
             )
         )
 
@@ -398,9 +408,7 @@ class TestDoCalculusRules(unittest.TestCase):
             directed=[(X, M), (M, Y)],
             undirected=[(X, Y)],
         )
-        self.assertTrue(
-            satisfies_frontdoor(graph, outcomes={Y}, treatments={X}, mediators={M})
-        )
+        self.assertTrue(satisfies_frontdoor(graph, outcomes={Y}, treatments={X}, mediators={M}))
 
     def test_frontdoor_fails_no_mediator(self):
         """Frontdoor fails with empty mediator set and direct confounding.
@@ -413,9 +421,7 @@ class TestDoCalculusRules(unittest.TestCase):
             directed=[(X, Y)],
             undirected=[(X, Y)],
         )
-        self.assertFalse(
-            satisfies_frontdoor(graph, outcomes={Y}, treatments={X}, mediators=set())
-        )
+        self.assertFalse(satisfies_frontdoor(graph, outcomes={Y}, treatments={X}, mediators=set()))
 
 
 class TestProbabilityAxioms(unittest.TestCase):
@@ -554,9 +560,7 @@ class TestNumericalKolmogorov(unittest.TestCase):
         """Create a reproducible random PMF over A, B."""
         self.A = Variable("A")
         self.B = Variable("B")
-        self.dist = ConcreteDistribution.from_random(
-            [self.A, self.B], n_values=2, seed=42
-        )
+        self.dist = ConcreteDistribution.from_random([self.A, self.B], n_values=2, seed=42)
 
     def test_nonneg_all_outcomes(self):
         """All event probabilities are non-negative.
@@ -601,8 +605,7 @@ class TestNumericalKolmogorov(unittest.TestCase):
         """
         p_a0 = self.dist.prob_marginal({self.A: 0})
         p_not_a0 = sum(
-            self.dist.prob_marginal({self.A: a})
-            for a in self.dist.values(self.A) if a != 0
+            self.dist.prob_marginal({self.A: a}) for a in self.dist.values(self.A) if a != 0
         )
         self.assertAlmostEqual(p_a0 + p_not_a0, 1.0, places=10)
 
@@ -675,7 +678,9 @@ class TestNumericalKolmogorov(unittest.TestCase):
                     p_a_given_b = self.dist.prob_cond({self.A: a}, given={self.B: b})
                     p_b_given_a = self.dist.prob_cond({self.B: b}, given={self.A: a})
                     self.assertAlmostEqual(
-                        p_a_given_b, p_b_given_a * p_a / p_b, places=10,
+                        p_a_given_b,
+                        p_b_given_a * p_a / p_b,
+                        places=10,
                     )
 
     def test_total_probability_numerical(self):
@@ -741,8 +746,7 @@ class TestNumericalInterventional(unittest.TestCase):
                 p_do = dist.do_graph({X: x}).prob_marginal({Y: y})
                 # RHS: backdoor adjustment formula
                 p_adj = sum(
-                    dist.prob_cond({Y: y}, given={X: x, Z: z})
-                    * dist.prob_marginal({Z: z})
+                    dist.prob_cond({Y: y}, given={X: x, Z: z}) * dist.prob_marginal({Z: z})
                     for z in dist.values(Z)
                     if dist.prob_marginal({X: x, Z: z}) > 0
                 )
@@ -774,8 +778,7 @@ class TestNumericalInterventional(unittest.TestCase):
                 for m in dist.values(M):
                     p_m_given_x = dist.prob_cond({M: m}, given={X: x})
                     inner = sum(
-                        dist.prob_cond({Y: y}, given={X: xp, M: m})
-                        * dist.prob_marginal({X: xp})
+                        dist.prob_cond({Y: y}, given={X: xp, M: m}) * dist.prob_marginal({X: xp})
                         for xp in dist.values(X)
                         if dist.prob_marginal({X: xp, M: m}) > 0
                     )

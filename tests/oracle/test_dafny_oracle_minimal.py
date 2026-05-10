@@ -17,7 +17,13 @@ from y0.dsl import Expression
 
 
 def _fixture_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "data" / "generated" / "dafny_oracle" / "id_cases.v1.json"
+    return (
+        Path(__file__).resolve().parents[1]
+        / "data"
+        / "generated"
+        / "dafny_oracle"
+        / "id_cases.v1.json"
+    )
 
 
 def test_fixture_loads() -> None:

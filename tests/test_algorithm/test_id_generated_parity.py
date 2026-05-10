@@ -1,0 +1,69 @@
+"""Parity checks between handwritten and generated ID engines."""
+
+from __future__ import annotations
+
+import pytest
+
+from y0.algorithm.identify import Identification, Unidentifiable
+from y0.algorithm.identify.id_dispatch import identify_with_engine
+from y0.dsl import Expression, P, Probability, Variable
+from y0.graph import NxMixedGraph
+from y0.mutate.canonicalize_expr import canonical_expr_equal, canonicalize
+
+
+def _identifiable_case() -> tuple[NxMixedGraph, Probability]:
+    x = Variable("X")
+    y = Variable("Y")
+    graph = NxMixedGraph.from_edges(directed=[(x, y)])
+    query = P(y @ ~x)
+    return graph, query
+
+
+def _unidentifiable_case() -> tuple[NxMixedGraph, Probability]:
+    x = Variable("X")
+    y = Variable("Y")
+    graph = NxMixedGraph.from_edges(directed=[(x, y)], undirected=[(x, y)])
+    query = P(y @ ~x)
+    return graph, query
+
+
+def test_generated_matches_handwritten_identifiable() -> None:
+    """Generated and handwritten engines should agree on identifiable queries."""
+    graph, query = _identifiable_case()
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    handwritten = identify_with_engine(identification, engine="handwritten")
+    generated = identify_with_engine(identification, engine="generated")
+
+    if not isinstance(generated, Expression):
+        pytest.fail("generated engine did not return an Expression")
+
+    if not canonical_expr_equal(handwritten, generated):
+        pytest.fail(
+            "generated and handwritten expressions differ after canonicalization: "
+            f"handwritten={handwritten.to_text()} generated={generated.to_text()}"
+        )
+
+
+def test_generated_matches_handwritten_unidentifiable_class() -> None:
+    """Generated and handwritten engines should both fail on unidentifiable queries."""
+    graph, query = _unidentifiable_case()
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    with pytest.raises(Unidentifiable):
+        identify_with_engine(identification, engine="handwritten")
+
+    with pytest.raises(Unidentifiable):
+        identify_with_engine(identification, engine="generated")
+
+
+def test_generated_expression_canonicalization_stable() -> None:
+    """Generated engine output should canonicalize stably."""
+    graph, query = _identifiable_case()
+    identification = Identification.from_expression(graph=graph, query=query)
+    generated = identify_with_engine(identification, engine="generated")
+    ordering = sorted(generated.get_variables(), key=lambda variable: variable.name)
+    once = canonicalize(generated, ordering=ordering)
+    twice = canonicalize(once, ordering=ordering)
+    if once != twice:
+        pytest.fail("generated engine expression canonicalization is not stable")
