@@ -31,19 +31,21 @@ class TestSurgeryLemmas(unittest.TestCase):
         self.A = Variable("A")
         self.B = Variable("B")
         self.C = Variable("C")
-        self.chain = NxMixedGraph.from_edges(directed=[(self.A, self.B), (self.B, self.C)])
+        self.chain = NxMixedGraph.from_edges(
+            directed=[(self.A, self.B), (self.B, self.C)]
+        )
 
     def test_remove_incoming_empty_is_identity(self):
         """RemoveIncoming(G, {}) == G.
 
-        Ref: dag.dfy:139 RemoveIncoming_Empty
+        Ref: dag.dfy:311 RemoveIncoming_Empty
         """
         self.assertEqual(self.chain, self.chain.remove_in_edges(set()))
 
     def test_remove_incoming_no_parents_for_target(self):
         """Nodes in X lose all parents after incoming surgery.
 
-        Ref: dag.dfy:148 RemoveIncoming_NoParents
+        Ref: dag.dfy:320 RemoveIncoming_NoParents
         """
         mutilated = self.chain.remove_in_edges({self.B})
         self.assertEqual(set(), set(mutilated.directed.predecessors(self.B)))
@@ -51,7 +53,7 @@ class TestSurgeryLemmas(unittest.TestCase):
     def test_remove_incoming_preserves_others(self):
         """Nodes outside X keep their parents after incoming surgery.
 
-        Ref: dag.dfy:154 RemoveIncoming_PreservesOthers
+        Ref: dag.dfy:326 RemoveIncoming_PreservesOthers
         """
         mutilated = self.chain.remove_in_edges({self.B})
         self.assertEqual({self.B}, set(mutilated.directed.predecessors(self.C)))
@@ -59,7 +61,7 @@ class TestSurgeryLemmas(unittest.TestCase):
     def test_remove_outgoing_empty_is_identity(self):
         """RemoveOutgoing(G, {}) == G.
 
-        Ref: dag.dfy:160 RemoveOutgoing_Empty
+        Ref: dag.dfy:332 RemoveOutgoing_Empty
         """
         self.assertEqual(self.chain, self.chain.remove_out_edges(set()))
 
@@ -101,7 +103,9 @@ class TestAncestryLemmas(unittest.TestCase):
         self.A = Variable("A")
         self.B = Variable("B")
         self.C = Variable("C")
-        self.chain = NxMixedGraph.from_edges(directed=[(self.A, self.B), (self.B, self.C)])
+        self.chain = NxMixedGraph.from_edges(
+            directed=[(self.A, self.B), (self.B, self.C)]
+        )
 
     def test_ancestor_reflexive(self):
         """Every node is its own ancestor.
@@ -195,7 +199,9 @@ class TestDSeparation(unittest.TestCase):
         self.A = Variable("A")
         self.B = Variable("B")
         self.C = Variable("C")
-        self.chain = NxMixedGraph.from_edges(directed=[(self.A, self.B), (self.B, self.C)])
+        self.chain = NxMixedGraph.from_edges(
+            directed=[(self.A, self.B), (self.B, self.C)]
+        )
 
     def test_chain_a_indep_c_given_b(self):
         """A ⊥ C | {B} in chain A->B->C.
@@ -216,7 +222,7 @@ class TestDSeparation(unittest.TestCase):
     def test_dsep_symmetry(self):
         """(Y ⊥ Z | W) => (Z ⊥ Y | W).
 
-        Ref: dag.dfy:261 DSep_Symmetry
+        Ref: dag.dfy:433 DSep_Symmetry
         """
         j1 = are_d_separated(self.chain, self.A, self.C, conditions=[self.B])
         j2 = are_d_separated(self.chain, self.C, self.A, conditions=[self.B])
@@ -240,7 +246,7 @@ class TestSemiGraphoidAxioms(unittest.TestCase):
         """(Y ⊥ Z ∪ Z' | W) => (Y ⊥ Z | W).
 
         Chain A->B->C->D: B blocks all paths from A to C and D.
-        Ref: dag.dfy:266 DSep_Decomposition
+        Ref: dag.dfy:438 DSep_Decomposition
         """
         j_c = are_d_separated(self.chain4, self.A, self.C, conditions=[self.B])
         j_d = are_d_separated(self.chain4, self.A, self.D, conditions=[self.B])
@@ -251,7 +257,7 @@ class TestSemiGraphoidAxioms(unittest.TestCase):
         """(Y ⊥ Z ∪ Z' | W) => (Y ⊥ Z | W ∪ Z').
 
         Chain A->B->C->D: A ⊥ C | {B} => A ⊥ C | {B, D}.
-        Ref: dag.dfy:273 DSep_WeakUnion
+        Ref: dag.dfy:445 DSep_WeakUnion
         """
         j_base = are_d_separated(self.chain4, self.A, self.C, conditions=[self.B])
         self.assertTrue(j_base.separated)
@@ -262,7 +268,7 @@ class TestSemiGraphoidAxioms(unittest.TestCase):
         """(Y ⊥ Z | W ∪ Z') ∧ (Y ⊥ Z' | W) => (Y ⊥ Z ∪ Z' | W).
 
         Chain A->B->C->D: premises A ⊥ D | {B,C} and A ⊥ C | {B}.
-        Ref: dag.dfy:280 DSep_Contraction
+        Ref: dag.dfy:452 DSep_Contraction
         """
         j1 = are_d_separated(self.chain4, self.A, self.D, conditions=[self.B, self.C])
         j2 = are_d_separated(self.chain4, self.A, self.C, conditions=[self.B])
@@ -280,7 +286,7 @@ class TestLocalMarkov(unittest.TestCase):
 
         Nodes that are both non-descendants and parents are already conditioned
         on, so they are excluded from the d-separation query.
-        Ref: dag.dfy:311 LocalMarkov
+        Ref: dag.dfy:483 LocalMarkov
         """
         A, B, C = Variable("A"), Variable("B"), Variable("C")
         chain = NxMixedGraph.from_edges(directed=[(A, B), (B, C)])
@@ -303,17 +309,13 @@ class TestDoCalculusRules(unittest.TestCase):
 
         Graph: X->M->Y with do(X). G_{X̄} same (X is source).
         (Y ⊥ M | {X}) fails because the path M->Y remains active.
-        Ref: do_calculus.dfy:118 Rule1_InsertDeleteObservation
+        Ref: do_calculus.dfy:137 Rule1_InsertDeleteObservation
         """
         X, M, Y = Variable("X"), Variable("M"), Variable("Y")
         graph = NxMixedGraph.from_edges(directed=[(X, M), (M, Y)])
         self.assertFalse(
             rule_1_of_do_calculus_applies(
-                graph,
-                treatments={X},
-                outcomes={Y},
-                conditions=set(),
-                observation=M,
+                graph, treatments={X}, outcomes={Y}, conditions=set(), observation=M,
             )
         )
 
@@ -323,17 +325,13 @@ class TestDoCalculusRules(unittest.TestCase):
         Graph: X->Y, X->Z. Z and Y share parent X only.
         After removing in-edges of X: X, Y, Z all have no edges.
         Y ⊥ Z | X (conditioning on X, the path Y<-X->Z is blocked).
-        Ref: do_calculus.dfy:118 Rule1_InsertDeleteObservation
+        Ref: do_calculus.dfy:137 Rule1_InsertDeleteObservation
         """
         X, Y, Z = Variable("X"), Variable("Y"), Variable("Z")
         graph = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z)])
         self.assertTrue(
             rule_1_of_do_calculus_applies(
-                graph,
-                treatments={X},
-                outcomes={Y},
-                conditions=set(),
-                observation=Z,
+                graph, treatments={X}, outcomes={Y}, conditions=set(), observation=Z,
             )
         )
 
@@ -341,7 +339,7 @@ class TestDoCalculusRules(unittest.TestCase):
         """Rule 2: action/observation exchange on a chain.
 
         Graph: X->Z->Y. Check condition in G_{X̄, Z̲}.
-        Ref: do_calculus.dfy:132 Rule2_ActionObservationExchange
+        Ref: do_calculus.dfy:151 Rule2_ActionObservationExchange
         """
         X, Z, Y = Variable("X"), Variable("Z"), Variable("Y")
         graph = NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)])
@@ -349,11 +347,7 @@ class TestDoCalculusRules(unittest.TestCase):
         # In G_{X̄, Z̲}: X->Z, Y isolated. (Y ⊥ Z | {X}) holds.
         self.assertTrue(
             rule_2_of_do_calculus_applies(
-                graph,
-                treatments={X},
-                outcomes={Y},
-                conditions={Z},
-                condition=Z,
+                graph, treatments={X}, outcomes={Y}, conditions={Z}, condition=Z,
             )
         )
 
@@ -363,17 +357,13 @@ class TestDoCalculusRules(unittest.TestCase):
         Graph: X->Y, X->Z. Z not ancestor of W={} (empty conditions).
         G_{X̄}: same (X is source). G_{X̄,Z̄}: remove Z's in-edges (X->Z gone).
         In G_{X̄,Z̄}: only X->Y; Y ⊥ Z | X holds.
-        Ref: do_calculus.dfy:149 Rule3_InsertDeleteAction
+        Ref: do_calculus.dfy:168 Rule3_InsertDeleteAction
         """
         X, Y, Z = Variable("X"), Variable("Y"), Variable("Z")
         graph = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z)])
         self.assertTrue(
             rule_3_of_do_calculus_applies(
-                graph,
-                treatments={X},
-                outcomes={Y},
-                conditions=set(),
-                action=Z,
+                graph, treatments={X}, outcomes={Y}, conditions=set(), action=Z,
             )
         )
 
@@ -381,7 +371,7 @@ class TestDoCalculusRules(unittest.TestCase):
         """Z satisfies backdoor when it blocks backdoor paths and is not a descendant of X.
 
         Graph: Z->X->Y, Z->Y.
-        Ref: do_calculus.dfy:189 BackdoorAdjustment
+        Ref: do_calculus.dfy:208 BackdoorAdjustment
         """
         X, Y, Z = Variable("X"), Variable("Y"), Variable("Z")
         graph = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
@@ -391,7 +381,7 @@ class TestDoCalculusRules(unittest.TestCase):
         """Backdoor fails when adjustment set contains a descendant of X.
 
         Graph: X->M->Y. M is a descendant of X.
-        Ref: do_calculus.dfy:189 BackdoorAdjustment
+        Ref: do_calculus.dfy:208 BackdoorAdjustment
         """
         X, M, Y = Variable("X"), Variable("M"), Variable("Y")
         graph = NxMixedGraph.from_edges(directed=[(X, M), (M, Y)])
@@ -401,27 +391,31 @@ class TestDoCalculusRules(unittest.TestCase):
         """M satisfies frontdoor for X->Y with confounding X<->Y.
 
         Graph: X->M->Y, X<->Y (bidirected).
-        Ref: do_calculus.dfy:221 FrontdoorCriterion
+        Ref: do_calculus.dfy:240 FrontdoorCriterion
         """
         X, M, Y = Variable("X"), Variable("M"), Variable("Y")
         graph = NxMixedGraph.from_edges(
             directed=[(X, M), (M, Y)],
             undirected=[(X, Y)],
         )
-        self.assertTrue(satisfies_frontdoor(graph, outcomes={Y}, treatments={X}, mediators={M}))
+        self.assertTrue(
+            satisfies_frontdoor(graph, outcomes={Y}, treatments={X}, mediators={M})
+        )
 
     def test_frontdoor_fails_no_mediator(self):
         """Frontdoor fails with empty mediator set and direct confounding.
 
         Graph: X->Y, X<->Y.
-        Ref: do_calculus.dfy:221 FrontdoorCriterion
+        Ref: do_calculus.dfy:240 FrontdoorCriterion
         """
         X, Y = Variable("X"), Variable("Y")
         graph = NxMixedGraph.from_edges(
             directed=[(X, Y)],
             undirected=[(X, Y)],
         )
-        self.assertFalse(satisfies_frontdoor(graph, outcomes={Y}, treatments={X}, mediators=set()))
+        self.assertFalse(
+            satisfies_frontdoor(graph, outcomes={Y}, treatments={X}, mediators=set())
+        )
 
 
 class TestProbabilityAxioms(unittest.TestCase):
@@ -560,7 +554,9 @@ class TestNumericalKolmogorov(unittest.TestCase):
         """Create a reproducible random PMF over A, B."""
         self.A = Variable("A")
         self.B = Variable("B")
-        self.dist = ConcreteDistribution.from_random([self.A, self.B], n_values=2, seed=42)
+        self.dist = ConcreteDistribution.from_random(
+            [self.A, self.B], n_values=2, seed=42
+        )
 
     def test_nonneg_all_outcomes(self):
         """All event probabilities are non-negative.
@@ -605,7 +601,8 @@ class TestNumericalKolmogorov(unittest.TestCase):
         """
         p_a0 = self.dist.prob_marginal({self.A: 0})
         p_not_a0 = sum(
-            self.dist.prob_marginal({self.A: a}) for a in self.dist.values(self.A) if a != 0
+            self.dist.prob_marginal({self.A: a})
+            for a in self.dist.values(self.A) if a != 0
         )
         self.assertAlmostEqual(p_a0 + p_not_a0, 1.0, places=10)
 
@@ -678,9 +675,7 @@ class TestNumericalKolmogorov(unittest.TestCase):
                     p_a_given_b = self.dist.prob_cond({self.A: a}, given={self.B: b})
                     p_b_given_a = self.dist.prob_cond({self.B: b}, given={self.A: a})
                     self.assertAlmostEqual(
-                        p_a_given_b,
-                        p_b_given_a * p_a / p_b,
-                        places=10,
+                        p_a_given_b, p_b_given_a * p_a / p_b, places=10,
                     )
 
     def test_total_probability_numerical(self):
@@ -746,7 +741,8 @@ class TestNumericalInterventional(unittest.TestCase):
                 p_do = dist.do_graph({X: x}).prob_marginal({Y: y})
                 # RHS: backdoor adjustment formula
                 p_adj = sum(
-                    dist.prob_cond({Y: y}, given={X: x, Z: z}) * dist.prob_marginal({Z: z})
+                    dist.prob_cond({Y: y}, given={X: x, Z: z})
+                    * dist.prob_marginal({Z: z})
                     for z in dist.values(Z)
                     if dist.prob_marginal({X: x, Z: z}) > 0
                 )
@@ -778,7 +774,8 @@ class TestNumericalInterventional(unittest.TestCase):
                 for m in dist.values(M):
                     p_m_given_x = dist.prob_cond({M: m}, given={X: x})
                     inner = sum(
-                        dist.prob_cond({Y: y}, given={X: xp, M: m}) * dist.prob_marginal({X: xp})
+                        dist.prob_cond({Y: y}, given={X: xp, M: m})
+                        * dist.prob_marginal({X: xp})
                         for xp in dist.values(X)
                         if dist.prob_marginal({X: xp, M: m}) > 0
                     )

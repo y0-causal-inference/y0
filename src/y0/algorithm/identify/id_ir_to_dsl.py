@@ -30,7 +30,7 @@ def _to_jsonable(value: object) -> object:
         return [_to_jsonable(item) for item in value]
 
     if hasattr(value, "_asdict"):
-        as_dict = getattr(value, "_asdict")
+        as_dict = value._asdict
         if callable(as_dict):
             return _to_jsonable(as_dict())
 
