@@ -42,12 +42,14 @@ class GraphTestCase(unittest.TestCase):
     def assert_expr_equal(
         self,
         expected: Expression,
-        actual: Expression,
+        actual: Expression | None,
         *,
         check_parts: bool = True,
         ordering: Sequence[Variable] | None = None,
     ) -> None:
         """Assert that two expressions are the same."""
+        if actual is None:
+            raise self.fail()
         if check_parts:
             expected_outcomes, expected_treatments = get_outcomes_and_treatments(query=expected)
             actual_outcomes, actual_treatments = get_outcomes_and_treatments(query=actual)

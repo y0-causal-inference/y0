@@ -461,7 +461,7 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
         #  that triggers this line, then it can be safely removed
         raise RuntimeError
 
-    ordering = list(query.graphs[query.domain].topological_sort())
+    ordering = query.graphs[query.domain].topological_sort()
     ordering_set = set(ordering)
     my_product: Expression = One()
     for node in district:
@@ -496,7 +496,7 @@ def trso_line10(
 
     :returns: A modified TRSOQuery
     """
-    ordering = list(query.graphs[query.domain].topological_sort())
+    ordering = query.graphs[query.domain].topological_sort()
     expressions = []
     for node in district:
         i = ordering.index(node)
