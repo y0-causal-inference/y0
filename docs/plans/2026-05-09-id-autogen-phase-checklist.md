@@ -81,6 +81,44 @@ Execute line 4 next using the same extracted-first workflow:
 1. Line 3 full recursive integration remains deferred due to prior IR-shape
    compatibility risk; keep fallback-safe behavior unless revisited explicitly.
 
+### Remaining Lines Strategy (Updated)
+
+Execution order for the remaining slices:
+
+1. Line 6
+2. Line 7
+3. Line 3 (last)
+
+Rationale:
+
+1. Line 6 is mostly local expression construction and has the lowest expected
+   integration risk.
+2. Line 7 is recursive and order-sensitive but still more controllable than line 3.
+3. Line 3 has known recursive IR compatibility risk and should be handled last,
+   after line 6/7 reduce unknowns.
+
+Per-line execution template (must pass before advancing):
+
+1. Add executable Dafny extraction module.
+2. Add build and smoke scripts.
+3. Add strict support predicate + bridge invocation in generated path.
+4. Add oracle fixture coverage.
+5. Add generated route/fallback parity tests.
+6. Run gates: extracted build/smoke, parity file, broad identification verify.
+
+Risks and mitigations (pre-committed):
+
+1. Risk: route-stealing from overly broad support predicates.
+   - Mitigation: strict preconditions and explicit negative route tests for nearby lines.
+2. Risk: extracted expression shape differs from handwritten though semantically close.
+   - Mitigation: canonical expression equality tests on at least one real end-to-end case per line.
+3. Risk: Dafny translation output directory suffix drift.
+   - Mitigation: wildcard discovery of `id_lineN_extracted-py*` in build scripts.
+4. Risk: recursive line regressions only show up in broader suite.
+   - Mitigation: run broad `identification.dfy` verification gate and parity gate after each line.
+5. Risk: line 3 recursive IR nodes break canonical validator path.
+   - Mitigation: keep narrow line 3 support initially; map canonicalization/shape failures to extracted-unavailable fallback.
+
     - fail -> raise Unidentifiable(F, Fprime)
 
 8. Mapping from ID lines to preferred IR constructors:

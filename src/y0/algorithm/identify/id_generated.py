@@ -13,14 +13,17 @@ from .id_extracted_bridge import (
     ExtractedLine2UnavailableError,
     ExtractedLine4UnavailableError,
     ExtractedLine5UnavailableError,
+    ExtractedLine6UnavailableError,
     identify_line1_from_extracted,
     identify_line2_from_extracted,
     identify_line4_from_extracted,
     identify_line5_from_extracted,
+    identify_line6_from_extracted,
     supports_query_line1,
     supports_query_line2,
     supports_query_line4,
     supports_query_line5,
+    supports_query_line6,
 )
 from .id_std import identify as identify_handwritten
 from .utils import Identification
@@ -60,5 +63,10 @@ def identify_generated(
         try:
             return identify_line5_from_extracted(identification, ordering=ordering)
         except ExtractedLine5UnavailableError:
+            pass
+    if supports_query_line6(identification):
+        try:
+            return identify_line6_from_extracted(identification, ordering=ordering)
+        except ExtractedLine6UnavailableError:
             pass
     return identify_handwritten(identification, ordering=ordering)

@@ -23,14 +23,17 @@ __all__ = [
     "ExtractedLine2UnavailableError",
     "ExtractedLine4UnavailableError",
     "ExtractedLine5UnavailableError",
+    "ExtractedLine6UnavailableError",
     "identify_line1_from_extracted",
     "identify_line2_from_extracted",
     "identify_line4_from_extracted",
     "identify_line5_from_extracted",
+    "identify_line6_from_extracted",
     "supports_query_line1",
     "supports_query_line2",
     "supports_query_line4",
     "supports_query_line5",
+    "supports_query_line6",
 ]
 
 _EXTRACTED_MODULE_NAME = "IDLine1Extracted"
@@ -49,6 +52,10 @@ _EXTRACTED_MODULE_NAME_L5 = "IDLine5Extracted"
 _EXTRACTED_METHOD_NAME_L5 = "IDLine5ToIR"
 _ENV_EXTRACTED_DIR_L5 = "Y0_DAFNY_ID_LINE5_PY_DIR"
 
+_EXTRACTED_MODULE_NAME_L6 = "IDLine6Extracted"
+_EXTRACTED_METHOD_NAME_L6 = "IDLine6ToIR"
+_ENV_EXTRACTED_DIR_L6 = "Y0_DAFNY_ID_LINE6_PY_DIR"
+
 
 class ExtractedLine1UnavailableError(RuntimeError):
     """Raised when extracted Line-1 runtime is unavailable."""
@@ -64,6 +71,10 @@ class ExtractedLine4UnavailableError(RuntimeError):
 
 class ExtractedLine5UnavailableError(RuntimeError):
     """Raised when extracted Line-5 runtime is unavailable."""
+
+
+class ExtractedLine6UnavailableError(RuntimeError):
+    """Raised when extracted Line-6 runtime is unavailable."""
 
 
 def _repo_root() -> Path:
@@ -487,6 +498,124 @@ def identify_line4_from_extracted(
     if not ok:
         raise ExtractedLine4UnavailableError(
             "extracted runtime rejected query (Line 4 does not apply)"
+        )
+
+    doc_json = dafny_ir_doc_to_jsonable(dafny_doc)
+    canonical = canonicalize_and_validate_doc(doc_json)
+    return ir_doc_to_expression(canonical)
+
+
+def _default_extracted_dir_l6() -> Path:
+    return _repo_root() / ".cache" / "y0" / "dafny" / "id_line6_extracted_py"
+
+
+def _resolve_extracted_dir_l6() -> Path:
+    value = os.environ.get(_ENV_EXTRACTED_DIR_L6)
+    return Path(value).expanduser().resolve() if value else _default_extracted_dir_l6()
+
+
+def _load_extracted_module_l6() -> ModuleType:
+    extracted_dir = _resolve_extracted_dir_l6()
+    if not extracted_dir.exists():
+        raise ExtractedLine6UnavailableError(
+            f"extracted line-6 directory not found at {extracted_dir}. "
+            "Run scripts/build_dafny_id_line6_extracted.sh first."
+        )
+    extracted_dir_str = str(extracted_dir)
+    if extracted_dir_str not in sys.path:
+        sys.path.insert(0, extracted_dir_str)
+    try:
+        return importlib.import_module(_EXTRACTED_MODULE_NAME_L6)
+    except Exception as error:  # pragma: no cover - import errors are environment-dependent
+        raise ExtractedLine6UnavailableError("failed to import extracted Dafny module") from error
+
+
+def supports_query_line6(identification: Identification) -> bool:
+    """Return true when query can be handled by extracted Line-6 runtime."""
+    if not identification.treatments or identification.conditions:
+        return False
+
+    graph = identification.graph
+    nodes = set(graph.nodes())
+    if not nodes:
+        return False
+
+    outcomes_and_ancestors = graph.ancestors_inclusive(set(identification.outcomes))
+    if nodes != outcomes_and_ancestors:
+        return False
+
+    if graph.get_no_effect_on_outcomes(identification.treatments, identification.outcomes):
+        return False
+
+    graph_without_treatments = graph.remove_nodes_from(identification.treatments)
+    districts_without_treatment = graph_without_treatments.districts()
+    if len(districts_without_treatment) != 1:
+        return False
+
+    if graph.districts() == {frozenset(nodes)}:
+        return False
+
+    district_without_treatment = next(iter(districts_without_treatment))
+    return district_without_treatment in graph.districts()
+
+
+def identify_line6_from_extracted(
+    identification: Identification,
+    *,
+    ordering: Sequence[Variable] | None = None,
+) -> Expression:
+    """Run extracted Dafny Line-6 runtime and translate its IR into a y0 expression."""
+    if not supports_query_line6(identification):
+        raise ExtractedLine6UnavailableError("query is not a supported Line-6 form")
+
+    module = _load_extracted_module_l6()
+    runner = getattr(module, "default__", None)
+    method = getattr(runner, _EXTRACTED_METHOD_NAME_L6, None)
+    if method is None:
+        raise ExtractedLine6UnavailableError(
+            f"extracted module does not provide {_EXTRACTED_METHOD_NAME_L6}"
+        )
+
+    try:
+        dafny_runtime = importlib.import_module("_dafny")
+    except Exception as error:  # pragma: no cover - environment-dependent import
+        raise ExtractedLine6UnavailableError(
+            "missing extracted Dafny runtime package _dafny"
+        ) from error
+
+    order = (
+        tuple(ordering) if ordering is not None else tuple(identification.graph.topological_sort())
+    )
+    order_names = [variable.name for variable in order]
+    outcomes = {variable.name for variable in identification.outcomes}
+    treatments = {variable.name for variable in identification.treatments}
+
+    seq_ctor = getattr(dafny_runtime, "SeqWithoutIsStrInference", None)
+    set_ctor = getattr(dafny_runtime, "Set", None)
+    if seq_ctor is None or set_ctor is None:
+        raise ExtractedLine6UnavailableError("_dafny sequence/set constructors unavailable")
+
+    edge_class = getattr(module, "Edge_Edge", None)
+    if edge_class is None:
+        raise ExtractedLine6UnavailableError("Edge class not found in extracted module")
+
+    undirected_edges: list[Any] = []
+    for src, tgt in identification.graph.undirected.edges():
+        undirected_edges.append(edge_class(src.name, tgt.name))
+
+    all_nodes = [variable.name for variable in identification.graph.nodes()]
+
+    ok, dafny_doc = method(
+        "runtime_line6",
+        seq_ctor(undirected_edges),
+        seq_ctor(all_nodes),
+        set_ctor(outcomes),
+        set_ctor(treatments),
+        seq_ctor(order_names),
+    )
+    if not ok:
+        raise ExtractedLine6UnavailableError(
+            "extracted runtime rejected query (Line 6 does not apply)"
         )
 
     doc_json = dafny_ir_doc_to_jsonable(dafny_doc)

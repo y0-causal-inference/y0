@@ -6,7 +6,8 @@
       "src/dafny/id_line1_extracted.dfy",
       "src/dafny/id_line2_extracted.dfy",
       "src/dafny/id_line4_extracted.dfy",
-      "src/dafny/id_line5_extracted.dfy"
+      "src/dafny/id_line5_extracted.dfy",
+      "src/dafny/id_line6_extracted.dfy"
     ]
   },
   "cases": [
@@ -428,6 +429,81 @@
                     ],
                     "intervened": []
                   }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line6.extracted.single_district_formula",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine6ToIR",
+        "line": 118
+      },
+      "query": {
+        "graph_id": "line6_single_district",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Z",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "6",
+          "engine": "id",
+          "query": {
+            "graph_id": "line6_single_district",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Z",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "sum",
+            "over": [
+              "Z"
+            ],
+            "body": {
+              "tag": "product",
+              "factors": [
+                {
+                  "tag": "prob",
+                  "vars": [
+                    "Z"
+                  ],
+                  "given": [
+                    "X"
+                  ],
+                  "intervened": []
+                },
+                {
+                  "tag": "prob",
+                  "vars": [
+                    "Y"
+                  ],
+                  "given": [
+                    "X",
+                    "Z"
+                  ],
+                  "intervened": []
                 }
               ]
             }
