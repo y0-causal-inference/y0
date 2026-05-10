@@ -4,7 +4,8 @@
     "dafny_files": [
       "src/dafny/identification.dfy",
       "src/dafny/id_line1_extracted.dfy",
-      "src/dafny/id_line2_extracted.dfy"
+      "src/dafny/id_line2_extracted.dfy",
+      "src/dafny/id_line5_extracted.dfy"
     ]
   },
   "cases": [
@@ -282,6 +283,58 @@
             ],
             "reduced_treatments": [
               "X"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line5.extracted.bowarc.hedge",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine5ToIR",
+        "line": 114
+      },
+      "query": {
+        "graph_id": "line5_bowarc",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "5",
+          "engine": "id",
+          "query": {
+            "graph_id": "line5_bowarc",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "fail",
+            "kind": "hedge",
+            "F_nodes": [
+              "X",
+              "Y"
+            ],
+            "Fprime_nodes": [
+              "Y"
             ]
           }
         }
