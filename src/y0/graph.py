@@ -639,7 +639,7 @@ class NxMixedGraph:
 
     def is_acyclic(self) -> bool:
         """Return True if the directed component is acyclic. Ref: dag.dfy IsDAG."""
-        return nx.is_directed_acyclic_graph(self.directed)
+        return cast(bool, nx.is_directed_acyclic_graph(self.directed))
 
     def get_c_components(self) -> list[frozenset[Variable]]:
         """Get the co-components (i.e., districts) in the undirected portion of the graph."""

@@ -33,8 +33,8 @@ class ConcreteDistribution:
         df: pd.DataFrame,
         variables: list[Variable],
         *,
-        _cpds: dict | None = None,
-        _parents: dict | None = None,
+        _cpds: dict[Variable, dict[tuple[int, ...], np.ndarray]] | None = None,
+        _parents: dict[Variable, list[Variable]] | None = None,
     ) -> None:
         """Initialize with a DataFrame of outcomes and probabilities."""
         self._df = df

@@ -33,7 +33,9 @@ def _as_mapping(payload: Any, *, where: str) -> Any:
     return payload
 
 
-def _as_string_list(values: Any, *, where: str, sort: bool = True, unique: bool = True) -> list[str]:
+def _as_string_list(
+    values: Any, *, where: str, sort: bool = True, unique: bool = True
+) -> list[str]:
     if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
         _fail(f"{where} must be a list of strings")
     result: list[str] = []
@@ -82,7 +84,6 @@ def _node_sort_key(node: Mapping[str, Any]) -> tuple[str, str]:
 def _is_structural_zero(node: Mapping[str, Any]) -> bool:
     # The v1 ID IR does not model an explicit zero node.
     return False
-
 
 
 def _canonicalize_fail_node(node: Mapping[str, Any], allow_fail: bool) -> dict[str, Any]:
@@ -146,10 +147,7 @@ def _canonicalize_product_node(node: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(factors_raw, Sequence) or isinstance(factors_raw, (str, bytes)):
         _fail("product.factors must be a list")
         return {"tag": "product", "factors": []}  # for mypy
-    factors = [
-        _canonicalize_node(factor, allow_fail=False)
-        for factor in factors_raw
-    ]
+    factors = [_canonicalize_node(factor, allow_fail=False) for factor in factors_raw]
     if not factors:
         _fail("product.factors must contain at least one factor")
         return {"tag": "product", "factors": []}  # for mypy

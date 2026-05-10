@@ -42,12 +42,14 @@ def test_valid_ir_cases_round_trip() -> None:
     """Seed fixtures should validate and round-trip deterministically."""
     payload = json.loads(_fixture_path().read_text())
     cases = payload["cases"]
-    assert cases
+    if not cases:
+        pytest.fail("expected non-empty IR fixture cases")
 
     canonical_docs = [canonicalize_ir_document(case) for case in cases]
 
     reparsed = [json.loads(json.dumps(doc, sort_keys=True)) for doc in canonical_docs]
-    assert reparsed == canonical_docs
+    if reparsed != canonical_docs:
+        pytest.fail("canonical IR documents did not round-trip deterministically")
 
 
 def test_canonical_ordering_stable() -> None:
@@ -83,6 +85,9 @@ def test_canonical_ordering_stable() -> None:
     reversed_doc["result"]["body"]["body"]["factors"].reverse()
     canonical_reversed = canonicalize_ir_document(reversed_doc)
 
-    assert canonical["result"]["tag"] == "sum"
-    assert canonical["result"]["over"] == ["W", "Z"]
-    assert canonical_reversed == canonical
+    if canonical["result"]["tag"] != "sum":
+        pytest.fail("expected canonical result tag to be 'sum'")
+    if canonical["result"]["over"] != ["W", "Z"]:
+        pytest.fail("expected merged sum ordering to be ['W', 'Z']")
+    if canonical_reversed != canonical:
+        pytest.fail("expected canonicalization to be stable under factor order changes")
