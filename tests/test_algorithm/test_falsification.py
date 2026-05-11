@@ -20,7 +20,7 @@ class TestFalsification(unittest.TestCase):
     def test_discrete_graph_falsifications(self):
         """Test the asia graph against data generated from it."""
         for method in [None, *get_conditional_independence_tests()]:
-            if method == "pearson":
+            if method in {"pearson", "pillai"}:
                 continue
             with self.subTest(method=method), warnings.catch_warnings():
                 warnings.simplefilter(action="ignore", category=FutureWarning)

@@ -27,12 +27,12 @@ def _fixture_path() -> Path:
 
 
 def test_fixture_loads() -> None:
-    """Fixture file should deserialize and contain exactly three seed cases."""
+    """Fixture file should deserialize and contain at least the original seed set."""
     fixture = load_fixture(_fixture_path())
     if fixture["schema_version"] != 1:
         pytest.fail("expected schema_version=1")
-    if len(fixture["cases"]) != 3:
-        pytest.fail("expected exactly three seed cases")
+    if len(fixture["cases"]) < 3:
+        pytest.fail("expected at least three seed cases")
 
 
 def test_case_iteration_order_stable() -> None:

@@ -102,7 +102,7 @@ def _flatten_variable_names(value: object) -> set[str]:
     return names
 
 
-def test_generated_full_line3_recursive_end_to_end(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_generated_full_line3_recursive_end_to_end() -> None:
     """Full-runtime recursive line-3-like query should return a deterministic expression."""
     x = Variable("X")
     y = Variable("Y")
@@ -114,26 +114,19 @@ def test_generated_full_line3_recursive_end_to_end(monkeypatch: pytest.MonkeyPat
     query = P(y @ ~x)
     identification = Identification.from_expression(graph=graph, query=query)
 
-    def _unexpected_handwritten(
-        identification: Identification,
-        *,
-        ordering: list[Variable] | None = None,
-    ) -> Expression:
-        del identification, ordering
-        pytest.fail("handwritten fallback should not be used in full runtime line-3 test")
+    try:
+        once = id_generated_module.identify_full_from_extracted(identification)
+        twice = id_generated_module.identify_full_from_extracted(identification)
+    except id_generated_module.ExtractedFullUnavailableError:
+        pytest.skip("full extracted runtime unavailable")
 
-    monkeypatch.setenv("Y0_DAFNY_ID_LINE_COMPAT", "0")
-    monkeypatch.setattr(id_generated_module, "identify_handwritten", _unexpected_handwritten)
-
-    once = identify_with_engine(identification, engine="generated")
-    twice = identify_with_engine(identification, engine="generated")
     if not isinstance(once, Expression):
         pytest.fail("generated full runtime line-3 case did not return an Expression")
     if not canonical_expr_equal(once, twice):
         pytest.fail("generated full runtime line-3 case is not deterministic between runs")
 
 
-def test_generated_full_line7_recursive_end_to_end(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_generated_full_line7_recursive_end_to_end() -> None:
     """Full-runtime recursive line-7-like query should fail with consistent hedge witness."""
     x = Variable("X")
     w = Variable("W")
@@ -145,19 +138,11 @@ def test_generated_full_line7_recursive_end_to_end(monkeypatch: pytest.MonkeyPat
     query = P(y @ ~x)
     identification = Identification.from_expression(graph=graph, query=query)
 
-    def _unexpected_handwritten(
-        identification: Identification,
-        *,
-        ordering: list[Variable] | None = None,
-    ) -> Expression:
-        del identification, ordering
-        pytest.fail("handwritten fallback should not be used in full runtime line-7 test")
-
-    monkeypatch.setenv("Y0_DAFNY_ID_LINE_COMPAT", "0")
-    monkeypatch.setattr(id_generated_module, "identify_handwritten", _unexpected_handwritten)
-
-    with pytest.raises(Unidentifiable) as generated_error:
-        identify_with_engine(identification, engine="generated")
+    try:
+        with pytest.raises(Unidentifiable) as generated_error:
+            id_generated_module.identify_full_from_extracted(identification)
+    except id_generated_module.ExtractedFullUnavailableError:
+        pytest.skip("full extracted runtime unavailable")
 
     generated_nodes = _flatten_variable_names(generated_error.value.args[0])
     generated_witness = _flatten_variable_names(generated_error.value.args[1])

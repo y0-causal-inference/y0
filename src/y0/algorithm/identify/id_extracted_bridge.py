@@ -161,7 +161,9 @@ def _load_extracted_module_full() -> ModuleType:
     try:
         return importlib.import_module(_EXTRACTED_MODULE_NAME_FULL)
     except Exception as error:  # pragma: no cover - import errors are environment-dependent
-        raise ExtractedFullUnavailableError("failed to import extracted full Dafny module") from error
+        raise ExtractedFullUnavailableError(
+            "failed to import extracted full Dafny module"
+        ) from error
 
 
 def identify_full_from_extracted(
@@ -171,7 +173,9 @@ def identify_full_from_extracted(
 ) -> Expression:
     """Run consolidated extracted Dafny runtime and translate IR into a y0 expression."""
     if identification.conditions:
-        raise ExtractedFullUnavailableError("query conditions are not supported by full extracted runtime")
+        raise ExtractedFullUnavailableError(
+            "query conditions are not supported by full extracted runtime"
+        )
 
     module = _load_extracted_module_full()
     runner = getattr(module, "default__", None)
@@ -184,7 +188,9 @@ def identify_full_from_extracted(
     try:
         dafny_runtime = importlib.import_module("_dafny")
     except Exception as error:  # pragma: no cover - environment-dependent import
-        raise ExtractedFullUnavailableError("missing extracted Dafny runtime package _dafny") from error
+        raise ExtractedFullUnavailableError(
+            "missing extracted Dafny runtime package _dafny"
+        ) from error
 
     order = (
         tuple(ordering) if ordering is not None else tuple(identification.graph.topological_sort())

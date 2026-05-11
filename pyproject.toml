@@ -258,6 +258,13 @@ ignore = [
 "scripts/generate_dafny_conformance_tests.py" = ["RUF001", "C901", "T201"]
 # Utility script is intentionally CLI-oriented and uses user-facing prints
 "notebooks/convert_pdfs_to_png.py" = ["T201"]
+# Extracted runtime smoke scripts are intentionally CLI-style and generated-shape aware
+"scripts/check_dafny_id_*_extracted_runtime.py" = ["D205", "N812", "T201"]
+"scripts/check_dafny_id_full_runtime.py" = ["C901", "D103"]
+"scripts/run_ruff_on_tracked.py" = ["D103", "S603", "S607", "T201"]
+# Transitional generated routing and route-order tests are intentionally branch-heavy
+"src/y0/algorithm/identify/id_generated.py" = ["C901"]
+"tests/test_algorithm/test_id_generated_parity.py" = ["C901"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

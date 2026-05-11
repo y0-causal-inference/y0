@@ -40,9 +40,9 @@ specifications, generated conformance tests, and regression parity checks.
 ### What Has Been Accomplished
 
 1. Extracted runtime slices integrated for ID line 1, line 2, and line 5.
-2. Generated engine dispatch now routes through extracted line handlers in order,
-   with conservative fallback to handwritten logic when a slice is unavailable or
-   not applicable.
+2. Generated engine dispatch now routes through extracted line handlers in
+   order, with conservative fallback to handwritten logic when a slice is
+   unavailable or not applicable.
 3. Oracle fixtures and parity tests were extended to cover extracted line 5
    hedge behavior.
 4. Line 5 work was checkpointed in commit `e443aea`.
@@ -58,9 +58,9 @@ specifications, generated conformance tests, and regression parity checks.
 4. `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
    - Passed: 575 verified, 0 errors.
 
-Note: `--log-format:text` intermittently failed to return terminal output in this
-environment; redirecting verification output to a file and checking exit code is
-the reliable gate.
+Note: `--log-format:text` intermittently failed to return terminal output in
+this environment; redirecting verification output to a file and checking exit
+code is the reliable gate.
 
 ### Current Direction (Next Slice)
 
@@ -73,8 +73,8 @@ Execute line 4 next using the same extracted-first workflow:
    routing.
 4. Add/update oracle fixture cases for extracted line 4.
 5. Extend generated parity tests for line 4 route preference and fallback.
-6. Re-run quality gates (line 4 build/smoke + generated parity +
-   identification verification).
+6. Re-run quality gates (line 4 build/smoke + generated parity + identification
+   verification).
 
 ### Deferred/Out-of-Scope For This Step
 
@@ -93,7 +93,8 @@ Rationale:
 
 1. Line 6 is mostly local expression construction and has the lowest expected
    integration risk.
-2. Line 7 is recursive and order-sensitive but still more controllable than line 3.
+2. Line 7 is recursive and order-sensitive but still more controllable than
+   line 3.
 3. Line 3 has known recursive IR compatibility risk and should be handled last,
    after line 6/7 reduce unknowns.
 
@@ -109,15 +110,21 @@ Per-line execution template (must pass before advancing):
 Risks and mitigations (pre-committed):
 
 1. Risk: route-stealing from overly broad support predicates.
-   - Mitigation: strict preconditions and explicit negative route tests for nearby lines.
-2. Risk: extracted expression shape differs from handwritten though semantically close.
-   - Mitigation: canonical expression equality tests on at least one real end-to-end case per line.
+   - Mitigation: strict preconditions and explicit negative route tests for
+     nearby lines.
+2. Risk: extracted expression shape differs from handwritten though semantically
+   close.
+   - Mitigation: canonical expression equality tests on at least one real
+     end-to-end case per line.
 3. Risk: Dafny translation output directory suffix drift.
-   - Mitigation: wildcard discovery of `id_lineN_extracted-py*` in build scripts.
+   - Mitigation: wildcard discovery of `id_lineN_extracted-py*` in build
+     scripts.
 4. Risk: recursive line regressions only show up in broader suite.
-   - Mitigation: run broad `identification.dfy` verification gate and parity gate after each line.
+   - Mitigation: run broad `identification.dfy` verification gate and parity
+     gate after each line.
 5. Risk: line 3 recursive IR nodes break canonical validator path.
-   - Mitigation: keep narrow line 3 support initially; map canonicalization/shape failures to extracted-unavailable fallback.
+   - Mitigation: keep narrow line 3 support initially; map
+     canonicalization/shape failures to extracted-unavailable fallback.
 
 ### Workflow: Visualize Existing Extracted Scaffolding and Insertion Points
 
@@ -138,19 +145,21 @@ rg -n "ExtractedLine[0-9]+UnavailableError|_EXTRACTED_MODULE_NAME_L[0-9]+|_EXTRA
 ```
 
 Expected output pattern per line N:
+
 1. constants: module/method/env names
 2. unavailable exception type
 3. loader resolver and module import helper
 4. supports_query_lineN predicate
 5. identify_lineN_from_extracted bridge function
 
-3. Visualize generated dispatcher route order (and insertion location).
+6. Visualize generated dispatcher route order (and insertion location).
 
 ```bash
 rg -n "supports_query_line|identify_line[0-9]+_from_extracted|ExtractedLine[0-9]+UnavailableError|identify_handwritten" src/y0/algorithm/identify/id_generated.py
 ```
 
 Insertion rule:
+
 1. add imports for the new line support and extracted function
 2. add one if/try/except block in strict numeric route order
 3. keep handwritten fallback as terminal path
@@ -162,10 +171,11 @@ rg -n "line[0-9]|supports_line|extracted_line|routing calls|fallback" tests/test
 ```
 
 For each new line N, add two tests:
+
 1. prefers extracted path when supports_query_lineN is true
 2. falls back cleanly when supports_query_lineN is false
 
-5. Visualize oracle linkage and source registration.
+3. Visualize oracle linkage and source registration.
 
 ```bash
 rg -n "dafny_files|id\.line[0-9]|anchor|expectation" tests/data/generated/dafny_oracle/id_cases.v1.json
@@ -187,11 +197,12 @@ flowchart LR
 7. Use this insertion checklist for a new line slice.
 
 1. Add extracted Dafny module and line-specific build/smoke scripts.
-2. Add bridge constants, loader, support predicate, and extracted call wrapper.
-3. Add generated dispatcher import and route block at correct order position.
-4. Add parity route/fallback tests and expected call-order assertions.
-5. Register source linkage in oracle metadata.
-6. Run gates: line build, line smoke, parity test file, broad identification verify.
+1. Add bridge constants, loader, support predicate, and extracted call wrapper.
+1. Add generated dispatcher import and route block at correct order position.
+1. Add parity route/fallback tests and expected call-order assertions.
+1. Register source linkage in oracle metadata.
+1. Run gates: line build, line smoke, parity test file, broad identification
+   verify.
 
 ### Concrete Migration Plan: Single-File Full ID Runtime
 
@@ -204,8 +215,10 @@ keeping rollback simple.
 Commit-ready tasks:
 
 - [x] Record baseline commit and keep per-line path as fallback default.
-- [x] Capture baseline gate outputs (parity file, broad Dafny verify, line smokes).
-- [x] Add a migration tracking note with known risk points (line 3 and line 7 recursion).
+- [x] Capture baseline gate outputs (parity file, broad Dafny verify, line
+      smokes).
+- [x] Add a migration tracking note with known risk points (line 3 and line 7
+      recursion).
 
 Acceptance criteria:
 
@@ -216,42 +229,49 @@ Acceptance criteria:
 Phase 0 checkpoint (2026-05-11):
 
 1. Baseline git checkpoint:
-    - branch: `397-dafny-specification-for-do-calculus`
-    - baseline commit: `d6e176339e5947367e484050f0100c3dc98b5e33`
-    - generated engine route remains line-first fallback-safe in
-       `src/y0/algorithm/identify/id_generated.py` (line order 1->2->3->4->5->6->7, then handwritten fallback).
+   - branch: `397-dafny-specification-for-do-calculus`
+   - baseline commit: `d6e176339e5947367e484050f0100c3dc98b5e33`
+   - generated engine route remains line-first fallback-safe in
+     `src/y0/algorithm/identify/id_generated.py` (line order
+     1->2->3->4->5->6->7, then handwritten fallback).
 
 2. Baseline gates (fresh run on 2026-05-11):
-    - `pytest tests/test_algorithm/test_id_generated_parity.py -q`
-       - result: `17 passed`
-    - line smoke scripts:
-       - `python scripts/check_dafny_id_extracted_runtime.py` -> PASS
-       - `python scripts/check_dafny_id_line2_extracted_runtime.py` -> PASS
-       - `python scripts/check_dafny_id_line3_extracted_runtime.py` -> PASS
-       - `python scripts/check_dafny_id_line4_extracted_runtime.py` -> PASS
-       - `python scripts/check_dafny_id_line5_extracted_runtime.py` -> PASS
-       - `python scripts/check_dafny_id_line6_extracted_runtime.py` -> PASS
-       - `python scripts/check_dafny_id_line7_extracted_runtime.py` -> PASS
-    - `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
-       - result: `Dafny program verifier finished with 575 verified, 0 errors`
+   - `pytest tests/test_algorithm/test_id_generated_parity.py -q`
+     - result: `17 passed`
+   - line smoke scripts:
+     - `python scripts/check_dafny_id_extracted_runtime.py` -> PASS
+     - `python scripts/check_dafny_id_line2_extracted_runtime.py` -> PASS
+     - `python scripts/check_dafny_id_line3_extracted_runtime.py` -> PASS
+     - `python scripts/check_dafny_id_line4_extracted_runtime.py` -> PASS
+     - `python scripts/check_dafny_id_line5_extracted_runtime.py` -> PASS
+     - `python scripts/check_dafny_id_line6_extracted_runtime.py` -> PASS
+     - `python scripts/check_dafny_id_line7_extracted_runtime.py` -> PASS
+   - `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
+     - result: `Dafny program verifier finished with 575 verified, 0 errors`
 
 3. Migration risk tracking note (active through Phases 1-5):
-    - Line 3 recursion risk: expanded-treatment transform can alter recursion shape/order and may trigger canonicalization/route-stealing drift.
-    - Line 7 recursion risk: district-subproblem reduction is order-sensitive and can regress determinism if set-to-sequence ordering changes.
-    - Mitigation gate for both risks: preserve parity file green plus broad `identification.dfy` verification at each phase boundary.
+   - Line 3 recursion risk: expanded-treatment transform can alter recursion
+     shape/order and may trigger canonicalization/route-stealing drift.
+   - Line 7 recursion risk: district-subproblem reduction is order-sensitive and
+     can regress determinism if set-to-sequence ordering changes.
+   - Mitigation gate for both risks: preserve parity file green plus broad
+     `identification.dfy` verification at each phase boundary.
 
 #### Phase 1: Add Single Executable Dafny Entrypoint
 
 Commit-ready tasks:
 
-- [x] Add one public executable method in `src/dafny/identification.dfy` for full-ID IR output.
-- [x] Keep IR document schema in the same file aligned with Python canonical validator.
+- [x] Add one public executable method in `src/dafny/identification.dfy` for
+      full-ID IR output.
+- [x] Keep IR document schema in the same file aligned with Python canonical
+      validator.
 - [x] Implement deterministic helpers for all set-to-sequence emission paths.
 - [x] Ensure line 5 fail/hedge remains root-level fail output shape.
 
 Acceptance criteria:
 
-1. `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch` passes.
+1. `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
+   passes.
 2. New method can be translated to Python without parse/type errors.
 3. Emitted IR validates through canonicalization without schema changes.
 
@@ -267,27 +287,35 @@ Phase 1 status checkpoint (2026-05-11):
    - verify gate: PASS
      - `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
      - `Dafny program verifier finished with 656 verified, 0 errors`
-   - translate gate for full file: currently BLOCKED by pre-existing non-compilable declarations in imported modules, not by the new method surface:
-     - `src/dafny/probability.dfy`: abstract type `Probability.Outcome` cannot be compiled
+   - translate gate for full file: currently BLOCKED by pre-existing
+     non-compilable declarations in imported modules, not by the new method
+     surface:
+     - `src/dafny/probability.dfy`: abstract type `Probability.Outcome` cannot
+       be compiled
      - `src/dafny/do_calculus.dfy`: `IntProb` has no body and cannot be compiled
 
 3. Decision:
    - keep Phase 1 executable surface in place;
-   - proceed to Phase 2/3 with the existing extracted-module translation path while planning an extraction-only boundary for full-runtime codegen.
+   - proceed to Phase 2/3 with the existing extracted-module translation path
+     while planning an extraction-only boundary for full-runtime codegen.
 
 #### Phase 2: Internalize Lines 1-7 Under One Dispatcher
 
 Commit-ready tasks:
 
-- [ ] Consolidate line-specific executable logic as internal methods in `src/dafny/identification.dfy`.
+- [ ] Consolidate line-specific executable logic as internal methods in
+      `src/dafny/identification.dfy`.
 - [ ] Replace external transform handoffs with internal recursion where valid.
-- [ ] Keep explicit route order checks matching handwritten line order: 1, 2, 3, 4, 5, 6, 7.
+- [ ] Keep explicit route order checks matching handwritten line order: 1, 2, 3,
+      4, 5, 6, 7.
 - [ ] Maintain deterministic ordering contracts for all recursive branches.
 
 Acceptance criteria:
 
-1. Full-entrypoint output matches per-line path on representative cases for lines 1-7.
-2. Recursive branches (line 3 and line 7) produce stable outputs across repeated runs.
+1. Full-entrypoint output matches per-line path on representative cases for
+   lines 1-7.
+2. Recursive branches (line 3 and line 7) produce stable outputs across repeated
+   runs.
 3. Hedge failures remain classifiable with expected witness fields.
 
 #### Phase 3: Replace Build/Smoke Tooling with Full Runtime Scripts
@@ -297,79 +325,96 @@ Commit-ready tasks:
 - [x] Add `scripts/build_dafny_id_full_extracted.sh`.
 - [x] Add `scripts/check_dafny_id_full_runtime.py`.
 - [x] Keep old line-specific scripts for one transition window.
-- [x] Add smoke cases for identifiable path, line-3-like recursive path, line-7-like recursive path, and hedge fail path.
+- [x] Add smoke cases for identifiable path, line-3-like recursive path,
+      line-7-like recursive path, and hedge fail path.
 
 Acceptance criteria:
 
-1. New full build script verifies and translates from `src/dafny/identification.dfy` only.
+1. New full build script verifies and translates from
+   `src/dafny/identification.dfy` only.
 2. New full smoke script exits zero and prints deterministic payloads.
 3. Existing line scripts remain runnable as rollback path.
 
 Phase 3 status checkpoint (2026-05-11):
 
 1. Added artifacts:
-    - `src/dafny/id_full_extracted.dfy` (standalone extraction boundary)
-    - `scripts/build_dafny_id_full_extracted.sh`
-    - `scripts/check_dafny_id_full_runtime.py`
+   - `src/dafny/id_full_extracted.dfy` (standalone extraction boundary)
+   - `scripts/build_dafny_id_full_extracted.sh`
+   - `scripts/check_dafny_id_full_runtime.py`
 
 2. Gate results:
-    - `bash scripts/build_dafny_id_full_extracted.sh` -> PASS
-       - verify: `Dafny program verifier finished with 10 verified, 0 errors`
-       - translate: PASS for extracted module
-    - `python scripts/check_dafny_id_full_runtime.py` -> PASS
-       - includes smoke payloads for: identifiable, line3-recursive-like, line7-recursive-like, hedge-fail
-    - `pytest tests/test_algorithm/test_id_generated_parity.py -q` -> PASS (`17 passed`)
-    - `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch` -> PASS (`656 verified, 0 errors`)
+   - `bash scripts/build_dafny_id_full_extracted.sh` -> PASS
+     - verify: `Dafny program verifier finished with 10 verified, 0 errors`
+     - translate: PASS for extracted module
+   - `python scripts/check_dafny_id_full_runtime.py` -> PASS
+     - includes smoke payloads for: identifiable, line3-recursive-like,
+       line7-recursive-like, hedge-fail
+   - `pytest tests/test_algorithm/test_id_generated_parity.py -q` -> PASS
+     (`17 passed`)
+   - `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
+     -> PASS (`656 verified, 0 errors`)
 
 3. Note on acceptance criterion (1):
-    - By mitigation decision, the full runtime build script currently targets
-       `src/dafny/id_full_extracted.dfy` instead of `src/dafny/identification.dfy`
-       because imported abstract declarations in other modules still block direct translation of `identification.dfy`.
-    - This preserves Phase 3 momentum while keeping theorem-heavy files untouched.
+   - By mitigation decision, the full runtime build script currently targets
+     `src/dafny/id_full_extracted.dfy` instead of `src/dafny/identification.dfy`
+     because imported abstract declarations in other modules still block direct
+     translation of `identification.dfy`.
+   - This preserves Phase 3 momentum while keeping theorem-heavy files
+     untouched.
 
 #### Phase 4: Bridge and Dispatcher Cutover (Safe Fallback)
 
 Commit-ready tasks:
 
-- [x] Add one full-runtime bridge function in `src/y0/algorithm/identify/id_extracted_bridge.py`.
+- [x] Add one full-runtime bridge function in
+      `src/y0/algorithm/identify/id_extracted_bridge.py`.
 - [x] Add full-runtime availability error type and loader.
-- [x] Update `src/y0/algorithm/identify/id_generated.py` to try full runtime first, then fallback to handwritten.
-- [x] Keep line-specific route code behind a temporary compatibility flag until parity confidence is met.
+- [x] Update `src/y0/algorithm/identify/id_generated.py` to try full runtime
+      first, then fallback to handwritten.
+- [x] Keep line-specific route code behind a temporary compatibility flag until
+      parity confidence is met.
 
 Acceptance criteria:
 
-1. Generated engine result is canonically equal to handwritten on baseline parity suite.
+1. Generated engine result is canonically equal to handwritten on baseline
+   parity suite.
 2. If full runtime is unavailable, fallback path is unchanged and green.
 3. No route-order regressions in existing route/fallback tests.
 
 Phase 4 status checkpoint (2026-05-11):
 
 1. Implemented:
-    - `src/y0/algorithm/identify/id_extracted_bridge.py`
-       - added `ExtractedFullUnavailableError`
-       - added full-runtime loader (`id_full_extracted_py`)
-       - added `identify_full_from_extracted(...)`
-    - `src/y0/algorithm/identify/id_generated.py`
-       - full-runtime attempted first
-       - compatibility line-routing kept behind env flag `Y0_DAFNY_ID_LINE_COMPAT`
-       - handwritten fallback unchanged
-    - `tests/test_algorithm/test_id_generated_parity.py`
-       - added full-runtime preference/fallback tests
-       - retained legacy line-route tests via default full-runtime disable fixture
+   - `src/y0/algorithm/identify/id_extracted_bridge.py`
+     - added `ExtractedFullUnavailableError`
+     - added full-runtime loader (`id_full_extracted_py`)
+     - added `identify_full_from_extracted(...)`
+   - `src/y0/algorithm/identify/id_generated.py`
+     - full-runtime attempted first
+     - compatibility line-routing kept behind env flag `Y0_DAFNY_ID_LINE_COMPAT`
+     - handwritten fallback unchanged
+   - `tests/test_algorithm/test_id_generated_parity.py`
+     - added full-runtime preference/fallback tests
+     - retained legacy line-route tests via default full-runtime disable fixture
 
 2. Gate results:
-    - `pytest tests/test_algorithm/test_id_generated_parity.py -q` -> PASS (`20 passed`)
-    - `python scripts/check_dafny_id_full_runtime.py` -> PASS
-    - `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch` -> PASS (`656 verified, 0 errors`)
+   - `pytest tests/test_algorithm/test_id_generated_parity.py -q` -> PASS
+     (`20 passed`)
+   - `python scripts/check_dafny_id_full_runtime.py` -> PASS
+   - `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
+     -> PASS (`656 verified, 0 errors`)
 
 #### Phase 5: Test/Oracle Migration and Parity Lock
 
 Commit-ready tasks:
 
-- [x] Add full-runtime route/fallback tests in `tests/test_algorithm/test_id_generated_parity.py`.
-- [x] Extend `tests/data/generated/dafny_oracle/id_cases.v1.json` with full-runtime source anchors.
-- [x] Keep line-specific parity tests until full-runtime path is stable for one full cycle.
-- [x] Add one real end-to-end case each for line 3 and line 7 recursion-sensitive behavior.
+- [x] Add full-runtime route/fallback tests in
+      `tests/test_algorithm/test_id_generated_parity.py`.
+- [x] Extend `tests/data/generated/dafny_oracle/id_cases.v1.json` with
+      full-runtime source anchors.
+- [x] Keep line-specific parity tests until full-runtime path is stable for one
+      full cycle.
+- [x] Add one real end-to-end case each for line 3 and line 7
+      recursion-sensitive behavior.
 
 Acceptance criteria:
 
@@ -380,24 +425,30 @@ Acceptance criteria:
 Phase 5 status checkpoint (2026-05-11):
 
 1. Implemented:
-    - `tests/test_algorithm/test_id_generated_parity.py`
-       - added real full-runtime recursive end-to-end tests:
-         - line-3-like deterministic expression case
-         - line-7-like hedge-fail classification case
-       - line-specific parity route/fallback tests remain intact for transition coverage.
-    - `tests/data/generated/dafny_oracle/id_cases.v1.json`
-       - added full-runtime source anchor file: `src/dafny/id_full_extracted.dfy`
-       - added full-runtime recursive oracle anchors:
-         - `id.full.line3.recursive_like`
-         - `id.full.line7.recursive_like`
-    - `tests/test_dafny_id_correspondence.py`
-       - added full-runtime oracle case coverage for line-3 and line-7 recursive-like fixtures.
+   - `tests/test_algorithm/test_id_generated_parity.py`
+     - added real full-runtime recursive end-to-end tests:
+       - line-3-like deterministic expression case
+       - line-7-like hedge-fail classification case
+     - line-specific parity route/fallback tests remain intact for transition
+       coverage.
+   - `tests/data/generated/dafny_oracle/id_cases.v1.json`
+     - added full-runtime source anchor file: `src/dafny/id_full_extracted.dfy`
+     - added full-runtime recursive oracle anchors:
+       - `id.full.line3.recursive_like`
+       - `id.full.line7.recursive_like`
+   - `tests/test_dafny_id_correspondence.py`
+     - added full-runtime oracle case coverage for line-3 and line-7
+       recursive-like fixtures.
 
 2. Gate results:
-    - `pytest tests/test_algorithm/test_id_generated_parity.py -q` -> PASS (`22 passed`)
-    - `python scripts/check_dafny_id_full_runtime.py` -> PASS (deterministic payload emitted for identifiable, line3-recursive-like, line7-recursive-like, hedge-fail)
-    - `pytest tests/test_dafny_id_correspondence.py -q` -> PASS (`5 passed`)
-    - `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch` -> PASS (`656 verified, 0 errors`)
+   - `pytest tests/test_algorithm/test_id_generated_parity.py -q` -> PASS
+     (`22 passed`)
+   - `python scripts/check_dafny_id_full_runtime.py` -> PASS (deterministic
+     payload emitted for identifiable, line3-recursive-like,
+     line7-recursive-like, hedge-fail)
+   - `pytest tests/test_dafny_id_correspondence.py -q` -> PASS (`5 passed`)
+   - `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
+     -> PASS (`656 verified, 0 errors`)
 
 #### Phase 6: Decommission Per-Line Scaffolding
 
@@ -416,7 +467,8 @@ Acceptance criteria:
 
 #### Gate Matrix (Run At Each Phase Boundary)
 
-1. `python scripts/check_dafny_id_full_runtime.py` (or phase-equivalent smoke before full script exists)
+1. `python scripts/check_dafny_id_full_runtime.py` (or phase-equivalent smoke
+   before full script exists)
 2. `pytest tests/test_algorithm/test_id_generated_parity.py -q`
 3. `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch`
 

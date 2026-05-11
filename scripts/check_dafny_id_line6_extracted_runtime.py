@@ -33,9 +33,11 @@ def main() -> int:
     import IDLine6Extracted
     from IDLine6Extracted import Edge_Edge
 
-    undirected_edges = _dafny.SeqWithoutIsStrInference([
-        Edge_Edge("Z", "Y"),
-    ])
+    undirected_edges = _dafny.SeqWithoutIsStrInference(
+        [
+            Edge_Edge("Z", "Y"),
+        ]
+    )
     all_nodes = _dafny.SeqWithoutIsStrInference(["X", "Z", "Y"])
     outcomes = _dafny.Set({"Y"})
     treatments = _dafny.Set({"X"})

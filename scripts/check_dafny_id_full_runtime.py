@@ -76,8 +76,8 @@ def _run_case(
     treatments: set[str],
     ordering: list[str],
 ) -> dict[str, object]:
-    edge_ctor = getattr(module, "Edge_Edge")
-    run = getattr(module, "default__").IDToIR
+    edge_ctor = module.Edge_Edge
+    run = module.default__.IDToIR
 
     d_edges = runtime.SeqWithoutIsStrInference([edge_ctor(a, b) for a, b in directed_edges])
     u_edges = runtime.SeqWithoutIsStrInference([edge_ctor(a, b) for a, b in undirected_edges])
