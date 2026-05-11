@@ -1,4 +1,4 @@
-"""Bridge for calling extracted Dafny ID Line-1 runtime."""
+"""Bridge for calling extracted Dafny ID Line-by-Line runtime."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from y0.algorithm.identify.utils import Identification
 from y0.dsl import Expression, P, Product, Variable
 
 __all__ = [
+    "ExtractedFullUnavailableError",
     "ExtractedLine1UnavailableError",
     "ExtractedLine2UnavailableError",
     "ExtractedLine3UnavailableError",
@@ -27,6 +28,7 @@ __all__ = [
     "ExtractedLine5UnavailableError",
     "ExtractedLine6UnavailableError",
     "ExtractedLine7UnavailableError",
+    "identify_full_from_extracted",
     "identify_line1_from_extracted",
     "identify_line2_from_extracted",
     "identify_line3_from_extracted",
@@ -46,6 +48,10 @@ __all__ = [
 _EXTRACTED_MODULE_NAME = "IDLine1Extracted"
 _EXTRACTED_METHOD_NAME = "IDLine1ToIR"
 _ENV_EXTRACTED_DIR = "Y0_DAFNY_ID_LINE1_PY_DIR"
+
+_EXTRACTED_MODULE_NAME_FULL = "IDFullExtracted"
+_EXTRACTED_METHOD_NAME_FULL = "IDToIR"
+_ENV_EXTRACTED_DIR_FULL = "Y0_DAFNY_ID_FULL_PY_DIR"
 
 _EXTRACTED_MODULE_NAME_L2 = "IDLine2Extracted"
 _EXTRACTED_METHOD_NAME_L2 = "IDLine2ToIR"
@@ -74,6 +80,10 @@ _ENV_EXTRACTED_DIR_L7 = "Y0_DAFNY_ID_LINE7_PY_DIR"
 
 class ExtractedLine1UnavailableError(RuntimeError):
     """Raised when extracted Line-1 runtime is unavailable."""
+
+
+class ExtractedFullUnavailableError(RuntimeError):
+    """Raised when consolidated extracted full runtime is unavailable."""
 
 
 class ExtractedLine2UnavailableError(RuntimeError):
@@ -108,9 +118,18 @@ def _default_extracted_dir() -> Path:
     return _repo_root() / ".cache" / "y0" / "dafny" / "id_line1_extracted_py"
 
 
+def _default_extracted_dir_full() -> Path:
+    return _repo_root() / ".cache" / "y0" / "dafny" / "id_full_extracted_py"
+
+
 def _resolve_extracted_dir() -> Path:
     value = os.environ.get(_ENV_EXTRACTED_DIR)
     return Path(value).expanduser().resolve() if value else _default_extracted_dir()
+
+
+def _resolve_extracted_dir_full() -> Path:
+    value = os.environ.get(_ENV_EXTRACTED_DIR_FULL)
+    return Path(value).expanduser().resolve() if value else _default_extracted_dir_full()
 
 
 def _load_extracted_module() -> ModuleType:
@@ -127,6 +146,84 @@ def _load_extracted_module() -> ModuleType:
         return importlib.import_module(_EXTRACTED_MODULE_NAME)
     except Exception as error:  # pragma: no cover - import errors are environment-dependent
         raise ExtractedLine1UnavailableError("failed to import extracted Dafny module") from error
+
+
+def _load_extracted_module_full() -> ModuleType:
+    extracted_dir = _resolve_extracted_dir_full()
+    if not extracted_dir.exists():
+        raise ExtractedFullUnavailableError(
+            f"extracted full-runtime directory not found at {extracted_dir}. "
+            "Run scripts/build_dafny_id_full_extracted.sh first."
+        )
+    extracted_dir_str = str(extracted_dir)
+    if extracted_dir_str not in sys.path:
+        sys.path.insert(0, extracted_dir_str)
+    try:
+        return importlib.import_module(_EXTRACTED_MODULE_NAME_FULL)
+    except Exception as error:  # pragma: no cover - import errors are environment-dependent
+        raise ExtractedFullUnavailableError("failed to import extracted full Dafny module") from error
+
+
+def identify_full_from_extracted(
+    identification: Identification,
+    *,
+    ordering: Sequence[Variable] | None = None,
+) -> Expression:
+    """Run consolidated extracted Dafny runtime and translate IR into a y0 expression."""
+    if identification.conditions:
+        raise ExtractedFullUnavailableError("query conditions are not supported by full extracted runtime")
+
+    module = _load_extracted_module_full()
+    runner = getattr(module, "default__", None)
+    method = getattr(runner, _EXTRACTED_METHOD_NAME_FULL, None)
+    if method is None:
+        raise ExtractedFullUnavailableError(
+            f"extracted module does not provide {_EXTRACTED_METHOD_NAME_FULL}"
+        )
+
+    try:
+        dafny_runtime = importlib.import_module("_dafny")
+    except Exception as error:  # pragma: no cover - environment-dependent import
+        raise ExtractedFullUnavailableError("missing extracted Dafny runtime package _dafny") from error
+
+    order = (
+        tuple(ordering) if ordering is not None else tuple(identification.graph.topological_sort())
+    )
+    order_names = [variable.name for variable in order]
+    outcomes = {variable.name for variable in identification.outcomes}
+    treatments = {variable.name for variable in identification.treatments}
+
+    seq_ctor = getattr(dafny_runtime, "SeqWithoutIsStrInference", None)
+    set_ctor = getattr(dafny_runtime, "Set", None)
+    edge_class = getattr(module, "Edge_Edge", None)
+    if seq_ctor is None or set_ctor is None or edge_class is None:
+        raise ExtractedFullUnavailableError(
+            "_dafny sequence/set constructors or edge class are unavailable"
+        )
+
+    directed_edges: list[Any] = []
+    for src, tgt in identification.graph.directed.edges():
+        directed_edges.append(edge_class(src.name, tgt.name))
+
+    undirected_edges: list[Any] = []
+    for src, tgt in identification.graph.undirected.edges():
+        undirected_edges.append(edge_class(src.name, tgt.name))
+
+    ok, dafny_doc = method(
+        "runtime_full",
+        seq_ctor(directed_edges),
+        seq_ctor(undirected_edges),
+        seq_ctor(order_names),
+        set_ctor(outcomes),
+        set_ctor(treatments),
+        seq_ctor(order_names),
+    )
+    if not ok:
+        raise ExtractedFullUnavailableError("extracted full runtime rejected query")
+
+    doc_json = dafny_ir_doc_to_jsonable(dafny_doc)
+    canonical = canonicalize_and_validate_doc(doc_json)
+    return ir_doc_to_expression(canonical)
 
 
 def supports_query_line1(identification: Identification) -> bool:

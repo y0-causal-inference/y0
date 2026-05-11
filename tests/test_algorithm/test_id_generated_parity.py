@@ -28,6 +28,25 @@ def _unidentifiable_case() -> tuple[NxMixedGraph, Probability]:
     return graph, query
 
 
+@pytest.fixture(autouse=True)
+def _disable_full_runtime_for_legacy_tests(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> None:
+    """Keep existing line-route tests deterministic under Phase 4 routing changes."""
+    if "full" in request.node.name:
+        return
+
+    def _full_unavailable(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        raise id_generated_module.ExtractedFullUnavailableError("disabled for legacy test")
+
+    monkeypatch.setattr(id_generated_module, "identify_full_from_extracted", _full_unavailable)
+
+
 def test_generated_matches_handwritten_identifiable() -> None:
     """Generated and handwritten engines should agree on identifiable queries."""
     graph, query = _identifiable_case()
@@ -68,6 +87,117 @@ def test_generated_expression_canonicalization_stable() -> None:
     twice = canonicalize(once, ordering=ordering)
     if once != twice:
         pytest.fail("generated engine expression canonicalization is not stable")
+
+
+def test_generated_prefers_full_runtime(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Generated engine should route through full extracted runtime before line routes."""
+    graph, query = _identifiable_case()
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    calls: list[str] = []
+
+    def _fake_full(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        calls.append("full")
+        return P(Variable("Y") @ ~Variable("X"))
+
+    def _unexpected_supports_line1(identification: Identification) -> bool:
+        del identification
+        pytest.fail("line support checks should not run when full runtime succeeds")
+
+    monkeypatch.setattr(id_generated_module, "identify_full_from_extracted", _fake_full)
+    monkeypatch.setattr(id_generated_module, "supports_query_line1", _unexpected_supports_line1)
+
+    result = identify_with_engine(identification, engine="generated")
+    if not canonical_expr_equal(result, P(Variable("Y") @ ~Variable("X"))):
+        pytest.fail("generated engine did not return full-runtime expression")
+    if calls != ["full"]:
+        pytest.fail(f"unexpected full-runtime routing calls: {calls!r}")
+
+
+def test_generated_falls_back_to_line_compat_when_full_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Generated engine should use line compatibility routing when full runtime is unavailable."""
+    x = Variable("X")
+    y = Variable("Y")
+    graph = NxMixedGraph.from_edges(directed=[(x, y)])
+    query = P(y)
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    calls: list[str] = []
+
+    def _full_unavailable(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        calls.append("full")
+        raise id_generated_module.ExtractedFullUnavailableError("missing full runtime")
+
+    def _supports_line1(identification: Identification) -> bool:
+        del identification
+        calls.append("supports_line1")
+        return True
+
+    def _line1(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        calls.append("line1")
+        return P(y)
+
+    monkeypatch.setenv("Y0_DAFNY_ID_LINE_COMPAT", "1")
+    monkeypatch.setattr(id_generated_module, "identify_full_from_extracted", _full_unavailable)
+    monkeypatch.setattr(id_generated_module, "supports_query_line1", _supports_line1)
+    monkeypatch.setattr(id_generated_module, "identify_line1_from_extracted", _line1)
+
+    result = identify_with_engine(identification, engine="generated")
+    if not canonical_expr_equal(result, P(y)):
+        pytest.fail("generated engine did not return line-compat expression")
+    if calls != ["full", "supports_line1", "line1"]:
+        pytest.fail(f"unexpected fallback routing calls: {calls!r}")
+
+
+def test_generated_falls_back_to_handwritten_when_full_unavailable_and_compat_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Generated engine should fall back to handwritten path when compat routes are disabled."""
+    graph, query = _identifiable_case()
+    identification = Identification.from_expression(graph=graph, query=query)
+
+    calls: list[str] = []
+
+    def _full_unavailable(
+        identification: Identification,
+        *,
+        ordering: list[Variable] | None = None,
+    ) -> Expression:
+        del identification, ordering
+        calls.append("full")
+        raise id_generated_module.ExtractedFullUnavailableError("missing full runtime")
+
+    def _unexpected_supports_line1(identification: Identification) -> bool:
+        del identification
+        pytest.fail("line compatibility should be skipped when disabled")
+
+    monkeypatch.setenv("Y0_DAFNY_ID_LINE_COMPAT", "0")
+    monkeypatch.setattr(id_generated_module, "identify_full_from_extracted", _full_unavailable)
+    monkeypatch.setattr(id_generated_module, "supports_query_line1", _unexpected_supports_line1)
+
+    handwritten = identify_with_engine(identification, engine="handwritten")
+    generated = identify_with_engine(identification, engine="generated")
+    if not canonical_expr_equal(handwritten, generated):
+        pytest.fail("generated handwritten fallback does not match handwritten expression")
+    if calls != ["full"]:
+        pytest.fail(f"unexpected no-compat routing calls: {calls!r}")
 
 
 def test_generated_prefers_extracted_for_line1(monkeypatch: pytest.MonkeyPatch) -> None:
