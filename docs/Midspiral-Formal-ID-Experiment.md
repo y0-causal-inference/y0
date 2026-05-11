@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-We formalized Pearl's **ID algorithm**—a complete procedure for determining whether causal effects are identifiable from observational data—in Dafny. The goal was not just to verify the theory, but to **auto-generate a provably correct Python implementation** and achieve full CI compliance.
+We formalized Pearl's **ID algorithm**—a complete procedure for determining whether causal effects are identifiable from observational data—in Dafny. The goal was not just to verify the theory, but to **build an extraction-backed Python implementation path with parity validation and safe handwritten fallback** while achieving full CI compliance.
 
 **What we learned:**
 
@@ -17,8 +17,18 @@ We formalized Pearl's **ID algorithm**—a complete procedure for determining wh
 3. **The axiom boundary is honest** — we clearly marked where the spec uses axioms (e.g., the Global Markov property) vs. proven lemmas, forcing clarity on what remains informal.
 4. **AI assistance worked best in scaffolding, struggled with creative decision-making** — language models excelled at generating boilerplate bridge code and test infrastructure but faltered when facing underdetermined proof goals.
 5. **Type systems are constraints** — Dafny's `real` (rationals) naturally expresses discrete distributions but cannot state the theorems needed for continuous probability; this became a hard boundary.
+6. **Current maturity is strong but not "fully verified complete ID"** — extracted paths for lines 1-7 and a consolidated runtime exist, but runtime fallback paths and theorem-layer axioms remain.
 
 This document explains the problem, our approach, what succeeded, what failed, and what the Midspiral community can learn from the experiment.
+
+### Status vs Claim (Current State)
+
+| Claim | Current Status | Evidence in Repo |
+|------|---|---|
+| "We have complete extraction for lines 1-7" | **Partly true.** Per-line extracted modules and consolidated extracted runtime exist. | `src/dafny/id_line1_extracted.dfy` ... `src/dafny/id_line7_extracted.dfy`, `src/dafny/id_full_extracted.dfy` |
+| "Generated engine is fully extracted end-to-end" | **Not fully.** Generated path still includes fallback to handwritten runtime when extracted runtime is unavailable or line-compat routing misses. | `src/y0/algorithm/identify/id_generated.py` (`ExtractedFullUnavailableError`, `identify_handwritten`) |
+| "We already extended to ADMGs" | **True at representation/theory layer.** Semi-Markovian mixed graph machinery (directed + bidirected, C-components, hedges) is present. | `src/dafny/semi_markovian.dfy`, `src/y0/graph.py` / `NxMixedGraph` |
+| "We have a verified, complete ID implementation" | **Not yet.** Theorem layer still contains axioms/assumptions, and executable `identification.dfy::IDToIR` still documents conservative fallback for unresolved recursive cases. | `src/dafny/identification.dfy` (`{:axiom}` usage and phase-1 fallback comment) |
 
 ---
 
@@ -276,12 +286,13 @@ def identify(identification: Identification, engine: str = "generated") -> Expre
 
 ### 4.1 Modular Extraction ✅
 
-**Success:** We successfully extracted **all 7 lines** of the ID algorithm into standalone Dafny modules.
+**Success:** We extracted **all 7 lines** into standalone Dafny modules and integrated them in generated routing.
 
 **Evidence:**
 - `id_line1_extracted.dfy` through `id_line7_extracted.dfy` all compile.
 - Build scripts generate runnable Python from each.
 - Smoke tests pass: each line emits valid IR for test cases.
+- Consolidated runtime (`id_full_extracted.dfy`) covers line-shaped outputs, while still retaining an unsupported-shape fail path.
 
 **Why it worked:**
 - Lines 1-2 are simple (linear checks and basic sums).
@@ -806,13 +817,13 @@ If extracted runtime is not available (environment variables not set), the bridg
 
 ### 9.1 Short Term (Months)
 
-1. **Complete remaining extracted lines.** Lines 3-7 are partially extracted; full extraction is feasible with current techniques.
+1. **Close semantic coverage gaps in consolidated extraction.** Keep line modules intact, but reduce unsupported-shape and special-case paths in `id_full_extracted.dfy`.
 2. **Formalize line routing.** Currently ad-hoc predicates; a cleaner specification could automate routing.
 3. **Performance profiling.** Extract is correct but may be slower; optimize the generated Python or the Dafny extraction strategy.
 
 ### 9.2 Medium Term (Quarters)
 
-1. **Extend to ADMGs (Almost Directed Mixed Graphs).** y0 supports semi-Markovian models with latent confounders (bidirected edges). Formalizing the full ID algorithm for ADMGs is the next major step.
+1. **Tighten ADMG end-to-end completeness.** ADMG/Semi-Markovian representation exists today; next step is reducing proof/runtime gaps so this path is both executable and less axiomatized.
 2. **Prove more axiom boundaries.** The `GlobalMarkov_From_Factorization` axiom is the last major gap; formalizing Bayes Ball completeness would eliminate it.
 3. **Integrate Lean for continuous theory.** If y0 needs to support continuous SCMs (Gaussian models, etc.), Lean + Mathlib becomes necessary.
 
@@ -826,11 +837,11 @@ If extracted runtime is not available (environment variables not set), the bridg
 
 ## Part 10: Conclusion
 
-We successfully demonstrated that **Dafny can serve as a verified oracle for causal identification algorithms**. The modular extraction approach is practical, testable, and deployable—and it provides strong correctness guarantees without requiring a full formal proof of the algorithm.
+We successfully demonstrated that **Dafny can serve as a practical verified-oracle backbone for causal identification work**. The modular extraction approach is practical, testable, and deployable, while remaining explicit about current gaps (fallback paths and theorem-layer axioms).
 
 **Key takeaways for Midspiral:**
 
-1. **Dafny + code extraction is viable for discrete, algorithmic domains.** ID algorithm is a good example: structured, recursive, set-manipulating.
+1. **Dafny + code extraction is viable for discrete, algorithmic domains.** ID is a strong example: structured, recursive, set-manipulating.
 2. **Modular extraction is pragmatic.** You don't have to verify everything at once; incremental extraction with fallback paths works in practice.
 3. **Testing complements verification.** Parity testing, conformance testing, and canonicalization provide strong assurance when full formal proof is infeasible.
 4. **AI-assisted formal methods work for 60-70% of the work** (scaffolding, boilerplate, patterns) but require human oversight on proof strategy.
@@ -861,7 +872,7 @@ The experiment proves the concept and provides a roadmap for formalizing other a
 
 ---
 
-**Document version:** 1.0  
+**Document version:** 1.1  
 **Last updated:** May 11, 2026  
 **Author:** Causal Inference Formal Methods Team  
 **Contact:** github.com/y0-causal-inference/y0
