@@ -9,7 +9,8 @@
       "src/dafny/id_line4_extracted.dfy",
       "src/dafny/id_line5_extracted.dfy",
       "src/dafny/id_line6_extracted.dfy",
-      "src/dafny/id_line7_extracted.dfy"
+      "src/dafny/id_line7_extracted.dfy",
+      "src/dafny/id_full_extracted.dfy"
     ]
   },
   "cases": [
@@ -509,6 +510,109 @@
                 }
               ]
             }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.full.line3.recursive_like",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDToIR",
+        "line": 249
+      },
+      "query": {
+        "graph_id": "full.line3.recursive_like",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "Z",
+          "X",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "1",
+          "engine": "id",
+          "query": {
+            "graph_id": "full.line3.recursive_like",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "Z",
+              "X",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "sum",
+            "over": [
+              "Z",
+              "X"
+            ],
+            "body": {
+              "tag": "prob",
+              "vars": [
+                "Z",
+                "X",
+                "Y"
+              ],
+              "given": [],
+              "intervened": [
+                "Z",
+                "X"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.full.line7.recursive_like",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDToIR",
+        "line": 249
+      },
+      "query": {
+        "graph_id": "full.line7.recursive_like",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "W",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "exception",
+        "value": {
+          "type": "Unidentifiable",
+          "classification": "hedge",
+          "witness": {
+            "F_nodes": [
+              "X",
+              "W",
+              "Y"
+            ],
+            "Fprime_nodes": [
+              "W",
+              "Y"
+            ]
           }
         }
       }

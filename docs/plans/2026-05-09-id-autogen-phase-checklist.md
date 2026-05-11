@@ -366,16 +366,38 @@ Phase 4 status checkpoint (2026-05-11):
 
 Commit-ready tasks:
 
-- [ ] Add full-runtime route/fallback tests in `tests/test_algorithm/test_id_generated_parity.py`.
-- [ ] Extend `tests/data/generated/dafny_oracle/id_cases.v1.json` with full-runtime source anchors.
-- [ ] Keep line-specific parity tests until full-runtime path is stable for one full cycle.
-- [ ] Add one real end-to-end case each for line 3 and line 7 recursion-sensitive behavior.
+- [x] Add full-runtime route/fallback tests in `tests/test_algorithm/test_id_generated_parity.py`.
+- [x] Extend `tests/data/generated/dafny_oracle/id_cases.v1.json` with full-runtime source anchors.
+- [x] Keep line-specific parity tests until full-runtime path is stable for one full cycle.
+- [x] Add one real end-to-end case each for line 3 and line 7 recursion-sensitive behavior.
 
 Acceptance criteria:
 
 1. `pytest tests/test_algorithm/test_id_generated_parity.py -q` is green.
 2. Full-runtime oracle cases validate and are deterministic between runs.
 3. Broad Dafny verification gate stays green after each migration commit.
+
+Phase 5 status checkpoint (2026-05-11):
+
+1. Implemented:
+    - `tests/test_algorithm/test_id_generated_parity.py`
+       - added real full-runtime recursive end-to-end tests:
+         - line-3-like deterministic expression case
+         - line-7-like hedge-fail classification case
+       - line-specific parity route/fallback tests remain intact for transition coverage.
+    - `tests/data/generated/dafny_oracle/id_cases.v1.json`
+       - added full-runtime source anchor file: `src/dafny/id_full_extracted.dfy`
+       - added full-runtime recursive oracle anchors:
+         - `id.full.line3.recursive_like`
+         - `id.full.line7.recursive_like`
+    - `tests/test_dafny_id_correspondence.py`
+       - added full-runtime oracle case coverage for line-3 and line-7 recursive-like fixtures.
+
+2. Gate results:
+    - `pytest tests/test_algorithm/test_id_generated_parity.py -q` -> PASS (`22 passed`)
+    - `python scripts/check_dafny_id_full_runtime.py` -> PASS (deterministic payload emitted for identifiable, line3-recursive-like, line7-recursive-like, hedge-fail)
+    - `pytest tests/test_dafny_id_correspondence.py -q` -> PASS (`5 passed`)
+    - `dafny verify src/dafny/identification.dfy --verification-time-limit:30 --isolate-assertions --progress:Batch` -> PASS (`656 verified, 0 errors`)
 
 #### Phase 6: Decommission Per-Line Scaffolding
 

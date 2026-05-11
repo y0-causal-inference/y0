@@ -25,6 +25,8 @@ def _fixture_path() -> Path:
         # "id.line2.multipath_with_irrelevant.reduction",
         "id.line4.frontdoor_small.identifiable",
         "id.line5.figure1a.hedge",
+        "id.full.line3.recursive_like",
+        "id.full.line7.recursive_like",
     ],
 )
 def test_dafny_id_case(case_id: str) -> None:
