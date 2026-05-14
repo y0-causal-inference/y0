@@ -159,14 +159,20 @@ def _run_extracted_tian(
 ) -> dict[str, Any]:
     ordering = list(graph.topological_sort())
     edge_ctor = extracted.Edge_Edge
-    directed = _dafny.SeqWithoutIsStrInference([edge_ctor(u.name, v.name) for u, v in graph.directed.edges()])
-    undirected = _dafny.SeqWithoutIsStrInference([edge_ctor(u.name, v.name) for u, v in graph.undirected.edges()])
+    directed = _dafny.SeqWithoutIsStrInference(
+        [edge_ctor(u.name, v.name) for u, v in graph.directed.edges()]
+    )
+    undirected = _dafny.SeqWithoutIsStrInference(
+        [edge_ctor(u.name, v.name) for u, v in graph.undirected.edges()]
+    )
     all_nodes = _dafny.SeqWithoutIsStrInference([v.name for v in ordering])
     out = {v.name for v in outcomes}
     trt = {v.name for v in treatments}
     ords = _dafny.SeqWithoutIsStrInference([v.name for v in ordering])
 
-    ok, doc = extracted.default__.IDTianToIR(graph_id, directed, undirected, all_nodes, out, trt, ords)
+    ok, doc = extracted.default__.IDTianToIR(
+        graph_id, directed, undirected, all_nodes, out, trt, ords
+    )
     ir = _ir_node_to_jsonable(doc.result)
     return {
         "ok": bool(ok),
@@ -225,28 +231,36 @@ def _build_tex_cases() -> list[dict[str, Any]]:
         {
             "name": "fig2c_tex",
             "expected_identifiable_tex": False,
-            "graph": NxMixedGraph.from_edges(directed=[(x, z), (z, y), (x, y)], undirected=[(x, z)]),
+            "graph": NxMixedGraph.from_edges(
+                directed=[(x, z), (z, y), (x, y)], undirected=[(x, z)]
+            ),
             "outcomes": {y},
             "treatments": {x},
         },
         {
             "name": "fig2d_tex",
             "expected_identifiable_tex": False,
-            "graph": NxMixedGraph.from_edges(directed=[(x, y), (z, y)], undirected=[(x, z), (z, y)]),
+            "graph": NxMixedGraph.from_edges(
+                directed=[(x, y), (z, y)], undirected=[(x, z), (z, y)]
+            ),
             "outcomes": {y},
             "treatments": {x},
         },
         {
             "name": "fig2e_tex",
             "expected_identifiable_tex": False,
-            "graph": NxMixedGraph.from_edges(directed=[(x, z), (z, y)], undirected=[(x, z), (x, y)]),
+            "graph": NxMixedGraph.from_edges(
+                directed=[(x, z), (z, y)], undirected=[(x, z), (x, y)]
+            ),
             "outcomes": {y},
             "treatments": {x},
         },
         {
             "name": "fig2f_tex",
             "expected_identifiable_tex": False,
-            "graph": NxMixedGraph.from_edges(directed=[(x, z), (z, y)], undirected=[(z, y), (x, y)]),
+            "graph": NxMixedGraph.from_edges(
+                directed=[(x, z), (z, y)], undirected=[(z, y), (x, y)]
+            ),
             "outcomes": {y},
             "treatments": {x},
         },
@@ -305,15 +319,20 @@ def _build_report() -> dict[str, Any]:
 
     summary = {
         "cases_run": len(rows),
-        "python_extracted_disagreements": [r["case"] for r in rows if not r["python_vs_extracted_agree"]],
+        "python_extracted_disagreements": [
+            r["case"] for r in rows if not r["python_vs_extracted_agree"]
+        ],
         "tex_label_disagreements_python": [r["case"] for r in rows if not r["python_vs_tex_agree"]],
-        "tex_label_disagreements_extracted": [r["case"] for r in rows if not r["extracted_vs_tex_agree"]],
+        "tex_label_disagreements_extracted": [
+            r["case"] for r in rows if not r["extracted_vs_tex_agree"]
+        ],
     }
 
     return {"summary": summary, "rows": rows}
 
 
 def main() -> int:
+    """Build and print the tex-case comparison report, optionally writing JSON output."""
     parser = argparse.ArgumentParser(
         description="Compare extracted Dafny Tian-2002 runtime against Python Tian on tex-defined cases."
     )
