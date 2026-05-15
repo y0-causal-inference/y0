@@ -12,6 +12,7 @@ module IDLine6Extracted {
     | IRProb(vars: seq<string>, given: seq<string>, intervened: seq<string>)
     | IRFrac(numer: IRNode, denom: IRNode)
     | IRFailHedge(F_nodes: seq<string>, Fprime_nodes: seq<string>)
+    | IRNotApplicable  // precondition for this line was not met; try the next line
 
   datatype IRQuery = IRQuery(
     graph_id: string,
@@ -137,21 +138,21 @@ module IDLine6Extracted {
     var full_count := CountComponents(undirected_edges, all_nodes, all_nodes_set);
     if full_count <= 1 {
       ok := false;
-      doc := IRDoc("6", "id", query, IRFailHedge([], []));
+      doc := IRDoc("6", "id", query, IRNotApplicable);
       return;
     }
 
     var reduced_nodes := all_nodes_set - treatments;
     if reduced_nodes == {} {
       ok := false;
-      doc := IRDoc("6", "id", query, IRFailHedge([], []));
+      doc := IRDoc("6", "id", query, IRNotApplicable);
       return;
     }
 
     var reduced_count := CountComponents(undirected_edges, all_nodes, reduced_nodes);
     if reduced_count != 1 {
       ok := false;
-      doc := IRDoc("6", "id", query, IRFailHedge([], []));
+      doc := IRDoc("6", "id", query, IRNotApplicable);
       return;
     }
 
@@ -160,7 +161,7 @@ module IDLine6Extracted {
     var full_component := ReachableUndirected(undirected_edges, s0, all_nodes_set);
     if full_component != reduced_component {
       ok := false;
-      doc := IRDoc("6", "id", query, IRFailHedge([], []));
+      doc := IRDoc("6", "id", query, IRNotApplicable);
       return;
     }
 

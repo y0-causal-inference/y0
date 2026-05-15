@@ -539,6 +539,7 @@ datatype IRNode =
   | IRProb(vars: seq<string>, given: seq<string>, intervened: seq<string>)
   | IRFrac(numer: IRNode, denom: IRNode)
   | IRFailHedge(F_nodes: seq<string>, Fprime_nodes: seq<string>)
+  | IRNotApplicable  // line's precondition not met; caller tries next line
 ```
 
 This IR is:

@@ -14,6 +14,7 @@ module IDLine4Extracted {
     | IRProb(vars: seq<string>, given: seq<string>, intervened: seq<string>)
     | IRFrac(numer: IRNode, denom: IRNode)
     | IRFailHedge(F_nodes: seq<string>, Fprime_nodes: seq<string>)
+    | IRNotApplicable  // precondition for this line was not met; try the next line
 
   datatype IRQuery = IRQuery(
     graph_id: string,
@@ -143,7 +144,7 @@ module IDLine4Extracted {
     // Line 4 applies only when there are multiple C-components after removing X.
     if reduced_components <= 1 {
       ok := false;
-      doc := IRDoc("4", "id", query, IRFailHedge([], []));
+      doc := IRDoc("4", "id", query, IRNotApplicable);
       return;
     }
 
@@ -152,14 +153,14 @@ module IDLine4Extracted {
     // one mediator and directed edges X->Z, Z->Y.
     if |all_nodes_set| != 3 || |outcomes| != 1 || |treatments| != 1 {
       ok := false;
-      doc := IRDoc("4", "id", query, IRFailHedge([], []));
+      doc := IRDoc("4", "id", query, IRNotApplicable);
       return;
     }
 
     var over := all_nodes_set - outcomes - treatments;
     if |over| != 1 {
       ok := false;
-      doc := IRDoc("4", "id", query, IRFailHedge([], []));
+      doc := IRDoc("4", "id", query, IRNotApplicable);
       return;
     }
 
@@ -171,7 +172,7 @@ module IDLine4Extracted {
     var has_zy := HasDirectedEdge(directed_edges, z, y);
     if !has_xz || !has_zy {
       ok := false;
-      doc := IRDoc("4", "id", query, IRFailHedge([], []));
+      doc := IRDoc("4", "id", query, IRNotApplicable);
       return;
     }
 

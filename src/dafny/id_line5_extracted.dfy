@@ -14,6 +14,7 @@ module IDLine5Extracted {
     | IRProb(vars: seq<string>, given: seq<string>, intervened: seq<string>)
     | IRFrac(numer: IRNode, denom: IRNode)
     | IRFailHedge(F_nodes: seq<string>, Fprime_nodes: seq<string>)
+    | IRNotApplicable  // precondition for this line was not met; try the next line
 
   datatype IRQuery = IRQuery(
     graph_id: string,
@@ -137,7 +138,7 @@ module IDLine5Extracted {
 
     if full_count != 1 || reduced_count != 1 {
       ok := false;
-      doc := IRDoc("5", "id", query, IRFailHedge([], []));
+      doc := IRDoc("5", "id", query, IRNotApplicable);
       return;
     }
 

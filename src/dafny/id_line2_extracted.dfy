@@ -14,6 +14,7 @@ module IDLine2Extracted {
     | IRProb(vars: seq<string>, given: seq<string>, intervened: seq<string>)
     | IRFrac(numer: IRNode, denom: IRNode)
     | IRFailHedge(F_nodes: seq<string>, Fprime_nodes: seq<string>)
+    | IRNotApplicable  // precondition for this line was not met; try the next line
     | IRRecursive(reduced_nodes: seq<string>, reduced_treatments: seq<string>)
 
   datatype IRQuery = IRQuery(
@@ -104,7 +105,7 @@ module IDLine2Extracted {
     if non_ancestral == {} {
       // Line 2 does not apply — return not applicable
       ok := false;
-      doc := IRDoc("2", "id", query, IRFailHedge([], []));
+      doc := IRDoc("2", "id", query, IRNotApplicable);
       return;
     }
 
