@@ -246,31 +246,44 @@ module IDFullExtracted {
     ok := true;
   }
 
-  method IDToIR(
+  method IDToIRWithFuel(
     graph_id: string,
     directed_edges: seq<Edge>,
     undirected_edges: seq<Edge>,
     all_nodes: seq<string>,
     outcomes: set<string>,
     treatments: set<string>,
-    ordering: seq<string>
-  ) returns (ok: bool, doc: IRDoc)
+    ordering: seq<string>,
+    fuel: nat
+  ) returns (ok: bool, result: IRNode)
+    decreases fuel
   {
-    var all_nodes_set: set<string> := set x | x in all_nodes;
-    var outcome_seq := FilterByOrdering(ordering, outcomes);
-    var treatment_seq := FilterByOrdering(ordering, treatments);
-    var query := IRQuery(graph_id, outcome_seq, treatment_seq, ordering);
+    if fuel == 0 {
+      ok := false;
+      result := IRFailHedge([], []);
+      return;
+    }
 
-    // Line 1: no interventions.
-    if treatments == {} {
+    var all_nodes_set: set<string> := set x | x in all_nodes;
+
+    // Line 1: if X ∩ An(Y)_{G_{bar_x}} = ∅, return Σ_{v\Y} P(V)
+    // G_{bar_x} is G with all incoming edges to treatments removed.
+    // When treatments = {}, this condition is trivially satisfied (∅ ∩ anything = ∅).
+    var anc_gx_l1 := ComputeAncestorsWithIncomingRemovedToTreatments(
+      directed_edges,
+      outcomes,
+      treatments,
+      all_nodes_set
+    );
+    if treatments * anc_gx_l1 == {} {
       var over := ComplementByOrdering(ordering, outcomes);
       var body := IRProb(ordering, [], []);
       if |over| == 0 {
         ok := true;
-        doc := IRDoc("1", "id", query, body);
+        result := body;
       } else {
         ok := true;
-        doc := IRDoc("1", "id", query, IRSum(over, body));
+        result := IRSum(over, body);
       }
       return;
     }
@@ -286,10 +299,10 @@ module IDFullExtracted {
       var body2 := IRProb(reduced_nodes_seq, [], reduced_treatment_seq);
       if |over2| == 0 {
         ok := true;
-        doc := IRDoc("1", "id", query, body2);
+        result := body2;
       } else {
         ok := true;
-        doc := IRDoc("1", "id", query, IRSum(over2, body2));
+        result := IRSum(over2, body2);
       }
       return;
     }
@@ -309,37 +322,76 @@ module IDFullExtracted {
       var body3 := IRProb(ordering, [], expanded_seq);
       if |over3| == 0 {
         ok := true;
-        doc := IRDoc("1", "id", query, body3);
+        result := body3;
       } else {
         ok := true;
-        doc := IRDoc("1", "id", query, IRSum(over3, body3));
+        result := IRSum(over3, body3);
       }
       return;
     }
 
-    // Line 4: conservative frontdoor-small decomposition shape.
+    // Line 4: recursive C-component decomposition.
     var reduced_nodes_l4 := all_nodes_set - treatments;
     var reduced_components := CountComponents(undirected_edges, all_nodes, reduced_nodes_l4);
-    if reduced_components > 1 && |all_nodes_set| == 3 && |outcomes| == 1 && |treatments| == 1 {
-      var over_set := all_nodes_set - outcomes - treatments;
-      if |over_set| == 1 {
-        var y: string :| y in outcomes;
-        var x: string :| x in treatments;
-        var z: string :| z in over_set;
-        var has_xz := HasDirectedEdge(directed_edges, x, z);
-        var has_zy := HasDirectedEdge(directed_edges, z, y);
-        if has_xz && has_zy {
-          var factor1 := IRProb([z], [x], []);
-          var inner_factor1 := IRProb([x], [], []);
-          var inner_factor2 := IRProb([y], [x, z], []);
-          var inner_product := IRProduct([inner_factor1, inner_factor2]);
-          var factor2 := IRSum([x], inner_product);
-          var body4 := IRProduct([factor1, factor2]);
-          ok := true;
-          doc := IRDoc("1", "id", query, IRSum([z], body4));
-          return;
+    if reduced_components > 1 {
+      var components: seq<set<string>> := [];
+      var visited: set<string> := {};
+      var i := 0;
+      while i < |all_nodes|
+        invariant 0 <= i <= |all_nodes|
+      {
+        var node := all_nodes[i];
+        if node in reduced_nodes_l4 && node !in visited {
+          var component := ReachableUndirected(undirected_edges, node, reduced_nodes_l4);
+          visited := visited + component;
+          components := components + [component];
         }
+        i := i + 1;
       }
+
+      var factors: seq<IRNode> := [];
+      var all_ok := true;
+      i := 0;
+      while i < |components|
+        invariant 0 <= i <= |components|
+      {
+        var s := components[i];
+        var sub_outcomes := s;
+        var sub_treatments := all_nodes_set - s;
+        var sub_ok, sub_node := IDToIRWithFuel(
+          graph_id,
+          directed_edges,
+          undirected_edges,
+          all_nodes,
+          sub_outcomes,
+          sub_treatments,
+          ordering,
+          fuel - 1
+        );
+        if !sub_ok {
+          all_ok := false;
+        } else {
+          factors := factors + [sub_node];
+        }
+        i := i + 1;
+      }
+
+      if !all_ok {
+        ok := false;
+        result := IRFailHedge([], []);
+        return;
+      }
+
+      var over4 := ComplementByOrdering(ordering, outcomes + treatments);
+      var body4 := IRProduct(factors);
+      if |over4| == 0 {
+        ok := true;
+        result := body4;
+      } else {
+        ok := true;
+        result := IRSum(over4, body4);
+      }
+      return;
     }
 
     // Shared single-component analysis for Lines 5/6/7.
@@ -357,7 +409,7 @@ module IDFullExtracted {
         var f_nodes := FilterByOrdering(ordering, all_nodes_set);
         var fprime_nodes := FilterByOrdering(ordering, reduced_component);
         ok := true;
-        doc := IRDoc("1", "id", query, IRFailHedge(f_nodes, fprime_nodes));
+        result := IRFailHedge(f_nodes, fprime_nodes);
         return;
       }
 
@@ -380,10 +432,10 @@ module IDFullExtracted {
         var ranges := FilterByOrdering(ordering, reduced_component - outcomes);
         if |ranges| == 0 {
           ok := true;
-          doc := IRDoc("1", "id", query, body6);
+          result := body6;
         } else {
           ok := true;
-          doc := IRDoc("1", "id", query, IRSum(ranges, body6));
+          result := IRSum(ranges, body6);
         }
         return;
       }
@@ -395,16 +447,45 @@ module IDFullExtracted {
       var body7 := IRProb(district_nodes, [], reduced_treatments);
       if |ranges7| == 0 {
         ok := true;
-        doc := IRDoc("1", "id", query, body7);
+        result := body7;
       } else {
         ok := true;
-        doc := IRDoc("1", "id", query, IRSum(ranges7, body7));
+        result := IRSum(ranges7, body7);
       }
       return;
     }
 
     // Not applicable / unsupported shape.
     ok := false;
-    doc := IRDoc("1", "id", query, IRFailHedge([], []));
+    result := IRFailHedge([], []);
+  }
+
+  method IDToIR(
+    graph_id: string,
+    directed_edges: seq<Edge>,
+    undirected_edges: seq<Edge>,
+    all_nodes: seq<string>,
+    outcomes: set<string>,
+    treatments: set<string>,
+    ordering: seq<string>
+  ) returns (ok: bool, doc: IRDoc)
+  {
+    var outcome_seq := FilterByOrdering(ordering, outcomes);
+    var treatment_seq := FilterByOrdering(ordering, treatments);
+    var query := IRQuery(graph_id, outcome_seq, treatment_seq, ordering);
+
+    var ok_result, result := IDToIRWithFuel(
+      graph_id,
+      directed_edges,
+      undirected_edges,
+      all_nodes,
+      outcomes,
+      treatments,
+      ordering,
+      16
+    );
+
+    ok := ok_result;
+    doc := IRDoc("1", "id", query, result);
   }
 }

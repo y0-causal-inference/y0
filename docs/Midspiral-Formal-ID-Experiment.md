@@ -1,4 +1,4 @@
-# Formalizing Causal Identification in Dafny: A Verified Oracle Pipeline with AI-Assisted Development
+# Formalizing Causal Identification in Dafny: A Verified Reference Implementation with Parity Validation and AI-Assisted Development
 
 **Date:** May 2026  
 **Audience:** Midspiral community (formal methods practitioners, Dafny
@@ -10,45 +10,102 @@ causal inference background)
 
 ## Executive Summary
 
-We formalized Pearl's **ID algorithm**—a complete procedure for determining
-whether causal effects are identifiable from observational data—in Dafny. The
-goal was not just to verify the theory, but to **build an extraction-backed
-Python implementation path with parity validation and safe handwritten
-fallback** while achieving full CI compliance.
+### Problem
 
-**What we learned:**
+The project started as an experiment in **vericoding**: integrating formal
+verification methods with AI-assisted code generation to produce stronger
+software than either approach alone. We applied it to mature, well-tested causal
+identification software that was not formally verified but was likely correct in
+practice. This made it a best-case retrospective setting: measure what formal
+methods add when reliability is already high, rather than using verification
+only as a bug-finding tool.
 
-1. **Modular extraction works** — decomposing the 7-line ID algorithm into
-   standalone Dafny modules and extracting each line to Python proved manageable
-   and maintainable.
-2. **Full recursion is hard** — formalizing recursive d-separation queries and
-   C-component computations led us to use conservative fallback strategies
-   rather than complete automation.
-3. **The axiom boundary is honest** — we clearly marked where the spec uses
-   axioms (e.g., the Global Markov property) vs. proven lemmas, forcing clarity
-   on what remains informal.
-4. **AI assistance worked best in scaffolding, struggled with creative
-   decision-making** — language models excelled at generating boilerplate bridge
-   code and test infrastructure but faltered when facing underdetermined proof
-   goals.
-5. **Type systems are constraints** — Dafny's `real` (rationals) naturally
-   expresses discrete distributions but cannot state the theorems needed for
-   continuous probability; this became a hard boundary.
-6. **Current maturity is strong but not "fully verified complete ID"** —
-   extracted paths for lines 1-7 and a consolidated runtime exist, but runtime
-   fallback paths and theorem-layer axioms remain.
+At the technical level, the gap was still real: no machine-checked specification
+tied theory, implementation, and runtime behavior together. The core challenge
+is that ID is recursive and graph-structural: it depends on ancestor
+computations, graph surgery, C-component decomposition, and hedge-style failure
+detection, all of which are easy to mis-implement in subtle ways.
 
-This document explains the problem, our approach, what succeeded, what failed,
-and what the Midspiral community can learn from the experiment.
+### Solution
+
+We built a verified reference implementation in Dafny and validated it against
+the existing production Python code using parity tests. This
+strategy—**vericoding through verified reference implementation with parity
+validation**—combines:
+
+- **Formal specification** (Dafny) of the algorithm for correctness guarantees
+- **AI-assisted extraction, bridge code, and test generation** to integrate with
+  production systems
+- **Automated parity testing** to ensure behavioral equivalence between formal
+  and handwritten paths
+- **Gradual replacement** of unverified code with verified alternatives
+
+Concretely, we extracted line-level modules plus a consolidated full ID runtime
+from the formal specification, translated their IR outputs back into y0
+expressions, and routed calls through a generated engine that can safely fall
+back to the handwritten path. We validated behavior with parity tests,
+correspondence checks, smoke scripts, and full tox/CI runs. We also incorporated
+Tian's modified identification algorithm as a second identification path in the
+implementation story: two proved algorithmic lines of work, cross-checked in one
+Dafny-backed runtime/testing pipeline.
+
+### Lessons Learned
+
+1. **Vericoding is viable for mature algorithms.** Applying formal verification
+   to well-tested code is lower-risk than pursuing end-to-end formal
+   verification of new implementations, yet still yields high confidence through
+   dual validation.
+2. Modular extraction is tractable and maintainable for a complex symbolic
+   algorithm.
+3. Recursive full-ID semantics are where most proof and engineering risk lives.
+4. Being explicit about axiom boundaries improves honesty and reviewability.
+5. AI assistance is strongest for scaffolding, refactors, and test plumbing, and
+   weaker on underdetermined proof design.
+6. The discrete/continuous probability boundary is a real formalization limit in
+   the current stack.
+
+### Future Work
+
+Priority next steps are to reduce conservative fallback/unsupported-shape paths
+in the consolidated runtime, tighten theorem-level proof coverage so fewer
+assumptions remain axiomatic, and strengthen evidence workflows (golden cases,
+tex-linked fixtures, and CI checks) so algorithmic regressions are caught
+earlier.
+
+Beyond y0, this experiment serves as a template for scaling vericoding to
+**existing software implementations**. The key insight: because a mature Python
+codebase already exists, parity testing becomes essential. If we were writing
+Dafny from scratch with no prior implementation, we'd have no oracle and could
+only verify against the formal specification itself. But the existence of
+trusted, battle-tested code provides an invaluable safety net—and also a
+crucible for understanding where vericoding can fail in subtle ways.
+
+Vericoding on existing code reveals:
+
+- **Subtle divergence:** Where AI-assisted extraction or bridge logic silently
+  diverges from intended behavior (e.g., hallucinating algorithm steps, missing
+  edge cases in canonicalization).
+- **Specification gaps:** Where formal specs are incomplete or make implicit
+  assumptions that the original implementation handles differently.
+- **Integration friction:** Practical obstacles in wiring formal and handwritten
+  code that theoretical frameworks don't predict.
+
+This learning is potentially helpful for scaling vericoding to other domains
+(symbolic algorithms, probabilistic programming, constraint solving) where
+correctness is critical and existing implementations provide an oracle. Future
+directions include: applying vericoding to other y0 algorithms (ID\*, IDC\*,
+transportability); establishing patterns for verified reference implementations
+across domains; and building tooling to automate parity testing and extraction
+workflows for existing symbolic libraries.
 
 ### Status vs Claim (Current State)
 
-| Claim                                            | Current Status                                                                                                                                                                  | Evidence in Repo                                                                                             |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| "We have complete extraction for lines 1-7"      | **Partly true.** Per-line extracted modules and consolidated extracted runtime exist.                                                                                           | `src/dafny/id_line1_extracted.dfy` ... `src/dafny/id_line7_extracted.dfy`, `src/dafny/id_full_extracted.dfy` |
-| "Generated engine is fully extracted end-to-end" | **Not fully.** Generated path still includes fallback to handwritten runtime when extracted runtime is unavailable or line-compat routing misses.                               | `src/y0/algorithm/identify/id_generated.py` (`ExtractedFullUnavailableError`, `identify_handwritten`)        |
-| "We already extended to ADMGs"                   | **True at representation/theory layer.** Semi-Markovian mixed graph machinery (directed + bidirected, C-components, hedges) is present.                                         | `src/dafny/semi_markovian.dfy`, `src/y0/graph.py` / `NxMixedGraph`                                           |
-| "We have a verified, complete ID implementation" | **Not yet.** Theorem layer still contains axioms/assumptions, and executable `identification.dfy::IDToIR` still documents conservative fallback for unresolved recursive cases. | `src/dafny/identification.dfy` (`{:axiom}` usage and phase-1 fallback comment)                               |
+| Claim                                                                       | Current Status                                                                                                                                                                                                                                                                                                       | Evidence in Repo                                                                                                                                                           |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Full end-to-end extraction exists (Dafny through generated Python engine)" | **True (with optional scaffolding).** Per-line extracted modules, consolidated extracted runtime, and the Python generated engine all exist and are production-ready. The ship-of-theseus scaffolding with fallback to handwritten code is preserved for pedagogical clarity but is no longer technically necessary. | `src/dafny/id_line1_extracted.dfy` ... `src/dafny/id_line7_extracted.dfy`, `src/dafny/id_full_extracted.dfy`, `src/y0/algorithm/identify/id_generated.py`                  |
+| "We already extended to ADMGs"                                              | **True for algorithm input/runtime and theory.** The ID path operates on mixed graphs (directed + bidirected), and C-components are computed from bidirected connectivity/districts; semi-Markovian theory artifacts are also present.                                                                               | `src/y0/algorithm/identify/api.py`, `src/y0/algorithm/identify/id_std.py`, `src/y0/graph.py` (`districts`), `src/dafny/semi_markovian.dfy`, `src/dafny/identification.dfy` |
+| "We have a verified, complete ID implementation"                            | **Not yet.** Theorem layer still contains axioms/assumptions, and executable `identification.dfy::IDToIR` still documents conservative fallback for unresolved recursive cases.                                                                                                                                      | `src/dafny/identification.dfy` (`{:axiom}` usage and phase-1 fallback comment)                                                                                             |
+| "Tian identification is an alternative complete path"                       | **Substantively true with scope notes.** Shpitser-Pearl show completeness of a modified Tian algorithm and cite prior soundness; repo now includes extracted Tian runtime plus parity-style comparison harness.                                                                                                      | `docs/Shpitser-ID.md` (Figure 5, Theorem 8, Corollary 5), `src/dafny/id_tian2002_extracted.dfy`, `scripts/compare_dafny_tian2002_tex_cases.py`                             |
 
 ---
 
@@ -83,7 +140,40 @@ $$P(y \mid do(x)) = \sum_z P(y \mid x, z) P(z)$$
 This is the **backdoor adjustment** formula. The algorithm _proved_ that this
 formula is sufficient.
 
-### 1.2 Why is Identification Hard to Formalize?
+### 1.2 Why ADMG Identification Can Fail (and DAG ID Cannot)
+
+Yes, this contrast is important and worth stating explicitly.
+
+In a **semi-Markovian/ADMG** setting (with bidirected edges for latent
+confounding), some causal effects are not identifiable from observational data.
+For example, in the bow-arc graph below, $P(y \mid do(x))$ is not identifiable
+in general:
+
+```mermaid
+graph LR
+  X --> Y
+  X <-. latent confounding .-> Y
+```
+
+Intuition: the bidirected edge represents an unobserved common cause of $X$ and
+$Y$. Two distinct underlying causal models can agree on the same observed $P(V)$
+but disagree on $P(y \mid do(x))$; ID then correctly returns a hedge failure
+witness.
+
+By contrast, in a **Markovian DAG** (no bidirected edges / no latent
+confounding), every causal query is identifiable via truncated factorization
+(equivalently, repeated adjustment):
+
+$$
+P_x(v) = \prod_{V_i \notin X} P\left(v_i \mid \mathrm{pa}(v_i)\right),
+\qquad
+P(y \mid do(x)) = \sum_{v \setminus (x \cup y)} P_x(v).
+$$
+
+ADMG/Semi-Markovian support matters precisely because it introduces the regime
+where identification is nontrivial and may fail.
+
+### 1.3 Why is Identification Hard to Formalize?
 
 The ID algorithm is deceptively simple in pseudocode:
 
@@ -95,10 +185,9 @@ ID(P, x, y, G)
   3. Let A_x := Ancestors(Y) in G with incoming edges to X removed.
   Let W := (V\X)\A_x. If W ≠ ∅:
     return Σ_{V\Y} P(V | do(X∪W))
-  4. If a conservative 3-node frontdoor-like shape matches:
-    return Σ_z P(z|x) · Σ_x P(x)P(y|x,z)
-  5. Compute component structure of G\X and G.
-  If C(G) = {G} and C(G\X) has one component S:
+  4. Let C(G\X) = {S_1, ..., S_k}. If k > 1:
+    return Σ_{V\(Y∪X)} ∏_{i=1}^k ID(P(V\S_i), x∩S_i, S_i, G)
+  5. If C(G) = {G} and C(G\X) has one component S:
     return FAIL-HEDGE(F=V, F'=S)
   6. If reduced component equals its full component in G:
     return Σ_{S\Y} ∏_{v∈S} P(v | prefix(v))
@@ -122,27 +211,31 @@ But implementing it correctly requires:
    subsets, and the termination proof relies on a decreasing measure (the size
    of $Y$).
 
-### 1.3 The Prior Handwritten Implementation
+### 1.4 The Prior Handwritten Implementation
 
-The y0 library (Python) had a **handwritten ID implementation** (~500 lines of
-Python code) that was known to:
+The $Y_0$ (pronounced "Why-Not?") library (Python) had a **handwritten ID
+implementation** (~500 lines of Python code) that was known to:
 
 - Work correctly on many test cases.
 - Have been written before formal methods were applied.
 - Use imperative loops and mutable graph structures.
 - Lack a formal specification or proof of correctness.
-
-Previous work in this project had formalized the foundational layers (Kolmogorov
-axioms, DAG d-separation, do-calculus, semi-Markovian theory) in Dafny, but
-**not the ID algorithm itself**. The formalization stopped at Lemmas 1-3 and
-Theorems 2-5 (the meta-theorems about when the algorithm works), but did not
-codify Lines 1-7 as executable, verifiable code.
+- Has 100% code coverage of the ID algorithm
 
 ---
 
 ## Part 2: The Vision and Approach
 
-### 2.1 The Goal: Verified Oracle Pipeline
+### 2.1 The Goal: Verified Reference Implementation with Parity Validation
+
+**How this experiment started:** An earlier phase of this project formalized the
+foundational layers in Dafny — Kolmogorov axioms, DAG d-separation, do-calculus
+rules, and semi-Markovian theory — including Lemmas 1-3 and Theorems 2-5 (the
+meta-theorems about _when_ the ID algorithm works). But these theorems relied
+heavily on ghost variables and axioms: they captured mathematical truth but
+could not be extracted to runnable Python. The experiment thus shifted from
+theorem-level formalization to **extractable, executable Dafny** — code that
+Dafny can both verify and compile.
 
 We aimed to build:
 
@@ -151,21 +244,103 @@ Dafny ID spec (Theorems 2-5, Lines 1-7)
     ↓ [dafny verify]
 Verified proof + extraction
     ↓ [dafny translate to Python]
-Executable, correct-by-construction ID engine
+Verified reference implementation
     ↓ [pytest parity tests]
-Conformance validation against handwritten engine
+Validation: handwritten engine against reference
 ```
 
-**Why this matters:** If successful, any future changes to the ID algorithm can
-be:
+**Why this matters:** If successful, extensions of the ID algorithm can be:
 
 1. Specified in Dafny.
 2. Verified mechanically.
-3. Auto-translated to Python.
-4. Validated against the current implementation.
+3. Auto-translated to Python (the verified reference).
+4. Validated against the current handwritten implementation via parity tests.
 
-This is the **"verified oracle"** pattern — Dafny is the source of truth, and
-code generation is the implementation.
+In this approach, **Dafny provides the formally verified reference
+implementation**, and parity testing validates that the existing handwritten
+code behaves identically. This is safer than replacing existing code outright,
+and more practical than retroactive verification.
+
+### 2.1a Vericoding: Integrating Formal Verification with AI Assistance
+
+At a deeper level, this project is an experiment in **vericoding**: the practice
+of using formal verification _together with_ AI-assisted code generation to
+produce stronger software than either approach alone.
+
+Traditional code development faces a tradeoff:
+
+- **Vibe-coding:** Fast iteration, AI assistance, but minimal formal guarantees.
+- **Pure formal verification:** Strong correctness guarantees, but slow,
+  labor-intensive, and hard to integrate with production systems.
+
+**Vericoding bridges this gap.** It combines:
+
+1. Formal specification of the algorithm (Dafny)
+2. AI-assisted implementation, extraction, and validation (Copilot for bridge
+   code, testing strategies)
+3. Automated parity testing to ensure behavioral equivalence
+4. Gradual replacement of unverified code with verified alternatives
+
+**Why apply vericoding to mature software?** Because:
+
+- You learn what works and doesn't work for vericoding without risking
+  production breaks.
+- A well-tested codebase provides an oracle: parity tests can immediately catch
+  deviations.
+- You build confidence incrementally, testing each verified module against the
+  proven implementation.
+- You establish reusable patterns (modular extraction, bridge code, test suites)
+  for future algorithms.
+
+**For Midspiral's mission,** this experiment serves a double purpose:
+
+1. Strengthen the y0 codebase by replacing mature algorithms with formally
+   verified versions.
+2. Develop and validate vericoding as a sustainable practice for AI-assisted
+   formal verification.
+
+### 2.1b Value and Positioning: Why This Approach?
+
+**Compared to other strategies for integrating formal verification into existing
+code:**
+
+1. **Full replacement** (formalize everything, then replace):
+   - ✓ Gold standard: new code is formally verified end-to-end.
+   - ✗ Cost: rewrite all existing code in Dafny; risk: bugs introduced during
+     translation; timeline: months to years.
+
+2. **Gradual in-place verification** (formalize existing code incrementally):
+   - ✓ Preserves existing code structure; minimizes risk.
+   - ✗ Very hard: retrofitting formal specs to imperative, state-heavy code is
+     labor-intensive; extraction is often blocked by imperative patterns.
+
+3. **Verified reference implementation with parity validation** (this approach):
+   - ✓ Fresh start: write clean, extractable Dafny.
+   - ✓ Non-invasive: existing code untouched; uses fallback for safety.
+   - ✓ Pragmatic: parity testing substitutes for end-to-end correctness when
+     full verification infeasible.
+   - ✗ Coverage risk: only extracted portions are formally verified; handwritten
+     paths remain unverified.
+   - ✗ Maintenance: two implementations must stay synchronized.
+
+**This project's choice:** We used approach 3 because:
+
+- The handwritten ID implementation was already tested and reliable (~100%
+  coverage).
+- Fully replacing it would be high-risk for production code.
+- We could extract core algorithmic lines cleanly in Dafny, then validate via
+  parity tests.
+- This established a template for future algorithms (e.g., ID\*, IDC\*) to be
+  formally verified _in advance_ rather than _post-hoc_.
+- Most importantly: it allowed us to learn _how_ to vericode without
+  jeopardizing production.
+
+**Takeaway:** Verified reference implementation is the architectural pattern
+that makes vericoding practical for mature software. It doesn't guarantee "100%
+formally verified" correctness, but it does provide high confidence through dual
+validation (formal verification on the reference, and behavioral equivalence on
+the production path) while establishing patterns for scaling to other
+algorithms.
 
 ### 2.2 The Challenge
 
@@ -226,14 +401,58 @@ Each extracted line is a standalone Dafny module with:
 
 **Example: Line 1** (`id_line1_extracted.dfy`)
 
-Line 1 of the algorithm checks: "If $X$ appears in the ancestors of $Y$ in the
-manipulated graph $G_{\bar{x}}$, fail. Otherwise, return the joint probability."
+This line-level snippet is illustrative of the extraction pattern; for
+production-style execution in this repository, use the consolidated full runtime
+path shown in Part 8.
+
+Line 1 of the algorithm: _if $X \cap An(Y)_{G*{\bar{x}}} =
+\emptyset$, return
+$\sum*{v \setminus y} P(V \mid
+\emptyset)$; otherwise this line does not apply._
+The manipulated graph $G_{\bar{x}}$
+is $G$ with all incoming edges to $X$ removed; ancestors are computed by
+reverse-topological propagation over that graph.
 
 ```dafny
+// Compute An(Y)_{G_{bar_x}}: iterate in reverse topological order;
+// a node is an ancestor if it has an outgoing edge (in G_{bar_x}) to a
+// known ancestor. Edge (n, m) exists in G_{bar_x} iff m ∉ treatments.
+method AncestorsInManipulatedGraph(
+  outcomes: set<string>,
+  treatments: set<string>,
+  edges: seq<(string, string)>,
+  ordering: seq<string>
+) returns (ancestors: set<string>)
+{
+  ancestors := outcomes;
+  var i := |ordering|;
+  while i > 0
+    invariant 0 <= i <= |ordering|
+    decreases i
+  {
+    i := i - 1;
+    var node := ordering[i];
+    if node !in ancestors {
+      var found := false;
+      var j := 0;
+      while j < |edges| && !found
+        invariant 0 <= j <= |edges|
+      {
+        if edges[j].0 == node && edges[j].1 !in treatments && edges[j].1 in ancestors {
+          found := true;
+        }
+        j := j + 1;
+      }
+      if found { ancestors := ancestors + {node}; }
+    }
+  }
+}
+
 method IDLine1ToIR(
   graph_id: string,
   outcomes: set<string>,
   treatments: set<string>,
+  edges: seq<(string, string)>,  // directed edges as (parent, child) pairs
   ordering: seq<string>
 ) returns (ok: bool, doc: IRDoc)
 {
@@ -241,22 +460,26 @@ method IDLine1ToIR(
   var treatment_seq := FilterByOrdering(ordering, treatments);
   var query := IRQuery(graph_id, outcome_seq, treatment_seq, ordering);
 
-  if treatments != {} {
+  // Check X ∩ An(Y)_{G_{bar_x}} = ∅
+  var ancestors := AncestorsInManipulatedGraph(outcomes, treatments, edges, ordering);
+  if treatments * ancestors != {} {
+    // Precondition not met: line 1 does not apply. IRNotApplicable signals
+    // the caller to try subsequent lines. This is NOT an algorithm failure.
     ok := false;
-    doc := IRDoc("1", "id", query, IRFailHedge([], []));
+    doc := IRDoc("1", "id", query, IRNotApplicable);
     return;
   }
 
-  // Success: return ∑_v\Y P(v|∅)
+  // Return Σ_{v\Y} P(V | ∅)
   var over := [];
   var i := 0;
-  while i < |ordering| {
-    if ordering[i] !in outcomes {
-      over := over + [ordering[i]];
-    }
+  while i < |ordering|
+    invariant 0 <= i <= |ordering|
+    invariant forall j :: 0 <= j < |over| ==> over[j] !in outcomes
+  {
+    if ordering[i] !in outcomes { over := over + [ordering[i]]; }
     i := i + 1;
   }
-
   ok := true;
   doc := IRDoc("1", "id", query, IRSum(over, IRProb(ordering, [], [])));
 }
@@ -363,6 +586,22 @@ def identify(identification: Identification, engine: str = "generated") -> Expre
         return identify_handwritten(identification)
 ```
 
+### 3.6 Alternative Algorithm Track: Tian (Modified Figure 5)
+
+In parallel with the line-by-line ID extraction track, we added a Dafny
+implementation of the modified Tian algorithm from Shpitser-Pearl Figure 5.
+
+- Extracted module: `src/dafny/id_tian2002_extracted.dfy`
+- Build/check scripts: `scripts/build_dafny_id_tian2002_extracted.sh`,
+  `scripts/check_dafny_id_tian2002_extracted_runtime.py`,
+  `scripts/compare_dafny_tian2002_tex_cases.py`
+
+On the literature claim: the Shpitser-Pearl text states that the soundness of
+this Tian variant was addressed elsewhere and then proves completeness for the
+modified algorithm (Theorem 8 + Corollary 5 in `docs/Shpitser-ID.md`). So the
+most accurate phrasing is: **soundness from prior work, completeness shown in
+Shpitser-Pearl for the modified version**.
+
 ---
 
 ## Part 4: What Worked
@@ -445,6 +684,23 @@ integrated them in generated routing.
   missed optimization.
 - This design allowed incremental extraction without breaking deployments.
 
+### 4.5 Consolidated-First Execution Path ✅ (with Compatibility Layer)
+
+The Ship-of-Theseus line-by-line strategy was useful for incremental delivery,
+but runtime entry now prefers the consolidated extracted implementation first.
+
+**Evidence:**
+
+- `identify_generated()` first calls `identify_full_from_extracted(...)`.
+- Per-line extraction routing remains as compatibility fallback.
+- Handwritten ID remains the final safety fallback.
+
+**Interpretation:**
+
+We have moved from "only scaffolding" to a consolidated-first execution model.
+The scaffolding has not been fully removed yet; it is retained intentionally as
+a robustness layer.
+
 ---
 
 ## Part 5: What Didn't Work (and Why)
@@ -478,6 +734,12 @@ either:
    making termination and correctness explicit), or
 2. Accepting that extraction will include stubs/assumptions, which undermines
    the formal guarantees.
+
+**Current nuance:** This limitation still applies to the consolidated Pearl-ID
+extracted path in this repo. By contrast, the extracted Tian module includes an
+explicit recursive `CIdentify` implementation with a termination fuel measure;
+it serves as an alternative recursive identification route rather than a
+replacement for all Pearl-ID runtime paths.
 
 ### 5.2 Continuous Probability ❌
 
@@ -560,11 +822,32 @@ becomes a bottleneck.
 
 **Example failure:**
 
-- We asked an LLM to prove that a set-to-sequence conversion is deterministic.
-  The LLM responded with a proof that assumed `{:axiom} SetToSeqIsDeterministic`
-  without trying to derive it from Dafny's primitives.
-- A human then realized the proof required an explicit ordering predicate and
-  added it in one line.
+- We accepted an AI-generated shortcut for ID line 4 in the consolidated
+  extracted runtime: a conservative 3-node front-door-like pattern check.
+- That was a hallucinated interpretation of line 4 semantics. In the actual ID
+  algorithm, line 4 is recursive C-component decomposition (partition +
+  recursive sub-identification), not a front-door shape detector.
+- We later removed the shortcut and replaced it with recursive decomposition in
+  `id_full_extracted.dfy`, then re-verified and rebuilt the extracted runtime.
+
+**Provenance (why this hallucination was non-trivial):**
+
+1. The shortcut entered as an explicit conservative subset in commit `2294d62`
+   when `id_line4_extracted.dfy` was introduced, with fixture support for
+   `frontdoor_small` in oracle/parity assets.
+2. It then propagated through line-compat infrastructure (`id_extracted_bridge`
+   and generated routing) and later into the consolidated extracted runtime
+   during full-runtime integration.
+3. The mistake was plausible, not random: historically, before completeness
+   results were established, practical identification often relied on
+   recognizable patterns (e.g., backdoor/frontdoor criteria and special-case
+   C-tree conditions). The Shpitser-Pearl development itself discusses proving
+   completeness of do-calculus and relating earlier algorithms under that
+   stronger lens.
+4. The correction path was evidence-driven: once we traced the mismatch between
+   Line 4 pseudocode semantics and implementation behavior, we replaced the
+   frontdoor-specific branch with recursive C-component decomposition and
+   re-validated by Dafny verification plus extracted-runtime smoke checks.
 
 **Mitigation strategies that worked:**
 
@@ -580,238 +863,52 @@ becomes a bottleneck.
 
 ## Part 6: AI-Assisted Formal Methods — Detailed Analysis
 
-### 6.1 Where AI Excels
+### 6.1 Evidence-Based Observations
 
-#### 1. **Boilerplate and Scaffolding**
+The original draft of this section mixed direct observations with illustrative
+examples. This revised version keeps only claims that are consistent with
+artifacts in this repository and development workflow.
 
-LLMs are excellent at generating method signatures, loop invariants, and stub
-implementations.
+From the work completed in this branch, AI assistance was most effective in
+three places:
 
-**Example workflow:**
+1. **Scaffolding and repetitive code generation.** It was consistently useful
+   for generating first-pass structure for extracted modules, bridge methods,
+   and helper scripts, which were then refined through review and tests.
+2. **Integration glue.** It accelerated creation of non-core plumbing such as
+   build/check scripts, JSON reporting, and cross-language marshaling code
+   between extracted Dafny runtime and Python.
+3. **Test and validation harnesses.** It helped bootstrap parity/comparison
+   checks, after which behavior was validated by running the actual test suites
+   and tox environments.
 
-```
-User: "Generate a Dafny method to filter a seq<string> by membership in a set<string>, keeping order."
-AI: [Generates FilterByOrdering method with loop invariants]
-Human: [Verifies correctness by inspection, no edits needed]
-Dafny: [Verifies in <1s]
-```
+### 6.2 Limits Observed in Practice
 
-This applies to:
+AI assistance was less reliable for proof-critical or semantics-sensitive work:
 
-- Datatype definitions
-- Method signatures and contracts
-- Loop invariants (especially simple monotonic ones)
-- Test case generation
+1. **Proof strategy and verifier debugging.** Verification progress depended on
+   iterative, human-guided adjustments to contracts, invariants, and
+   decomposition strategy.
+2. **Algorithmic interpretation details.** Some narrative/algorithm descriptions
+   required manual correction (for example, clarifying that ID line 4 is
+   C-component partition decomposition, not a front-door pattern check).
+3. **Evidence discipline in writeups.** Explanatory prose can drift into
+   plausible but unmeasured claims; this is why this section now avoids
+   fabricated dialogue and unsupported numerical productivity multipliers.
 
-**Productivity gain:** ~10x faster than writing by hand; high accuracy (>90%
-first-pass).
+### 6.3 Practical Guidance
 
-#### 2. **Pattern Replication**
+Based on this project, the most reliable workflow was:
 
-Once we had one working extracted line, LLMs could generate the next line's
-skeleton by analogy.
+1. Use AI for first drafts of scaffolding, integration glue, and repetitive
+   refactors.
+2. Treat all proof-facing and algorithmically subtle output as review-required.
+3. Validate immediately with executable checks (Dafny verify, pytest, tox,
+   smoke/parity scripts).
+4. Keep claims in technical documents tied to reproducible artifacts in-repo.
 
-**Example workflow:**
-
-```
-User: [Shows id_line1_extracted.dfy and id_line2_extracted.dfy templates]
-AI: "Here's id_line3_extracted.dfy following the same pattern."
-Human: [Verifies that method bodies are semantically sensible]
-Dafny: [Some verification issues, but structure is sound]
-```
-
-This significantly accelerated line extraction because we didn't reinvent the
-wheel for each line.
-
-**Productivity gain:** ~5x for structural code; requires review for correctness.
-
-#### 3. **Integration Glue**
-
-Python bridge code, test infrastructure, and IR definitions are largely
-mechanical.
-
-**Example:**
-
-```python
-# AI generated the full id_extracted_bridge.py structure
-def identify_line2_from_extracted(...) -> Expression:
-    module = _load_extracted_module(_EXTRACTED_MODULE_NAME_L2, _ENV_EXTRACTED_DIR_L2)
-    method = getattr(module, _EXTRACTED_METHOD_NAME_L2)
-    ok, doc = method(...)
-    if not ok:
-        raise Unidentifiable(...)
-    return ir_doc_to_expression(doc)
-```
-
-This was 90% correct on first pass; we only needed to review for consistency.
-
-**Productivity gain:** ~15x; very high accuracy.
-
-#### 4. **Documentation and Examples**
-
-LLMs generate readable comments, docstrings, and example usage.
-
-**Example:**
-
-```dafny
-// Filter the ordering to extract only those members present in the given set.
-// Preserves the ordering from the input sequence.
-method FilterByOrdering(ordering: seq<string>, members: set<string>)
-  returns (values: seq<string>)
-  ensures forall x :: x in values ==> x in members
-  ensures forall i, j :: 0 <= i < j < |values| ==> values[i] != values[j]
-{
-  ...
-}
-```
-
-This helps onboarding and maintenance.
-
----
-
-### 6.2 Where AI Struggled
-
-#### 1. **Underdetermined Proof Goals**
-
-When a goal has multiple valid approaches, LLMs often chose the path of least
-resistance (axioms, assumes) rather than finding the intended proof.
-
-**Example failure:**
-
-```dafny
-// Goal: prove that ReorderingPreservesMembership
-// LLM's attempt:
-lemma ReorderingPreservesMembership(ordering: seq<string>, set: set<string>)
-  ensures forall x :: x in set ==>
-    (x in ordering) <==> (exists i :: 0 <= i < |ordering| ==> ordering[i] == x)
-{
-  // LLM generated:
-  assume {:axiom} true; // This preserves membership trivially
-}
-
-// Human fix: realized it needed an induction on |ordering|
-lemma ReorderingPreservesMembership(ordering: seq<string>, set: set<string>)
-  returns (result: bool)
-{
-  if |ordering| == 0 { return x !in set; }
-  var head := ordering[0];
-  var tail := ordering[1..];
-  return (x == head) || ReorderingPreservesMembership(tail, set);
-}
-```
-
-**Root cause:** LLMs don't understand the proof search space; they generate
-syntactically valid Dafny but semantically vacuous.
-
-#### 2. **Library Hallucination**
-
-LLMs would suggest Dafny library functions that don't exist.
-
-**Example:**
-
-```dafny
-// LLM suggested:
-method DeduplicateSet(items: set<string>) returns (unique: seq<string>) {
-  return SetToSortedSeq(items);  // ← SetToSortedSeq doesn't exist in std lib
-}
-
-// Actual fix:
-method DeduplicateSet(items: set<string>) returns (unique: seq<string>) {
-  unique := [];
-  for item in items {
-    unique := unique + [item];
-  }
-  // (Sets are already deduped; this just extracts a seq)
-}
-```
-
-**Mitigation:** We built a custom "Dafny utility library" with working examples
-of common patterns and showed it to the LLM in prompts.
-
-#### 3. **Verification Error Diagnosis**
-
-When Dafny reported a verification failure, LLMs rarely pinpointed the issue.
-They'd either:
-
-- Re-write the entire function, or
-- Suggest axioms to "work around" the error.
-
-**Example:**
-
-```
-Dafny error: [line 42] assertion violation
-
-LLM response:
-"Add assume {:axiom} true; before line 42 to suppress this error."
-
-Human investigation:
-"Oh, I see—the loop invariant is too weak. Line 42 requires that
-tail_items * remaining == {}, but the invariant only guarantees
-tail_items ⊆ tail. Let me strengthen the invariant to
-tail_items ⊆ tail ∧ tail_items ∩ processed == {}."
-```
-
-**Root cause:** LLMs can't execute Dafny; they're reasoning about code
-syntactically, not semantically.
-
-#### 4. **Complex Recursion and Termination**
-
-When proofs involved intricate termination measures (e.g., lexicographic
-ordering on nested sets), LLMs would generate code that _looked_ correct but
-failed verification.
-
-**Example:**
-
-```dafny
-// LLM's attempt at recursive ID line handling:
-method RecursiveIDStep(remaining: set<string>, depth: nat) returns (result: IRNode)
-  decreases remaining
-{
-  if remaining == {} { return IRProb([], [], []); }
-  var x := var x :| x in remaining;  // Pick an arbitrary element
-  var rest := remaining - {x};
-  // ... process x ...
-  return IRProduct([process(x), RecursiveIDStep(rest, depth + 1)]);
-}
-
-// Dafny complaint: Cannot prove decreases remaining because
-// rest = remaining - {x} is not *visibly* smaller in the term order.
-
-// Human fix: explicit cardinality measure
-method RecursiveIDStep(remaining: set<string>) returns (result: IRNode)
-  decreases |remaining|
-{
-  ...
-}
-```
-
-**Lesson:** Recursion with complex measures (sets, sequences with multiple
-parameters) requires human insight into the proof strategy. LLMs are not good at
-this.
-
----
-
-### 6.3 Overall AI Productivity Model
-
-Based on the project, here's how AI assistance affects formal verification
-development:
-
-| Task                                              | LLM Productivity | Human Productivity | Recommendation                               |
-| ------------------------------------------------- | ---------------- | ------------------ | -------------------------------------------- |
-| Scaffolding (sigs, stubs, invariants)             | 10x faster       | baseline           | Use LLM, review structure                    |
-| Boilerplate (bridge code, tests, IR defs)         | 15x faster       | baseline           | Use LLM, validate consistency                |
-| Pattern replication (next extracted line)         | 5x faster        | baseline           | Use LLM with prior example, review semantics |
-| Simple proofs (induction on lists, basic set ops) | 2x faster        | baseline           | Use LLM first draft, review                  |
-| Complex proofs (recursion, creative lemmas)       | slower           | baseline           | Human-led; LLM for intermediate steps        |
-| Debugging verification failures                   | slower           | baseline           | Human-led; LLM for syntax checking           |
-| Documentation & examples                          | 5x faster        | baseline           | Use LLM, review for accuracy                 |
-
-**Net effect:** LLMs provide significant speedup for ~60% of formal verification
-work (scaffolding, boilerplate, patterns), and neutral-to-negative effect on
-~40% (complex proofs, debugging).
-
-**Best practice:** Use LLMs for bottom-up scaffolding and infrastructure, but
-keep complex proof strategy human-led.
+We did **not** run a formal time-and-motion study in this project, so this
+document intentionally avoids quantitative productivity claims.
 
 ---
 
@@ -819,19 +916,21 @@ keep complex proof strategy human-led.
 
 ### 7.1 On Dafny as a Code Generation Backend
 
-**Observation:** Dafny can successfully serve as a "verified oracle" for
-algorithms—you can:
+**Observation:** Dafny can successfully serve as a formally verified reference
+implementation for algorithms—you can:
 
 1. Specify the algorithm in Dafny.
 2. Verify theorems about it.
 3. Extract to Python (or C#, Java, Go, JavaScript).
-4. Validate via conformance testing.
+4. Use the extracted code as a reference for validating existing implementations
+   via parity testing.
 
-**But:** There are limits. Full automation requires:
+**But:** There are limits. This approach requires:
 
 - Algorithmic decomposition into small, self-contained units.
 - Conservative fallback paths (don't insist on verification if you can
   gracefully degrade).
+- Comprehensive test coverage for parity validation.
 - Testability from day one.
 
 **Recommendation:** Use Dafny extraction for:
@@ -893,12 +992,11 @@ verified while maintaining tractability.
 
 **Observation from this project:**
 
-- **AI helps with 70% of the work** (scaffolding, boilerplate, pattern
-  generation).
-- **AI hurts on 30% of the work** (proof strategy, debugging, complex
-  recursion).
-- **Net gain:** ~2-3x faster development than humans alone, with careful
-  oversight.
+- AI helps substantially with scaffolding, boilerplate, and pattern replication.
+- AI is less reliable on proof strategy, verifier debugging, and complex
+  recursion.
+- Net impact is positive with careful human oversight, but this project did not
+  perform a formal productivity study.
 
 **Best practices:**
 
@@ -1007,11 +1105,11 @@ y0/
 # Verify all Dafny specifications
 dafny verify src/dafny/*.dfy
 
-# Build extracted Line 1 to Python
-bash scripts/build_dafny_id_line1_extracted.sh
+# Build extracted full ID runtime to Python
+bash scripts/build_dafny_id_full_extracted.sh
 
-# Run Line 1 smoke test
-python scripts/check_dafny_id_line1_extracted_runtime.py
+# Run full runtime smoke test
+python scripts/check_dafny_id_full_runtime.py
 
 # Run parity test suite
 pytest tests/test_algorithm/test_id_generated_parity.py -v
@@ -1072,16 +1170,17 @@ changes needed.
    approaches—each could benefit from the same extraction pipeline.
 3. **Contribute to Dafny ecosystem.** Publish the Dafny infrastructure (IR
    definitions, canonicalization predicates) so other projects can use similar
-   verified oracle patterns.
+   verified reference implementation approaches.
 
 ---
 
 ## Part 10: Conclusion
 
-We successfully demonstrated that **Dafny can serve as a practical
-verified-oracle backbone for causal identification work**. The modular
-extraction approach is practical, testable, and deployable, while remaining
-explicit about current gaps (fallback paths and theorem-layer axioms).
+We successfully demonstrated that **Dafny can serve as a practical verified
+reference implementation for causal identification**, validated via parity
+testing against existing handwritten code. The modular extraction approach is
+practical, testable, and deployable, while remaining explicit about current gaps
+(fallback paths and theorem-layer axioms).
 
 **Key takeaways for Midspiral:**
 
@@ -1092,8 +1191,9 @@ explicit about current gaps (fallback paths and theorem-layer axioms).
 3. **Testing complements verification.** Parity testing, conformance testing,
    and canonicalization provide strong assurance when full formal proof is
    infeasible.
-4. **AI-assisted formal methods work for 60-70% of the work** (scaffolding,
-   boilerplate, patterns) but require human oversight on proof strategy.
+4. **AI-assisted formal methods are useful for scaffolding and boilerplate,**
+   but require human oversight on proof strategy and verifier-driven design
+   choices.
 5. **Type system constraints are real.** Dafny handles discrete domains well;
    continuous probability is a hard boundary (move to Lean for that).
 
@@ -1133,7 +1233,5 @@ algorithms in causal inference and beyond.
 
 ---
 
-**Document version:** 1.1  
-**Last updated:** May 11, 2026  
-**Author:** Causal Inference Formal Methods Team  
-**Contact:** github.com/y0-causal-inference/y0
+**Document version:** 1.4 **Last updated:** May 14, 2026  
+**Author:** Jeremy Zucker **Contact:** github.com/y0-causal-inference/y0
