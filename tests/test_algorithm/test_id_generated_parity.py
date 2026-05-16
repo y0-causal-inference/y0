@@ -1162,9 +1162,7 @@ def test_line3_extracted_path_positive(monkeypatch: pytest.MonkeyPatch) -> None:
     y = Variable("Y")
     z = Variable("Z")
     graph = NxMixedGraph.from_edges(directed=[(z, x), (x, y)], undirected=[(z, x)])
-    identification = Identification.from_expression(
-        graph=graph, query=P(y @ ~x)
-    )
+    identification = Identification.from_expression(graph=graph, query=P(y @ ~x))
 
     try:
         result = id_generated_module.identify_line3_from_extracted(identification)
@@ -1179,12 +1177,8 @@ def test_line6_extracted_path_positive(monkeypatch: pytest.MonkeyPatch) -> None:
     x = Variable("X")
     y = Variable("Y")
     z = Variable("Z")
-    graph = NxMixedGraph.from_edges(
-        directed=[(x, y), (x, z), (z, y)], undirected=[(x, z)]
-    )
-    identification = Identification.from_expression(
-        graph=graph, query=P(y @ [~x, ~z])
-    )
+    graph = NxMixedGraph.from_edges(directed=[(x, y), (x, z), (z, y)], undirected=[(x, z)])
+    identification = Identification.from_expression(graph=graph, query=P(y @ [~x, ~z]))
 
     try:
         result = id_generated_module.identify_line6_from_extracted(identification)
@@ -1199,12 +1193,8 @@ def test_line7_extracted_path_positive(monkeypatch: pytest.MonkeyPatch) -> None:
     x = Variable("X")
     w1 = Variable("W1")
     y1 = Variable("Y1")
-    graph = NxMixedGraph.from_edges(
-        directed=[(x, y1), (w1, x)], undirected=[(w1, y1)]
-    )
-    identification = Identification.from_expression(
-        graph=graph, query=P(y1 @ [~x, ~w1])
-    )
+    graph = NxMixedGraph.from_edges(directed=[(x, y1), (w1, x)], undirected=[(w1, y1)])
+    identification = Identification.from_expression(graph=graph, query=P(y1 @ [~x, ~w1]))
 
     try:
         result = id_generated_module.identify_line7_from_extracted(identification)

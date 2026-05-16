@@ -7,6 +7,10 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Literal, TypedDict, cast
 
+from y0.algorithm.identify.id_extracted_bridge import (
+    DafnyRuntimeUnavailableError,
+    raw_dafny_call_for_identification,
+)
 from y0.algorithm.identify.id_ir_to_dsl import ir_doc_to_expression
 from y0.algorithm.identify.utils import Identification, Unidentifiable
 from y0.dsl import Expression, Variable
@@ -14,6 +18,7 @@ from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import canonical_expr_equal, canonicalize
 
 __all__ = [
+    "DafnyRuntimeUnavailableError",
     "OracleAnchor",
     "OracleCase",
     "OracleExpectation",
@@ -24,6 +29,7 @@ __all__ = [
     "iter_cases",
     "load_fixture",
     "normalize_expression",
+    "raw_dafny_call",
     "run_case",
     "save_fixture",
 ]
@@ -154,14 +160,45 @@ def build_identification_from_case(case: OracleCase) -> Identification:
         undirected=undirected or None,
     )
 
-    outcomes = {Variable(name) for name in cast(list[str], query["outcomes"])}
-    treatments = {Variable(name) for name in cast(list[str], query["treatments"])}
+    outcomes = {Variable(name) for name in query["outcomes"]}
+    treatments = {Variable(name) for name in query["treatments"]}
 
     return Identification.from_parts(
         outcomes=outcomes,
         treatments=treatments,
         graph=graph,
     )
+
+
+def raw_dafny_call(case: OracleCase) -> tuple[bool, object]:
+    """Invoke the Dafny runtime for *case* and return the raw ``(ok, result)`` pair.
+
+    This is the primary entry point for checking the Dafny runtime's ``ok``
+    signal independently of the Python gate (``supports_query_lineN``).
+    The ``ok`` flag indicates whether the Dafny runtime itself considers the
+    query applicable for the given line; the secondary ``result`` value is the
+    raw Dafny response and may be discarded.
+
+    Typical usage in a test::
+
+        try:
+            ok, _ = raw_dafny_call(case)
+        except DafnyRuntimeUnavailableError:
+            pytest.skip("Dafny runtime not available in this environment")
+        assert ok == expected_ok
+
+    :param case: An oracle case whose ``query`` contains ``line_number`` and
+        ``graph_def``.
+    :returns: ``(ok, raw_result)`` from the Dafny runtime.
+    :raises DafnyRuntimeUnavailableError: If the runtime directory is absent or
+        the ``_dafny`` package cannot be imported.
+    :raises KeyError: If ``line_number`` is absent from the case query.
+    """
+    identification = build_identification_from_case(case)
+    line_number = int(case["query"].get("line_number", 1))  # type: ignore[call-overload]
+    ordering_names = case["query"].get("ordering", [])
+    ordering = [Variable(name) for name in ordering_names] if ordering_names else None
+    return raw_dafny_call_for_identification(identification, line_number, ordering=ordering)
 
 
 def assert_case(case: OracleCase, actual: object) -> None:

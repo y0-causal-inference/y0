@@ -264,7 +264,11 @@ ignore = [
 "scripts/run_ruff_on_tracked.py" = ["D103", "S603", "S607", "T201"]
 # Transitional generated routing and route-order tests are intentionally branch-heavy
 "src/y0/algorithm/identify/id_generated.py" = ["C901"]
-"tests/test_algorithm/test_id_generated_parity.py" = ["C901"]
+"src/y0/algorithm/identify/id_extracted_bridge.py" = ["C901"]
+"tests/test_algorithm/test_id_generated_parity.py" = ["C901", "S101"]
+# Gate-routing contract tests and oracle correspondence tests use plain pytest assert
+"tests/test_algorithm/test_id_extracted_routing.py" = ["S101"]
+"tests/test_dafny_id_correspondence.py" = ["N806", "RUF001", "RUF002", "S101"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

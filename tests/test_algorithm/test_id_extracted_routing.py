@@ -28,7 +28,7 @@ from y0.algorithm.identify.id_extracted_bridge import (
     supports_query_line6,
     supports_query_line7,
 )
-from y0.dsl import M, W1, X, Y, Y1, Z
+from y0.dsl import M, X, Y, Z
 from y0.examples import (
     line_1_example,
     line_2_example,

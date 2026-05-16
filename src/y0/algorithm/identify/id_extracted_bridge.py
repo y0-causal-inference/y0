@@ -20,6 +20,7 @@ from y0.algorithm.identify.utils import Identification
 from y0.dsl import Expression, P, Product, Variable
 
 __all__ = [
+    "DafnyRuntimeUnavailableError",
     "ExtractedFullUnavailableError",
     "ExtractedLine1UnavailableError",
     "ExtractedLine2UnavailableError",
@@ -36,6 +37,7 @@ __all__ = [
     "identify_line5_from_extracted",
     "identify_line6_from_extracted",
     "identify_line7_from_extracted",
+    "raw_dafny_call_for_identification",
     "supports_query_line1",
     "supports_query_line2",
     "supports_query_line3",
@@ -64,6 +66,7 @@ def _strict_mode() -> bool:
     """
     return os.environ.get(_ENV_STRICT_MODE, "0").lower() in {"1", "true", "yes", "on"}
 
+
 _EXTRACTED_MODULE_NAME_FULL = "IDFullExtracted"
 _EXTRACTED_METHOD_NAME_FULL = "IDToIR"
 _ENV_EXTRACTED_DIR_FULL = "Y0_DAFNY_ID_FULL_PY_DIR"
@@ -91,6 +94,14 @@ _ENV_EXTRACTED_DIR_L6 = "Y0_DAFNY_ID_LINE6_PY_DIR"
 _EXTRACTED_MODULE_NAME_L7 = "IDLine7Extracted"
 _EXTRACTED_METHOD_NAME_L7 = "IDLine7Transform"
 _ENV_EXTRACTED_DIR_L7 = "Y0_DAFNY_ID_LINE7_PY_DIR"
+
+
+class DafnyRuntimeUnavailableError(RuntimeError):
+    """Raised when the Dafny extracted runtime is not installed or cannot be loaded.
+
+    Callers that want to skip rather than fail when the runtime is absent should
+    catch this error and call ``pytest.skip`` (or equivalent).
+    """
 
 
 class ExtractedLine1UnavailableError(RuntimeError):
@@ -1078,3 +1089,158 @@ def identify_line7_from_extracted(
         graph=identification.graph.subgraph(district_nodes),
     )
     return identify_handwritten(transformed_identification, ordering=filtered_order)
+
+
+_UnavailableErrors = (
+    ExtractedLine1UnavailableError,
+    ExtractedLine2UnavailableError,
+    ExtractedLine3UnavailableError,
+    ExtractedLine4UnavailableError,
+    ExtractedLine5UnavailableError,
+    ExtractedLine6UnavailableError,
+    ExtractedLine7UnavailableError,
+    ExtractedFullUnavailableError,
+)
+
+_LINE_LOADERS: dict[int, tuple[Any, str]] = {
+    1: (_load_extracted_module, _EXTRACTED_METHOD_NAME),
+    2: (_load_extracted_module_l2, _EXTRACTED_METHOD_NAME_L2),
+    3: (_load_extracted_module_l3, _EXTRACTED_METHOD_NAME_L3),
+    4: (_load_extracted_module_l4, _EXTRACTED_METHOD_NAME_L4),
+    5: (_load_extracted_module_l5, _EXTRACTED_METHOD_NAME_L5),
+    6: (_load_extracted_module_l6, _EXTRACTED_METHOD_NAME_L6),
+    7: (_load_extracted_module_l7, _EXTRACTED_METHOD_NAME_L7),
+}
+
+
+def raw_dafny_call_for_identification(
+    identification: Identification,
+    line_number: int,
+    *,
+    ordering: Sequence[Variable] | None = None,
+) -> tuple[bool, Any]:
+    """Invoke the Dafny runtime for *line_number* and return ``(ok, raw_result)``.
+
+    Unlike ``identify_lineN_from_extracted``, this function:
+
+    * Does **not** call ``supports_query_lineN`` (bypasses the Python gate).
+    * Does **not** translate the Dafny IR into a y0 ``Expression``.
+    * Returns the raw ``(ok, ...)`` Dafny response as ``(bool, Any)``.
+
+    Use this to verify what the Dafny runtime itself considers applicable,
+    independent of the Python gate.  The *raw_result* is the remainder of the
+    Dafny tuple and may be discarded by callers that only need the ``ok`` flag.
+
+    :param identification: The query to pass to the Dafny runtime.
+    :param line_number: Which ID line to invoke (1-7).
+    :param ordering: Optional topological ordering; defaults to the graph order.
+    :raises DafnyRuntimeUnavailableError: If the runtime directory is absent or
+        ``_dafny`` cannot be imported.
+    :raises ValueError: If *line_number* is outside 1-7.
+    """
+    if line_number not in _LINE_LOADERS:
+        raise ValueError(f"unsupported line_number {line_number!r}; must be 1-7")
+
+    loader, method_name = _LINE_LOADERS[line_number]
+    try:
+        module = loader()
+    except _UnavailableErrors as error:
+        raise DafnyRuntimeUnavailableError(
+            f"runtime for line {line_number} unavailable: {error}"
+        ) from error
+
+    runner = getattr(module, "default__", None)
+    method = getattr(runner, method_name, None)
+    if method is None:
+        raise DafnyRuntimeUnavailableError(f"extracted module does not provide {method_name}")
+
+    try:
+        dafny_runtime = importlib.import_module("_dafny")
+    except Exception as error:  # pragma: no cover - environment-dependent import
+        raise DafnyRuntimeUnavailableError("missing _dafny package") from error
+
+    order = (
+        tuple(ordering) if ordering is not None else tuple(identification.graph.topological_sort())
+    )
+    order_names = [variable.name for variable in order]
+    outcomes_names = {variable.name for variable in identification.outcomes}
+    treatments_names = {variable.name for variable in identification.treatments}
+
+    seq_ctor = getattr(dafny_runtime, "SeqWithoutIsStrInference", None)
+    set_ctor = getattr(dafny_runtime, "Set", None)
+    if seq_ctor is None or set_ctor is None:
+        raise DafnyRuntimeUnavailableError("_dafny sequence/set constructors unavailable")
+
+    edge_class = getattr(module, "Edge_Edge", None)
+
+    if line_number == 1:
+        result = method("runtime_line1", outcomes_names, treatments_names, seq_ctor(order_names))
+        return bool(result[0]), result[1:]
+
+    if edge_class is None:
+        raise DafnyRuntimeUnavailableError(
+            f"Edge class not found in extracted Line-{line_number} module"
+        )
+
+    directed_edge_objs: list[Any] = [
+        edge_class(s.name, t.name) for s, t in identification.graph.directed.edges()
+    ]
+    undirected_edge_objs: list[Any] = [
+        edge_class(s.name, t.name) for s, t in identification.graph.undirected.edges()
+    ]
+    all_node_names = [v.name for v in identification.graph.nodes()]
+
+    if line_number == 2:
+        result = method(
+            "runtime_line2",
+            seq_ctor(directed_edge_objs),
+            seq_ctor(all_node_names),
+            set_ctor(outcomes_names),
+            set_ctor(treatments_names),
+            seq_ctor(order_names),
+        )
+    elif line_number == 3:
+        result = method(
+            seq_ctor(directed_edge_objs),
+            seq_ctor(all_node_names),
+            set_ctor(outcomes_names),
+            set_ctor(treatments_names),
+            seq_ctor(order_names),
+        )
+    elif line_number == 4:
+        result = method(
+            "runtime_line4",
+            seq_ctor(directed_edge_objs),
+            seq_ctor(undirected_edge_objs),
+            seq_ctor(all_node_names),
+            set_ctor(outcomes_names),
+            set_ctor(treatments_names),
+            seq_ctor(order_names),
+        )
+    elif line_number == 5:
+        result = method(
+            "runtime_line5",
+            seq_ctor(undirected_edge_objs),
+            seq_ctor(all_node_names),
+            set_ctor(outcomes_names),
+            set_ctor(treatments_names),
+            seq_ctor(order_names),
+        )
+    elif line_number == 6:
+        result = method(
+            "runtime_line6",
+            seq_ctor(undirected_edge_objs),
+            seq_ctor(all_node_names),
+            set_ctor(outcomes_names),
+            set_ctor(treatments_names),
+            seq_ctor(order_names),
+        )
+    else:  # line_number == 7
+        result = method(
+            seq_ctor(undirected_edge_objs),
+            seq_ctor(all_node_names),
+            set_ctor(treatments_names),
+            seq_ctor(order_names),
+        )
+
+    return bool(result[0]), result[1:]
