@@ -280,6 +280,63 @@ class TestIdentify(cases.GraphTestCase):
                 Sum.safe(expression=P(Y1 | (W1, X)) * P(W1), ranges=[W1]), identify(id_in)
             )
 
+    def test_line_6_with_explicit_ordering(self):
+        """Test line_6 with an explicit ordering (covers ordering-is-not-None branch)."""
+        for identification in line_6_example.identifications:
+            id_in = identification["id_in"][0]
+            id_out = identification["id_out"][0]
+            ordering = id_in.graph.topological_sort()
+            self.assert_expr_equal(
+                expected=id_out.estimand,
+                actual=line_6(id_in, ordering=ordering),
+            )
+
+    def test_line_7_without_ordering(self):
+        """Test line_7 without an explicit ordering (triggers topological_sort call inside)."""
+        for identification in line_7_example.identifications:
+            id_out = identification["id_out"][0]
+            id_in = identification["id_in"][0]
+            self.assertEqual(id_out, line_7(id_in))
+
+    def test_line_7_no_suitable_district(self):
+        """Test line_7 raises ValueError when no district properly contains the treatment-free district.
+
+        Graph: X -> Y, Y <-> Z (bidirected)
+        G.districts() = [{X}, {Y, Z}]
+        graph_without_X.districts() = [{Y, Z}]
+        district_without_treatment = {Y, Z}
+        No district in G is a strict superset of {Y, Z}, so ValueError is raised.
+        """
+        graph = NxMixedGraph.from_edges(
+            directed=[(X, Y)],
+            undirected=[(Y, Z)],
+        )
+        identification = Identification.from_parts(
+            outcomes={Y},
+            treatments={X},
+            estimand=P(X, Y, Z),
+            graph=graph,
+        )
+        with self.assertRaises(ValueError):
+            line_7(identification)
+
+    def test_get_single_district_multiple_districts(self):
+        """Test that a graph with multiple treatment-free districts raises RuntimeError.
+
+        Graph: X -> Y, X -> Z (no bidirected edges)
+        graph_without_X.districts() = [{Y}, {Z}] (2 districts)
+        _get_single_district raises RuntimeError because len(districts) != 1.
+        """
+        graph = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z)])
+        identification = Identification.from_parts(
+            outcomes={Y},
+            treatments={X},
+            estimand=P(X, Y, Z),
+            graph=graph,
+        )
+        with self.assertRaises(RuntimeError):
+            line_7(identification)
+
     def test_figure_2a(self):
         """Test Figure 2A. from Shpitser *et al.*, (2008)."""
         graph = y0.examples.figure_2a_example.graph

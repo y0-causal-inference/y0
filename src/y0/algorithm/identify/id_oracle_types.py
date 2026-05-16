@@ -8,8 +8,9 @@ from pathlib import Path
 from typing import Literal, TypedDict, cast
 
 from y0.algorithm.identify.id_ir_to_dsl import ir_doc_to_expression
-from y0.algorithm.identify.utils import Unidentifiable
+from y0.algorithm.identify.utils import Identification, Unidentifiable
 from y0.dsl import Expression, Variable
+from y0.graph import NxMixedGraph
 from y0.mutate.canonicalize_expr import canonical_expr_equal, canonicalize
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "OracleFixture",
     "OracleQuery",
     "assert_case",
+    "build_identification_from_case",
     "iter_cases",
     "load_fixture",
     "normalize_expression",
@@ -46,7 +48,7 @@ class OracleQuery(TypedDict):
 class OracleExpectation(TypedDict):
     """Expectation payload for an oracle case."""
 
-    kind: Literal["ir", "exception", "boolean", "algebraic_equivalence"]
+    kind: Literal["ir", "exception", "boolean", "algebraic_equivalence", "gate_check"]
     value: dict[str, object]
 
 
@@ -121,6 +123,45 @@ def run_case(case: OracleCase, engine: str = "handwritten") -> object:
         fprime_nodes = {Variable(name) for name in fprime_nodes_raw}
         raise Unidentifiable(f_nodes, fprime_nodes)
     raise NotImplementedError(f"unsupported oracle case kind: {kind!r}")
+
+
+def build_identification_from_case(case: OracleCase) -> Identification:
+    """Build an Identification from a gate_check oracle case.
+
+    The case's ``query`` must contain a ``graph_def`` object with:
+
+    * ``directed``    — list of ``[source, target]`` pairs
+    * ``undirected``  — list of ``[u, v]`` pairs
+    * ``extra_nodes`` — list of node name strings to add (may be empty)
+
+    :param case: An oracle case with a ``graph_def`` in its query.
+    :returns: The constructed Identification.
+    :raises KeyError: If ``graph_def`` is absent from the query.
+    """
+    query = case["query"]
+    graph_def = cast(dict[str, object], query.get("graph_def", {}))
+    directed_raw = cast(list[list[str]], graph_def.get("directed", []))
+    undirected_raw = cast(list[list[str]], graph_def.get("undirected", []))
+    extra_nodes_raw = cast(list[str], graph_def.get("extra_nodes", []))
+
+    extra_nodes = [Variable(name) for name in extra_nodes_raw]
+    directed = [(Variable(src), Variable(tgt)) for src, tgt in directed_raw]
+    undirected = [(Variable(u), Variable(v)) for u, v in undirected_raw]
+
+    graph = NxMixedGraph.from_edges(
+        nodes=extra_nodes or None,
+        directed=directed or None,
+        undirected=undirected or None,
+    )
+
+    outcomes = {Variable(name) for name in cast(list[str], query["outcomes"])}
+    treatments = {Variable(name) for name in cast(list[str], query["treatments"])}
+
+    return Identification.from_parts(
+        outcomes=outcomes,
+        treatments=treatments,
+        graph=graph,
+    )
 
 
 def assert_case(case: OracleCase, actual: object) -> None:

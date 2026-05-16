@@ -49,6 +49,21 @@ _EXTRACTED_MODULE_NAME = "IDLine1Extracted"
 _EXTRACTED_METHOD_NAME = "IDLine1ToIR"
 _ENV_EXTRACTED_DIR = "Y0_DAFNY_ID_LINE1_PY_DIR"
 
+_ENV_STRICT_MODE = "Y0_DAFNY_STRICT"
+
+
+def _strict_mode() -> bool:
+    """Return True when Y0_DAFNY_STRICT=1 (or true/yes/on) is set.
+
+    In strict mode, ``identify_lineN_from_extracted`` raises ``AssertionError``
+    instead of ``ExtractedLineNUnavailableError`` when the Dafny runtime returns
+    ``ok=False`` after the Python gate already approved the query.  Use this in
+    CI environments that have the compiled Dafny runtime available to surface
+    Python-gate / Dafny-gate disagreements immediately rather than masking them
+    via silent fallback.
+    """
+    return os.environ.get(_ENV_STRICT_MODE, "0").lower() in {"1", "true", "yes", "on"}
+
 _EXTRACTED_MODULE_NAME_FULL = "IDFullExtracted"
 _EXTRACTED_METHOD_NAME_FULL = "IDToIR"
 _ENV_EXTRACTED_DIR_FULL = "Y0_DAFNY_ID_FULL_PY_DIR"
@@ -225,6 +240,11 @@ def identify_full_from_extracted(
         seq_ctor(order_names),
     )
     if not ok:
+        if _strict_mode():
+            raise AssertionError(
+                "Full extracted runtime returned ok=False for a query that "
+                "supports_query_full() approved — check the gate implementation."
+            )
         raise ExtractedFullUnavailableError("extracted full runtime rejected query")
 
     doc_json = dafny_ir_doc_to_jsonable(dafny_doc)
@@ -233,8 +253,24 @@ def identify_full_from_extracted(
 
 
 def supports_query_line1(identification: Identification) -> bool:
-    """Return true when query can be handled by extracted Line-1 runtime."""
-    return not identification.treatments and not identification.conditions
+    """Return true when Line 1 applies: X ∩ An(Y)_G = ∅.
+
+    Line 1 applies when no treatment variable is an ancestor of any outcome in
+    the original graph G.  For DAGs this is equivalent to the interventional
+    condition X ∩ An(Y)_{G_{bar_x}} = ∅ because:
+      - Removing incoming edges to X only affects paths that ARRIVE at X.
+      - Any directed path FROM a treatment t to an outcome Y does not use
+        in-edges of t (a DAG has no cycles), so those paths are preserved in
+        G_{bar_x} unchanged.
+
+    The empty-treatment case X = ∅ is covered as a special case.
+    """
+    if identification.conditions:
+        return False
+    if not identification.treatments:
+        return True
+    ancestors = identification.graph.ancestors_inclusive(set(identification.outcomes))
+    return not bool(identification.treatments & ancestors)
 
 
 def identify_line1_from_extracted(
@@ -279,6 +315,11 @@ def identify_line1_from_extracted(
         seq_ctor(order_names),
     )
     if not ok:
+        if _strict_mode():
+            raise AssertionError(
+                "Line 1 extracted runtime returned ok=False for a query that "
+                "supports_query_line1() approved — check the gate implementation."
+            )
         raise ExtractedLine1UnavailableError("extracted runtime rejected query")
 
     doc_json = dafny_ir_doc_to_jsonable(dafny_doc)
@@ -378,6 +419,11 @@ def identify_line2_from_extracted(
         seq_ctor(order_names),
     )
     if not ok:
+        if _strict_mode():
+            raise AssertionError(
+                "Line 2 extracted runtime returned ok=False for a query that "
+                "supports_query_line2() approved — check the gate implementation."
+            )
         raise ExtractedLine2UnavailableError(
             "extracted runtime rejected query (Line 2 does not apply)"
         )
@@ -484,6 +530,11 @@ def identify_line3_from_extracted(
         seq_ctor(order_names),
     )
     if not ok:
+        if _strict_mode():
+            raise AssertionError(
+                "Line 3 extracted runtime returned ok=False for a query that "
+                "supports_query_line3() approved — check the gate implementation."
+            )
         raise ExtractedLine3UnavailableError(
             "extracted runtime rejected query (Line 3 does not apply)"
         )
@@ -612,6 +663,11 @@ def identify_line5_from_extracted(
         seq_ctor(order_names),
     )
     if not ok:
+        if _strict_mode():
+            raise AssertionError(
+                "Line 5 extracted runtime returned ok=False for a query that "
+                "supports_query_line5() approved — check the gate implementation."
+            )
         raise ExtractedLine5UnavailableError(
             "extracted runtime rejected query (Line 5 does not apply)"
         )
@@ -742,6 +798,11 @@ def identify_line4_from_extracted(
         seq_ctor(order_names),
     )
     if not ok:
+        if _strict_mode():
+            raise AssertionError(
+                "Line 4 extracted runtime returned ok=False for a query that "
+                "supports_query_line4() approved — check the gate implementation."
+            )
         raise ExtractedLine4UnavailableError(
             "extracted runtime rejected query (Line 4 does not apply)"
         )
@@ -860,6 +921,11 @@ def identify_line6_from_extracted(
         seq_ctor(order_names),
     )
     if not ok:
+        if _strict_mode():
+            raise AssertionError(
+                "Line 6 extracted runtime returned ok=False for a query that "
+                "supports_query_line6() approved — check the gate implementation."
+            )
         raise ExtractedLine6UnavailableError(
             "extracted runtime rejected query (Line 6 does not apply)"
         )
@@ -990,6 +1056,11 @@ def identify_line7_from_extracted(
         seq_ctor(order_names),
     )
     if not ok:
+        if _strict_mode():
+            raise AssertionError(
+                "Line 7 extracted runtime returned ok=False for a query that "
+                "supports_query_line7() approved — check the gate implementation."
+            )
         raise ExtractedLine7UnavailableError(
             "extracted runtime rejected query (Line 7 does not apply)"
         )

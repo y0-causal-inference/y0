@@ -1087,3 +1087,128 @@ def test_generated_falls_back_when_not_line7(monkeypatch: pytest.MonkeyPatch) ->
         "supports_line7",
     ]:
         pytest.fail(f"unexpected generated fallback routing calls: {calls!r}")
+
+
+# ===========================================================================
+# Defence 3 — Path-selection tests
+#
+# Each test verifies that a known positive input reaches the extracted runtime
+# and produces a non-None result.  Tests skip automatically when the compiled
+# Dafny runtime is unavailable so that the standard CI pipeline (no Dafny) is
+# unaffected.  They activate on developer machines and Dafny-enabled CI jobs.
+#
+# The boundary case for Line 1 is the critical regression: `_line1_boundary_id`
+# has non-empty treatments that have no directed path to any outcome.  The
+# fixed supports_query_line1 now returns True for this case so the extracted
+# runtime is actually exercised instead of silently falling back to handwritten.
+# ===========================================================================
+
+
+def _line1_boundary_identification() -> Identification:
+    """Boundary identification for Line 1: X ≠ ∅ but X ∩ An(Y)_{G_bar_x} = ∅.
+
+    Graph: X→Z, Y (isolated).  treatments={X}, outcomes={Y}.
+    In G_bar_X, Y has no ancestors other than itself, so Line 1 applies.
+    """
+    x = Variable("X")
+    y = Variable("Y")
+    z = Variable("Z")
+    graph = NxMixedGraph.from_edges(nodes=[y], directed=[(x, z)])
+    return Identification.from_parts(outcomes={y}, treatments={x}, graph=graph)
+
+
+def test_line1_extracted_path_line1_canonical(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Extracted Line 1 path must succeed on the canonical no-treatment case."""
+    x = Variable("X")
+    y = Variable("Y")
+    graph = NxMixedGraph.from_edges(directed=[(x, y)])
+    # Query P(Y) — no treatments, Line 1 applies trivially.
+    identification = Identification.from_expression(graph=graph, query=P(y))
+
+    try:
+        result = id_generated_module.identify_line1_from_extracted(identification)
+    except id_generated_module.ExtractedLine1UnavailableError:
+        pytest.skip("Line 1 extracted runtime not available in this environment")
+
+    assert result is not None, "Line 1 extracted path returned None for canonical input"
+
+
+def test_line1_extracted_path_boundary_nonempty_treatments_no_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Line 1 extracted path must handle non-empty treatments with no causal path to Y.
+
+    This is the regression test for the Line 1 gate bug.  Before the fix,
+    supports_query_line1 used ``not identification.treatments`` and returned False
+    for any non-empty treatment set, causing the extracted runtime to be skipped
+    even when Line 1 mathematically applies (X ∩ An(Y)_{G_bar_x} = ∅).
+    """
+    identification = _line1_boundary_identification()
+
+    try:
+        result = id_generated_module.identify_line1_from_extracted(identification)
+    except id_generated_module.ExtractedLine1UnavailableError:
+        pytest.skip("Line 1 extracted runtime not available in this environment")
+
+    assert result is not None, (
+        "Line 1 extracted path returned None for boundary input "
+        "(non-empty treatments, no causal path to outcomes)"
+    )
+
+
+def test_line3_extracted_path_positive(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Extracted Line 3 path must succeed on its canonical example."""
+    x = Variable("X")
+    y = Variable("Y")
+    z = Variable("Z")
+    graph = NxMixedGraph.from_edges(directed=[(z, x), (x, y)], undirected=[(z, x)])
+    identification = Identification.from_expression(
+        graph=graph, query=P(y @ ~x)
+    )
+
+    try:
+        result = id_generated_module.identify_line3_from_extracted(identification)
+    except id_generated_module.ExtractedLine3UnavailableError:
+        pytest.skip("Line 3 extracted runtime not available in this environment")
+
+    assert result is not None, "Line 3 extracted path returned None for canonical input"
+
+
+def test_line6_extracted_path_positive(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Extracted Line 6 path must succeed on its canonical example."""
+    x = Variable("X")
+    y = Variable("Y")
+    z = Variable("Z")
+    graph = NxMixedGraph.from_edges(
+        directed=[(x, y), (x, z), (z, y)], undirected=[(x, z)]
+    )
+    identification = Identification.from_expression(
+        graph=graph, query=P(y @ [~x, ~z])
+    )
+
+    try:
+        result = id_generated_module.identify_line6_from_extracted(identification)
+    except id_generated_module.ExtractedLine6UnavailableError:
+        pytest.skip("Line 6 extracted runtime not available in this environment")
+
+    assert result is not None, "Line 6 extracted path returned None for canonical input"
+
+
+def test_line7_extracted_path_positive(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Extracted Line 7 path must succeed on its canonical example."""
+    x = Variable("X")
+    w1 = Variable("W1")
+    y1 = Variable("Y1")
+    graph = NxMixedGraph.from_edges(
+        directed=[(x, y1), (w1, x)], undirected=[(w1, y1)]
+    )
+    identification = Identification.from_expression(
+        graph=graph, query=P(y1 @ [~x, ~w1])
+    )
+
+    try:
+        result = id_generated_module.identify_line7_from_extracted(identification)
+    except id_generated_module.ExtractedLine7UnavailableError:
+        pytest.skip("Line 7 extracted runtime not available in this environment")
+
+    assert result is not None, "Line 7 extracted path returned None for canonical input"

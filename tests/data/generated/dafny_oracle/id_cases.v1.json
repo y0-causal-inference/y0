@@ -616,6 +616,60 @@
           }
         }
       }
+    },
+    {
+      "case_id": "id.line1.boundary.nonempty_treatments_no_path",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine1ToIR",
+        "line": 44
+      },
+      "query": {
+        "graph_id": "line1.boundary.no_path",
+        "graph_def": {
+          "directed": [["X", "Z"]],
+          "undirected": [],
+          "extra_nodes": ["Y"]
+        },
+        "outcomes": ["Y"],
+        "treatments": ["X"],
+        "ordering": ["X", "Y", "Z"],
+        "line_number": 1
+      },
+      "expectation": {
+        "kind": "gate_check",
+        "value": {
+          "ok_expected": true,
+          "description": "X ∩ An(Y)_{G_bar_X} = ∅ because Y is isolated; Line 1 applies even though X ≠ ∅"
+        }
+      }
+    },
+    {
+      "case_id": "id.line1.boundary.treatments_with_path",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine1ToIR",
+        "line": 44
+      },
+      "query": {
+        "graph_id": "line1.boundary.with_path",
+        "graph_def": {
+          "directed": [["X", "Y"]],
+          "undirected": [],
+          "extra_nodes": []
+        },
+        "outcomes": ["Y"],
+        "treatments": ["X"],
+        "ordering": ["X", "Y"],
+        "line_number": 1
+      },
+      "expectation": {
+        "kind": "gate_check",
+        "value": {
+          "ok_expected": false,
+          "description": "X → Y so X ∈ An(Y)_{G_bar_X}; Line 1 does NOT apply"
+        }
+      }
     }
   ]
 }
