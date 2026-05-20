@@ -320,6 +320,13 @@ module DAG {
       Parents(G, v) - X
   }
 
+  // Delete nodes in X and every incident edge.
+  function RemoveNodes(G: Graph, X: set<Node>): Graph
+  {
+    map v | v in Nodes(G) && v !in X ::
+      Parents(G, v) - X
+  }
+
   // ------------------------------------------------------------------
   // Surgery lemmas
   // ------------------------------------------------------------------
@@ -351,6 +358,73 @@ module DAG {
   {
     assert forall v :: v in Nodes(G) ==>
       Parents(G, v) - {} == Parents(G, v);
+  }
+
+  /// Deleting nodes from a DAG preserves acyclicity.
+  lemma RemoveNodes_PreservesDAG(G: Graph, X: set<Node>)
+    requires IsDAG(G)
+    ensures IsDAG(RemoveNodes(G, X))
+  {
+    var ord :| IsTopologicalSort(G, ord);
+    var GX := RemoveNodes(G, X);
+    assert Nodes(GX) == Nodes(G) - X;
+
+    var ordX: seq<Node> := [];
+    var i := 0;
+    while i < |ord|
+      invariant 0 <= i <= |ord|
+      invariant Nodes(GX) == Nodes(G) - X
+      invariant forall j | 0 <= j < |ordX| :: ordX[j] in Nodes(GX)
+      invariant forall j | 0 <= j < |ordX| :: exists k :: 0 <= k < i && ord[k] == ordX[j]
+      invariant forall k | 0 <= k < i && ord[k] in Nodes(GX) :: ord[k] in ordX
+      invariant forall a, b | 0 <= a < b < |ordX| :: ordX[a] != ordX[b]
+      invariant forall j | 0 <= j < |ordX| ::
+        forall p | p in Parents(GX, ordX[j]) ::
+          exists k :: 0 <= k < j && ordX[k] == p
+    {
+      if ord[i] in Nodes(GX) {
+        var v := ord[i];
+        assert v in Nodes(G);
+        assert v !in X;
+        assert Parents(GX, v) == Parents(G, v) - X;
+
+        assert v !in ordX by {
+          if v in ordX {
+            var j :| 0 <= j < |ordX| && ordX[j] == v;
+            var k :| 0 <= k < i && ord[k] == ordX[j];
+            assert 0 <= k < i < |ord|;
+            assert ord[k] == ord[i];
+            assert ord[k] != ord[i];
+          }
+        }
+
+        forall p | p in Parents(GX, v)
+          ensures exists k :: 0 <= k < |ordX| && ordX[k] == p
+        {
+          assert p in Parents(G, v);
+          assert p !in X;
+          var h :| 0 <= h < i && ord[h] == p;
+          assert p in Nodes(G);
+          assert p in Nodes(GX);
+          assert p in ordX;
+          var k :| 0 <= k < |ordX| && ordX[k] == p;
+        }
+
+        ordX := ordX + [v];
+      }
+      i := i + 1;
+    }
+
+    forall v | v in Nodes(GX)
+      ensures v in ordX
+    {
+      assert v in Nodes(G);
+      var k :| 0 <= k < |ord| && ord[k] == v;
+      assert k < i;
+      assert ord[k] in Nodes(GX);
+      assert v in ordX;
+    }
+    assert IsTopologicalSort(GX, ordX);
   }
 
   // ==================================================================

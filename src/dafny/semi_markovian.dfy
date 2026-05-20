@@ -502,10 +502,28 @@ module SemiMarkovian {
   function RemoveNodesSM(sm: SMGraph, X: set<Node>): SMGraph
   {
     SMGraph(
-      map v | v in SMNodes(sm) && v !in X ::
-        Parents(sm.dag, v) - X,
+      RemoveNodes(sm.dag, X),
       set e | e in sm.bidirected && e.u !in X && e.v !in X
     )
+  }
+
+  lemma RemoveNodesSM_PreservesWellFormedness(sm: SMGraph, X: set<Node>)
+    requires WellFormedSM(sm)
+    ensures WellFormedSM(RemoveNodesSM(sm, X))
+  {
+    var smX := RemoveNodesSM(sm, X);
+    assert smX.dag == RemoveNodes(sm.dag, X);
+    assert SMNodes(smX) == SMNodes(sm) - X;
+    forall e | e in smX.bidirected
+      ensures e.u in SMNodes(smX) && e.v in SMNodes(smX) && e.u != e.v
+    {
+      assert e in sm.bidirected;
+      assert e.u !in X && e.v !in X;
+      assert e.u in SMNodes(sm) && e.v in SMNodes(sm) && e.u != e.v;
+      assert e.u in SMNodes(sm) - X;
+      assert e.v in SMNodes(sm) - X;
+    }
+    RemoveNodes_PreservesDAG(sm.dag, X);
   }
 
   // Remove incoming directed edges to nodes in X.
@@ -543,7 +561,7 @@ module SemiMarkovian {
     ensures forall S :: S in CComponentsWithout(sm, X) ==> S != {}
   {
     var smX := RemoveNodesSM(sm, X);
-    assume {:axiom} WellFormedSM(smX);
+    RemoveNodesSM_PreservesWellFormedness(sm, X);
     CComponents_Partition(smX);
     assert forall S :: S in CComponentsWithout(sm, X) ==> S <= SMNodes(smX) && S != {};
     assert SMNodes(smX) == SMNodes(sm) - X;
