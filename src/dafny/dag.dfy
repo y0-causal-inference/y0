@@ -210,6 +210,106 @@ module DAG {
     ensures IsAncestorBounded(G, v, v, 0)
   {}
 
+  lemma IsAncestorBounded_ImpliesForwardTrail(G: Graph, u: Node, v: Node, fuel: nat)
+    requires IsAncestorBounded(G, u, v, fuel)
+    requires u != v
+    ensures exists trail: seq<TrailStep> ::
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, u, v) &&
+      (forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward) &&
+      |trail| <= fuel
+    decreases fuel
+  {
+    if fuel == 0 {
+      assert false;
+    } else {
+      var w :| w in Children(G, u) && IsAncestorBounded(G, w, v, fuel - 1);
+      if w == v {
+        var trail := [TrailStep(u, v, Forward)];
+        assert ValidTrail(G, trail);
+        assert TrailConnects(trail, u, v);
+        assert forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward;
+        assert exists trail0: seq<TrailStep> ::
+          ValidTrail(G, trail0) &&
+          TrailConnects(trail0, u, v) &&
+          (forall i :: 0 <= i < |trail0| ==> trail0[i].dir == Forward) &&
+          |trail0| <= fuel by {
+          assert trail == trail;
+        }
+      } else {
+        IsAncestorBounded_ImpliesForwardTrail(G, w, v, fuel - 1);
+        var suffix: seq<TrailStep> :| ValidTrail(G, suffix) &&
+          TrailConnects(suffix, w, v) &&
+          (forall i :: 0 <= i < |suffix| ==> suffix[i].dir == Forward) &&
+          |suffix| <= fuel - 1;
+        var trail := [TrailStep(u, w, Forward)] + suffix;
+        assert ValidTrail(G, trail) by {
+          forall i {:trigger trail[i]} | 0 <= i < |trail|
+            ensures
+              (trail[i].dir == Forward ==> trail[i].from in Parents(G, trail[i].to)) &&
+              (trail[i].dir == Backward ==> trail[i].to in Parents(G, trail[i].from))
+          {
+            if i == 0 {
+              assert trail[i] == TrailStep(u, w, Forward);
+              assert u in Parents(G, w);
+            } else {
+              assert trail[i] == suffix[i - 1];
+            }
+          }
+        }
+        assert TrailConnects(trail, u, v) by {
+          assert |trail| > 0;
+          assert trail[0].from == u;
+          assert trail[|trail| - 1].to == v;
+          forall i | 0 <= i < |trail| - 1
+            ensures trail[i].to == trail[i + 1].from
+          {
+            if i == 0 {
+              assert trail[0].to == w;
+              assert trail[1] == suffix[0];
+              assert suffix[0].from == w;
+            } else {
+              assert trail[i] == suffix[i - 1];
+              assert trail[i + 1] == suffix[i];
+            }
+          }
+        }
+        assert forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward by {
+          forall i | 0 <= i < |trail|
+            ensures trail[i].dir == Forward
+          {
+            if i == 0 {
+              assert trail[i] == TrailStep(u, w, Forward);
+            } else {
+              assert trail[i] == suffix[i - 1];
+            }
+          }
+        }
+        assert exists trail0: seq<TrailStep> ::
+          ValidTrail(G, trail0) &&
+          TrailConnects(trail0, u, v) &&
+          (forall i :: 0 <= i < |trail0| ==> trail0[i].dir == Forward) &&
+          |trail0| <= fuel by {
+          assert trail == trail;
+        }
+      }
+    }
+  }
+
+  lemma IsAncestorBounded_Monotone(G: Graph, u: Node, v: Node, small: nat, big: nat)
+    requires small <= big
+    requires IsAncestorBounded(G, u, v, small)
+    ensures IsAncestorBounded(G, u, v, big)
+    decreases small
+  {
+    if small == 0 {
+    } else if u != v {
+      assert big > 0;
+      var w :| w in Children(G, u) && IsAncestorBounded(G, w, v, small - 1);
+      IsAncestorBounded_Monotone(G, w, v, small - 1, big - 1);
+    }
+  }
+
   // ------------------------------------------------------------------
   // Compiled ancestry — BFS-based reachability
   // ------------------------------------------------------------------
@@ -458,6 +558,136 @@ module DAG {
     (forall i :: 0 <= i < |trail| - 1 ==> trail[i].to == trail[i + 1].from)
   }
 
+  lemma ValidTrail_Prefix(G: Graph, trail: seq<TrailStep>, prefixLen: nat)
+    requires ValidTrail(G, trail)
+    requires 0 < prefixLen <= |trail|
+    ensures ValidTrail(G, trail[..prefixLen])
+  {
+    forall i {:trigger trail[..prefixLen][i]} | 0 <= i < |trail[..prefixLen]|
+      ensures
+        (trail[..prefixLen][i].dir == Forward ==> trail[..prefixLen][i].from in Parents(G, trail[..prefixLen][i].to)) &&
+        (trail[..prefixLen][i].dir == Backward ==> trail[..prefixLen][i].to in Parents(G, trail[..prefixLen][i].from))
+    {
+      assert trail[..prefixLen][i] == trail[i];
+    }
+  }
+
+  lemma ValidTrail_Concat(G: Graph, left: seq<TrailStep>, right: seq<TrailStep>)
+    requires ValidTrail(G, left)
+    requires ValidTrail(G, right)
+    ensures ValidTrail(G, left + right)
+  {
+    forall i {:trigger (left + right)[i]} | 0 <= i < |left + right|
+      ensures
+        ((left + right)[i].dir == Forward ==> (left + right)[i].from in Parents(G, (left + right)[i].to)) &&
+        ((left + right)[i].dir == Backward ==> (left + right)[i].to in Parents(G, (left + right)[i].from))
+    {
+      if i < |left| {
+        assert (left + right)[i] == left[i];
+      } else {
+        assert (left + right)[i] == right[i - |left|];
+      }
+    }
+  }
+
+  lemma TrailConnects_Prefix(trail: seq<TrailStep>, start: Node, end: Node, prefixLen: nat)
+    requires TrailConnects(trail, start, end)
+    requires 0 < prefixLen <= |trail|
+    ensures TrailConnects(trail[..prefixLen], start, trail[prefixLen - 1].to)
+  {
+    assert |trail[..prefixLen]| > 0;
+    assert trail[..prefixLen][0].from == start;
+    assert trail[..prefixLen][|trail[..prefixLen]| - 1].to == trail[prefixLen - 1].to;
+    forall i | 0 <= i < |trail[..prefixLen]| - 1
+      ensures trail[..prefixLen][i].to == trail[..prefixLen][i + 1].from
+    {
+      assert trail[..prefixLen][i] == trail[i];
+      assert trail[..prefixLen][i + 1] == trail[i + 1];
+    }
+  }
+
+  lemma TrailConnects_Concat(left: seq<TrailStep>, start: Node, mid: Node, right: seq<TrailStep>, end: Node)
+    requires TrailConnects(left, start, mid)
+    requires TrailConnects(right, mid, end)
+    ensures TrailConnects(left + right, start, end)
+  {
+    assert |left + right| > 0;
+    assert (left + right)[0].from == start;
+    assert (left + right)[|left + right| - 1].to == end;
+    forall i | 0 <= i < |left + right| - 1
+      ensures (left + right)[i].to == (left + right)[i + 1].from
+    {
+      if i < |left| - 1 {
+        assert (left + right)[i] == left[i];
+        assert (left + right)[i + 1] == left[i + 1];
+      } else if i == |left| - 1 {
+        assert (left + right)[i] == left[i];
+        assert (left + right)[i + 1] == right[0];
+        assert left[i].to == mid;
+        assert right[0].from == mid;
+      } else {
+        assert (left + right)[i] == right[i - |left|];
+        assert (left + right)[i + 1] == right[i + 1 - |left|];
+      }
+    }
+  }
+
+  lemma ForwardTrail_ImpliesAncestorBounded(G: Graph, trail: seq<TrailStep>, start: Node, end: Node)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    ensures IsAncestorBounded(G, start, end, |trail|)
+    decreases |trail|
+  {
+    if |trail| == 1 {
+      assert trail[0].from == start;
+      assert trail[0].to == end;
+      assert start in Parents(G, end);
+      assert end in Children(G, start);
+      assert IsAncestorBounded(G, end, end, 0);
+    } else {
+      ValidTrail_Suffix(G, trail);
+      TrailConnects_Suffix(trail, start, end);
+      assert forall i :: 0 <= i < |trail[1..]| ==> trail[1..][i].dir == Forward by {
+        forall i | 0 <= i < |trail[1..]|
+          ensures trail[1..][i].dir == Forward
+        {
+          assert trail[1..][i] == trail[i + 1];
+        }
+      }
+      ForwardTrail_ImpliesAncestorBounded(G, trail[1..], trail[1].from, end);
+      assert trail[0].to == trail[1].from;
+      assert trail[0].from == start;
+      assert start in Parents(G, trail[1].from);
+      assert trail[1].from in Children(G, start);
+    }
+  }
+
+  lemma ForwardTrail_NodeInDescendants(G: Graph, trail: seq<TrailStep>, start: Node, end: Node, pos: nat)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    requires |trail| <= |Nodes(G)|
+    requires 1 <= pos < |trail|
+    ensures trail[pos].from in Descendants(G, {start})
+  {
+    ValidTrail_Prefix(G, trail, pos);
+    TrailConnects_Prefix(trail, start, end, pos);
+    assert trail[pos - 1].to == trail[pos].from;
+    assert forall i :: 0 <= i < |trail[..pos]| ==> trail[..pos][i].dir == Forward by {
+      forall i | 0 <= i < |trail[..pos]|
+        ensures trail[..pos][i].dir == Forward
+      {
+        assert trail[..pos][i] == trail[i];
+      }
+    }
+    ForwardTrail_ImpliesAncestorBounded(G, trail[..pos], start, trail[pos].from);
+    IsAncestorBounded_Monotone(G, start, trail[pos].from, pos, |Nodes(G)|);
+    assert trail[pos - 1].from in Parents(G, trail[pos - 1].to);
+    assert trail[pos].from in Nodes(G);
+    assert start in {start};
+  }
+
   // ------------------------------------------------------------------
   // Trail reversal helpers
   //
@@ -642,9 +872,175 @@ module DAG {
   //
   //   Non-collider:  the node is in W (blocks the path)
   //   Collider:      the node (and all its descendants) are NOT in W
+  //
+  // Only internal nodes can block a trail. In particular, a single-edge
+  // trail has no internal blocking witness and is therefore unblocked.
   ghost predicate TrailBlocked(G: Graph, trail: seq<TrailStep>, W: set<Node>) {
-    |trail| <= 1 ||  // trivial trail (single edge) — check endpoints only
     exists pos :: 1 <= pos < |trail| && TrailBlockedAtPos(G, trail, pos, W)
+  }
+
+  lemma IsCollider_Prefix(trail: seq<TrailStep>, prefixLen: nat, pos: nat)
+    requires 0 < prefixLen <= |trail|
+    requires 1 <= pos < prefixLen
+    ensures IsCollider(trail[..prefixLen], pos) <==> IsCollider(trail, pos)
+  {
+    assert trail[..prefixLen][pos - 1] == trail[pos - 1];
+    assert trail[..prefixLen][pos] == trail[pos];
+  }
+
+  lemma IsCollider_Suffix(trail: seq<TrailStep>, pos: nat)
+    requires |trail| > 1
+    requires 1 <= pos < |trail[1..]|
+    ensures IsCollider(trail[1..], pos) <==> IsCollider(trail, pos + 1)
+  {
+    assert trail[1..][pos - 1] == trail[pos];
+    assert trail[1..][pos] == trail[pos + 1];
+  }
+
+  lemma TrailBlockedAtPos_Prefix(G: Graph, trail: seq<TrailStep>, prefixLen: nat, pos: nat, W: set<Node>)
+    requires 0 < prefixLen <= |trail|
+    requires 1 <= pos < prefixLen
+    ensures TrailBlockedAtPos(G, trail[..prefixLen], pos, W) <==> TrailBlockedAtPos(G, trail, pos, W)
+  {
+    IsCollider_Prefix(trail, prefixLen, pos);
+    assert trail[..prefixLen][pos].from == trail[pos].from;
+  }
+
+  lemma TrailBlockedAtPos_Suffix(G: Graph, trail: seq<TrailStep>, pos: nat, W: set<Node>)
+    requires |trail| > 1
+    requires 1 <= pos < |trail[1..]|
+    ensures TrailBlockedAtPos(G, trail[1..], pos, W) <==> TrailBlockedAtPos(G, trail, pos + 1, W)
+  {
+    IsCollider_Suffix(trail, pos);
+    assert trail[1..][pos].from == trail[pos + 1].from;
+  }
+
+  lemma TrailNotBlockedAtPos(G: Graph, trail: seq<TrailStep>, pos: nat, W: set<Node>)
+    requires !TrailBlocked(G, trail, W)
+    requires 1 <= pos < |trail|
+    ensures !TrailBlockedAtPos(G, trail, pos, W)
+  {
+    if TrailBlockedAtPos(G, trail, pos, W) {
+      assert TrailBlocked(G, trail, W);
+    }
+  }
+
+  lemma TrailBlocked_Suffix(G: Graph, trail: seq<TrailStep>, W: set<Node>)
+    requires TrailBlocked(G, trail, W)
+    requires |trail| > 1
+    requires !TrailBlockedAtPos(G, trail, 1, W)
+    ensures TrailBlocked(G, trail[1..], W)
+  {
+    if |trail[1..]| <= 1 {
+      var blockedPos :| 1 <= blockedPos < |trail| && TrailBlockedAtPos(G, trail, blockedPos, W);
+      assert blockedPos == 1;
+      assert false;
+    } else {
+      var blockedPos :| 1 <= blockedPos < |trail| && TrailBlockedAtPos(G, trail, blockedPos, W);
+      assert blockedPos != 1;
+      assert 1 <= blockedPos - 1 < |trail[1..]|;
+      TrailBlockedAtPos_Suffix(G, trail, blockedPos - 1, W);
+    }
+  }
+
+  lemma FirstBlockedPos(G: Graph, trail: seq<TrailStep>, W: set<Node>) returns (pos: nat)
+    requires TrailBlocked(G, trail, W)
+    requires |trail| > 1
+    ensures 1 <= pos < |trail|
+    ensures TrailBlockedAtPos(G, trail, pos, W)
+    ensures forall j :: 1 <= j < pos ==> !TrailBlockedAtPos(G, trail, j, W)
+    decreases |trail|
+  {
+    if TrailBlockedAtPos(G, trail, 1, W) {
+      pos := 1;
+    } else {
+      TrailBlocked_Suffix(G, trail, W);
+      var suffixPos := FirstBlockedPos(G, trail[1..], W);
+      pos := suffixPos + 1;
+      assert TrailBlockedAtPos(G, trail, pos, W) by {
+        TrailBlockedAtPos_Suffix(G, trail, suffixPos, W);
+      }
+      assert forall j :: 1 <= j < pos ==> !TrailBlockedAtPos(G, trail, j, W) by {
+        forall j | 1 <= j < pos
+          ensures !TrailBlockedAtPos(G, trail, j, W)
+        {
+          if j == 1 {
+            assert !TrailBlockedAtPos(G, trail, 1, W);
+          } else {
+            assert 1 <= j - 1 < suffixPos;
+            TrailBlockedAtPos_Suffix(G, trail, j - 1, W);
+          }
+        }
+      }
+    }
+  }
+
+  lemma PrefixWithoutBlockedPos_NotBlocked(G: Graph, trail: seq<TrailStep>, prefixLen: nat, W: set<Node>)
+    requires 0 < prefixLen <= |trail|
+    requires forall j :: 1 <= j < prefixLen ==> !TrailBlockedAtPos(G, trail, j, W)
+    ensures !TrailBlocked(G, trail[..prefixLen], W)
+  {
+    if TrailBlocked(G, trail[..prefixLen], W) {
+      var pos :| 1 <= pos < prefixLen && TrailBlockedAtPos(G, trail[..prefixLen], pos, W);
+      TrailBlockedAtPos_Prefix(G, trail, prefixLen, pos, W);
+      assert false;
+    }
+  }
+
+  lemma ColliderOpenedByNewConditioning(
+    G: Graph, trail: seq<TrailStep>, pos: nat, W: set<Node>, Z': set<Node>
+  )
+    requires 1 <= pos < |trail|
+    requires IsCollider(trail, pos)
+    requires TrailBlockedAtPos(G, trail, pos, W)
+    requires !TrailBlockedAtPos(G, trail, pos, W + Z')
+    ensures exists zPrime: Node ::
+      zPrime in Z' &&
+      zPrime !in W &&
+      (zPrime == trail[pos].from || zPrime in Descendants(G, {trail[pos].from}))
+  {
+    var node := trail[pos].from;
+    assert node !in W;
+    assert Descendants(G, {node}) * W == {};
+    if node in Z' {
+      assert exists zPrime: Node ::
+        zPrime in Z' &&
+        zPrime !in W &&
+        (zPrime == trail[pos].from || zPrime in Descendants(G, {trail[pos].from})) by {
+        assert node == trail[pos].from;
+      }
+    } else {
+      assert node !in W + Z';
+      if Descendants(G, {node}) * Z' == {} {
+        assert Descendants(G, {node}) * (W + Z') == {} by {
+          assert forall v :: v in Descendants(G, {node}) * (W + Z') ==> false by {
+            forall v | v in Descendants(G, {node}) * (W + Z')
+              ensures false
+            {
+              if v in W {
+                assert v in Descendants(G, {node}) * W;
+              } else {
+                assert v in Z';
+                assert v in Descendants(G, {node}) * Z';
+              }
+            }
+          }
+        }
+        assert TrailBlockedAtPos(G, trail, pos, W + Z');
+        assert false;
+      }
+      var zPrime :| zPrime in Descendants(G, {node}) * Z';
+      if zPrime in W {
+        assert zPrime in Descendants(G, {node}) * W;
+        assert false;
+      }
+      assert exists z0: Node ::
+        z0 in Z' &&
+        z0 !in W &&
+        (z0 == trail[pos].from || z0 in Descendants(G, {trail[pos].from})) by {
+        assert zPrime == zPrime;
+      }
+    }
   }
 
   lemma ReverseTrail_Index(trail: seq<TrailStep>, i: nat)
@@ -715,7 +1111,8 @@ module DAG {
     ReverseTrail_Length(trail);
     if TrailBlocked(G, ReverseTrail(trail), W) {
       if |trail| <= 1 {
-        assert TrailBlocked(G, trail, W);
+        var revPos :| 1 <= revPos < |ReverseTrail(trail)| && TrailBlockedAtPos(G, ReverseTrail(trail), revPos, W);
+        assert false;
       } else {
         assert |ReverseTrail(trail)| > 1;
         assert exists revPos0 :: 1 <= revPos0 < |ReverseTrail(trail)| && TrailBlockedAtPos(G, ReverseTrail(trail), revPos0, W);
@@ -799,11 +1196,119 @@ module DAG {
   }
 
   /// Weak Union:  (Y ⊥ Z ∪ Z' | W)  ⟹  (Y ⊥ Z | W ∪ Z')
-  lemma {:axiom} DSep_WeakUnion(
+  lemma DSep_WeakUnion(
     G: Graph, Y: set<Node>, Z: set<Node>, Z': set<Node>, W: set<Node>
   )
     requires DSep(G, Y, Z + Z', W)
     ensures  DSep(G, Y, Z, W + Z')
+  {
+    forall trail: seq<TrailStep>, y: Node, z: Node |
+      y in Y && z in Z &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z)
+      ensures TrailBlocked(G, trail, W + Z')
+    {
+      if !TrailBlocked(G, trail, W + Z') {
+        assert z in Z + Z';
+        assert TrailBlocked(G, trail, W);
+        if |trail| <= 1 {
+          var blockedPos :| 1 <= blockedPos < |trail| && TrailBlockedAtPos(G, trail, blockedPos, W);
+          assert false;
+        }
+        var pos := FirstBlockedPos(G, trail, W);
+        assert TrailBlockedAtPos(G, trail, pos, W);
+        TrailNotBlockedAtPos(G, trail, pos, W + Z');
+        if !IsCollider(trail, pos) {
+          assert trail[pos].from in W;
+          assert trail[pos].from in W + Z';
+          assert TrailBlockedAtPos(G, trail, pos, W + Z');
+          assert false;
+        }
+
+        var colliderNode := trail[pos].from;
+        ColliderOpenedByNewConditioning(G, trail, pos, W, Z');
+        var zPrime :| zPrime in Z' &&
+          zPrime !in W &&
+          (zPrime == colliderNode || zPrime in Descendants(G, {colliderNode}));
+
+        var prefix := trail[..pos];
+        ValidTrail_Prefix(G, trail, pos);
+        TrailConnects_Prefix(trail, y, z, pos);
+        assert trail[pos - 1].to == colliderNode;
+        assert forall j :: 1 <= j < pos ==> !TrailBlockedAtPos(G, trail, j, W);
+        PrefixWithoutBlockedPos_NotBlocked(G, trail, pos, W);
+
+        if zPrime == colliderNode {
+          assert zPrime in Z + Z';
+          assert TrailBlocked(G, prefix, W);
+          assert false;
+        } else {
+          assert zPrime in Descendants(G, {colliderNode});
+          assert exists w :: w in {colliderNode} && IsAncestor(G, w, zPrime);
+          assert IsAncestor(G, colliderNode, zPrime);
+          IsAncestorBounded_ImpliesForwardTrail(G, colliderNode, zPrime, |Nodes(G)|);
+          var descTrail: seq<TrailStep> :|
+            ValidTrail(G, descTrail) &&
+            TrailConnects(descTrail, colliderNode, zPrime) &&
+            (forall i :: 0 <= i < |descTrail| ==> descTrail[i].dir == Forward) &&
+            |descTrail| <= |Nodes(G)|;
+
+          var joinedTrail := prefix + descTrail;
+          ValidTrail_Concat(G, prefix, descTrail);
+          TrailConnects_Concat(prefix, y, colliderNode, descTrail, zPrime);
+
+          assert !TrailBlocked(G, joinedTrail, W) by {
+            if TrailBlocked(G, joinedTrail, W) {
+              var q :| 1 <= q < |joinedTrail| && TrailBlockedAtPos(G, joinedTrail, q, W);
+              if q < pos {
+                assert 1 <= q < pos;
+                assert joinedTrail[..pos] == prefix;
+                TrailBlockedAtPos_Prefix(G, joinedTrail, pos, q, W);
+                assert TrailBlockedAtPos(G, joinedTrail[..pos], q, W);
+                assert TrailBlockedAtPos(G, prefix, q, W);
+                TrailBlockedAtPos_Prefix(G, trail, pos, q, W);
+                assert TrailBlockedAtPos(G, trail, q, W);
+                assert false;
+              } else if q == pos {
+                assert pos < |joinedTrail|;
+                assert joinedTrail[q - 1] == prefix[pos - 1];
+                assert prefix[pos - 1] == trail[pos - 1];
+                assert joinedTrail[q] == descTrail[0];
+                assert descTrail[0].from == colliderNode;
+                assert trail[pos - 1].dir == Forward;
+                assert descTrail[0].dir == Forward;
+                assert !IsCollider(joinedTrail, q);
+                assert joinedTrail[q].from == colliderNode;
+                assert joinedTrail[q].from !in W;
+                assert !TrailBlockedAtPos(G, joinedTrail, q, W);
+                assert false;
+              } else {
+                var dPos := q - pos;
+                assert 1 <= dPos < |descTrail|;
+                assert joinedTrail[q - 1] == descTrail[dPos - 1];
+                assert joinedTrail[q] == descTrail[dPos];
+                assert descTrail[dPos - 1].dir == Forward;
+                assert descTrail[dPos].dir == Forward;
+                assert !IsCollider(joinedTrail, q);
+                ForwardTrail_NodeInDescendants(G, descTrail, colliderNode, zPrime, dPos);
+                assert descTrail[dPos].from in Descendants(G, {colliderNode});
+                if descTrail[dPos].from in W {
+                  assert descTrail[dPos].from in Descendants(G, {colliderNode}) * W;
+                  assert false;
+                }
+                assert !TrailBlockedAtPos(G, joinedTrail, q, W);
+                assert false;
+              }
+            }
+          }
+
+          assert zPrime in Z + Z';
+          assert TrailBlocked(G, joinedTrail, W);
+          assert false;
+        }
+      }
+    }
+  }
 
   /// Contraction:  (Y ⊥ Z | W ∪ Z') ∧ (Y ⊥ Z' | W)  ⟹  (Y ⊥ Z ∪ Z' | W)
   lemma {:axiom} DSep_Contraction(
