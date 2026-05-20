@@ -1392,11 +1392,13 @@ module DAG {
     }
   }
 
-  /// Intersection (for positive distributions):
+  /// Intersection:
   ///   (Y ⊥ Z | W ∪ Z') ∧ (Y ⊥ Z' | W ∪ Z)  ⟹  (Y ⊥ Z ∪ Z' | W)
   ///
-  /// This holds for faithful / positive distributions but not in general.
-  /// We include it marked as an axiom for completeness.
+  /// This is stated here as a graph-level property of the `DSep` predicate.
+  /// The earlier positivity/faithfulness caveat belongs to probabilistic
+  /// conditional independence semantics, not to this DAG d-separation layer.
+  /// We keep the lemma axiomatic until a direct graph proof is added.
   lemma {:axiom} DSep_Intersection(
     G: Graph, Y: set<Node>, Z: set<Node>, Z': set<Node>, W: set<Node>
   )

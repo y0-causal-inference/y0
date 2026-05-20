@@ -161,8 +161,9 @@ Order by tractability:
    trails; more subtle because colliders and non-colliders react differently to
    conditioning.
 4. `DSep_Contraction`: depends on stronger trail decomposition reasoning.
-5. `DSep_Intersection`: keep last; the comment already notes positivity-style
-   assumptions, and the current pure graph statement may need careful review.
+5. `DSep_Intersection`: keep last; review whether the axiom should stay as a
+   pure graph-theoretic `DSep` statement. Positivity caveats belong to the
+   probabilistic CI layer, not to the DAG d-separation predicate itself.
 6. `LocalMarkov`: depends on substantial d-separation theory for DAGs.
 
 Exit criterion: at least decomposition and symmetry are proved before attempting
