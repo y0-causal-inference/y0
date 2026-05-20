@@ -627,6 +627,16 @@ module DAG {
     trail[pos - 1].dir == Forward && trail[pos].dir == Backward
   }
 
+  ghost predicate TrailBlockedAtPos(G: Graph, trail: seq<TrailStep>, pos: nat, W: set<Node>)
+    requires 1 <= pos < |trail|
+  {
+    var node := trail[pos].from;
+    if IsCollider(trail, pos) then
+      node !in W && Descendants(G, {node}) * W == {}
+    else
+      node in W
+  }
+
   // A trail is **blocked** by conditioning set W if at least one
   // node along the trail satisfies the d-separation blocking criterion:
   //
@@ -634,14 +644,102 @@ module DAG {
   //   Collider:      the node (and all its descendants) are NOT in W
   ghost predicate TrailBlocked(G: Graph, trail: seq<TrailStep>, W: set<Node>) {
     |trail| <= 1 ||  // trivial trail (single edge) — check endpoints only
-    exists pos :: 1 <= pos < |trail| &&
-      var node := trail[pos].from;
-      if IsCollider(trail, pos) then
-        // Collider: blocks unless the collider or a descendant is in W
-        node !in W && Descendants(G, {node}) * W == {}
-      else
-        // Non-collider: blocks when the node IS in W
-        node in W
+    exists pos :: 1 <= pos < |trail| && TrailBlockedAtPos(G, trail, pos, W)
+  }
+
+  lemma ReverseTrail_Index(trail: seq<TrailStep>, i: nat)
+    requires |trail| > 0
+    requires |ReverseTrail(trail)| == |trail|
+    requires i < |trail|
+    ensures ReverseTrail(trail)[i] == ReverseStep(trail[|trail| - (i + 1)])
+    decreases |trail|
+  {
+    if |trail| == 1 {
+      assert i == 0;
+      assert ReverseTrail(trail) == [ReverseStep(trail[0])];
+    } else if |trail| > 1 {
+      ReverseTrail_Length(trail[1..]);
+      if i < |trail[1..]| {
+        ReverseTrail_Index(trail[1..], i);
+        assert ReverseTrail(trail)[i] == ReverseTrail(trail[1..])[i];
+        assert trail[1..][|trail[1..]| - (i + 1)] == trail[|trail| - (i + 1)];
+      } else {
+        assert i == |trail[1..]|;
+        assert ReverseTrail(trail)[i] == ReverseStep(trail[0]);
+        assert |trail| - (i + 1) == 0;
+      }
+    }
+  }
+
+  lemma ReverseTrail_Collider(trail: seq<TrailStep>, pos: nat)
+    requires 1 <= pos < |trail|
+    requires |ReverseTrail(trail)| == |trail|
+    ensures IsCollider(ReverseTrail(trail), |trail| - pos) <==> IsCollider(trail, pos)
+  {
+    assert 0 < |trail| - pos;
+    assert |trail| - pos < |ReverseTrail(trail)|;
+    ReverseTrail_Index(trail, |trail| - pos);
+    ReverseTrail_Index(trail, |trail| - pos - 1);
+    assert ReverseTrail(trail)[|trail| - pos] == ReverseStep(trail[pos - 1]);
+    assert ReverseTrail(trail)[|trail| - pos - 1] == ReverseStep(trail[pos]);
+    if IsCollider(trail, pos) {
+      assert trail[pos - 1].dir == Forward;
+      assert trail[pos].dir == Backward;
+      assert ReverseTrail(trail)[|trail| - pos - 1].dir == Forward;
+      assert ReverseTrail(trail)[|trail| - pos].dir == Backward;
+    }
+    if IsCollider(ReverseTrail(trail), |trail| - pos) {
+      assert ReverseTrail(trail)[|trail| - pos - 1].dir == Forward;
+      assert ReverseTrail(trail)[|trail| - pos].dir == Backward;
+      assert trail[pos].dir == Backward;
+      assert trail[pos - 1].dir == Forward;
+    }
+  }
+
+  lemma ReverseTrail_Node(trail: seq<TrailStep>, start: Node, end: Node, pos: nat)
+    requires TrailConnects(trail, start, end)
+    requires 1 <= pos < |trail|
+    requires |ReverseTrail(trail)| == |trail|
+    ensures ReverseTrail(trail)[|trail| - pos].from == trail[pos].from
+  {
+    ReverseTrail_Index(trail, |trail| - pos);
+    assert ReverseTrail(trail)[|trail| - pos] == ReverseStep(trail[pos - 1]);
+    assert ReverseTrail(trail)[|trail| - pos].from == trail[pos - 1].to;
+    assert trail[pos - 1].to == trail[pos].from;
+  }
+
+  lemma ReverseTrail_Blocked(G: Graph, trail: seq<TrailStep>, start: Node, end: Node, W: set<Node>)
+    requires TrailConnects(trail, start, end)
+    ensures TrailBlocked(G, ReverseTrail(trail), W) ==> TrailBlocked(G, trail, W)
+  {
+    ReverseTrail_Length(trail);
+    if TrailBlocked(G, ReverseTrail(trail), W) {
+      if |trail| <= 1 {
+        assert TrailBlocked(G, trail, W);
+      } else {
+        assert |ReverseTrail(trail)| > 1;
+        assert exists revPos0 :: 1 <= revPos0 < |ReverseTrail(trail)| && TrailBlockedAtPos(G, ReverseTrail(trail), revPos0, W);
+        var revPos :| 1 <= revPos < |ReverseTrail(trail)| &&
+          TrailBlockedAtPos(G, ReverseTrail(trail), revPos, W);
+        var pos := |trail| - revPos;
+        assert revPos == |trail| - pos;
+        assert 1 <= pos < |trail|;
+        ReverseTrail_Collider(trail, pos);
+        ReverseTrail_Node(trail, start, end, pos);
+        assert ReverseTrail(trail)[revPos].from == trail[pos].from;
+        assert exists pos0 :: 1 <= pos0 < |trail| && TrailBlockedAtPos(G, trail, pos0, W) by {
+          assert 1 <= pos < |trail|;
+          if IsCollider(ReverseTrail(trail), revPos) {
+            assert IsCollider(trail, pos);
+            assert TrailBlockedAtPos(G, trail, pos, W);
+          } else {
+            assert !IsCollider(trail, pos);
+            assert TrailBlockedAtPos(G, trail, pos, W);
+          }
+        }
+        assert TrailBlocked(G, trail, W);
+      }
+    }
   }
 
   // Y and Z are **d-separated** given W in G  iff
@@ -665,9 +763,23 @@ module DAG {
   // ==================================================================
 
   /// Symmetry:  (Y ⊥ Z | W)  ⟹  (Z ⊥ Y | W)
-  lemma {:axiom} DSep_Symmetry(G: Graph, Y: set<Node>, Z: set<Node>, W: set<Node>)
+  lemma DSep_Symmetry(G: Graph, Y: set<Node>, Z: set<Node>, W: set<Node>)
     requires DSep(G, Y, Z, W)
     ensures  DSep(G, Z, Y, W)
+  {
+    forall trail: seq<TrailStep>, z: Node, y: Node |
+      z in Z && y in Y &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, z, y)
+      ensures TrailBlocked(G, trail, W)
+    {
+      ReverseTrail_Valid(G, trail);
+      ReverseTrail_Connects(trail, z, y);
+      assert TrailBlocked(G, ReverseTrail(trail), W);
+      ReverseTrail_Blocked(G, trail, z, y, W);
+      assert TrailBlocked(G, trail, W);
+    }
+  }
 
   /// Decomposition:  (Y ⊥ Z ∪ Z' | W)  ⟹  (Y ⊥ Z | W)
   lemma DSep_Decomposition(

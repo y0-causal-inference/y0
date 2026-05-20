@@ -191,6 +191,8 @@ module DoCalculus {
     RemoveIncoming_Empty(G);
     // RemoveIncoming(G, {}) == G, so the hypothesis
     // DSep(G, Y, Z, W)  equals  DSep(RemoveIncoming(G,{}), Y, Z, {}+W).
+    assert {} + W == W;
+    assert DSep(RemoveIncoming(G, {}), Y, Z, {} + W);
     Rule1_InsertDeleteObservation(G, Y, {}, Z, W);
   }
 
