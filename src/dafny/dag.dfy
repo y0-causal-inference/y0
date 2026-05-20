@@ -164,6 +164,44 @@ module DAG {
     }
   }
 
+  lemma TopologicalSort_Length(G: Graph, ord: seq<Node>)
+    requires IsTopologicalSort(G, ord)
+    ensures |ord| == |Nodes(G)|
+  {
+    var seen: set<Node> := {};
+    var i := 0;
+    while i < |ord|
+      invariant 0 <= i <= |ord|
+      invariant seen <= Nodes(G)
+      invariant forall j :: 0 <= j < i ==> ord[j] in seen
+      invariant forall v :: v in seen ==> exists j :: 0 <= j < i && ord[j] == v
+      invariant |seen| == i
+    {
+      assert ord[i] in Nodes(G);
+      if ord[i] in seen {
+        var j :| 0 <= j < i && ord[j] == ord[i];
+        assert ord[j] != ord[i];
+        assert false;
+      }
+      seen := seen + {ord[i]};
+      assert |seen| == i + 1;
+      i := i + 1;
+    }
+    assert seen == Nodes(G) by {
+      assert forall v :: v in seen ==> v in Nodes(G);
+      assert forall v :: v in Nodes(G) ==> v in seen by {
+        forall v | v in Nodes(G)
+          ensures v in seen
+        {
+          assert v in ord;
+          var j :| 0 <= j < |ord| && ord[j] == v;
+          assert ord[j] in seen;
+        }
+      }
+    }
+    assert |seen| == |Nodes(G)|;
+  }
+
   // ==================================================================
   // 3.  Ancestry  (reflexive-transitive closure of the parent relation)
   // ==================================================================
@@ -307,6 +345,25 @@ module DAG {
       assert big > 0;
       var w :| w in Children(G, u) && IsAncestorBounded(G, w, v, small - 1);
       IsAncestorBounded_Monotone(G, w, v, small - 1, big - 1);
+    }
+  }
+
+  lemma IsAncestorBounded_Transitive(
+    G: Graph, u: Node, v: Node, w: Node, uvFuel: nat, vwFuel: nat
+  )
+    requires IsAncestorBounded(G, u, v, uvFuel)
+    requires IsAncestorBounded(G, v, w, vwFuel)
+    ensures IsAncestorBounded(G, u, w, uvFuel + vwFuel)
+    decreases uvFuel
+  {
+    if u == v {
+      IsAncestorBounded_Monotone(G, v, w, vwFuel, uvFuel + vwFuel);
+    } else {
+      assert uvFuel > 0;
+      var x :| x in Children(G, u) && IsAncestorBounded(G, x, v, uvFuel - 1);
+      IsAncestorBounded_Transitive(G, x, v, w, uvFuel - 1, vwFuel);
+      assert uvFuel + vwFuel > 0;
+      assert (uvFuel + vwFuel) - 1 == (uvFuel - 1) + vwFuel;
     }
   }
 
@@ -705,6 +762,173 @@ module DAG {
     assert start in {start};
   }
 
+  lemma ForwardTrail_StartAtOrBeforeEndInTopologicalOrder(
+    G: Graph, ord: seq<Node>, trail: seq<TrailStep>, start: Node, end: Node
+  )
+    requires IsTopologicalSort(G, ord)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    ensures exists i, j :: 0 <= i <= j < |ord| && ord[i] == start && ord[j] == end
+    decreases |trail|
+  {
+    if |trail| == 1 {
+      var endIdx :| 0 <= endIdx < |ord| && ord[endIdx] == end;
+      assert trail[0].from == start;
+      assert trail[0].to == end;
+      assert start in Parents(G, end);
+      var startIdx :| 0 <= startIdx < endIdx && ord[startIdx] == start;
+      assert exists i0, j0 :: 0 <= i0 <= j0 < |ord| && ord[i0] == start && ord[j0] == end by {
+        assert startIdx == startIdx;
+        assert endIdx == endIdx;
+      }
+    } else {
+      ValidTrail_Suffix(G, trail);
+      TrailConnects_Suffix(trail, start, end);
+      assert forall i :: 0 <= i < |trail[1..]| ==> trail[1..][i].dir == Forward by {
+        forall i | 0 <= i < |trail[1..]|
+          ensures trail[1..][i].dir == Forward
+        {
+          assert trail[1..][i] == trail[i + 1];
+        }
+      }
+      ForwardTrail_StartAtOrBeforeEndInTopologicalOrder(G, ord, trail[1..], trail[1].from, end);
+      var midIdx, endIdx :| 0 <= midIdx <= endIdx < |ord| && ord[midIdx] == trail[1].from && ord[endIdx] == end;
+      assert trail[0].to == trail[1].from;
+      assert trail[0].from == start;
+      assert start in Parents(G, trail[1].from);
+      var startIdx :| 0 <= startIdx < midIdx && ord[startIdx] == start;
+      assert exists i0, j0 :: 0 <= i0 <= j0 < |ord| && ord[i0] == start && ord[j0] == end by {
+        assert startIdx <= endIdx;
+      }
+    }
+  }
+
+  lemma ForwardTrail_StartBeforeEndInTopologicalOrder(
+    G: Graph, ord: seq<Node>, trail: seq<TrailStep>, start: Node, end: Node
+  )
+    requires IsTopologicalSort(G, ord)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    ensures exists i, j :: 0 <= i < j < |ord| && ord[i] == start && ord[j] == end
+  {
+    if |trail| == 1 {
+      var endIdx :| 0 <= endIdx < |ord| && ord[endIdx] == end;
+      assert trail[0].from == start;
+      assert trail[0].to == end;
+      assert start in Parents(G, end);
+      var startIdx :| 0 <= startIdx < endIdx && ord[startIdx] == start;
+      assert exists i0, j0 :: 0 <= i0 < j0 < |ord| && ord[i0] == start && ord[j0] == end by {
+        assert startIdx == startIdx;
+        assert endIdx == endIdx;
+      }
+    } else {
+      ValidTrail_Suffix(G, trail);
+      TrailConnects_Suffix(trail, start, end);
+      assert forall i :: 0 <= i < |trail[1..]| ==> trail[1..][i].dir == Forward by {
+        forall i | 0 <= i < |trail[1..]|
+          ensures trail[1..][i].dir == Forward
+        {
+          assert trail[1..][i] == trail[i + 1];
+        }
+      }
+      ForwardTrail_StartAtOrBeforeEndInTopologicalOrder(G, ord, trail[1..], trail[1].from, end);
+      var midIdx, endIdx :| 0 <= midIdx <= endIdx < |ord| && ord[midIdx] == trail[1].from && ord[endIdx] == end;
+      assert trail[0].to == trail[1].from;
+      assert trail[0].from == start;
+      assert start in Parents(G, trail[1].from);
+      var startIdx :| 0 <= startIdx < midIdx && ord[startIdx] == start;
+      assert exists i0, j0 :: 0 <= i0 < j0 < |ord| && ord[i0] == start && ord[j0] == end by {
+        assert startIdx < endIdx;
+      }
+    }
+  }
+
+  lemma ForwardTrail_ImpliesAncestorBoundedByOrderDistance(
+    G: Graph,
+    ord: seq<Node>,
+    trail: seq<TrailStep>,
+    start: Node,
+    end: Node,
+    startIdx: nat,
+    endIdx: nat
+  )
+    requires IsTopologicalSort(G, ord)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    requires 0 <= startIdx < endIdx < |ord|
+    requires ord[startIdx] == start
+    requires ord[endIdx] == end
+    ensures IsAncestorBounded(G, start, end, endIdx - startIdx)
+    decreases endIdx - startIdx
+  {
+    if |trail| == 1 {
+      assert endIdx - startIdx > 0;
+      assert trail[0].from == start;
+      assert trail[0].to == end;
+      assert start in Parents(G, end);
+      assert end in Children(G, start);
+      Ancestor_Reflexive(G, end);
+      IsAncestorBounded_Monotone(G, end, end, 0, endIdx - startIdx - 1);
+    } else {
+      ValidTrail_Suffix(G, trail);
+      TrailConnects_Suffix(trail, start, end);
+      assert forall i :: 0 <= i < |trail[1..]| ==> trail[1..][i].dir == Forward by {
+        forall i | 0 <= i < |trail[1..]|
+          ensures trail[1..][i].dir == Forward
+        {
+          assert trail[1..][i] == trail[i + 1];
+        }
+      }
+      ForwardTrail_StartBeforeEndInTopologicalOrder(G, ord, trail[1..], trail[1].from, end);
+      var midIdx0, endIdx0 :| 0 <= midIdx0 < endIdx0 < |ord| && ord[midIdx0] == trail[1].from && ord[endIdx0] == end;
+      assert endIdx0 == endIdx by {
+        if endIdx0 < endIdx {
+          assert ord[endIdx0] != ord[endIdx];
+        } else if endIdx < endIdx0 {
+          assert ord[endIdx] != ord[endIdx0];
+        }
+      }
+      ForwardTrail_ImpliesAncestorBoundedByOrderDistance(G, ord, trail[1..], trail[1].from, end, midIdx0, endIdx);
+      assert trail[0].to == trail[1].from;
+      assert trail[0].from == start;
+      assert start in Parents(G, trail[1].from);
+      var parentIdx :| 0 <= parentIdx < midIdx0 && ord[parentIdx] == start;
+      assert parentIdx == startIdx by {
+        if parentIdx < startIdx {
+          assert ord[parentIdx] != ord[startIdx];
+        } else if startIdx < parentIdx {
+          assert ord[startIdx] != ord[parentIdx];
+        }
+      }
+      assert endIdx - midIdx0 <= endIdx - startIdx - 1;
+      IsAncestorBounded_Monotone(G, trail[1].from, end, endIdx - midIdx0, endIdx - startIdx - 1);
+      assert IsAncestorBounded(G, trail[1].from, end, endIdx - startIdx - 1);
+      assert trail[1].from in Children(G, trail[0].from);
+    }
+  }
+
+  lemma ForwardTrail_EndInDescendants_DAG(G: Graph, trail: seq<TrailStep>, start: Node, end: Node)
+    requires IsDAG(G)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    ensures end in Descendants(G, {start})
+  {
+    var ord :| IsTopologicalSort(G, ord);
+    ForwardTrail_StartBeforeEndInTopologicalOrder(G, ord, trail, start, end);
+    var startIdx, endIdx :| 0 <= startIdx < endIdx < |ord| && ord[startIdx] == start && ord[endIdx] == end;
+    ForwardTrail_ImpliesAncestorBoundedByOrderDistance(G, ord, trail, start, end, startIdx, endIdx);
+    TopologicalSort_Length(G, ord);
+    assert endIdx - startIdx <= |Nodes(G)|;
+    IsAncestorBounded_Monotone(G, start, end, endIdx - startIdx, |Nodes(G)|);
+    assert IsAncestor(G, start, end);
+    assert end in Nodes(G);
+    assert start in {start};
+  }
+
   // ------------------------------------------------------------------
   // Trail reversal helpers
   //
@@ -911,6 +1135,38 @@ module DAG {
     assert trail[1].from in Parents(G, start);
   }
 
+  lemma FirstBackwardPos(trail: seq<TrailStep>) returns (pos: nat)
+    requires exists i :: 0 <= i < |trail| && trail[i].dir == Backward
+    ensures 0 <= pos < |trail|
+    ensures trail[pos].dir == Backward
+    ensures forall j :: 0 <= j < pos ==> trail[j].dir == Forward
+    decreases |trail|
+  {
+    if trail[0].dir == Backward {
+      pos := 0;
+    } else {
+      assert exists i :: 0 <= i < |trail[1..]| && trail[1..][i].dir == Backward by {
+        var i :| 0 <= i < |trail| && trail[i].dir == Backward;
+        assert i != 0;
+        assert trail[1..][i - 1] == trail[i];
+      }
+      var suffixPos := FirstBackwardPos(trail[1..]);
+      pos := suffixPos + 1;
+      assert trail[pos].dir == Backward;
+      assert forall j :: 0 <= j < pos ==> trail[j].dir == Forward by {
+        forall j | 0 <= j < pos
+          ensures trail[j].dir == Forward
+        {
+          if j == 0 {
+            assert trail[j].dir == Forward;
+          } else {
+            assert trail[1..][j - 1] == trail[j];
+          }
+        }
+      }
+    }
+  }
+
   lemma IsCollider_Prefix(trail: seq<TrailStep>, prefixLen: nat, pos: nat)
     requires 0 < prefixLen <= |trail|
     requires 1 <= pos < prefixLen
@@ -1107,6 +1363,78 @@ module DAG {
       assert false;
     }
     assert node in Z';
+  }
+
+  lemma DescendantsOfDescendant_DisjointParents(G: Graph, v: Node, u: Node)
+    requires v in Nodes(G)
+    requires u in Descendants(G, {v})
+    requires IsDAG(G)
+    ensures Descendants(G, {u}) * Parents(G, v) == {}
+  {
+    if Descendants(G, {u}) * Parents(G, v) != {} {
+      var p :| p in Descendants(G, {u}) * Parents(G, v);
+      var ord :| IsTopologicalSort(G, ord);
+      if p == v {
+        var vIdx :| 0 <= vIdx < |ord| && ord[vIdx] == v;
+        var pIdx :| 0 <= pIdx < vIdx && ord[pIdx] == p;
+        assert pIdx < vIdx;
+        assert ord[pIdx] == ord[vIdx];
+        assert false;
+      } else {
+        assert exists w :: w in {v} && IsAncestor(G, w, u);
+        assert IsAncestor(G, v, u);
+        assert exists w :: w in {u} && IsAncestor(G, w, p);
+        assert IsAncestor(G, u, p);
+        IsAncestorBounded_Transitive(G, v, u, p, |Nodes(G)|, |Nodes(G)|);
+        IsAncestorBounded_ImpliesForwardTrail(G, v, p, |Nodes(G)| + |Nodes(G)|);
+        var trail: seq<TrailStep> :| ValidTrail(G, trail) &&
+          TrailConnects(trail, v, p) &&
+          (forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward) &&
+          |trail| <= |Nodes(G)| + |Nodes(G)|;
+        ForwardTrail_StartBeforeEndInTopologicalOrder(G, ord, trail, v, p);
+        var vIdx, pIdx0 :| 0 <= vIdx < pIdx0 < |ord| && ord[vIdx] == v && ord[pIdx0] == p;
+        var pIdx :| 0 <= pIdx < vIdx && ord[pIdx] == p;
+        assert pIdx < pIdx0;
+        assert ord[pIdx] == ord[pIdx0];
+        assert false;
+      }
+    }
+  }
+
+  lemma FirstForwardBackwardPivot_BlockedByParents(
+    G: Graph, trail: seq<TrailStep>, start: Node, end: Node, pos: nat
+  )
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires IsDAG(G)
+    requires 1 <= pos < |trail|
+    requires trail[pos].dir == Backward
+    requires forall i :: 0 <= i < pos ==> trail[i].dir == Forward
+    ensures TrailBlockedAtPos(G, trail, pos, Parents(G, start))
+  {
+    var node := trail[pos].from;
+    ValidTrail_Prefix(G, trail, pos);
+    TrailConnects_Prefix(trail, start, end, pos);
+    assert forall i :: 0 <= i < |trail[..pos]| ==> trail[..pos][i].dir == Forward by {
+      forall i | 0 <= i < |trail[..pos]|
+        ensures trail[..pos][i].dir == Forward
+      {
+        assert trail[..pos][i] == trail[i];
+      }
+    }
+    assert trail[pos - 1].to == node;
+    assert trail[0].from == start;
+    assert start in Parents(G, trail[0].to);
+    assert start in Nodes(G);
+    ForwardTrail_EndInDescendants_DAG(G, trail[..pos], start, node);
+    DescendantsOfDescendant_DisjointParents(G, start, node);
+    assert node in Descendants(G, {node});
+    if node in Parents(G, start) {
+      assert node in Descendants(G, {node}) * Parents(G, start);
+      assert false;
+    }
+    assert IsCollider(trail, pos);
+    assert Descendants(G, {node}) * Parents(G, start) == {};
   }
 
   lemma ReverseTrail_Index(trail: seq<TrailStep>, i: nat)
@@ -1452,10 +1780,62 @@ module DAG {
   /// Every node v is d-separated from its non-descendants excluding parents,
   /// given its parents:
   ///   {v} ⊥ (NonDesc(v) \ Pa(v)) | Pa(v)
-  lemma {:axiom} LocalMarkov(G: Graph, v: Node)
+  lemma LocalMarkov(G: Graph, v: Node)
     requires v in Nodes(G)
     requires IsDAG(G)
     ensures  DSep(G, {v}, NonDescendants(G, v) - Parents(G, v), Parents(G, v))
+  {
+    forall trail: seq<TrailStep>, y: Node, z: Node |
+      y in {v} && z in NonDescendants(G, v) - Parents(G, v) &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z)
+      ensures TrailBlocked(G, trail, Parents(G, v))
+    {
+      assert y == v;
+      assert z !in Parents(G, v);
+      if |trail| == 1 {
+        if trail[0].dir == Backward {
+          assert trail[0].from == v;
+          assert trail[0].to == z;
+          assert z in Parents(G, v);
+          assert false;
+        } else {
+          assert forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward;
+          ForwardTrail_EndInDescendants_DAG(G, trail, v, z);
+          assert z in NonDescendants(G, v);
+          assert false;
+        }
+      } else if trail[0].dir == Backward {
+        BackwardFirstStep_BlockedByParents(G, trail, v, z);
+        assert TrailBlocked(G, trail, Parents(G, v));
+      } else if forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward {
+        ForwardTrail_EndInDescendants_DAG(G, trail, v, z);
+        assert z in NonDescendants(G, v);
+        assert false;
+      } else {
+        assert exists i :: 0 <= i < |trail| && trail[i].dir == Backward by {
+          if !(exists i :: 0 <= i < |trail| && trail[i].dir == Backward) {
+            assert forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward by {
+              forall i | 0 <= i < |trail|
+                ensures trail[i].dir == Forward
+              {
+                if trail[i].dir != Forward {
+                  assert trail[i].dir == Backward;
+                  assert false;
+                }
+              }
+            }
+            assert false;
+          }
+        }
+        var pos := FirstBackwardPos(trail);
+        assert pos != 0;
+        assert 1 <= pos < |trail|;
+        FirstForwardBackwardPivot_BlockedByParents(G, trail, v, z, pos);
+        assert TrailBlocked(G, trail, Parents(G, v));
+      }
+    }
+  }
 
   // ==================================================================
   // 9.  Concrete example: three-node chain  A → B → C
