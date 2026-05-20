@@ -155,9 +155,14 @@ module DAG {
   }
 
   // The compiled check is equivalent to the ghost predicate.
-  lemma {:axiom} KahnsAlgorithm_Correct(G: Graph, ord: seq<Node>)
+  lemma KahnsAlgorithm_Correct(G: Graph, ord: seq<Node>)
     requires |ord| == |Nodes(G)|
     ensures IsTopologicalSort(G, ord) ==> IsDAG(G)
+  {
+    if IsTopologicalSort(G, ord) {
+      assert exists w: seq<Node> :: IsTopologicalSort(G, w);
+    }
+  }
 
   // ==================================================================
   // 3.  Ancestry  (reflexive-transitive closure of the parent relation)
