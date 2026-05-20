@@ -526,11 +526,21 @@ module DAG {
     ensures  DSep(G, Z, Y, W)
 
   /// Decomposition:  (Y ⊥ Z ∪ Z' | W)  ⟹  (Y ⊥ Z | W)
-  lemma {:axiom} DSep_Decomposition(
+  lemma DSep_Decomposition(
     G: Graph, Y: set<Node>, Z: set<Node>, Z': set<Node>, W: set<Node>
   )
     requires DSep(G, Y, Z + Z', W)
     ensures  DSep(G, Y, Z, W)
+  {
+    forall trail: seq<TrailStep>, y: Node, z: Node |
+      y in Y && z in Z &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z)
+      ensures TrailBlocked(G, trail, W)
+    {
+      assert z in Z + Z';
+    }
+  }
 
   /// Weak Union:  (Y ⊥ Z ∪ Z' | W)  ⟹  (Y ⊥ Z | W ∪ Z')
   lemma {:axiom} DSep_WeakUnion(
