@@ -165,7 +165,7 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         asserted_judgements = set(judgements)
         self.assertIsNotNone(asserted_judgements, "Expected independencies is empty.")
 
-        observed_judgements = get_conditional_independencies(graph)
+        observed_judgements = get_conditional_independencies(graph, max_conditions=5)
         self.assertIsNotNone(observed_judgements, "Observed independencies is empty.")
         self.assert_judgement_types(asserted_judgements)
 
