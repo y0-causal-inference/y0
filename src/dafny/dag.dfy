@@ -1043,6 +1043,40 @@ module DAG {
     }
   }
 
+  lemma BlockingAddedByConditioningAtPos(
+    G: Graph, trail: seq<TrailStep>, pos: nat, W: set<Node>, Z': set<Node>
+  )
+    requires 1 <= pos < |trail|
+    requires !TrailBlockedAtPos(G, trail, pos, W)
+    requires TrailBlockedAtPos(G, trail, pos, W + Z')
+    ensures !IsCollider(trail, pos)
+    ensures trail[pos].from in Z'
+  {
+    var node := trail[pos].from;
+    if IsCollider(trail, pos) {
+      assert node !in W + Z';
+      assert Descendants(G, {node}) * (W + Z') == {};
+      assert node !in W;
+      assert Descendants(G, {node}) * W == {} by {
+        assert forall v :: v in Descendants(G, {node}) * W ==> false by {
+          forall v | v in Descendants(G, {node}) * W
+            ensures false
+          {
+            assert v in Descendants(G, {node}) * (W + Z');
+          }
+        }
+      }
+      assert TrailBlockedAtPos(G, trail, pos, W);
+      assert false;
+    }
+    assert node in W + Z';
+    if node in W {
+      assert TrailBlockedAtPos(G, trail, pos, W);
+      assert false;
+    }
+    assert node in Z';
+  }
+
   lemma ReverseTrail_Index(trail: seq<TrailStep>, i: nat)
     requires |trail| > 0
     requires |ReverseTrail(trail)| == |trail|
@@ -1311,11 +1345,52 @@ module DAG {
   }
 
   /// Contraction:  (Y ⊥ Z | W ∪ Z') ∧ (Y ⊥ Z' | W)  ⟹  (Y ⊥ Z ∪ Z' | W)
-  lemma {:axiom} DSep_Contraction(
+  lemma DSep_Contraction(
     G: Graph, Y: set<Node>, Z: set<Node>, Z': set<Node>, W: set<Node>
   )
     requires DSep(G, Y, Z, W + Z') && DSep(G, Y, Z', W)
     ensures  DSep(G, Y, Z + Z', W)
+  {
+    forall trail: seq<TrailStep>, y: Node, z: Node |
+      y in Y && z in Z + Z' &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z)
+      ensures TrailBlocked(G, trail, W)
+    {
+      if z in Z' {
+        assert TrailBlocked(G, trail, W);
+      } else {
+        assert z in Z;
+        if !TrailBlocked(G, trail, W) {
+          assert TrailBlocked(G, trail, W + Z');
+          if |trail| <= 1 {
+            var blockedPos :| 1 <= blockedPos < |trail| && TrailBlockedAtPos(G, trail, blockedPos, W + Z');
+            assert false;
+          }
+          var pos := FirstBlockedPos(G, trail, W + Z');
+          TrailNotBlockedAtPos(G, trail, pos, W);
+          BlockingAddedByConditioningAtPos(G, trail, pos, W, Z');
+
+          var zPrime := trail[pos].from;
+          var prefix := trail[..pos];
+          ValidTrail_Prefix(G, trail, pos);
+          TrailConnects_Prefix(trail, y, z, pos);
+          assert trail[pos - 1].to == zPrime;
+          assert forall j :: 1 <= j < pos ==> !TrailBlockedAtPos(G, trail, j, W) by {
+            forall j | 1 <= j < pos
+              ensures !TrailBlockedAtPos(G, trail, j, W)
+            {
+              TrailNotBlockedAtPos(G, trail, j, W);
+            }
+          }
+          PrefixWithoutBlockedPos_NotBlocked(G, trail, pos, W);
+          assert zPrime in Z';
+          assert TrailBlocked(G, prefix, W);
+          assert false;
+        }
+      }
+    }
+  }
 
   /// Intersection (for positive distributions):
   ///   (Y ⊥ Z | W ∪ Z') ∧ (Y ⊥ Z' | W ∪ Z)  ⟹  (Y ⊥ Z ∪ Z' | W)
