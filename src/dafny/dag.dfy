@@ -282,11 +282,23 @@ module DAG {
       Parents(G, v) - X
   }
 
-  lemma {:axiom} RemoveIncomingCompiled_Correct(G: Graph, X: set<Node>)
+  lemma RemoveIncomingCompiled_Correct(G: Graph, X: set<Node>)
     ensures RemoveIncomingCompiled(G, X) == RemoveIncoming(G, X)
+  {
+    assert RemoveIncomingCompiled(G, X)
+         == (map v | v in Nodes(G) :: if v in X then {} else Parents(G, v));
+    assert RemoveIncoming(G, X)
+         == (map v | v in Nodes(G) :: if v in X then {} else Parents(G, v));
+  }
 
-  lemma {:axiom} RemoveOutgoingCompiled_Correct(G: Graph, X: set<Node>)
+  lemma RemoveOutgoingCompiled_Correct(G: Graph, X: set<Node>)
     ensures RemoveOutgoingCompiled(G, X) == RemoveOutgoing(G, X)
+  {
+    assert RemoveOutgoingCompiled(G, X)
+         == (map v | v in Nodes(G) :: Parents(G, v) - X);
+    assert RemoveOutgoing(G, X)
+         == (map v | v in Nodes(G) :: Parents(G, v) - X);
+  }
 
   // G_{X̄}  —  remove incoming edges to every node in X.
   function RemoveIncoming(G: Graph, X: set<Node>): Graph
