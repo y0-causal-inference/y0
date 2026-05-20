@@ -458,6 +458,150 @@ module DAG {
     (forall i :: 0 <= i < |trail| - 1 ==> trail[i].to == trail[i + 1].from)
   }
 
+  // ------------------------------------------------------------------
+  // Trail reversal helpers
+  //
+  // These helpers support future symmetry proofs by turning any trail
+  // from y to z into a trail from z to y over the same underlying edges.
+  // ------------------------------------------------------------------
+
+  ghost function ReverseDir(dir: EdgeDir): EdgeDir {
+    if dir == Forward then Backward else Forward
+  }
+
+  ghost function ReverseStep(step: TrailStep): TrailStep {
+    TrailStep(step.to, step.from, ReverseDir(step.dir))
+  }
+
+  ghost function ReverseTrail(trail: seq<TrailStep>): seq<TrailStep>
+    decreases |trail|
+  {
+    if |trail| == 0 then []
+    else ReverseTrail(trail[1..]) + [ReverseStep(trail[0])]
+  }
+
+  lemma ReverseTrail_Length(trail: seq<TrailStep>)
+    ensures |ReverseTrail(trail)| == |trail|
+    decreases |trail|
+  {
+    if |trail| != 0 {
+      ReverseTrail_Length(trail[1..]);
+    }
+  }
+
+  lemma ValidTrail_Suffix(G: Graph, trail: seq<TrailStep>)
+    requires ValidTrail(G, trail)
+    requires |trail| > 0
+    ensures ValidTrail(G, trail[1..])
+  {
+    forall i {:trigger trail[1..][i]} | 0 <= i < |trail[1..]|
+      ensures
+        (trail[1..][i].dir == Forward ==> trail[1..][i].from in Parents(G, trail[1..][i].to)) &&
+        (trail[1..][i].dir == Backward ==> trail[1..][i].to in Parents(G, trail[1..][i].from))
+    {
+      assert trail[1..][i] == trail[i + 1];
+    }
+  }
+
+  lemma ReverseStep_Valid(G: Graph, step: TrailStep)
+    requires (step.dir == Forward ==> step.from in Parents(G, step.to))
+    requires (step.dir == Backward ==> step.to in Parents(G, step.from))
+    ensures
+      (ReverseStep(step).dir == Forward ==> ReverseStep(step).from in Parents(G, ReverseStep(step).to)) &&
+      (ReverseStep(step).dir == Backward ==> ReverseStep(step).to in Parents(G, ReverseStep(step).from))
+  {
+    if step.dir == Forward {
+      assert ReverseStep(step).dir == Backward;
+      assert ReverseStep(step).from == step.to;
+      assert ReverseStep(step).to == step.from;
+    } else {
+      assert step.dir == Backward;
+      assert ReverseStep(step).dir == Forward;
+      assert ReverseStep(step).from == step.to;
+      assert ReverseStep(step).to == step.from;
+    }
+  }
+
+  lemma ReverseTrail_Valid(G: Graph, trail: seq<TrailStep>)
+    requires ValidTrail(G, trail)
+    ensures ValidTrail(G, ReverseTrail(trail))
+    decreases |trail|
+  {
+    if |trail| != 0 {
+      ValidTrail_Suffix(G, trail);
+      ReverseTrail_Valid(G, trail[1..]);
+      assert
+        (trail[0].dir == Forward ==> trail[0].from in Parents(G, trail[0].to)) &&
+        (trail[0].dir == Backward ==> trail[0].to in Parents(G, trail[0].from));
+      ReverseStep_Valid(G, trail[0]);
+      ReverseTrail_Length(trail[1..]);
+      forall i {:trigger ReverseTrail(trail)[i]} | 0 <= i < |ReverseTrail(trail)|
+        ensures
+          (ReverseTrail(trail)[i].dir == Forward ==> ReverseTrail(trail)[i].from in Parents(G, ReverseTrail(trail)[i].to)) &&
+          (ReverseTrail(trail)[i].dir == Backward ==> ReverseTrail(trail)[i].to in Parents(G, ReverseTrail(trail)[i].from))
+      {
+        if i < |ReverseTrail(trail[1..])| {
+          assert ReverseTrail(trail)[i] == ReverseTrail(trail[1..])[i];
+        } else {
+          assert i == |ReverseTrail(trail[1..])|;
+          assert ReverseTrail(trail)[i] == ReverseStep(trail[0]);
+        }
+      }
+    }
+  }
+
+  lemma TrailConnects_Suffix(trail: seq<TrailStep>, start: Node, end: Node)
+    requires TrailConnects(trail, start, end)
+    requires |trail| > 1
+    ensures TrailConnects(trail[1..], trail[1].from, end)
+  {
+    assert |trail[1..]| > 0;
+    assert trail[1..][0].from == trail[1].from;
+    assert trail[1..][|trail[1..]| - 1].to == end;
+    forall i | 0 <= i < |trail[1..]| - 1
+      ensures trail[1..][i].to == trail[1..][i + 1].from
+    {
+      assert trail[1..][i] == trail[i + 1];
+      assert trail[1..][i + 1] == trail[i + 2];
+    }
+  }
+
+  lemma ReverseTrail_Connects(trail: seq<TrailStep>, start: Node, end: Node)
+    requires TrailConnects(trail, start, end)
+    ensures TrailConnects(ReverseTrail(trail), end, start)
+    decreases |trail|
+  {
+    ReverseTrail_Length(trail);
+    if |trail| == 1 {
+      assert ReverseTrail(trail) == [ReverseStep(trail[0])];
+      assert ReverseTrail(trail)[0].from == end;
+      assert ReverseTrail(trail)[0].to == start;
+    } else {
+      TrailConnects_Suffix(trail, start, end);
+      ReverseTrail_Connects(trail[1..], trail[1].from, end);
+      ReverseTrail_Length(trail[1..]);
+      assert |ReverseTrail(trail[1..])| > 0;
+      assert ReverseTrail(trail) == ReverseTrail(trail[1..]) + [ReverseStep(trail[0])];
+      assert ReverseTrail(trail)[0].from == end;
+      assert ReverseTrail(trail)[|ReverseTrail(trail)| - 1].to == start;
+      forall i | 0 <= i < |ReverseTrail(trail)| - 1
+        ensures ReverseTrail(trail)[i].to == ReverseTrail(trail)[i + 1].from
+      {
+        if i < |ReverseTrail(trail[1..])| - 1 {
+          assert ReverseTrail(trail)[i] == ReverseTrail(trail[1..])[i];
+          assert ReverseTrail(trail)[i + 1] == ReverseTrail(trail[1..])[i + 1];
+        } else {
+          assert i == |ReverseTrail(trail[1..])| - 1;
+          assert ReverseTrail(trail)[i] == ReverseTrail(trail[1..])[i];
+          assert ReverseTrail(trail)[i + 1] == ReverseStep(trail[0]);
+          assert ReverseTrail(trail[1..])[|ReverseTrail(trail[1..])| - 1].to == trail[1].from;
+          assert ReverseStep(trail[0]).from == trail[0].to;
+          assert trail[0].to == trail[1].from;
+        }
+      }
+    }
+  }
+
   // ==================================================================
   // 6.  d-Separation
   // ==================================================================
