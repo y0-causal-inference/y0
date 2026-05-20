@@ -178,9 +178,11 @@ module SemiMarkovian {
     // By definition of CComponents, every pair in a component is
     // BidirectedConnected (first conjunct of the ghost body).
     var S :| S in CComponents(sm) && u in S && v in S;
-    // S satisfies: forall u, v | u in S && v in S :: BidirectedConnected(sm, u, v)
-    // This is the first inner conjunct of the CComponents definition.
-    assume {:axiom} BidirectedConnected(sm, u, v);
+    assert S <= SMNodes(sm) && S != {} &&
+      (forall x, y | x in S && y in S :: BidirectedConnected(sm, x, y)) &&
+      (forall x | x in SMNodes(sm) && x !in S ::
+        exists y | y in S :: !BidirectedConnected(sm, x, y));
+    assert forall x, y | x in S && y in S :: BidirectedConnected(sm, x, y);
   }
 
   // ------------------------------------------------------------------
