@@ -1392,10 +1392,120 @@ module Identification {
   ///   The additional bidirected edge W1 ↔ Y2 creates a hedge
   ///   that prevents identification of the joint effect on
   ///   (Y1, Y2).
-  lemma {:axiom} Figure1b_NotIdentifiable()
+  lemma Figure1b_NotIdentifiable()
     ensures
       var sm := Figure1bGraph();
       WellFormedSM(sm) ==> !IsIdentifiable(sm, {2}, {3, 4})
+  {
+    var sm := Figure1bGraph();
+    // Use the bow-arc witness on the X-Y1 slice inside Figure 1(b).
+    var F := SMGraph(
+      map[2 := {}, 3 := {2}],
+      {BiEdge(2, 3)}
+    );
+    var Fprime := SMGraph(
+      map[3 := {}],
+      {}
+    );
+
+    // Prove F is a DAG.
+    var Ford := [2, 3];
+    assert F.dag == map[2 := {}, 3 := {2}];
+    assert Nodes(F.dag) == {2, 3};
+    assert Ford[0] == 2 && Ford[1] == 3;
+    assert Parents(F.dag, 2) == {};
+    assert Parents(F.dag, 3) == {2};
+    forall i | 0 <= i < |Ford|
+      ensures forall p :: p in Parents(F.dag, Ford[i]) ==>
+        exists k :: 0 <= k < i && Ford[k] == p
+    {
+      if i == 1 { assert Ford[0] == 2; }
+    }
+    assert IsTopologicalSort(F.dag, Ford);
+    assert IsDAG(F.dag);
+
+    // Prove Fprime is a DAG.
+    var Fpord := [3];
+    assert IsTopologicalSort(Fprime.dag, Fpord);
+    assert IsDAG(Fprime.dag);
+
+    // Prove IsCForest(F).
+    assert WellFormedSM(F);
+    assert Children(F.dag, 2) == {3};
+    assert Children(F.dag, 3) == {};
+    assert AtMostOneChild(F);
+    assert BiEdge(2, 3) in F.bidirected;
+    assert HasBidirected(F, 2, 3);
+    assert BidirectedConnectedBounded(F, 2, 3, 1);
+    assert BidirectedConnected(F, 2, 3);
+    assert BidirectedConnectedBounded(F, 3, 2, 1);
+    assert BidirectedConnected(F, 3, 2);
+    assert BidirectedConnected(F, 2, 2);
+    assert BidirectedConnected(F, 3, 3);
+    assert SMNodes(F) == {2, 3};
+    TwoNodeBidirected_SingleCComponent(F, 2, 3);
+    assert IsCForest(F);
+
+    // Prove IsCForest(Fprime).
+    assert WellFormedSM(Fprime);
+    assert Children(Fprime.dag, 3) == {};
+    assert AtMostOneChild(Fprime);
+    assert SMNodes(Fprime) == {3};
+    assert BidirectedConnected(Fprime, 3, 3);
+    SingletonNode_SingleCComponent(Fprime, 3);
+    assert IsCForest(Fprime);
+
+    // Prove subgraph relations.
+    assert SMNodes(sm) == {0, 1, 2, 3, 4};
+    assert SMNodes(F) <= SMNodes(sm);
+    assert F.bidirected <= sm.bidirected;
+    forall v | v in SMNodes(F)
+      ensures Parents(F.dag, v) <= Parents(sm.dag, v)
+    {
+      if v == 2 {
+        assert Parents(F.dag, v) == {};
+        assert Parents(sm.dag, v) == {0, 1};
+      } else {
+        assert v == 3;
+        assert Parents(F.dag, v) == {2};
+        assert Parents(sm.dag, v) == {2};
+      }
+    }
+    assert IsSubgraphSM(F, sm);
+
+    assert SMNodes(Fprime) <= SMNodes(F);
+    assert Fprime.bidirected <= F.bidirected;
+    forall v | v in SMNodes(Fprime)
+      ensures Parents(Fprime.dag, v) <= Parents(F.dag, v)
+    {
+      assert v == 3;
+      assert Parents(Fprime.dag, v) == {};
+      assert Parents(F.dag, v) == {2};
+    }
+    assert IsSubgraphSM(Fprime, F);
+    assert SMNodes(Fprime) < SMNodes(F);
+
+    // Prove shared root set.
+    assert RootSet(F) == {3};
+    assert RootSet(Fprime) == {3};
+    assert RootSet(F) == RootSet(Fprime);
+
+    // Prove treatment-membership conditions.
+    assert SMNodes(F) * {2} != {};
+    assert SMNodes(Fprime) * {2} == {};
+
+    // Prove root-set inclusion in Anc(Y)_{G_{Xbar}}.
+    var Gx := RemoveIncomingSM(sm, {2});
+    assert Gx.dag == map[0 := {}, 1 := {}, 2 := {}, 3 := {2}, 4 := {2}];
+    assert IsAncestorBounded(Gx.dag, 3, 3, 0);
+    assert IsAncestor(Gx.dag, 3, 3);
+    var AncY := Ancestors(Gx.dag, {3, 4});
+    assert 3 in AncY;
+    assert RootSet(F) <= AncY;
+
+    assert IsHedge(sm, F, Fprime, {2}, {3, 4});
+    assert !IsIdentifiable(sm, {2}, {3, 4});
+  }
 
   // ==================================================================
   // 12.  Key Properties
