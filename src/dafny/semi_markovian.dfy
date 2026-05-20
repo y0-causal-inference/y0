@@ -224,12 +224,35 @@ module SemiMarkovian {
     BidirectedBFSLoop(sm, {v}, {}, |SMNodes(sm)|)
   }
 
+  lemma BidirectedBFS_FrontierSubset(
+    sm: SMGraph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires fuel >= 1
+    ensures frontier <= BidirectedBFSLoop(sm, frontier, visited, fuel)
+    decreases fuel
+  {
+    if frontier == {} {
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u, v | u in frontier && v in BidirectedNeighbors(sm, u)
+                  && v in SMNodes(sm) && v !in newVisited :: v);
+      BidirectedBFS_VisitedSubset(sm, nextFrontier, newVisited, fuel - 1);
+      assert frontier <= newVisited;
+    }
+  }
+
   // v is always in its own BFS component.
-  lemma {:axiom} BidirectedBFS_ContainsSelf(sm: SMGraph, v: Node, fuel: nat)
+  lemma BidirectedBFS_ContainsSelf(sm: SMGraph, v: Node, fuel: nat)
     requires fuel >= 1
     ensures v in BidirectedBFSLoop(sm, {v}, {}, fuel)
-  // Proof sketch: after one unfolding, visited becomes {v},
-  // and BidirectedBFS_VisitedSubset ensures {v} <= result.
+  {
+    BidirectedBFS_FrontierSubset(sm, {v}, {}, fuel);
+    assert v in {v};
+  }
 
   // BFS always returns a superset of visited.
   lemma BidirectedBFS_VisitedSubset(
