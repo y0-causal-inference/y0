@@ -688,6 +688,23 @@ module DAG {
     assert start in {start};
   }
 
+  lemma ForwardTrail_EndInDescendants(G: Graph, trail: seq<TrailStep>, start: Node, end: Node)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    requires |trail| <= |Nodes(G)|
+    ensures end in Descendants(G, {start})
+  {
+    ForwardTrail_ImpliesAncestorBounded(G, trail, start, end);
+    IsAncestorBounded_Monotone(G, start, end, |trail|, |Nodes(G)|);
+    assert IsAncestor(G, start, end);
+    assert trail[|trail| - 1].dir == Forward;
+    assert trail[|trail| - 1].to == end;
+    assert trail[|trail| - 1].from in Parents(G, end);
+    assert end in Nodes(G);
+    assert start in {start};
+  }
+
   // ------------------------------------------------------------------
   // Trail reversal helpers
   //
@@ -877,6 +894,21 @@ module DAG {
   // trail has no internal blocking witness and is therefore unblocked.
   ghost predicate TrailBlocked(G: Graph, trail: seq<TrailStep>, W: set<Node>) {
     exists pos :: 1 <= pos < |trail| && TrailBlockedAtPos(G, trail, pos, W)
+  }
+
+  lemma BackwardFirstStep_BlockedByParents(G: Graph, trail: seq<TrailStep>, start: Node, end: Node)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires |trail| > 1
+    requires trail[0].dir == Backward
+    ensures TrailBlockedAtPos(G, trail, 1, Parents(G, start))
+  {
+    assert trail[0].from == start;
+    assert trail[0].to in Parents(G, trail[0].from);
+    assert trail[0].to in Parents(G, start);
+    assert trail[1].from == trail[0].to;
+    assert !IsCollider(trail, 1);
+    assert trail[1].from in Parents(G, start);
   }
 
   lemma IsCollider_Prefix(trail: seq<TrailStep>, prefixLen: nat, pos: nat)
@@ -1417,12 +1449,13 @@ module DAG {
     Nodes(G) - Descendants(G, {v})
   }
 
-  /// Every node v is d-separated from its non-descendants given its parents:
-  ///   {v} ⊥ NonDesc(v) | Pa(v)
+  /// Every node v is d-separated from its non-descendants excluding parents,
+  /// given its parents:
+  ///   {v} ⊥ (NonDesc(v) \ Pa(v)) | Pa(v)
   lemma {:axiom} LocalMarkov(G: Graph, v: Node)
     requires v in Nodes(G)
     requires IsDAG(G)
-    ensures  DSep(G, {v}, NonDescendants(G, v), Parents(G, v))
+    ensures  DSep(G, {v}, NonDescendants(G, v) - Parents(G, v), Parents(G, v))
 
   // ==================================================================
   // 9.  Concrete example: three-node chain  A → B → C
