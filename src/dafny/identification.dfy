@@ -1182,10 +1182,7 @@ module Identification {
     assert BidirectedConnected(F, 1, 1);
     // The only C-component is {0, 1}
     assert SMNodes(F) == {0, 1};
-    // All pairs are bidirected-connected, so {0,1} is a single C-component.
-    // This follows from the CComponents definition: for S={0,1}, every pair
-    // is BidirectedConnected, and no node exists outside S.
-    assume {:axiom} |CComponents(F)| == 1;
+    TwoNodeBidirected_SingleCComponent(F, 0, 1);
     assert IsCForest(F);
 
     // Prove IsCForest(Fprime): single node is trivially a C-component
@@ -1194,8 +1191,7 @@ module Identification {
     assert AtMostOneChild(Fprime);
     assert SMNodes(Fprime) == {1};
     assert BidirectedConnected(Fprime, 1, 1);
-    // Single node {1} with no bidirected edges: trivially one C-component.
-    assume {:axiom} |CComponents(Fprime)| == 1;
+    SingletonNode_SingleCComponent(Fprime, 1);
     assert IsCForest(Fprime);
 
     // Prove IsSubgraphSM(F, sm): F has same edges as sm

@@ -185,6 +185,172 @@ module SemiMarkovian {
     assert forall x, y | x in S && y in S :: BidirectedConnected(sm, x, y);
   }
 
+  lemma SingletonNode_SingleCComponent(sm: SMGraph, v: Node)
+    requires WellFormedSM(sm)
+    requires SMNodes(sm) == {v}
+    ensures {v} in CComponents(sm)
+    ensures |CComponents(sm)| == 1
+  {
+    assert {v} <= SMNodes(sm);
+    assert {v} != {};
+    forall x, y | x in {v} && y in {v}
+      ensures BidirectedConnected(sm, x, y)
+    {
+      assert x == v;
+      assert y == v;
+    }
+    forall x | x in SMNodes(sm) && x !in {v}
+      ensures exists y | y in {v} :: !BidirectedConnected(sm, x, y)
+    {
+      assert x in {v};
+      assert false;
+    }
+    assert {v} in CComponents(sm);
+    forall T | T in CComponents(sm)
+      ensures T == {v}
+    {
+      assert T <= SMNodes(sm) && T != {} &&
+        (forall x, y | x in T && y in T :: BidirectedConnected(sm, x, y)) &&
+        (forall x | x in SMNodes(sm) && x !in T ::
+          exists y | y in T :: !BidirectedConnected(sm, x, y));
+      var t :| t in T;
+      assert t in SMNodes(sm);
+      assert t in {v};
+      assert t == v;
+      assert v in T;
+      assert {v} <= T;
+      assert T <= {v};
+      assert T == {v};
+    }
+    forall T | T in CComponents(sm)
+      ensures T in {{v}}
+    {
+      assert T == {v};
+    }
+    forall T | T in {{v}}
+      ensures T in CComponents(sm)
+    {
+      assert T == {v};
+    }
+    assert CComponents(sm) <= {{v}};
+    assert {{v}} <= CComponents(sm);
+    assert CComponents(sm) == {{v}};
+  }
+
+  lemma TwoNodeBidirected_ComponentWitness(sm: SMGraph, u: Node, v: Node)
+    requires WellFormedSM(sm)
+    requires u != v
+    requires SMNodes(sm) == {u, v}
+    requires HasBidirected(sm, u, v)
+    ensures {u, v} in CComponents(sm)
+  {
+    assert BidirectedConnectedBounded(sm, u, v, 1);
+    assert BidirectedConnected(sm, u, v);
+    assert BidirectedConnectedBounded(sm, v, u, 1);
+    assert BidirectedConnected(sm, v, u);
+    assert {u, v} <= SMNodes(sm);
+    assert {u, v} != {};
+    forall x, y | x in {u, v} && y in {u, v}
+      ensures BidirectedConnected(sm, x, y)
+    {
+      if x == y {
+      } else if x == u {
+        assert y == v;
+      } else {
+        assert x == v;
+        assert y == u;
+      }
+    }
+    forall x | x in SMNodes(sm) && x !in {u, v}
+      ensures exists y | y in {u, v} :: !BidirectedConnected(sm, x, y)
+    {
+      assert x in {u, v};
+      assert false;
+    }
+    assert {u, v} in CComponents(sm);
+  }
+
+  lemma TwoNodeBidirected_OnlyComponent(
+    sm: SMGraph,
+    u: Node,
+    v: Node,
+    T: set<Node>
+  )
+    requires WellFormedSM(sm)
+    requires u != v
+    requires SMNodes(sm) == {u, v}
+    requires HasBidirected(sm, u, v)
+    requires T in CComponents(sm)
+    ensures T == {u, v}
+  {
+    assert T <= SMNodes(sm) && T != {} &&
+      (forall x, y | x in T && y in T :: BidirectedConnected(sm, x, y)) &&
+      (forall x | x in SMNodes(sm) && x !in T ::
+        exists y | y in T :: !BidirectedConnected(sm, x, y));
+    assert BidirectedConnectedBounded(sm, u, v, 1);
+    assert BidirectedConnected(sm, u, v);
+    assert BidirectedConnectedBounded(sm, v, u, 1);
+    assert BidirectedConnected(sm, v, u);
+    if u !in T {
+      assert u in SMNodes(sm);
+      var y :| y in T && !BidirectedConnected(sm, u, y);
+      assert y in SMNodes(sm);
+      assert y in {u, v};
+      if y == u {
+        assert u in T;
+        assert false;
+      }
+      assert y == v;
+      assert BidirectedConnected(sm, u, y);
+      assert false;
+    }
+    if v !in T {
+      assert v in SMNodes(sm);
+      var y :| y in T && !BidirectedConnected(sm, v, y);
+      assert y in SMNodes(sm);
+      assert y in {u, v};
+      if y == v {
+        assert v in T;
+        assert false;
+      }
+      assert y == u;
+      assert BidirectedConnected(sm, v, y);
+      assert false;
+    }
+    assert {u, v} <= T;
+    assert T <= {u, v};
+    assert T == {u, v};
+  }
+
+  lemma TwoNodeBidirected_SingleCComponent(sm: SMGraph, u: Node, v: Node)
+    requires WellFormedSM(sm)
+    requires u != v
+    requires SMNodes(sm) == {u, v}
+    requires HasBidirected(sm, u, v)
+    ensures {u, v} in CComponents(sm)
+    ensures |CComponents(sm)| == 1
+  {
+    TwoNodeBidirected_ComponentWitness(sm, u, v);
+    forall T | T in CComponents(sm)
+      ensures T == {u, v}
+    {
+      TwoNodeBidirected_OnlyComponent(sm, u, v, T);
+    }
+    forall T | T in CComponents(sm)
+      ensures T in {{u, v}}
+    {
+      assert T == {u, v};
+    }
+    forall T | T in {{u, v}}
+      ensures T in CComponents(sm)
+    {
+      assert T == {u, v};
+    }
+    assert CComponents(sm) <= {{u, v}};
+    assert {{u, v}} <= CComponents(sm);
+    assert CComponents(sm) == {{u, v}};
+  }
+
   // ------------------------------------------------------------------
   // Compiled C-Components — BFS over bidirected edges
   //
