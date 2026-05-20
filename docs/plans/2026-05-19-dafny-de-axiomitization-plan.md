@@ -164,7 +164,12 @@ Order by tractability:
 5. `DSep_Intersection`: keep last; review whether the axiom should stay as a
    pure graph-theoretic `DSep` statement. Positivity caveats belong to the
    probabilistic CI layer, not to the DAG d-separation predicate itself.
-6. `LocalMarkov`: depends on substantial d-separation theory for DAGs.
+6. `LocalMarkov`: now looks like a dedicated graph-theoretic helper batch,
+   not a proof-boundary problem. Likely proof path: trails that start through a
+   parent block immediately under `Parents(v)`; trails that stay all-forward end
+   in `Descendants(v)` and cannot reach `NonDescendants(v)`; mixed-direction
+   trails need a first forward-to-backward pivot lemma plus a DAG fact that a
+   descendant of `v` cannot have a descendant in `Parents(v)`.
 
 Exit criterion: at least decomposition and symmetry are proved before attempting
 do-calculus rule proofs.
