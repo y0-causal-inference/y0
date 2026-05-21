@@ -1752,18 +1752,104 @@ module DAG {
     }
   }
 
+  lemma ShorterUnblockedPrefixIntoConditioningSet(
+    G: Graph,
+    trail: seq<TrailStep>,
+    start: Node,
+    end: Node,
+    W: set<Node>,
+    Added: set<Node>
+  ) returns (prefix: seq<TrailStep>, mid: Node)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires !TrailBlocked(G, trail, W)
+    requires TrailBlocked(G, trail, W + Added)
+    ensures 0 < |prefix| < |trail|
+    ensures ValidTrail(G, prefix)
+    ensures TrailConnects(prefix, start, mid)
+    ensures mid in Added
+    ensures !TrailBlocked(G, prefix, W)
+  {
+    if |trail| <= 1 {
+      var blockedPos :| 1 <= blockedPos < |trail| && TrailBlockedAtPos(G, trail, blockedPos, W + Added);
+      assert false;
+    }
+
+    var pos := FirstBlockedPos(G, trail, W + Added);
+    TrailNotBlockedAtPos(G, trail, pos, W);
+    BlockingAddedByConditioningAtPos(G, trail, pos, W, Added);
+
+    prefix := trail[..pos];
+    mid := trail[pos - 1].to;
+    ValidTrail_Prefix(G, trail, pos);
+    TrailConnects_Prefix(trail, start, end, pos);
+    assert trail[pos - 1].to == trail[pos].from;
+    assert mid == trail[pos].from;
+    assert mid in Added;
+
+    assert forall j :: 1 <= j < pos ==> !TrailBlockedAtPos(G, trail, j, W) by {
+      forall j | 1 <= j < pos
+        ensures !TrailBlockedAtPos(G, trail, j, W)
+      {
+        TrailNotBlockedAtPos(G, trail, j, W);
+      }
+    }
+    PrefixWithoutBlockedPos_NotBlocked(G, trail, pos, W);
+  }
+
+  lemma DSep_Intersection_Descend(
+    G: Graph,
+    Y: set<Node>,
+    A: set<Node>,
+    B: set<Node>,
+    W: set<Node>,
+    trail: seq<TrailStep>,
+    y: Node,
+    endpoint: Node
+  )
+    requires y in Y
+    requires endpoint in A
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, y, endpoint)
+    requires DSep(G, Y, A, W + B)
+    requires DSep(G, Y, B, W + A)
+    ensures TrailBlocked(G, trail, W)
+    decreases |trail|
+  {
+    if !TrailBlocked(G, trail, W) {
+      assert TrailBlocked(G, trail, W + B);
+      var shorter, mid := ShorterUnblockedPrefixIntoConditioningSet(G, trail, y, endpoint, W, B);
+      DSep_Intersection_Descend(G, Y, B, A, W, shorter, y, mid);
+      assert false;
+    }
+  }
+
   /// Intersection:
   ///   (Y ⊥ Z | W ∪ Z') ∧ (Y ⊥ Z' | W ∪ Z)  ⟹  (Y ⊥ Z ∪ Z' | W)
   ///
   /// This is stated here as a graph-level property of the `DSep` predicate.
   /// The earlier positivity/faithfulness caveat belongs to probabilistic
   /// conditional independence semantics, not to this DAG d-separation layer.
-  /// We keep the lemma axiomatic until a direct graph proof is added.
-  lemma {:axiom} DSep_Intersection(
+  lemma DSep_Intersection(
     G: Graph, Y: set<Node>, Z: set<Node>, Z': set<Node>, W: set<Node>
   )
     requires DSep(G, Y, Z, W + Z') && DSep(G, Y, Z', W + Z)
     ensures  DSep(G, Y, Z + Z', W)
+  {
+    forall trail: seq<TrailStep>, y: Node, z: Node |
+      y in Y && z in Z + Z' &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z)
+      ensures TrailBlocked(G, trail, W)
+    {
+      if z in Z {
+        DSep_Intersection_Descend(G, Y, Z, Z', W, trail, y, z);
+      } else {
+        assert z in Z';
+        DSep_Intersection_Descend(G, Y, Z', Z, W, trail, y, z);
+      }
+    }
+  }
 
   // ==================================================================
   // 8.  Local Markov Property
