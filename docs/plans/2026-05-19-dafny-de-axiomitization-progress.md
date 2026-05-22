@@ -93,7 +93,7 @@ rg -o "assume\s+\{:axiom\}" src/dafny/*.dfy | wc -l
 | 2026-05-21 | Working tree | 86 | 19 | 67 | -2 declaration axioms | Added `SetToSequence` as a small enumeration bridge axiom, but removed the three derived probability axioms by defining concrete `ProbEvent` and proving `ComplementRule`, `InclusionExclusion`, and `TotalProbability`. |
 | 2026-05-21 | `c914de5` | 86 | 19 | 67 | No axiom-count change | Committed `DA-P5-001` and `DA-P5-002`: the probability finite-sum decision note, the finite-support event-sum substrate, concrete `ProbEvent`, and the first derived-law proof batch. |
 | 2026-05-21 | `87143dd` | 86 | 19 | 67 | No axiom-count change | Committed the `DA-P5-003` alignment note that separates node values from joint outcomes and rejects an in-place reinterpretation of `Prob.PMF`. |
-| 2026-05-21 | Working tree | 85 | 19 | 66 | -1 declaration axiom | Added `OutcomeToAssignment` plus support-bounded `AssignmentEvent`, made `IntProbConcrete` concrete, and replaced the narrative `IntProb_Grounded` axiom with a checked equality over truncated-PMF assignment events. |
+| 2026-05-21 | `c148a9c` | 85 | 19 | 66 | -1 declaration axiom | Committed `DA-P5-004`: added `OutcomeToAssignment` plus support-bounded `AssignmentEvent`, made `IntProbConcrete` concrete, and replaced the narrative `IntProb_Grounded` axiom with a checked equality over truncated-PMF assignment events. |
 
 ## Verification Log
 
@@ -149,7 +149,6 @@ Move rows from here to the commit ledger after committing.
 | --- | --- | --- | --- | --- |
 | Tracker setup | `docs(dafny): add de-axiomitization progress tracker` | Add this working tracker. | Markdown diff check. | Ready |
 | DA-P0-001 | `docs(dafny): add de-axiomitization axiom ledger` | Add category/reason ledger for remaining declaration axioms and update Phase 0 progress. | Markdown diff check. | Ready |
-| DA-P5-004 | `proof(dafny): ground interventional assignment events` | Add the `OutcomeToAssignment` bridge, support-bounded `AssignmentEvent`, concrete `IntProbConcrete`, and the formal `IntProb_Grounded` contract, then update the tracker and ledger. | Focused `interventional.dfy` verify plus full-stack verify. | Ready |
 
 ## Commit Ledger
 
@@ -175,6 +174,7 @@ Move rows from here to the commit ledger after committing.
 | 2026-05-21 | `31d624b` | `Dsep_Intersection passes` | `DA-P4-009` | Focused `dag.dfy` verify plus full-stack verify | Commits the direct graph proof of `DSep_Intersection`; the tracker row previously recorded as a working-tree result is now closed out as an actual commit. |
 | 2026-05-21 | `c914de5` | `proof(dafny): define finite-sum event probability` | `DA-P5-001`, `DA-P5-002` | Focused `probability.dfy` verify plus full-stack verify | Commits the probability finite-sum decision note, the `SetToSequence` / `FiniteSupportSum` substrate, concrete `ProbEvent`, and the proofs of `ComplementRule`, `InclusionExclusion`, and `TotalProbability`. |
 | 2026-05-21 | `87143dd` | `docs(dafny): scope probability assignment alignment` | `DA-P5-003` (planning) | Documentation diff check | Commits the design note that separates node values from joint outcomes, rejects an in-place reinterpretation of `Prob.PMF`, and scopes the translation-layer prototype path. |
+| 2026-05-21 | `c148a9c` | `proof(dafny): ground interventional assignment events` | `DA-P5-004` | Focused `interventional.dfy` verify plus full-stack verify | Commits the `OutcomeToAssignment` bridge, support-bounded `AssignmentEvent`, concrete `IntProbConcrete`, and the explicit `IntProb_Grounded` equality over truncated-PMF assignment events. |
 
 ## Decisions And Blockers
 
@@ -246,7 +246,7 @@ Move rows from here to the commit ledger after committing.
 | 2026-05-21 | DA-P5-001 probability finite-sum decision | Complete | Recorded the decision in `docs/plans/2026-05-21-dafny-probability-finite-sum-decision.md`: make `ProbEvent` concrete as a finite sum over `A * p.Keys`, keep the Kolmogorov axioms explicit in the first slice, and defer the PMF outcome vs node-assignment alignment before constructor-level probability work. | Start the finite-support summation helper and concrete `ProbEvent` batch. |
 | 2026-05-21 | DA-P5-002 finite-support event sums and derived laws | Complete | Added the axiomatic `SetToSequence` bridge, `SumOutcomeMasses`, and `FiniteSupportSum`; made `ProbEvent` concrete over `A * p.Keys`; and proved `ComplementRule`, `InclusionExclusion`, and `TotalProbability` from `Axiom_Additivity`, `Axiom_Normalization`, and `ChainRule`. The full stack stayed green, the declaration-axiom count dropped to 67, and the batch was committed as `c914de5`. | Start `DA-P5-003` on PMF outcome versus assignment alignment. |
 | 2026-05-21 | DA-P5-003 PMF outcome versus assignment alignment note | Complete | Recorded `docs/plans/2026-05-21-dafny-probability-assignment-alignment.md`, which sharpens the semantic split between node values and joint outcomes, rejects an immediate in-place reinterpretation of `Prob.PMF`, and scopes the translation-layer prototype path; the note was committed as `87143dd`. | Start the narrow bridge prototype in `DA-P5-004`. |
-| 2026-05-21 | DA-P5-004 assignment-event grounding | Complete | Added `Value`, axiomatic `OutcomeToAssignment`, and support-bounded `AssignmentEvent` in `interventional.dfy`; used them to define `IntProbConcrete` as a real conditional probability on the truncated PMF; and replaced the narrative `IntProb_Grounded` axiom with a checked equality contract. The full stack stayed green and the declaration-axiom count dropped to 66. | Extend the same bridge to `TruncatePMF`, `Marginalize`, or `ProductPMF`. |
+| 2026-05-21 | DA-P5-004 assignment-event grounding | Complete | Added `Value`, axiomatic `OutcomeToAssignment`, and support-bounded `AssignmentEvent` in `interventional.dfy`; used them to define `IntProbConcrete` as a real conditional probability on the truncated PMF; and replaced the narrative `IntProb_Grounded` axiom with a checked equality contract. The full stack stayed green, the declaration-axiom count dropped to 66, and the batch was committed as `c148a9c`. | Extend the same bridge to `TruncatePMF`, `Marginalize`, or `ProductPMF`. |
 
 ## Next Update Checklist
 
