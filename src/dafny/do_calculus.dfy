@@ -48,7 +48,9 @@ module DoCalculus {
   //   - obsW: set of conditioned (observed) variables
   //
   //   Setting doX = {} recovers the ordinary conditional P(Y | W).
-  //   The return type is a PMF from the Probability module.
+  //   The return type is a PMF from the Probability module: this is
+  //   the whole interventional distribution over Y-assignments, not a
+  //   single scalar evaluation such as P(y | do(x), w).
   //
   //   This abstract function remains here as the interface used by
   //   the three rules.  Its concrete semantics are grounded by

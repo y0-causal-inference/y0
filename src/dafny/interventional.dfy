@@ -75,6 +75,33 @@ module Interventional {
     set omega: Prob.Outcome | omega in p.Keys && MatchesAssignment(G, omega, partial) :: omega
   }
 
+  // Scalar probability of a partial assignment under a PMF.
+  // This is the pointwise level: a number in [0, 1].
+  ghost function AssignmentProb(
+    p: Prob.PMF,
+    G: Graph,
+    partial: Assignment
+  ): real
+    requires partial.Keys <= Nodes(G)
+  {
+    Prob.ProbEvent(p, AssignmentEvent(p, G, partial))
+  }
+
+  // Conditional scalar probability for one assignment given another.
+  // This is the pointwise evaluation corresponding to a PMF-level kernel.
+  ghost function AssignmentCondProb(
+    p: Prob.PMF,
+    G: Graph,
+    target: Assignment,
+    given: Assignment
+  ): real
+    requires target.Keys <= Nodes(G)
+    requires given.Keys <= Nodes(G)
+    requires AssignmentProb(p, G, given) > 0.0
+  {
+    Prob.ProbCond(p, AssignmentEvent(p, G, target), AssignmentEvent(p, G, given))
+  }
+
   // ==================================================================
   // 2.  Conditional Factor
   //
@@ -184,9 +211,10 @@ module Interventional {
   //   P(Y | do(X = xVals), W = wVals) computed concretely:
   //     = ProbCond(TruncatePMF(G, p, X, xVals), Y-event, W-event)
   //
-  //   This returns a real number (the probability for specific
-  //   value assignments), whereas IntProb in do_calculus.dfy returns
-  //   a PMF.  The grounding lemma relates them pointwise:
+  //   This returns a real number for specific value assignments,
+  //   whereas IntProb in do_calculus.dfy returns the whole PMF-valued
+  //   interventional kernel over Y-assignments. The grounding lemma
+  //   relates that PMF-level interface to this pointwise scalar view:
   //     for all y-assignments, IntProb(G,Y,X,W)[y] == IntProbConcrete(...)
   // ==================================================================
 
@@ -204,15 +232,13 @@ module Interventional {
     requires xAssign.Keys <= Nodes(G)
     requires yAssign.Keys <= Nodes(G)
     requires wAssign.Keys <= Nodes(G)
-    requires Prob.ProbEvent(
-      TruncatePMF(G, p, xAssign.Keys, xAssign),
-      AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, wAssign)
-    ) > 0.0
+    requires AssignmentProb(TruncatePMF(G, p, xAssign.Keys, xAssign), G, wAssign) > 0.0
   {
-    Prob.ProbCond(
+    AssignmentCondProb(
       TruncatePMF(G, p, xAssign.Keys, xAssign),
-      AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, yAssign),
-      AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, wAssign)
+      G,
+      yAssign,
+      wAssign
     )
   }
 
@@ -220,7 +246,7 @@ module Interventional {
   // probability in the truncated distribution.
   //
   // IntProbConcrete(G, p, y, x, w) ==
-  //   ProbCond(TruncatePMF(G, p, X, x), Y-event(y), W-event(w))
+  //   AssignmentCondProb(TruncatePMF(G, p, X, x), G, y, w)
   //
   // This connects the abstract IntProb (which returns a PMF) to
   // the concrete computation (which returns a real).
@@ -236,15 +262,13 @@ module Interventional {
     requires xAssign.Keys <= Nodes(G)
     requires yAssign.Keys <= Nodes(G)
     requires wAssign.Keys <= Nodes(G)
-    requires Prob.ProbEvent(
-      TruncatePMF(G, p, xAssign.Keys, xAssign),
-      AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, wAssign)
-    ) > 0.0
+    requires AssignmentProb(TruncatePMF(G, p, xAssign.Keys, xAssign), G, wAssign) > 0.0
     ensures IntProbConcrete(G, p, yAssign, xAssign, wAssign)
-      == Prob.ProbCond(
+      == AssignmentCondProb(
         TruncatePMF(G, p, xAssign.Keys, xAssign),
-        AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, yAssign),
-        AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, wAssign)
+        G,
+        yAssign,
+        wAssign
       )
   {
   }

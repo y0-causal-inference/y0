@@ -244,8 +244,10 @@ module Identification {
   //   Python: y0.algorithm.identify.id_std.identify
   // ==================================================================
 
-  // The result of the ID algorithm: either an identified expression
-  // (represented as a PMF) or a failure (hedge witness).
+  // The result of the ID algorithm: either the full identified PMF
+  // over target assignments, or a failure (hedge witness). Pointwise
+  // quantities such as P_x(y) are obtained by evaluating this PMF at
+  // a specific target assignment.
   datatype IDResult =
     | Identified(pmf: Prob.PMF)
     | NotIdentified(F: SMGraph, Fprime: SMGraph)
