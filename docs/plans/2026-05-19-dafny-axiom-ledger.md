@@ -102,8 +102,8 @@ receive real postconditions or are demoted to comments.
 | `IntProbConcrete` | 516 | Abstract interface | Done | Replaced in the 2026-05-21 working tree with a concrete assignment-conditional probability on the truncated PMF. |
 | `IntProb_Grounded` | 546 | Contract gap | Done | Replaced in the 2026-05-21 working tree with an explicit equality contract relating `IntProbConcrete` to `AssignmentCondProb` on truncated-PMF assignment events. |
 | `GlobalMarkov_From_Factorization` | 583 | Contract gap | P6 | Intended deep theorem, but currently lacks a formal postcondition. |
-| `Marginalize` | 605 | Abstract interface | P5 | Needs concrete summation over variables; the new assignment-event algebra is the intended substrate for this next step. |
-| `Marginalize_IsDistribution` | 607 | Derivable wrapper | P5 | Prove once `Marginalize` is concrete. |
+| `Marginalize` | 605 | Abstract interface | P5 | Still abstract, but now graph-aware and constrained to preserve `AssignmentProb` for partial assignments whose keys avoid the eliminated set. Remaining work is the concrete summation construction. |
+| `Marginalize_IsDistribution` | 611 | Derivable wrapper | P5 | Prove once `Marginalize` is concrete. |
 
 ### `src/dafny/do_calculus.dfy`
 

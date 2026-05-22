@@ -403,13 +403,13 @@ module Identification {
 
     // Line 1: if X = ∅, return Σ_{V\Y} P(V)
     else if X == {} then
-      Identified(Marginalize(p, V - Y))
+      Identified(Marginalize(sm.dag, p, V - Y))
 
     // Line 2: if V ≠ An(Y)_G, return ID(y, x ∩ An(Y), P(An(Y)), G_{An(Y)})
     else if V - Ancestors(sm.dag, Y) != {} then
       var AncY := Ancestors(sm.dag, Y);
       var smAncY := SubgraphSM(sm, AncY);
-      var pAncY := Marginalize(p, V - AncY);
+      var pAncY := Marginalize(sm.dag, p, V - AncY);
       assume {:axiom} ValidQuery(CausalQuery(smAncY, X * AncY, Y));
       assume {:axiom} Prob.IsDistribution(pAncY);
       assume {:axiom} MarkovFactorization(smAncY.dag, pAncY);
@@ -441,7 +441,7 @@ module Identification {
         if check.NotIdentified? then check
         else
           var pmfs := IDLine4Product(sm, comps, p, ord, 0, fuel - 1);
-          Identified(Marginalize(Prob.ProductPMF(pmfs), V - (Y + X)))
+          Identified(Marginalize(sm.dag, Prob.ProductPMF(pmfs), V - (Y + X)))
 
       // C(G \ X) = {S} — single component
       else
@@ -460,7 +460,7 @@ module Identification {
 
         // Line 6: if S ∈ C(G), compute Q[S] directly
         else if S in ccompsG then
-          Identified(Marginalize(QValue(sm, p, S, ord), S - Y))
+          Identified(Marginalize(sm.dag, QValue(sm, p, S, ord), S - Y))
 
         // Line 7: if S ⊂ S' ∈ C(G), recurse on G_{S'}
         else

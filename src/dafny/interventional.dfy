@@ -602,10 +602,15 @@ module Interventional {
   // ==================================================================
 
   // Marginalize: Σ_W P(V)
-  ghost function {:axiom} Marginalize(p: Prob.PMF, W: set<Node>): Prob.PMF
+  ghost function {:axiom} Marginalize(G: Graph, p: Prob.PMF, W: set<Node>): Prob.PMF
+    requires W <= Nodes(G)
+    ensures forall partial: Assignment ::
+      partial.Keys <= Nodes(G) - W ==>
+      AssignmentProb(Marginalize(G, p, W), G, partial) == AssignmentProb(p, G, partial)
 
-  lemma {:axiom} Marginalize_IsDistribution(p: Prob.PMF, W: set<Node>)
+  lemma {:axiom} Marginalize_IsDistribution(G: Graph, p: Prob.PMF, W: set<Node>)
     requires Prob.IsDistribution(p)
-    ensures Prob.IsDistribution(Marginalize(p, W))
+    requires W <= Nodes(G)
+    ensures Prob.IsDistribution(Marginalize(G, p, W))
 
 }  // end module Interventional
