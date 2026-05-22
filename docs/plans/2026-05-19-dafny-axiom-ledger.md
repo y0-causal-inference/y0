@@ -90,19 +90,20 @@ receive real postconditions or are demoted to comments.
 
 | Symbol | Line | Category | Phase | Reason / next action |
 | --- | ---: | --- | --- | --- |
-| `ConditionalFactor` | 56 | Abstract interface | P5 | Needs concrete conditional factor representation. |
-| `ConditionalFactor_NonNeg` | 64 | Derivable wrapper | P5 | Prove once `ConditionalFactor` is concrete. |
-| `MarkovFactorization` | 87 | Abstract interface | P5 | Current graph-to-PMF semantic relation is intentionally abstract. |
-| `MarkovFactorization_IsDistribution` | 90 | Derivable wrapper | P5 | Prove once `MarkovFactorization` has concrete semantics or keep as interface invariant. |
-| `TruncatePMF` | 111 | Abstract interface | P5 | Needs concrete do-intervention PMF construction. |
-| `TruncatePMF_IsDistribution` | 121 | Derivable wrapper | P5 | Prove once `TruncatePMF` is concrete. |
-| `TruncatePMF_Empty` | 130 | Derivable wrapper | P5 | Prove once `TruncatePMF` is concrete. |
-| `TruncatePMF_Markov` | 136 | Deep theorem | P5 | Needs Markov-factorization and graph-surgery semantics. |
-| `IntProbConcrete` | 163 | Abstract interface | P6 | Needs event/assignment interpretation to become concrete. |
-| `IntProb_Grounded` | 181 | Contract gap | P6 | Add formal pointwise equality; currently narrative only. |
-| `GlobalMarkov_From_Factorization` | 208 | Contract gap | P6 | Intended deep theorem, but currently lacks a formal postcondition. |
-| `Marginalize` | 230 | Abstract interface | P5 | Needs concrete summation over variables. |
-| `Marginalize_IsDistribution` | 232 | Derivable wrapper | P5 | Prove once `Marginalize` is concrete. |
+| `OutcomeToAssignment` | 51 | Abstract interface | P5 | Chosen immediate translation-layer bridge from joint PMF outcomes to full node assignments; kept axiomatic to avoid a broad in-place `Prob.PMF` refactor while grounding assignment-level semantics. |
+| `ConditionalFactor` | 88 | Abstract interface | P5 | Needs concrete conditional factor representation. |
+| `ConditionalFactor_NonNeg` | 96 | Derivable wrapper | P5 | Prove once `ConditionalFactor` is concrete. |
+| `MarkovFactorization` | 119 | Abstract interface | P5 | Current graph-to-PMF semantic relation is intentionally abstract. |
+| `MarkovFactorization_IsDistribution` | 122 | Derivable wrapper | P5 | Prove once `MarkovFactorization` has concrete semantics or keep as interface invariant. |
+| `TruncatePMF` | 143 | Abstract interface | P5 | Needs concrete do-intervention PMF construction. |
+| `TruncatePMF_IsDistribution` | 153 | Derivable wrapper | P5 | Prove once `TruncatePMF` is concrete. |
+| `TruncatePMF_Empty` | 162 | Derivable wrapper | P5 | Prove once `TruncatePMF` is concrete. |
+| `TruncatePMF_Markov` | 168 | Deep theorem | P5 | Needs Markov-factorization and graph-surgery semantics. |
+| `IntProbConcrete` | 195 | Abstract interface | Done | Replaced in the 2026-05-21 working tree with a concrete conditional-probability definition over support-bounded `AssignmentEvent` in the truncated PMF. |
+| `IntProb_Grounded` | 227 | Contract gap | Done | Replaced in the 2026-05-21 working tree with an explicit equality contract relating `IntProbConcrete` to `ProbCond` over truncated-PMF assignment events. |
+| `GlobalMarkov_From_Factorization` | 266 | Contract gap | P6 | Intended deep theorem, but currently lacks a formal postcondition. |
+| `Marginalize` | 288 | Abstract interface | P5 | Needs concrete summation over variables. |
+| `Marginalize_IsDistribution` | 290 | Derivable wrapper | P5 | Prove once `Marginalize` is concrete. |
 
 ### `src/dafny/do_calculus.dfy`
 

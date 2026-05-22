@@ -36,12 +36,44 @@ module Interventional {
   // ==================================================================
   // 1.  Assignments
   //
-  //   An Assignment maps each node to a concrete outcome value.
+  //   A Value is the value taken by a single node.
+  //   An Assignment maps each node to such a value.
   //   Used to represent a full instantiation of all variables
   //   in the DAG, or a partial assignment for interventions.
   // ==================================================================
 
-  type Assignment = map<Node, Prob.Outcome>
+  type Value = Prob.Outcome
+
+  type Assignment = map<Node, Value>
+
+  // A PMF outcome is a joint sample-space point. This bridge interprets
+  // such a point as a full node assignment for the current graph.
+  ghost function {:axiom} OutcomeToAssignment(
+    G: Graph,
+    omega: Prob.Outcome
+  ): Assignment
+    ensures OutcomeToAssignment(G, omega).Keys == Nodes(G)
+
+  ghost predicate MatchesAssignment(
+    G: Graph,
+    omega: Prob.Outcome,
+    partial: Assignment
+  ) {
+    partial.Keys <= Nodes(G)
+    && forall v :: v in partial.Keys ==> OutcomeToAssignment(G, omega)[v] == partial[v]
+  }
+
+  // The event corresponding to a partial assignment consists of all
+  // joint sample points whose interpreted node values agree on that scope.
+  ghost function AssignmentEvent(
+    p: Prob.PMF,
+    G: Graph,
+    partial: Assignment
+  ): Prob.Event
+    requires partial.Keys <= Nodes(G)
+  {
+    set omega: Prob.Outcome | omega in p.Keys && MatchesAssignment(G, omega, partial) :: omega
+  }
 
   // ==================================================================
   // 2.  Conditional Factor
@@ -160,7 +192,7 @@ module Interventional {
 
   // For a specific Y-assignment and W-assignment, compute the
   // concrete interventional probability.
-  ghost function {:axiom} IntProbConcrete(
+  ghost function IntProbConcrete(
     G: Graph,
     p: Prob.PMF,
     yAssign: Assignment,
@@ -169,6 +201,20 @@ module Interventional {
   ): real
     requires Prob.IsDistribution(p)
     requires MarkovFactorization(G, p)
+    requires xAssign.Keys <= Nodes(G)
+    requires yAssign.Keys <= Nodes(G)
+    requires wAssign.Keys <= Nodes(G)
+    requires Prob.ProbEvent(
+      TruncatePMF(G, p, xAssign.Keys, xAssign),
+      AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, wAssign)
+    ) > 0.0
+  {
+    Prob.ProbCond(
+      TruncatePMF(G, p, xAssign.Keys, xAssign),
+      AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, yAssign),
+      AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, wAssign)
+    )
+  }
 
   // The grounding axiom: IntProbConcrete equals the conditional
   // probability in the truncated distribution.
@@ -178,7 +224,7 @@ module Interventional {
   //
   // This connects the abstract IntProb (which returns a PMF) to
   // the concrete computation (which returns a real).
-  lemma {:axiom} IntProb_Grounded(
+  lemma IntProb_Grounded(
     G: Graph,
     p: Prob.PMF,
     yAssign: Assignment,
@@ -190,6 +236,18 @@ module Interventional {
     requires xAssign.Keys <= Nodes(G)
     requires yAssign.Keys <= Nodes(G)
     requires wAssign.Keys <= Nodes(G)
+    requires Prob.ProbEvent(
+      TruncatePMF(G, p, xAssign.Keys, xAssign),
+      AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, wAssign)
+    ) > 0.0
+    ensures IntProbConcrete(G, p, yAssign, xAssign, wAssign)
+      == Prob.ProbCond(
+        TruncatePMF(G, p, xAssign.Keys, xAssign),
+        AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, yAssign),
+        AssignmentEvent(TruncatePMF(G, p, xAssign.Keys, xAssign), G, wAssign)
+      )
+  {
+  }
 
   // ==================================================================
   // 6.  GlobalMarkov from Factorization
