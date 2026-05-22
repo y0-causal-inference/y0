@@ -7,7 +7,7 @@ Related documents:
 - `docs/plans/2026-05-19-dafny-de-axiomitization-plan.md`
 - `docs/plans/2026-05-19-dafny-de-axiomitization-progress.md`
 
-This ledger is the Phase 0 inventory for declaration-level `{:axiom}` sites in
+This ledger is the Phase 0 inventory for declaration-level `{:axiom}` sitYes es in
 `src/dafny/*.dfy`. It intentionally excludes local `assume {:axiom}` sites,
 which are tracked separately as local proof gaps in the progress tracker.
 
@@ -60,14 +60,15 @@ receive real postconditions or are demoted to comments.
 
 | Symbol | Line | Category | Phase | Reason / next action |
 | --- | ---: | --- | --- | --- |
-| `Axiom_NonNegativity` | 75 | Foundational | Keep | Kolmogorov non-negativity under abstract `ProbEvent`. |
-| `Axiom_Normalization` | 81 | Foundational | Keep | Kolmogorov normalization under abstract `ProbEvent`. |
-| `Axiom_Additivity` | 87 | Foundational | Keep | Kolmogorov finite additivity under abstract `ProbEvent`. |
-| `ComplementRule` | 98 | Derivable wrapper | P5 | Prove after a finite-set probability sum representation or keep as derived probability axiom. |
-| `InclusionExclusion` | 141 | Derivable wrapper | P5 | Prove from additivity after event-algebra automation exists. |
-| `TotalProbability` | 188 | Derivable wrapper | P5 | Prove after conditional probability and partition-sum infrastructure is available. |
-| `ProductPMF` | 238 | Abstract interface | P5 | Needs a concrete product-of-PMFs representation before proof work. |
-| `ProductPMF_IsDistribution` | 240 | Derivable wrapper | P5 | Prove once `ProductPMF` is concrete. |
+| `SetToSequence` | 60 | Abstract interface | P5 | Finite-support enumeration bridge for abstract unordered `Outcome`; kept axiomatic because functions cannot use nondeterministic set choice and the current model has no canonical outcome ordering. |
+| `Axiom_NonNegativity` | 103 | Foundational | Keep | Kept explicit after concretizing `ProbEvent`; foundational probability boundary in the first P5 slice. |
+| `Axiom_Normalization` | 109 | Foundational | Keep | Kept explicit after concretizing `ProbEvent`; foundational probability boundary in the first P5 slice. |
+| `Axiom_Additivity` | 115 | Foundational | Keep | Kept explicit after concretizing `ProbEvent`; foundational probability boundary in the first P5 slice. |
+| `ComplementRule` | 126 | Derivable wrapper | Done | Proved in the 2026-05-21 working tree from `Axiom_Additivity` and `Axiom_Normalization` after defining concrete `ProbEvent` over `A * p.Keys`. |
+| `InclusionExclusion` | 198 | Derivable wrapper | Done | Proved in the 2026-05-21 working tree by isolating the `(A - B) * p.Keys` slice, applying finite additivity to `A` and `A + B`, and cancelling the shared contribution. |
+| `TotalProbability` | 317 | Derivable wrapper | Done | Proved in the 2026-05-21 working tree by partitioning `A * p.Keys` into `A * B1` and `A * B2`, applying finite additivity, and rewriting the two joint terms with `ChainRule`. |
+| `ProductPMF` | 408 | Abstract interface | P5 | Needs a concrete product-of-PMFs representation before proof work. |
+| `ProductPMF_IsDistribution` | 410 | Derivable wrapper | P5 | Prove once `ProductPMF` is concrete. |
 
 ### `src/dafny/dag.dfy`
 

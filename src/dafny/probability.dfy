@@ -19,7 +19,7 @@ module Probability {
 
   // An Outcome is a single point in the sample space Ω.
   // We keep it abstract but require decidable equality.
-  type Outcome(==)
+  type Outcome(==, !new)
 
   // A probability mass function (PMF) over a finite support.
   // pmf[ω] = P(ω).  Outcomes not in the map have probability 0.
@@ -38,9 +38,8 @@ module Probability {
   }
 
   // The sum of all entries equals 1.
-  // Because Dafny does not have built-in finite-map summation,
-  // we axiomatize this as a ghost predicate and trust the
-  // well-formedness invariant on construction.
+  // Even with a concrete finite-support event sum below, we keep this
+  // foundational normalization boundary explicit in the first P5 slice.
   ghost predicate SumsToOne(p: PMF)
 
   // A valid distribution satisfies both conditions.
@@ -52,8 +51,37 @@ module Probability {
   // 3.  Core probability operations
   // ==================================================================
 
-  // P(A) = Σ_{ω ∈ A} pmf[ω]
-  ghost function ProbEvent(p: PMF, A: Event): real
+  ghost function OutcomeMass(p: PMF, omega: Outcome): real {
+    if omega in p then p[omega] else 0.0
+  }
+
+  // A finite set of abstract outcomes has no canonical enumeration.
+  // This bridge supplies a duplicate-free sequence view of a finite support.
+  ghost function {:axiom} SetToSequence(s: set<Outcome>): seq<Outcome>
+    ensures |SetToSequence(s)| == |s|
+    ensures forall omega :: omega in s <==> omega in SetToSequence(s)
+    ensures forall i, j :: 0 <= i < j < |SetToSequence(s)| ==>
+      SetToSequence(s)[i] != SetToSequence(s)[j]
+
+  ghost function SumOutcomeMasses(p: PMF, ws: seq<Outcome>): real {
+    if |ws| == 0 then 0.0
+    else OutcomeMass(p, ws[0]) + SumOutcomeMasses(p, ws[1..])
+  }
+
+  ghost function FiniteSupportSum(p: PMF, support: set<Outcome>): real {
+    SumOutcomeMasses(p, SetToSequence(support))
+  }
+
+  // P(A) = Σ_{ω ∈ A ∩ p.Keys} pmf[ω]
+  ghost function ProbEvent(p: PMF, A: Event): real {
+    FiniteSupportSum(p, A * p.Keys)
+  }
+
+  lemma ProbEvent_RestrictToSupport(p: PMF, A: Event)
+    ensures ProbEvent(p, A) == ProbEvent(p, A * p.Keys)
+  {
+    assert (A * p.Keys) * p.Keys == A * p.Keys;
+  }
 
   // P(A ∩ B)
   ghost function ProbJoint(p: PMF, A: Event, B: Event): real {
@@ -95,9 +123,38 @@ module Probability {
 
   /// Complement Rule:  P(Aᶜ) = 1 − P(A),
   /// where Aᶜ = Ω \ A.
-  lemma {:axiom} ComplementRule(p: PMF, A: Event)
+  lemma ComplementRule(p: PMF, A: Event)
     requires IsDistribution(p)
     ensures  ProbEvent(p, p.Keys - A) == 1.0 - ProbEvent(p, A)
+  {
+    var inSupport := A * p.Keys;
+    assert (p.Keys - A) * inSupport == {};
+    assert (p.Keys - A) + inSupport == p.Keys by {
+      assert forall omega :: omega in ((p.Keys - A) + inSupport) <==> omega in p.Keys by {
+        forall omega
+          ensures omega in ((p.Keys - A) + inSupport) <==> omega in p.Keys
+        {
+          if omega in ((p.Keys - A) + inSupport) {
+            if omega in p.Keys - A {
+              assert omega in p.Keys;
+            } else {
+              assert omega in inSupport;
+              assert omega in p.Keys;
+            }
+          } else if omega in p.Keys {
+            if omega in A {
+              assert omega in inSupport;
+            } else {
+              assert omega in p.Keys - A;
+            }
+          }
+        }
+      }
+    }
+    Axiom_Additivity(p, p.Keys - A, inSupport);
+    Axiom_Normalization(p);
+    ProbEvent_RestrictToSupport(p, A);
+  }
 
   /// Impossible Event:  P(∅) = 0.
   lemma EmptyEventZero(p: PMF)
@@ -138,10 +195,82 @@ module Probability {
 
   /// Inclusion-Exclusion (two events):
   ///   P(A ∪ B) = P(A) + P(B) − P(A ∩ B).
-  lemma {:axiom} InclusionExclusion(p: PMF, A: Event, B: Event)
+  lemma InclusionExclusion(p: PMF, A: Event, B: Event)
     requires IsDistribution(p)
     ensures  ProbEvent(p, A + B)
              == ProbEvent(p, A) + ProbEvent(p, B) - ProbEvent(p, A * B)
+  {
+    var onlyA := (A - B) * p.Keys;
+    var both := (A * B) * p.Keys;
+    var bSupport := B * p.Keys;
+
+    assert onlyA * both == {};
+    assert onlyA + both == A * p.Keys by {
+      assert forall omega :: omega in (onlyA + both) <==> omega in A * p.Keys by {
+        forall omega
+          ensures omega in (onlyA + both) <==> omega in A * p.Keys
+        {
+          if omega in onlyA + both {
+            if omega in onlyA {
+              assert omega in A - B;
+              assert omega in A;
+              assert omega in p.Keys;
+            } else {
+              assert omega in both;
+              assert omega in A * B;
+              assert omega in A;
+              assert omega in p.Keys;
+            }
+          } else if omega in A * p.Keys {
+            if omega in B {
+              assert omega in both;
+            } else {
+              assert omega in A - B;
+              assert omega in onlyA;
+            }
+          }
+        }
+      }
+    }
+
+    assert onlyA * bSupport == {};
+    assert onlyA + bSupport == (A + B) * p.Keys by {
+      assert forall omega :: omega in (onlyA + bSupport) <==> omega in (A + B) * p.Keys by {
+        forall omega
+          ensures omega in (onlyA + bSupport) <==> omega in (A + B) * p.Keys
+        {
+          if omega in onlyA + bSupport {
+            if omega in onlyA {
+              assert omega in A - B;
+              assert omega in A;
+              assert omega in A + B;
+              assert omega in p.Keys;
+            } else {
+              assert omega in bSupport;
+              assert omega in B;
+              assert omega in A + B;
+              assert omega in p.Keys;
+            }
+          } else if omega in (A + B) * p.Keys {
+            if omega in B {
+              assert omega in bSupport;
+            } else {
+              assert omega in A;
+              assert omega in A - B;
+              assert omega in onlyA;
+            }
+          }
+        }
+      }
+    }
+
+    Axiom_Additivity(p, onlyA, both);
+    Axiom_Additivity(p, onlyA, bSupport);
+    ProbEvent_RestrictToSupport(p, A);
+    ProbEvent_RestrictToSupport(p, B);
+    ProbEvent_RestrictToSupport(p, A + B);
+    ProbEvent_RestrictToSupport(p, A * B);
+  }
 
   // ==================================================================
   // 6.  Chain Rule (Product Rule)
@@ -185,7 +314,7 @@ module Probability {
   ///
   /// (Binary partition version; the general version over a sequence
   ///  of partitions would require induction over a list.)
-  lemma {:axiom} TotalProbability(p: PMF, A: Event, B1: Event, B2: Event)
+  lemma TotalProbability(p: PMF, A: Event, B1: Event, B2: Event)
     requires IsDistribution(p)
     requires B1 + B2 == p.Keys   // partition covers Ω
     requires B1 * B2 == {}        // partition is disjoint
@@ -194,6 +323,47 @@ module Probability {
     ensures  ProbEvent(p, A)
              == ProbCond(p, A, B1) * ProbEvent(p, B1)
               + ProbCond(p, A, B2) * ProbEvent(p, B2)
+  {
+    var inB1 := A * B1;
+    var inB2 := A * B2;
+
+    assert inB1 * inB2 == {};
+    assert inB1 + inB2 == A * p.Keys by {
+      assert forall omega :: omega in (inB1 + inB2) <==> omega in A * p.Keys by {
+        forall omega
+          ensures omega in (inB1 + inB2) <==> omega in A * p.Keys
+        {
+          if omega in inB1 + inB2 {
+            if omega in inB1 {
+              assert omega in A;
+              assert omega in B1;
+              assert omega in B1 + B2;
+              assert omega in p.Keys;
+            } else {
+              assert omega in inB2;
+              assert omega in A;
+              assert omega in B2;
+              assert omega in B1 + B2;
+              assert omega in p.Keys;
+            }
+          } else if omega in A * p.Keys {
+            assert omega in B1 + B2;
+            if omega in B1 {
+              assert omega in inB1;
+            } else {
+              assert omega in B2;
+              assert omega in inB2;
+            }
+          }
+        }
+      }
+    }
+
+    Axiom_Additivity(p, inB1, inB2);
+    ProbEvent_RestrictToSupport(p, A);
+    ChainRule(p, A, B1);
+    ChainRule(p, A, B2);
+  }
 
   // ==================================================================
   // 9.  Conditional Independence
