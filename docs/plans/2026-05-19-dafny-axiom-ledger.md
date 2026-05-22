@@ -67,8 +67,8 @@ receive real postconditions or are demoted to comments.
 | `ComplementRule` | 126 | Derivable wrapper | Done | Proved in the 2026-05-21 working tree from `Axiom_Additivity` and `Axiom_Normalization` after defining concrete `ProbEvent` over `A * p.Keys`. |
 | `InclusionExclusion` | 198 | Derivable wrapper | Done | Proved in the 2026-05-21 working tree by isolating the `(A - B) * p.Keys` slice, applying finite additivity to `A` and `A + B`, and cancelling the shared contribution. |
 | `TotalProbability` | 317 | Derivable wrapper | Done | Proved in the 2026-05-21 working tree by partitioning `A * p.Keys` into `A * B1` and `A * B2`, applying finite additivity, and rewriting the two joint terms with `ChainRule`. |
-| `ProductPMF` | 408 | Abstract interface | P5 | Needs a concrete product-of-PMFs representation before proof work. |
-| `ProductPMF_IsDistribution` | 410 | Derivable wrapper | P5 | Prove once `ProductPMF` is concrete. |
+| `ProductPMF` | 408 | Abstract interface | P5 | Still abstract at the probability layer; the graph-aware scope threading now happens in the non-axiomatic `Interventional.ProductPMF` wrapper, while this symbol remains the probability-only product constructor. |
+| `ProductPMF_IsDistribution` | 410 | Derivable wrapper | P5 | The interventional wrapper now proves its own distribution lemma by delegating here; replace this once the probability-layer product constructor itself is concrete. |
 
 ### `src/dafny/dag.dfy`
 
@@ -102,8 +102,9 @@ receive real postconditions or are demoted to comments.
 | `IntProbConcrete` | 516 | Abstract interface | Done | Replaced in the 2026-05-21 working tree with a concrete assignment-conditional probability on the truncated PMF. |
 | `IntProb_Grounded` | 546 | Contract gap | Done | Replaced in the 2026-05-21 working tree with an explicit equality contract relating `IntProbConcrete` to `AssignmentCondProb` on truncated-PMF assignment events. |
 | `GlobalMarkov_From_Factorization` | 583 | Contract gap | P6 | Intended deep theorem, but currently lacks a formal postcondition. |
-| `Marginalize` | 605 | Abstract interface | P5 | Still abstract, but now graph-aware and constrained to preserve `AssignmentProb` for partial assignments whose keys avoid the eliminated set. Remaining work is the concrete summation construction. |
-| `Marginalize_IsDistribution` | 611 | Derivable wrapper | P5 | Prove once `Marginalize` is concrete. |
+| `ProductPMF_Grounded` | 674 | Derivable wrapper | P5 | New graph-aware grounding point for factor products: the interventional wrapper itself is concrete over `Prob.ProductPMF`, but the assignment-level factorization law still remains axiomatic until the factor product semantics are made concrete. |
+| `Marginalize` | 698 | Abstract interface | P5 | Still abstract, but now graph-aware and constrained to preserve `AssignmentProb` for partial assignments whose keys avoid the eliminated set. Remaining work is the concrete summation construction. |
+| `Marginalize_IsDistribution` | 704 | Derivable wrapper | P5 | Prove once `Marginalize` is concrete. |
 
 ### `src/dafny/do_calculus.dfy`
 

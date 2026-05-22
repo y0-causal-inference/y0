@@ -115,6 +115,49 @@ module Interventional {
     && forall v :: v in base.Keys ==> base[v] == extension[v]
   }
 
+  ghost predicate PairwiseDisjointAssignments(parts: seq<Assignment>) {
+    forall i, j :: 0 <= i < j < |parts| ==> parts[i].Keys * parts[j].Keys == {}
+  }
+
+  ghost predicate PairwiseDisjointScopes(scopes: seq<set<Node>>) {
+    forall i, j :: 0 <= i < j < |scopes| ==> scopes[i] * scopes[j] == {}
+  }
+
+  lemma PairwiseDisjointScopes_Prefix(scopes: seq<set<Node>>, n: nat)
+    requires n <= |scopes|
+    requires PairwiseDisjointScopes(scopes)
+    ensures PairwiseDisjointScopes(scopes[..n])
+  {
+  }
+
+  ghost function AssignmentSeqKeys(parts: seq<Assignment>): set<Node> {
+    if |parts| == 0 then {}
+    else parts[0].Keys + AssignmentSeqKeys(parts[1..])
+  }
+
+  ghost function MergeAssignmentSeq(parts: seq<Assignment>): Assignment
+    requires PairwiseDisjointAssignments(parts)
+    ensures MergeAssignmentSeq(parts).Keys == AssignmentSeqKeys(parts)
+  {
+    if |parts| == 0 then
+      map[]
+    else
+      map v | v in parts[0].Keys + AssignmentSeqKeys(parts[1..]) ::
+        if v in parts[0].Keys then parts[0][v] else MergeAssignmentSeq(parts[1..])[v]
+  }
+
+  ghost function AssignmentProbProduct(
+    pms: seq<Prob.PMF>,
+    G: Graph,
+    parts: seq<Assignment>
+  ): real
+    requires |pms| == |parts|
+    requires forall i :: 0 <= i < |parts| ==> parts[i].Keys <= Nodes(G)
+  {
+    if |pms| == 0 then 1.0
+    else AssignmentProb(pms[0], G, parts[0]) * AssignmentProbProduct(pms[1..], G, parts[1..])
+  }
+
   ghost function MergeAssignments(a: Assignment, b: Assignment): Assignment
     requires CompatibleAssignments(a, b)
     ensures MergeAssignments(a, b).Keys == a.Keys + b.Keys
@@ -593,6 +636,56 @@ module Interventional {
     requires DSep(G, Y, Z, W)
     // d-separation implies conditional independence:
     // for all assignments, P(Y | Z, W) == P(Y | W)
+
+  // ==================================================================
+  // 7.  Products of PMFs
+  //
+  //   ProductPMF combines factor PMFs over pairwise-disjoint scopes.
+  //   The explicit scope sequence is the graph-aware boundary that lets
+  //   the abstract constructor speak in assignment-event terms.
+  // ==================================================================
+
+  ghost function ProductPMF(
+    G: Graph,
+    scopes: seq<set<Node>>,
+    pms: seq<Prob.PMF>
+  ): Prob.PMF
+    requires |scopes| == |pms|
+    requires PairwiseDisjointScopes(scopes)
+    requires forall i :: 0 <= i < |scopes| ==> scopes[i] <= Nodes(G)
+  {
+    Prob.ProductPMF(pms)
+  }
+
+  lemma ProductPMF_IsDistribution(
+    G: Graph,
+    scopes: seq<set<Node>>,
+    pms: seq<Prob.PMF>
+  )
+    requires |scopes| == |pms|
+    requires PairwiseDisjointScopes(scopes)
+    requires forall i :: 0 <= i < |scopes| ==> scopes[i] <= Nodes(G)
+    requires forall i :: 0 <= i < |pms| ==> Prob.IsDistribution(pms[i])
+    ensures Prob.IsDistribution(ProductPMF(G, scopes, pms))
+  {
+    Prob.ProductPMF_IsDistribution(pms);
+  }
+
+  lemma {:axiom} ProductPMF_Grounded(
+    G: Graph,
+    scopes: seq<set<Node>>,
+    pms: seq<Prob.PMF>,
+    parts: seq<Assignment>
+  )
+    requires |scopes| == |pms|
+    requires |parts| == |scopes|
+    requires PairwiseDisjointScopes(scopes)
+    requires PairwiseDisjointAssignments(parts)
+    requires AssignmentSeqKeys(parts) <= Nodes(G)
+    requires forall i :: 0 <= i < |scopes| ==> scopes[i] <= Nodes(G)
+    requires forall i :: 0 <= i < |parts| ==> parts[i].Keys <= scopes[i]
+    ensures AssignmentProb(ProductPMF(G, scopes, pms), G, MergeAssignmentSeq(parts))
+      == AssignmentProbProduct(pms, G, parts)
 
   // ==================================================================
   // 7.  Marginalization

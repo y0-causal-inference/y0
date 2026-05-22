@@ -288,6 +288,7 @@ module Identification {
     ensures forall i ::
       0 <= i < |Line4ComponentsSeq(sm, X)| ==>
       Line4ComponentsSeq(sm, X)[i] != {}
+    ensures PairwiseDisjointScopes(Line4ComponentsSeq(sm, X))
 
   // ------------------------------------------------------------------
   // Helper: Line 4 product — recurse ID on each C-component of G\X,
@@ -312,6 +313,7 @@ module Identification {
     requires SMTopologicalSort(sm, ord)
     requires forall i :: 0 <= i < |components| ==> components[i] <= SMNodes(sm)
     requires forall i :: 0 <= i < |components| ==> components[i] != {}
+    ensures |IDLine4Product(sm, components, p, ord, idx, fuel)| <= |components| - idx
     decreases fuel
   {
     if fuel == 0 || idx >= |components| then []
@@ -437,11 +439,14 @@ module Identification {
         var comps := Line4ComponentsSeq(sm, X);
         assert forall i :: 0 <= i < |comps| ==> comps[i] <= SMNodes(sm);
         assert forall i :: 0 <= i < |comps| ==> comps[i] != {};
+        assert PairwiseDisjointScopes(comps);
         var check := IDLine4Check(sm, comps, p, ord, 0, fuel - 1);
         if check.NotIdentified? then check
         else
           var pmfs := IDLine4Product(sm, comps, p, ord, 0, fuel - 1);
-          Identified(Marginalize(sm.dag, Prob.ProductPMF(pmfs), V - (Y + X)))
+          assert |pmfs| <= |comps|;
+          PairwiseDisjointScopes_Prefix(comps, |pmfs|);
+          Identified(Marginalize(sm.dag, ProductPMF(sm.dag, comps[..|pmfs|], pmfs), V - (Y + X)))
 
       // C(G \ X) = {S} — single component
       else
