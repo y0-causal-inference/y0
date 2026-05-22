@@ -102,6 +102,197 @@ module Interventional {
     Prob.ProbCond(p, AssignmentEvent(p, G, target), AssignmentEvent(p, G, given))
   }
 
+  ghost predicate CompatibleAssignments(a: Assignment, b: Assignment) {
+    forall v :: v in a.Keys * b.Keys ==> a[v] == b[v]
+  }
+
+  ghost predicate ConflictingAssignments(a: Assignment, b: Assignment) {
+    exists v :: v in a.Keys * b.Keys && a[v] != b[v]
+  }
+
+  ghost predicate ExtendsAssignment(base: Assignment, extension: Assignment) {
+    base.Keys <= extension.Keys
+    && forall v :: v in base.Keys ==> base[v] == extension[v]
+  }
+
+  ghost function MergeAssignments(a: Assignment, b: Assignment): Assignment
+    requires CompatibleAssignments(a, b)
+    ensures MergeAssignments(a, b).Keys == a.Keys + b.Keys
+  {
+    map v | v in a.Keys + b.Keys :: if v in a.Keys then a[v] else b[v]
+  }
+
+  lemma MatchesAssignment_MergeEquivalent(
+    G: Graph,
+    omega: Prob.Outcome,
+    a: Assignment,
+    b: Assignment
+  )
+    requires a.Keys <= Nodes(G)
+    requires b.Keys <= Nodes(G)
+    requires CompatibleAssignments(a, b)
+    ensures MatchesAssignment(G, omega, MergeAssignments(a, b))
+      <==> (MatchesAssignment(G, omega, a) && MatchesAssignment(G, omega, b))
+  {
+    var merged := MergeAssignments(a, b);
+    if MatchesAssignment(G, omega, merged) {
+      assert a.Keys <= Nodes(G);
+      forall v | v in a.Keys
+        ensures OutcomeToAssignment(G, omega)[v] == a[v]
+      {
+        assert v in merged.Keys;
+        assert OutcomeToAssignment(G, omega)[v] == merged[v];
+        assert merged[v] == a[v];
+      }
+      assert MatchesAssignment(G, omega, a);
+
+      assert b.Keys <= Nodes(G);
+      forall v | v in b.Keys
+        ensures OutcomeToAssignment(G, omega)[v] == b[v]
+      {
+        assert v in merged.Keys;
+        assert OutcomeToAssignment(G, omega)[v] == merged[v];
+        if v in a.Keys {
+          assert a[v] == b[v];
+        }
+        assert merged[v] == b[v];
+      }
+      assert MatchesAssignment(G, omega, b);
+    }
+
+    if MatchesAssignment(G, omega, a) && MatchesAssignment(G, omega, b) {
+      assert merged.Keys <= Nodes(G) by {
+        assert merged.Keys == a.Keys + b.Keys;
+      }
+      forall v | v in merged.Keys
+        ensures OutcomeToAssignment(G, omega)[v] == merged[v]
+      {
+        if v in a.Keys {
+          assert OutcomeToAssignment(G, omega)[v] == a[v];
+          assert merged[v] == a[v];
+        } else {
+          assert v in b.Keys;
+          assert OutcomeToAssignment(G, omega)[v] == b[v];
+          assert merged[v] == b[v];
+        }
+      }
+      assert MatchesAssignment(G, omega, merged);
+    }
+  }
+
+  lemma AssignmentEvent_Intersection_Compatible(
+    p: Prob.PMF,
+    G: Graph,
+    a: Assignment,
+    b: Assignment
+  )
+    requires a.Keys <= Nodes(G)
+    requires b.Keys <= Nodes(G)
+    requires CompatibleAssignments(a, b)
+    ensures AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b)
+      == AssignmentEvent(p, G, MergeAssignments(a, b))
+  {
+    var merged := MergeAssignments(a, b);
+    assert forall omega ::
+      (omega in AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b))
+        ==> (omega in AssignmentEvent(p, G, merged)) by {
+      forall omega | omega in AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b)
+        ensures omega in AssignmentEvent(p, G, merged)
+      {
+        assert omega in AssignmentEvent(p, G, a);
+        assert omega in AssignmentEvent(p, G, b);
+        assert MatchesAssignment(G, omega, a);
+        assert MatchesAssignment(G, omega, b);
+        MatchesAssignment_MergeEquivalent(G, omega, a, b);
+        assert MatchesAssignment(G, omega, merged);
+      }
+    }
+    assert AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b)
+      <= AssignmentEvent(p, G, merged);
+
+    assert forall omega ::
+      (omega in AssignmentEvent(p, G, merged))
+        ==> (omega in AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b)) by {
+      forall omega | omega in AssignmentEvent(p, G, merged)
+        ensures omega in AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b)
+      {
+        assert MatchesAssignment(G, omega, merged);
+        MatchesAssignment_MergeEquivalent(G, omega, a, b);
+        assert MatchesAssignment(G, omega, a);
+        assert MatchesAssignment(G, omega, b);
+        assert omega in AssignmentEvent(p, G, a);
+        assert omega in AssignmentEvent(p, G, b);
+      }
+    }
+    assert AssignmentEvent(p, G, merged)
+      <= AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b);
+  }
+
+  lemma AssignmentEvent_Intersection_Incompatible(
+    p: Prob.PMF,
+    G: Graph,
+    a: Assignment,
+    b: Assignment
+  )
+    requires a.Keys <= Nodes(G)
+    requires b.Keys <= Nodes(G)
+    requires ConflictingAssignments(a, b)
+    ensures AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b) == {}
+  {
+    var conflictKey :| conflictKey in a.Keys * b.Keys && a[conflictKey] != b[conflictKey];
+    assert forall omega ::
+      omega in AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b) ==> false by {
+      forall omega | omega in AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b)
+        ensures false
+      {
+        assert omega in AssignmentEvent(p, G, a);
+        assert omega in AssignmentEvent(p, G, b);
+        assert MatchesAssignment(G, omega, a);
+        assert MatchesAssignment(G, omega, b);
+        assert OutcomeToAssignment(G, omega)[conflictKey] == a[conflictKey];
+        assert OutcomeToAssignment(G, omega)[conflictKey] == b[conflictKey];
+        assert false;
+      }
+    }
+  }
+
+  lemma MatchesAssignment_Extension(
+    G: Graph,
+    omega: Prob.Outcome,
+    base: Assignment,
+    extension: Assignment
+  )
+    requires base.Keys <= Nodes(G)
+    requires extension.Keys <= Nodes(G)
+    requires ExtendsAssignment(base, extension)
+    requires MatchesAssignment(G, omega, extension)
+    ensures MatchesAssignment(G, omega, base)
+  {
+    assert base.Keys <= Nodes(G);
+    forall v | v in base.Keys ensures OutcomeToAssignment(G, omega)[v] == base[v] {
+      assert OutcomeToAssignment(G, omega)[v] == extension[v];
+      assert extension[v] == base[v];
+    }
+  }
+
+  lemma AssignmentEvent_StrengtheningSubset(
+    p: Prob.PMF,
+    G: Graph,
+    base: Assignment,
+    extension: Assignment
+  )
+    requires base.Keys <= Nodes(G)
+    requires extension.Keys <= Nodes(G)
+    requires ExtendsAssignment(base, extension)
+    ensures AssignmentEvent(p, G, extension) <= AssignmentEvent(p, G, base)
+  {
+    forall omega | omega in AssignmentEvent(p, G, extension) ensures omega in AssignmentEvent(p, G, base) {
+      assert MatchesAssignment(G, omega, extension);
+      MatchesAssignment_Extension(G, omega, base, extension);
+      assert MatchesAssignment(G, omega, base);
+    }
+  }
+
   // ==================================================================
   // 2.  Conditional Factor
   //
@@ -175,6 +366,8 @@ module Interventional {
   ): Prob.PMF
     requires xVals.Keys == X
     requires Prob.IsDistribution(p)
+    ensures TruncatePMF(G, p, X, xVals).Keys <= p.Keys
+    ensures forall omega :: omega in TruncatePMF(G, p, X, xVals).Keys ==> MatchesAssignment(G, omega, xVals)
 
   // The truncated PMF is a valid distribution.
   lemma {:axiom} TruncatePMF_IsDistribution(
@@ -204,6 +397,106 @@ module Interventional {
       RemoveIncoming(G, X),
       TruncatePMF(G, p, X, xVals)
     )
+
+  lemma TruncatePMF_InterventionEventIsSupport(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures AssignmentEvent(TruncatePMF(G, p, X, xVals), G, xVals)
+      == TruncatePMF(G, p, X, xVals).Keys
+  {
+    var t := TruncatePMF(G, p, X, xVals);
+    assert forall omega :: omega in t.Keys ==> omega in AssignmentEvent(t, G, xVals) by {
+      forall omega | omega in t.Keys
+        ensures omega in AssignmentEvent(t, G, xVals)
+      {
+        assert MatchesAssignment(G, omega, xVals);
+      }
+    }
+    assert t.Keys <= AssignmentEvent(t, G, xVals);
+
+    assert forall omega :: omega in AssignmentEvent(t, G, xVals) ==> omega in t.Keys by {
+      forall omega | omega in AssignmentEvent(t, G, xVals)
+        ensures omega in t.Keys
+      {
+      }
+    }
+    assert AssignmentEvent(t, G, xVals) <= t.Keys;
+  }
+
+  lemma TruncatePMF_InterventionProbabilityOne(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures AssignmentProb(TruncatePMF(G, p, X, xVals), G, xVals) == 1.0
+  {
+    var t := TruncatePMF(G, p, X, xVals);
+    TruncatePMF_IsDistribution(G, p, X, xVals);
+    TruncatePMF_InterventionEventIsSupport(G, p, X, xVals);
+    Prob.Axiom_Normalization(t);
+  }
+
+  lemma TruncatePMF_ConflictingAssignmentEventEmpty(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    partial: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    requires partial.Keys <= Nodes(G)
+    requires ConflictingAssignments(partial, xVals)
+    ensures AssignmentEvent(TruncatePMF(G, p, X, xVals), G, partial) == {}
+  {
+    var t := TruncatePMF(G, p, X, xVals);
+    TruncatePMF_InterventionEventIsSupport(G, p, X, xVals);
+    AssignmentEvent_Intersection_Incompatible(t, G, partial, xVals);
+    assert forall omega ::
+      (omega in AssignmentEvent(t, G, partial))
+        <==> (omega in AssignmentEvent(t, G, partial) * AssignmentEvent(t, G, xVals)) by {
+      forall omega
+        ensures omega in AssignmentEvent(t, G, partial)
+          <==> omega in AssignmentEvent(t, G, partial) * AssignmentEvent(t, G, xVals)
+      {
+        if omega in AssignmentEvent(t, G, partial) {
+          assert omega in t.Keys;
+          assert omega in AssignmentEvent(t, G, xVals);
+        }
+      }
+    }
+  }
+
+  lemma TruncatePMF_ConflictingAssignmentZero(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    partial: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    requires partial.Keys <= Nodes(G)
+    requires ConflictingAssignments(partial, xVals)
+    ensures AssignmentProb(TruncatePMF(G, p, X, xVals), G, partial) == 0.0
+  {
+    var t := TruncatePMF(G, p, X, xVals);
+    TruncatePMF_IsDistribution(G, p, X, xVals);
+    TruncatePMF_ConflictingAssignmentEventEmpty(G, p, X, xVals, partial);
+    Prob.EmptyEventZero(t);
+  }
 
   // ==================================================================
   // 5.  IntProbConcrete — grounding the abstract IntProb
