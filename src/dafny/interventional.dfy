@@ -391,6 +391,39 @@ module Interventional {
     }
   }
 
+  ghost function OverrideAssignment(
+    G: Graph,
+    full: Assignment,
+    v: Node,
+    value: Value
+  ): Assignment
+    requires full.Keys == Nodes(G)
+    requires v in Nodes(G)
+    ensures OverrideAssignment(G, full, v, value).Keys == Nodes(G)
+  {
+    map u | u in Nodes(G) :: if u == v then value else full[u]
+  }
+
+  lemma OverrideAssignment_SameValue(
+    G: Graph,
+    full: Assignment,
+    v: Node
+  )
+    requires full.Keys == Nodes(G)
+    requires v in Nodes(G)
+    ensures OverrideAssignment(G, full, v, full[v]) == full
+  {
+    assert OverrideAssignment(G, full, v, full[v]).Keys == full.Keys;
+    assert forall u :: u in Nodes(G) ==> OverrideAssignment(G, full, v, full[v])[u] == full[u] by {
+      forall u | u in Nodes(G)
+        ensures OverrideAssignment(G, full, v, full[v])[u] == full[u]
+      {
+        if u == v {
+        }
+      }
+    }
+  }
+
   // ==================================================================
   // 2.  Conditional Factor
   //
@@ -407,6 +440,92 @@ module Interventional {
     parents: set<Node>,
     assignment: Assignment
   ): real
+
+  // A local PMF witness for a node's conditional distribution. This packages
+  // both the child-value normalization law and the intended parent-locality
+  // boundary for ConditionalFactor.
+  ghost function {:axiom} ConditionalLocalPMF(
+    G: Graph,
+    p: Prob.PMF,
+    v: Node,
+    full: Assignment
+  ): Prob.PMF
+    requires Prob.IsDistribution(p)
+    requires v in Nodes(G)
+    requires full.Keys == Nodes(G)
+    ensures Prob.IsDistribution(ConditionalLocalPMF(G, p, v, full))
+    ensures forall value ::
+      Prob.OutcomeMass(ConditionalLocalPMF(G, p, v, full), value)
+        == ConditionalFactor(p, v, Parents(G, v), OverrideAssignment(G, full, v, value))
+
+  lemma {:axiom} ConditionalLocalPMF_Locality(
+    G: Graph,
+    p: Prob.PMF,
+    v: Node,
+    a: Assignment,
+    b: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires v in Nodes(G)
+    requires a.Keys == Nodes(G)
+    requires b.Keys == Nodes(G)
+    requires forall u :: u in Parents(G, v) * Nodes(G) ==> a[u] == b[u]
+    ensures ConditionalLocalPMF(G, p, v, a) == ConditionalLocalPMF(G, p, v, b)
+
+  lemma ConditionalLocalPMF_Normalized(
+    G: Graph,
+    p: Prob.PMF,
+    v: Node,
+    full: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires v in Nodes(G)
+    requires full.Keys == Nodes(G)
+    ensures Prob.ProbEvent(
+      ConditionalLocalPMF(G, p, v, full),
+      ConditionalLocalPMF(G, p, v, full).Keys
+    ) == 1.0
+  {
+    Prob.Axiom_Normalization(ConditionalLocalPMF(G, p, v, full));
+  }
+
+  lemma ConditionalFactor_FromLocalPMF(
+    G: Graph,
+    p: Prob.PMF,
+    v: Node,
+    full: Assignment,
+    value: Value
+  )
+    requires Prob.IsDistribution(p)
+    requires v in Nodes(G)
+    requires full.Keys == Nodes(G)
+    ensures ConditionalFactor(p, v, Parents(G, v), OverrideAssignment(G, full, v, value))
+      == Prob.OutcomeMass(ConditionalLocalPMF(G, p, v, full), value)
+  {
+  }
+
+  lemma ConditionalFactor_Locality(
+    G: Graph,
+    p: Prob.PMF,
+    v: Node,
+    a: Assignment,
+    b: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires v in Nodes(G)
+    requires a.Keys == Nodes(G)
+    requires b.Keys == Nodes(G)
+    requires a[v] == b[v]
+    requires forall u :: u in Parents(G, v) * Nodes(G) ==> a[u] == b[u]
+    ensures ConditionalFactor(p, v, Parents(G, v), a)
+      == ConditionalFactor(p, v, Parents(G, v), b)
+  {
+    ConditionalLocalPMF_Locality(G, p, v, a, b);
+    ConditionalFactor_FromLocalPMF(G, p, v, a, a[v]);
+    ConditionalFactor_FromLocalPMF(G, p, v, b, b[v]);
+    OverrideAssignment_SameValue(G, a, v);
+    OverrideAssignment_SameValue(G, b, v);
+  }
 
   // The conditional factor is always non-negative.
   lemma {:axiom} ConditionalFactor_NonNeg(
@@ -761,6 +880,14 @@ module Interventional {
     ensures forall i, j :: 0 <= i < j < |TruncateSupportAssignments(G, p, X, xVals)| ==>
       AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[i])
         != AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[j])
+    ensures forall full: Assignment, ord: seq<Node> ::
+      full.Keys == Nodes(G)
+      && IsTopologicalSort(G, ord)
+      && xVals.Keys <= Nodes(G)
+      && TruncatedAssignmentMass(G, p, X, xVals, full, ord) > 0.0
+      ==> exists i: int :: (
+        0 <= i < |TruncateSupportAssignments(G, p, X, xVals)|
+        && TruncateSupportAssignments(G, p, X, xVals)[i] == full)
 
   ghost function EncodedTruncateSupport(
     G: Graph,
@@ -815,6 +942,28 @@ module Interventional {
       assert ExtendsAssignment(xVals, full);
       AssignmentToOutcome_MatchesExtension(G, xVals, full);
     }
+  }
+
+  lemma PositiveTruncatedAssignment_InEncodedSupport(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    requires TruncatedAssignmentMass(G, p, X, xVals, full, ord) > 0.0
+    ensures AssignmentToOutcome(G, full) in EncodedTruncateSupport(G, p, X, xVals)
+  {
+    var i :| 0 <= i < |TruncateSupportAssignments(G, p, X, xVals)|
+      && TruncateSupportAssignments(G, p, X, xVals)[i] == full;
+    assert AssignmentToOutcome(G, full)
+      == AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[i]);
   }
 
   ghost function TruncatePMFOnOrder(
@@ -895,6 +1044,28 @@ module Interventional {
     TruncatePMFOnOrder_Support(G, p, {}, map[], ord);
     var full := EncodedTruncateAssignment(G, p, {}, map[], omega);
     TruncatedAssignmentMass_Empty(G, p, full, ord);
+  }
+
+  lemma TruncatePMFOnOrder_AllNonNeg(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures Prob.AllNonNeg(TruncatePMFOnOrder(G, p, X, xVals, ord))
+  {
+    forall omega | omega in TruncatePMFOnOrder(G, p, X, xVals, ord)
+      ensures TruncatePMFOnOrder(G, p, X, xVals, ord)[omega] >= 0.0
+    {
+      TruncatePMFOnOrder_Support(G, p, X, xVals, ord);
+      var full := EncodedTruncateAssignment(G, p, X, xVals, omega);
+      TruncatedAssignmentMass_NonNeg(G, p, X, xVals, full, ord);
+    }
   }
 
   ghost function {:axiom} TruncatePMF(
