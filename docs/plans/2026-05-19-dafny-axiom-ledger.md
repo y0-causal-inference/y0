@@ -91,20 +91,21 @@ receive real postconditions or are demoted to comments.
 | Symbol | Line | Category | Phase | Reason / next action |
 | --- | ---: | --- | --- | --- |
 | `OutcomeToAssignment` | 51 | Abstract interface | P5 | Chosen immediate translation-layer bridge from joint PMF outcomes to full node assignments; kept axiomatic to avoid a broad in-place `Prob.PMF` refactor while grounding assignment-level semantics. |
-| `ConditionalFactor` | 349 | Abstract interface | P5 | Now the central local object for the factor-level `TruncatePMF` route. Remaining work is a concrete conditional-factor representation plus locality and normalization laws over parent assignments. |
-| `ConditionalFactor_NonNeg` | 357 | Derivable wrapper | P5 | Already enough for the new factor-level scaffolding (`TruncatedLocalFactor`); prove once `ConditionalFactor` is concrete or keep as an interface invariant. |
-| `MarkovFactorization` | 380 | Abstract interface | P5 | Current graph-to-PMF semantic relation is intentionally abstract, but the factor-level `TruncatePMF` plan is now designed to align with this layer rather than with observational renormalization. |
-| `MarkovFactorization_IsDistribution` | 383 | Derivable wrapper | P5 | Prove once `MarkovFactorization` has concrete semantics or keep as interface invariant. |
-| `TruncatePMF` | 481 | Abstract interface | P5 | The support-filtering/renormalization probe was rejected as the public semantics. The new direction is factor-level scaffolding (`TruncatedLocalFactor`, `TruncatedFactorProduct`, `TruncatedAssignmentMass`) plus a later representation bridge from full assignments to PMF outcomes. |
-| `TruncatePMF_IsDistribution` | 493 | Derivable wrapper | P5 | The likely proof path is now factor normalization, not observational renormalization. This needs conditional-factor normalization and locality laws plus the eventual public constructor. |
-| `TruncatePMF_Empty` | 502 | Derivable wrapper | P5 | Expected to follow from the factor-level definition when `X == {}` restores the original observational factor product. |
-| `TruncatePMF_Markov` | 508 | Deep theorem | P5 | Expected to align with `RemoveIncoming(G, X)` by construction once the factor-level `TruncatePMF` semantics and representation bridge are in place. |
-| `IntProbConcrete` | 636 | Abstract interface | Done | Replaced in the 2026-05-21 working tree with a concrete assignment-conditional probability on the truncated PMF. |
-| `IntProb_Grounded` | 666 | Contract gap | Done | Replaced in the 2026-05-21 working tree with an explicit equality contract relating `IntProbConcrete` to `AssignmentCondProb` on truncated-PMF assignment events. |
-| `GlobalMarkov_From_Factorization` | 703 | Contract gap | P6 | Intended deep theorem, but currently lacks a formal postcondition. |
-| `ProductPMF_Grounded` | 751 | Derivable wrapper | P5 | New graph-aware grounding point for factor products: the interventional wrapper itself is concrete over `Prob.ProductPMF`, but the assignment-level factorization law still remains axiomatic until the factor product semantics are made concrete. |
-| `Marginalize` | 775 | Abstract interface | P5 | Still abstract, but now graph-aware and constrained to preserve `AssignmentProb` for partial assignments whose keys avoid the eliminated set. Remaining work is the concrete summation construction. |
-| `Marginalize_IsDistribution` | 781 | Derivable wrapper | P5 | Prove once `Marginalize` is concrete. |
+| `AssignmentToOutcome` | 60 | Abstract interface | P5 | Converse translation-layer bridge from full assignments back to abstract PMF outcomes; kept axiomatic because `Prob.Outcome` remains abstract and the repo still lacks a canonical joint-outcome representation. The current contract is the left-inverse law through `OutcomeToAssignment`, which is enough to derive matching and injectivity for full assignments. |
+| `ConditionalFactor` | 404 | Abstract interface | P5 | Now the central local object for the factor-level `TruncatePMF` route. Remaining work is a concrete conditional-factor representation plus locality and normalization laws over parent assignments. |
+| `ConditionalFactor_NonNeg` | 412 | Derivable wrapper | P5 | Already enough for the new factor-level scaffolding (`TruncatedLocalFactor`); prove once `ConditionalFactor` is concrete or keep as an interface invariant. |
+| `MarkovFactorization` | 435 | Abstract interface | P5 | Current graph-to-PMF semantic relation is intentionally abstract, but the factor-level `TruncatePMF` plan is now designed to align with this layer rather than with observational renormalization. |
+| `MarkovFactorization_IsDistribution` | 438 | Derivable wrapper | P5 | Prove once `MarkovFactorization` has concrete semantics or keep as interface invariant. |
+| `TruncatePMF` | 694 | Abstract interface | P5 | The support-filtering/renormalization probe was rejected as the public semantics. The new direction is factor-level scaffolding (`TruncatedLocalFactor`, `TruncatedFactorProduct`, `TruncatedAssignmentMass`) plus a later representation bridge from full assignments to PMF outcomes. |
+| `TruncatePMF_IsDistribution` | 706 | Derivable wrapper | P5 | The likely proof path is now factor normalization, not observational renormalization. This needs conditional-factor normalization and locality laws plus the eventual public constructor. |
+| `TruncatePMF_Empty` | 715 | Derivable wrapper | P5 | Expected to follow from the factor-level definition when `X == {}` restores the original observational factor product. |
+| `TruncatePMF_Markov` | 721 | Deep theorem | P5 | Expected to align with `RemoveIncoming(G, X)` by construction once the factor-level `TruncatePMF` semantics and representation bridge are in place. |
+| `IntProbConcrete` | 849 | Abstract interface | Done | Replaced in the 2026-05-21 working tree with a concrete assignment-conditional probability on the truncated PMF. |
+| `IntProb_Grounded` | 879 | Contract gap | Done | Replaced in the 2026-05-21 working tree with an explicit equality contract relating `IntProbConcrete` to `AssignmentCondProb` on truncated-PMF assignment events. |
+| `GlobalMarkov_From_Factorization` | 916 | Contract gap | P6 | Intended deep theorem, but currently lacks a formal postcondition. |
+| `ProductPMF_Grounded` | 964 | Derivable wrapper | P5 | New graph-aware grounding point for factor products: the interventional wrapper itself is concrete over `Prob.ProductPMF`, but the assignment-level factorization law still remains axiomatic until the factor product semantics are made concrete. |
+| `Marginalize` | 988 | Abstract interface | P5 | Still abstract, but now graph-aware and constrained to preserve `AssignmentProb` for partial assignments whose keys avoid the eliminated set. Remaining work is the concrete summation construction. |
+| `Marginalize_IsDistribution` | 994 | Derivable wrapper | P5 | Prove once `Marginalize` is concrete. |
 
 ### `src/dafny/do_calculus.dfy`
 

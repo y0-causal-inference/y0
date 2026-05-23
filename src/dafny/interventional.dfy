@@ -54,6 +54,16 @@ module Interventional {
   ): Assignment
     ensures OutcomeToAssignment(G, omega).Keys == Nodes(G)
 
+  // The converse bridge reifies a full node assignment as a joint
+  // sample-space point. This is the encoding direction needed when an
+  // assignment-level mass function is turned back into a PMF-valued object.
+  ghost function {:axiom} AssignmentToOutcome(
+    G: Graph,
+    full: Assignment
+  ): Prob.Outcome
+    requires full.Keys == Nodes(G)
+    ensures OutcomeToAssignment(G, AssignmentToOutcome(G, full)) == full
+
   ghost predicate MatchesAssignment(
     G: Graph,
     omega: Prob.Outcome,
@@ -61,6 +71,51 @@ module Interventional {
   ) {
     partial.Keys <= Nodes(G)
     && forall v :: v in partial.Keys ==> OutcomeToAssignment(G, omega)[v] == partial[v]
+  }
+
+  lemma AssignmentToOutcome_MatchesFull(
+    G: Graph,
+    full: Assignment
+  )
+    requires full.Keys == Nodes(G)
+    ensures MatchesAssignment(G, AssignmentToOutcome(G, full), full)
+  {
+    assert full.Keys <= Nodes(G);
+    forall v | v in full.Keys
+      ensures OutcomeToAssignment(G, AssignmentToOutcome(G, full))[v] == full[v]
+    {
+      assert OutcomeToAssignment(G, AssignmentToOutcome(G, full)) == full;
+    }
+  }
+
+  lemma AssignmentToOutcome_MatchesExtension(
+    G: Graph,
+    base: Assignment,
+    full: Assignment
+  )
+    requires base.Keys <= Nodes(G)
+    requires full.Keys == Nodes(G)
+    requires ExtendsAssignment(base, full)
+    ensures MatchesAssignment(G, AssignmentToOutcome(G, full), base)
+  {
+    AssignmentToOutcome_MatchesFull(G, full);
+    MatchesAssignment_Extension(G, AssignmentToOutcome(G, full), base, full);
+  }
+
+  lemma AssignmentToOutcome_Injective(
+    G: Graph,
+    a: Assignment,
+    b: Assignment
+  )
+    requires a.Keys == Nodes(G)
+    requires b.Keys == Nodes(G)
+    requires AssignmentToOutcome(G, a) == AssignmentToOutcome(G, b)
+    ensures a == b
+  {
+    assert OutcomeToAssignment(G, AssignmentToOutcome(G, a))
+      == OutcomeToAssignment(G, AssignmentToOutcome(G, b));
+    assert OutcomeToAssignment(G, AssignmentToOutcome(G, a)) == a;
+    assert OutcomeToAssignment(G, AssignmentToOutcome(G, b)) == b;
   }
 
   // The event corresponding to a partial assignment consists of all
