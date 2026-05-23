@@ -1009,6 +1009,73 @@ module Interventional {
       + SumTruncatedAssignmentMasses(G, p, X, xVals, fulls[1..], ord)
   }
 
+  ghost function AssignmentValuesAt(fulls: seq<Assignment>, v: Node): seq<Value>
+    requires forall i :: 0 <= i < |fulls| ==> v in fulls[i].Keys
+  {
+    if |fulls| == 0 then []
+    else [fulls[0][v]] + AssignmentValuesAt(fulls[1..], v)
+  }
+
+  lemma AssignmentValuesAt_Index(fulls: seq<Assignment>, v: Node)
+    requires forall i :: 0 <= i < |fulls| ==> v in fulls[i].Keys
+    ensures |AssignmentValuesAt(fulls, v)| == |fulls|
+    ensures forall i :: 0 <= i < |fulls| ==> AssignmentValuesAt(fulls, v)[i] == fulls[i][v]
+  {
+    if |fulls| != 0 {
+      AssignmentValuesAt_Index(fulls[1..], v);
+    }
+  }
+
+  lemma SingletonTopologicalSort_NodeSet(G: Graph, ord: seq<Node>)
+    requires IsTopologicalSort(G, ord)
+    requires |ord| == 1
+    ensures Nodes(G) == {ord[0]}
+  {
+    assert ord[0] in Nodes(G);
+    assert forall u :: u in Nodes(G) ==> u == ord[0] by {
+      forall u | u in Nodes(G)
+        ensures u == ord[0]
+      {
+        assert u in ord;
+        var i :| 0 <= i < |ord| && ord[i] == u;
+        assert i == 0;
+      }
+    }
+    assert forall u :: u in Nodes(G) <==> u in {ord[0]} by {
+      forall u
+        ensures u in Nodes(G) <==> u in {ord[0]}
+      {
+        if u in Nodes(G) {
+          assert u == ord[0];
+        } else if u in {ord[0]} {
+          assert u == ord[0];
+        }
+      }
+    }
+  }
+
+  lemma SingletonAssignmentsEqual(
+    G: Graph,
+    a: Assignment,
+    b: Assignment,
+    v: Node
+  )
+    requires Nodes(G) == {v}
+    requires a.Keys == Nodes(G)
+    requires b.Keys == Nodes(G)
+    requires a[v] == b[v]
+    ensures a == b
+  {
+    assert a.Keys == b.Keys;
+    assert forall u :: u in a.Keys ==> a[u] == b[u] by {
+      forall u | u in a.Keys
+        ensures a[u] == b[u]
+      {
+        assert u == v;
+      }
+    }
+  }
+
   ghost function TruncatePMFOnOrder(
     G: Graph,
     p: Prob.PMF,
@@ -1266,6 +1333,249 @@ module Interventional {
         assert omegas[i] == AssignmentToOutcome(G, fulls[i]);
         assert omegas[j] == AssignmentToOutcome(G, fulls[j]);
       }
+    }
+  }
+
+  lemma SumTruncatedAssignmentMasses_SingletonIntervention(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires |ord| == 1
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    requires ord[0] in X
+    ensures SumTruncatedAssignmentMasses(
+      G,
+      p,
+      X,
+      xVals,
+      TruncateSupportAssignments(G, p, X, xVals),
+      ord
+    ) == 1.0
+  {
+    var v := ord[0];
+    var supp := TruncateSupportAssignments(G, p, X, xVals);
+    assert X <= Nodes(G);
+    SingletonTopologicalSort_NodeSet(G, ord);
+
+    var full := map u | u in Nodes(G) :: xVals[u];
+    assert full.Keys == Nodes(G);
+    assert ExtendsAssignment(xVals, full) by {
+      forall u | u in xVals.Keys
+        ensures full[u] == xVals[u]
+      {
+      }
+    }
+    assert full[v] == xVals[v];
+    TruncatedLocalFactor_IntervenedMatch(G, p, X, xVals, full, v);
+    assert forall i :: 0 <= i < |ord| ==> ord[i] in Nodes(G);
+    assert ord[1..] == [];
+    assert TruncatedAssignmentMass(G, p, X, xVals, full, ord)
+      == TruncatedLocalFactor(G, p, X, xVals, full, v) * TruncatedFactorProduct(G, p, X, xVals, full, ord[1..]);
+    assert TruncatedAssignmentMass(G, p, X, xVals, full, ord) == 1.0;
+
+    var k :| 0 <= k < |supp| && supp[k] == full;
+
+    assert forall i :: 0 <= i < |supp| ==> supp[i] == full by {
+      forall i | 0 <= i < |supp|
+        ensures supp[i] == full
+      {
+        assert supp[i].Keys == Nodes(G);
+        assert ExtendsAssignment(xVals, supp[i]);
+        assert supp[i][v] == xVals[v];
+        SingletonAssignmentsEqual(G, supp[i], full, v);
+      }
+    }
+
+    assert |supp| == 1 by {
+      assert |supp| >= 1;
+      if |supp| > 1 {
+        assert supp[0] == full;
+        assert supp[1] == full;
+        assert AssignmentToOutcome(G, supp[0]) == AssignmentToOutcome(G, supp[1]);
+        assert AssignmentToOutcome(G, supp[0]) != AssignmentToOutcome(G, supp[1]);
+        assert false;
+      }
+    }
+
+    assert supp[0] == full;
+    assert supp[1..] == [];
+    assert SumTruncatedAssignmentMasses(G, p, X, xVals, supp, ord)
+      == TruncatedAssignmentMass(G, p, X, xVals, supp[0], ord)
+        + SumTruncatedAssignmentMasses(G, p, X, xVals, supp[1..], ord);
+  }
+
+  lemma SumTruncatedAssignmentMasses_SingletonEmpty_AsLocalPMFSum(
+    G: Graph,
+    p: Prob.PMF,
+    ord: seq<Node>,
+    fulls: seq<Assignment>,
+    template: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires |ord| == 1
+    requires forall i :: 0 <= i < |fulls| ==> fulls[i].Keys == Nodes(G)
+    requires template.Keys == Nodes(G)
+    requires Parents(G, ord[0]) == {}
+    ensures SumTruncatedAssignmentMasses(G, p, {}, map[], fulls, ord)
+      == Prob.SumOutcomeMasses(ConditionalLocalPMF(G, p, ord[0], template), AssignmentValuesAt(fulls, ord[0]))
+  {
+    var v := ord[0];
+    var q := ConditionalLocalPMF(G, p, v, template);
+    if |fulls| != 0 {
+      var full0 := fulls[0];
+      assert v in Nodes(G);
+      assert forall i :: 0 <= i < |fulls[1..]| ==> fulls[1..][i].Keys == Nodes(G) by {
+        forall i | 0 <= i < |fulls[1..]|
+          ensures fulls[1..][i].Keys == Nodes(G)
+        {
+          assert fulls[1..][i] == fulls[i + 1];
+        }
+      }
+      TruncatedAssignmentMass_Empty(G, p, full0, ord);
+      ConditionalLocalPMF_Locality(G, p, v, full0, template);
+      ConditionalFactor_FromLocalPMF(G, p, v, full0, full0[v]);
+      OverrideAssignment_SameValue(G, full0, v);
+      assert ord[1..] == [];
+      assert ConditionalFactorProduct(G, p, full0, ord)
+        == ConditionalFactor(p, v, Parents(G, v), full0);
+      assert TruncatedAssignmentMass(G, p, {}, map[], full0, ord)
+        == Prob.OutcomeMass(q, full0[v]);
+      SumTruncatedAssignmentMasses_SingletonEmpty_AsLocalPMFSum(G, p, ord, fulls[1..], template);
+    }
+  }
+
+  lemma SumTruncatedAssignmentMasses_SingletonEmpty(
+    G: Graph,
+    p: Prob.PMF,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires |ord| == 1
+    ensures SumTruncatedAssignmentMasses(G, p, {}, map[], TruncateSupportAssignments(G, p, {}, map[]), ord) == 1.0
+  {
+    var v := ord[0];
+    var supp := TruncateSupportAssignments(G, p, {}, map[]);
+    SingletonTopologicalSort_NodeSet(G, ord);
+    assert Parents(G, v) == {} by {
+      assert forall u :: u in Parents(G, v) ==> false by {
+        forall u | u in Parents(G, v)
+          ensures false
+        {
+          assert exists k | 0 <= k < 0 :: ord[k] == u;
+        }
+      }
+    }
+
+    Prob.DistributionHasSomeKey(p);
+    var omega0 :| omega0 in p.Keys;
+    var template := OutcomeToAssignment(G, omega0);
+    var vals := AssignmentValuesAt(supp, v);
+    var q := ConditionalLocalPMF(G, p, v, template);
+
+    AssignmentValuesAt_Index(supp, v);
+    assert forall i :: 0 <= i < |supp| ==> v in supp[i].Keys by {
+      forall i | 0 <= i < |supp|
+        ensures v in supp[i].Keys
+      {
+        assert supp[i].Keys == Nodes(G);
+      }
+    }
+
+    assert forall i, j :: 0 <= i < j < |vals| ==> vals[i] != vals[j] by {
+      forall i, j | 0 <= i < j < |vals|
+        ensures vals[i] != vals[j]
+      {
+        assert vals[i] == supp[i][v];
+        assert vals[j] == supp[j][v];
+        if vals[i] == vals[j] {
+          SingletonAssignmentsEqual(G, supp[i], supp[j], v);
+          assert AssignmentToOutcome(G, supp[i]) == AssignmentToOutcome(G, supp[j]);
+          assert AssignmentToOutcome(G, supp[i]) != AssignmentToOutcome(G, supp[j]);
+          assert false;
+        }
+      }
+    }
+
+    SumTruncatedAssignmentMasses_SingletonEmpty_AsLocalPMFSum(G, p, ord, supp, template);
+
+    assert forall value :: value in q.Keys && Prob.OutcomeMass(q, value) > 0.0 ==> value in vals by {
+      forall value | value in q.Keys && Prob.OutcomeMass(q, value) > 0.0
+        ensures value in vals
+      {
+        var full := map u | u in Nodes(G) :: value;
+        assert full.Keys == Nodes(G);
+        ConditionalLocalPMF_Locality(G, p, v, full, template);
+        ConditionalFactor_FromLocalPMF(G, p, v, full, value);
+        OverrideAssignment_SameValue(G, full, v);
+        TruncatedAssignmentMass_Empty(G, p, full, ord);
+        assert ord[1..] == [];
+        assert ConditionalFactorProduct(G, p, full, ord)
+          == ConditionalFactor(p, v, Parents(G, v), full);
+        assert TruncatedAssignmentMass(G, p, {}, map[], full, ord)
+          == Prob.OutcomeMass(q, value);
+        var i :| 0 <= i < |supp| && supp[i] == full;
+        assert vals[i] == supp[i][v];
+      }
+    }
+
+    Prob.SumOutcomeMasses_PositiveCompleteNormalized_WithZeroExtras(q, vals);
+  }
+
+  lemma SumTruncatedAssignmentMasses_Singleton(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires |ord| == 1
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures SumTruncatedAssignmentMasses(
+      G,
+      p,
+      X,
+      xVals,
+      TruncateSupportAssignments(G, p, X, xVals),
+      ord
+    ) == 1.0
+  {
+    var v := ord[0];
+    if v in X {
+      SumTruncatedAssignmentMasses_SingletonIntervention(G, p, X, xVals, ord);
+    } else {
+      SingletonTopologicalSort_NodeSet(G, ord);
+      assert X == {} by {
+        assert forall u :: u in X ==> false by {
+          forall u | u in X
+            ensures false
+          {
+            assert u in Nodes(G);
+            assert u == v;
+          }
+        }
+      }
+      var empty: Assignment := map[];
+      assert xVals == map[] by {
+        assert xVals.Keys == empty.Keys;
+        assert forall u :: u in xVals.Keys ==> xVals[u] == empty[u] by {
+          forall u | u in xVals.Keys
+            ensures xVals[u] == empty[u]
+          {
+          }
+        }
+      }
+      SumTruncatedAssignmentMasses_SingletonEmpty(G, p, ord);
     }
   }
 

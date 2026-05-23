@@ -276,6 +276,151 @@ module Probability {
     SumOutcomeMasses_DistinctSequenceInvariant(p, SetToSequence(support), ws);
   }
 
+  lemma SumOutcomeMasses_AllZero(p: PMF, ws: seq<Outcome>)
+    requires forall i :: 0 <= i < |ws| ==> OutcomeMass(p, ws[i]) == 0.0
+    ensures SumOutcomeMasses(p, ws) == 0.0
+  {
+    if |ws| != 0 {
+      assert forall i :: 0 <= i < |ws[1..]| ==> OutcomeMass(p, ws[1..][i]) == 0.0 by {
+        forall i | 0 <= i < |ws[1..]|
+          ensures OutcomeMass(p, ws[1..][i]) == 0.0
+        {
+          assert ws[1..][i] == ws[i + 1];
+        }
+      }
+      SumOutcomeMasses_AllZero(p, ws[1..]);
+    }
+  }
+
+  lemma FiniteSupportSum_AllZero(p: PMF, support: set<Outcome>)
+    requires forall omega :: omega in support ==> OutcomeMass(p, omega) == 0.0
+    ensures FiniteSupportSum(p, support) == 0.0
+  {
+    assert forall i :: 0 <= i < |SetToSequence(support)| ==>
+      OutcomeMass(p, SetToSequence(support)[i]) == 0.0 by {
+      forall i | 0 <= i < |SetToSequence(support)|
+        ensures OutcomeMass(p, SetToSequence(support)[i]) == 0.0
+      {
+        assert SetToSequence(support)[i] in support;
+      }
+    }
+    SumOutcomeMasses_AllZero(p, SetToSequence(support));
+  }
+
+  lemma SumOutcomeMasses_PositiveCompleteNormalized(p: PMF, ws: seq<Outcome>)
+    requires IsDistribution(p)
+    requires forall i, j :: 0 <= i < j < |ws| ==> ws[i] != ws[j]
+    requires forall i :: 0 <= i < |ws| ==> ws[i] in p.Keys
+    requires forall omega :: omega in p.Keys && OutcomeMass(p, omega) > 0.0 ==> omega in ws
+    ensures SumOutcomeMasses(p, ws) == 1.0
+  {
+    var support := set omega: Outcome | omega in ws :: omega;
+    assert support <= p.Keys by {
+      assert forall omega :: omega in support ==> omega in p.Keys by {
+        forall omega | omega in support
+          ensures omega in p.Keys
+        {
+          var i :| 0 <= i < |ws| && ws[i] == omega;
+        }
+      }
+    }
+    FiniteSupportSum_AnyDistinctEnumeration(p, support, ws);
+
+    assert forall omega :: omega in p.Keys - support ==> OutcomeMass(p, omega) == 0.0 by {
+      forall omega | omega in p.Keys - support
+        ensures OutcomeMass(p, omega) == 0.0
+      {
+        assert OutcomeMass(p, omega) >= 0.0;
+        if OutcomeMass(p, omega) > 0.0 {
+          assert omega in ws;
+          assert omega in support;
+          assert false;
+        }
+      }
+    }
+    FiniteSupportSum_AllZero(p, p.Keys - support);
+    assert (p.Keys - support) * p.Keys == p.Keys - support;
+    assert ProbEvent(p, p.Keys - support) == 0.0;
+
+    assert support * (p.Keys - support) == {};
+    assert support + (p.Keys - support) == p.Keys;
+    Axiom_Additivity(p, support, p.Keys - support);
+    Axiom_Normalization(p);
+    assert ProbEvent(p, support) == 1.0;
+    assert support * p.Keys == support;
+  }
+
+  lemma SumOutcomeMasses_RemoveZeroAt(p: PMF, ws: seq<Outcome>, i: nat)
+    requires i < |ws|
+    requires OutcomeMass(p, ws[i]) == 0.0
+    ensures SumOutcomeMasses(p, RemoveAt(ws, i)) == SumOutcomeMasses(p, ws)
+  {
+    var prefix := ws[..i];
+    var suffix := ws[i + 1..];
+    SumOutcomeMasses_Concat(p, prefix, suffix);
+    SumOutcomeMasses_Concat(p, prefix, [ws[i]]);
+    SumOutcomeMasses_Concat(p, prefix + [ws[i]], suffix);
+    assert ws == prefix + [ws[i]] + suffix;
+    assert SumOutcomeMasses(p, [ws[i]]) == OutcomeMass(p, ws[i]);
+    calc {
+      SumOutcomeMasses(p, RemoveAt(ws, i));
+      ==
+      SumOutcomeMasses(p, prefix + suffix);
+      == { SumOutcomeMasses_Concat(p, prefix, suffix); }
+      SumOutcomeMasses(p, prefix) + SumOutcomeMasses(p, suffix);
+      ==
+      SumOutcomeMasses(p, prefix) + 0.0 + SumOutcomeMasses(p, suffix);
+      ==
+      SumOutcomeMasses(p, prefix) + SumOutcomeMasses(p, [ws[i]]) + SumOutcomeMasses(p, suffix);
+      == { SumOutcomeMasses_Concat(p, prefix, [ws[i]]); }
+      SumOutcomeMasses(p, prefix + [ws[i]]) + SumOutcomeMasses(p, suffix);
+      == { SumOutcomeMasses_Concat(p, prefix + [ws[i]], suffix); }
+      SumOutcomeMasses(p, ws);
+    }
+  }
+
+  lemma SumOutcomeMasses_PositiveCompleteNormalized_WithZeroExtras(
+    p: PMF,
+    ws: seq<Outcome>
+  )
+    requires IsDistribution(p)
+    requires forall i, j :: 0 <= i < j < |ws| ==> ws[i] != ws[j]
+    requires forall omega :: omega in p.Keys && OutcomeMass(p, omega) > 0.0 ==> omega in ws
+    ensures SumOutcomeMasses(p, ws) == 1.0
+  {
+    if forall i :: 0 <= i < |ws| ==> ws[i] in p.Keys && OutcomeMass(p, ws[i]) > 0.0 {
+      SumOutcomeMasses_PositiveCompleteNormalized(p, ws);
+    } else {
+      var i :| 0 <= i < |ws| && !(ws[i] in p.Keys && OutcomeMass(p, ws[i]) > 0.0);
+      assert OutcomeMass(p, ws[i]) == 0.0 by {
+        if ws[i] in p.Keys {
+          assert OutcomeMass(p, ws[i]) >= 0.0;
+          if OutcomeMass(p, ws[i]) != 0.0 {
+            assert OutcomeMass(p, ws[i]) > 0.0;
+            assert false;
+          }
+        }
+      }
+      RemoveAt_Distinct(ws, i);
+      assert forall omega :: omega in p.Keys && OutcomeMass(p, omega) > 0.0 ==> omega in RemoveAt(ws, i) by {
+        forall omega | omega in p.Keys && OutcomeMass(p, omega) > 0.0
+          ensures omega in RemoveAt(ws, i)
+        {
+          assert omega in ws;
+          assert omega != ws[i] by {
+            if omega == ws[i] {
+              assert OutcomeMass(p, ws[i]) > 0.0;
+              assert false;
+            }
+          }
+          RemoveAt_Membership(ws, i, omega);
+        }
+      }
+      SumOutcomeMasses_PositiveCompleteNormalized_WithZeroExtras(p, RemoveAt(ws, i));
+      SumOutcomeMasses_RemoveZeroAt(p, ws, i);
+    }
+  }
+
   // P(A) = Σ_{ω ∈ A ∩ p.Keys} pmf[ω]
   ghost function ProbEvent(p: PMF, A: Event): real {
     FiniteSupportSum(p, A * p.Keys)
@@ -371,6 +516,18 @@ module Probability {
     Axiom_Additivity(p, {}, p.Keys);
     Axiom_Normalization(p);
     // P({}) + 1.0 == 1.0  ⟹  P({}) == 0.0
+  }
+
+  lemma DistributionHasSomeKey(p: PMF)
+    requires IsDistribution(p)
+    ensures p.Keys != {}
+  {
+    EmptyEventZero(p);
+    Axiom_Normalization(p);
+    if p.Keys == {} {
+      assert ProbEvent(p, p.Keys) == ProbEvent(p, {});
+      assert false;
+    }
   }
 
   /// Monotonicity:  A ⊆ B  ⟹  P(A) ≤ P(B).
