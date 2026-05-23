@@ -1016,6 +1016,43 @@ module Interventional {
     else [fulls[0][v]] + AssignmentValuesAt(fulls[1..], v)
   }
 
+  ghost function FilterAssignmentsByValue(
+    fulls: seq<Assignment>,
+    keys: set<Node>,
+    v: Node,
+    value: Value
+  ): seq<Assignment>
+    requires v in keys
+    requires forall i :: 0 <= i < |fulls| ==> fulls[i].Keys == keys
+    ensures forall i :: 0 <= i < |FilterAssignmentsByValue(fulls, keys, v, value)| ==>
+      FilterAssignmentsByValue(fulls, keys, v, value)[i].Keys == keys
+    ensures forall i :: 0 <= i < |FilterAssignmentsByValue(fulls, keys, v, value)| ==>
+      FilterAssignmentsByValue(fulls, keys, v, value)[i][v] == value
+  {
+    if |fulls| == 0 then []
+    else if fulls[0][v] == value then [fulls[0]] + FilterAssignmentsByValue(fulls[1..], keys, v, value)
+    else FilterAssignmentsByValue(fulls[1..], keys, v, value)
+  }
+
+  ghost function SumTruncatedTailProducts(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    fulls: seq<Assignment>,
+    ordTail: seq<Node>
+  ): real
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    requires forall i :: 0 <= i < |fulls| ==> fulls[i].Keys == Nodes(G)
+    requires forall i :: 0 <= i < |ordTail| ==> ordTail[i] in Nodes(G)
+  {
+    if |fulls| == 0 then 0.0
+    else
+      TruncatedFactorProduct(G, p, X, xVals, fulls[0], ordTail)
+      + SumTruncatedTailProducts(G, p, X, xVals, fulls[1..], ordTail)
+  }
+
   lemma AssignmentValuesAt_Index(fulls: seq<Assignment>, v: Node)
     requires forall i :: 0 <= i < |fulls| ==> v in fulls[i].Keys
     ensures |AssignmentValuesAt(fulls, v)| == |fulls|
@@ -1023,6 +1060,20 @@ module Interventional {
   {
     if |fulls| != 0 {
       AssignmentValuesAt_Index(fulls[1..], v);
+    }
+  }
+
+  lemma TopologicalHeadHasNoParents(G: Graph, ord: seq<Node>)
+    requires IsTopologicalSort(G, ord)
+    requires |ord| > 0
+    ensures Parents(G, ord[0]) == {}
+  {
+    assert forall u :: u in Parents(G, ord[0]) ==> false by {
+      forall u | u in Parents(G, ord[0])
+        ensures false
+      {
+        assert exists k | 0 <= k < 0 :: ord[k] == u;
+      }
     }
   }
 
@@ -1072,6 +1123,100 @@ module Interventional {
         ensures a[u] == b[u]
       {
         assert u == v;
+      }
+    }
+  }
+
+  lemma TruncatedAssignmentMass_FactorHeadViaLocalPMF(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>,
+    full: Assignment,
+    template: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires |ord| > 0
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    requires ord[0] !in X
+    requires full.Keys == Nodes(G)
+    requires template.Keys == Nodes(G)
+    ensures TruncatedAssignmentMass(G, p, X, xVals, full, ord)
+      == Prob.OutcomeMass(ConditionalLocalPMF(G, p, ord[0], template), full[ord[0]])
+        * TruncatedFactorProduct(G, p, X, xVals, full, ord[1..])
+  {
+    var v := ord[0];
+    TopologicalHeadHasNoParents(G, ord);
+    TruncatedLocalFactor_Unintervened(G, p, X, xVals, full, v);
+    assert forall u :: u in Parents(G, v) * Nodes(G) ==> full[u] == template[u] by {
+      forall u | u in Parents(G, v) * Nodes(G)
+        ensures full[u] == template[u]
+      {
+      }
+    }
+    ConditionalLocalPMF_Locality(G, p, v, full, template);
+    ConditionalFactor_FromLocalPMF(G, p, v, full, full[v]);
+    OverrideAssignment_SameValue(G, full, v);
+  }
+
+  lemma SumTruncatedAssignmentMasses_FilterByHeadValue_FactorsHead(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>,
+    fulls: seq<Assignment>,
+    template: Assignment,
+    value: Value
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires |ord| > 0
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    requires ord[0] !in X
+    requires template.Keys == Nodes(G)
+    requires forall i :: 0 <= i < |fulls| ==> fulls[i].Keys == Nodes(G)
+    ensures SumTruncatedAssignmentMasses(
+      G,
+      p,
+      X,
+      xVals,
+      FilterAssignmentsByValue(fulls, Nodes(G), ord[0], value),
+      ord
+    )
+      == Prob.OutcomeMass(ConditionalLocalPMF(G, p, ord[0], template), value)
+        * SumTruncatedTailProducts(
+          G,
+          p,
+          X,
+          xVals,
+          FilterAssignmentsByValue(fulls, Nodes(G), ord[0], value),
+          ord[1..]
+        )
+  {
+    var v := ord[0];
+    assert forall i :: 0 <= i < |ord[1..]| ==> ord[1..][i] in Nodes(G) by {
+      forall i | 0 <= i < |ord[1..]|
+        ensures ord[1..][i] in Nodes(G)
+      {
+        assert ord[1..][i] == ord[i + 1];
+      }
+    }
+    if |fulls| != 0 {
+      assert forall i :: 0 <= i < |fulls[1..]| ==> fulls[1..][i].Keys == Nodes(G) by {
+        forall i | 0 <= i < |fulls[1..]|
+          ensures fulls[1..][i].Keys == Nodes(G)
+        {
+          assert fulls[1..][i] == fulls[i + 1];
+        }
+      }
+      SumTruncatedAssignmentMasses_FilterByHeadValue_FactorsHead(G, p, X, xVals, ord, fulls[1..], template, value);
+      if fulls[0][v] == value {
+        TruncatedAssignmentMass_FactorHeadViaLocalPMF(G, p, X, xVals, ord, fulls[0], template);
       }
     }
   }
