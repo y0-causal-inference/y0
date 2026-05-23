@@ -646,6 +646,20 @@ module Interventional {
     TruncatedFactorProduct(G, p, X, xVals, full, ord)
   }
 
+  ghost function ConditionalFactorProduct(
+    G: Graph,
+    p: Prob.PMF,
+    full: Assignment,
+    ord: seq<Node>
+  ): real
+    requires full.Keys == Nodes(G)
+    requires forall i :: 0 <= i < |ord| ==> ord[i] in Nodes(G)
+  {
+    if |ord| == 0 then 1.0 else
+      ConditionalFactor(p, ord[0], Parents(G, ord[0]), full)
+        * ConditionalFactorProduct(G, p, full, ord[1..])
+  }
+
   lemma TruncatedAssignmentMass_NonNeg(
     G: Graph,
     p: Prob.PMF,
@@ -691,6 +705,43 @@ module Interventional {
     TruncatedFactorProduct_ZeroOnInterventionConflict(G, p, X, xVals, full, ord, i);
   }
 
+  lemma TruncatedFactorProduct_Empty(
+    G: Graph,
+    p: Prob.PMF,
+    full: Assignment,
+    ord: seq<Node>
+  )
+    requires full.Keys == Nodes(G)
+    requires forall i :: 0 <= i < |ord| ==> ord[i] in Nodes(G)
+    ensures TruncatedFactorProduct(G, p, {}, map[], full, ord)
+      == ConditionalFactorProduct(G, p, full, ord)
+  {
+    if |ord| != 0 {
+      TruncatedLocalFactor_Unintervened(G, p, {}, map[], full, ord[0]);
+      assert forall i :: 0 <= i < |ord[1..]| ==> ord[1..][i] in Nodes(G) by {
+        forall i | 0 <= i < |ord[1..]| ensures ord[1..][i] in Nodes(G) {
+          assert ord[1..][i] == ord[i + 1];
+        }
+      }
+      TruncatedFactorProduct_Empty(G, p, full, ord[1..]);
+    }
+  }
+
+  lemma TruncatedAssignmentMass_Empty(
+    G: Graph,
+    p: Prob.PMF,
+    full: Assignment,
+    ord: seq<Node>
+  )
+    requires IsTopologicalSort(G, ord)
+    requires full.Keys == Nodes(G)
+    ensures TruncatedAssignmentMass(G, p, {}, map[], full, ord)
+      == ConditionalFactorProduct(G, p, full, ord)
+  {
+    assert forall i :: 0 <= i < |ord| ==> ord[i] in Nodes(G);
+    TruncatedFactorProduct_Empty(G, p, full, ord);
+  }
+
   // A future PMF-valued truncation constructor will need a finite support of
   // full assignments, then encode those assignments back into PMF outcomes.
   // This helper exposes that finite assignment-side support without yet
@@ -724,6 +775,25 @@ module Interventional {
       AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[i])
   }
 
+  ghost function EncodedTruncateAssignment(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    omega: Prob.Outcome
+  ): Assignment
+    requires Prob.IsDistribution(p)
+    requires xVals.Keys == X
+    requires omega in EncodedTruncateSupport(G, p, X, xVals)
+    ensures EncodedTruncateAssignment(G, p, X, xVals, omega).Keys == Nodes(G)
+    ensures ExtendsAssignment(xVals, EncodedTruncateAssignment(G, p, X, xVals, omega))
+    ensures AssignmentToOutcome(G, EncodedTruncateAssignment(G, p, X, xVals, omega)) == omega
+  {
+    var i :| 0 <= i < |TruncateSupportAssignments(G, p, X, xVals)|
+      && omega == AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[i]);
+    TruncateSupportAssignments(G, p, X, xVals)[i]
+  }
+
   lemma EncodedTruncateSupport_MatchesAssignment(
     G: Graph,
     p: Prob.PMF,
@@ -745,6 +815,86 @@ module Interventional {
       assert ExtendsAssignment(xVals, full);
       AssignmentToOutcome_MatchesExtension(G, xVals, full);
     }
+  }
+
+  ghost function TruncatePMFOnOrder(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  ): Prob.PMF
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+  {
+    map omega | omega in EncodedTruncateSupport(G, p, X, xVals) ::
+      TruncatedAssignmentMass(
+        G,
+        p,
+        X,
+        xVals,
+        EncodedTruncateAssignment(G, p, X, xVals, omega),
+        ord
+      )
+  }
+
+  lemma TruncatePMFOnOrder_Support(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures TruncatePMFOnOrder(G, p, X, xVals, ord).Keys
+      == EncodedTruncateSupport(G, p, X, xVals)
+  {
+    assert TruncatePMFOnOrder(G, p, X, xVals, ord).Keys
+      == EncodedTruncateSupport(G, p, X, xVals);
+  }
+
+  lemma TruncatePMFOnOrder_MatchesAssignment(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures forall omega :: omega in TruncatePMFOnOrder(G, p, X, xVals, ord).Keys ==> MatchesAssignment(G, omega, xVals)
+  {
+    TruncatePMFOnOrder_Support(G, p, X, xVals, ord);
+    EncodedTruncateSupport_MatchesAssignment(G, p, X, xVals);
+  }
+
+  lemma TruncatePMFOnOrder_EmptyMass(
+    G: Graph,
+    p: Prob.PMF,
+    ord: seq<Node>,
+    omega: Prob.Outcome
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires omega in EncodedTruncateSupport(G, p, {}, map[])
+    ensures TruncatePMFOnOrder(G, p, {}, map[], ord)[omega]
+      == ConditionalFactorProduct(
+        G,
+        p,
+        EncodedTruncateAssignment(G, p, {}, map[], omega),
+        ord
+      )
+  {
+    TruncatePMFOnOrder_Support(G, p, {}, map[], ord);
+    var full := EncodedTruncateAssignment(G, p, {}, map[], omega);
+    TruncatedAssignmentMass_Empty(G, p, full, ord);
   }
 
   ghost function {:axiom} TruncatePMF(
