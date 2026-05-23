@@ -691,6 +691,62 @@ module Interventional {
     TruncatedFactorProduct_ZeroOnInterventionConflict(G, p, X, xVals, full, ord, i);
   }
 
+  // A future PMF-valued truncation constructor will need a finite support of
+  // full assignments, then encode those assignments back into PMF outcomes.
+  // This helper exposes that finite assignment-side support without yet
+  // committing to a concrete constructor body.
+  ghost function {:axiom} TruncateSupportAssignments(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment
+  ): seq<Assignment>
+    requires Prob.IsDistribution(p)
+    requires xVals.Keys == X
+    ensures forall i :: 0 <= i < |TruncateSupportAssignments(G, p, X, xVals)| ==>
+      TruncateSupportAssignments(G, p, X, xVals)[i].Keys == Nodes(G)
+    ensures forall i :: 0 <= i < |TruncateSupportAssignments(G, p, X, xVals)| ==>
+      ExtendsAssignment(xVals, TruncateSupportAssignments(G, p, X, xVals)[i])
+    ensures forall i, j :: 0 <= i < j < |TruncateSupportAssignments(G, p, X, xVals)| ==>
+      AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[i])
+        != AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[j])
+
+  ghost function EncodedTruncateSupport(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment
+  ): set<Prob.Outcome>
+    requires Prob.IsDistribution(p)
+    requires xVals.Keys == X
+  {
+    set i: int | 0 <= i < |TruncateSupportAssignments(G, p, X, xVals)| ::
+      AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[i])
+  }
+
+  lemma EncodedTruncateSupport_MatchesAssignment(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures forall omega :: omega in EncodedTruncateSupport(G, p, X, xVals) ==> MatchesAssignment(G, omega, xVals)
+  {
+    forall omega | omega in EncodedTruncateSupport(G, p, X, xVals)
+      ensures MatchesAssignment(G, omega, xVals)
+    {
+      var i :| 0 <= i < |TruncateSupportAssignments(G, p, X, xVals)|
+        && omega == AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[i]);
+      var full := TruncateSupportAssignments(G, p, X, xVals)[i];
+      assert full.Keys == Nodes(G);
+      assert ExtendsAssignment(xVals, full);
+      AssignmentToOutcome_MatchesExtension(G, xVals, full);
+    }
+  }
+
   ghost function {:axiom} TruncatePMF(
     G: Graph,
     p: Prob.PMF,
@@ -699,7 +755,7 @@ module Interventional {
   ): Prob.PMF
     requires xVals.Keys == X
     requires Prob.IsDistribution(p)
-    ensures TruncatePMF(G, p, X, xVals).Keys <= p.Keys
+    ensures TruncatePMF(G, p, X, xVals).Keys <= EncodedTruncateSupport(G, p, X, xVals)
     ensures forall omega :: omega in TruncatePMF(G, p, X, xVals).Keys ==> MatchesAssignment(G, omega, xVals)
 
   // The truncated PMF is a valid distribution.
