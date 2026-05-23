@@ -966,6 +966,49 @@ module Interventional {
       == AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[i]);
   }
 
+  ghost function EncodeAssignments(
+    G: Graph,
+    fulls: seq<Assignment>
+  ): seq<Prob.Outcome>
+    requires forall i :: 0 <= i < |fulls| ==> fulls[i].Keys == Nodes(G)
+  {
+    if |fulls| == 0 then []
+    else [AssignmentToOutcome(G, fulls[0])] + EncodeAssignments(G, fulls[1..])
+  }
+
+  lemma EncodeAssignments_Index(
+    G: Graph,
+    fulls: seq<Assignment>
+  )
+    requires forall i :: 0 <= i < |fulls| ==> fulls[i].Keys == Nodes(G)
+    ensures |EncodeAssignments(G, fulls)| == |fulls|
+    ensures forall i :: 0 <= i < |fulls| ==>
+      EncodeAssignments(G, fulls)[i] == AssignmentToOutcome(G, fulls[i])
+  {
+    if |fulls| != 0 {
+      EncodeAssignments_Index(G, fulls[1..]);
+    }
+  }
+
+  ghost function SumTruncatedAssignmentMasses(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    fulls: seq<Assignment>,
+    ord: seq<Node>
+  ): real
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    requires forall i :: 0 <= i < |fulls| ==> fulls[i].Keys == Nodes(G)
+  {
+    if |fulls| == 0 then 0.0
+    else
+      TruncatedAssignmentMass(G, p, X, xVals, fulls[0], ord)
+      + SumTruncatedAssignmentMasses(G, p, X, xVals, fulls[1..], ord)
+  }
+
   ghost function TruncatePMFOnOrder(
     G: Graph,
     p: Prob.PMF,
@@ -1065,6 +1108,164 @@ module Interventional {
       TruncatePMFOnOrder_Support(G, p, X, xVals, ord);
       var full := EncodedTruncateAssignment(G, p, X, xVals, omega);
       TruncatedAssignmentMass_NonNeg(G, p, X, xVals, full, ord);
+    }
+  }
+
+  lemma TruncatePMFOnOrder_SumOutcomeMasses_OverAssignments(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>,
+    fulls: seq<Assignment>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    requires forall i :: 0 <= i < |fulls| ==> fulls[i].Keys == Nodes(G)
+    requires forall i :: 0 <= i < |fulls| ==>
+      AssignmentToOutcome(G, fulls[i]) in EncodedTruncateSupport(G, p, X, xVals)
+    requires forall i, j :: 0 <= i < j < |fulls| ==>
+      AssignmentToOutcome(G, fulls[i]) != AssignmentToOutcome(G, fulls[j])
+    ensures Prob.SumOutcomeMasses(
+      TruncatePMFOnOrder(G, p, X, xVals, ord),
+      EncodeAssignments(G, fulls)
+    ) == SumTruncatedAssignmentMasses(G, p, X, xVals, fulls, ord)
+  {
+    if |fulls| != 0 {
+      TruncatePMFOnOrder_Support(G, p, X, xVals, ord);
+      var t := TruncatePMFOnOrder(G, p, X, xVals, ord);
+      var full0 := fulls[0];
+      var omega0 := AssignmentToOutcome(G, full0);
+      assert EncodeAssignments(G, fulls)
+        == [omega0] + EncodeAssignments(G, fulls[1..]);
+      assert omega0 in EncodedTruncateSupport(G, p, X, xVals);
+      assert omega0 in t.Keys;
+      var decoded := EncodedTruncateAssignment(G, p, X, xVals, omega0);
+      assert decoded.Keys == Nodes(G);
+      assert AssignmentToOutcome(G, decoded) == omega0;
+      AssignmentToOutcome_Injective(G, decoded, full0);
+      assert decoded == full0;
+      assert t[omega0] == TruncatedAssignmentMass(G, p, X, xVals, full0, ord);
+      assert forall i :: 0 <= i < |fulls[1..]| ==> fulls[1..][i].Keys == Nodes(G) by {
+        forall i | 0 <= i < |fulls[1..]|
+          ensures fulls[1..][i].Keys == Nodes(G)
+        {
+          assert fulls[1..][i] == fulls[i + 1];
+        }
+      }
+      assert forall i :: 0 <= i < |fulls[1..]| ==>
+        AssignmentToOutcome(G, fulls[1..][i]) in EncodedTruncateSupport(G, p, X, xVals) by {
+        forall i | 0 <= i < |fulls[1..]|
+          ensures AssignmentToOutcome(G, fulls[1..][i]) in EncodedTruncateSupport(G, p, X, xVals)
+        {
+          assert fulls[1..][i] == fulls[i + 1];
+        }
+      }
+      assert forall i, j :: 0 <= i < j < |fulls[1..]| ==>
+        AssignmentToOutcome(G, fulls[1..][i]) != AssignmentToOutcome(G, fulls[1..][j]) by {
+        forall i, j | 0 <= i < j < |fulls[1..]|
+          ensures AssignmentToOutcome(G, fulls[1..][i]) != AssignmentToOutcome(G, fulls[1..][j])
+        {
+          assert fulls[1..][i] == fulls[i + 1];
+          assert fulls[1..][j] == fulls[j + 1];
+        }
+      }
+      TruncatePMFOnOrder_SumOutcomeMasses_OverAssignments(G, p, X, xVals, ord, fulls[1..]);
+    }
+  }
+
+  lemma TruncatePMFOnOrder_SumEncodedSupportAssignments(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures Prob.SumOutcomeMasses(
+      TruncatePMFOnOrder(G, p, X, xVals, ord),
+      EncodeAssignments(G, TruncateSupportAssignments(G, p, X, xVals))
+    ) == SumTruncatedAssignmentMasses(
+      G,
+      p,
+      X,
+      xVals,
+      TruncateSupportAssignments(G, p, X, xVals),
+      ord
+    )
+  {
+    assert forall i :: 0 <= i < |TruncateSupportAssignments(G, p, X, xVals)| ==>
+      AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[i])
+        in EncodedTruncateSupport(G, p, X, xVals) by {
+      forall i | 0 <= i < |TruncateSupportAssignments(G, p, X, xVals)|
+        ensures AssignmentToOutcome(G, TruncateSupportAssignments(G, p, X, xVals)[i])
+          in EncodedTruncateSupport(G, p, X, xVals)
+      {
+      }
+    }
+    TruncatePMFOnOrder_SumOutcomeMasses_OverAssignments(
+      G,
+      p,
+      X,
+      xVals,
+      ord,
+      TruncateSupportAssignments(G, p, X, xVals)
+    );
+  }
+
+  lemma TruncatePMFOnOrder_EncodedSupportSequence_EnumeratesKeys(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures forall omega :: omega in EncodeAssignments(G, TruncateSupportAssignments(G, p, X, xVals)) <==> omega in TruncatePMFOnOrder(G, p, X, xVals, ord).Keys
+    ensures forall i, j ::
+      0 <= i < j < |EncodeAssignments(G, TruncateSupportAssignments(G, p, X, xVals))| ==>
+        EncodeAssignments(G, TruncateSupportAssignments(G, p, X, xVals))[i]
+          != EncodeAssignments(G, TruncateSupportAssignments(G, p, X, xVals))[j]
+  {
+    var fulls := TruncateSupportAssignments(G, p, X, xVals);
+    var omegas := EncodeAssignments(G, fulls);
+    var t := TruncatePMFOnOrder(G, p, X, xVals, ord);
+    TruncatePMFOnOrder_Support(G, p, X, xVals, ord);
+    EncodeAssignments_Index(G, fulls);
+
+    assert forall omega :: omega in omegas ==> omega in t.Keys by {
+      forall omega | omega in omegas
+        ensures omega in t.Keys
+      {
+        var i :| 0 <= i < |omegas| && omegas[i] == omega;
+        assert omegas[i] == AssignmentToOutcome(G, fulls[i]);
+      }
+    }
+
+    assert forall omega :: omega in t.Keys ==> omega in omegas by {
+      forall omega | omega in t.Keys
+        ensures omega in omegas
+      {
+        var i :| 0 <= i < |fulls| && omega == AssignmentToOutcome(G, fulls[i]);
+        assert omegas[i] == AssignmentToOutcome(G, fulls[i]);
+      }
+    }
+
+    assert forall i, j :: 0 <= i < j < |omegas| ==> omegas[i] != omegas[j] by {
+      forall i, j | 0 <= i < j < |omegas|
+        ensures omegas[i] != omegas[j]
+      {
+        assert omegas[i] == AssignmentToOutcome(G, fulls[i]);
+        assert omegas[j] == AssignmentToOutcome(G, fulls[j]);
+      }
     }
   }
 
