@@ -392,14 +392,249 @@ module Interventional {
   //
   //   The interventional distribution after do(X = xVals):
   //
-  //   1. Keep only rows where X-variables match xVals.
-  //   2. Renormalize over remaining rows.
+  //   1. Replace each intervened-node local factor with a point mass
+  //      at the imposed value xVals.
+  //   2. Keep each non-intervened local factor from the observational
+  //      distribution.
+  //   3. Interpret the result against the mutilated graph G_{X̄}.
   //
-  //   Equivalently: replace each factor P(xᵢ | pa(xᵢ)) with a
-  //   point mass δ(xᵢ = xValsᵢ), then renormalize.
+  //   The public PMF-valued constructor remains axiomatic below. The
+  //   helpers in this section are the first factor-level scaffolding for a
+  //   later concrete definition.
   //
   //   Ref: Pearl (2000), Theorem 1.3.1 / Definition 3.2.1
   // ==================================================================
+
+  ghost function TruncatedLocalFactor(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    v: Node
+  ): real
+    requires v in Nodes(G)
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires X <= Nodes(G)
+  {
+    if v in X then
+      if full[v] == xVals[v] then 1.0 else 0.0
+    else
+      ConditionalFactor(p, v, Parents(G, v), full)
+  }
+
+  lemma TruncatedLocalFactor_NonNeg(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    v: Node
+  )
+    requires Prob.IsDistribution(p)
+    requires v in Nodes(G)
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires X <= Nodes(G)
+    ensures TruncatedLocalFactor(G, p, X, xVals, full, v) >= 0.0
+  {
+    if v !in X {
+      ConditionalFactor_NonNeg(p, v, Parents(G, v), full);
+    }
+  }
+
+  lemma TruncatedLocalFactor_IntervenedMatch(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    v: Node
+  )
+    requires v in Nodes(G)
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires X <= Nodes(G)
+    requires v in X
+    requires full[v] == xVals[v]
+    ensures TruncatedLocalFactor(G, p, X, xVals, full, v) == 1.0
+  {
+  }
+
+  lemma TruncatedLocalFactor_IntervenedMismatch(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    v: Node
+  )
+    requires v in Nodes(G)
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires X <= Nodes(G)
+    requires v in X
+    requires full[v] != xVals[v]
+    ensures TruncatedLocalFactor(G, p, X, xVals, full, v) == 0.0
+  {
+  }
+
+  lemma TruncatedLocalFactor_Unintervened(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    v: Node
+  )
+    requires v in Nodes(G)
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires X <= Nodes(G)
+    requires v !in X
+    ensures TruncatedLocalFactor(G, p, X, xVals, full, v)
+      == ConditionalFactor(p, v, Parents(G, v), full)
+  {
+  }
+
+  ghost function TruncatedFactorProduct(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    ord: seq<Node>
+  ): real
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires X <= Nodes(G)
+    requires forall i :: 0 <= i < |ord| ==> ord[i] in Nodes(G)
+  {
+    if |ord| == 0 then 1.0 else
+      TruncatedLocalFactor(G, p, X, xVals, full, ord[0])
+      * TruncatedFactorProduct(G, p, X, xVals, full, ord[1..])
+  }
+
+  lemma TruncatedFactorProduct_NonNeg(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires X <= Nodes(G)
+    requires forall i :: 0 <= i < |ord| ==> ord[i] in Nodes(G)
+    ensures TruncatedFactorProduct(G, p, X, xVals, full, ord) >= 0.0
+  {
+    if |ord| > 0 {
+      assert ord[0] in Nodes(G);
+      TruncatedLocalFactor_NonNeg(G, p, X, xVals, full, ord[0]);
+      assert forall i :: 0 <= i < |ord[1..]| ==> ord[1..][i] in Nodes(G) by {
+        forall i | 0 <= i < |ord[1..]| ensures ord[1..][i] in Nodes(G) {
+          assert ord[1..][i] == ord[i + 1];
+        }
+      }
+      TruncatedFactorProduct_NonNeg(G, p, X, xVals, full, ord[1..]);
+    }
+  }
+
+  lemma TruncatedFactorProduct_ZeroOnInterventionConflict(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    ord: seq<Node>,
+    i: nat
+  )
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires X <= Nodes(G)
+    requires forall j :: 0 <= j < |ord| ==> ord[j] in Nodes(G)
+    requires i < |ord|
+    requires ord[i] in X
+    requires full[ord[i]] != xVals[ord[i]]
+    ensures TruncatedFactorProduct(G, p, X, xVals, full, ord) == 0.0
+  {
+    if i == 0 {
+      TruncatedLocalFactor_IntervenedMismatch(G, p, X, xVals, full, ord[0]);
+    } else {
+      assert forall j :: 0 <= j < |ord[1..]| ==> ord[1..][j] in Nodes(G) by {
+        forall j | 0 <= j < |ord[1..]| ensures ord[1..][j] in Nodes(G) {
+          assert ord[1..][j] == ord[j + 1];
+        }
+      }
+      assert i - 1 < |ord[1..]|;
+      assert ord[1..][i - 1] == ord[i];
+      TruncatedFactorProduct_ZeroOnInterventionConflict(G, p, X, xVals, full, ord[1..], i - 1);
+    }
+  }
+
+  ghost function TruncatedAssignmentMass(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    ord: seq<Node>
+  ): real
+    requires IsTopologicalSort(G, ord)
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+  {
+    TruncatedFactorProduct(G, p, X, xVals, full, ord)
+  }
+
+  lemma TruncatedAssignmentMass_NonNeg(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures TruncatedAssignmentMass(G, p, X, xVals, full, ord) >= 0.0
+  {
+    assert X <= Nodes(G);
+    assert forall i :: 0 <= i < |ord| ==> ord[i] in Nodes(G);
+    TruncatedFactorProduct_NonNeg(G, p, X, xVals, full, ord);
+  }
+
+  lemma TruncatedAssignmentMass_ZeroOnInterventionConflict(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    full: Assignment,
+    ord: seq<Node>,
+    v: Node
+  )
+    requires IsTopologicalSort(G, ord)
+    requires full.Keys == Nodes(G)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    requires v in X
+    requires full[v] != xVals[v]
+    ensures TruncatedAssignmentMass(G, p, X, xVals, full, ord) == 0.0
+  {
+    assert X <= Nodes(G);
+    assert v in Nodes(G);
+    assert v in ord;
+    var i :| 0 <= i < |ord| && ord[i] == v;
+    assert forall j :: 0 <= j < |ord| ==> ord[j] in Nodes(G);
+    TruncatedFactorProduct_ZeroOnInterventionConflict(G, p, X, xVals, full, ord, i);
+  }
 
   ghost function {:axiom} TruncatePMF(
     G: Graph,
