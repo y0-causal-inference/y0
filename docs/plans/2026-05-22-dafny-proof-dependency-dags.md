@@ -160,11 +160,12 @@ Explain the recommended proving order for the next batch inside
 Design choices:
 
 1. Nodes represent concrete proving steps, not broad themes.
-2. The graph intentionally chooses the support-filtering route for
-   `TruncatePMF`, because that route fits the existing assignment-event lemmas.
-3. The graph does not make a factor-level `TruncatePMF` construction primary,
-   because `ConditionalFactor` and `MarkovFactorization` are still abstract and
-   would widen the proof boundary too early.
+2. The graph now follows the factor-level truncation route, because the
+   support-filtering/renormalization probe was useful only as a rejected local
+   experiment and should not become the public semantics of `TruncatePMF`.
+3. The graph keeps the next remaining gap operationally narrow: recurse on the
+   tail-order normalization problem before widening the public constructor
+   boundary.
 4. `ProductPMF_Grounded` is placed after concrete `TruncatePMF` because it is a
    higher-order behavior theorem about products and merged assignments, not the
    first constructor that needs a body.
@@ -173,40 +174,37 @@ Design choices:
 graph TD
   FS["finite-support probability substrate<br/>SetToSequence, ProbEvent"]
   AB["assignment bridge and event algebra<br/>OutcomeToAssignment, AssignmentEvent,<br/>merge/conflict/strengthening"]
-  TS["current TruncatePMF consequences<br/>support subset, intervention=1,<br/>conflict=0"]
-  SF["choose support-filtering TruncatePMF body<br/>keep matching outcomes, renormalize"]
-  KM["define filtering helper<br/>outcomes matching xVals"]
-  Z["define normalization mass<br/>intervention event probability"]
-  TC["define concrete TruncatePMF"]
-  TD["prove basic constructor laws<br/>IsDistribution and Empty"]
-  TR["re-derive current TruncatePMF lemmas<br/>from the concrete body"]
-  IC["simplify IntProbConcrete obligations<br/>over a real PMF constructor"]
+   TF["factor-level truncation scaffold<br/>TruncatedLocalFactor,<br/>TruncatedAssignmentMass,<br/>TruncatePMFOnOrder"]
+   NS["chosen-support normalization substrate<br/>encoded support sequence,<br/>singleton cases,<br/>head-value bucket factorization"]
+   RT["next local target<br/>recursive tail normalization bridge<br/>for ord[1..]"]
+   PB["probability bridge<br/>concrete normalization -><br/>SumsToOne / IsDistribution"]
+   TC["finish concrete truncation laws<br/>TruncatePMFOnOrder_IsDistribution<br/>and public wrapper decisions"]
+   IC["simplify IntProbConcrete obligations<br/>over a real PMF constructor"]
   PG["attack ProductPMF_Grounded<br/>with a more concrete PMF substrate"]
   HI["resume higher layers<br/>P6/P7 semantic theorems and ID obligations"]
 
-  FS --> SF
-  AB --> SF
-  TS --> SF
-  SF --> KM
-  KM --> Z
-  Z --> TC
-  TC --> TD
-  TD --> TR
-  TR --> IC
+   FS --> TF
+   AB --> TF
+   TF --> NS
+   NS --> RT
+   RT --> PB
+   PB --> TC
+   TC --> IC
   IC --> PG
   PG --> HI
 ```
 
 Reading guide:
 
-1. The existing event algebra already gives a good language for support-level
-   reasoning about interventions.
-2. That makes a support-filtering definition of `TruncatePMF` the most local
-   next move.
-3. Once `TruncatePMF` is real, the current downstream lemmas stop resting on a
-   constructor axiom.
-4. After that, `ProductPMF_Grounded` becomes a better target because it can be
-   proved against a more concrete interventional PMF substrate.
+1. The existing event algebra and assignment bridge were enough to support the
+   factor-level constructor scaffold and its first normalization lemmas.
+2. The immediate next move is now the recursive tail-normalization bridge, not
+   a support-filtering public constructor.
+3. After that bridge lands, the remaining P5 blocker is the probability-layer
+   conversion from concrete normalization to `SumsToOne` / `IsDistribution`.
+4. Once the truncation constructor is a real distribution, `ProductPMF_Grounded`
+   becomes a better target because it can be proved against a more concrete
+   interventional PMF substrate.
 
 ## Why The Third DAG Is More Operational
 
@@ -228,10 +226,10 @@ The current recommendation is about the second question.
 heavier statement. It quantifies over sequences of PMFs, sequences of scopes,
 sequences of assignments, pairwise-disjointness facts, and merged assignments.
 
-`TruncatePMF` is a narrower constructor boundary. Turning it from an axiom into
-a real finite-support object is more likely to retire multiple nearby axioms at
-once and strengthen the whole interventional layer before the next deeper
-theorem batch.
+`TruncatePMF` is still the narrower constructor boundary. But the current local
+work item is no longer "define a support-filtering PMF"; it is "close the
+factor-level normalization proof already underway without widening the public
+boundary too early".
 
 ## Recommended Use
 
