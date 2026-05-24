@@ -280,7 +280,7 @@ module Identification {
   // Helper: expose the elementwise well-formedness of the Line 4
   // component sequence in one place.
   // ------------------------------------------------------------------
-  lemma {:axiom} IDLine4ComponentsReady(sm: SMGraph, X: set<Node>)
+  lemma IDLine4ComponentsReady(sm: SMGraph, X: set<Node>)
     requires WellFormedSM(sm)
     ensures forall i ::
       0 <= i < |Line4ComponentsSeq(sm, X)| ==>
@@ -289,6 +289,34 @@ module Identification {
       0 <= i < |Line4ComponentsSeq(sm, X)| ==>
       Line4ComponentsSeq(sm, X)[i] != {}
     ensures PairwiseDisjointScopes(Line4ComponentsSeq(sm, X))
+  {
+    var smX := RemoveNodesSM(sm, X);
+    RemoveNodesSM_PreservesWellFormedness(sm, X);
+    CComponents_Partition(smX);
+    CComponentsWithout_Partition(sm, X);
+    assert SMNodes(smX) == SMNodes(sm) - X;
+    assert SMNodes(smX) <= SMNodes(sm);
+    var comps := Line4ComponentsSeq(sm, X);
+    // Every element of comps is in CComponentsWithout(sm,X) = CComponents(smX)
+    // so subset and non-empty follow from the partition facts.
+    forall i | 0 <= i < |comps|
+      ensures comps[i] <= SMNodes(sm)
+      ensures comps[i] != {}
+    {
+      assert comps[i] in CComponentsWithout(sm, X);
+      assert comps[i] <= SMNodes(smX);
+    }
+    // Pairwise disjointness: distinct elements of CComponents(smX) are disjoint.
+    forall i, j | 0 <= i < j < |comps|
+      ensures comps[i] * comps[j] == {}
+    {
+      assert comps[i] in CComponentsWithout(sm, X);
+      assert comps[j] in CComponentsWithout(sm, X);
+      assert comps[i] in CComponents(smX);
+      assert comps[j] in CComponents(smX);
+      assert comps[i] != comps[j];
+    }
+  }
 
   // ------------------------------------------------------------------
   // Helper: Line 4 product — recurse ID on each C-component of G\X,
@@ -320,7 +348,9 @@ module Identification {
     else
       var Si := components[idx];
       var Xi := SMNodes(sm) - Si;
-      assume {:axiom} ValidQuery(CausalQuery(sm, Xi, Si));
+      // Xi * Si = {} by set arithmetic; WellFormedSM(sm) and Si <= V from preconditions.
+      assert Xi * Si == {};
+      assert ValidQuery(CausalQuery(sm, Xi, Si));
       var sub := IDImpl(sm, Xi, Si, p, ord, fuel - 1);
       assume {:axiom} sub.Identified?;
       [sub.pmf] + IDLine4Product(sm, components, p, ord, idx + 1, fuel - 1)
@@ -351,7 +381,9 @@ module Identification {
     else
       var Si := components[idx];
       var Xi := SMNodes(sm) - Si;
-      assume {:axiom} ValidQuery(CausalQuery(sm, Xi, Si));
+      // Xi * Si = {} by set arithmetic; WellFormedSM(sm) and Si <= V from preconditions.
+      assert Xi * Si == {};
+      assert ValidQuery(CausalQuery(sm, Xi, Si));
       var sub := IDImpl(sm, Xi, Si, p, ord, fuel - 1);
       if sub.NotIdentified? then sub
       else IDLine4Check(sm, components, p, ord, idx + 1, fuel - 1)
@@ -381,6 +413,179 @@ module Identification {
   // The generator should treat this branch structure as authoritative for
   // result-shape selection, while PMF-level internals remain proof-facing.
   // ==================================================================
+
+  // ------------------------------------------------------------------
+  // IDImpl precondition helpers: facts used in the IDImpl function
+  // body that require non-trivial proof, factored out so the function
+  // body does not trigger SMT timeouts.
+  // ------------------------------------------------------------------
+
+  /// Line 3: (X + W) * Y == {} where W = (V\X) - An_{G_{X̄}}(Y).
+  ///
+  ///   Proof: W ∩ Y = {} because Y ⊆ Ancestors(Gx, Y) (reflexivity) and
+  ///   W = ... - Ancestors(Gx, Y).  Combined with X ∩ Y = {} from ValidQuery.
+  lemma IDImpl_Line3_ValidQuery(sm: SMGraph, X: set<Node>, Y: set<Node>)
+    requires WellFormedSM(sm)
+    requires X <= SMNodes(sm)
+    requires Y <= SMNodes(sm)
+    requires X * Y == {}
+    ensures
+      var Gx := RemoveIncomingSM(sm, X);
+      var W := (SMNodes(sm) - X) - Ancestors(Gx.dag, Y);
+      ValidQuery(CausalQuery(sm, X + W, Y))
+  {
+    var Gx := RemoveIncomingSM(sm, X);
+    var V := SMNodes(sm);
+    var W := (V - X) - Ancestors(Gx.dag, Y);
+    // Y ⊆ Ancestors(Gx, Y): every y is its own ancestor.
+    assert forall y :: y in Y ==> y in Ancestors(Gx.dag, Y) by {
+      forall y | y in Y ensures y in Ancestors(Gx.dag, Y) {
+        assert y in Nodes(Gx.dag);
+        Ancestor_Reflexive(Gx.dag, y);
+        IsAncestorBounded_Monotone(Gx.dag, y, y, 0, |Nodes(Gx.dag)|);
+      }
+    }
+    assert W * Y == {};
+    assert (X + W) * Y == {};
+  }
+
+  /// Lines 5-7 (single C-component case):
+  ///   |CComponentsWithout(sm, X)| == 1 given the branch conditions.
+  ///
+  ///   Proof: X != {} + V ⊆ Ancestors(sm, Y) => V != {} => Y != {}
+  ///   => Y ⊆ V-X => V-X != {} => CComponentsWithout non-empty.
+  ///   Combined with |·| <= 1 (Line 4 guard false), gives |·| == 1.
+  lemma IDImpl_Line567_CComponentsOne(
+    sm: SMGraph, X: set<Node>, Y: set<Node>
+  )
+    requires WellFormedSM(sm)
+    requires X != {}
+    requires X <= SMNodes(sm)
+    requires Y <= SMNodes(sm)
+    requires X * Y == {}
+    requires SMNodes(sm) - Ancestors(sm.dag, Y) == {}  // Line 2 guard false
+    requires |CComponentsWithout(sm, X)| <= 1          // Line 4 guard false
+    ensures |CComponentsWithout(sm, X)| == 1
+  {
+    var V := SMNodes(sm);
+    assert V != {};
+    assert V <= Ancestors(sm.dag, Y);
+    assert Y != {} by {
+      if Y == {} {
+        assert Ancestors(sm.dag, Y) == {};
+        assert false;
+      }
+    }
+    assert Y <= V - X;
+    assert V - X != {};
+    CComponentsWithout_NonEmpty(sm, X);
+    assert |CComponentsWithout(sm, X)| >= 1;
+  }
+
+  /// Lines 5-7: Any S ∈ CComponentsWithout(sm, X) satisfies S ⊆ SMNodes(sm).
+  lemma IDImpl_Line567_SSubset(sm: SMGraph, X: set<Node>, S: set<Node>)
+    requires WellFormedSM(sm)
+    requires S in CComponentsWithout(sm, X)
+    ensures S <= SMNodes(sm)
+  {
+    CComponentsWithout_Partition(sm, X);
+  }
+
+  /// Line 2: ValidQuery(CausalQuery(smAncY, X ∩ AncY, Y)) where smAncY = SubgraphSM(sm, AncY).
+  ///
+  ///   Proof: WellFormedSM(smAncY) from RemoveNodesSM_PreservesWellFormedness.
+  ///   SMNodes(smAncY) = AncY definitionally (RemoveNodes removes V-AncY from V).
+  ///   Y ⊆ AncY by reflexive ancestry (each y is its own ancestor in sm.dag).
+  ///   (X ∩ AncY) ∩ Y = {} follows from X ∩ Y = {} in the outer ValidQuery.
+  lemma IDImpl_Line2_ValidQuery(sm: SMGraph, X: set<Node>, Y: set<Node>)
+    requires ValidQuery(CausalQuery(sm, X, Y))
+    ensures
+      var AncY := Ancestors(sm.dag, Y);
+      var smAncY := SubgraphSM(sm, AncY);
+      ValidQuery(CausalQuery(smAncY, X * AncY, Y))
+  {
+    var V := SMNodes(sm);
+    var AncY := Ancestors(sm.dag, Y);
+    // AncY ⊆ V: definitional from Ancestors = {u | u in Nodes(sm.dag) && ...}
+    assert AncY <= V;
+    var smAncY := SubgraphSM(sm, AncY);
+    RemoveNodesSM_PreservesWellFormedness(sm, V - AncY);
+    assert WellFormedSM(smAncY);
+    // SMNodes(smAncY) = V - (V - AncY) = AncY (since AncY ⊆ V)
+    assert SMNodes(smAncY) == AncY;
+    // Y ⊆ AncY: every y ∈ Y is its own ancestor in sm.dag
+    assert Y <= AncY by {
+      forall y | y in Y ensures y in AncY {
+        assert y in Nodes(sm.dag);
+        Ancestor_Reflexive(sm.dag, y);
+        IsAncestorBounded_Monotone(sm.dag, y, y, 0, |Nodes(sm.dag)|);
+      }
+    }
+    // (X ∩ AncY) ∩ Y = {} from X ∩ Y = {}
+    assert (X * AncY) * Y == {};
+  }
+
+  /// Line 7: ValidQuery(CausalQuery(smSp, X ∩ Sprime, Y)) where Sprime ∈ C(G), S ⊂ Sprime.
+  ///
+  ///   Proof: WellFormedSM(smSp) from RemoveNodesSM_PreservesWellFormedness.
+  ///   SMNodes(smSp) = Sprime definitionally.
+  ///   Y ⊆ Sprime: Y ⊆ V-X (from X∩Y={}), and since S is the unique C-component of G\X,
+  ///   CComponentsWithout_SingletonCoversAll gives S = V-X ⊆ Sprime (from S < Sprime).
+  ///   (X ∩ Sprime) ∩ Y = {} follows from X ∩ Y = {}.
+  ///
+  /// The Y ⊆ Sprime step is factored into IDImpl_Line7_YSubsetSprime to keep
+  /// the SMT context clean (no SMGraph-level axioms in the pure-set VC).
+  lemma IDImpl_Line7_YSubsetSprime(
+    V: set<Node>, X: set<Node>, Y: set<Node>, S: set<Node>, Sprime: set<Node>
+  )
+    requires X * Y == {}
+    requires Y <= V
+    requires S == V - X
+    requires S <= Sprime
+    ensures Y <= Sprime
+  {
+    // Y ∩ X = {} and Y ⊆ V → Y ⊆ V - X = S ⊆ Sprime
+    forall y | y in Y ensures y in Sprime {
+      // y in Y, X * Y == {} → y !in X (instantiate intersection at y)
+      assert y !in X * Y;   // X * Y == {} → y !in {}
+      assert y !in X;       // from y in Y and !(y in X && y in Y)
+      assert y in V - X;    // from y in V (Y <= V) and y !in X
+      assert y in S;        // S == V - X
+    }
+  }
+
+  lemma {:vcs_split_on_every_assert} IDImpl_Line7_ValidQuery(
+    sm: SMGraph,
+    X: set<Node>, Y: set<Node>,
+    S: set<Node>, Sprime: set<Node>
+  )
+    requires ValidQuery(CausalQuery(sm, X, Y))
+    requires S in CComponentsWithout(sm, X)
+    requires |CComponentsWithout(sm, X)| == 1
+    requires Sprime in CComponents(sm)
+    requires S < Sprime
+    ensures ValidQuery(CausalQuery(SubgraphSM(sm, Sprime), X * Sprime, Y))
+  {
+    var V := SMNodes(sm);
+    // Sprime ⊆ V from CComponents_Partition
+    CComponents_Partition(sm);
+    assert Sprime <= V;
+    // S = V - X from the single-component coverage lemma
+    CComponentsWithout_SingletonCoversAll(sm, X, S);
+    assert S == V - X;
+    assert S <= Sprime;
+    // Y ⊆ Sprime via pure-set micro-lemma (avoids SMGraph axiom pollution)
+    IDImpl_Line7_YSubsetSprime(V, X, Y, S, Sprime);
+    assert Y <= Sprime;
+    // WellFormedSM(smSp) and SMNodes(smSp) = Sprime
+    var smSp := SubgraphSM(sm, Sprime);
+    RemoveNodesSM_PreservesWellFormedness(sm, V - Sprime);
+    assert WellFormedSM(smSp);
+    assert SMNodes(smSp) == Sprime;
+    // (X ∩ Sprime) ∩ Y = {} from X ∩ Y = {}
+    assert (X * Sprime) * Y == {};
+  }
+
   ghost function IDImpl(
     sm: SMGraph,
     X: set<Node>,
@@ -412,8 +617,12 @@ module Identification {
       var AncY := Ancestors(sm.dag, Y);
       var smAncY := SubgraphSM(sm, AncY);
       var pAncY := Marginalize(sm.dag, p, V - AncY);
-      assume {:axiom} ValidQuery(CausalQuery(smAncY, X * AncY, Y));
-      assume {:axiom} Prob.IsDistribution(pAncY);
+      // IDImpl_Line2_ValidQuery: WellFormedSM(smAncY) + Y ⊆ AncY + (X∩AncY)∩Y = {}.
+      IDImpl_Line2_ValidQuery(sm, X, Y);
+      assert ValidQuery(CausalQuery(smAncY, X * AncY, Y));
+      // pAncY = Marginalize(sm.dag, p, V - AncY) is a distribution:
+      Marginalize_IsDistribution(sm.dag, p, V - AncY);
+      assert Prob.IsDistribution(pAncY);
       assume {:axiom} MarkovFactorization(smAncY.dag, pAncY);
       assume {:axiom} SMTopologicalSort(smAncY, ord);
       IDImpl(smAncY, X * AncY, Y, pAncY, ord, fuel - 1)
@@ -426,7 +635,7 @@ module Identification {
     then
       var Gx := RemoveIncomingSM(sm, X);
       var W := (V - X) - Ancestors(Gx.dag, Y);
-      assume {:axiom} ValidQuery(CausalQuery(sm, X + W, Y));
+      IDImpl_Line3_ValidQuery(sm, X, Y);
       IDImpl(sm, X + W, Y, p, ord, fuel - 1)
 
     // Lines 4-7: C(G \ X) decomposition
@@ -450,10 +659,11 @@ module Identification {
 
       // C(G \ X) = {S} — single component
       else
-        // Pick the single component S
-        assume {:axiom} |ccompsGX| == 1;
+        // |ccompsGX| == 1: proved from branch conditions via IDImpl_Line567_CComponentsOne.
+        IDImpl_Line567_CComponentsOne(sm, X, Y);
         var S :| S in ccompsGX;
-        assume {:axiom} S <= SMNodes(sm);  // S is a C-component of G\X, so S ⊆ V\X ⊆ V
+        // S ⊆ V\X ⊆ V = SMNodes(sm), from IDImpl_Line567_SSubset.
+        IDImpl_Line567_SSubset(sm, X, S);
 
         var ccompsG := CComponents(sm);
 
@@ -472,11 +682,17 @@ module Identification {
           // Find S' ∈ C(G) such that S ⊂ S'
           assume {:axiom} exists Sp :: Sp in ccompsG && S < Sp;
           var Sprime :| Sprime in ccompsG && S < Sprime;
-          assume {:axiom} Sprime <= SMNodes(sm);  // C-component of G
+          // Sprime <= V: C-components partition V, so every S' ∈ C(G) satisfies S' ⊆ V.
+          CComponents_Partition(sm);
+          assert Sprime <= SMNodes(sm);
           var smSp := SubgraphSM(sm, Sprime);
           var pSp := QValue(sm, p, Sprime, ord);
-          assume {:axiom} ValidQuery(CausalQuery(smSp, X * Sprime, Y));
-          assume {:axiom} Prob.IsDistribution(pSp);
+          // IDImpl_Line7_ValidQuery: WellFormedSM(smSp) + Y ⊆ S ⊆ Sprime + (X∩Sprime)∩Y = {}.
+          IDImpl_Line7_ValidQuery(sm, X, Y, S, Sprime);
+          assert ValidQuery(CausalQuery(smSp, X * Sprime, Y));
+          // pSp = QValue(sm, p, Sprime, ord) is a distribution:
+          QValue_IsDistribution(sm, p, Sprime, ord);
+          assert Prob.IsDistribution(pSp);
           assume {:axiom} MarkovFactorization(smSp.dag, pSp);
           assume {:axiom} SMTopologicalSort(smSp, ord);
           IDImpl(smSp, X * Sprime, Y, pSp, ord, fuel - 1)

@@ -567,6 +567,48 @@ module SemiMarkovian {
     assert SMNodes(smX) == SMNodes(sm) - X;
   }
 
+  // When G \ X has at least one node, its C-component set is non-empty.
+  lemma CComponentsWithout_NonEmpty(sm: SMGraph, X: set<Node>)
+    requires WellFormedSM(sm)
+    requires SMNodes(sm) - X != {}
+    ensures CComponentsWithout(sm, X) != {}
+  {
+    var smX := RemoveNodesSM(sm, X);
+    RemoveNodesSM_PreservesWellFormedness(sm, X);
+    CComponents_Partition(smX);
+    assert SMNodes(smX) == SMNodes(sm) - X;
+    var v :| v in SMNodes(smX);
+    var S :| S in CComponents(smX) && v in S;
+    assert S in CComponentsWithout(sm, X);
+  }
+
+  // If CComponentsWithout(sm, X) has exactly one element S, then S = V \ X.
+  // This follows because CComponents_Partition guarantees coverage of V\X.
+  lemma CComponentsWithout_SingletonCoversAll(sm: SMGraph, X: set<Node>, S: set<Node>)
+    requires WellFormedSM(sm)
+    requires S in CComponentsWithout(sm, X)
+    requires |CComponentsWithout(sm, X)| == 1
+    ensures S == SMNodes(sm) - X
+  {
+    var V := SMNodes(sm);
+    var smX := RemoveNodesSM(sm, X);
+    RemoveNodesSM_PreservesWellFormedness(sm, X);
+    CComponents_Partition(smX);
+    assert SMNodes(smX) == V - X;
+    // CComponentsWithout has only S: since |A| == 1 and S ∈ A, A - {S} is empty
+    assert |CComponentsWithout(sm, X) - {S}| == 0;
+    assert CComponentsWithout(sm, X) - {S} == {};
+    // Every v ∈ V - X is in S (the only component)
+    forall v | v in V - X ensures v in S {
+      var T :| T in CComponents(smX) && v in T;
+      assert T in CComponentsWithout(sm, X);
+      assert T !in CComponentsWithout(sm, X) - {S};
+      assert T == S;
+    }
+    // S ⊆ V - X from CComponentsWithout_Partition
+    CComponentsWithout_Partition(sm, X);
+  }
+
   // Induced subgraph on a set of nodes S.
   // Keeps only nodes in S, directed edges between them,
   // and bidirected edges between them.
