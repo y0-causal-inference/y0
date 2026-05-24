@@ -115,9 +115,9 @@ receive real postconditions or are demoted to comments.
 
 | Symbol | Line | Category | Phase | Reason / next action |
 | --- | ---: | --- | --- | --- |
-| `IntProb` | 58 | Abstract interface | P6 | Main do-calculus distribution interface; decide whether it wraps concrete semantics. |
-| `GlobalMarkov` | 80 | Derivable wrapper | P6 | Should delegate to formal `GlobalMarkov_From_Factorization` after witness/contract issues are solved. |
-| `InterventionSemantics` | 103 | Derivable wrapper | P6 | Should delegate to `TruncatePMF` semantics after `IntProb` grounding is solved. |
+| `IntProb` | 60 | Abstract interface | Keep | Kept abstract by `DA-P6-001`. The current grounding lives in `Interventional.IntProbConcrete(G, p, yAssign, xAssign, wAssign)`, which is scalar and requires an explicit observational PMF witness plus concrete assignments. That does not match this PMF-valued, set-indexed interface. |
+| `GlobalMarkov` | 80 | Derivable wrapper | P6 | Still should delegate to `GlobalMarkov_From_Factorization`, but only after the do-calculus layer carries an explicit PMF witness or a richer interventional-kernel object; with `IntProb` kept abstract, this wrapper remains axiomatic. |
+| `InterventionSemantics` | 103 | Derivable wrapper | P6 | Still should delegate to `TruncatePMF` semantics, but only after the do-calculus layer carries intervention value assignments and an observational PMF witness, or an equivalent richer kernel object. |
 | `Rule1_InsertDeleteObservation` | 137 | Deep theorem | P6 | Requires Global Markov, intervention semantics, and checked conditioning-set shape. |
 | `Rule2_ActionObservationExchange` | 151 | Deep theorem | P6 | Requires graph-surgery and do-calculus semantics. |
 | `Rule3_InsertDeleteAction` | 168 | Deep theorem | P6 | Requires graph-surgery and do-calculus semantics. |

@@ -52,9 +52,15 @@ module DoCalculus {
   //   the whole interventional distribution over Y-assignments, not a
   //   single scalar evaluation such as P(y | do(x), w).
   //
-  //   This abstract function remains here as the interface used by
-  //   the three rules.  Its concrete semantics are grounded by
-  //   IntProbConcrete + IntProb_Grounded in interventional.dfy.
+  //   This abstract function intentionally remains the interface used
+  //   by the three rules. The current grounding in
+  //   interventional.dfy is pointwise and witness-bearing:
+  //   IntProbConcrete(G, p, yAssign, xAssign, wAssign) returns a real
+  //   for specific assignments under an explicit observational PMF p.
+  //   By contrast, this layer's IntProb is PMF-valued and indexed only
+  //   by variable sets. A concrete wrapper here would therefore require
+  //   either a signature redesign or a richer kernel object that carries
+  //   the implicit PMF witness and value assignments.
   // ==================================================================
 
   function {:axiom} IntProb(
