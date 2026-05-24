@@ -67,6 +67,231 @@ module DoCalculus {
     G: Graph, Y: set<Node>, doX: set<Node>, obsW: set<Node>
   ): Prob.PMF
 
+  datatype InterventionalKernel = InterventionalKernel(
+    assignmentGraph: Graph,
+    modelGraph: Graph,
+    basePMF: Prob.PMF,
+    xAssign: Assignment,
+    wAssign: Assignment
+  )
+
+  ghost predicate ValidInterventionalKernel(k: InterventionalKernel) {
+    Nodes(k.assignmentGraph) == Nodes(k.modelGraph)
+    && IsDAG(k.modelGraph)
+    && Prob.IsDistribution(k.basePMF)
+    && MarkovFactorization(k.modelGraph, k.basePMF)
+    && k.xAssign.Keys <= Nodes(k.modelGraph)
+    && k.wAssign.Keys <= Nodes(k.assignmentGraph)
+    && Prob.IsDistribution(
+      TruncatePMF(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign)
+    )
+    && AssignmentProb(
+      TruncatePMF(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign),
+      k.assignmentGraph,
+      k.wAssign
+    ) > 0.0
+  }
+
+  ghost function KernelPoint(
+    k: InterventionalKernel,
+    yAssign: Assignment
+  ): real
+    requires yAssign.Keys <= Nodes(k.assignmentGraph)
+  {
+    if ValidInterventionalKernel(k) then
+      AssignmentCondProb(
+        TruncatePMF(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign),
+        k.assignmentGraph,
+        yAssign,
+        k.wAssign
+      )
+    else
+      0.0
+  }
+
+  ghost function KernelAfterIntervention(
+    k: InterventionalKernel
+  ): InterventionalKernel
+    requires ValidInterventionalKernel(k)
+  {
+    InterventionalKernel(
+      k.assignmentGraph,
+      RemoveIncoming(k.modelGraph, k.xAssign.Keys),
+      TruncatePMF(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign),
+      map[],
+      k.wAssign
+    )
+  }
+
+  lemma RemoveIncoming_PreservesDAG(G: Graph, X: set<Node>)
+    requires IsDAG(G)
+    ensures IsDAG(RemoveIncoming(G, X))
+  {
+    var ord :| IsTopologicalSort(G, ord);
+    assert IsTopologicalSort(RemoveIncoming(G, X), ord) by {
+      assert Nodes(RemoveIncoming(G, X)) == Nodes(G);
+      forall i | 0 <= i < |ord|
+        ensures forall p | p in Parents(RemoveIncoming(G, X), ord[i]) ::
+          exists k | 0 <= k < i :: ord[k] == p
+      {
+        if ord[i] in X {
+          RemoveIncoming_NoParents(G, X, ord[i]);
+          assert Parents(RemoveIncoming(G, X), ord[i]) == {};
+        } else {
+          RemoveIncoming_PreservesOthers(G, X, ord[i]);
+          forall p | p in Parents(RemoveIncoming(G, X), ord[i])
+            ensures exists k | 0 <= k < i :: ord[k] == p
+          {
+            assert p in Parents(G, ord[i]);
+          }
+        }
+      }
+    }
+  }
+
+  lemma KernelPoint_EmptyIntervention(
+    k: InterventionalKernel,
+    yAssign: Assignment
+  )
+    requires ValidInterventionalKernel(k)
+    requires k.xAssign == map[]
+    requires yAssign.Keys <= Nodes(k.assignmentGraph)
+    requires AssignmentProb(k.basePMF, k.assignmentGraph, k.wAssign) > 0.0
+    ensures KernelPoint(k, yAssign)
+      == AssignmentCondProb(k.basePMF, k.assignmentGraph, yAssign, k.wAssign)
+  {
+    assert k.xAssign.Keys == {};
+    assert KernelPoint(k, yAssign)
+      == AssignmentCondProb(
+        TruncatePMF(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign),
+        k.assignmentGraph,
+        yAssign,
+        k.wAssign
+      );
+    assert TruncatePMF(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign)
+      == TruncatePMF(k.modelGraph, k.basePMF, {}, map[]);
+    TruncatePMF_Empty(k.modelGraph, k.basePMF);
+    assert TruncatePMF(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign)
+      == k.basePMF;
+    assert AssignmentProb(k.basePMF, k.assignmentGraph, k.wAssign)
+      == AssignmentProb(
+        TruncatePMF(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign),
+        k.assignmentGraph,
+        k.wAssign
+      );
+    assert AssignmentProb(k.basePMF, k.assignmentGraph, k.wAssign) > 0.0;
+  }
+
+  lemma KernelAfterIntervention_Valid(k: InterventionalKernel)
+    requires ValidInterventionalKernel(k)
+    ensures ValidInterventionalKernel(KernelAfterIntervention(k))
+  {
+    var k2 := KernelAfterIntervention(k);
+    TruncatePMF_IsDistribution(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign);
+    TruncatePMF_Markov(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign);
+    RemoveIncoming_PreservesDAG(k.modelGraph, k.xAssign.Keys);
+    assert Nodes(RemoveIncoming(k.modelGraph, k.xAssign.Keys)) == Nodes(k.modelGraph);
+    TruncatePMF_IsDistribution(
+      RemoveIncoming(k.modelGraph, k.xAssign.Keys),
+      TruncatePMF(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign),
+      {},
+      map[]
+    );
+    TruncatePMF_Empty(
+      RemoveIncoming(k.modelGraph, k.xAssign.Keys),
+      TruncatePMF(k.modelGraph, k.basePMF, k.xAssign.Keys, k.xAssign)
+    );
+    assert ValidInterventionalKernel(k2) by {
+      assert k2.xAssign == map[];
+      assert k2.xAssign.Keys == {};
+      assert AssignmentProb(
+        TruncatePMF(k2.modelGraph, k2.basePMF, k2.xAssign.Keys, k2.xAssign),
+        k2.assignmentGraph,
+        k2.wAssign
+      ) == AssignmentProb(k2.basePMF, k2.assignmentGraph, k2.wAssign);
+    }
+  }
+
+  lemma KernelGlobalMarkov(
+    G: Graph,
+    Y: set<Node>,
+    Z: set<Node>,
+    W: set<Node>,
+    p: Prob.PMF,
+    yAssign: Assignment,
+    zAssign: Assignment,
+    wAssign: Assignment
+  )
+    requires Y <= Nodes(G)
+    requires Z <= Nodes(G)
+    requires W <= Nodes(G)
+    requires IsDAG(G)
+    requires Prob.IsDistribution(p)
+    requires MarkovFactorization(G, p)
+    requires DSep(G, Y, Z, W)
+    requires yAssign.Keys <= Y
+    requires zAssign.Keys <= Z
+    requires wAssign.Keys <= W
+    requires CompatibleAssignments(zAssign, wAssign)
+    requires AssignmentProb(p, G, wAssign) > 0.0
+    requires AssignmentProb(p, G, MergeAssignments(zAssign, wAssign)) > 0.0
+    ensures KernelPoint(
+      InterventionalKernel(G, G, p, map[], MergeAssignments(zAssign, wAssign)),
+      yAssign
+    ) == KernelPoint(
+      InterventionalKernel(G, G, p, map[], wAssign),
+      yAssign
+    )
+  {
+    TruncatePMF_IsDistribution(G, p, {}, map[]);
+    assert ValidInterventionalKernel(
+      InterventionalKernel(G, G, p, map[], MergeAssignments(zAssign, wAssign))
+    ) by {
+      TruncatePMF_Empty(G, p);
+    }
+    assert ValidInterventionalKernel(
+      InterventionalKernel(G, G, p, map[], wAssign)
+    ) by {
+      TruncatePMF_Empty(G, p);
+    }
+    KernelPoint_EmptyIntervention(
+      InterventionalKernel(G, G, p, map[], MergeAssignments(zAssign, wAssign)),
+      yAssign
+    );
+    KernelPoint_EmptyIntervention(
+      InterventionalKernel(G, G, p, map[], wAssign),
+      yAssign
+    );
+    GlobalMarkov_From_Factorization(
+      G,
+      p,
+      Y,
+      Z,
+      W,
+      yAssign,
+      zAssign,
+      wAssign
+    );
+  }
+
+  lemma KernelInterventionSemantics(
+    k: InterventionalKernel,
+    yAssign: Assignment
+  )
+    requires ValidInterventionalKernel(k)
+    requires yAssign.Keys <= Nodes(k.assignmentGraph)
+    ensures ValidInterventionalKernel(KernelAfterIntervention(k))
+    ensures KernelPoint(k, yAssign) == KernelPoint(KernelAfterIntervention(k), yAssign)
+  {
+    KernelAfterIntervention_Valid(k);
+    assert AssignmentProb(
+      KernelAfterIntervention(k).basePMF,
+      KernelAfterIntervention(k).assignmentGraph,
+      KernelAfterIntervention(k).wAssign
+    ) > 0.0;
+    KernelPoint_EmptyIntervention(KernelAfterIntervention(k), yAssign);
+  }
+
   // ==================================================================
   // 2.  Global Markov Property — derived from Interventional module
   //
@@ -85,6 +310,8 @@ module DoCalculus {
   ///   Delegated to Interventional.GlobalMarkov_From_Factorization;
   ///   kept as an axiom here at the DoCalculus layer because the
   ///   PMF witness (p) is implicit in IntProb's abstract type.
+  ///   KernelGlobalMarkov provides the new witness-bearing, pointwise
+  ///   companion that concrete callers can delegate through.
   lemma {:axiom} GlobalMarkov(
     G: Graph, Y: set<Node>, Z: set<Node>, W: set<Node>
   )
@@ -108,6 +335,8 @@ module DoCalculus {
   ///
   ///   Grounded by TruncatePMF + TruncatePMF_Markov in interventional.dfy.
   ///   Kept as an axiom at this layer because IntProb is abstract.
+  ///   KernelInterventionSemantics provides the concrete witness-bearing
+  ///   companion without redesigning IntProb.
   lemma {:axiom} InterventionSemantics(
     G: Graph, Y: set<Node>, X: set<Node>, W: set<Node>
   )

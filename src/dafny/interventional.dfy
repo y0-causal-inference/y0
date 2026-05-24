@@ -2026,14 +2026,26 @@ module Interventional {
     p: Prob.PMF,
     Y: set<Node>,
     Z: set<Node>,
-    W: set<Node>
+    W: set<Node>,
+    yAssign: Assignment,
+    zAssign: Assignment,
+    wAssign: Assignment
   )
     requires IsDAG(G)
     requires Prob.IsDistribution(p)
     requires MarkovFactorization(G, p)
     requires DSep(G, Y, Z, W)
-    // d-separation implies conditional independence:
-    // for all assignments, P(Y | Z, W) == P(Y | W)
+    requires Y <= Nodes(G)
+    requires Z <= Nodes(G)
+    requires W <= Nodes(G)
+    requires yAssign.Keys <= Y
+    requires zAssign.Keys <= Z
+    requires wAssign.Keys <= W
+    requires CompatibleAssignments(zAssign, wAssign)
+    requires AssignmentProb(p, G, wAssign) > 0.0
+    requires AssignmentProb(p, G, MergeAssignments(zAssign, wAssign)) > 0.0
+    ensures AssignmentCondProb(p, G, yAssign, MergeAssignments(zAssign, wAssign))
+      == AssignmentCondProb(p, G, yAssign, wAssign)
 
   // ==================================================================
   // 7.  Products of PMFs

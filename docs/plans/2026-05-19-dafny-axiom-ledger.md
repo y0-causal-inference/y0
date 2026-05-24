@@ -28,8 +28,9 @@ Baseline: 80 declaration axioms at commit `ece2091`.
 ## Phase 0 Findings
 
 1. The ledger confirms 80 declaration axioms across six Dafny files.
-2. Twelve axiom lemmas currently have no formal `ensures` clause. These are
-   contract gaps, not proof obligations yet.
+2. Phase 0 initially found twelve axiom lemmas with no formal `ensures`
+   clause. Two of those gaps are now closed (`IntProb_Grounded` in P5 and
+   `GlobalMarkov_From_Factorization` in P6), leaving ten open contract gaps.
 3. The best Phase 1 starting points remain the low-risk local proof targets in
    `dag.dfy` and `semi_markovian.dfy`; no probability or do-calculus semantic
    redesign is needed before starting those.
@@ -48,8 +49,8 @@ receive real postconditions or are demoted to comments.
 | `Line2_Uses_Rule1` | `src/dafny/identification.dfy:935` | Demote to comment unless a do-calculus derivation object is introduced. |
 | `Line3_Uses_Rule3` | `src/dafny/identification.dfy:952` | Demote to comment unless a do-calculus derivation object is introduced. |
 | `Line4_Uses_Rules2and3` | `src/dafny/identification.dfy:967` | Demote to comment unless a do-calculus derivation object is introduced. |
-| `IntProb_Grounded` | `src/dafny/interventional.dfy:181` | Add a pointwise grounding postcondition once events/assignments are represented formally enough. |
-| `GlobalMarkov_From_Factorization` | `src/dafny/interventional.dfy:208` | Add a conditional-independence postcondition or keep as an explicitly documented deep theorem boundary. |
+| `IntProb_Grounded` | `src/dafny/interventional.dfy:181` | Done in P5: it now carries an explicit pointwise grounding postcondition over truncated-PMF assignment events. |
+| `GlobalMarkov_From_Factorization` | `src/dafny/interventional.dfy:2024` | Done in P6: it now carries a pointwise conditional-independence postcondition over assignment events while remaining axiomatic as a deep theorem boundary. |
 | `CComponentFactorization` | `src/dafny/semi_markovian.dfy:466` | Add a product-over-components contract after product/set-sum infrastructure exists; otherwise demote narrative. |
 | `InterventionalFactorization` | `src/dafny/semi_markovian.dfy:497` | Add a product-over-components contract after product/set-sum infrastructure exists; otherwise demote narrative. |
 | `QValue_Nested` | `src/dafny/semi_markovian.dfy:531` | Add a computability/equality contract for nested Q-values after Q semantics is concrete. |
@@ -106,7 +107,7 @@ receive real postconditions or are demoted to comments.
 | `TruncatePMF_Markov` | 1831 | Deep theorem | Keep | Kept as a semantic boundary over the public wrapper. It is no longer a live P5 blocker after the route decision froze the order-free `TruncatePMF` family as an interface. |
 | `IntProbConcrete` | 1226 | Abstract interface | Done | Replaced in the 2026-05-21 working tree with a concrete assignment-conditional probability on the truncated PMF. |
 | `IntProb_Grounded` | 1256 | Contract gap | Done | Replaced in the 2026-05-21 working tree with an explicit equality contract relating `IntProbConcrete` to `AssignmentCondProb` on truncated-PMF assignment events. |
-| `GlobalMarkov_From_Factorization` | 1293 | Contract gap | P6 | Intended deep theorem, but currently lacks a formal postcondition. |
+| `GlobalMarkov_From_Factorization` | 2024 | Deep theorem | P6 | The contract gap is now closed: the symbol carries a pointwise conditional-independence postcondition over assignment events. It remains axiomatic as the deep Markov-factorization to d-separation bridge that the new do-calculus kernel layer delegates through. |
 | `ProductPMF_Grounded` | 1341 | Abstract interface | Keep | Frozen as the product-side semantic interface. `Interventional.ProductPMF` is only a thin wrapper over the still-abstract `Prob.ProductPMF`, and the probability layer currently exposes no pointwise product contract from which this assignment-level factorization law could be proved. |
 | `Marginalize` | 2096 | Derivable wrapper | Done | No longer axiomatic. Under the current outcome representation, the identity PMF already satisfies the public marginalization contract because `AssignmentProb` over partial assignments outside `W` is unchanged. |
 | `Marginalize_IsDistribution` | 2105 | Derivable wrapper | Done | No longer axiomatic. The concrete `Marginalize` body is just `p`, so distribution preservation is immediate. |
@@ -115,9 +116,9 @@ receive real postconditions or are demoted to comments.
 
 | Symbol | Line | Category | Phase | Reason / next action |
 | --- | ---: | --- | --- | --- |
-| `IntProb` | 60 | Abstract interface | Keep | Kept abstract by `DA-P6-001`. The current grounding lives in `Interventional.IntProbConcrete(G, p, yAssign, xAssign, wAssign)`, which is scalar and requires an explicit observational PMF witness plus concrete assignments. That does not match this PMF-valued, set-indexed interface. |
-| `GlobalMarkov` | 80 | Derivable wrapper | P6 | Still should delegate to `GlobalMarkov_From_Factorization`, but only after the do-calculus layer carries an explicit PMF witness or a richer interventional-kernel object; with `IntProb` kept abstract, this wrapper remains axiomatic. |
-| `InterventionSemantics` | 103 | Derivable wrapper | P6 | Still should delegate to `TruncatePMF` semantics, but only after the do-calculus layer carries intervention value assignments and an observational PMF witness, or an equivalent richer kernel object. |
+| `IntProb` | 66 | Abstract interface | Keep | Kept abstract by `DA-P6-001`. The new `DoCalculus.InterventionalKernel` now provides a concrete witness-bearing pointwise substrate underneath, but it still does not match this PMF-valued, set-indexed interface. |
+| `GlobalMarkov` | 315 | Derivable wrapper | P6 | The new `KernelGlobalMarkov` companion now delegates concretely through a witness-bearing kernel object and the tightened `Interventional.GlobalMarkov_From_Factorization` contract. The top-level PMF-valued wrapper remains axiomatic because `IntProb` is still abstract. |
+| `InterventionSemantics` | 340 | Derivable wrapper | P6 | The new `KernelInterventionSemantics` companion now delegates concretely through the witness-bearing kernel object. The top-level PMF-valued wrapper remains axiomatic because the public do-calculus surface still omits the PMF witness and value assignments. |
 | `Rule1_InsertDeleteObservation` | 137 | Deep theorem | P6 | Requires Global Markov, intervention semantics, and checked conditioning-set shape. |
 | `Rule2_ActionObservationExchange` | 151 | Deep theorem | P6 | Requires graph-surgery and do-calculus semantics. |
 | `Rule3_InsertDeleteAction` | 168 | Deep theorem | P6 | Requires graph-surgery and do-calculus semantics. |
