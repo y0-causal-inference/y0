@@ -189,7 +189,6 @@ Move rows from here to the commit ledger after committing.
 | --- | --- | --- | --- | --- |
 | Tracker setup | `docs(dafny): add de-axiomitization progress tracker` | Add this working tracker. | Markdown diff check. | Ready |
 | DA-P0-001 | `docs(dafny): add de-axiomitization axiom ledger` | Add category/reason ledger for remaining declaration axioms and update Phase 0 progress. | Markdown diff check. | Ready |
-| DA-P5-014 | `proof(dafny): concretize marginalize wrapper` | Replace `Marginalize` with the concrete identity wrapper, remove `Marginalize_IsDistribution` as an axiom, and update the tracker/ledger for the new 88 / 19 / 69 axiom snapshot. | Focused `probability.dfy`/`interventional.dfy` verify plus full-stack verify. | Ready |
 
 ## Commit Ledger
 
@@ -224,6 +223,7 @@ Move rows from here to the commit ledger after committing.
 | 2026-05-22 | `1e42c99` | `proof(dafny): add encoded truncation support boundary` | `DA-P5-010` | Focused `interventional.dfy` verify plus full-stack verify | Commits `TruncateSupportAssignments`, `EncodedTruncateSupport`, and the public `TruncatePMF` support restatement over encoded full assignments. |
 | 2026-05-22 | `911cb83` | `proof(dafny): add order-based truncation constructor helper` | `DA-P5-011` | Focused `interventional.dfy` verify plus full-stack verify | Commits `ConditionalFactorProduct`, `EncodedTruncateAssignment`, `TruncatePMFOnOrder`, and the first constructor-local support and empty-case bridge lemmas over encoded support. |
 | 2026-05-23 | `cfbd4ac` | `proof(dafny): prove order-based truncation distribution` | `DA-P5-013` | Focused `probability.dfy`/`interventional.dfy` verify plus full-stack verify | Commits the concrete `Prob.SumsToOne` predicate, the proved `Axiom_Normalization`, the narrowed `SumTruncatedAssignmentMasses_Normalized` axiom boundary, and the proved `TruncatePMFOnOrder_SumsToOne` / `TruncatePMFOnOrder_IsDistribution` lemmas. |
+| 2026-05-24 | `eedbd09` | `proof(dafny): concretize marginalize wrapper` | `DA-P5-014` | Focused `probability.dfy`/`interventional.dfy` verify plus full-stack verify | Commits the concrete identity-body `Marginalize`, removes the `Marginalize_IsDistribution` axiom, and drops the declaration-axiom count back to 69. |
 
 ## Current Frontier Note
 
@@ -270,6 +270,7 @@ The earlier support-filtering probe should no longer be treated as the operation
 | 2026-05-19 | Phase 2 -> Phase 3 | Ready | The three planned P2 items are complete through `6a89013`; next recommended proof batch is `DA-P3-001` (`RemoveNodesSM` well-formedness preservation). |
 | 2026-05-19 | Phase 3 -> Phase 4 | Ready | The planned P3 items are complete through `c2dca87`; next recommended proof batch is `DA-P4-001` (`DSep_Decomposition`). |
 | 2026-05-20 | Phase 4 -> Phase 5 | Ready | `DSep_Intersection` is now proved in the working tree, so the remaining graph-level Phase 4 agenda is closed; next recommended batch is `DA-P5-001` (the `ProbEvent` finite-sum proof-path decision). |
+| 2026-05-24 | Phase 5 -> Phase 6 | Not ready | `DA-P5-013` and `DA-P5-014` narrowed the remaining P5 debt, but the repo still has three live constructor-level boundaries before an honest P6 handoff: `SumTruncatedAssignmentMasses_Normalized(...)`, the public `TruncatePMF` wrapper family, and `ProductPMF_Grounded`. Do not advance to the do-calculus boundary decision until at least one of the two public semantic routes (`TruncatePMF` or `ProductPMF_Grounded`) is actually closed. |
 
 ## Phase 1 Batch Notes
 
@@ -324,7 +325,7 @@ The earlier support-filtering probe should no longer be treated as the operation
 | 2026-05-22 | DA-P5-011 order-based truncation constructor helper | Complete | Added concrete `ConditionalFactorProduct`, `EncodedTruncateAssignment`, and `TruncatePMFOnOrder(G, p, X, xVals, ord)` over `EncodedTruncateSupport`, then proved exact support, intervention matching, and the first empty-intervention bridge that rewrites encoded-support masses to `ConditionalFactorProduct` when `X == {}`. The full stack stayed green with 277 verified, 0 errors, and the axiom counts stayed flat at 88 total / 19 local assumes / 69 declaration axioms. The batch was committed as `911cb83`. | Start the distribution-validity slice on the concrete constructor. |
 | 2026-05-22 | DA-P5-012 truncation constructor normalization front half | Complete | Added `TruncatePMFOnOrder_AllNonNeg`, proving the full non-negativity half of the concrete constructor and isolating the remaining normalization gap to `SumsToOne`. The full stack stayed green with 279 verified, 0 errors. | Land the missing support and conditional-local normalization boundaries. |
 | 2026-05-23 | DA-P5-013 truncation distribution follow-up | Complete | Made `Prob.SumsToOne` concrete, replaced `Axiom_Normalization` with a proof body, introduced the narrower recursive normalization axiom `SumTruncatedAssignmentMasses_Normalized`, and proved `TruncatePMFOnOrder_SumsToOne` plus `TruncatePMFOnOrder_IsDistribution`. The full stack stayed green with 351 verified, 0 errors, and the batch committed as `cfbd4ac`; axiom counts stayed flat at 90 total / 19 local assumes / 71 declaration axioms because one probability axiom disappeared while one narrower constructor-local axiom was introduced. | Decide whether to attack the remaining recursive normalization identity directly or shift to a public-wrapper P5 cleanup item. |
-| 2026-05-24 | DA-P5-014 concrete `Marginalize` wrapper | Working tree | Replaced `Marginalize` with the concrete identity wrapper and removed `Marginalize_IsDistribution` as an axiom. The focused constructor-layer verify passed with 294 verified, 0 errors, the full stack passed with 352 verified, 0 errors, and the declaration-axiom count dropped back to 69. | Commit the `Marginalize` batch, then decide whether the honest remaining P5 finish-line step is the public `TruncatePMF` wrapper or `ProductPMF_Grounded`. |
+| 2026-05-24 | DA-P5-014 concrete `Marginalize` wrapper | Complete | Replaced `Marginalize` with the concrete identity wrapper and removed `Marginalize_IsDistribution` as an axiom. The focused constructor-layer verify passed with 294 verified, 0 errors, the full stack passed with 352 verified, 0 errors, the declaration-axiom count dropped back to 69, and the batch was committed as `eedbd09`. | Reassess the honest P5 finish line: either pursue the public `TruncatePMF` wrapper family next or attack `ProductPMF_Grounded`, but do not advance to P6 yet. |
 
 ## Next Update Checklist
 
