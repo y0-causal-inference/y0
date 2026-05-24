@@ -1150,6 +1150,8 @@ module Interventional {
   {
     var v := ord[0];
     TopologicalHeadHasNoParents(G, ord);
+    assert Parents(G, v) == {};
+    assert Parents(G, v) * Nodes(G) == {};
     TruncatedLocalFactor_Unintervened(G, p, X, xVals, full, v);
     assert forall u :: u in Parents(G, v) * Nodes(G) ==> full[u] == template[u] by {
       forall u | u in Parents(G, v) * Nodes(G)
@@ -1722,6 +1724,79 @@ module Interventional {
       }
       SumTruncatedAssignmentMasses_SingletonEmpty(G, p, ord);
     }
+  }
+
+  lemma {:axiom} SumTruncatedAssignmentMasses_Normalized(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures SumTruncatedAssignmentMasses(
+      G,
+      p,
+      X,
+      xVals,
+      TruncateSupportAssignments(G, p, X, xVals),
+      ord
+    ) == 1.0
+
+  lemma TruncatePMFOnOrder_SumsToOne(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures Prob.SumsToOne(TruncatePMFOnOrder(G, p, X, xVals, ord))
+  {
+    var t := TruncatePMFOnOrder(G, p, X, xVals, ord);
+    var fulls := TruncateSupportAssignments(G, p, X, xVals);
+    var omegas := EncodeAssignments(G, fulls);
+    TruncatePMFOnOrder_EncodedSupportSequence_EnumeratesKeys(G, p, X, xVals, ord);
+    TruncatePMFOnOrder_SumEncodedSupportAssignments(G, p, X, xVals, ord);
+    SumTruncatedAssignmentMasses_Normalized(G, p, X, xVals, ord);
+    Prob.FiniteSupportSum_AnyDistinctEnumeration(t, t.Keys, omegas);
+    assert t.Keys * t.Keys == t.Keys;
+    calc {
+      Prob.ProbEvent(t, t.Keys);
+      ==
+      Prob.FiniteSupportSum(t, t.Keys * t.Keys);
+      ==
+      Prob.FiniteSupportSum(t, t.Keys);
+      == { Prob.FiniteSupportSum_AnyDistinctEnumeration(t, t.Keys, omegas); }
+      Prob.SumOutcomeMasses(t, omegas);
+      == { TruncatePMFOnOrder_SumEncodedSupportAssignments(G, p, X, xVals, ord); }
+      SumTruncatedAssignmentMasses(G, p, X, xVals, fulls, ord);
+      == { SumTruncatedAssignmentMasses_Normalized(G, p, X, xVals, ord); }
+      1.0;
+    }
+  }
+
+  lemma TruncatePMFOnOrder_IsDistribution(
+    G: Graph,
+    p: Prob.PMF,
+    X: set<Node>,
+    xVals: Assignment,
+    ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires IsTopologicalSort(G, ord)
+    requires xVals.Keys == X
+    requires xVals.Keys <= Nodes(G)
+    ensures Prob.IsDistribution(TruncatePMFOnOrder(G, p, X, xVals, ord))
+  {
+    TruncatePMFOnOrder_AllNonNeg(G, p, X, xVals, ord);
+    TruncatePMFOnOrder_SumsToOne(G, p, X, xVals, ord);
   }
 
   ghost function {:axiom} TruncatePMF(

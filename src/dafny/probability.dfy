@@ -38,9 +38,9 @@ module Probability {
   }
 
   // The sum of all entries equals 1.
-  // Even with a concrete finite-support event sum below, we keep this
-  // foundational normalization boundary explicit in the first P5 slice.
-  ghost predicate SumsToOne(p: PMF)
+  ghost predicate SumsToOne(p: PMF) {
+    ProbEvent(p, p.Keys) == 1.0
+  }
 
   // A valid distribution satisfies both conditions.
   ghost predicate IsDistribution(p: PMF) {
@@ -455,9 +455,11 @@ module Probability {
 
   /// Axiom 2 — Normalization:  P(Ω) = 1.
   ///   Here Ω = p.Keys (the entire support).
-  lemma {:axiom} Axiom_Normalization(p: PMF)
+  lemma Axiom_Normalization(p: PMF)
     requires IsDistribution(p)
     ensures  ProbEvent(p, p.Keys) == 1.0
+  {
+  }
 
   /// Axiom 3 — Finite Additivity:
   ///   If A ∩ B = ∅  then  P(A ∪ B) = P(A) + P(B).
