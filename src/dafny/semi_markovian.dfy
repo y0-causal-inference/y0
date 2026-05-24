@@ -631,6 +631,20 @@ module SemiMarkovian {
     IsTopologicalSort(sm.dag, ord)
   }
 
+  // Filtering a topological order for the parent graph yields a valid
+  // topological order for any induced subgraph.
+  // This is the key lemma used by IDImpl (Lines 2 and 7) to pass
+  // FilterSort(ord, S) as the ordering for SubgraphSM(sm, S).
+  lemma FilteredSort_ValidSM(sm: SMGraph, S: set<Node>, ord: seq<Node>)
+    requires S <= SMNodes(sm)
+    requires SMTopologicalSort(sm, ord)
+    ensures SMTopologicalSort(SubgraphSM(sm, S), FilterSort(ord, S))
+  {
+    var V := SMNodes(sm);  // = Nodes(sm.dag)
+    assert Nodes(sm.dag) - (V - S) == S;
+    FilteredSort_Valid(sm.dag, V - S, ord);
+  }
+
   // Predecessors of node v in topological ordering π.
   //   V_π^{(i-1)} = {π[0], ..., π[i-1]}  where π[i] = v
   ghost function {:axiom} TopoPredecessors(

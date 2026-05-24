@@ -624,8 +624,9 @@ module Identification {
       Marginalize_IsDistribution(sm.dag, p, V - AncY);
       assert Prob.IsDistribution(pAncY);
       assume {:axiom} MarkovFactorization(smAncY.dag, pAncY);
-      assume {:axiom} SMTopologicalSort(smAncY, ord);
-      IDImpl(smAncY, X * AncY, Y, pAncY, ord, fuel - 1)
+      var ordAncY := FilterSort(ord, AncY);
+      FilteredSort_ValidSM(sm, AncY, ord);
+      IDImpl(smAncY, X * AncY, Y, pAncY, ordAncY, fuel - 1)
 
     // Line 3: let W = (V \ X) \ An(Y)_{G_{X̄}}. if W ≠ ∅, return ID(y, x ∪ w, P, G)
     else if
@@ -694,8 +695,9 @@ module Identification {
           QValue_IsDistribution(sm, p, Sprime, ord);
           assert Prob.IsDistribution(pSp);
           assume {:axiom} MarkovFactorization(smSp.dag, pSp);
-          assume {:axiom} SMTopologicalSort(smSp, ord);
-          IDImpl(smSp, X * Sprime, Y, pSp, ord, fuel - 1)
+          var ordSp := FilterSort(ord, Sprime);
+          FilteredSort_ValidSM(sm, Sprime, ord);
+          IDImpl(smSp, X * Sprime, Y, pSp, ordSp, fuel - 1)
   }
 
   // The ID algorithm — public interface.

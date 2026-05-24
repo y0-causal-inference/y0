@@ -203,6 +203,239 @@ module DAG {
   }
 
   // ==================================================================
+  // 2b. Filtered Topological Sort
+  //
+  // FilterSort(ord, nodes) is the subsequence of `ord` keeping only
+  // elements in `nodes`.  If `ord` is a topological sort of G and
+  // `nodes == Nodes(G) - X`, then FilterSort(ord, nodes) is a valid
+  // topological sort of the induced subgraph RemoveNodes(G, X).
+  //
+  // This is the formal counterpart of the Python filtering step:
+  //   ordering = [v for v in ordering if v in nodes]
+  // that _identify() performs before each recursive call.
+  // ==================================================================
+
+  // Filter a sequence to elements in `nodes`, preserving order.
+  ghost function FilterSort(ord: seq<Node>, nodes: set<Node>): seq<Node>
+    decreases |ord|
+  {
+    if ord == [] then []
+    else if ord[0] in nodes then [ord[0]] + FilterSort(ord[1..], nodes)
+    else FilterSort(ord[1..], nodes)
+  }
+
+  // v appears in FilterSort(ord, nodes) iff v is in both ord and nodes.
+  lemma FilterSort_Contains(ord: seq<Node>, nodes: set<Node>, v: Node)
+    ensures v in FilterSort(ord, nodes) <==> (v in nodes && v in ord)
+    decreases |ord|
+  {
+    if ord == [] {
+    } else {
+      FilterSort_Contains(ord[1..], nodes, v);
+      if ord[0] !in nodes {
+        // FilterSort(ord, nodes) == FilterSort(ord[1..], nodes)
+        // Need backward direction: v in nodes && v in ord → v in FilterSort(tail)
+        // Only concern: v == ord[0], but ord[0] !in nodes contradicts v in nodes.
+        if v in nodes && v == ord[0] { assert false; }
+      }
+      // Case ord[0] in nodes: FilterSort(ord) = [ord[0]] + FilterSort(tail)
+      // IH covers tail; v == ord[0] ∈ nodes covers the head.  Automatic.
+    }
+  }
+
+  // Every element of FilterSort(ord, nodes) is in nodes.
+  lemma FilterSort_Sound(ord: seq<Node>, nodes: set<Node>)
+    ensures forall i | 0 <= i < |FilterSort(ord, nodes)| ::
+              FilterSort(ord, nodes)[i] in nodes
+    decreases |ord|
+  {
+    if ord != [] { FilterSort_Sound(ord[1..], nodes); }
+  }
+
+  // FilterSort inherits the no-duplicates property from ord.
+  lemma FilterSort_NoDup(ord: seq<Node>, nodes: set<Node>)
+    requires forall i, j | 0 <= i < j < |ord| :: ord[i] != ord[j]
+    ensures forall i, j | 0 <= i < j < |FilterSort(ord, nodes)| ::
+              FilterSort(ord, nodes)[i] != FilterSort(ord, nodes)[j]
+    decreases |ord|
+  {
+    if ord == [] {
+    } else {
+      assert forall i, j | 0 <= i < j < |ord[1..]| :: ord[1..][i] != ord[1..][j];
+      FilterSort_NoDup(ord[1..], nodes);
+      if ord[0] in nodes {
+        // FilterSort(ord) == [ord[0]] + FilterSort(tail)
+        // Need ord[0] ∉ FilterSort(tail): it's not in ord[1..] (no-dups), so
+        // FilterSort_Contains says it's not in FilterSort(tail) either.
+        assert ord[0] !in ord[1..] by {
+          forall k | 0 <= k < |ord[1..]| ensures ord[1..][k] != ord[0] {
+            assert ord[k + 1] != ord[0]; // no-dups at (0, k+1)
+          }
+        }
+        FilterSort_Contains(ord[1..], nodes, ord[0]);
+        assert ord[0] !in FilterSort(ord[1..], nodes);
+      }
+    }
+  }
+
+  // FilterSort distributes over a single-step extension of the prefix:
+  //   FilterSort(ord[..i+1], nodes)
+  //     == FilterSort(ord[..i], nodes) ++ (if ord[i] ∈ nodes then [ord[i]] else [])
+  lemma {:vcs_split_on_every_assert} FilterSort_Append(
+    ord: seq<Node>, nodes: set<Node>, i: nat
+  )
+    requires i < |ord|
+    ensures FilterSort(ord[..i + 1], nodes) ==
+            FilterSort(ord[..i], nodes) + (if ord[i] in nodes then [ord[i]] else [])
+    decreases i
+  {
+    if i == 0 {
+      assert ord[..1] == [ord[0]];
+      assert ord[..0] == [];
+      // FilterSort([ord[0]], nodes):
+      //   ord[0] in nodes  → [ord[0]] + FilterSort([], nodes) = [ord[0]] = [] + [ord[0]] ✓
+      //   ord[0] !in nodes → FilterSort([], nodes)            = []       = [] + []       ✓
+    } else {
+      // Establish key sequence-slice equalities once, use them throughout.
+      assert ord[..i + 1][1..] == ord[1..i + 1] by {
+        forall k | 0 <= k < i ensures ord[..i + 1][1..][k] == ord[1..i + 1][k] {}
+      }
+      assert ord[..i][1..] == ord[1..i] by {
+        forall k | 0 <= k < i - 1 ensures ord[..i][1..][k] == ord[1..i][k] {}
+      }
+      assert ord[1..][..i] == ord[1..i + 1] by {
+        forall k | 0 <= k < i ensures ord[1..][..i][k] == ord[1..i + 1][k] {}
+      }
+      assert ord[1..][..i - 1] == ord[1..i] by {
+        forall k | 0 <= k < i - 1 ensures ord[1..][..i - 1][k] == ord[1..i][k] {}
+      }
+      assert ord[1..][i - 1] == ord[i];
+
+      // IH on ord[1..] at index i-1:
+      FilterSort_Append(ord[1..], nodes, i - 1);
+      // → FilterSort(ord[1..i+1], nodes)
+      //     == FilterSort(ord[1..i], nodes) + (if ord[i] in nodes then [ord[i]] else [])
+
+      if ord[0] in nodes {
+        // FilterSort(ord[..i+1]) = [ord[0]] + FilterSort(ord[1..i+1])
+        assert FilterSort(ord[..i + 1], nodes) == [ord[0]] + FilterSort(ord[1..i + 1], nodes);
+        // FilterSort(ord[..i])   = [ord[0]] + FilterSort(ord[1..i])
+        assert FilterSort(ord[..i], nodes) == [ord[0]] + FilterSort(ord[1..i], nodes);
+      } else {
+        // FilterSort(ord[..i+1]) = FilterSort(ord[1..i+1])
+        assert FilterSort(ord[..i + 1], nodes) == FilterSort(ord[1..i + 1], nodes);
+        // FilterSort(ord[..i])   = FilterSort(ord[1..i])
+        assert FilterSort(ord[..i], nodes) == FilterSort(ord[1..i], nodes);
+      }
+    }
+  }
+
+  // FilterSort(ord, Nodes(G)−X) is a valid topological sort of RemoveNodes(G, X).
+  // This is the formal counterpart of the Python ordering-filter in _identify().
+  lemma {:vcs_split_on_every_assert} FilteredSort_Valid(G: Graph, X: set<Node>, ord: seq<Node>)
+    requires IsTopologicalSort(G, ord)
+    ensures IsTopologicalSort(RemoveNodes(G, X), FilterSort(ord, Nodes(G) - X))
+  {
+    var GX    := RemoveNodes(G, X);
+    var nodes := Nodes(G) - X;
+    var ordX  := FilterSort(ord, nodes);
+
+    // (a1) Every node of GX appears in ordX.
+    forall v | v in Nodes(GX) ensures v in ordX {
+      assert v in nodes;
+      assert v in ord; // IsTopologicalSort(G, ord): all G-nodes appear in ord
+      FilterSort_Contains(ord, nodes, v);
+    }
+
+    // (a2) Every element of ordX is in Nodes(GX) = nodes.
+    FilterSort_Sound(ord, nodes);
+
+    // (b) No duplicates in ordX.
+    FilterSort_NoDup(ord, nodes);
+
+    // (d) Every parent in GX appears before its child in ordX.
+    // Proved by rebuilding ordX in a loop while tracking the invariant
+    // that the partial ordX equals FilterSort(ord[..i], nodes).
+    var ordX2: seq<Node> := [];
+    var i := 0;
+    while i < |ord|
+      invariant 0 <= i <= |ord|
+      invariant ordX2 == FilterSort(ord[..i], nodes)
+      invariant forall j | 0 <= j < |ordX2| ::
+                  forall p | p in Parents(GX, ordX2[j]) ::
+                    exists k | 0 <= k < j :: ordX2[k] == p
+    {
+      FilterSort_Append(ord, nodes, i);
+
+      if ord[i] in nodes {
+        var v := ord[i];
+        assert Parents(GX, v) == Parents(G, v) - X;
+
+        // Prove all GX-parents of v sit in ordX2 (with their indices).
+        assert forall p | p in Parents(GX, v) ::
+                 exists kk | 0 <= kk < |ordX2| :: ordX2[kk] == p by {
+          forall p | p in Parents(GX, v) ensures
+            exists kk | 0 <= kk < |ordX2| :: ordX2[kk] == p
+          {
+            assert p in Parents(G, v);
+            assert p !in X;
+            assert p in nodes;
+            var h :| 0 <= h < i && ord[h] == p;
+            assert p in ord[..i];
+            FilterSort_Contains(ord[..i], nodes, p);
+            // p in FilterSort(ord[..i], nodes) = ordX2
+          }
+        }
+
+        // Prove the invariant for (ordX2 + [v]) before the assignment.
+        var newOrdX2 := ordX2 + [v];
+        assert forall j | 0 <= j < |newOrdX2| ::
+                 forall p | p in Parents(GX, newOrdX2[j]) ::
+                   exists k | 0 <= k < j :: newOrdX2[k] == p by {
+          forall j | 0 <= j < |newOrdX2|
+            ensures forall p | p in Parents(GX, newOrdX2[j]) ::
+                      exists k | 0 <= k < j :: newOrdX2[k] == p
+          {
+            forall p | p in Parents(GX, newOrdX2[j])
+              ensures exists k | 0 <= k < j :: newOrdX2[k] == p
+            {
+              if j < |ordX2| {
+                // Existing position: use the loop invariant.
+                assert newOrdX2[j] == ordX2[j];
+                assert p in Parents(GX, ordX2[j]);
+                assert exists k0 | 0 <= k0 < j :: ordX2[k0] == p;
+                var k :| 0 <= k < j && ordX2[k] == p;
+                assert 0 <= k < j;
+                assert newOrdX2[k] == ordX2[k];
+                assert newOrdX2[k] == p;
+              } else {
+                assert j == |ordX2|;
+                assert newOrdX2[j] == v;
+                assert p in Parents(GX, v);
+                assert exists kk :: 0 <= kk < |ordX2| && ordX2[kk] == p;
+                var kk :| 0 <= kk < |ordX2| && ordX2[kk] == p;
+                assert 0 <= kk < j;
+                assert newOrdX2[kk] == ordX2[kk];
+                assert newOrdX2[kk] == p;
+              }
+            }
+          }
+        }
+
+        ordX2 := newOrdX2;
+        assert ordX2 == FilterSort(ord[..i + 1], nodes);
+      } else {
+        assert ordX2 == FilterSort(ord[..i + 1], nodes);
+      }
+      i := i + 1;
+    }
+
+    assert ord[..|ord|] == ord;
+    assert ordX2 == ordX;
+    // The loop invariant at exit gives the parent-ordering property for ordX2 = ordX.
+  }
+
+  // ==================================================================
   // 3.  Ancestry  (reflexive-transitive closure of the parent relation)
   // ==================================================================
 
