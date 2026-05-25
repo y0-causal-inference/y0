@@ -1062,7 +1062,7 @@ module Identification {
       ID(sm, X, Y, p, ord).Identified? <==> IsIdentifiable(sm, X, Y)
 
   // Corollary: ID returns FAIL iff a hedge exists.
-  lemma {:axiom} Theorem3_HedgeIFF(
+  lemma Theorem3_HedgeIFF(
     sm: SMGraph,
     X: set<Node>,
     Y: set<Node>,
@@ -1076,6 +1076,13 @@ module Identification {
     ensures
       ID(sm, X, Y, p, ord).NotIdentified? <==>
       (exists F: SMGraph, Fp: SMGraph :: IsHedge(sm, F, Fp, X, Y))
+  {
+    // IDResult has exactly two constructors, so
+    //   !Identified?  <==>  NotIdentified?
+    // IsIdentifiable is defined as the negation of the hedge existential,
+    // so the equivalence follows from Theorem3_Completeness by negation.
+    Theorem3_Completeness(sm, X, Y, p, ord);
+  }
 
   // ==================================================================
   // 8.  Theorem 4 — Completeness of Do-Calculus
