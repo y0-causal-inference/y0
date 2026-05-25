@@ -609,6 +609,500 @@ module SemiMarkovian {
     CComponentsWithout_Partition(sm, X);
   }
 
+  // ── BidirectedConnected helpers ────────────────────────────────────
+
+  // Fuel monotonicity: a path that fits in k steps also fits in k' ≥ k steps.
+  lemma BidirectedConnectedBounded_FuelMono(
+    sm: SMGraph, u: Node, v: Node, k: nat, k': nat
+  )
+    requires BidirectedConnectedBounded(sm, u, v, k)
+    requires k' >= k
+    ensures  BidirectedConnectedBounded(sm, u, v, k')
+    decreases k
+  {
+    if u == v { }
+    else {
+      var w :| w in SMNodes(sm) && HasBidirected(sm, u, w) &&
+               BidirectedConnectedBounded(sm, w, v, k - 1);
+      BidirectedConnectedBounded_FuelMono(sm, w, v, k - 1, k' - 1);
+    }
+  }
+
+  // Graph monotonicity: a path in a subgraph also exists in the supergraph.
+  lemma BidirectedConnectedBounded_GraphMono(
+    sm1: SMGraph, sm2: SMGraph, u: Node, v: Node, k: nat
+  )
+    requires sm1.bidirected <= sm2.bidirected
+    requires SMNodes(sm1) <= SMNodes(sm2)
+    requires BidirectedConnectedBounded(sm1, u, v, k)
+    ensures  BidirectedConnectedBounded(sm2, u, v, k)
+    decreases k
+  {
+    if u == v { }
+    else {
+      var w :| w in SMNodes(sm1) && HasBidirected(sm1, u, w) &&
+               BidirectedConnectedBounded(sm1, w, v, k - 1);
+      assert w in SMNodes(sm2);
+      assert HasBidirected(sm2, u, w);
+      BidirectedConnectedBounded_GraphMono(sm1, sm2, w, v, k - 1);
+    }
+  }
+
+  // Path extension: if a ~ ... ~ b in k steps and HasBidirected(b, c),
+  // then a ~ ... ~ b ~ c in k+1 steps.
+  lemma BidirectedConnectedBounded_Extend(
+    sm: SMGraph, a: Node, b: Node, c: Node, k: nat
+  )
+    requires BidirectedConnectedBounded(sm, a, b, k)
+    requires HasBidirected(sm, b, c)
+    requires c in SMNodes(sm)
+    ensures  BidirectedConnectedBounded(sm, a, c, k + 1)
+    decreases k
+  {
+    if a == b {
+      // BCC(a, c, k+1): k+1 > 0, take w = c.
+      // HasBidirected(sm, a, c) since a = b and HasBidirected(b, c).
+      assert BidirectedConnectedBounded(sm, c, c, k);
+    } else {
+      var w :| w in SMNodes(sm) && HasBidirected(sm, a, w) &&
+               BidirectedConnectedBounded(sm, w, b, k - 1);
+      BidirectedConnectedBounded_Extend(sm, w, b, c, k - 1);
+      // Now BCC(w, c, k), and HasBidirected(a, w), so BCC(a, c, k+1). ✓
+    }
+  }
+
+  // Symmetry: HasBidirected is symmetric, so BCC paths reverse.
+  lemma BidirectedConnectedBounded_Symmetric(
+    sm: SMGraph, u: Node, v: Node, k: nat
+  )
+    requires WellFormedSM(sm)
+    requires BidirectedConnectedBounded(sm, u, v, k)
+    ensures  BidirectedConnectedBounded(sm, v, u, k)
+    decreases k
+  {
+    if u == v { }
+    else {
+      var w :| w in SMNodes(sm) && HasBidirected(sm, u, w) &&
+               BidirectedConnectedBounded(sm, w, v, k - 1);
+      // u ∈ SMNodes(sm): WellFormedSM says all bidirected-edge endpoints are in SMNodes.
+      assert u in SMNodes(sm) by {
+        if BiEdge(u, w) in sm.bidirected {
+          assert BiEdge(u, w).u == u;
+        } else {
+          assert BiEdge(w, u) in sm.bidirected;
+          assert BiEdge(w, u).v == u;
+        }
+      }
+      // By IH: BCC(v, w, k-1).  HasBidirected(w, u) by symmetry of HasBidirected.
+      BidirectedConnectedBounded_Symmetric(sm, w, v, k - 1);
+      BidirectedConnectedBounded_Extend(sm, v, w, u, k - 1);
+    }
+  }
+
+  // Subgraph lift: BidirectedConnected in G_{V\X} implies BidirectedConnected in G.
+  lemma BidirectedConnected_SubgraphLift(
+    sm: SMGraph, X: set<Node>, u: Node, v: Node
+  )
+    requires WellFormedSM(sm)
+    requires BidirectedConnected(RemoveNodesSM(sm, X), u, v)
+    ensures  BidirectedConnected(sm, u, v)
+  {
+    var smX := RemoveNodesSM(sm, X);
+    var kX  := |SMNodes(smX)|;
+    var kG  := |SMNodes(sm)|;
+    // SMNodes(smX) = Nodes(RemoveNodes(sm.dag, X)) = Nodes(sm.dag) - X = SMNodes(sm) - X.
+    assert SMNodes(smX) == SMNodes(sm) - X;
+    assert SMNodes(smX) <= SMNodes(sm);
+    assert kX <= kG;
+    // Lift the path from smX to sm via graph monotonicity.
+    assert smX.bidirected <= sm.bidirected;
+    BidirectedConnectedBounded_GraphMono(smX, sm, u, v, kX);
+    // Now BCC(sm, u, v, kX).  Raise fuel from kX to kG.
+    BidirectedConnectedBounded_FuelMono(sm, u, v, kX, kG);
+  }
+
+  // ── Tier 2: path-sequence transitivity ──────────────────────────────
+
+  // A bidirected path: every consecutive pair is connected by a bidirected edge.
+  ghost predicate IsBiPath(sm: SMGraph, path: seq<Node>)
+  {
+    |path| >= 1 &&
+    forall i | 0 <= i < |path| - 1 :: HasBidirected(sm, path[i], path[i + 1])
+  }
+
+  // BCC(k) → there is an IsBiPath of length ≤ k+1 from u to v.
+  lemma BidirectedConnectedBounded_ExtractPath(
+    sm: SMGraph, u: Node, v: Node, k: nat
+  ) returns (path: seq<Node>)
+    requires BidirectedConnectedBounded(sm, u, v, k)
+    ensures  IsBiPath(sm, path)
+    ensures  path[0] == u && path[|path| - 1] == v
+    ensures  |path| <= k + 1
+    decreases k
+  {
+    if u == v {
+      path := [u];
+    } else {
+      var w :| w in SMNodes(sm) && HasBidirected(sm, u, w) &&
+               BidirectedConnectedBounded(sm, w, v, k - 1);
+      var tail := BidirectedConnectedBounded_ExtractPath(sm, w, v, k - 1);
+      path := [u] + tail;
+    }
+  }
+
+  // Concatenation: last of p1 = first of p2 → IsBiPath(p1 + p2[1..]).
+  lemma IsBiPath_Concat(sm: SMGraph, p1: seq<Node>, p2: seq<Node>)
+    requires IsBiPath(sm, p1) && IsBiPath(sm, p2)
+    requires p1[|p1| - 1] == p2[0]
+    ensures  IsBiPath(sm, p1 + p2[1..])
+  {
+    var cat := p1 + p2[1..];
+    forall i | 0 <= i < |cat| - 1
+      ensures HasBidirected(sm, cat[i], cat[i + 1])
+    {
+      if i < |p1| - 1 {
+        assert cat[i] == p1[i] && cat[i + 1] == p1[i + 1];
+      } else if i == |p1| - 1 {
+        assert cat[i] == p1[|p1| - 1];
+        assert cat[i + 1] == p2[1];
+        assert HasBidirected(sm, p2[0], p2[1]);
+      } else {
+        var j := i - |p1| + 1;
+        assert cat[i] == p2[j] && cat[i + 1] == p2[j + 1];
+      }
+    }
+  }
+
+  // In a WellFormed graph, every node in an IsBiPath is in SMNodes.
+  // Requires path[0] in SMNodes (needed for single-node paths with no edges).
+  lemma IsBiPath_NodesInSM(sm: SMGraph, path: seq<Node>)
+    requires WellFormedSM(sm)
+    requires IsBiPath(sm, path)
+    requires path[0] in SMNodes(sm)
+    ensures  forall i | 0 <= i < |path| :: path[i] in SMNodes(sm)
+  {
+    forall i | 0 <= i < |path|
+      ensures path[i] in SMNodes(sm)
+    {
+      if i == 0 {
+        // path[0] in SMNodes by requires.
+      } else {
+        // Derive path[i] from the edge path[i-1] -- path[i].
+        assert HasBidirected(sm, path[i - 1], path[i]);
+        if BiEdge(path[i - 1], path[i]) in sm.bidirected {
+          assert BiEdge(path[i - 1], path[i]).v == path[i];
+        } else {
+          assert BiEdge(path[i], path[i - 1]) in sm.bidirected;
+          assert BiEdge(path[i], path[i - 1]).u == path[i];
+        }
+      }
+    }
+  }
+
+  // Pigeonhole: a sequence of length > |S| with all elements in S has a repeat.
+  lemma PathRepeat<T>(path: seq<T>, S: set<T>)
+    requires |path| > |S|
+    requires forall i | 0 <= i < |path| :: path[i] in S
+    ensures  exists i, j :: 0 <= i < j < |path| && path[i] == path[j]
+    decreases |S|
+  {
+    if |path| == 0 { assert false; }
+    else {
+      var x := path[0];
+      if exists j :: 1 <= j < |path| && path[j] == x {
+        var j :| 1 <= j < |path| && path[j] == x;
+        assert 0 < j;
+      } else {
+        var tail := path[1..];
+        var S'   := S - {x};
+        assert |S'| == |S| - 1;
+        assert |tail| == |path| - 1;
+        assert |tail| > |S'|;
+        forall i | 0 <= i < |tail|
+          ensures tail[i] in S'
+        {
+          assert tail[i] == path[i + 1];
+          assert tail[i] != x;
+        }
+        PathRepeat(tail, S');
+        var i', j' :| 0 <= i' < j' < |tail| && tail[i'] == tail[j'];
+        assert 1 <= i' + 1 < j' + 1 < |path| && path[i' + 1] == path[j' + 1];
+      }
+    }
+  }
+
+  // Cycle removal: path[i] = path[j] → shorter path with the same endpoints.
+  // Structural postcondition exposed for callers.
+  lemma IsBiPath_RemoveCycle(sm: SMGraph, path: seq<Node>, i: nat, j: nat)
+    returns (shorter: seq<Node>)
+    requires IsBiPath(sm, path)
+    requires 0 <= i < j < |path|
+    requires path[i] == path[j]
+    ensures  shorter == path[..i + 1] + path[j + 1..]
+    ensures  IsBiPath(sm, shorter)
+    ensures  shorter[0] == path[0] && shorter[|shorter| - 1] == path[|path| - 1]
+    ensures  |shorter| < |path|
+  {
+    shorter := path[..i + 1] + path[j + 1..];
+    assert |shorter| == |path| - (j - i) < |path|;
+    forall k | 0 <= k < |shorter| - 1
+      ensures HasBidirected(sm, shorter[k], shorter[k + 1])
+    {
+      if k < i {
+        assert shorter[k] == path[k] && shorter[k + 1] == path[k + 1];
+      } else if k == i {
+        assert shorter[k] == path[i] && shorter[k + 1] == path[j + 1];
+        assert path[j] == path[i];
+        assert HasBidirected(sm, path[j], path[j + 1]);
+      } else {
+        var m := k - i - 1;
+        assert shorter[k] == path[j + 1 + m] && shorter[k + 1] == path[j + 1 + m + 1];
+      }
+    }
+  }
+
+  // Path shortening: any IsBiPath with all nodes in SMNodes can be shortened
+  // to at most |SMNodes(sm)|+1 nodes.
+  lemma IsBiPath_Shorten(sm: SMGraph, path: seq<Node>)
+    returns (short: seq<Node>)
+    requires WellFormedSM(sm)
+    requires IsBiPath(sm, path)
+    requires forall i | 0 <= i < |path| :: path[i] in SMNodes(sm)
+    ensures  IsBiPath(sm, short)
+    ensures  short[0] == path[0] && short[|short| - 1] == path[|path| - 1]
+    ensures  |short| <= |SMNodes(sm)| + 1
+    decreases |path|
+  {
+    var V := SMNodes(sm);
+    if |path| <= |V| + 1 {
+      short := path;
+    } else {
+      PathRepeat(path, V);
+      var ci, cj :| 0 <= ci < cj < |path| && path[ci] == path[cj];
+      var mid := IsBiPath_RemoveCycle(sm, path, ci, cj);
+      // mid = path[..ci+1] + path[cj+1..], so mid nodes are from path nodes.
+      assert mid == path[..ci + 1] + path[cj + 1..];
+      assert forall i | 0 <= i < |mid| :: mid[i] in V by {
+        forall i | 0 <= i < |mid|
+          ensures mid[i] in V
+        {
+          if i <= ci {
+            assert mid[i] == path[..ci + 1][i];
+          } else {
+            assert mid[i] == path[cj + 1..][i - ci - 1];
+            assert path[cj + 1..][i - ci - 1] == path[cj + 1 + (i - ci - 1)];
+          }
+        }
+      }
+      assert mid[0] == path[0];
+      assert mid[|mid| - 1] == path[|path| - 1];
+      short := IsBiPath_Shorten(sm, mid);
+      assert short[0] == mid[0];
+      assert short[|short| - 1] == mid[|mid| - 1];
+    }
+  }
+
+  // An IsBiPath with all nodes in SMNodes gives BCC at fuel k ≥ |path|-1.
+  lemma IsBiPath_BCC_Bounded(sm: SMGraph, path: seq<Node>, k: nat)
+    requires IsBiPath(sm, path)
+    requires k >= |path| - 1
+    requires forall i | 0 <= i < |path| :: path[i] in SMNodes(sm)
+    ensures  BidirectedConnectedBounded(sm, path[0], path[|path| - 1], k)
+    decreases |path|
+  {
+    if |path| == 1 {
+      // Reflexive: path[0] == path[0].
+    } else {
+      assert forall i | 0 <= i < |path[1..]| :: path[1..][i] in SMNodes(sm);
+      IsBiPath_BCC_Bounded(sm, path[1..], k - 1);
+      assert path[1..][|path[1..]| - 1] == path[|path| - 1];
+      assert HasBidirected(sm, path[0], path[1]);
+      assert path[1] in SMNodes(sm);
+      // Witness w = path[1] for the BCC existential.
+    }
+  }
+
+  // BidirectedConnected is transitive (requires well-formedness and nodes in graph).
+  lemma BidirectedConnected_Transitive(sm: SMGraph, u: Node, v: Node, w: Node)
+    requires WellFormedSM(sm)
+    requires u in SMNodes(sm) && v in SMNodes(sm) && w in SMNodes(sm)
+    requires BidirectedConnected(sm, u, v)
+    requires BidirectedConnected(sm, v, w)
+    ensures  BidirectedConnected(sm, u, w)
+  {
+    var V  := SMNodes(sm);
+    var kV := |V|;
+    assert BidirectedConnectedBounded(sm, u, v, kV);
+    assert BidirectedConnectedBounded(sm, v, w, kV);
+    // Extract paths.
+    var pu := BidirectedConnectedBounded_ExtractPath(sm, u, v, kV);
+    var pw := BidirectedConnectedBounded_ExtractPath(sm, v, w, kV);
+    assert pu[0] == u && pw[0] == v;
+    // Establish path[0] in SMNodes for IsBiPath_NodesInSM.
+    IsBiPath_NodesInSM(sm, pu);
+    IsBiPath_NodesInSM(sm, pw);
+    // Concatenate: pu's last = v = pw's first.
+    IsBiPath_Concat(sm, pu, pw);
+    var cat := pu + pw[1..];
+    // All nodes in cat are in SMNodes.
+    assert forall i | 0 <= i < |cat| :: cat[i] in V by {
+      forall i | 0 <= i < |cat|
+        ensures cat[i] in V
+      {
+        if i < |pu| { } else { assert cat[i] == pw[1 + (i - |pu|)]; }
+      }
+    }
+    // Shorten to ≤ |V|+1 nodes.
+    var short := IsBiPath_Shorten(sm, cat);
+    // short has ≤ |V| edges → BCC at fuel |V|.
+    assert short[0] in V by {
+      assert short[0] == cat[0];
+      assert cat[0] == pu[0];
+    }
+    IsBiPath_NodesInSM(sm, short);
+    IsBiPath_BCC_Bounded(sm, short, kV);
+    assert BidirectedConnectedBounded(sm, u, w, kV);
+  }
+
+  // ── End BidirectedConnected helpers ────────────────────────────────
+
+  // Helper: from Sp ∈ CComponents(sm) and s ∉ Sp, extract a witness w ∈ Sp
+  // with ¬BCC(sm, s, w) — i.e., unfold condition (iv) of the C-component.
+  lemma CComponents_Condition4(sm: SMGraph, Sp: set<Node>, s: Node)
+    requires WellFormedSM(sm)
+    requires Sp in CComponents(sm)
+    requires s in SMNodes(sm) && s !in Sp
+    ensures  exists w :: w in Sp && !BidirectedConnected(sm, s, w)
+  {
+    var V := SMNodes(sm);
+    assert Sp <= V && Sp != {} &&
+      (forall u, v | u in Sp && v in Sp :: BidirectedConnected(sm, u, v)) &&
+      (forall u | u in V && u !in Sp :: exists v | v in Sp :: !BidirectedConnected(sm, u, v));
+  }
+
+  // Helper: if s ∈ S is connected (via z) into Sp, then s ∈ Sp.
+  // Extracted so {:vcs_split_on_every_assert} can apply to the body.
+  lemma {:vcs_split_on_every_assert} CComponentsWithout_RefinesG_SubsetStep(
+    sm: SMGraph, S: set<Node>, Sp: set<Node>, z: Node, s: Node
+  )
+    requires WellFormedSM(sm)
+    requires s in S && s in SMNodes(sm)
+    requires z in SMNodes(sm)
+    requires BidirectedConnected(sm, z, s)
+    requires Sp in CComponents(sm) && z in Sp
+    requires Sp <= SMNodes(sm)
+    ensures  s in Sp
+  {
+    if s !in Sp {
+      CComponents_Condition4(sm, Sp, s);
+      var w :| w in Sp && !BidirectedConnected(sm, s, w);
+      assert w in SMNodes(sm);
+      var kV := |SMNodes(sm)|;
+      BidirectedConnectedBounded_Symmetric(sm, z, s, kV);
+      assert BidirectedConnected(sm, s, z);
+      assert exists T :: T in CComponents(sm) && z in T && w in T by {
+        assert Sp in CComponents(sm) && z in Sp && w in Sp;
+      }
+      CComponent_Connected(sm, z, w);
+      assert BidirectedConnected(sm, z, w);
+      BidirectedConnected_Transitive(sm, s, z, w);
+      assert false;
+    }
+  }
+
+  // Helper: the 4 conditions that characterise CComponents membership.
+  // Having this as a separate lemma lets Dafny focus on just the
+  // set-comprehension membership check without all the surrounding context.
+  lemma CComponents_Membership(sm: SMGraph, S: set<Node>)
+    requires S <= SMNodes(sm) && S != {}
+    requires forall u, v | u in S && v in S :: BidirectedConnected(sm, u, v)
+    requires forall u | u in SMNodes(sm) && u !in S ::
+               exists v | v in S :: !BidirectedConnected(sm, u, v)
+    ensures  S in CComponents(sm)
+  {}
+
+  // Helper: extract from S ∈ CComponents(smX) that every pair in S
+  // is BCC in smX.  Using the proved CComponent_Connected avoids
+  // re-unfolding the set comprehension inside every forall iteration.
+  lemma CComponentsWithout_Pairs_BCC(sm: SMGraph, X: set<Node>, S: set<Node>)
+    requires WellFormedSM(sm)
+    requires S in CComponentsWithout(sm, X)
+    ensures  forall u, v | u in S && v in S :: BidirectedConnected(RemoveNodesSM(sm, X), u, v)
+  {
+    var smX := RemoveNodesSM(sm, X);
+    RemoveNodesSM_PreservesWellFormedness(sm, X);
+    forall u, v | u in S && v in S
+      ensures BidirectedConnected(smX, u, v)
+    {
+      // S ∈ CComponents(smX); u and v share the component S.
+      CComponent_Connected(smX, u, v);
+    }
+  }
+
+  // If S ∈ CComponents(G \ X) but S ∉ CComponents(G), then some C-component
+  // of G strictly contains S (the G-component that "absorbs" S).
+  lemma {:vcs_split_on_every_assert} CComponentsWithout_RefinesG(
+    sm: SMGraph, X: set<Node>, S: set<Node>
+  )
+    requires WellFormedSM(sm)
+    requires S in CComponentsWithout(sm, X)
+    requires S !in CComponents(sm)
+    ensures  exists Sp :: Sp in CComponents(sm) && S < Sp
+  {
+    var V   := SMNodes(sm);
+    var smX := RemoveNodesSM(sm, X);
+    RemoveNodesSM_PreservesWellFormedness(sm, X);
+
+    // Basic facts about S.
+    CComponentsWithout_Partition(sm, X);
+    assert S <= V - X;
+    assert S <= V;
+    assert S != {};
+
+    // 1. All pairs in S are BCC in smX → BCC in sm.
+    CComponentsWithout_Pairs_BCC(sm, X, S);
+    assert forall u, v | u in S && v in S :: BidirectedConnected(smX, u, v);
+    assert forall u, v | u in S && v in S :: BidirectedConnected(sm, u, v) by {
+      forall u, v | u in S && v in S
+        ensures BidirectedConnected(sm, u, v)
+      {
+        BidirectedConnected_SubgraphLift(sm, X, u, v);
+      }
+    }
+
+    // 2. S ∉ CComponents(sm) → condition (iv) fails → ∃ z ∉ S BCC to all S.
+    assert exists z :: z in V && z !in S &&
+                       forall v | v in S :: BidirectedConnected(sm, z, v) by {
+      if forall u | u in V && u !in S ::
+           exists v | v in S :: !BidirectedConnected(sm, u, v) {
+        // All 4 CComponents conditions hold for S → S ∈ CComponents(sm).
+        CComponents_Membership(sm, S);
+        assert false;
+      }
+    }
+    var z :| z in V && z !in S &&
+             forall v | v in S :: BidirectedConnected(sm, z, v);
+
+    // 3. By Partition, z belongs to some Sp ∈ CComponents(sm).
+    CComponents_Partition(sm);
+    var Sp :| Sp in CComponents(sm) && z in Sp;
+    assert Sp <= V;
+
+    // 4. S ⊆ Sp: for each s ∈ S use the extracted helper.
+    assert Sp <= V;
+    assert S <= Sp by {
+      forall s | s in S ensures s in Sp {
+        assert s in V;
+        assert BidirectedConnected(sm, z, s);
+        CComponentsWithout_RefinesG_SubsetStep(sm, S, Sp, z, s);
+      }
+    }
+
+    // 5. z ∈ Sp \ S → S ⊊ Sp.
+    assert z in Sp && z !in S;
+    assert S < Sp;
+  }
+
   // Induced subgraph on a set of nodes S.
   // Keeps only nodes in S, directed edges between them,
   // and bidirected edges between them.

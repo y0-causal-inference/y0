@@ -688,8 +688,8 @@ module Identification {
 
         // Line 7: if S ⊂ S' ∈ C(G), recurse on G_{S'}
         else
-          // Find S' ∈ C(G) such that S ⊂ S'
-          assume {:axiom} exists Sp :: Sp in ccompsG && S < Sp;
+          // Find S' ∈ C(G) such that S ⊂ S' — proved via BCC transitivity infrastructure.
+          CComponentsWithout_RefinesG(sm, X, S);
           var Sprime :| Sprime in ccompsG && S < Sprime;
           // Sprime <= V: C-components partition V, so every S' ∈ C(G) satisfies S' ⊆ V.
           CComponents_Partition(sm);
