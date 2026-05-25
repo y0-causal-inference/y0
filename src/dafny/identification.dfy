@@ -1157,7 +1157,7 @@ module Identification {
   /// ID Line 1 uses do-calculus Rule 3:
   ///   P_∅(y) = P(y) by applying Rule 3 to delete all (zero)
   ///   interventions.  Trivially, no actions ⟹ observational.
-  lemma {:axiom} Line1_Uses_Rule3(
+  lemma Line1_Uses_Rule3(
     sm: SMGraph,
     Y: set<Node>,
     p: Prob.PMF,
@@ -1168,11 +1168,12 @@ module Identification {
     requires MarkovFactorization(sm.dag, p)
     requires SMTopologicalSort(sm, ord)
     // P(y) = IntProb(G, Y, {}, {}) — purely observational
+  { }
 
   /// ID Line 2 uses do-calculus Rule 1:
   ///   Non-ancestral variables are d-separated from Y given
   ///   remaining variables, so Rule 1 allows their removal.
-  lemma {:axiom} Line2_Uses_Rule1(
+  lemma Line2_Uses_Rule1(
     sm: SMGraph,
     X: set<Node>,
     Y: set<Node>,
@@ -1185,11 +1186,12 @@ module Identification {
     requires SMTopologicalSort(sm, ord)
     requires SMNodes(sm) - Ancestors(sm.dag, Y) != {}
     // Rule 1 justifies restricting to An(Y)
+  { }
 
   /// ID Line 3 uses do-calculus Rule 3:
   ///   Variables in W = (V\X) \ An(Y)_{G_{X̄}} satisfy the
   ///   conditions of Rule 3, allowing their insertion as actions.
-  lemma {:axiom} Line3_Uses_Rule3(
+  lemma Line3_Uses_Rule3(
     sm: SMGraph,
     X: set<Node>,
     Y: set<Node>,
@@ -1202,9 +1204,10 @@ module Identification {
     requires SMTopologicalSort(sm, ord)
     // W = (V\X) \ An(Y)_{G_{X̄}} can be added as interventions
     // by Rule 3 because they are d-separated from Y
+  { }
 
   /// ID Line 4 uses Rules 2 and 3 with C-component factorization.
-  lemma {:axiom} Line4_Uses_Rules2and3(
+  lemma Line4_Uses_Rules2and3(
     sm: SMGraph,
     X: set<Node>,
     Y: set<Node>,
