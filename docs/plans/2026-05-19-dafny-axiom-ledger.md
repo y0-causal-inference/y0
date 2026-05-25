@@ -149,7 +149,7 @@ receive real postconditions or are demoted to comments.
 | `Lemma3_QValueDerivation` | 217 | Derivable wrapper | Done | Proved in `DA-P7-006` by `{ QValue_IsDistribution(sm, p, D, ord); }`; `D <= S <= SMNodes(sm)` from preconditions. |
 | `SetOfSetsToSeq` | 257 | Abstract interface | P3/P7 | Sequence choice over sets; keep until deterministic ordering bridge exists. |
 | `IDLine4ComponentsReady` | 281 | Local proof target | P1 | Should follow from `CComponentsWithout_Partition` and set-to-sequence membership. |
-| `ID_Line1` | 509 | Derivable wrapper | P7 | Prove from concrete ID control flow after fuel/empty-graph edge cases are checked. |
+| `ID_Line1` | 509 | Derivable wrapper | P7 | **Done (DA-P7-013)** — proved by adding `requires Y != {}` and asserting `n >= 1; n * n >= 1`; fuel is positive so IDImpl's `X == {}` branch fires. |
 | `ID_Line2` | 539 | Contract gap | P7 | Needs formal recursive equality/bridge postcondition. |
 | `ID_Line3` | 574 | Deep theorem | P7 | Has equality contract; needs do-calculus/ancestry support. |
 | `ID_Line4` | 620 | Deep theorem | P7 | Requires Line 4 recursive products and C-component factorization. |
