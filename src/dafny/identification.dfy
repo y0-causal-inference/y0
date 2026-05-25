@@ -1815,7 +1815,7 @@ module Identification {
   ///
   ///   This follows because removing bidirected edges can only
   ///   eliminate hedges, never create new ones.
-  lemma {:axiom} IdentifiabilityMonotoneBidirected(
+  lemma IdentifiabilityMonotoneBidirected(
     sm: SMGraph,
     sm': SMGraph,
     X: set<Node>,
@@ -1829,6 +1829,24 @@ module Identification {
     requires X * Y == {}
     requires IsIdentifiable(sm, X, Y)
     ensures IsIdentifiable(sm', X, Y)
+  {
+    // Contrapositive: any hedge in sm' is also a hedge in sm.
+    if !IsIdentifiable(sm', X, Y) {
+      var F, Fprime :| IsHedge(sm', F, Fprime, X, Y);
+      // RemoveIncomingSM only touches sm.dag = sm'.dag, so
+      // Ancestors(Gx.dag, Y) is identical in both ambient graphs.
+      assert RemoveIncomingSM(sm', X).dag == RemoveIncomingSM(sm, X).dag;
+      // IsSubgraphSM(F, sm') and sm'.bidirected <= sm.bidirected,
+      // sm'.dag == sm.dag, so F is also a subgraph of sm.
+      assert SMNodes(sm') == SMNodes(sm);
+      assert IsSubgraphSM(F, sm) by {
+        assert SMNodes(F) <= SMNodes(sm');
+        assert F.bidirected <= sm'.bidirected;
+      }
+      assert IsHedge(sm, F, Fprime, X, Y);
+      assert !IsIdentifiable(sm, X, Y);
+    }
+  }
 
   /// Interventional distribution well-definedness:
   ///   When the effect is identifiable, the result is a valid

@@ -42,7 +42,7 @@ receive real postconditions or are demoted to comments.
 
 | Symbol | Location | Decision |
 | --- | --- | --- |
-| `Lemma2_CComponentFactorization` | `src/dafny/identification.dfy:176` | Demote to documentation or restate after `CComponentFactorization` has a formal product contract. |
+| `Lemma2_CComponentFactorization` | `src/dafny/identification.dfy:176` | Done in `DA-P7-008`: demoted to an empty-body lemma (no formal `ensures`, so the implicit postcondition is `true`). |
 | `ID_Line2` | `src/dafny/identification.dfy:539` | Add a formal recursive-result equality/bridge contract in P7; until then it is documentation. |
 | `ID_Line7` | `src/dafny/identification.dfy:723` | Add a formal recursive-result equality/bridge contract in P7; until then it is documentation. |
 | `Line1_Uses_Rule3` | `src/dafny/identification.dfy:920` | Demote to comment unless a do-calculus derivation object is introduced. |
@@ -145,8 +145,8 @@ receive real postconditions or are demoted to comments.
 | Symbol | Line | Category | Phase | Reason / next action |
 | --- | ---: | --- | --- | --- |
 | `Lemma1_NonIdentifiabilityWitness` | 123 | Deep theorem | P7 | Requires two-model semantic construction. |
-| `Lemma2_CComponentFactorization` | 176 | Contract gap | P0/P7 | Demote or restate after semi-Markovian factorization has formal content. |
-| `Lemma3_QValueDerivation` | 217 | Derivable wrapper | P1/P7 | Likely follows from `QValue_IsDistribution` once preconditions are exposed. |
+| `Lemma2_CComponentFactorization` | 176 | Contract gap | Done | Demoted in `DA-P7-008` by removing `{:axiom}` and giving an empty body; the lemma had no formal `ensures`, so the implicit postcondition is `true`. |
+| `Lemma3_QValueDerivation` | 217 | Derivable wrapper | Done | Proved in `DA-P7-006` by `{ QValue_IsDistribution(sm, p, D, ord); }`; `D <= S <= SMNodes(sm)` from preconditions. |
 | `SetOfSetsToSeq` | 257 | Abstract interface | P3/P7 | Sequence choice over sets; keep until deterministic ordering bridge exists. |
 | `IDLine4ComponentsReady` | 281 | Local proof target | P1 | Should follow from `CComponentsWithout_Partition` and set-to-sequence membership. |
 | `ID_Line1` | 509 | Derivable wrapper | P7 | Prove from concrete ID control flow after fuel/empty-graph edge cases are checked. |
@@ -158,7 +158,7 @@ receive real postconditions or are demoted to comments.
 | `ID_Line7` | 723 | Contract gap | P7 | Needs formal recursive equality/bridge postcondition. |
 | `Theorem2_Soundness` | 769 | Deep theorem | P7 | Requires line-by-line induction over ID recursion. |
 | `Theorem3_Completeness` | 817 | Deep theorem | P7 | Requires hedge completeness and ID recursion proof. |
-| `Theorem3_HedgeIFF` | 832 | Derivable wrapper | P7 | Prove from `Theorem3_Completeness` after it exists. |
+| `Theorem3_HedgeIFF` | 832 | Derivable wrapper | Done | Proved in `DA-P7-007` by `{ Theorem3_Completeness(sm, X, Y, p, ord); }`; the IFF closes via the 2-constructor `IDResult` and the negation form of `IsIdentifiable`. |
 | `Theorem4_DoCalculusCompleteness` | 888 | Deep theorem | P7 | Requires do-calculus derivation semantics and ID soundness/completeness. |
 | `Line1_Uses_Rule3` | 920 | Contract gap | P0/P6 | Demote or introduce a formal derivation object. |
 | `Line2_Uses_Rule1` | 935 | Contract gap | P0/P6 | Demote or introduce a formal derivation object. |
@@ -171,8 +171,8 @@ receive real postconditions or are demoted to comments.
 | `Markovian_AllIdentifiable` | 1336 | Derivable wrapper | P7 | Prove from `Theorem5_AllIdentifiable` or direct no-hedge proof. |
 | `Figure1a_Identifiable` | 1366 | Deep theorem | P7 | Requires no-hedge proof or ID completeness path. |
 | `Figure1b_NotIdentifiable` | 1399 | Local proof target | Done | Proved in `DA-P2-003` by an explicit hedge witness on the `{2,3}` subgraph of `Figure1bGraph`; committed as `6a89013`. |
-| `MarkovianCompleteness` | 1418 | Derivable wrapper | P7 | Prove from `Theorem5_AllIdentifiable` or direct no-hedge proof. |
-| `IdentifiabilityMonotoneBidirected` | 1431 | Derivable wrapper | P2/P7 | Likely contradiction proof from hedge preservation under bidirected-edge removal. |
+| `MarkovianCompleteness` | 1418 | Derivable wrapper | Done | Proved in `DA-P7-009` via new helper `NoBidirected_NoConnection` (when `sm.bidirected == {}`, distinct nodes have no bidirected connection at any fuel level), establishing `NoBidirectedToChild(sm)` and then delegating to `Theorem5_AllIdentifiable`. |
+| `IdentifiabilityMonotoneBidirected` | 1431 | Derivable wrapper | Done | Proved in `DA-P7-010` by contrapositive: any hedge `(F, F')` in `sm'` is also a hedge in `sm` because `sm'.dag == sm.dag` (so `RemoveIncomingSM` and `Ancestors` agree) and `F.bidirected <= sm'.bidirected <= sm.bidirected` (so `IsSubgraphSM(F, sm)` holds). |
 | `IdentifiedIsDistribution` | 1449 | Derivable wrapper | P7 | Prove from line soundness or full ID soundness. |
 
 ## Ready For Phase 1
