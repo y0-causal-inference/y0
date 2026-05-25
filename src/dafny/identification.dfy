@@ -173,7 +173,7 @@ module Identification {
   ///
   ///   (c) Each Q[Sᵢ] = P_{v\sᵢ}(sᵢ) — the effect of intervening
   ///       on all variables outside Sᵢ.
-  lemma {:axiom} Lemma2_CComponentFactorization(
+  lemma Lemma2_CComponentFactorization(
     sm: SMGraph,
     p: Prob.PMF,
     ord: seq<Node>
@@ -186,6 +186,10 @@ module Identification {
     // P(v) = ∏ᵢ Q[Sᵢ]
     // (stated narratively because the product-over-set and
     //  QValue precondition proofs exceed Dafny's automation)
+  {
+    // No formal postcondition: demoted from a {:axiom} contract gap
+    // to a non-axiomatic narrative placeholder.
+  }
 
   // ==================================================================
   // 4.  Lemma 3 — Q-Value Derivation from Nested Components
