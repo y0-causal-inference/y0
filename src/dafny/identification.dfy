@@ -1221,6 +1221,7 @@ module Identification {
     requires |CComponentsWithout(sm, X)| > 1
     // C-component factorization: P_x(v\x) = ∏ Q[Sᵢ]
     // Each Q[Sᵢ] is computed using Rules 2 and 3
+  { }
 
   // ==================================================================
   // 9.  Theorem 5 — Characterisation of All-Identifiable Models
@@ -1572,10 +1573,15 @@ module Identification {
   ///
   ///   Ref: Pearl (2000), Theorem 3.2.5
   ///        Shpitser & Pearl (2006), Theorem 5 (special case)
-  lemma {:axiom} Markovian_AllIdentifiable()
+  lemma Markovian_AllIdentifiable()
     ensures
       var sm := MarkovianGraph();
       WellFormedSM(sm) ==> AllEffectsIdentifiable(sm)
+  {
+    var sm := MarkovianGraph();
+    Markovian_WellFormed();
+    MarkovianCompleteness(sm);
+  }
 
   // ------------------------------------------------------------------
   // Example 4: Napkin graph / Figure 1(b)
