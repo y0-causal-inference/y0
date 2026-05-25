@@ -1761,10 +1761,51 @@ module Identification {
   ///   is trivially satisfied when there are no bidirected edges.
   ///
   ///   Ref: Pearl (2000), Theorem 3.2.5
-  lemma {:axiom} MarkovianCompleteness(sm: SMGraph)
+  lemma MarkovianCompleteness(sm: SMGraph)
     requires WellFormedSM(sm)
     requires sm.bidirected == {}   // No bidirected edges — Markovian
     ensures AllEffectsIdentifiable(sm)
+  {
+    // No bidirected edges ⟹ NoBidirectedToChild(sm).
+    forall x, c | x in SMNodes(sm) && c in Children(sm.dag, x)
+      ensures !BidirectedConnected(sm, x, c)
+    {
+      // In a DAG, no self-loops, so x != c.
+      assert IsDAG(sm.dag);
+      assert c in Children(sm.dag, x) ==> x in Parents(sm.dag, c);
+      assert x != c;
+      // With sm.bidirected == {}, no HasBidirected step is ever
+      // available, so BidirectedConnectedBounded(sm, x, c, k) is false
+      // for every k.
+      var n := |SMNodes(sm)|;
+      NoBidirected_NoConnection(sm, x, c, n);
+    }
+    assert NoBidirectedToChild(sm);
+    Theorem5_AllIdentifiable(sm);
+  }
+
+  // Helper: with no bidirected edges, distinct nodes are not connected
+  // at any fuel level.
+  lemma NoBidirected_NoConnection(sm: SMGraph, u: Node, v: Node, fuel: nat)
+    requires sm.bidirected == {}
+    requires u != v
+    ensures !BidirectedConnectedBounded(sm, u, v, fuel)
+    decreases fuel
+  {
+    if fuel == 0 {
+      // Definition requires u == v.
+    } else {
+      // The step branch requires some w with HasBidirected(sm, u, w),
+      // but HasBidirected reduces to membership in sm.bidirected,
+      // which is empty.
+      forall w | w in SMNodes(sm)
+        ensures !HasBidirected(sm, u, w)
+      {
+        assert BiEdge(u, w) !in sm.bidirected;
+        assert BiEdge(w, u) !in sm.bidirected;
+      }
+    }
+  }
 
   /// Monotonicity of identifiability under edge removal:
   ///   Removing bidirected edges can only help identifiability.
