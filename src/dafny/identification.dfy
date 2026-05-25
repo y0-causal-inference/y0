@@ -739,18 +739,30 @@ module Identification {
   // ------------------------------------------------------------------
 
   /// ID Line 1: When X = ∅, the effect equals the marginal P(Y).
-  lemma {:axiom} ID_Line1(
+  lemma ID_Line1(
     sm: SMGraph,
     Y: set<Node>,
     p: Prob.PMF,
     ord: seq<Node>
   )
     requires ValidQuery(CausalQuery(sm, {}, Y))
+    requires Y != {}  // ensures |SMNodes(sm)| >= 1 so ID's fuel n*n >= 1
     requires Prob.IsDistribution(p)
     requires MarkovFactorization(sm.dag, p)
     requires SMTopologicalSort(sm, ord)
     ensures ID(sm, {}, Y, p, ord).Identified?
     // P_∅(Y) = Σ_{V\Y} P(V) — the observational marginal
+  {
+    var V := SMNodes(sm);
+    var n := |V|;
+    // Y != {} and Y <= V imply at least one node in V.
+    assert Y <= V;
+    assert n >= 1;
+    // ID calls IDImpl(sm, {}, Y, p, ord, n*n). With n >= 1, n*n >= 1 > 0,
+    // so IDImpl skips the fuel==0 branch and hits X=={} immediately,
+    // returning Identified(Marginalize(sm.dag, p, V - Y)).
+    assert n * n >= 1;
+  }
 
   // ------------------------------------------------------------------
   // 5.2  Line 2: Restrict to ancestors
