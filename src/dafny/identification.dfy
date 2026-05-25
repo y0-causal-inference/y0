@@ -218,7 +218,7 @@ module Identification {
   ///
   ///   If D ⊂ S are C-components (in appropriate subgraphs),
   ///   then Q[D] is derivable from Q[S] and P(V).
-  lemma {:axiom} Lemma3_QValueDerivation(
+  lemma Lemma3_QValueDerivation(
     sm: SMGraph,
     p: Prob.PMF,
     S: set<Node>,
@@ -233,6 +233,10 @@ module Identification {
     requires S <= SMNodes(sm)
     requires S in CComponents(sm)
     ensures Prob.IsDistribution(QValue(sm, p, D, ord))
+  {
+    // D ⊆ S ⊆ SMNodes(sm); QValue_IsDistribution discharges the conclusion.
+    QValue_IsDistribution(sm, p, D, ord);
+  }
 
   // ==================================================================
   // 5.  The ID Algorithm (Shpitser & Pearl 2006, Figure 3)
