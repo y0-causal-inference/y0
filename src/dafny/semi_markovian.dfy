@@ -147,8 +147,90 @@ module SemiMarkovian {
          exists v | v in S :: !BidirectedConnected(sm, u, v))
   }
 
+  lemma CComponent_IsInCComponents(sm: SMGraph, v: Node)
+    requires WellFormedSM(sm)
+    requires v in SMNodes(sm)
+    ensures CComponent(sm, v) in CComponents(sm)
+    ensures v in CComponent(sm, v)
+  {
+    var S := CComponent(sm, v);
+    assert S <= SMNodes(sm);
+    assert v in S;
+    assert S != {};
+    forall u, w | u in S && w in S
+      ensures BidirectedConnected(sm, u, w)
+    {
+      assert BidirectedConnected(sm, u, v);
+      assert BidirectedConnected(sm, w, v);
+      var kV := |SMNodes(sm)|;
+      BidirectedConnectedBounded_Symmetric(sm, w, v, kV);
+      assert BidirectedConnected(sm, v, w);
+      BidirectedConnected_Transitive(sm, u, v, w);
+    }
+    forall u | u in SMNodes(sm) && u !in S
+      ensures exists w | w in S :: !BidirectedConnected(sm, u, w)
+    {
+      assert !BidirectedConnected(sm, u, v);
+      assert exists w | w in S :: !BidirectedConnected(sm, u, w) by {
+        assert v in S;
+      }
+    }
+    assert S in CComponents(sm);
+  }
+
+  lemma CComponents_OverlapImpliesEqual(sm: SMGraph, S1: set<Node>, S2: set<Node>)
+    requires WellFormedSM(sm)
+    requires S1 in CComponents(sm)
+    requires S2 in CComponents(sm)
+    requires S1 * S2 != {}
+    ensures S1 == S2
+  {
+    assert S1 <= SMNodes(sm) && S1 != {} &&
+      (forall u, v | u in S1 && v in S1 :: BidirectedConnected(sm, u, v)) &&
+      (forall u | u in SMNodes(sm) && u !in S1 ::
+        exists v | v in S1 :: !BidirectedConnected(sm, u, v));
+    assert S2 <= SMNodes(sm) && S2 != {} &&
+      (forall u, v | u in S2 && v in S2 :: BidirectedConnected(sm, u, v)) &&
+      (forall u | u in SMNodes(sm) && u !in S2 ::
+        exists v | v in S2 :: !BidirectedConnected(sm, u, v));
+
+    var x :| x in S1 * S2;
+
+    assert S2 <= S1 by {
+      forall y | y in S2
+        ensures y in S1
+      {
+        if y in S1 {
+        } else {
+          assert BidirectedConnected(sm, y, x);
+          var w :| w in S1 && !BidirectedConnected(sm, y, w);
+          assert BidirectedConnected(sm, x, w);
+          BidirectedConnected_Transitive(sm, y, x, w);
+          assert false;
+        }
+      }
+    }
+
+    assert S1 <= S2 by {
+      forall y | y in S1
+        ensures y in S2
+      {
+        if y in S2 {
+        } else {
+          assert BidirectedConnected(sm, y, x);
+          var w :| w in S2 && !BidirectedConnected(sm, y, w);
+          assert BidirectedConnected(sm, x, w);
+          BidirectedConnected_Transitive(sm, y, x, w);
+          assert false;
+        }
+      }
+    }
+
+    assert S1 == S2;
+  }
+
   // C-components partition the node set.
-  lemma {:axiom} CComponents_Partition(sm: SMGraph)
+  lemma {:vcs_split_on_every_assert} CComponents_Partition(sm: SMGraph)
     requires WellFormedSM(sm)
     ensures
       (forall v :: v in SMNodes(sm) ==>
@@ -156,8 +238,33 @@ module SemiMarkovian {
       (forall S1, S2 :: (S1 in CComponents(sm) && S2 in CComponents(sm)
          && S1 != S2) ==> S1 * S2 == {}) &&
       (forall S :: S in CComponents(sm) ==> S <= SMNodes(sm) && S != {})
-  // Proof sketch: follows from the set-comprehension ghost body of
-  // CComponents and the BFS correctness assumption in the by-method.
+  {
+    forall v | v in SMNodes(sm)
+      ensures exists S :: S in CComponents(sm) && v in S
+    {
+      CComponent_IsInCComponents(sm, v);
+      var S := CComponent(sm, v);
+      assert exists T :: T in CComponents(sm) && v in T by {
+        assert S in CComponents(sm) && v in S;
+      }
+    }
+
+    forall S | S in CComponents(sm)
+      ensures S <= SMNodes(sm) && S != {}
+    {
+      assert S <= SMNodes(sm);
+      assert S != {};
+    }
+
+    forall S1, S2 | S1 in CComponents(sm) && S2 in CComponents(sm) && S1 != S2
+      ensures S1 * S2 == {}
+    {
+      if S1 * S2 != {} {
+        CComponents_OverlapImpliesEqual(sm, S1, S2);
+        assert false;
+      }
+    }
+  }
 
   // Nodes in the same C-component are bidirected-connected.
   lemma CComponent_Connected(sm: SMGraph, u: Node, v: Node)
