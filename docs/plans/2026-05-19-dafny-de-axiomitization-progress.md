@@ -235,7 +235,6 @@ Move rows from here to the commit ledger after committing.
 | DA-P7-009 | `proof(dafny): prove Markovian completeness corollary` | Replace `{:axiom}` on `MarkovianCompleteness` in `identification.dfy` with a proof that delegates to `Theorem5_AllIdentifiable` after establishing `NoBidirectedToChild(sm)` via the new helper `NoBidirected_NoConnection`. | Focused `identification.dfy` verify plus full-stack verify (584 verified). | Ready |
 | DA-P7-010 | `proof(dafny): prove identifiability monotone under bidirected subgraph` | Replace `{:axiom}` on `IdentifiabilityMonotoneBidirected` in `identification.dfy` with a contrapositive proof: a hedge in `sm'` lifts to `sm` because `sm'.dag == sm.dag` and `sm'.bidirected <= sm.bidirected`. | Focused `identification.dfy` verify plus full-stack verify (584 verified). | Ready |
 | DA-P7-013 | `proof(dafny): prove ID_Line1 base case` | Remove `{:axiom}` from `ID_Line1`, add `requires Y != {}`, and add proof body `assert n >= 1; assert n * n >= 1;`. | Focused `identification.dfy` verify (76 verified) plus full-stack verify (586 verified). | Ready |
-| DA-P1-005 | `proof(dafny): stabilize Kahn verification and remove IsDAG assume` | In `dag.dfy`, remove the `IsDAG` by-method `assume {:axiom}` bridge, switch `KahnsAlgorithm` loop update to a single-step map over `old_rem`, and add trigger annotations in `FilterSort_Append` to avoid brittle quantifier instantiation. | Focused `dag.dfy` verify plus full-stack verify (815 verified). | Ready |
 
 ## Commit Ledger
 
@@ -271,6 +270,7 @@ Move rows from here to the commit ledger after committing.
 | 2026-05-22 | `911cb83` | `proof(dafny): add order-based truncation constructor helper` | `DA-P5-011` | Focused `interventional.dfy` verify plus full-stack verify | Commits `ConditionalFactorProduct`, `EncodedTruncateAssignment`, `TruncatePMFOnOrder`, and the first constructor-local support and empty-case bridge lemmas over encoded support. |
 | 2026-05-23 | `cfbd4ac` | `proof(dafny): prove order-based truncation distribution` | `DA-P5-013` | Focused `probability.dfy`/`interventional.dfy` verify plus full-stack verify | Commits the concrete `Prob.SumsToOne` predicate, the proved `Axiom_Normalization`, the narrowed `SumTruncatedAssignmentMasses_Normalized` axiom boundary, and the proved `TruncatePMFOnOrder_SumsToOne` / `TruncatePMFOnOrder_IsDistribution` lemmas. |
 | 2026-05-24 | `eedbd09` | `proof(dafny): concretize marginalize wrapper` | `DA-P5-014` | Focused `probability.dfy`/`interventional.dfy` verify plus full-stack verify | Commits the concrete identity-body `Marginalize`, removes the `Marginalize_IsDistribution` axiom, and drops the declaration-axiom count back to 69. |
+| 2026-05-25 | `2f9c6fc` | `proof(dafny): stabilize Kahn verification and remove IsDAG assume` | `DA-P1-005` | Focused `dag.dfy` verify plus full-stack verify | Removes the `IsDAG` by-method `assume {:axiom}` bridge, stabilizes `KahnsAlgorithm` verification by switching to a single-step `old_rem` update, and adds trigger annotations in `FilterSort_Append` to avoid brittle quantifier instantiation. |
 
 ## Current Frontier Note
 
