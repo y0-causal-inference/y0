@@ -75,7 +75,7 @@ receive real postconditions or are demoted to comments.
 
 | Symbol | Line | Category | Phase | Reason / next action |
 | --- | ---: | --- | --- | --- |
-| `KahnsAlgorithm_Correct` | 158 | Local proof target | Done | Proved in `DA-P1-001` and committed as `1e46df7`; current contract remains the thin wrapper around `IsDAG`. |
+| `KahnsAlgorithm_Correct` | 158 | Local proof target | Done | First proved in `DA-P1-001` (`1e46df7`) as a thin wrapper. Follow-up `DA-P1-005` removed the `IsDAG` by-method `assume {:axiom}` bridge by stabilizing `KahnsAlgorithm` VCs (single-step `old_rem` update + trigger annotations), so the compiled DAG check now carries direct soundness/completeness postconditions without the local axiom assumption. |
 | `AncestorsCompiled_Correct` | 261 | Infrastructure equivalence | P3 | Needs BFS reachability equivalence to bounded ancestry. |
 | `DescendantsCompiled_Correct` | 264 | Infrastructure equivalence | P3 | Needs BFS reachability equivalence to bounded ancestry. |
 | `RemoveIncomingCompiled_Correct` | 285 | Local proof target | Done | Proved in `DA-P1-002` and committed as `0e6fa23`. |
