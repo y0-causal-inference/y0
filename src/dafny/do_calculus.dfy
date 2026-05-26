@@ -377,6 +377,51 @@ module DoCalculus {
     requires DSep(RemoveIncoming(G, X), Y, Z, X + W)
     ensures  IntProb(G, Y, X, Z + W) == IntProb(G, Y, X, W)
 
+  /// Rule 1+ companion with the cleaner conditioning shape used by
+  /// Global Markov directly on the mutilated graph.
+  lemma Rule1Plus_InsertDeleteObservation(
+    G: Graph, Y: set<Node>, X: set<Node>, Z: set<Node>, W: set<Node>
+  )
+    requires DSep(RemoveIncoming(G, X), Y, Z, W)
+    ensures  IntProb(G, Y, X, Z + W) == IntProb(G, Y, X, W)
+  {
+    var Gx := RemoveIncoming(G, X);
+    InterventionSemantics(G, Y, X, Z + W);
+    InterventionSemantics(G, Y, X, W);
+    GlobalMarkov(Gx, Y, Z, W);
+    calc {
+      IntProb(G, Y, X, Z + W);
+      == { }
+      IntProb(Gx, Y, {}, Z + W);
+      == { }
+      IntProb(Gx, Y, {}, W);
+      == { }
+      IntProb(G, Y, X, W);
+    }
+  }
+
+  /// Legacy-precondition bridge: reuse Rule1+ with W' := X + W.
+  lemma Rule1Plus_FromLegacyPrecondition(
+    G: Graph, Y: set<Node>, X: set<Node>, Z: set<Node>, W: set<Node>
+  )
+    requires DSep(RemoveIncoming(G, X), Y, Z, X + W)
+    ensures  IntProb(G, Y, X, Z + X + W) == IntProb(G, Y, X, X + W)
+  {
+    Rule1Plus_InsertDeleteObservation(G, Y, X, Z, X + W);
+    assert Z + X + W == Z + (X + W);
+  }
+
+  /// Vacuity helper: once X is intervened, additionally conditioning on X
+  /// can be deleted when the corresponding d-separation premise is available.
+  lemma ConditioningOnIntervenedIsVacuous(
+    G: Graph, Y: set<Node>, X: set<Node>, W: set<Node>
+  )
+    requires DSep(RemoveIncoming(G, X), Y, X, W)
+    ensures  IntProb(G, Y, X, X + W) == IntProb(G, Y, X, W)
+  {
+    Rule1Plus_InsertDeleteObservation(G, Y, X, X, W);
+  }
+
   /// Rule 2 — Action / Observation Exchange
   ///
   ///   Condition:  (Y ⊥ Z | X, W)  in  G_{X̄, Z̲}
@@ -425,12 +470,7 @@ module DoCalculus {
     requires DSep(G, Y, Z, W)
     ensures  IntProb(G, Y, {}, Z + W) == IntProb(G, Y, {}, W)
   {
-    RemoveIncoming_Empty(G);
-    // RemoveIncoming(G, {}) == G, so the hypothesis
-    // DSep(G, Y, Z, W)  equals  DSep(RemoveIncoming(G,{}), Y, Z, {}+W).
-    assert {} + W == W;
-    assert DSep(RemoveIncoming(G, {}), Y, Z, {} + W);
-    Rule1_InsertDeleteObservation(G, Y, {}, Z, W);
+    GlobalMarkov(G, Y, Z, W);
   }
 
   // ==================================================================
