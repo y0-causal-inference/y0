@@ -555,6 +555,22 @@ module SemiMarkovian {
     }
   }
 
+  lemma HasBidirected_InBidirectedNeighbors(sm: SMGraph, u: Node, v: Node)
+    requires HasBidirected(sm, u, v)
+    ensures v in BidirectedNeighbors(sm, u)
+  {
+    if BiEdge(u, v) in sm.bidirected {
+      assert BiEdge(u, v).u == u;
+      assert BiEdge(u, v).v == v;
+      assert v in (set e | e in sm.bidirected && e.u == u :: e.v);
+    } else {
+      assert BiEdge(v, u) in sm.bidirected;
+      assert BiEdge(v, u).v == u;
+      assert BiEdge(v, u).u == v;
+      assert v in (set e | e in sm.bidirected && e.v == u :: e.u);
+    }
+  }
+
   lemma BidirectedBFSLoop_SubsetCComponent(
     sm: SMGraph,
     root: Node,
@@ -614,6 +630,36 @@ module SemiMarkovian {
     BidirectedBFSLoop_SubsetCComponent(sm, v, {v}, {}, |SMNodes(sm)|);
   }
 
+  lemma CComponent_Subset_CComponentCompiled(sm: SMGraph, v: Node)
+    requires WellFormedSM(sm)
+    requires v in SMNodes(sm)
+    ensures CComponent(sm, v) <= CComponentCompiled(sm, v)
+  {
+    forall u | u in CComponent(sm, v)
+      ensures u in CComponentCompiled(sm, v)
+    {
+      assert u in SMNodes(sm);
+      assert BidirectedConnected(sm, u, v);
+      var kV := |SMNodes(sm)|;
+      assert kV >= 1;
+      BidirectedConnectedBounded_Symmetric(sm, u, v, kV);
+      assert BidirectedConnectedBounded(sm, v, u, kV);
+      var path := BidirectedConnectedBounded_ExtractPath(sm, v, u, kV);
+      assert path[0] == v;
+      assert path[|path| - 1] == u;
+      IsBiPath_NodesInSM(sm, path);
+      assert forall i | 0 <= i < |path| :: path[i] in SMNodes(sm);
+      var simple := IsBiPath_SimplifyNoDup(sm, path);
+      assert simple[0] == v;
+      assert simple[|simple| - 1] == u;
+      assert |simple| <= kV;
+      assert forall i | 0 <= i < |simple| :: simple[i] !in {};
+      BidirectedBFSLoop_FollowsFreshSimplePath(sm, simple, {v}, {}, kV);
+      assert u in BidirectedBFSLoop(sm, {v}, {}, kV);
+      assert u in CComponentCompiled(sm, v);
+    }
+  }
+
 
   // ------------------------------------------------------------------
   // Compiled C-Component computation — method with while loop
@@ -656,10 +702,16 @@ module SemiMarkovian {
   {}
 
   // The compiled single-component equals the ghost CComponent.
-  lemma {:axiom} CComponentCompiled_Correct(sm: SMGraph, v: Node)
+  lemma CComponentCompiled_Correct(sm: SMGraph, v: Node)
     requires WellFormedSM(sm)
     requires v in SMNodes(sm)
     ensures CComponentCompiled(sm, v) == CComponent(sm, v)
+  {
+    CComponentCompiled_Subset_CComponent(sm, v);
+    CComponent_Subset_CComponentCompiled(sm, v);
+    assert CComponentCompiled(sm, v) <= CComponent(sm, v);
+    assert CComponent(sm, v) <= CComponentCompiled(sm, v);
+  }
 
   // ==================================================================
   // 3.  Graph Operations on SMGraphs
@@ -907,6 +959,37 @@ module SemiMarkovian {
     forall i, j | 0 <= i < j < |path| :: path[i] != path[j]
   }
 
+  lemma IsBiPath_Suffix(sm: SMGraph, path: seq<Node>, start: nat)
+    requires IsBiPath(sm, path)
+    requires start < |path|
+    ensures IsBiPath(sm, path[start..])
+  {
+    assert |path[start..]| >= 1;
+    forall i | 0 <= i < |path[start..]| - 1
+      ensures HasBidirected(sm, path[start..][i], path[start..][i + 1])
+    {
+      assert path[start..][i] == path[start + i];
+      assert path[start..][i + 1] == path[start + i + 1];
+      assert start + i < |path| - 1;
+      assert HasBidirected(sm, path[start + i], path[start + i + 1]);
+    }
+  }
+
+  lemma NoDupPath_Suffix(path: seq<Node>, start: nat)
+    requires NoDupPath(path)
+    requires start < |path|
+    ensures NoDupPath(path[start..])
+  {
+    forall i, j | 0 <= i < j < |path[start..]|
+      ensures path[start..][i] != path[start..][j]
+    {
+      assert path[start..][i] == path[start + i];
+      assert path[start..][j] == path[start + j];
+      assert start + i < start + j < |path|;
+      assert path[start + i] != path[start + j];
+    }
+  }
+
   // BCC(k) → there is an IsBiPath of length ≤ k+1 from u to v.
   lemma BidirectedConnectedBounded_ExtractPath(
     sm: SMGraph, u: Node, v: Node, k: nat
@@ -1090,6 +1173,105 @@ module SemiMarkovian {
       simple := IsBiPath_SimplifyNoDup(sm, mid);
       assert simple[0] == path[0];
       assert simple[|simple| - 1] == path[|path| - 1];
+    }
+  }
+
+  lemma {:vcs_split_on_every_assert} BidirectedBFSLoop_FollowsFreshSimplePath(
+    sm: SMGraph,
+    path: seq<Node>,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires IsBiPath(sm, path)
+    requires NoDupPath(path)
+    requires forall i | 0 <= i < |path| :: path[i] in SMNodes(sm)
+    requires path[0] in frontier
+    requires forall i | 0 <= i < |path| :: path[i] !in visited
+    requires fuel >= |path|
+    ensures path[|path| - 1] in BidirectedBFSLoop(sm, frontier, visited, fuel)
+    decreases |path|, fuel
+  {
+    assert |path| >= 1;
+    assert frontier != {};
+    if |path| == 1 {
+      assert fuel >= 1;
+      BidirectedBFS_FrontierSubset(sm, frontier, visited, fuel);
+      assert path[0] in BidirectedBFSLoop(sm, frontier, visited, fuel);
+    } else if exists j :: 1 <= j < |path| && path[j] in frontier {
+      var j :| 1 <= j < |path| && path[j] in frontier;
+      var suffix := path[j..];
+      IsBiPath_Suffix(sm, path, j);
+      NoDupPath_Suffix(path, j);
+      assert suffix[0] == path[j];
+      assert suffix[|suffix| - 1] == path[|path| - 1];
+      assert forall i | 0 <= i < |suffix| :: suffix[i] in SMNodes(sm) by {
+        forall i | 0 <= i < |suffix|
+          ensures suffix[i] in SMNodes(sm)
+        {
+          assert suffix[i] == path[j + i];
+        }
+      }
+      assert forall i | 0 <= i < |suffix| :: suffix[i] !in visited by {
+        forall i | 0 <= i < |suffix|
+          ensures suffix[i] !in visited
+        {
+          assert suffix[i] == path[j + i];
+        }
+      }
+      BidirectedBFSLoop_FollowsFreshSimplePath(sm, suffix, frontier, visited, fuel);
+      assert path[|path| - 1] in BidirectedBFSLoop(sm, frontier, visited, fuel);
+    } else {
+      assert fuel > 0;
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u, v | u in frontier && v in BidirectedNeighbors(sm, u)
+                  && v in SMNodes(sm) && v !in newVisited :: v);
+      assert HasBidirected(sm, path[0], path[1]);
+      HasBidirected_InBidirectedNeighbors(sm, path[0], path[1]);
+      assert path[1] !in frontier by {
+        if path[1] in frontier {
+          assert exists j :: 1 <= j < |path| && path[j] in frontier by {
+            assert 1 <= 1 < |path| && path[1] in frontier;
+          }
+        }
+      }
+      assert path[1] !in newVisited;
+      assert path[1] in nextFrontier;
+
+      var suffix := path[1..];
+      IsBiPath_Suffix(sm, path, 1);
+      NoDupPath_Suffix(path, 1);
+      assert suffix[0] == path[1];
+      assert suffix[|suffix| - 1] == path[|path| - 1];
+      assert forall i | 0 <= i < |suffix| :: suffix[i] in SMNodes(sm) by {
+        forall i | 0 <= i < |suffix|
+          ensures suffix[i] in SMNodes(sm)
+        {
+          assert suffix[i] == path[1 + i];
+        }
+      }
+      assert forall i | 0 <= i < |suffix| :: suffix[i] !in newVisited by {
+        forall i | 0 <= i < |suffix|
+          ensures suffix[i] !in newVisited
+        {
+          assert suffix[i] == path[1 + i];
+          assert suffix[i] !in visited;
+          assert suffix[i] !in frontier by {
+            if suffix[i] in frontier {
+              assert 1 <= 1 + i < |path| && path[1 + i] in frontier;
+              assert exists j :: 1 <= j < |path| && path[j] in frontier by {
+                assert 1 <= 1 + i < |path| && path[1 + i] in frontier;
+              }
+            }
+          }
+        }
+      }
+      assert fuel - 1 >= |suffix|;
+      BidirectedBFSLoop_FollowsFreshSimplePath(sm, suffix, nextFrontier, newVisited, fuel - 1);
+      assert BidirectedBFSLoop(sm, frontier, visited, fuel) ==
+        BidirectedBFSLoop(sm, nextFrontier, newVisited, fuel - 1);
+      assert path[|path| - 1] in BidirectedBFSLoop(sm, frontier, visited, fuel);
     }
   }
 
