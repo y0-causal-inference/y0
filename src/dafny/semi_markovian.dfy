@@ -135,7 +135,7 @@ module SemiMarkovian {
   // The set of all C-components of a Semi-Markovian graph.
   // Each C-component is the maximal bidirected-connected subset
   // containing each node. C-components partition SMNodes(sm).
-  function CComponents(sm: SMGraph): set<set<Node>>
+  ghost function CComponents(sm: SMGraph): set<set<Node>>
   {
     // Ghost spec: the set of all maximal bidirected-connected subsets.
     // A set S is a C-component iff:
@@ -145,15 +145,6 @@ module SemiMarkovian {
       (forall u, v | u in S && v in S :: BidirectedConnected(sm, u, v)) &&
       (forall u | u in SMNodes(sm) && u !in S ::
          exists v | v in S :: !BidirectedConnected(sm, u, v))
-  } by method {
-    var comps := ComputeCComponents(sm);
-    // The BFS produces exactly the maximal bidirected-connected subsets.
-    assume {:axiom} SeqToSetOfSets(comps) ==
-      (set S: set<Node> | S <= SMNodes(sm) && S != {} &&
-        (forall u, v | u in S && v in S :: BidirectedConnected(sm, u, v)) &&
-        (forall u | u in SMNodes(sm) && u !in S ::
-           exists v | v in S :: !BidirectedConnected(sm, u, v)));
-    return SeqToSetOfSets(comps);
   }
 
   // C-components partition the node set.
@@ -1329,7 +1320,7 @@ module SemiMarkovian {
 
   // A C-tree: a single-C-component graph where every node has
   // at most one child.
-  predicate IsCTree(sm: SMGraph) {
+  ghost predicate IsCTree(sm: SMGraph) {
     WellFormedSM(sm) &&
     // Single C-component: all nodes are bidirected-connected
     |CComponents(sm)| == 1 &&
@@ -1339,7 +1330,7 @@ module SemiMarkovian {
 
   // A C-forest: a C-component where every node has at most one child.
   // Ref: Shpitser & Pearl (2006), Definition 5
-  predicate IsCForest(sm: SMGraph) {
+  ghost predicate IsCForest(sm: SMGraph) {
     WellFormedSM(sm) &&
     // Must be a single C-component (connected via bidirected edges)
     |CComponents(sm)| == 1 &&
@@ -1348,7 +1339,7 @@ module SemiMarkovian {
   }
 
   // An R-rooted C-forest: a C-forest with root set R.
-  predicate IsRootedCForest(sm: SMGraph, R: set<Node>) {
+  ghost predicate IsRootedCForest(sm: SMGraph, R: set<Node>) {
     IsCForest(sm) && RootSet(sm) == R
   }
 
@@ -1393,7 +1384,7 @@ module SemiMarkovian {
   ///   - F' ∩ X = ∅  (F' does NOT contain treatment variables)
   ///   - R ⊂ An(Y)_{G_{X̄}}
   ///   - F is a subgraph of G
-  predicate IsHedge(
+  ghost predicate IsHedge(
     sm: SMGraph,
     F: SMGraph,
     Fprime: SMGraph,
