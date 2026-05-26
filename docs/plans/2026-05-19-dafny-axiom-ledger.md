@@ -129,9 +129,9 @@ receive real postconditions or are demoted to comments.
 
 | Symbol | Line | Category | Phase | Reason / next action |
 | --- | ---: | --- | --- | --- |
-| `CComponents_Partition` | 160 | Infrastructure equivalence | P3 | Needs proof from ghost set-comprehension or compiled BFS correctness. |
+| `CComponents_Partition` | 233 | Infrastructure equivalence | Done | Proved in `DA-P3-003` (`dbeb933`) from the ghost `CComponents` set-comprehension via explicit coverage and overlap-implies-equality helpers (`CComponent_IsInCComponents`, `CComponents_OverlapImpliesEqual`). |
 | `BidirectedBFS_ContainsSelf` | 228 | Local proof target | Done | Proved in `DA-P1-003` via the general `BidirectedBFS_FrontierSubset` helper and committed as `b8b2c03`. |
-| `CComponentCompiled_Correct` | 296 | Infrastructure equivalence | P3 | Needs bidirected BFS soundness/completeness. |
+| `CComponentCompiled_Correct` | 560 | Infrastructure equivalence | P3 | Needs bidirected BFS soundness/completeness (next shortest semi-Markovian infrastructure target). |
 | `TopoPredecessors` | 385 | Abstract interface | P5/P7 | Needs concrete topological-prefix definition before Q-value proofs. |
 | `QValue` | 416 | Abstract interface | P5/P7 | Core c-factor object; keep abstract until product/conditional semantics are concrete. |
 | `QValue_AllNodes` | 427 | Derivable wrapper | P5/P7 | Prove once `QValue` semantics are concrete. |
