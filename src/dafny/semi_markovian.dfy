@@ -541,6 +541,80 @@ module SemiMarkovian {
     }
   }
 
+  lemma BidirectedNeighbors_HasBidirected(sm: SMGraph, u: Node, v: Node)
+    requires v in BidirectedNeighbors(sm, u)
+    ensures HasBidirected(sm, u, v)
+  {
+    if v in (set e | e in sm.bidirected && e.u == u :: e.v) {
+      var e :| e in sm.bidirected && e.u == u && e.v == v;
+      assert HasBidirected(sm, u, v);
+    } else {
+      assert v in (set e | e in sm.bidirected && e.v == u :: e.u);
+      var e :| e in sm.bidirected && e.v == u && e.u == v;
+      assert HasBidirected(sm, u, v);
+    }
+  }
+
+  lemma BidirectedBFSLoop_SubsetCComponent(
+    sm: SMGraph,
+    root: Node,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires WellFormedSM(sm)
+    requires root in SMNodes(sm)
+    requires frontier <= CComponent(sm, root)
+    requires visited <= CComponent(sm, root)
+    ensures BidirectedBFSLoop(sm, frontier, visited, fuel) <= CComponent(sm, root)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u, v | u in frontier && v in BidirectedNeighbors(sm, u)
+                  && v in SMNodes(sm) && v !in newVisited :: v);
+
+      assert newVisited <= CComponent(sm, root);
+
+      assert nextFrontier <= CComponent(sm, root) by {
+        forall x | x in nextFrontier
+          ensures x in CComponent(sm, root)
+        {
+          var u :| u in frontier && x in BidirectedNeighbors(sm, u)
+                    && x in SMNodes(sm) && x !in newVisited;
+
+          assert u in CComponent(sm, root);
+          assert u in SMNodes(sm);
+          assert BidirectedConnected(sm, u, root);
+
+          BidirectedNeighbors_HasBidirected(sm, u, x);
+          assert HasBidirected(sm, x, u);
+
+          var kV := |SMNodes(sm)|;
+          assert kV >= 1;
+          assert BidirectedConnectedBounded(sm, x, u, kV);
+          assert BidirectedConnected(sm, x, u);
+
+          BidirectedConnected_Transitive(sm, x, u, root);
+          assert x in CComponent(sm, root);
+        }
+      }
+
+      BidirectedBFSLoop_SubsetCComponent(sm, root, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  lemma CComponentCompiled_Subset_CComponent(sm: SMGraph, v: Node)
+    requires WellFormedSM(sm)
+    requires v in SMNodes(sm)
+    ensures CComponentCompiled(sm, v) <= CComponent(sm, v)
+  {
+    BidirectedBFSLoop_SubsetCComponent(sm, v, {v}, {}, |SMNodes(sm)|);
+  }
+
+
   // ------------------------------------------------------------------
   // Compiled C-Component computation — method with while loop
   // ------------------------------------------------------------------
@@ -828,6 +902,11 @@ module SemiMarkovian {
     forall i | 0 <= i < |path| - 1 :: HasBidirected(sm, path[i], path[i + 1])
   }
 
+  ghost predicate NoDupPath(path: seq<Node>)
+  {
+    forall i, j | 0 <= i < j < |path| :: path[i] != path[j]
+  }
+
   // BCC(k) → there is an IsBiPath of length ≤ k+1 from u to v.
   lemma BidirectedConnectedBounded_ExtractPath(
     sm: SMGraph, u: Node, v: Node, k: nat
@@ -929,6 +1008,19 @@ module SemiMarkovian {
     }
   }
 
+  lemma NoDupPath_BoundedBySet(path: seq<Node>, S: set<Node>)
+    requires NoDupPath(path)
+    requires forall i | 0 <= i < |path| :: path[i] in S
+    ensures |path| <= |S|
+  {
+    if |path| > |S| {
+      PathRepeat(path, S);
+      var i, j :| 0 <= i < j < |path| && path[i] == path[j];
+      assert path[i] != path[j];
+      assert false;
+    }
+  }
+
   // Cycle removal: path[i] = path[j] → shorter path with the same endpoints.
   // Structural postcondition exposed for callers.
   lemma IsBiPath_RemoveCycle(sm: SMGraph, path: seq<Node>, i: nat, j: nat)
@@ -956,6 +1048,48 @@ module SemiMarkovian {
         var m := k - i - 1;
         assert shorter[k] == path[j + 1 + m] && shorter[k + 1] == path[j + 1 + m + 1];
       }
+    }
+  }
+
+  lemma {:vcs_split_on_every_assert} IsBiPath_SimplifyNoDup(sm: SMGraph, path: seq<Node>)
+    returns (simple: seq<Node>)
+    requires WellFormedSM(sm)
+    requires IsBiPath(sm, path)
+    requires forall i | 0 <= i < |path| :: path[i] in SMNodes(sm)
+    ensures IsBiPath(sm, simple)
+    ensures simple[0] == path[0] && simple[|simple| - 1] == path[|path| - 1]
+    ensures forall i | 0 <= i < |simple| :: simple[i] in SMNodes(sm)
+    ensures NoDupPath(simple)
+    ensures |simple| <= |SMNodes(sm)|
+    decreases |path|
+  {
+    if NoDupPath(path) {
+      simple := path;
+      NoDupPath_BoundedBySet(simple, SMNodes(sm));
+    } else {
+      assert exists i, j :: 0 <= i < j < |path| && path[i] == path[j];
+      var ci, cj :| 0 <= ci < cj < |path| && path[ci] == path[cj];
+      var mid := IsBiPath_RemoveCycle(sm, path, ci, cj);
+      assert mid == path[..ci + 1] + path[cj + 1..];
+      assert forall i | 0 <= i < |mid| :: mid[i] in SMNodes(sm) by {
+        forall i | 0 <= i < |mid|
+          ensures mid[i] in SMNodes(sm)
+        {
+          if i <= ci {
+            assert mid[i] == path[..ci + 1][i];
+            assert path[..ci + 1][i] == path[i];
+          } else {
+            var suffixIndex := i - ci - 1;
+            assert mid[i] == path[cj + 1..][suffixIndex];
+            assert path[cj + 1..][suffixIndex] == path[cj + 1 + suffixIndex];
+          }
+        }
+      }
+      assert mid[0] == path[0];
+      assert mid[|mid| - 1] == path[|path| - 1];
+      simple := IsBiPath_SimplifyNoDup(sm, mid);
+      assert simple[0] == path[0];
+      assert simple[|simple| - 1] == path[|path| - 1];
     }
   }
 

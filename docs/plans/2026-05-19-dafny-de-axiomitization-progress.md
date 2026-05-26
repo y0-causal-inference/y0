@@ -46,6 +46,7 @@ part of this tracker unless intentionally added in a later batch.
 | DA-P3-001 | P3 | Prove `RemoveNodesSM` preserves well-formedness. | Done | Added DAG-level node deletion support and a filtered-topological-order proof so `RemoveNodesSM` now preserves `WellFormedSM`. | Full Dafny stack verify. | `proof(dafny): prove SM node removal preserves well-formedness` |
 | DA-P3-002 | P3 | Remove local `WellFormedSM(smX)` assume from `CComponentsWithout_Partition`. | Done | Completed in the same batch as `DA-P3-001` by replacing the local assume with `RemoveNodesSM_PreservesWellFormedness(sm, X)`. | Full Dafny stack verify. | `proof(dafny): prove CComponentsWithout partition facts` |
 | DA-P3-003 | P3 | De-axiomatize `CComponents_Partition` from the ghost C-component specification. | Done | Replaced `CComponents_Partition` with a proof body (coverage/disjointness/subset-nonempty), factoring overlap and singleton-component witnesses into helper lemmas to keep SMT obligations tractable. | Focused `semi_markovian.dfy` verify plus full Dafny stack verify. | `proof(dafny): de-axiomatize CComponents partition` |
+| DA-P3-004 | P3 | De-axiomatize `CComponentCompiled_Correct` (compiled BFS equals ghost C-component). | In progress | Landed the first inclusion bridge (`CComponentCompiled_Subset_CComponent`) plus the endpoint-preserving NoDup path simplifier (`NoDupPath`, `NoDupPath_BoundedBySet`, `IsBiPath_SimplifyNoDup`); reverse inclusion still pending. | Focused `semi_markovian.dfy` verify plus full Dafny stack verify after each helper batch. | `proof(dafny): add compiled C-component proof substrate` |
 | DA-P4-001 | P4 | Prove `DSep_Decomposition`. | Done | Replaced the axiom with the direct monotonicity proof that `z in Z` implies `z in Z + Z'` inside the `DSep` quantifier. | Full Dafny stack verify. | `proof(dafny): prove d-separation decomposition` |
 | DA-P4-002 | P4 | Design trail reversal helpers for `DSep_Symmetry`. | Done | Added `ReverseDir`, `ReverseStep`, `ReverseTrail`, and verified helper lemmas that reversal preserves per-step validity and trail endpoints/connectivity. | Full Dafny stack verify. | `proof(dafny): add trail reversal helpers` |
 | DA-P4-003 | P4 | Prove `DSep_Symmetry` using the new reversal helpers. | Done | Added reversal-index and mirrored-collider helpers, factored `TrailBlockedAtPos`, and proved blocking witnesses transfer across reversed connected trails. | Full Dafny stack verify. | `proof(dafny): prove d-separation symmetry` |
@@ -145,6 +146,7 @@ rg -o "assume\s+\{:axiom\}" src/dafny/*.dfy | wc -l
 | 2026-05-25 | Working tree (mixed) | 61 | 3 | 58 | Snapshot only | Local run after `DA-P1-005` reported `61` total tags and `3` local assumes, but this workspace currently contains additional uncommitted edits outside the batch (`do_calculus.dfy`, `semi_markovian.dfy`), so this row is informational and not commit-attributable. |
 | 2026-05-25 | `4164cd9` (mixed workspace) | 61 | 3 | 58 | No axiom-count change | Added non-axiomatic Rule 1+ helper lemmas (`Rule1Plus_InsertDeleteObservation`, `Rule1Plus_FromLegacyPrecondition`, `ConditioningOnIntervenedIsVacuous`) in `do_calculus.dfy`; full stack verified with 818 verified, 0 errors. |
 | 2026-05-25 | `dbeb933` | 60 | 3 | 57 | -1 declaration axiom | Replaced `CComponents_Partition` with a proof body in `semi_markovian.dfy`; focused file verify and full stack remain green. |
+| 2026-05-25 | Working tree (`DA-P3-004` in progress) | 60 | 3 | 57 | No axiom-count change | Added compiled-to-ghost inclusion groundwork and a verified endpoint-preserving NoDup path simplifier in `semi_markovian.dfy`; `CComponentCompiled_Correct` remains axiomatic pending reverse inclusion. |
 
 ## Verification Log
 
@@ -226,6 +228,10 @@ rg -o "assume\s+\{:axiom\}" src/dafny/*.dfy | wc -l
 | 2026-05-25 | DA-P6-003 full-stack verify | `/opt/homebrew/bin/dafny verify probability.dfy dag.dfy interventional.dfy do_calculus.dfy semi_markovian.dfy identification.dfy` | Passed | Full stack verified with 818 verified, 0 errors after adding the Rule 1+ helper path. |
 | 2026-05-25 | DA-P3-003 focused verify | `/opt/homebrew/bin/dafny verify semi_markovian.dfy` | Passed | `semi_markovian.dfy` verified with 150 verified, 0 errors after proving `CComponents_Partition` and adding helper lemmas `CComponent_IsInCComponents` / `CComponents_OverlapImpliesEqual`. |
 | 2026-05-25 | DA-P3-003 full-stack verify | `/opt/homebrew/bin/dafny verify probability.dfy dag.dfy interventional.dfy do_calculus.dfy semi_markovian.dfy identification.dfy` | Passed | Full stack verified with 843 verified, 0 errors after de-axiomatizing `CComponents_Partition`. |
+| 2026-05-25 | DA-P3-004 groundwork focused verify | `/opt/homebrew/bin/dafny verify semi_markovian.dfy` | Passed | `semi_markovian.dfy` verified with 155 verified, 0 errors after adding the first compiled-to-ghost inclusion bridge helpers for `CComponentCompiled_Correct`. |
+| 2026-05-25 | DA-P3-004 groundwork full-stack verify | `/opt/homebrew/bin/dafny verify probability.dfy dag.dfy interventional.dfy do_calculus.dfy semi_markovian.dfy identification.dfy` | Passed | Full stack verified with 848 verified, 0 errors; confirms no regression while `CComponentCompiled_Correct` remains axiomatic. |
+| 2026-05-25 | DA-P3-004 NoDup substrate focused verify | `/opt/homebrew/bin/dafny verify src/dafny/semi_markovian.dfy` | Passed | `semi_markovian.dfy` verified with 229 verified, 0 errors after adding `NoDupPath`, `NoDupPath_BoundedBySet`, and `IsBiPath_SimplifyNoDup`. |
+| 2026-05-25 | DA-P3-004 NoDup substrate full-stack verify | `/opt/homebrew/bin/dafny verify src/dafny/probability.dfy src/dafny/dag.dfy src/dafny/interventional.dfy src/dafny/do_calculus.dfy src/dafny/semi_markovian.dfy src/dafny/identification.dfy` | Passed | Full stack verified with 922 verified, 0 errors; no axiom-count change because reverse inclusion and `CComponentCompiled_Correct` remain open. |
 
 ## Commit Queue
 
@@ -243,6 +249,7 @@ Move rows from here to the commit ledger after committing.
 | DA-P7-009 | `proof(dafny): prove Markovian completeness corollary` | Replace `{:axiom}` on `MarkovianCompleteness` in `identification.dfy` with a proof that delegates to `Theorem5_AllIdentifiable` after establishing `NoBidirectedToChild(sm)` via the new helper `NoBidirected_NoConnection`. | Focused `identification.dfy` verify plus full-stack verify (584 verified). | Ready |
 | DA-P7-010 | `proof(dafny): prove identifiability monotone under bidirected subgraph` | Replace `{:axiom}` on `IdentifiabilityMonotoneBidirected` in `identification.dfy` with a contrapositive proof: a hedge in `sm'` lifts to `sm` because `sm'.dag == sm.dag` and `sm'.bidirected <= sm.bidirected`. | Focused `identification.dfy` verify plus full-stack verify (584 verified). | Ready |
 | DA-P7-013 | `proof(dafny): prove ID_Line1 base case` | Remove `{:axiom}` from `ID_Line1`, add `requires Y != {}`, and add proof body `assert n >= 1; assert n * n >= 1;`. | Focused `identification.dfy` verify (76 verified) plus full-stack verify (586 verified). | Ready |
+| DA-P3-004 | `proof(dafny): add compiled C-component proof substrate` | Commit the verified forward inclusion and NoDup simple-path substrate; keep the final equivalence proof queued until reverse inclusion (`CComponent <= CComponentCompiled`) lands. | Focused `semi_markovian.dfy` verify plus full-stack verify (latest: 229 / 922 verified). | In progress |
 
 ## Commit Ledger
 
@@ -290,7 +297,17 @@ The late-P5 route is now decided rather than still open:
 2. `SumTruncatedAssignmentMasses_Normalized(...)` is frozen as the final constructor-local normalization interface.
 3. The public order-free `TruncatePMF` family and `ProductPMF_Grounded` are frozen as intentional semantic boundaries over the current abstract outcome/product layer.
 
-The earlier support-filtering probe should no longer be treated as the operational next step. The current path remains the factor-level truncation route recorded in `docs/plans/2026-05-21-dafny-truncatepmf-factor-level-design.md`. `DA-P6-001` is now decided and `DA-P6-002` has landed: `DoCalculus.IntProb` stays abstract, but the do-calculus layer now has a witness-bearing pointwise kernel object that can delegate `GlobalMarkov` and `InterventionSemantics` concretely beneath that abstract PMF-valued surface. `DA-P6-003` now adds a non-axiomatic Rule 1+ helper path and the `X`-conditioning vacuity bridge under intervention. On the semi-Markovian infrastructure side, `DA-P3-003` has now de-axiomatized `CComponents_Partition`; the shortest next local target is `CComponentCompiled_Correct` (compiled BFS equivalence). The next active P6 question remains whether to lift the witness-bearing layer into a public PMF-valued kernel or `IntProb` redesign, or keep the top-level wrappers abstract and use the new kernel only as the concrete pointwise substrate.
+The earlier support-filtering probe should no longer be treated as the operational next step. The current path remains the factor-level truncation route recorded in `docs/plans/2026-05-21-dafny-truncatepmf-factor-level-design.md`. `DA-P6-001` is now decided and `DA-P6-002` has landed: `DoCalculus.IntProb` stays abstract, but the do-calculus layer now has a witness-bearing pointwise kernel object that can delegate `GlobalMarkov` and `InterventionSemantics` concretely beneath that abstract PMF-valued surface. `DA-P6-003` now adds a non-axiomatic Rule 1+ helper path and the `X`-conditioning vacuity bridge under intervention.
+
+Semi-Markovian frontier update (`DA-P3-004`):
+
+1. Progress landed: `CComponentCompiled <= CComponent` is now proved via BFS-state subset invariants.
+2. Progress landed: `IsBiPath_SimplifyNoDup` now converts any bidirected path over `SMNodes(sm)` into an endpoint-preserving simple path of length at most `|SMNodes(sm)|`.
+3. Remaining proof obligation: `CComponent <= CComponentCompiled` (reverse inclusion) is still open.
+4. Why this step is necessary: without reverse inclusion, `CComponentCompiled_Correct` cannot be de-axiomatized, so downstream callers still depend on a declaration axiom instead of proved compiled/ghost equivalence.
+5. Immediate next helper target: a stronger path-following invariant over BFS state (frontier/visited/fuel) to bridge simple bidirected-path witnesses into compiled BFS reachability despite the `v !in newVisited` frontier filter.
+
+The next active P6 question remains whether to lift the witness-bearing layer into a public PMF-valued kernel or `IntProb` redesign, or keep the top-level wrappers abstract and use the new kernel only as the concrete pointwise substrate.
 
 ## Decisions And Blockers
 
