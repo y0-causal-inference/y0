@@ -26,8 +26,8 @@ Specifically:
    constructors.
 4. Keep `SumsToOne` and the three Kolmogorov axioms explicit in the first P5
    slice. The immediate goal is to de-axiomatize derived laws and build usable
-   PMF constructors, not to force a full refactor of foundational assumptions
-   in the same batch.
+   PMF constructors, not to force a full refactor of foundational assumptions in
+   the same batch.
 
 ## Why This Direction
 

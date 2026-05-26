@@ -16,15 +16,15 @@ Each DAG answers a different question:
 1. The module DAG answers: "which source layer depends on which lower layer?"
 2. The proof-batch DAG answers: "which completed proof batches made the next
    ones feasible?"
-3. The operational DAG answers: "if the goal is to keep removing proof debt
-   with the smallest local next step, what should be proved next and why?"
+3. The operational DAG answers: "if the goal is to keep removing proof debt with
+   the smallest local next step, what should be proved next and why?"
 
 These graphs are intentionally different.
 
-An edge in the module DAG means a direct code or semantic dependency. An edge
-in the proof-batch DAG or the operational DAG means a proof-engineering
-dependency: one item made the next item tractable, even if there is no single
-formal theorem stating that relationship.
+An edge in the module DAG means a direct code or semantic dependency. An edge in
+the proof-batch DAG or the operational DAG means a proof-engineering dependency:
+one item made the next item tractable, even if there is no single formal theorem
+stating that relationship.
 
 ## How To Read These DAGs
 
@@ -35,10 +35,10 @@ The same repository can be read at three different levels:
 3. immediate local proving strategy.
 
 The earlier conversations mixed these levels because they are tightly coupled.
-For example, `Identification.IDImpl` lives high in the module stack, but some
-of its recent verification timeouts were caused by missing low-level facts in
-the interventional translation layer. The point of separating the DAGs is to
-make those distinctions explicit.
+For example, `Identification.IDImpl` lives high in the module stack, but some of
+its recent verification timeouts were caused by missing low-level facts in the
+interventional translation layer. The point of separating the DAGs is to make
+those distinctions explicit.
 
 ## DAG 1: Module And Semantic Layering
 
@@ -90,8 +90,8 @@ Reading guide:
 3. `DoCalculus` relies on both graph semantics and interventional semantics.
 4. `SemiMarkovian` adds the hidden-variable graph substrate used by the ID
    algorithm.
-5. `Identification` is highest in the stack, so proof debt there is often
-   really inherited debt from lower layers.
+5. `Identification` is highest in the stack, so proof debt there is often really
+   inherited debt from lower layers.
 
 ## DAG 2: Proof-Batch Dependency Flow
 
@@ -198,8 +198,8 @@ Reading guide:
 
 1. The existing event algebra and assignment bridge were enough to support the
    factor-level constructor scaffold and its first normalization lemmas.
-2. The immediate next move is now the recursive tail-normalization bridge, not
-   a support-filtering public constructor.
+2. The immediate next move is now the recursive tail-normalization bridge, not a
+   support-filtering public constructor.
 3. After that bridge lands, the remaining P5 blocker is the probability-layer
    conversion from concrete normalization to `SumsToOne` / `IsDistribution`.
 4. Once the truncation constructor is a real distribution, `ProductPMF_Grounded`
@@ -241,6 +241,6 @@ Use the DAGs in this order:
    commits happened in this order.
 3. Use the operational DAG when choosing the next theorem-proving task.
 
-If this note needs a future update, the main thing to keep stable is the
-meaning of each graph. It is fine for nodes to change as the proof frontier
-moves, but the three questions should stay distinct.
+If this note needs a future update, the main thing to keep stable is the meaning
+of each graph. It is fine for nodes to change as the proof frontier moves, but
+the three questions should stay distinct.

@@ -8,8 +8,8 @@ Related documents:
 - `docs/plans/2026-05-19-dafny-axiom-ledger.md`
 - `docs/plans/2026-05-21-dafny-probability-finite-sum-decision.md`
 
-This note starts `DA-P5-003`: resolving the representation mismatch between
-the probability layer's PMF sample points and the interventional layer's node
+This note starts `DA-P5-003`: resolving the representation mismatch between the
+probability layer's PMF sample points and the interventional layer's node
 assignments.
 
 ## Problem Statement
@@ -21,8 +21,8 @@ Today the same Dafny type, `Prob.Outcome`, is playing two incompatible roles:
 2. In `interventional.dfy`, `Assignment = map<Node, Prob.Outcome>` treats
    `Prob.Outcome` as the value taken by a single node.
 
-Those two readings cannot both be the intended semantics for the same type.
-The mismatch stayed harmless while `ProbEvent` was abstract, but it blocks any
+Those two readings cannot both be the intended semantics for the same type. The
+mismatch stayed harmless while `ProbEvent` was abstract, but it blocks any
 concrete account of `ProductPMF`, `Marginalize`, `TruncatePMF`, and
 `IntProbConcrete`.
 
@@ -84,6 +84,6 @@ The next implementation batch for `DA-P5-003` should stay design-scoped:
 3. pick one narrow probe that tests the chosen boundary without rewriting the
    whole `Prob.PMF` stack.
 
-The important outcome of this note is negative as well as positive: the repo
-now has enough evidence to avoid an in-place reinterpretation of `Prob.PMF` as
-the next move.
+The important outcome of this note is negative as well as positive: the repo now
+has enough evidence to avoid an in-place reinterpretation of `Prob.PMF` as the
+next move.

@@ -29,8 +29,8 @@ However, it is still the wrong public target for `TruncatePMF`.
 The reasons are semantic, not just technical:
 
 1. it hardens an observational-conditioning reading of `do(X = xVals)`;
-2. it requires a positivity premise `AssignmentProb(p, G, xVals) > 0.0` that
-   the current `TruncatePMF` interface does not require; and
+2. it requires a positivity premise `AssignmentProb(p, G, xVals) > 0.0` that the
+   current `TruncatePMF` interface does not require; and
 3. it does not explain the mutilated-graph semantics directly.
 
 That probe was therefore useful as a discriminator, but it should remain an
@@ -40,8 +40,8 @@ auxiliary experiment rather than the next public constructor definition.
 
 The better-matched construction is factor-level rather than support-level.
 
-For a full assignment `a : Assignment` over `Nodes(G)`, define a truncated
-local factor at node `v` by:
+For a full assignment `a : Assignment` over `Nodes(G)`, define a truncated local
+factor at node `v` by:
 
 1. if `v in X` and `a[v] == xVals[v]`, return `1.0`;
 2. if `v in X` and `a[v] != xVals[v]`, return `0.0`;
@@ -67,15 +67,15 @@ This matches the intended causal semantics more closely:
 
 1. intervened nodes stop reading parent conditionals;
 2. non-intervened nodes keep their original conditional factors; and
-3. the resulting distribution is aligned with `RemoveIncoming(G, X)` rather
-   than with observational conditioning on the event `X = xVals`.
+3. the resulting distribution is aligned with `RemoveIncoming(G, X)` rather than
+   with observational conditioning on the event `X = xVals`.
 
 ## Why This Better Matches The Current Surface
 
 This design fits the abstractions already present in `interventional.dfy`:
 
-1. `ConditionalFactor` already names the local probability object the
-   truncated formula should manipulate;
+1. `ConditionalFactor` already names the local probability object the truncated
+   formula should manipulate;
 2. `MarkovFactorization` already states that the observational joint is built
    from such local factors; and
 3. `TruncatePMF_Markov` is already phrased in terms of the mutilated graph
@@ -83,8 +83,8 @@ This design fits the abstractions already present in `interventional.dfy`:
 
 The missing piece is representation. The current bridge goes from outcome to
 assignment, but not from assignment back to a canonical outcome. That means a
-true factor-level constructor naturally wants to live over full assignments,
-not over the observational support `p.Keys` alone.
+true factor-level constructor naturally wants to live over full assignments, not
+over the observational support `p.Keys` alone.
 
 ## Expected Proof Payoff
 
