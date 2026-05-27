@@ -7,3 +7,4 @@ import Y0Lean.DoCalculus
 import Y0Lean.Identification
 import Y0Lean.IR
 import Y0Lean.ProbabilityLayer
+import Y0Lean.KahnSort

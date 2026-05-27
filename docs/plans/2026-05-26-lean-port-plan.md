@@ -99,7 +99,7 @@ conformance tests against `id_cases.v1.json`. Termination proofs required.
 
 | ID | Dafny source | Notes | Status |
 | --- | --- | --- | --- |
-| L2-001 | `KahnSort` (topological order) | `termination_by` on remaining node count | Not started |
+| L2-001 | `KahnSort` (topological order) | `termination_by` on remaining node count | Done |
 | L2-002 | `Ancestors`, `Descendants` (compiled BFS) | `termination_by fuel` | Not started |
 | L2-003 | `BidirectedBFSLoop`, `CComponentCompiled` | `termination_by fuel`; port proved in DA-P3-004 | Not started |
 | L2-004 | `DSeparation` (trail-based) | `termination_by` on path length bound | Not started |
@@ -224,6 +224,7 @@ uv run python scripts/count_lean_sorrys.py
 | 2026-05-26 | 561c6f7 | 0 | 0 | L1 Repr instances (noncomputable) |
 | 2026-05-26 | fcb764c | 0 | 0 | L1 Repr all computable via LinearOrder BiEdge |
 | 2026-05-26 | (L3)    | 1 | +1 | L3 probability layer; `truncatePMF_markov` deferred |
+| 2026-05-26 | (L2-001) | 2 | +1 | L2-001 kahnSort computable; `kahnSort_spec` deferred |
 
 ---
 
@@ -236,6 +237,7 @@ uv run python scripts/count_lean_sorrys.py
 | 2026-05-26 | 561c6f7 | ✅ 1704 jobs | n/a | L1 Repr instances added |
 | 2026-05-26 | fcb764c | ✅ 1704 jobs | n/a | All Repr computable; 0 noncomputable instances |
 | 2026-05-26 | (L3)    | ✅ 1713 jobs | n/a | L3 probability layer; 8/10 items done; 1 sorry |
+| 2026-05-26 | (L2-001) | ✅ 1714 jobs | n/a | L2-001 kahnSort computable; 2 sorrys total |
 
 ---
 
