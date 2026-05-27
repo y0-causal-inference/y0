@@ -84,13 +84,13 @@ obligations — these are `structure`/`inductive` definitions only. Should be
 
 | ID | Dafny source | Lean target | Status |
 | --- | --- | --- | --- |
-| L1-001 | `Node = nat`, `Graph = map<Node,set<Node>>` | `abbrev Node := ℕ`; `abbrev Graph := Finmap Node (Finset Node)` | Not started |
-| L1-002 | `Option<T>`, `EdgeDir`, `TrailStep` | `Option` (stdlib); `inductive EdgeDir`; `structure TrailStep` | Not started |
-| L1-003 | `SMGraph`, `BiEdge` | `structure SMGraph`; `structure BiEdge` | Not started |
-| L1-004 | `CausalQuery`, `IDResult` | `structure CausalQuery`; `inductive IDResult` | Not started |
-| L1-005 | `IRNode`, `IRQuery`, `IRDoc`, `Edge` (conformance IR) | `inductive IRNode`; `structure IRQuery` etc. | Not started |
-| L1-006 | `InterventionalKernel` | `structure InterventionalKernel` | Not started |
-| L1-007 | `type PMF = map<Outcome, real>` | Use `Mathlib.Probability.PMF` directly | Not started |
+| L1-001 | `Node = nat`, `Graph = map<Node,set<Node>>` | `abbrev Node := ℕ`; `abbrev Graph := Finmap (fun _ : Node => Finset Node)` | Done |
+| L1-002 | `Option<T>`, `EdgeDir`, `TrailStep` | `Option` (stdlib); `inductive EdgeDir`; `structure TrailStep` | Done |
+| L1-003 | `SMGraph`, `BiEdge` | `structure SMGraph`; `structure BiEdge` | Done |
+| L1-004 | `CausalQuery`, `IDResult` | `structure CausalQuery`; `inductive IDResult` | Done |
+| L1-005 | `IRNode`, `IRQuery`, `IRDoc`, `Edge` (conformance IR) | `inductive IRNode`; `structure IRQuery` etc. | Done |
+| L1-006 | `InterventionalKernel` | `structure InterventionalKernel` | Done |
+| L1-007 | `type PMF = map<Outcome, real>` | Use `Mathlib.Probability.PMF` directly | Done |
 
 ### Phase L2: Computable Algorithms
 
@@ -220,6 +220,7 @@ uv run python scripts/count_lean_sorrys.py
 | Date | Commit | Total `sorry` | Delta | Notes |
 | --- | --- | --- | --- | --- |
 | 2026-05-26 | 660710b | 0 | — | Skeleton only; no definitions |
+| 2026-05-26 | d22dded | 0 | 0 | L1 type layer; 13 new definitions |
 
 ---
 
@@ -228,6 +229,7 @@ uv run python scripts/count_lean_sorrys.py
 | Date | Commit | `lake build` result | Conformance tests | Notes |
 | --- | --- | --- | --- | --- |
 | 2026-05-26 | 660710b | ✅ 0 jobs | n/a | Skeleton + Mathlib cached |
+| 2026-05-26 | d22dded | ✅ 1702 jobs | n/a | L1 type layer complete |
 
 ---
 
@@ -246,6 +248,7 @@ Items ready to commit but not yet committed. Move to ledger after committing.
 | Date | Commit | Message | Phase items | Notes |
 | --- | --- | --- | --- | --- |
 | 2026-05-26 | 660710b | feat(lean): L0 skeleton — lakefile, Mathlib, tox env, sorry counter | L0-001–L0-005 | `lake build` green, 0 sorrys |
+| 2026-05-26 | d22dded | feat(lean): L1 type layer | L1-001–L1-007 | 1702-job build; 0 sorrys; `deriving Repr` removed from SMGraph/CausalQuery (Finmap has no Repr) |
 
 ---
 

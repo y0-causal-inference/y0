@@ -4,6 +4,7 @@
   Phase L1: type layer — no proof obligations.
 -/
 import Mathlib.Data.Finmap
+import Mathlib.Data.Finset.Sort
 
 namespace Y0Lean
 
@@ -15,6 +16,22 @@ abbrev Node := ℕ
     `G.lookup v = some S` means `v` is present in the graph with parent set `S`.
     Corresponds to Dafny's `type Graph = map<Node, set<Node>>`. -/
 abbrev Graph := Finmap (fun _ : Node => Finset Node)
+
+/-- Display a `Graph` as a sorted list of `(node, sorted-parents)` pairs.
+    Uses `Finset.sort` (computable merge-sort) so the instance is usable in `#eval`.
+    Both keys and parent sets are sorted by node index. -/
+instance : Repr Graph where
+  reprPrec g _ :=
+    -- Finset.sort (s : Finset α) (r := fun a b => a ≤ b) — relation is 2nd arg
+    let ks : List Node := Finset.sort g.keys
+    let pairs : List (Node × List Node) :=
+      ks.filterMap (fun k =>
+        (g.lookup k).map (fun v => (k, Finset.sort v)))
+    reprPrec pairs 0
+
+/-- Display a `Finset Node` as a sorted list (computable via `Finset.sort`). -/
+instance : Repr (Finset Node) where
+  reprPrec s _ := reprPrec (Finset.sort s) 0
 
 /-- Direction of an edge step used in d-separation trails.
     Corresponds to Dafny's `datatype EdgeDir = Forward | Backward`. -/

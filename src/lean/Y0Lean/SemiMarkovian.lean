@@ -21,4 +21,14 @@ structure SMGraph : Type where
   dag        : Graph         -- directed acyclic component
   bidirected : Finset BiEdge -- bidirected (latent confounder) edges
 
+/-- Display a `Finset BiEdge` as a list.
+    Noncomputable because `Multiset.toList` uses classical choice for a canonical representative. -/
+noncomputable instance : Repr (Finset BiEdge) where
+  reprPrec s _ := reprPrec s.val.toList 0
+
+/-- Display an `SMGraph` as `(dag, bidirected_list)`.
+    Noncomputable because `Repr (Finset BiEdge)` is noncomputable. -/
+noncomputable instance : Repr SMGraph where
+  reprPrec g p := reprPrec (g.dag, g.bidirected.val.toList) p
+
 end Y0Lean

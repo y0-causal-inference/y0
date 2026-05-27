@@ -16,6 +16,11 @@ structure CausalQuery : Type where
   treatments : Finset Node   -- X — variables intervened on (do(X = x))
   outcomes   : Finset Node   -- Y — variables whose effect we seek
 
+/-- Display a `CausalQuery` as `(graph, treatments, outcomes)`.
+    Noncomputable because `Repr SMGraph` is noncomputable. -/
+noncomputable instance : Repr CausalQuery where
+  reprPrec q p := reprPrec (q.graph, q.treatments, q.outcomes) p
+
 /-- The result of the ID algorithm.
     Corresponds to Dafny's `datatype IDResult = Identified(...) | NotIdentified(...)`.
 
