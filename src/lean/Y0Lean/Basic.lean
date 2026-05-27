@@ -8,3 +8,6 @@ import Y0Lean.Identification
 import Y0Lean.IR
 import Y0Lean.ProbabilityLayer
 import Y0Lean.KahnSort
+import Y0Lean.Traversal
+import Y0Lean.IDAlgorithm
+import Y0Lean.IDConformance
