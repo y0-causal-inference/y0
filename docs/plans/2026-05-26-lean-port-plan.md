@@ -114,16 +114,16 @@ existing Mathlib theorems. Most items require only a one-line `exact` or `apply`
 
 | ID | Dafny axiom | Mathlib replacement | Status |
 | --- | --- | --- | --- |
-| L3-001 | `Axiom_NonNegativity` | `PMF.apply_nonneg` | Not started |
-| L3-002 | `Axiom_Additivity` | `MeasureTheory.measure_union_disjoint` | Not started |
-| L3-003 | `ProductPMF`, `ProductPMF_IsDistribution` | `PMF.prod` / `MeasureTheory.Measure.prod` | Not started |
-| L3-004 | `MarkovFactorization` predicate | Markov kernel product `Kernel.const ×ₖ Kernel.id` | Not started |
-| L3-005 | `TruncatePMF`, `TruncatePMF_IsDistribution` | `PMF.normalize`, `MeasureTheory.cond` | Not started |
-| L3-006 | `SumTruncatedAssignmentMasses_Normalized` | Sum-of-normalize = 1 from `PMF` API | Not started |
-| L3-007 | `SetToSequence`, `SetOfSetsToSeq` | `Finset.sort`, `Finset.toList` | Not started |
-| L3-008 | `ConditionalFactor`, `ConditionalLocalPMF` | `MeasureTheory.cond` | Not started |
-| L3-009 | `MarkovFactorization_IsDistribution` | Follows from Markov kernel normalization | Not started |
-| L3-010 | `TruncatePMF_Markov` | Truncated measure still satisfies Markov | Not started |
+| L3-001 | `Axiom_NonNegativity` | `PMF.apply_nonneg` | Done |
+| L3-002 | `Axiom_Additivity` | `MeasureTheory.measure_union_disjoint` | Done |
+| L3-003 | `ProductPMF`, `ProductPMF_IsDistribution` | `PMF.prod` / `MeasureTheory.Measure.prod` | Done |
+| L3-004 | `MarkovFactorization` predicate | Markov kernel product `Kernel.const ×ᵋ Kernel.id` | Opaque placeholder |
+| L3-005 | `TruncatePMF`, `TruncatePMF_IsDistribution` | `PMF.normalize`, `MeasureTheory.cond` | Done |
+| L3-006 | `SumTruncatedAssignmentMasses_Normalized` | Sum-of-normalize = 1 from `PMF` API | Done |
+| L3-007 | `SetToSequence`, `SetOfSetsToSeq` | `Finset.sort`, `Finset.toList` | Done |
+| L3-008 | `ConditionalFactor`, `ConditionalLocalPMF` | `MeasureTheory.cond` | TODO (needs OutcomeToAssignment) |
+| L3-009 | `MarkovFactorization_IsDistribution` | Follows from Markov kernel normalization | Done |
+| L3-010 | `TruncatePMF_Markov` | Truncated measure still satisfies Markov | Sorry (L6) |
 
 ### Phase L4: Graph Theory Lemmas
 
@@ -223,6 +223,7 @@ uv run python scripts/count_lean_sorrys.py
 | 2026-05-26 | d22dded | 0 | 0 | L1 type layer; 13 new definitions |
 | 2026-05-26 | 561c6f7 | 0 | 0 | L1 Repr instances (noncomputable) |
 | 2026-05-26 | fcb764c | 0 | 0 | L1 Repr all computable via LinearOrder BiEdge |
+| 2026-05-26 | (L3)    | 1 | +1 | L3 probability layer; `truncatePMF_markov` deferred |
 
 ---
 
@@ -234,6 +235,7 @@ uv run python scripts/count_lean_sorrys.py
 | 2026-05-26 | d22dded | ✅ 1702 jobs | n/a | L1 type layer complete |
 | 2026-05-26 | 561c6f7 | ✅ 1704 jobs | n/a | L1 Repr instances added |
 | 2026-05-26 | fcb764c | ✅ 1704 jobs | n/a | All Repr computable; 0 noncomputable instances |
+| 2026-05-26 | (L3)    | ✅ 1713 jobs | n/a | L3 probability layer; 8/10 items done; 1 sorry |
 
 ---
 

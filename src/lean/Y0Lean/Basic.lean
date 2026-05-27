@@ -6,3 +6,4 @@ import Y0Lean.SemiMarkovian
 import Y0Lean.DoCalculus
 import Y0Lean.Identification
 import Y0Lean.IR
+import Y0Lean.ProbabilityLayer
