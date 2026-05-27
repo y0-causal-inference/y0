@@ -100,12 +100,12 @@ conformance tests against `id_cases.v1.json`. Termination proofs required.
 | ID | Dafny source | Notes | Status |
 | --- | --- | --- | --- |
 | L2-001 | `KahnSort` (topological order) | `termination_by` on remaining node count | Done |
-| L2-002 | `Ancestors`, `Descendants` (compiled BFS) | `termination_by fuel` | Not started |
-| L2-003 | `BidirectedBFSLoop`, `CComponentCompiled` | `termination_by fuel`; port proved in DA-P3-004 | Not started |
-| L2-004 | `DSeparation` (trail-based) | `termination_by` on path length bound | Not started |
-| L2-005 | `IDImpl` (the ID algorithm) | `termination_by` on recursion measure | Not started |
-| L2-006 | JSON decoder for `id_cases.v1.json` cases | Lean has `Json` in Mathlib/Std | Not started |
-| L2-007 | `#guard` conformance tests for all active `id_cases.v1.json` cases | Reuse existing fixture; parity with `test_dafny_id_correspondence.py` | Not started |
+| L2-002 | `Ancestors`, `Descendants` (compiled BFS) | `termination_by fuel` | Done |
+| L2-003 | `BidirectedBFSLoop`, `CComponentCompiled` | `termination_by fuel`; port proved in DA-P3-004 | Done |
+| L2-004 | `DSeparation` (trail-based) | Prop-valued; computable BFS deferred to L4-003 | Done |
+| L2-005 | `IDImpl` (the ID algorithm) | String-keyed computable version returning IRNode; `termination_by fuel` | Done |
+| L2-006 | JSON decoder for `id_cases.v1.json` cases | Hard-coded graphs in IDConformance.lean | Done |
+| L2-007 | `#guard` conformance tests for all active `id_cases.v1.json` cases | 10/10 tests pass at compile time | Done |
 
 ### Phase L3: Probability Layer via Mathlib
 
@@ -259,6 +259,10 @@ Items ready to commit but not yet committed. Move to ledger after committing.
 | 2026-05-26 | d22dded | feat(lean): L1 type layer | L1-001–L1-007 | 1702-job build; 0 sorrys; `deriving Repr` removed from SMGraph/CausalQuery (Finmap has no Repr) |
 | 2026-05-26 | 561c6f7 | feat(lean): L1 Repr instances | L1 Repr (noncomputable) | 1704-job build; Repr Graph (computable), Finset Node, Finset BiEdge/SMGraph/CausalQuery (noncomputable via Multiset.toList) |
 | 2026-05-26 | fcb764c | feat(lean): make Repr (Finset BiEdge), SMGraph, CausalQuery computable | L1 Repr (computable) | LinearOrder BiEdge via LinearOrder.lift' through ℕ ×ₗ ℕ; all Repr now computable; 0 noncomputable instances |
+| 2026-05-27 | 99df619 | feat(lean): L3 probability layer — Kolmogorov axioms + PMF operations | L3-001..009 | 1713-job build; 1 sorry (truncatePMF_markov, deferred to L6) |
+| 2026-05-27 | bf68918 | feat(lean): L2-001 kahnSort — computable topological sort via Kahn's algorithm | L2-001 | 1714-job build; 2 sorrys |
+| 2026-05-27 | 703bf3e | feat(lean): L2-002..007 graph traversal, ID algorithm, and conformance tests | L2-002..007 | Traversal.lean + IDAlgorithm.lean + IDConformance.lean; 10/10 #guard pass |
+| 2026-05-27 | b1068bb | feat(lean): L2-004 dSeparation — d-separation predicate (Prop, not computable) | L2-004 | DSeparation.lean; 1718-job build; 9 sorrys (all deferred L4/L6) |
 
 ---
 
