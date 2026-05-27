@@ -221,6 +221,8 @@ uv run python scripts/count_lean_sorrys.py
 | --- | --- | --- | --- | --- |
 | 2026-05-26 | 660710b | 0 | — | Skeleton only; no definitions |
 | 2026-05-26 | d22dded | 0 | 0 | L1 type layer; 13 new definitions |
+| 2026-05-26 | 561c6f7 | 0 | 0 | L1 Repr instances (noncomputable) |
+| 2026-05-26 | fcb764c | 0 | 0 | L1 Repr all computable via LinearOrder BiEdge |
 
 ---
 
@@ -230,6 +232,8 @@ uv run python scripts/count_lean_sorrys.py
 | --- | --- | --- | --- | --- |
 | 2026-05-26 | 660710b | ✅ 0 jobs | n/a | Skeleton + Mathlib cached |
 | 2026-05-26 | d22dded | ✅ 1702 jobs | n/a | L1 type layer complete |
+| 2026-05-26 | 561c6f7 | ✅ 1704 jobs | n/a | L1 Repr instances added |
+| 2026-05-26 | fcb764c | ✅ 1704 jobs | n/a | All Repr computable; 0 noncomputable instances |
 
 ---
 
@@ -249,6 +253,8 @@ Items ready to commit but not yet committed. Move to ledger after committing.
 | --- | --- | --- | --- | --- |
 | 2026-05-26 | 660710b | feat(lean): L0 skeleton — lakefile, Mathlib, tox env, sorry counter | L0-001–L0-005 | `lake build` green, 0 sorrys |
 | 2026-05-26 | d22dded | feat(lean): L1 type layer | L1-001–L1-007 | 1702-job build; 0 sorrys; `deriving Repr` removed from SMGraph/CausalQuery (Finmap has no Repr) |
+| 2026-05-26 | 561c6f7 | feat(lean): L1 Repr instances | L1 Repr (noncomputable) | 1704-job build; Repr Graph (computable), Finset Node, Finset BiEdge/SMGraph/CausalQuery (noncomputable via Multiset.toList) |
+| 2026-05-26 | fcb764c | feat(lean): make Repr (Finset BiEdge), SMGraph, CausalQuery computable | L1 Repr (computable) | LinearOrder BiEdge via LinearOrder.lift' through ℕ ×ₗ ℕ; all Repr now computable; 0 noncomputable instances |
 
 ---
 
