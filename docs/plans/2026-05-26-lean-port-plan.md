@@ -219,7 +219,7 @@ uv run python scripts/count_lean_sorrys.py
 
 | Date | Commit | Total `sorry` | Delta | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-05-26 | (L0 skeleton) | 0 | — | Skeleton only; no definitions |
+| 2026-05-26 | 660710b | 0 | — | Skeleton only; no definitions |
 
 ---
 
@@ -227,7 +227,7 @@ uv run python scripts/count_lean_sorrys.py
 
 | Date | Commit | `lake build` result | Conformance tests | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-05-26 | (L0 skeleton) | ✅ 0 jobs | n/a | Skeleton + Mathlib cached |
+| 2026-05-26 | 660710b | ✅ 0 jobs | n/a | Skeleton + Mathlib cached |
 
 ---
 
@@ -245,7 +245,7 @@ Items ready to commit but not yet committed. Move to ledger after committing.
 
 | Date | Commit | Message | Phase items | Notes |
 | --- | --- | --- | --- | --- |
-| 2026-05-26 | (pending) | feat(lean): L0 skeleton — lakefile, lean-toolchain, Mathlib, tox env, sorry counter | L0-001–L0-005 | `lake build` green, 0 sorrys |
+| 2026-05-26 | 660710b | feat(lean): L0 skeleton — lakefile, Mathlib, tox env, sorry counter | L0-001–L0-005 | `lake build` green, 0 sorrys |
 
 ---
 
