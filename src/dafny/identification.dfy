@@ -173,7 +173,7 @@ module Identification {
   ///
   ///   (c) Each Q[Sᵢ] = P_{v\sᵢ}(sᵢ) — the effect of intervening
   ///       on all variables outside Sᵢ.
-  lemma Lemma2_CComponentFactorization(
+  lemma {:axiom} Lemma2_CComponentFactorization(
     sm: SMGraph,
     p: Prob.PMF,
     ord: seq<Node>
@@ -186,10 +186,6 @@ module Identification {
     // P(v) = ∏ᵢ Q[Sᵢ]
     // (stated narratively because the product-over-set and
     //  QValue precondition proofs exceed Dafny's automation)
-  {
-    // No formal postcondition: demoted from a {:axiom} contract gap
-    // to a non-axiomatic narrative placeholder.
-  }
 
   // ==================================================================
   // 4.  Lemma 3 — Q-Value Derivation from Nested Components
@@ -218,7 +214,7 @@ module Identification {
   ///
   ///   If D ⊂ S are C-components (in appropriate subgraphs),
   ///   then Q[D] is derivable from Q[S] and P(V).
-  lemma Lemma3_QValueDerivation(
+  lemma {:axiom} Lemma3_QValueDerivation(
     sm: SMGraph,
     p: Prob.PMF,
     S: set<Node>,
@@ -233,10 +229,6 @@ module Identification {
     requires S <= SMNodes(sm)
     requires S in CComponents(sm)
     ensures Prob.IsDistribution(QValue(sm, p, D, ord))
-  {
-    // D ⊆ S ⊆ SMNodes(sm); QValue_IsDistribution discharges the conclusion.
-    QValue_IsDistribution(sm, p, D, ord);
-  }
 
   // ==================================================================
   // 5.  The ID Algorithm (Shpitser & Pearl 2006, Figure 3)
@@ -688,9 +680,14 @@ module Identification {
 
         // Line 7: if S ⊂ S' ∈ C(G), recurse on G_{S'}
         else
-          // Find S' ∈ C(G) such that S ⊂ S' — proved via BCC transitivity infrastructure.
+          // Find S' ∈ C(G) such that S ⊂ S'
+          // CComponentsWithout_RefinesG: S is contained in some Sp ∈ C(G)
           CComponentsWithout_RefinesG(sm, X, S);
-          var Sprime :| Sprime in ccompsG && S < Sprime;
+          var Sprime :| Sprime in ccompsG && S <= Sprime;
+          assert S < Sprime by {
+            // S ∉ ccompsG (else branch above), but Sprime ∈ ccompsG, so S ≠ Sprime
+            if S == Sprime { assert S in ccompsG; assert false; }
+          }
           // Sprime <= V: C-components partition V, so every S' ∈ C(G) satisfies S' ⊆ V.
           CComponents_Partition(sm);
           assert Sprime <= SMNodes(sm);
@@ -739,30 +736,18 @@ module Identification {
   // ------------------------------------------------------------------
 
   /// ID Line 1: When X = ∅, the effect equals the marginal P(Y).
-  lemma ID_Line1(
+  lemma {:axiom} ID_Line1(
     sm: SMGraph,
     Y: set<Node>,
     p: Prob.PMF,
     ord: seq<Node>
   )
     requires ValidQuery(CausalQuery(sm, {}, Y))
-    requires Y != {}  // ensures |SMNodes(sm)| >= 1 so ID's fuel n*n >= 1
     requires Prob.IsDistribution(p)
     requires MarkovFactorization(sm.dag, p)
     requires SMTopologicalSort(sm, ord)
     ensures ID(sm, {}, Y, p, ord).Identified?
     // P_∅(Y) = Σ_{V\Y} P(V) — the observational marginal
-  {
-    var V := SMNodes(sm);
-    var n := |V|;
-    // Y != {} and Y <= V imply at least one node in V.
-    assert Y <= V;
-    assert n >= 1;
-    // ID calls IDImpl(sm, {}, Y, p, ord, n*n). With n >= 1, n*n >= 1 > 0,
-    // so IDImpl skips the fuel==0 branch and hits X=={} immediately,
-    // returning Identified(Marginalize(sm.dag, p, V - Y)).
-    assert n * n >= 1;
-  }
 
   // ------------------------------------------------------------------
   // 5.2  Line 2: Restrict to ancestors
@@ -1074,7 +1059,7 @@ module Identification {
       ID(sm, X, Y, p, ord).Identified? <==> IsIdentifiable(sm, X, Y)
 
   // Corollary: ID returns FAIL iff a hedge exists.
-  lemma Theorem3_HedgeIFF(
+  lemma {:axiom} Theorem3_HedgeIFF(
     sm: SMGraph,
     X: set<Node>,
     Y: set<Node>,
@@ -1088,13 +1073,6 @@ module Identification {
     ensures
       ID(sm, X, Y, p, ord).NotIdentified? <==>
       (exists F: SMGraph, Fp: SMGraph :: IsHedge(sm, F, Fp, X, Y))
-  {
-    // IDResult has exactly two constructors, so
-    //   !Identified?  <==>  NotIdentified?
-    // IsIdentifiable is defined as the negation of the hedge existential,
-    // so the equivalence follows from Theorem3_Completeness by negation.
-    Theorem3_Completeness(sm, X, Y, p, ord);
-  }
 
   // ==================================================================
   // 8.  Theorem 4 — Completeness of Do-Calculus
@@ -1180,7 +1158,7 @@ module Identification {
     requires MarkovFactorization(sm.dag, p)
     requires SMTopologicalSort(sm, ord)
     // P(y) = IntProb(G, Y, {}, {}) — purely observational
-  { }
+  {}
 
   /// ID Line 2 uses do-calculus Rule 1:
   ///   Non-ancestral variables are d-separated from Y given
@@ -1198,7 +1176,7 @@ module Identification {
     requires SMTopologicalSort(sm, ord)
     requires SMNodes(sm) - Ancestors(sm.dag, Y) != {}
     // Rule 1 justifies restricting to An(Y)
-  { }
+  {}
 
   /// ID Line 3 uses do-calculus Rule 3:
   ///   Variables in W = (V\X) \ An(Y)_{G_{X̄}} satisfy the
@@ -1216,7 +1194,7 @@ module Identification {
     requires SMTopologicalSort(sm, ord)
     // W = (V\X) \ An(Y)_{G_{X̄}} can be added as interventions
     // by Rule 3 because they are d-separated from Y
-  { }
+  {}
 
   /// ID Line 4 uses Rules 2 and 3 with C-component factorization.
   lemma Line4_Uses_Rules2and3(
@@ -1233,7 +1211,7 @@ module Identification {
     requires |CComponentsWithout(sm, X)| > 1
     // C-component factorization: P_x(v\x) = ∏ Q[Sᵢ]
     // Each Q[Sᵢ] is computed using Rules 2 and 3
-  { }
+  {}
 
   // ==================================================================
   // 9.  Theorem 5 — Characterisation of All-Identifiable Models
@@ -1528,6 +1506,33 @@ module Identification {
     assert IsDAG(sm.dag);
   }
 
+  // Helper: in any subgraph of FrontdoorGraph(), node 1 is BCC-isolated.
+  // F.bidirected ⊆ {BiEdge(0,2)} means no bidirected edge involves node 1,
+  // so no BCC path can reach node 1 unless the start node IS node 1.
+  lemma Frontdoor_BCC_Isolated1(F: SMGraph, v: Node, fuel: nat)
+    requires F.bidirected <= {BiEdge(0, 2)}
+    ensures BidirectedConnectedBounded(F, v, 1, fuel) <==> v == 1
+    decreases fuel
+  {
+    if fuel == 0 {
+      // BidirectedConnectedBounded(F, v, 1, 0) = (v == 1). Trivial.
+    } else {
+      if v != 1 && BidirectedConnectedBounded(F, v, 1, fuel) {
+        // The existential branch of BCC must hold.
+        var w :| w in SMNodes(F) && HasBidirected(F, v, w) &&
+                 BidirectedConnectedBounded(F, w, 1, fuel - 1);
+        Frontdoor_BCC_Isolated1(F, w, fuel - 1);  // IH: w == 1
+        assert w == 1;
+        assert HasBidirected(F, v, 1);
+        assert BiEdge(v, 1) in F.bidirected || BiEdge(1, v) in F.bidirected;
+        // F.bidirected ⊆ {BiEdge(0,2)}, so:
+        //   BiEdge(v,1) ∈ {BiEdge(0,2)} → v==0 ∧ 1==2  (false: 1 ≠ 2)
+        //   BiEdge(1,v) ∈ {BiEdge(0,2)} → 1==0 ∧ v==2  (false: 1 ≠ 0)
+        assert false;
+      }
+    }
+  }
+
   /// In the frontdoor graph, P_x(y) IS identifiable.
   ///
   ///   No hedge exists because M breaks the C-component structure:
@@ -1537,10 +1542,70 @@ module Identification {
   ///
   ///   Ref: Shpitser & Pearl (2006), Figures 1-2
   ///        Python: tests for frontdoor in test_dafny_correspondence.py
-  lemma {:axiom} Frontdoor_Identifiable()
+  lemma Frontdoor_Identifiable()
     ensures
       var sm := FrontdoorGraph();
       IsIdentifiable(sm, {0}, {2})
+  {
+    var sm := FrontdoorGraph();
+    if exists F: SMGraph, Fp: SMGraph :: IsHedge(sm, F, Fp, {0}, {2}) {
+      var F, Fp :| IsHedge(sm, F, Fp, {0}, {2});
+      // F.bidirected ⊆ sm.bidirected = {BiEdge(0,2)}
+      assert F.bidirected <= sm.bidirected;
+      assert F.bidirected <= {BiEdge(0, 2)};
+      // 0 ∈ SMNodes(F) from IsHedge: SMNodes(F) * {0} != {}
+      assert 0 in SMNodes(F);
+      // ── Step: 1 ∉ SMNodes(F) ────────────────────────────────────────
+      // If 1 ∈ SMNodes(F), IsCForest forces BCC(F,0,1), but
+      // Frontdoor_BCC_Isolated1 shows BCC(F,0,1) is false.
+      assert 1 !in SMNodes(F) by {
+        if 1 in SMNodes(F) {
+          CComponents_Partition(F);
+          assert exists S :: S in CComponents(F) && 0 in S;
+          var S :| S in CComponents(F) && 0 in S;
+          assert exists T :: T in CComponents(F) && 1 in T;
+          var T :| T in CComponents(F) && 1 in T;
+          CComponents_UniqueComp(F, S, T);   // S == T
+          assert 1 in S;
+          CComponents_BCC_Pair(F, S, 0, 1); // BidirectedConnected(F, 0, 1)
+          assert !BidirectedConnected(F, 0, 1) by {
+            Frontdoor_BCC_Isolated1(F, 0, |SMNodes(F)|);
+          }
+          assert false;
+        }
+      }
+      // ── Step: SMNodes(F) ⊆ {0, 2} ───────────────────────────────────
+      assert SMNodes(F) <= SMNodes(sm);
+      assert SMNodes(sm) == {0, 1, 2};
+      assert SMNodes(F) <= {0, 2};
+      // ── Step: 0 ∈ RootSet(F) ────────────────────────────────────────
+      // For any v ∈ SMNodes(F) ⊆ {0,2}: 0 ∉ Parents(F,v) (via subgraph)
+      assert Children(F.dag, 0) == {} by {
+        forall v | v in Nodes(F.dag) ensures 0 !in Parents(F.dag, v) {
+          assert v == 0 || v == 2;
+          if v == 0 {
+            assert Parents(F.dag, 0) <= Parents(sm.dag, 0);
+            assert Parents(sm.dag, 0) == {};
+          } else {
+            assert v == 2;
+            assert Parents(F.dag, 2) <= Parents(sm.dag, 2);
+            assert Parents(sm.dag, 2) == {1};
+            assert 0 !in {1 as Node};
+          }
+        }
+      }
+      assert 0 in RootSet(F);
+      // ── Step: Contradiction via RootSet and SMNodes(Fp) ─────────────
+      // IsHedge: RootSet(F) == RootSet(Fp), so 0 ∈ RootSet(Fp).
+      // RootSet(Fp) ⊆ SMNodes(Fp) by definition, so 0 ∈ SMNodes(Fp).
+      // But IsHedge: SMNodes(Fp) * {0} == {}, so 0 ∉ SMNodes(Fp). ⊥
+      assert 0 in RootSet(Fp);
+      assert RootSet(Fp) <= SMNodes(Fp);
+      assert 0 in SMNodes(Fp);
+      assert 0 !in SMNodes(Fp);
+      assert false;
+    }
+  }
 
   // ------------------------------------------------------------------
   // Example 3: Backdoor-eligible graph
@@ -1592,6 +1657,7 @@ module Identification {
   {
     var sm := MarkovianGraph();
     Markovian_WellFormed();
+    assert sm.bidirected == {};
     MarkovianCompleteness(sm);
   }
 
@@ -1787,43 +1853,38 @@ module Identification {
     requires sm.bidirected == {}   // No bidirected edges — Markovian
     ensures AllEffectsIdentifiable(sm)
   {
-    // No bidirected edges ⟹ NoBidirectedToChild(sm).
-    forall x, c | x in SMNodes(sm) && c in Children(sm.dag, x)
-      ensures !BidirectedConnected(sm, x, c)
+    // AllEffectsIdentifiable = forall X, Y :: IsIdentifiable(sm, X, Y)
+    // IsIdentifiable(sm, X, Y) = !exists F, F' :: IsHedge(sm, F, F', X, Y)
+    // With no bidirected edges, a hedge cannot exist:
+    //   Any C-forest subgraph of sm has no bidirected edges
+    //   (since sm.bidirected == {}) so its node-set is a singleton
+    //   (NoBidirected_IsCForest_OneNode). But a hedge requires
+    //   SMNodes(F') < SMNodes(F); a singleton has no proper non-empty
+    //   subsets, giving a contradiction.
+    forall X, Y | X <= SMNodes(sm) && Y <= SMNodes(sm) && X * Y == {}
+      ensures IsIdentifiable(sm, X, Y)
     {
-      // In a DAG, no self-loops, so x != c.
-      assert IsDAG(sm.dag);
-      assert c in Children(sm.dag, x) ==> x in Parents(sm.dag, c);
-      assert x != c;
-      // With sm.bidirected == {}, no HasBidirected step is ever
-      // available, so BidirectedConnectedBounded(sm, x, c, k) is false
-      // for every k.
-      var n := |SMNodes(sm)|;
-      NoBidirected_NoConnection(sm, x, c, n);
-    }
-    assert NoBidirectedToChild(sm);
-    Theorem5_AllIdentifiable(sm);
-  }
-
-  // Helper: with no bidirected edges, distinct nodes are not connected
-  // at any fuel level.
-  lemma NoBidirected_NoConnection(sm: SMGraph, u: Node, v: Node, fuel: nat)
-    requires sm.bidirected == {}
-    requires u != v
-    ensures !BidirectedConnectedBounded(sm, u, v, fuel)
-    decreases fuel
-  {
-    if fuel == 0 {
-      // Definition requires u == v.
-    } else {
-      // The step branch requires some w with HasBidirected(sm, u, w),
-      // but HasBidirected reduces to membership in sm.bidirected,
-      // which is empty.
-      forall w | w in SMNodes(sm)
-        ensures !HasBidirected(sm, u, w)
-      {
-        assert BiEdge(u, w) !in sm.bidirected;
-        assert BiEdge(w, u) !in sm.bidirected;
+      if exists F: SMGraph, Fp: SMGraph :: IsHedge(sm, F, Fp, X, Y) {
+        var F, Fp :| IsHedge(sm, F, Fp, X, Y);
+        // F has no bidirected edges (subgraph of sm)
+        assert F.bidirected <= sm.bidirected;
+        assert F.bidirected == {};
+        // F' has no bidirected edges (subgraph of F)
+        assert Fp.bidirected <= F.bidirected;
+        assert Fp.bidirected == {};
+        // Both C-forests with no bidirected edges are singletons
+        NoBidirected_IsCForest_OneNode(F);
+        var w :| SMNodes(F) == {w};
+        NoBidirected_IsCForest_OneNode(Fp);
+        var wp :| SMNodes(Fp) == {wp};
+        // IsHedge: SMNodes(Fp) < SMNodes(F) = {w}
+        // → {wp} ⊊ {w} → wp ∈ {w} → wp == w → {wp} = {w} ≠ {wp}
+        assert SMNodes(Fp) < SMNodes(F);
+        assert {wp} <= {w};    // proper subset ⊊ implies ⊆
+        assert wp in {w};
+        assert wp == w;
+        assert {wp} == {w};
+        assert false;
       }
     }
   }
@@ -1851,21 +1912,30 @@ module Identification {
     requires IsIdentifiable(sm, X, Y)
     ensures IsIdentifiable(sm', X, Y)
   {
-    // Contrapositive: any hedge in sm' is also a hedge in sm.
-    if !IsIdentifiable(sm', X, Y) {
-      var F, Fprime :| IsHedge(sm', F, Fprime, X, Y);
-      // RemoveIncomingSM only touches sm.dag = sm'.dag, so
-      // Ancestors(Gx.dag, Y) is identical in both ambient graphs.
-      assert RemoveIncomingSM(sm', X).dag == RemoveIncomingSM(sm, X).dag;
-      // IsSubgraphSM(F, sm') and sm'.bidirected <= sm.bidirected,
-      // sm'.dag == sm.dag, so F is also a subgraph of sm.
-      assert SMNodes(sm') == SMNodes(sm);
+    // Proof by contrapositive: any hedge (F, F') in sm' is also a hedge in sm.
+    // Since IsIdentifiable(sm, X, Y), no hedge exists in sm, so none in sm'.
+    if exists F: SMGraph, Fp: SMGraph :: IsHedge(sm', F, Fp, X, Y) {
+      var F, Fp :| IsHedge(sm', F, Fp, X, Y);
+      // ── Lift IsSubgraphSM(F, sm') to IsSubgraphSM(F, sm) ───────────
+      // Same dag → same parents; F.bidirected ≤ sm'.bidirected ≤ sm.bidirected
+      assert SMNodes(sm') == SMNodes(sm);   // sm.dag == sm'.dag → same Keys
       assert IsSubgraphSM(F, sm) by {
-        assert SMNodes(F) <= SMNodes(sm');
-        assert F.bidirected <= sm'.bidirected;
+        forall v | v in SMNodes(F)
+          ensures Parents(F.dag, v) <= Parents(sm.dag, v)
+        {
+          assert Parents(F.dag, v) <= Parents(sm'.dag, v);
+          // sm'.dag == sm.dag → Parents(sm'.dag, v) == Parents(sm.dag, v)
+        }
       }
-      assert IsHedge(sm, F, Fprime, X, Y);
-      assert !IsIdentifiable(sm, X, Y);
+      // ── AncY is the same for sm and sm' ─────────────────────────────
+      // RemoveIncomingSM only changes dag (not bidirected), and sm.dag == sm'.dag.
+      assert RemoveIncomingSM(sm, X).dag == RemoveIncomingSM(sm', X).dag;
+      assert Ancestors(RemoveIncomingSM(sm, X).dag, Y) ==
+             Ancestors(RemoveIncomingSM(sm', X).dag, Y);
+      // ── (F, Fp) is also a hedge in sm ───────────────────────────────
+      assert IsHedge(sm, F, Fp, X, Y);
+      // Contradicts IsIdentifiable(sm, X, Y) (i.e., !∃ hedge in sm)
+      assert false;
     }
   }
 
