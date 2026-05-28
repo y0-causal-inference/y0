@@ -18,7 +18,7 @@ namespace Y0Lean
     Corresponds to Dafny's `function ReachableBFS`.  Terminates by fuel. -/
 def reachableBFS (G : Graph) (frontier visited : Finset Node) (fuel : ℕ) : Finset Node :=
   match fuel with
-  | 0 => visited
+  | 0 => visited ∪ frontier
   | fuel' + 1 =>
     -- children of a node v are NOT stored directly; G maps each node to its *parents*.
     -- So "children of v" = { w | v ∈ G.lookup w }.
@@ -27,7 +27,7 @@ def reachableBFS (G : Graph) (frontier visited : Finset Node) (fuel : ℕ) : Fin
     let newNodes : Finset Node :=
       G.keys.filter (fun w =>
         (G.lookup w).getD ∅ ∩ frontier ≠ ∅ ∧ w ∉ visited)
-    if newNodes = ∅ then visited
+    if newNodes = ∅ then visited ∪ frontier
     else reachableBFS G newNodes (visited ∪ frontier) fuel'
 termination_by fuel
 
@@ -36,12 +36,12 @@ termination_by fuel
     Corresponds to Dafny's `function ReachableParentBFS`. -/
 def reachableParentBFS (G : Graph) (frontier visited : Finset Node) (fuel : ℕ) : Finset Node :=
   match fuel with
-  | 0 => visited
+  | 0 => visited ∪ frontier
   | fuel' + 1 =>
     -- parents of frontier nodes: union of G.lookup w for w ∈ frontier
     let newNodes : Finset Node :=
       frontier.biUnion (fun w => (G.lookup w).getD ∅) \ visited
-    if newNodes = ∅ then visited
+    if newNodes = ∅ then visited ∪ frontier
     else reachableParentBFS G newNodes (visited ∪ frontier) fuel'
 termination_by fuel
 
@@ -59,12 +59,164 @@ def ancestors (G : Graph) (W : Finset Node) : Finset Node :=
   let start := W ∩ G.keys
   reachableParentBFS G start ∅ G.keys.card
 
--- Correctness spec (sorry — deferred to L4-002)
+-- ── Monotonicity helpers ─────────────────────────────────────────────────────
+
+/-- The BFS result always contains the initial `visited ∪ frontier`. -/
+private lemma reachableParentBFS_mono (G : Graph) (frontier visited : Finset Node)
+    (fuel : ℕ) : visited ∪ frontier ⊆ reachableParentBFS G frontier visited fuel := by
+  induction fuel generalizing frontier visited with
+  | zero => simp [reachableParentBFS]
+  | succ n ih =>
+    -- Unfold one step; simp with zeta also reduces the let-binding
+    simp (config := { zeta := true }) only [reachableParentBFS]
+    by_cases h : frontier.biUnion (fun w => (G.lookup w).getD ∅) \ visited = ∅
+    · simp [h]
+    · rw [if_neg h]
+      exact Finset.subset_union_left.trans (ih _ _)
+
+private lemma reachableBFS_mono (G : Graph) (frontier visited : Finset Node)
+    (fuel : ℕ) : visited ∪ frontier ⊆ reachableBFS G frontier visited fuel := by
+  induction fuel generalizing frontier visited with
+  | zero => simp [reachableBFS]
+  | succ n ih =>
+    simp (config := { zeta := true }) only [reachableBFS]
+    by_cases h : G.keys.filter (fun w =>
+        (G.lookup w).getD ∅ ∩ frontier ≠ ∅ ∧ w ∉ visited) = ∅
+    · simp [h]
+    · rw [if_neg h]
+      exact Finset.subset_union_left.trans (ih _ _)
+
+-- Correctness spec: W ∩ G.keys (the starting nodes) are in the BFS result.
 theorem ancestors_correct (G : Graph) (W : Finset Node) :
-    ∀ v ∈ ancestors G W, ∃ w ∈ W, True := by sorry
+    W ∩ G.keys ⊆ ancestors G W := by
+  simp only [ancestors]
+  have h := reachableParentBFS_mono G (W ∩ G.keys) ∅ G.keys.card
+  simpa using h
 
 theorem descendants_correct (G : Graph) (W : Finset Node) :
-    ∀ v ∈ descendants G W, ∃ w ∈ W, True := by sorry
+    W ∩ G.keys ⊆ descendants G W := by
+  simp only [descendants]
+  have h := reachableBFS_mono G (W ∩ G.keys) ∅ G.keys.card
+  simpa using h
+
+-- ======================================================================
+-- Relational ancestor/descendant predicates and BFS soundness
+-- ======================================================================
+
+/-- One-step **child** edge: `childOf G p c` iff there is a directed edge
+    `p → c` in `G`, i.e. `p` is in the recorded parent set of `c`. -/
+def childOf (G : Graph) (p c : Node) : Prop :=
+  p ∈ (G.lookup c).getD ∅
+
+/-- One-step **parent** edge (dual of `childOf`).
+    `parentOf G c p` iff `p → c` is an edge in `G`. -/
+def parentOf (G : Graph) (c p : Node) : Prop :=
+  p ∈ (G.lookup c).getD ∅
+
+/-- `isAncestor G a v` — `a = v` or `a` is reached from `v` by following
+    parent-edges (reflexive-transitive closure).  Corresponds to Dafny's
+    `predicate IsAncestor`. -/
+def isAncestor (G : Graph) (a v : Node) : Prop :=
+  Relation.ReflTransGen (parentOf G) v a
+
+/-- `isDescendant G d v` — `d = v` or `d` is reached from `v` by following
+    child-edges (reflexive-transitive closure). -/
+def isDescendant (G : Graph) (d v : Node) : Prop :=
+  Relation.ReflTransGen (childOf G) v d
+
+/-- BFS soundness invariant for `reachableBFS` (child direction):
+    every node produced by the BFS is a descendant of some original starting node. -/
+private lemma reachableBFS_sound
+    (G : Graph) (W0 : Finset Node) :
+    ∀ (frontier visited : Finset Node) (fuel : ℕ),
+      (∀ v ∈ visited ∪ frontier, ∃ w ∈ W0, isDescendant G v w) →
+      ∀ v ∈ reachableBFS G frontier visited fuel, ∃ w ∈ W0, isDescendant G v w := by
+  intro frontier visited fuel
+  induction fuel generalizing frontier visited with
+  | zero =>
+    intro hinv v hv
+    simp [reachableBFS] at hv
+    exact hinv v (Finset.mem_union.mpr hv)
+  | succ n ih =>
+    intro hinv v hv
+    simp (config := { zeta := true }) only [reachableBFS] at hv
+    by_cases hempty :
+        G.keys.filter (fun w => (G.lookup w).getD ∅ ∩ frontier ≠ ∅ ∧ w ∉ visited) = ∅
+    · simp [hempty] at hv; exact hinv v (Finset.mem_union.mpr hv)
+    · rw [if_neg hempty] at hv
+      apply ih _ _ ?_ v hv
+      intro u hu
+      rcases Finset.mem_union.mp hu with hu | hu
+      · exact hinv u hu
+      · rcases Finset.mem_filter.mp hu with ⟨_, hpar, _⟩
+        have hpne : ((G.lookup u).getD ∅ ∩ frontier).Nonempty :=
+          Finset.nonempty_iff_ne_empty.mpr hpar
+        obtain ⟨p, hp⟩ := hpne
+        rcases Finset.mem_inter.mp hp with ⟨hppar, hpfront⟩
+        have hpinv := hinv p (Finset.mem_union_right _ hpfront)
+        rcases hpinv with ⟨w, hwW0, hwd⟩
+        -- hwd : isDescendant G p w = ReflTransGen (childOf G) w p
+        -- hppar : p ∈ (G.lookup u).getD ∅ = childOf G p u
+        exact ⟨w, hwW0, hwd.tail hppar⟩
+
+/-- BFS soundness invariant for `reachableParentBFS` (parent direction):
+    every node produced is an ancestor of some original starting node. -/
+private lemma reachableParentBFS_sound
+    (G : Graph) (W0 : Finset Node) :
+    ∀ (frontier visited : Finset Node) (fuel : ℕ),
+      (∀ v ∈ visited ∪ frontier, ∃ w ∈ W0, isAncestor G v w) →
+      ∀ v ∈ reachableParentBFS G frontier visited fuel, ∃ w ∈ W0, isAncestor G v w := by
+  intro frontier visited fuel
+  induction fuel generalizing frontier visited with
+  | zero =>
+    intro hinv v hv
+    simp [reachableParentBFS] at hv
+    exact hinv v (Finset.mem_union.mpr hv)
+  | succ n ih =>
+    intro hinv v hv
+    simp (config := { zeta := true }) only [reachableParentBFS] at hv
+    by_cases hempty :
+        frontier.biUnion (fun w => (G.lookup w).getD ∅) \ visited = ∅
+    · simp [hempty] at hv; exact hinv v (Finset.mem_union.mpr hv)
+    · rw [if_neg hempty] at hv
+      apply ih _ _ ?_ v hv
+      intro u hu
+      rcases Finset.mem_union.mp hu with hu | hu
+      · exact hinv u hu
+      · rcases Finset.mem_sdiff.mp hu with ⟨huU, _⟩
+        rcases Finset.mem_biUnion.mp huU with ⟨c, hcfront, hupar⟩
+        have hcinv := hinv c (Finset.mem_union_right _ hcfront)
+        rcases hcinv with ⟨w, hwW0, hwa⟩
+        -- hwa : isAncestor G c w = ReflTransGen (parentOf G) w c
+        -- hupar : u ∈ (G.lookup c).getD ∅ = parentOf G c u
+        exact ⟨w, hwW0, hwa.tail hupar⟩
+
+/-- Public BFS soundness: every node in `descendants G W` is a graph-theoretic
+    descendant (`isDescendant`) of some node in `W ∩ G.keys`. -/
+theorem descendants_sound (G : Graph) (W : Finset Node) :
+    ∀ v ∈ descendants G W, ∃ w ∈ W, isDescendant G v w := by
+  intro v hv
+  have hkey : ∀ u ∈ (∅ : Finset Node) ∪ (W ∩ G.keys),
+      ∃ w ∈ W ∩ G.keys, isDescendant G u w := by
+    intro u hu
+    have hu' : u ∈ W ∩ G.keys := by simpa using hu
+    exact ⟨u, hu', Relation.ReflTransGen.refl⟩
+  have := reachableBFS_sound G (W ∩ G.keys) (W ∩ G.keys) ∅ G.keys.card hkey v hv
+  rcases this with ⟨w, hw, hd⟩
+  exact ⟨w, (Finset.mem_inter.mp hw).1, hd⟩
+
+/-- Public BFS soundness for ancestors. -/
+theorem ancestors_sound (G : Graph) (W : Finset Node) :
+    ∀ v ∈ ancestors G W, ∃ w ∈ W, isAncestor G v w := by
+  intro v hv
+  have hkey : ∀ u ∈ (∅ : Finset Node) ∪ (W ∩ G.keys),
+      ∃ w ∈ W ∩ G.keys, isAncestor G u w := by
+    intro u hu
+    have hu' : u ∈ W ∩ G.keys := by simpa using hu
+    exact ⟨u, hu', Relation.ReflTransGen.refl⟩
+  have := reachableParentBFS_sound G (W ∩ G.keys) (W ∩ G.keys) ∅ G.keys.card hkey v hv
+  rcases this with ⟨w, hw, ha⟩
+  exact ⟨w, (Finset.mem_inter.mp hw).1, ha⟩
 
 -- ======================================================================
 -- Graph surgery helpers (used by IDImpl)
@@ -137,8 +289,24 @@ def cComponentsOf (sm : SMGraph) (S : Finset Node) (ord : List Node) : List (Fin
       ([], ∅)
   comps
 
--- Correctness spec (sorry — deferred to L4-004)
+-- ── Monotonicity + correctness (L4-004) ─────────────────────────────────────
+
+private lemma bidirectedBFSLoop_mono (sm : SMGraph) (frontier visited : Finset Node)
+    (fuel : ℕ) : visited ∪ frontier ⊆ bidirectedBFSLoop sm frontier visited fuel := by
+  induction fuel generalizing frontier visited with
+  | zero => simp [bidirectedBFSLoop]
+  | succ n ih =>
+    simp (config := { zeta := true }) only [bidirectedBFSLoop]
+    by_cases h : frontier.biUnion (bidirectedNeighbors sm) \ (visited ∪ frontier) = ∅
+    · simp [h]
+    · rw [if_neg h]
+      exact Finset.subset_union_left.trans (ih _ _)
+
 theorem cComponent_correct (sm : SMGraph) (v : Node) :
-    v ∈ cComponent sm v := by sorry
+    v ∈ cComponent sm v := by
+  simp only [cComponent]
+  have h := bidirectedBFSLoop_mono sm {v} ∅ sm.bidirected.card
+  simp only [Finset.empty_union] at h
+  exact h (Finset.mem_singleton_self v)
 
 end Y0Lean
