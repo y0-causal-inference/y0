@@ -1252,8 +1252,370 @@ module DAG {
     AncestorsCompiled_Complete(G, W);
   }
 
-  lemma {:axiom} DescendantsCompiled_Correct(G: Graph, W: set<Node>)
+  // ------------------------------------------------------------------
+  // Forward BFS helpers (for DescendantsCompiled)
+  // ------------------------------------------------------------------
+
+  // In a DAG, every parent of a node is itself in Nodes(G).
+  lemma IsDAG_ParentsInNodes(G: Graph, v: Node, p: Node)
+    requires IsDAG(G)
+    requires v in Nodes(G)
+    requires p in Parents(G, v)
+    ensures p in Nodes(G)
+  {
+    var ord :| IsTopologicalSort(G, ord);
+    // v ∈ Nodes(G) → v ∈ ord (IsTopologicalSort condition (a)).
+    assert v in ord;
+    var vIdx :| 0 <= vIdx < |ord| && ord[vIdx] == v;
+    // By topo sort condition (c): p = ord[k] for some k < vIdx.
+    assert exists k | 0 <= k < vIdx :: ord[k] == p;
+    var k :| 0 <= k < vIdx && ord[k] == p;
+    // ord[k] ∈ Nodes(G) by condition (a).
+    assert ord[k] in Nodes(G);
+    assert p == ord[k];
+  }
+
+  // In a DAG, the start of any IsAncestorBounded path is in Nodes(G)
+  // (given the endpoint is in Nodes(G)).
+  lemma {:induction false} IsAncestorBounded_StartInNodes(
+    G: Graph, u: Node, v: Node, k: nat)
+    requires IsDAG(G)
+    requires v in Nodes(G)
+    requires IsAncestorBounded(G, u, v, k)
+    ensures u in Nodes(G)
+    decreases k
+  {
+    if u == v {
+      // u = v ∈ Nodes(G). ✓
+    } else {
+      assert k > 0;
+      var ch :| ch in Children(G, u) && IsAncestorBounded(G, ch, v, k - 1);
+      // ch ∈ Children(G, u) = {w | w ∈ Nodes(G) ∧ u ∈ Parents(G, w)}.
+      // So ch ∈ Nodes(G) and u ∈ Parents(G, ch).
+      // By IsDAG_ParentsInNodes: u ∈ Nodes(G). ✓
+      IsDAG_ParentsInNodes(G, ch, u);
+    }
+  }
+
+  // Helper: visited is always a subset of the forward BFS result.
+  lemma {:induction false} ReachableBFS_VisitedSubset(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    ensures visited <= ReachableBFS(G, frontier, visited, fuel)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      // BFS returns visited; trivial.
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      // visited ⊆ newVisited and result ⊇ newVisited (by the recursive invariant).
+      ReachableBFS_VisitedSubset(G, nextFrontier, newVisited, fuel - 1);
+      assert visited <= newVisited;
+    }
+  }
+
+  // Helper: if fuel >= 1, frontier ⊆ forward BFS result.
+  lemma {:induction false} ReachableBFS_Mono(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires fuel >= 1
+    ensures frontier <= ReachableBFS(G, frontier, visited, fuel)
+    decreases fuel
+  {
+    if frontier == {} {
+      // Empty frontier: result = visited; frontier = {} ⊆ visited. ✓
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      // frontier ⊆ newVisited; result ⊇ newVisited by VisitedSubset.
+      ReachableBFS_VisitedSubset(G, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  // Helper: forward BFS stays within Nodes(G) when frontier ⊆ Nodes(G).
+  lemma {:induction false} ReachableBFS_InNodes(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires frontier <= Nodes(G)
+    requires visited <= Nodes(G)
+    ensures ReachableBFS(G, frontier, visited, fuel) <= Nodes(G)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      // BFS returns visited ⊆ Nodes(G).
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      assert nextFrontier <= Nodes(G);
+      assert newVisited <= Nodes(G);
+      ReachableBFS_InNodes(G, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  // Modus-ponens helper for the forward BFS invariant.
+  lemma BFSForwardInvariant_Apply(
+    G: Graph, start0: set<Node>, visited: set<Node>, frontier: set<Node>,
+    u: Node, depth: nat
+  )
+    requires u in visited + frontier
+    requires forall x :: x in visited + frontier ==>
+      exists w :: w in start0 && IsAncestorBounded(G, w, x, depth)
+    ensures exists w :: w in start0 && IsAncestorBounded(G, w, u, depth)
+  {}
+
+  // Soundness of forward BFS: every node in the result is reachable from start0.
+  // Invariant: nodes in visited+frontier are reachable from start0 in ≤ depth steps.
+  lemma {:induction false} {:vcs_split_on_every_assert} ReachableBFS_Sound(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat,
+    start0: set<Node>,
+    depth: nat
+  )
+    requires forall u :: u in visited + frontier ==>
+      exists w :: w in start0 && IsAncestorBounded(G, w, u, depth)
+    ensures forall u :: u in ReachableBFS(G, frontier, visited, fuel) ==>
+      exists w :: w in start0 && IsAncestorBounded(G, w, u, depth + fuel)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      forall u | u in ReachableBFS(G, frontier, visited, fuel)
+        ensures exists w :: w in start0 && IsAncestorBounded(G, w, u, depth + fuel)
+      {
+        assert u in visited;
+        assert u in visited + frontier;
+        BFSForwardInvariant_Apply(G, start0, visited, frontier, u, depth);
+        var w :| w in start0 && IsAncestorBounded(G, w, u, depth);
+        IsAncestorBounded_Monotone(G, w, u, depth, depth + fuel);
+      }
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      // Establish invariant at depth+1 for the recursive call.
+      forall nodeV | nodeV in newVisited + nextFrontier
+        ensures exists w :: w in start0 && IsAncestorBounded(G, w, nodeV, depth + 1)
+      {
+        if nodeV in newVisited {
+          // nodeV ∈ visited + frontier: precondition gives bound depth.
+          assert nodeV in visited + frontier;
+          BFSForwardInvariant_Apply(G, start0, visited, frontier, nodeV, depth);
+          var w :| w in start0 && IsAncestorBounded(G, w, nodeV, depth);
+          IsAncestorBounded_Monotone(G, w, nodeV, depth, depth + 1);
+        } else {
+          // nodeV ∈ nextFrontier: nodeV ∈ Children(G, u) for some u ∈ frontier.
+          var u :| u in frontier && nodeV in Children(G, u);
+          assert u in visited + frontier;
+          BFSForwardInvariant_Apply(G, start0, visited, frontier, u, depth);
+          var w :| w in start0 && IsAncestorBounded(G, w, u, depth);
+          // nodeV ∈ Children(G, u) → IsAncestorBounded(G, u, nodeV, 1).
+          assert IsAncestorBounded(G, u, nodeV, 1) by {
+            assert nodeV in Children(G, u);
+            assert IsAncestorBounded(G, nodeV, nodeV, 0);
+            assert exists ch :: ch in Children(G, u) && IsAncestorBounded(G, ch, nodeV, 0) by {
+              assert nodeV in Children(G, u);
+            }
+          }
+          // Combine: w → ... → u → nodeV. Path length ≤ depth + 1.
+          IsAncestorBounded_Transitive(G, w, u, nodeV, depth, 1);
+          assert IsAncestorBounded(G, w, nodeV, depth + 1) by {
+            assert depth + 1 == depth + 1;
+          }
+        }
+      }
+      ReachableBFS_Sound(G, nextFrontier, newVisited, fuel - 1, start0, depth + 1);
+    }
+  }
+
+  // Core completeness lemma for forward BFS: if path[0] ∈ frontier, all
+  // path nodes are fresh (not in visited), and fuel ≥ |path|, then
+  // path[|path|-1] is in the BFS result.
+  lemma {:induction false} {:vcs_split_on_every_assert}
+      ReachableBFS_FollowsFreshChildPath(
+    G: Graph,
+    path: seq<Node>,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires IsParentPath(G, path)
+    requires forall i :: 0 <= i < |path| ==> path[i] in Nodes(G)
+    requires path[0] in frontier
+    requires forall i :: 0 <= i < |path| ==> path[i] !in visited
+    requires fuel >= |path|
+    ensures path[|path| - 1] in ReachableBFS(G, frontier, visited, fuel)
+    decreases |path|
+  {
+    if |path| == 1 {
+      // path[0] ∈ frontier; fuel ≥ 1.
+      assert fuel >= 1;
+      assert path[0] in frontier;
+      ReachableBFS_Mono(G, frontier, visited, fuel);
+    } else if exists j :: 0 < j < |path| && path[j] in frontier {
+      // A later path node is already in frontier; use that shorter suffix.
+      var j :| 0 < j < |path| && path[j] in frontier;
+      var suffix := path[j..];
+      assert |suffix| == |path| - j;
+      assert suffix[0] == path[j];
+      assert suffix[|suffix| - 1] == path[|path| - 1];
+      assert IsParentPath(G, suffix) by {
+        forall i | 0 <= i < |suffix| - 1
+          ensures suffix[i + 1] in Children(G, suffix[i])
+        {
+          assert suffix[i] == path[j + i];
+          assert suffix[i + 1] == path[j + i + 1];
+        }
+      }
+      assert forall i :: 0 <= i < |suffix| ==> suffix[i] in Nodes(G) by {
+        forall i | 0 <= i < |suffix| ensures suffix[i] in Nodes(G)
+        { assert suffix[i] == path[j + i]; }
+      }
+      assert forall i :: 0 <= i < |suffix| ==> suffix[i] !in visited by {
+        forall i | 0 <= i < |suffix| ensures suffix[i] !in visited
+        { assert suffix[i] == path[j + i]; }
+      }
+      assert fuel >= |suffix| by { assert |suffix| == |path| - j; assert j >= 1; }
+      ReachableBFS_FollowsFreshChildPath(G, suffix, frontier, visited, fuel);
+    } else {
+      // No later path node is in frontier.
+      // path[1] ∉ frontier and path[1] ∉ visited → path[1] ∉ newVisited.
+      // path[0] ∈ frontier, path[1] ∈ Children(G, path[0]) → path[1] ∈ nextFrontier.
+      assert fuel > 0;
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      // path[1] ∉ frontier (else-branch) and path[1] ∉ visited → path[1] ∉ newVisited.
+      assert path[1] !in frontier by {
+        if path[1] in frontier {
+          assert 0 < 1 < |path| && path[1] in frontier;
+        }
+      }
+      assert path[1] !in newVisited;
+      // path[1] ∈ Children(G, path[0]) and path[0] ∈ frontier → path[1] ∈ nextFrontier.
+      assert path[1] in nextFrontier by {
+        assert path[0] in frontier;
+        assert path[1] in Children(G, path[0]) by { assert 0 + 1 == 1; }
+        assert path[1] !in newVisited;
+      }
+      // path[1..] is a fresh suffix path.
+      var suffix := path[1..];
+      assert IsParentPath(G, suffix) by {
+        forall i | 0 <= i < |suffix| - 1
+          ensures suffix[i + 1] in Children(G, suffix[i])
+        {
+          assert suffix[i] == path[1 + i];
+          assert suffix[i + 1] == path[1 + i + 1];
+        }
+      }
+      assert suffix[|suffix| - 1] == path[|path| - 1];
+      assert forall i :: 0 <= i < |suffix| ==> suffix[i] in Nodes(G) by {
+        forall i | 0 <= i < |suffix| ensures suffix[i] in Nodes(G)
+        { assert suffix[i] == path[1 + i]; }
+      }
+      assert forall i :: 0 <= i < |suffix| ==> suffix[i] !in newVisited by {
+        forall i | 0 <= i < |suffix| ensures suffix[i] !in newVisited
+        {
+          assert suffix[i] == path[1 + i];
+          assert path[1 + i] !in visited;
+          assert path[1 + i] !in frontier by {
+            if path[1 + i] in frontier {
+              assert 0 < 1 + i < |path| && path[1 + i] in frontier;
+            }
+          }
+        }
+      }
+      assert fuel - 1 >= |suffix| by { assert |suffix| == |path| - 1; }
+      ReachableBFS_FollowsFreshChildPath(G, suffix, nextFrontier, newVisited, fuel - 1);
+      assert suffix[|suffix| - 1] == path[|path| - 1];
+      // BFS unfolding: frontier ≠ {} and fuel ≥ 1 → result = BFS(nextFrontier, newVisited, fuel-1).
+      assert frontier != {};
+      assert ReachableBFS(G, frontier, visited, fuel) ==
+        ReachableBFS(G, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // DescendantsCompiled == Descendants
+  // ------------------------------------------------------------------
+
+  // Soundness: everything in DescendantsCompiled is a genuine descendant.
+  lemma {:vcs_split_on_every_assert} DescendantsCompiled_Sound(G: Graph, W: set<Node>)
+    ensures DescendantsCompiled(G, W) <= Descendants(G, W)
+  {
+    var start0 := W * Nodes(G);
+    // Initial invariant: every node in start0 is reachable from itself in 0 steps.
+    forall v | v in start0
+      ensures exists w :: w in start0 && IsAncestorBounded(G, w, v, 0)
+    {
+      assert IsAncestorBounded(G, v, v, 0);
+    }
+    ReachableBFS_Sound(G, start0, {}, |Nodes(G)|, start0, 0);
+    // DescendantsCompiled(G, W) ⊆ Nodes(G).
+    assert start0 <= Nodes(G);
+    ReachableBFS_InNodes(G, start0, {}, |Nodes(G)|);
+    forall v | v in DescendantsCompiled(G, W)
+      ensures v in Descendants(G, W)
+    {
+      var w :| w in start0 && IsAncestorBounded(G, w, v, 0 + |Nodes(G)|);
+      assert w in W;
+      assert v in Nodes(G);
+      assert IsAncestor(G, w, v);
+    }
+  }
+
+  // Completeness: every descendant is found by the compiled BFS.
+  // Requires IsDAG to bound path lengths.
+  lemma {:vcs_split_on_every_assert} DescendantsCompiled_Complete(G: Graph, W: set<Node>)
+    requires IsDAG(G)
+    ensures Descendants(G, W) <= DescendantsCompiled(G, W)
+  {
+    forall v | v in Descendants(G, W)
+      ensures v in DescendantsCompiled(G, W)
+    {
+      // v ∈ Descendants(G, W) ⊆ Nodes(G) by definition.
+      assert v in Nodes(G);
+      var w :| w in W && IsAncestor(G, w, v);
+      // w ∈ Nodes(G): w is the start of a path to v ∈ Nodes(G).
+      assert w in Nodes(G) by {
+        IsAncestorBounded_StartInNodes(G, w, v, |Nodes(G)|);
+      }
+      assert w in W * Nodes(G);
+      // Tighten the bound: in a DAG, path length ≤ |Nodes(G)| - 1.
+      IsAncestor_DAGTight(G, w, v);
+      // Extract a concrete path of ≤ |Nodes(G)| nodes.
+      var path := IsAncestorBounded_ExtractPath(G, w, v, |Nodes(G)| - 1);
+      assert path[0] == w;
+      assert path[|path| - 1] == v;
+      assert |path| <= |Nodes(G)|;
+      // Apply forward path-following lemma (visited = {}, all fresh).
+      ReachableBFS_FollowsFreshChildPath(
+        G, path, W * Nodes(G), {}, |Nodes(G)|);
+      assert v in DescendantsCompiled(G, W);
+    }
+  }
+
+  // Remove the axiom; replace with the proved version.
+  lemma DescendantsCompiled_Correct(G: Graph, W: set<Node>)
+    requires IsDAG(G)
     ensures DescendantsCompiled(G, W) == Descendants(G, W)
+  {
+    DescendantsCompiled_Sound(G, W);
+    DescendantsCompiled_Complete(G, W);
+  }
 
   // ==================================================================
   // 4.  Graph Surgery
