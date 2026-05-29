@@ -601,6 +601,108 @@ module DAG {
   }
 
   // ------------------------------------------------------------------
+  // Directed parent paths: sequences following child edges
+  // ------------------------------------------------------------------
+
+  // A directed parent path: path[i+1] in Children(G, path[i]) for every i.
+  // path[0] is the topmost ancestor; path[|path|-1] is the bottom descendant.
+  // The parent-edge BFS starts from path[|path|-1] and discovers path[0] last.
+  ghost predicate IsParentPath(G: Graph, path: seq<Node>)
+  {
+    |path| >= 1 &&
+    forall i :: 0 <= i < |path| - 1 ==> path[i + 1] in Children(G, path[i])
+  }
+
+  // A prefix of a parent path is itself a parent path.
+  lemma IsParentPath_Prefix(G: Graph, path: seq<Node>, end: nat)
+    requires IsParentPath(G, path)
+    requires 1 <= end <= |path|
+    ensures IsParentPath(G, path[..end])
+  {
+    forall i | 0 <= i < end - 1
+      ensures path[..end][i + 1] in Children(G, path[..end][i])
+    {
+      assert path[..end][i] == path[i];
+      assert path[..end][i + 1] == path[i + 1];
+    }
+  }
+
+  // Every element of Children(G, u) is in Nodes(G).
+  // (Follows directly from the set comprehension in the Children definition.)
+  lemma Children_InNodes(G: Graph, u: Node, v: Node)
+    requires v in Children(G, u)
+    ensures v in Nodes(G)
+  {}
+
+  // The endpoint w of any IsAncestorBounded path is in Nodes(G),
+  // provided the start u is in Nodes(G).
+  lemma {:induction false} IsAncestorBounded_EndInNodes(
+    G: Graph, u: Node, w: Node, k: nat)
+    requires u in Nodes(G)
+    requires IsAncestorBounded(G, u, w, k)
+    ensures w in Nodes(G)
+    decreases k
+  {
+    if u == w {
+      // w = u ∈ Nodes(G). ✓
+    } else {
+      assert k > 0;
+      var ch :| ch in Children(G, u) && IsAncestorBounded(G, ch, w, k - 1);
+      Children_InNodes(G, u, ch);
+      IsAncestorBounded_EndInNodes(G, ch, w, k - 1);
+    }
+  }
+
+  // Extract a concrete path (sequence) witnessing IsAncestorBounded.
+  // The path starts at u and ends at w following child edges.
+  lemma {:induction false} IsAncestorBounded_ExtractPath(
+    G: Graph, u: Node, w: Node, k: nat)
+    returns (path: seq<Node>)
+    requires IsAncestorBounded(G, u, w, k)
+    requires u in Nodes(G)
+    ensures IsParentPath(G, path)
+    ensures path[0] == u
+    ensures path[|path| - 1] == w
+    ensures |path| <= k + 1
+    ensures forall i :: 0 <= i < |path| ==> path[i] in Nodes(G)
+    decreases k
+  {
+    if u == w {
+      path := [u];
+    } else {
+      assert k > 0;
+      var ch :| ch in Children(G, u) && IsAncestorBounded(G, ch, w, k - 1);
+      Children_InNodes(G, u, ch);
+      var tail := IsAncestorBounded_ExtractPath(G, ch, w, k - 1);
+      path := [u] + tail;
+      assert IsParentPath(G, path) by {
+        forall i | 0 <= i < |path| - 1
+          ensures path[i + 1] in Children(G, path[i])
+        {
+          if i == 0 {
+            assert path[0] == u;
+            assert path[1] == tail[0] == ch;
+          } else {
+            assert path[i] == tail[i - 1];
+            assert path[i + 1] == tail[i];
+          }
+        }
+      }
+      assert forall i :: 0 <= i < |path| ==> path[i] in Nodes(G) by {
+        forall i | 0 <= i < |path|
+          ensures path[i] in Nodes(G)
+        {
+          if i == 0 {
+            assert path[0] == u;
+          } else {
+            assert path[i] == tail[i - 1];
+          }
+        }
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
   // Compiled ancestry — BFS-based reachability
   // ------------------------------------------------------------------
 
@@ -650,6 +752,155 @@ module DAG {
   // All ancestors (including self) of W — compiled.
   function AncestorsCompiled(G: Graph, W: set<Node>): set<Node> {
     ReachableParentBFS(G, W * Nodes(G), {}, |Nodes(G)|)
+  }
+
+  // ------------------------------------------------------------------
+  // Topological-position helper: index of a node in a sequence
+  // ------------------------------------------------------------------
+
+  // First occurrence of u in sequence s.
+  ghost function SeqIndex(s: seq<Node>, u: Node): nat
+    requires u in s
+    ensures SeqIndex(s, u) < |s|
+    ensures s[SeqIndex(s, u)] == u
+    decreases |s|
+  {
+    if s[0] == u then 0
+    else
+      assert u in s[1..] by {
+        var j :| 0 <= j < |s| && s[j] == u;
+        assert j > 0;
+        assert s[1..][j - 1] == u;
+      }
+      1 + SeqIndex(s[1..], u)
+  }
+
+  // In a duplicate-free sequence, SeqIndex finds the unique occurrence.
+  lemma SeqIndex_NoDup_Unique(s: seq<Node>, u: Node, k: nat)
+    requires u in s
+    requires k < |s|
+    requires s[k] == u
+    requires forall i, j :: 0 <= i < j < |s| ==> s[i] != s[j]
+    ensures SeqIndex(s, u) == k
+    decreases k
+  {
+    if k == 0 {
+      // s[0] == u => SeqIndex(s, u) = 0 ✓
+    } else {
+      assert s[0] != u by {
+        if s[0] == u {
+          assert 0 < k && s[0] == s[k];
+        }
+      }
+      // SeqIndex(s, u) = 1 + SeqIndex(s[1..], u)
+      assert s[1..][k - 1] == u;
+      assert forall i, j :: 0 <= i < j < |s[1..]| ==> s[1..][i] != s[1..][j] by {
+        forall i, j | 0 <= i < j < |s[1..]|
+          ensures s[1..][i] != s[1..][j]
+        {
+          assert s[1..][i] == s[i + 1];
+          assert s[1..][j] == s[j + 1];
+        }
+      }
+      SeqIndex_NoDup_Unique(s[1..], u, k - 1);
+      assert SeqIndex(s[1..], u) == k - 1;
+      assert SeqIndex(s, u) == 1 + SeqIndex(s[1..], u);
+    }
+  }
+
+  // In a topological sort, every parent appears strictly before its child.
+  lemma TopoSort_ParentBefore(G: Graph, ord: seq<Node>, u: Node, v: Node)
+    requires IsTopologicalSort(G, ord)
+    requires v in Nodes(G)
+    requires u in Parents(G, v)
+    ensures u in Nodes(G)
+    ensures SeqIndex(ord, u) < SeqIndex(ord, v)
+  {
+    // v in Nodes(G) => v in ord (condition (a) of IsTopologicalSort)
+    assert v in ord;
+    var vIdx := SeqIndex(ord, v);
+    // Condition (c): every parent of ord[vIdx] appears at some index < vIdx
+    assert ord[vIdx] == v;
+    assert u in Parents(G, ord[vIdx]);
+    assert exists k | 0 <= k < vIdx :: ord[k] == u;
+    var k :| 0 <= k < vIdx && ord[k] == u;
+    // ord[k] in Nodes(G) (condition (b): all elements are in Nodes(G))
+    assert u in Nodes(G);
+    // No duplicates in ord (condition (b))
+    assert forall i, j :: 0 <= i < j < |ord| ==> ord[i] != ord[j];
+    // SeqIndex_NoDup_Unique: the unique occurrence of u is at index k
+    SeqIndex_NoDup_Unique(ord, u, k);
+    assert SeqIndex(ord, u) == k;
+    assert SeqIndex(ord, u) < SeqIndex(ord, v);
+  }
+
+  // In a DAG, IsAncestorBounded paths fit within the topological position gap.
+  // Tight bound: IsAncestorBounded(G, u, w, |ord| - 1 - SeqIndex(ord, u)).
+  lemma {:induction false} {:vcs_split_on_every_assert} IsAncestorBounded_TopoTight(
+    G: Graph, ord: seq<Node>, u: Node, w: Node, k: nat)
+    requires IsTopologicalSort(G, ord)
+    requires u in Nodes(G)
+    requires IsAncestorBounded(G, u, w, k)
+    ensures IsAncestorBounded(G, u, w, |ord| - 1 - SeqIndex(ord, u))
+    decreases |ord| - SeqIndex(ord, u)
+  {
+    if u == w {
+      // Path length 0: IsAncestorBounded(G, u, u, 0). By Monotone with 0 ≤ bound.
+      IsAncestorBounded_Monotone(G, u, w, 0, |ord| - 1 - SeqIndex(ord, u));
+    } else {
+      assert k > 0;
+      var ch :| ch in Children(G, u) && IsAncestorBounded(G, ch, w, k - 1);
+      Children_InNodes(G, u, ch);
+      // u in Parents(G, ch): SeqIndex(ord, u) < SeqIndex(ord, ch)
+      assert u in Parents(G, ch) by {
+        // Children(G, u) = {v | v in Nodes(G) && u in Parents(G, v)}
+        assert ch in Children(G, u);
+      }
+      TopoSort_ParentBefore(G, ord, u, ch);
+      var uPos := SeqIndex(ord, u);
+      var chPos := SeqIndex(ord, ch);
+      assert uPos < chPos;
+      assert chPos < |ord|;
+      // Decreases: |ord| - chPos < |ord| - uPos (since chPos > uPos and both < |ord|)
+      assert |ord| - chPos < |ord| - uPos;
+      // uPos <= |ord| - 2 (since uPos < chPos < |ord|)
+      assert uPos + 2 <= |ord|;
+      // Apply IH on (ch, k-1): gives IsAncestorBounded(G, ch, w, |ord| - 1 - chPos)
+      IsAncestorBounded_TopoTight(G, ord, ch, w, k - 1);
+      assert IsAncestorBounded(G, ch, w, |ord| - 1 - chPos);
+      // Need IsAncestorBounded(G, ch, w, |ord| - 2 - uPos) to extend one step.
+      // Since chPos >= uPos + 1: |ord| - 1 - chPos <= |ord| - 2 - uPos.
+      assert |ord| - 1 - chPos <= |ord| - 2 - uPos;
+      IsAncestorBounded_Monotone(G, ch, w, |ord| - 1 - chPos, |ord| - 2 - uPos);
+      assert IsAncestorBounded(G, ch, w, |ord| - 2 - uPos);
+      // tightFuel = |ord| - 1 - uPos > 0; tightFuel - 1 = |ord| - 2 - uPos.
+      var tightFuel := |ord| - 1 - uPos;
+      assert tightFuel > 0;
+      assert tightFuel - 1 == |ord| - 2 - uPos;
+      // IsAncestorBounded(G, u, w, tightFuel): fuel > 0, ch in Children(G, u),
+      // IsAncestorBounded(G, ch, w, tightFuel - 1).
+      assert IsAncestorBounded(G, u, w, tightFuel) by {
+        assert tightFuel > 0;
+        assert ch in Children(G, u);
+        assert IsAncestorBounded(G, ch, w, tightFuel - 1);
+      }
+    }
+  }
+
+  // In a DAG, every IsAncestor witness fits in |Nodes(G)| - 1 steps.
+  lemma IsAncestor_DAGTight(G: Graph, u: Node, w: Node)
+    requires IsDAG(G)
+    requires u in Nodes(G)
+    requires IsAncestor(G, u, w)
+    ensures IsAncestorBounded(G, u, w, |Nodes(G)| - 1)
+  {
+    var ord :| IsTopologicalSort(G, ord);
+    TopologicalSort_Length(G, ord);   // |ord| == |Nodes(G)|
+    IsAncestorBounded_TopoTight(G, ord, u, w, |Nodes(G)|);
+    // IsAncestorBounded(G, u, w, |ord| - 1 - SeqIndex(ord, u))
+    var uPos := SeqIndex(ord, u);
+    // |ord| - 1 - uPos <= |ord| - 1 = |Nodes(G)| - 1
+    IsAncestorBounded_Monotone(G, u, w, |ord| - 1 - uPos, |Nodes(G)| - 1);
   }
 
   // ------------------------------------------------------------------
@@ -888,6 +1139,136 @@ module DAG {
     }
   }
 
+  // Every node output by ReachableParentBFS is in Nodes(G) ∪ visited,
+  // provided the frontier starts within Nodes(G) ∪ visited.
+  lemma {:induction false} ReachableParentBFS_InNodes(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires frontier <= Nodes(G)
+    requires visited <= Nodes(G)
+    ensures ReachableParentBFS(G, frontier, visited, fuel) <= Nodes(G)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      // BFS returns visited ⊆ Nodes(G).
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u | u in Nodes(G) && (exists v :: v in frontier && u in Parents(G, v))
+                && u !in newVisited);
+      assert nextFrontier <= Nodes(G);
+      assert newVisited <= Nodes(G);
+      ReachableParentBFS_InNodes(G, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  // Core completeness lemma: if path[|path|-1] is in frontier, all path nodes
+  // are fresh (not in visited), and fuel ≥ |path|, then path[0] is in the BFS
+  // result.  Mirrors BidirectedBFSLoop_FollowsFreshSimplePath from 218815c.
+  lemma {:induction false} {:vcs_split_on_every_assert}
+      ReachableParentBFS_FollowsFreshParentPath(
+    G: Graph,
+    path: seq<Node>,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires IsParentPath(G, path)
+    requires forall i :: 0 <= i < |path| ==> path[i] in Nodes(G)
+    requires path[|path| - 1] in frontier
+    requires forall i :: 0 <= i < |path| ==> path[i] !in visited
+    requires fuel >= |path|
+    ensures path[0] in ReachableParentBFS(G, frontier, visited, fuel)
+    decreases |path|
+  {
+    if |path| == 1 {
+      // path[0] == path[|path|-1] ∈ frontier; fuel ≥ 1.
+      assert fuel >= 1;
+      assert path[0] in frontier;
+      ReachableParentBFS_Mono(G, frontier, visited, fuel);
+    } else if exists j :: 0 <= j < |path| - 1 && path[j] in frontier {
+      // Some earlier node is also in frontier; use the shorter prefix.
+      var j :| 0 <= j < |path| - 1 && path[j] in frontier;
+      var prefix := path[..j + 1];
+      assert IsParentPath(G, prefix) by { IsParentPath_Prefix(G, path, j + 1); }
+      assert forall i :: 0 <= i < |prefix| ==> prefix[i] in Nodes(G) by {
+        forall i | 0 <= i < |prefix| ensures prefix[i] in Nodes(G)
+        { assert prefix[i] == path[i]; }
+      }
+      assert prefix[|prefix| - 1] in frontier by { assert prefix[j] == path[j]; }
+      assert forall i :: 0 <= i < |prefix| ==> prefix[i] !in visited by {
+        forall i | 0 <= i < |prefix| ensures prefix[i] !in visited
+        { assert prefix[i] == path[i]; }
+      }
+      assert |prefix| == j + 1;
+      assert fuel >= |prefix|;
+      ReachableParentBFS_FollowsFreshParentPath(G, prefix, frontier, visited, fuel);
+      assert prefix[0] == path[0];
+    } else {
+      // No node in path[0..|path|-2] is in frontier; path[|path|-2] → nextFrontier.
+      assert fuel > 0;
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set x | x in Nodes(G) && (exists v :: v in frontier && x in Parents(G, v))
+                && x !in newVisited);
+      var last := |path| - 1;
+      var prev := |path| - 2;
+      // path[prev] is a parent of path[last] ∈ frontier.
+      assert path[last] in Children(G, path[prev]) by {
+        assert prev + 1 == last;
+      }
+      assert path[prev] in Parents(G, path[last]) by {
+        assert path[last] in Children(G, path[prev]);
+      }
+      // path[prev] is not in frontier (else-branch) and not in visited.
+      assert path[prev] !in frontier by {
+        if path[prev] in frontier {
+          assert 0 <= prev < |path| - 1 && path[prev] in frontier;
+        }
+      }
+      assert path[prev] !in visited;
+      assert path[prev] !in newVisited;
+      assert path[prev] in nextFrontier by {
+        assert path[prev] in Nodes(G);
+        assert path[last] in frontier;
+        assert path[prev] in Parents(G, path[last]);
+        assert path[prev] !in newVisited;
+      }
+      // Drop the last element; use the prefix with nextFrontier.
+      var prefix := path[..last];
+      assert IsParentPath(G, prefix) by { IsParentPath_Prefix(G, path, last); }
+      assert prefix[|prefix| - 1] == path[prev];
+      assert prefix[|prefix| - 1] in nextFrontier;
+      assert forall i :: 0 <= i < |prefix| ==> prefix[i] !in newVisited by {
+        forall i | 0 <= i < |prefix| ensures prefix[i] !in newVisited
+        {
+          assert prefix[i] == path[i];
+          assert path[i] !in visited;
+          assert path[i] !in frontier by {
+            if path[i] in frontier {
+              assert 0 <= i < |path| - 1 && path[i] in frontier;
+            }
+          }
+        }
+      }
+      assert forall i :: 0 <= i < |prefix| ==> prefix[i] in Nodes(G) by {
+        forall i | 0 <= i < |prefix| ensures prefix[i] in Nodes(G)
+        { assert prefix[i] == path[i]; }
+      }
+      assert fuel - 1 >= |prefix| by { assert |prefix| == last; }
+      ReachableParentBFS_FollowsFreshParentPath(
+        G, prefix, nextFrontier, newVisited, fuel - 1);
+      assert prefix[0] == path[0];
+      // BFS unfolding: frontier ≠ {} and fuel ≥ 1 → result = BFS(nextFrontier, newVisited, fuel-1).
+      assert frontier != {};
+      assert ReachableParentBFS(G, frontier, visited, fuel) ==
+        ReachableParentBFS(G, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
   // ------------------------------------------------------------------
   // AncestorsCompiled == Ancestors
   // ------------------------------------------------------------------
@@ -907,53 +1288,47 @@ module DAG {
     ReachableParentBFS_Sound(G, start0, {}, |Nodes(G)|, start0, 0);
     // AncestorsCompiled(G, W) = ReachableParentBFS(G, start0, {}, |Nodes(G)|).
     // Postcondition: exists w in start0 with IsAncestorBounded(G, u, w, |Nodes(G)|).
+    // BFS result ⊆ Nodes(G): start0 = W * Nodes(G) ⊆ Nodes(G).
+    assert start0 <= Nodes(G);
+    ReachableParentBFS_InNodes(G, start0, {}, |Nodes(G)|);
     forall u | u in AncestorsCompiled(G, W)
       ensures u in Ancestors(G, W)
     {
       var w :| w in start0 && IsAncestorBounded(G, u, w, 0 + |Nodes(G)|);
       assert w in W;
-      // BFS outputs ⊆ Nodes(G): initial frontier start0 ⊆ Nodes(G), and every
-      // subsequent layer (nextFrontier) is explicitly restricted to Nodes(G).
-      assume u in Nodes(G);
+      assert u in Nodes(G);  // from ReachableParentBFS_InNodes above
       assert IsAncestor(G, u, w);
     }
   }
 
   // Completeness direction: every ancestor is in AncestorsCompiled(G, W).
   // This requires IsDAG to bound path lengths.
-  lemma AncestorsCompiled_Complete(G: Graph, W: set<Node>)
+  lemma {:vcs_split_on_every_assert} AncestorsCompiled_Complete(G: Graph, W: set<Node>)
     requires IsDAG(G)
     ensures Ancestors(G, W) <= AncestorsCompiled(G, W)
   {
     forall u | u in Ancestors(G, W)
       ensures u in AncestorsCompiled(G, W)
     {
+      // u ∈ Ancestors(G, W) ⊆ Nodes(G) (by the set-comprehension definition).
+      assert u in Nodes(G);
       var w :| w in W && IsAncestor(G, u, w);
-      // w ∈ W ∩ Nodes(G) since u ∈ Ancestors(G, W) ⊆ Nodes(G) and IsAncestor gives w ∈ Nodes(G).
+      // w ∈ Nodes(G): endpoint of the IsAncestorBounded path starting at u ∈ Nodes(G).
       assert w in Nodes(G) by {
-        // IsAncestor(G, u, w): IsAncestorBounded(G, u, w, |Nodes(G)|).
-        // w is the endpoint; it must be in Nodes(G) for IsAncestorBounded to hold.
-        // Base case: u == w → w = u ∈ Nodes(G) (from Ancestors definition).
-        // Inductive: IsAncestorBounded reaches w, and Children(G, .) ⊆ Nodes(G).
-        // We use that Ancestors(G, W) ⊆ Nodes(G) by definition.
-        // w ∈ W and IsAncestor(G, u, w) — does w have to be in Nodes(G)?
-        // IsAncestorBounded(G, u, w, k): u == w OR (exists ch in Children(G, u) && ...).
-        // The base case allows w ∉ Nodes(G) only if u == w and u ∈ Nodes(G).
-        // u ∈ Ancestors(G, W) ⊆ Nodes(G). If u == w, then w ∈ Nodes(G). ✓
-        // If u ≠ w: the recursion eventually reaches u == w (base), so w ∈ Nodes(G).
-        // This is guaranteed since at the base case u == w and all u in Children(G,.)
-        // are in Nodes(G).
-        assume w in Nodes(G);
+        IsAncestorBounded_EndInNodes(G, u, w, |Nodes(G)|);
       }
       assert w in W * Nodes(G);
-      // IsAncestor(G, u, w) = IsAncestorBounded(G, u, w, |Nodes(G)|)
-      // Need k + 1 <= fuel. Use k = |Nodes(G)| - 1 (DAG paths bounded by #nodes-1),
-      // but we only have IsAncestorBounded(G, u, w, |Nodes(G)|). Use a larger fuel.
-      // Actually: in a DAG all simple paths have length < |Nodes(G)|, so the actual
-      // bound k satisfies k < |Nodes(G)|, i.e., k <= |Nodes(G)| - 1 < |Nodes(G)|.
-      // With fuel = |Nodes(G)|, we have k + 1 <= |Nodes(G)| = fuel iff k < |Nodes(G)|.
-      // We can't extract k here directly, so we use assume.
-      assume u in AncestorsCompiled(G, W);
+      // Tighten the bound: in a DAG, path length ≤ |Nodes(G)| - 1.
+      IsAncestor_DAGTight(G, u, w);
+      // Extract a concrete path of ≤ |Nodes(G)| nodes (≤ |Nodes(G)| - 1 edges).
+      var path := IsAncestorBounded_ExtractPath(G, u, w, |Nodes(G)| - 1);
+      assert path[0] == u;
+      assert path[|path| - 1] == w;
+      assert |path| <= |Nodes(G)|;  // at most |Nodes(G)| - 1 + 1 = |Nodes(G)| nodes
+      // Apply the path-following BFS completeness lemma (visited = {}, all fresh).
+      ReachableParentBFS_FollowsFreshParentPath(
+        G, path, W * Nodes(G), {}, |Nodes(G)|);
+      assert u in AncestorsCompiled(G, W);
     }
   }
 
