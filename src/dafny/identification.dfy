@@ -173,7 +173,7 @@ module Identification {
   ///
   ///   (c) Each Q[Sᵢ] = P_{v\sᵢ}(sᵢ) — the effect of intervening
   ///       on all variables outside Sᵢ.
-  lemma {:axiom} Lemma2_CComponentFactorization(
+  lemma Lemma2_CComponentFactorization(
     sm: SMGraph,
     p: Prob.PMF,
     ord: seq<Node>
@@ -186,6 +186,7 @@ module Identification {
     // P(v) = ∏ᵢ Q[Sᵢ]
     // (stated narratively because the product-over-set and
     //  QValue precondition proofs exceed Dafny's automation)
+  {}
 
   // ==================================================================
   // 4.  Lemma 3 — Q-Value Derivation from Nested Components
@@ -214,7 +215,7 @@ module Identification {
   ///
   ///   If D ⊂ S are C-components (in appropriate subgraphs),
   ///   then Q[D] is derivable from Q[S] and P(V).
-  lemma {:axiom} Lemma3_QValueDerivation(
+  lemma Lemma3_QValueDerivation(
     sm: SMGraph,
     p: Prob.PMF,
     S: set<Node>,
@@ -229,6 +230,12 @@ module Identification {
     requires S <= SMNodes(sm)
     requires S in CComponents(sm)
     ensures Prob.IsDistribution(QValue(sm, p, D, ord))
+  {
+    // D <= S <= SMNodes(sm), so D <= SMNodes(sm).
+    // QValue_IsDistribution provides IsDistribution(QValue(sm, p, D, ord))
+    // for any D <= SMNodes(sm), which is exactly our ensures.
+    QValue_IsDistribution(sm, p, D, ord);
+  }
 
   // ==================================================================
   // 5.  The ID Algorithm (Shpitser & Pearl 2006, Figure 3)

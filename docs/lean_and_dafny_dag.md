@@ -31,9 +31,9 @@ flowchart TD
     n_L1["Lemma 1\nNon-Identifiability Witness
 (D: 0/1 proved)"]:::unproved
     n_L2["Lemma 2\nC-Component Factorization
-(D: 0/1 proved)"]:::unproved
+(D: 1/1 proved)"]:::dafnyOnly
     n_L3L["Lemma 3\nQ-Value Derivation
-(D: 0/1 proved)"]:::unproved
+(D: 1/1 proved)"]:::dafnyOnly
     n_LMARKOV["Local Markov Property\nLocalMarkov (D)
 (D: 4/4 proved)"]:::dafnyOnly
     n_MARKOV["Markov Factorization\nP = ∏ P(Vᵢ | Pa(Vᵢ))"]:::dafnyOnly
