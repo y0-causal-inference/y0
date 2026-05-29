@@ -1839,6 +1839,21 @@ module Interventional {
       TruncatePMF(G, p, X, xVals)
     )
 
+  // Marginalizing a Markov-factored PMF over a subgraph Z produces a PMF
+  // that Markov-factorizes over the restricted DAG G_{V\Z} = RemoveNodes(G, Z).
+  //
+  // Ref: Standard result in graphical models (e.g., Lauritzen 1996, §3.2).
+  //      Used in ID algorithm Line 2 to pass the ancestral-marginal
+  //      to the recursive call on SubgraphSM(sm, AncY).
+  lemma {:axiom} MarkovFactorization_Marginal(
+    G: Graph, p: Prob.PMF, Z: set<Node>
+  )
+    requires IsDAG(G)
+    requires Prob.IsDistribution(p)
+    requires MarkovFactorization(G, p)
+    requires Z <= Nodes(G)
+    ensures MarkovFactorization(RemoveNodes(G, Z), Marginalize(G, p, Z))
+
   lemma TruncatePMF_InterventionEventIsSupport(
     G: Graph,
     p: Prob.PMF,

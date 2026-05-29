@@ -1038,6 +1038,28 @@ module SemiMarkovian {
     requires S <= SMNodes(sm)
     ensures Prob.IsDistribution(QValue(sm, p, S, ord))
 
+  // Q[S] Markov-factorizes over the induced subgraph G_S.
+  //
+  // Q[S] = P_{V\S}(S) is the interventional distribution under do(V\S),
+  // and the local conditionals of G_S are exactly the factors that
+  // contribute to Q[S] (the non-intervened factors in TruncatePMF).
+  //
+  // Ref: Tian & Pearl (2002), Lemma 3 and its proof.
+  //      Used in ID algorithm Line 7 to pass QValue(sm, p, Sprime, ord)
+  //      as the observational distribution for the recursive call on G_{S'}.
+  lemma {:axiom} MarkovFactorization_QValue(
+    sm: SMGraph,
+    p: Prob.PMF,
+    S: set<Node>,
+    ord: seq<Node>
+  )
+    requires WellFormedSM(sm)
+    requires Prob.IsDistribution(p)
+    requires MarkovFactorization(sm.dag, p)
+    requires S <= SMNodes(sm)
+    requires SMTopologicalSort(sm, ord)
+    ensures MarkovFactorization(SubgraphSM(sm, S).dag, QValue(sm, p, S, ord))
+
   // ==================================================================
   // C-Component Factorization (Tian 2002, Theorem 4)
   //

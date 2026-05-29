@@ -647,7 +647,9 @@ module Identification {
       // pAncY = Marginalize(sm.dag, p, V - AncY) is a distribution:
       Marginalize_IsDistribution(sm.dag, p, V - AncY);
       assert Prob.IsDistribution(pAncY);
-      assume {:axiom} MarkovFactorization(smAncY.dag, pAncY);
+      // MarkovFactorization is preserved under marginalization to a subgraph:
+      MarkovFactorization_Marginal(sm.dag, p, V - AncY);
+      assert MarkovFactorization(smAncY.dag, pAncY);
       var ordAncY := FilterSort(ord, AncY);
       FilteredSort_ValidSM(sm, AncY, ord);
       IDImpl(smAncY, X * AncY, Y, pAncY, ordAncY, fuel - 1)
@@ -731,7 +733,9 @@ module Identification {
           // pSp = QValue(sm, p, Sprime, ord) is a distribution:
           QValue_IsDistribution(sm, p, Sprime, ord);
           assert Prob.IsDistribution(pSp);
-          assume {:axiom} MarkovFactorization(smSp.dag, pSp);
+          // Q[Sprime] Markov-factorizes over G_{Sprime} (Tian 2002, Lemma 3):
+          MarkovFactorization_QValue(sm, p, Sprime, ord);
+          assert MarkovFactorization(smSp.dag, pSp);
           var ordSp := FilterSort(ord, Sprime);
           FilteredSort_ValidSM(sm, Sprime, ord);
           IDImpl(smSp, X * Sprime, Y, pSp, ordSp, fuel - 1)
