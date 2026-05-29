@@ -156,8 +156,96 @@ module SemiMarkovian {
     return SeqToSetOfSets(comps);
   }
 
+  // Helper: for every v ∈ SMNodes(sm), the BCC-class of v is in CComponents(sm).
+  // The witness is S := {u ∈ SMNodes(sm) | BCC(u, v)}.
+  lemma {:vcs_split_on_every_assert} CComponent_Exists(sm: SMGraph, v: Node)
+    requires WellFormedSM(sm)
+    requires v in SMNodes(sm)
+    ensures exists S :: S in CComponents(sm) && v in S
+  {
+    // Witness: all nodes bidirected-connected to v.
+    var S := set u | u in SMNodes(sm) && BidirectedConnected(sm, u, v);
+    // (i) S ⊆ SMNodes(sm): by construction.
+    assert S <= SMNodes(sm);
+    // (ii) v ∈ S: BCC is reflexive (u == v base case in the predicate).
+    assert BidirectedConnected(sm, v, v);
+    assert v in S;
+    assert S != {};
+    // (iii) Pairwise BCC within S.
+    assert forall u, w | u in S && w in S :: BidirectedConnected(sm, u, w) by {
+      forall u, w | u in S && w in S
+        ensures BidirectedConnected(sm, u, w)
+      {
+        // u ∈ S ⇒ BCC(u, v); w ∈ S ⇒ BCC(w, v).
+        assert BidirectedConnected(sm, u, v);
+        assert BidirectedConnected(sm, w, v);
+        // BCC(w, v) + symmetry → BCC(v, w).
+        BCC_Symmetric(sm, w, v, |SMNodes(sm)|);
+        assert BidirectedConnected(sm, v, w);
+        // u ∈ S ⇒ u ∈ SMNodes(sm); BCC(u,v) + BCC(v,w) → BCC(u,w).
+        assert u in SMNodes(sm);
+        BidirectedConnected_Transitive(sm, u, v, w);
+      }
+    }
+    // (iv) Maximality: u ∉ S ⇒ ∃ x ∈ S :: ¬BCC(u, x).
+    //      u ∉ S means ¬BCC(u, v); witness x := v ∈ S.
+    assert forall u | u in SMNodes(sm) && u !in S ::
+        exists x | x in S :: !BidirectedConnected(sm, u, x) by {
+      forall u | u in SMNodes(sm) && u !in S
+        ensures exists x | x in S :: !BidirectedConnected(sm, u, x)
+      {
+        assert !BidirectedConnected(sm, u, v);
+        assert v in S;
+      }
+    }
+    // All four comprehension conditions hold → S ∈ CComponents(sm).
+    assert S in CComponents(sm);
+  }
+
+  // Helper: two distinct C-components are disjoint.
+  // Proof by contradiction: a shared node x forces S1 = S2 via BCC transitivity.
+  lemma {:vcs_split_on_every_assert} {:timeLimitMultiplier 4} CComponents_Disjoint(
+    sm: SMGraph, S1: set<Node>, S2: set<Node>
+  )
+    requires WellFormedSM(sm)
+    requires S1 in CComponents(sm)
+    requires S2 in CComponents(sm)
+    requires S1 != S2
+    ensures S1 * S2 == {}
+  {
+    // Extract the four comprehension conditions for each component.
+    assert S1 <= SMNodes(sm) && S1 != {} &&
+      (forall a, b | a in S1 && b in S1 :: BidirectedConnected(sm, a, b)) &&
+      (forall a | a in SMNodes(sm) && a !in S1 ::
+         exists b | b in S1 :: !BidirectedConnected(sm, a, b));
+    assert S2 <= SMNodes(sm) && S2 != {} &&
+      (forall a, b | a in S2 && b in S2 :: BidirectedConnected(sm, a, b)) &&
+      (forall a | a in SMNodes(sm) && a !in S2 ::
+         exists b | b in S2 :: !BidirectedConnected(sm, a, b));
+    if S1 * S2 != {} {
+      var x :| x in S1 * S2;
+      // S2 ⊆ S1: x ∈ S1 and for every u ∈ S2, BCC(x, u) from S2's pairwise condition.
+      forall u | u in S2 ensures u in S1 {
+        assert x in S2 && u in S2;
+        assert BidirectedConnected(sm, x, u);
+        assert u in SMNodes(sm);
+        BCC_InSameCComponent(sm, S1, x, u);
+      }
+      // S1 ⊆ S2: x ∈ S2 and for every u ∈ S1, BCC(x, u) from S1's pairwise condition.
+      forall u | u in S1 ensures u in S2 {
+        assert x in S1 && u in S1;
+        assert BidirectedConnected(sm, x, u);
+        assert u in SMNodes(sm);
+        BCC_InSameCComponent(sm, S2, x, u);
+      }
+      // S2 ⊆ S1 and S1 ⊆ S2 → S1 = S2, contradicting S1 ≠ S2.
+      assert S1 == S2;
+      assert false;
+    }
+  }
+
   // C-components partition the node set.
-  lemma {:axiom} CComponents_Partition(sm: SMGraph)
+  lemma CComponents_Partition(sm: SMGraph)
     requires WellFormedSM(sm)
     ensures
       (forall v :: v in SMNodes(sm) ==>
@@ -165,8 +253,21 @@ module SemiMarkovian {
       (forall S1, S2 :: (S1 in CComponents(sm) && S2 in CComponents(sm)
          && S1 != S2) ==> S1 * S2 == {}) &&
       (forall S :: S in CComponents(sm) ==> S <= SMNodes(sm) && S != {})
-  // Proof sketch: follows from the set-comprehension ghost body of
-  // CComponents and the BFS correctness assumption in the by-method.
+  {
+    // Existence: every node is covered by its BCC-class.
+    forall v | v in SMNodes(sm)
+      ensures exists S :: S in CComponents(sm) && v in S
+    {
+      CComponent_Exists(sm, v);
+    }
+    // Disjointness: distinct components are disjoint (proved via helper).
+    forall S1, S2 | S1 in CComponents(sm) && S2 in CComponents(sm) && S1 != S2
+      ensures S1 * S2 == {}
+    {
+      CComponents_Disjoint(sm, S1, S2);
+    }
+    // Subset/non-empty: immediate from the set-comprehension definition.
+  }
 
   // Nodes in the same C-component are bidirected-connected.
   lemma CComponent_Connected(sm: SMGraph, u: Node, v: Node)
