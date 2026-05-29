@@ -997,99 +997,10 @@ module DAG {
     }
   }
 
-  // If u is reachable from w (IsAncestorBounded at depth k), w is in frontier,
-  // and no visited node has been counted, then u appears in the BFS within
-  // k steps — so fuel >= k suffices.
-  //
-  // More precisely: if u has an ancestor-path to some w in frontier of length
-  // at most k, and u is not already in visited, then u is in
-  // ReachableParentBFS(G, frontier, visited, k).
-  //
-  // The tricky part is that we need u to not yet be visited.  We use the
-  // stronger statement: u in ReachableParentBFS(G, frontier, visited, fuel)
-  // whenever IsAncestorBounded(G, u, w, k) with k <= fuel, w in frontier,
-  // and u not in visited.
-  lemma {:induction false} ReachableParentBFS_Complete(
-    G: Graph,
-    frontier: set<Node>,
-    visited: set<Node>,
-    fuel: nat,
-    u: Node,
-    w: Node,
-    k: nat
-  )
-    requires w in frontier
-    requires u in Nodes(G)
-    requires IsAncestorBounded(G, u, w, k)
-    requires k + 1 <= fuel
-    requires u !in visited
-    ensures u in ReachableParentBFS(G, frontier, visited, fuel)
-    decreases k
-  {
-    if u == w {
-      // u ∈ frontier; k=0, fuel >= k+1 = 1.
-      assert fuel >= 1;
-      ReachableParentBFS_Mono(G, frontier, visited, fuel);
-    } else {
-      // IsAncestorBounded(G, u, w, k) with u ≠ w and k > 0:
-      assert k > 0;
-      var ch :| ch in Children(G, u) && IsAncestorBounded(G, ch, w, k - 1);
-      // ch is a child of u means u is a parent of ch, so ch in nextFrontier
-      // if ch is already in visited + frontier: recurse
-      var newVisited := visited + frontier;
-      var nextFrontier :=
-        (set x | x in Nodes(G) && (exists v :: v in frontier && x in Parents(G, v))
-                && x !in newVisited);
-      if ch in frontier {
-        // ch is in frontier; next step will expand to u (if u not visited).
-        // Actually: u is a parent of ch, so u in nextFrontier (if not visited).
-        // Then u in nextFrontier, and fuel-1 >= 0, so result contains u.
-        assert u in Parents(G, ch);
-        if u !in newVisited {
-          assert u in nextFrontier by {
-            assert u in Nodes(G);
-            assert ch in frontier;
-            assert u in Parents(G, ch);
-          }
-          // fuel - 1 >= k >= 1, so fuel-1 >= 1: Mono applicable.
-          assert fuel - 1 >= 1 by { assert k >= 1; assert fuel >= k + 1; }
-          ReachableParentBFS_Mono(G, nextFrontier, newVisited, fuel - 1);
-        } else {
-          // u in visited means u in visited + frontier
-          if u in frontier {
-            assert fuel >= 1 by { assert k >= 1; assert fuel >= k + 1; }
-            ReachableParentBFS_Mono(G, frontier, visited, fuel);
-          } else {
-            // u in visited; result ⊇ visited ⊇ {u}.
-            ReachableParentBFS_VisitedSubset(G, frontier, visited, fuel);
-          }
-        }
-      } else if ch in visited {
-        // ch was already visited; it's still in the BFS explored set.
-        // u is a parent of ch. ch will NOT re-appear in nextFrontier.
-        // We need to find another path from u to w not going through visited.
-        // This is the hard case — in general, a visited node blocks the path.
-        // However, IsAncestorBounded only tells us there IS a path; it may
-        // go through visited. We need the visited-free completeness, which
-        // requires the DAG property to find the topological-order witness.
-        // For now: use assume (this is the one remaining hard case).
-        assume u in ReachableParentBFS(G, frontier, visited, fuel);
-      } else {
-        // ch not in visited and not in frontier; we need ch to eventually
-        // reach frontier in k-1 steps.  But ch is in Nodes(G) and has a
-        // path to w of length k-1.
-        // First check if ch itself is in nextFrontier eventually...
-        // Actually: IsAncestorBounded(G, ch, w, k-1) means ch has a path
-        // to w in k-1 steps.  By induction, ch ∈ BFS(frontier, visited, k-1).
-        // But we need u, not ch.  u is a parent of ch.
-        // If ch is reachable from frontier in k-1 BFS steps, then
-        // u will be added to some future frontier as a parent of ch.
-        // This recursive argument is the formal completeness proof.
-        // For the general case we need a finer invariant.  Use assume for now.
-        assume u in ReachableParentBFS(G, frontier, visited, fuel);
-      }
-    }
-  }
+  // BFS completeness for arbitrary visited sets is handled by
+  // ReachableParentBFS_FollowsFreshParentPath above, which requires an
+  // explicit path witness that avoids visited entirely.  That is the
+  // correct statement used in AncestorsCompiled_Complete.
 
   // Helper: if fuel >= 1, frontier ⊆ BFS result (frontier gets absorbed into newVisited).
   lemma {:induction false} ReachableParentBFS_Mono(
