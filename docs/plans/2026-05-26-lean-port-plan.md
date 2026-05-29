@@ -135,7 +135,7 @@ cover arithmetic and `Finset` reasoning more directly than Z3.
 | --- | --- | --- | --- |
 | L4-001 | `KahnSort_Correct` (topological order correctness) | Lean: follow from `Finset.sort` properties | Not started |
 | L4-002 | `AncestorsCompiled_Correct`, `DescendantsCompiled_Correct` | BFS completeness; use `Finset` induction | Not started |
-| L4-003 | d-separation decomposition, symmetry, weak union | Proved in DA-P4 series; retranslate trail definition | Not started |
+| L4-003 | d-separation decomposition, symmetry, weak union, contraction | Proved in Lean: `isCollider` fix + decomposition/symmetry via trail reversal (`a9bcc25`); weak union + contraction (`88637ba`); 9 DSep sorrys fully discharged | Done |
 | L4-004 | `CComponentCompiled_Correct` (BFS ↔ ghost C-component) | Path-following lemma; proved in DA-P3-004 | Not started |
 | L4-005 | `CComponents_Partition` | Coverage + disjointness; proved in DA-P3-003 | Not started |
 | L4-006 | `RemoveNodesSM_PreservesWellFormedness` | DAG node deletion; proved in DA-P3-001 | Not started |
@@ -225,6 +225,9 @@ uv run python scripts/count_lean_sorrys.py
 | 2026-05-26 | fcb764c | 0 | 0 | L1 Repr all computable via LinearOrder BiEdge |
 | 2026-05-26 | (L3)    | 1 | +1 | L3 probability layer; `truncatePMF_markov` deferred |
 | 2026-05-26 | (L2-001) | 2 | +1 | L2-001 kahnSort computable; `kahnSort_spec` deferred |
+| 2026-05-27 | b1068bb | 11 | +9 | L2-004 DSeparation.lean adds 9 deferred sorrys (all marked L4/L6) |
+| 2026-05-27 | a9bcc25 | 7 | -4 | L4-003 partial: decomposition + symmetry proved; 4 DSep sorrys discharged |
+| 2026-05-27 | 88637ba | 1 | -6 | L4-003 complete: weak union + contraction proved; all remaining DSep sorrys discharged; only `truncatePMF_markov` remains |
 
 ---
 
@@ -238,6 +241,9 @@ uv run python scripts/count_lean_sorrys.py
 | 2026-05-26 | fcb764c | ✅ 1704 jobs | n/a | All Repr computable; 0 noncomputable instances |
 | 2026-05-26 | (L3)    | ✅ 1713 jobs | n/a | L3 probability layer; 8/10 items done; 1 sorry |
 | 2026-05-26 | (L2-001) | ✅ 1714 jobs | n/a | L2-001 kahnSort computable; 2 sorrys total |
+| 2026-05-27 | b1068bb | ✅ 1718 jobs | n/a | L2-004 DSeparation predicate; 11 sorrys total (9 deferred to L4) |
+| 2026-05-27 | a9bcc25 | ✅ build green | n/a | L4-003 partial: `isCollider` fix + decomposition + symmetry via trail reversal; 7 sorrys |
+| 2026-05-27 | 88637ba | ✅ build green | n/a | L4-003 complete: weak union + contraction; all DSep sorrys discharged; 1 sorry total |
 
 ---
 
@@ -263,6 +269,9 @@ Items ready to commit but not yet committed. Move to ledger after committing.
 | 2026-05-27 | bf68918 | feat(lean): L2-001 kahnSort — computable topological sort via Kahn's algorithm | L2-001 | 1714-job build; 2 sorrys |
 | 2026-05-27 | 703bf3e | feat(lean): L2-002..007 graph traversal, ID algorithm, and conformance tests | L2-002..007 | Traversal.lean + IDAlgorithm.lean + IDConformance.lean; 10/10 #guard pass |
 | 2026-05-27 | b1068bb | feat(lean): L2-004 dSeparation — d-separation predicate (Prop, not computable) | L2-004 | DSeparation.lean; 1718-job build; 9 sorrys (all deferred L4/L6) |
+| 2026-05-26 | a53cad1 | docs: mark L2 phase complete in lean port plan | L2 tracker update | Documentation only; marks all L2 items Done in the phase table |
+| 2026-05-27 | a9bcc25 | feat(lean): L4-003 isCollider fix + dSep decomposition + symmetry via trail reversal | L4-003 (partial) | `isCollider` corrected to check middle node not endpoint; decomposition + symmetry proved; 4 DSep sorrys discharged |
+| 2026-05-27 | 88637ba | lean: prove dSep_weakUnion and dSep_contraction; discharge all sorries | L4-003 (complete) | Weak union + contraction proved; all 9 DSep sorrys discharged; 1 sorry total (`truncatePMF_markov` in ProbabilityLayer.lean) |
 
 ---
 
