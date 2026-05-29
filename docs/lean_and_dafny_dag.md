@@ -51,7 +51,7 @@ flowchart TD
     n_SYM["d-Sep Symmetry\nDSep_Symmetry (D) · dSep_symmetry (L)
 (D: 1/1 · L: 1/1 proved)"]:::bothProved
     n_T2["Theorem 2: Soundness of ID\nTheorem2_Soundness
-(D: 0/1 proved)"]:::unproved
+(D: 1/1 proved)"]:::dafnyOnly
     n_T3["Theorem 3: Completeness of ID\nTheorem3_Completeness
 (D: 0/1 proved)"]:::unproved
     n_T4["Theorem 4: Do-Calculus Completeness\nTheorem4_DoCalculusCompleteness

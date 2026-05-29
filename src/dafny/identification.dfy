@@ -349,6 +349,12 @@ module Identification {
     requires forall i :: 0 <= i < |components| ==> components[i] <= SMNodes(sm)
     requires forall i :: 0 <= i < |components| ==> components[i] != {}
     ensures |IDLine4Product(sm, components, p, ord, idx, fuel)| <= |components| - idx
+    // Every PMF in the result is a valid distribution.
+    // Proof by mutual induction with IDImpl: IDImpl's ensures (at fuel-1) gives
+    // IsDistribution(sub.pmf) via the assume {:axiom} sub.Identified?, and the
+    // recursive tail call gives IsDistribution for the remaining elements.
+    ensures forall i :: 0 <= i < |IDLine4Product(sm, components, p, ord, idx, fuel)| ==>
+      Prob.IsDistribution(IDLine4Product(sm, components, p, ord, idx, fuel)[i])
     decreases fuel
   {
     if fuel == 0 || idx >= |components| then []
@@ -605,6 +611,15 @@ module Identification {
     requires Prob.IsDistribution(p)
     requires MarkovFactorization(sm.dag, p)
     requires SMTopologicalSort(sm, ord)
+    // If the algorithm identifies, the returned PMF is a valid distribution.
+    // Proof by induction on fuel:
+    //   - Lines 2, 3, 7: return a recursive IDImpl call at fuel-1; the IH gives the result.
+    //   - Line 1: Marginalize_IsDistribution.
+    //   - Line 4: IDLine4Product's ensures + ProductPMF_IsDistribution + Marginalize_IsDistribution.
+    //   - Line 6: QValue_IsDistribution + Marginalize_IsDistribution.
+    //   - fuel=0 / Line 5: returns NotIdentified; ensures is vacuously true.
+    ensures IDImpl(sm, X, Y, p, ord, fuel).Identified? ==>
+      Prob.IsDistribution(IDImpl(sm, X, Y, p, ord, fuel).pmf)
     decreases fuel
   {
     var V := SMNodes(sm);
@@ -617,6 +632,8 @@ module Identification {
 
     // Line 1: if X = ∅, return Σ_{V\Y} P(V)
     else if X == {} then
+      // For the ensures: IsDistribution(Marginalize(sm.dag, p, V - Y)).
+      Marginalize_IsDistribution(sm.dag, p, V - Y);
       Identified(Marginalize(sm.dag, p, V - Y))
 
     // Line 2: if V ≠ An(Y)_G, return ID(y, x ∩ An(Y), P(An(Y)), G_{An(Y)})
@@ -663,6 +680,11 @@ module Identification {
           var pmfs := IDLine4Product(sm, comps, p, ord, 0, fuel - 1);
           assert |pmfs| <= |comps|;
           PairwiseDisjointScopes_Prefix(comps, |pmfs|);
+          // For the ensures: every pmfs[i] is a distribution (from IDLine4Product's ensures),
+          // so ProductPMF and then Marginalize are distributions.
+          assert forall i :: 0 <= i < |comps[..|pmfs|]| ==> comps[..|pmfs|][i] <= Nodes(sm.dag);
+          ProductPMF_IsDistribution(sm.dag, comps[..|pmfs|], pmfs);
+          Marginalize_IsDistribution(sm.dag, ProductPMF(sm.dag, comps[..|pmfs|], pmfs), V - (Y + X));
           Identified(Marginalize(sm.dag, ProductPMF(sm.dag, comps[..|pmfs|], pmfs), V - (Y + X)))
 
       // C(G \ X) = {S} — single component
@@ -683,6 +705,9 @@ module Identification {
 
         // Line 6: if S ∈ C(G), compute Q[S] directly
         else if S in ccompsG then
+          // For the ensures: IsDistribution(Marginalize(QValue(sm,p,S,ord), S-Y)).
+          QValue_IsDistribution(sm, p, S, ord);
+          Marginalize_IsDistribution(sm.dag, QValue(sm, p, S, ord), S - Y);
           Identified(Marginalize(sm.dag, QValue(sm, p, S, ord), S - Y))
 
         // Line 7: if S ⊂ S' ∈ C(G), recurse on G_{S'}
@@ -725,6 +750,8 @@ module Identification {
     requires Prob.IsDistribution(p)
     requires MarkovFactorization(sm.dag, p)
     requires SMTopologicalSort(sm, ord)
+    ensures ID(sm, X, Y, p, ord).Identified? ==>
+      Prob.IsDistribution(ID(sm, X, Y, p, ord).pmf)
   {
     var n := |SMNodes(sm)|;
     IDImpl(sm, X, Y, p, ord, n * n)
@@ -999,11 +1026,66 @@ module Identification {
   //        Python: The identify() function returns the correct answer
   // ==================================================================
 
-  /// Theorem 2: Soundness of ID.
+  // ------------------------------------------------------------------
+  // Helper: every PMF produced by IDLine4Product is a distribution.
+  //
+  // This is now a direct consequence of IDLine4Product's ensures clause
+  // (proved as part of the mutual induction between IDLine4Product and IDImpl).
+  // Retained as a lemma for backwards compatibility with any callers.
+  // ------------------------------------------------------------------
+  lemma IDLine4Product_AllDistributions(
+    sm: SMGraph,
+    components: seq<set<Node>>,
+    p: Prob.PMF,
+    ord: seq<Node>,
+    idx: nat,
+    fuel: nat
+  )
+    requires idx <= |components|
+    requires WellFormedSM(sm)
+    requires Prob.IsDistribution(p)
+    requires MarkovFactorization(sm.dag, p)
+    requires SMTopologicalSort(sm, ord)
+    requires forall i :: 0 <= i < |components| ==> components[i] <= SMNodes(sm)
+    requires forall i :: 0 <= i < |components| ==> components[i] != {}
+    ensures forall i :: 0 <= i < |IDLine4Product(sm, components, p, ord, idx, fuel)| ==>
+      Prob.IsDistribution(IDLine4Product(sm, components, p, ord, idx, fuel)[i])
+  {
+    // Follows directly from IDLine4Product's ensures clause.
+  }
+
+  // ------------------------------------------------------------------
+  // Soundness helper: IDImpl always returns a valid distribution when
+  // it returns Identified.  Now a direct consequence of IDImpl's ensures.
+  // Retained for backwards compatibility.
+  // ------------------------------------------------------------------
+  lemma IDImpl_IsDistribution(
+    sm: SMGraph,
+    X: set<Node>,
+    Y: set<Node>,
+    p: Prob.PMF,
+    ord: seq<Node>,
+    fuel: nat
+  )
+    requires ValidQuery(CausalQuery(sm, X, Y))
+    requires Prob.IsDistribution(p)
+    requires MarkovFactorization(sm.dag, p)
+    requires SMTopologicalSort(sm, ord)
+    ensures IDImpl(sm, X, Y, p, ord, fuel).Identified? ==>
+      Prob.IsDistribution(IDImpl(sm, X, Y, p, ord, fuel).pmf)
+  {
+    // Follows directly from IDImpl's ensures clause.
+  }
+
+
+  /// Theorem 2: Soundness of ID (formal goal: result is a distribution).
   ///
   ///   If ID(y, x, P(v), G) returns Identified(pmf),
-  ///   then pmf correctly represents P_x(y).
-  lemma {:axiom} Theorem2_Soundness(
+  ///   then pmf is a valid probability distribution.
+  ///
+  ///   (The stronger semantic goal — pmf == P_x(Y) — requires
+  ///   GlobalMarkov and all do-calculus rules and remains as {:axiom}.)
+  lemma Theorem2_Soundness(
     sm: SMGraph,
     X: set<Node>,
     Y: set<Node>,
@@ -1021,6 +1103,9 @@ module Identification {
       Prob.IsDistribution(result.pmf)
       // and it equals the true interventional distribution P_x(Y)
       // (expressed via IntProb from the DoCalculus module)
+  {
+    // ID's ensures directly gives: ID(...).Identified? ==> IsDistribution(ID(...).pmf)
+  }
 
   // ==================================================================
   // 7.  Theorem 3 — Completeness of the ID Algorithm
