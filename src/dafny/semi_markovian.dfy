@@ -585,10 +585,236 @@ module SemiMarkovian {
   {}
 
   // The compiled single-component equals the ghost CComponent.
-  lemma {:axiom} CComponentCompiled_Correct(sm: SMGraph, v: Node)
+
+  // 1a. BidirectedNeighbors gives HasBidirected witnesses.
+  lemma BidirectedNeighbors_HasBidirected(sm: SMGraph, u: Node, v: Node)
+    requires v in BidirectedNeighbors(sm, u)
+    ensures HasBidirected(sm, u, v)
+  {
+    // By definition of BidirectedNeighbors: BiEdge(u,v) or BiEdge(v,u) is in bidirected.
+  }
+
+  // 1b. Every IsBiPath can be shortened to a NoDup (simple) path of length ≤ |SMNodes(sm)|.
+  // IsBiPath_Shorten stops at ≤ |SMNodes(sm)|+1 which may still have one duplicate.
+  // We keep removing cycles until the path is strictly NoDup.
+  ghost predicate NoDupSeq(s: seq<Node>)
+  {
+    forall i, j :: 0 <= i < j < |s| ==> s[i] != s[j]
+  }
+
+  lemma {:induction false} IsBiPath_ToNoDup(sm: SMGraph, path: seq<Node>)
+    requires WellFormedSM(sm)
+    requires IsBiPath(sm, path)
+    requires path[0] in SMNodes(sm)
+    ensures exists simple ::
+      IsBiPath(sm, simple) &&
+      simple[0] == path[0] &&
+      simple[|simple|-1] == path[|path|-1] &&
+      NoDupSeq(simple) &&
+      |simple| <= |SMNodes(sm)|
+    decreases |path|
+  {
+    if NoDupSeq(path) {
+      // path is already NoDup.  Its nodes are all in SMNodes(sm) (by IsBiPath_AllInSMNodes)
+      // and are distinct, so |path| ≤ |SMNodes(sm)|.
+      IsBiPath_AllInSMNodes(sm, path);
+      assert forall i :: 0 <= i < |path| ==> path[i] in SMNodes(sm);
+      // Distinct elements of SMNodes(sm) → |path| ≤ |SMNodes(sm)|.
+      if |path| > |SMNodes(sm)| {
+        SeqRepeat(path, SMNodes(sm));
+        var ii, jj :| 0 <= ii < jj < |path| && path[ii] == path[jj];
+        assert !NoDupSeq(path);  // contradiction
+        assert false;
+      }
+    } else {
+      // Has a cycle: remove it, recurse on the shorter path.
+      var ii, jj :| 0 <= ii < jj < |path| && path[ii] == path[jj];
+      IsBiPath_RemoveCycle(sm, path, ii, jj);
+      var shorter :| IsBiPath(sm, shorter) && shorter[0] == path[0] &&
+                     shorter[|shorter|-1] == path[|path|-1] && |shorter| < |path|;
+      // shorter[0] == path[0] ∈ SMNodes(sm).
+      IsBiPath_ToNoDup(sm, shorter);
+    }
+  }
+
+  // Phase 2 — Soundness: BFS stays within CComponent(sm, root).
+  lemma {:induction false} BidirectedBFSLoop_Sound(
+    sm: SMGraph,
+    root: Node,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires WellFormedSM(sm)
+    requires root in SMNodes(sm)
+    requires frontier <= CComponent(sm, root)
+    requires visited <= CComponent(sm, root)
+    ensures BidirectedBFSLoop(sm, frontier, visited, fuel) <= CComponent(sm, root)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      // BFS returns visited ⊆ CComponent(sm, root). ✓
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u, v | u in frontier && v in BidirectedNeighbors(sm, u)
+                  && v in SMNodes(sm) && v !in newVisited :: v);
+      // Show nextFrontier ⊆ CComponent(sm, root).
+      forall x | x in nextFrontier ensures x in CComponent(sm, root) {
+        var u :| u in frontier && x in BidirectedNeighbors(sm, u)
+               && x in SMNodes(sm) && x !in newVisited;
+        // u ∈ frontier ⊆ CComponent(sm, root) → BCC(sm, u, root).
+        assert u in CComponent(sm, root);
+        assert BidirectedConnected(sm, u, root);
+        // HasBidirected(sm, u, x) → BCC(sm, u, x, 1) → BCC_Symmetric → BCC(sm, x, u, 1).
+        BidirectedNeighbors_HasBidirected(sm, u, x);
+        assert HasBidirected(sm, u, x);
+        assert BidirectedConnectedBounded(sm, u, x, 1);
+        BCC_Symmetric(sm, u, x, 1);
+        assert BidirectedConnectedBounded(sm, x, u, 1);
+        BCC_FuelMono(sm, x, u, 1, |SMNodes(sm)|);
+        assert BidirectedConnected(sm, x, u);
+        // BCC(sm, x, u) + BCC(sm, u, root) → BCC(sm, x, root) → x ∈ CComponent.
+        BidirectedConnected_Transitive(sm, x, u, root);
+        assert BidirectedConnected(sm, x, root);
+        assert x in SMNodes(sm);
+      }
+      assert newVisited <= CComponent(sm, root);
+      BidirectedBFSLoop_Sound(sm, root, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  // Phase 3 — Completeness: a fresh NoDup path leads to its endpoint in BFS.
+  lemma {:induction false} {:vcs_split_on_every_assert}
+      BidirectedBFSLoop_FollowsFreshNoDupPath(
+    sm: SMGraph,
+    path: seq<Node>,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires WellFormedSM(sm)
+    requires IsBiPath(sm, path)
+    requires NoDupSeq(path)
+    requires path[0] in frontier
+    requires forall i :: 0 <= i < |path| ==> path[i] !in visited
+    requires fuel >= |path|
+    ensures path[|path| - 1] in BidirectedBFSLoop(sm, frontier, visited, fuel)
+    decreases |path|
+  {
+    if |path| == 1 {
+      // path[0] ∈ frontier; fuel ≥ 1.
+      assert fuel >= 1;
+      BidirectedBFS_FrontierSubset(sm, frontier, visited, fuel);
+    } else if exists j :: 0 < j < |path| && path[j] in frontier {
+      // A later node is already in frontier; use the shorter suffix path[j..].
+      var j :| 0 < j < |path| && path[j] in frontier;
+      var suffix := path[j..];
+      assert IsBiPath(sm, suffix) by {
+        forall i | 0 <= i < |suffix| - 1
+          ensures HasBidirected(sm, suffix[i], suffix[i+1]) && suffix[i+1] in SMNodes(sm)
+        {
+          IsBiPath_Step(sm, path, j + i);
+        }
+      }
+      assert NoDupSeq(suffix) by {
+        forall a, b | 0 <= a < b < |suffix| ensures suffix[a] != suffix[b]
+        { assert path[j+a] != path[j+b]; }
+      }
+      assert suffix[0] in frontier by { assert suffix[0] == path[j]; }
+      assert forall i :: 0 <= i < |suffix| ==> suffix[i] !in visited by {
+        forall i | 0 <= i < |suffix| ensures suffix[i] !in visited
+        { assert suffix[i] == path[j + i]; }
+      }
+      assert fuel >= |suffix| by { assert |suffix| == |path| - j; }
+      assert suffix[|suffix| - 1] == path[|path| - 1];
+      BidirectedBFSLoop_FollowsFreshNoDupPath(sm, suffix, frontier, visited, fuel);
+    } else {
+      // No later node is in frontier; path[1] goes into nextFrontier.
+      assert fuel > 0;
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u, v | u in frontier && v in BidirectedNeighbors(sm, u)
+                  && v in SMNodes(sm) && v !in newVisited :: v);
+      // path[1] ∉ frontier (no later node in frontier) and path[1] ∉ visited.
+      assert path[1] !in frontier by {
+        if path[1] in frontier { assert 0 < 1 < |path| && path[1] in frontier; }
+      }
+      assert path[1] !in visited;
+      assert path[1] !in newVisited;
+      // path[1] ∈ SMNodes(sm): from IsBiPath.
+      assert path[1] in SMNodes(sm) by { IsBiPath_Step(sm, path, 0); }
+      // HasBidirected(sm, path[0], path[1]) → path[1] ∈ BidirectedNeighbors(sm, path[0]).
+      assert HasBidirected(sm, path[0], path[1]) by { IsBiPath_Step(sm, path, 0); }
+      assert path[1] in BidirectedNeighbors(sm, path[0]) by {
+        assert BiEdge(path[0], path[1]) in sm.bidirected || BiEdge(path[1], path[0]) in sm.bidirected;
+        if BiEdge(path[0], path[1]) in sm.bidirected {
+          assert path[1] in (set e | e in sm.bidirected && e.u == path[0] :: e.v);
+        } else {
+          assert path[1] in (set e | e in sm.bidirected && e.v == path[0] :: e.u);
+        }
+      }
+      assert path[1] in nextFrontier;
+      // Recurse on path[1..] with (nextFrontier, newVisited, fuel-1).
+      var suffix := path[1..];
+      assert IsBiPath(sm, suffix) by {
+        forall i | 0 <= i < |suffix| - 1
+          ensures HasBidirected(sm, suffix[i], suffix[i+1]) && suffix[i+1] in SMNodes(sm)
+        { IsBiPath_Step(sm, path, 1 + i); }
+      }
+      assert NoDupSeq(suffix) by {
+        forall a, b | 0 <= a < b < |suffix| ensures suffix[a] != suffix[b]
+        { assert path[1+a] != path[1+b]; }
+      }
+      assert suffix[0] in nextFrontier by { assert suffix[0] == path[1]; }
+      assert forall i :: 0 <= i < |suffix| ==> suffix[i] !in newVisited by {
+        forall i | 0 <= i < |suffix| ensures suffix[i] !in newVisited {
+          assert suffix[i] == path[1 + i];
+          assert path[1 + i] !in visited;
+          assert path[1 + i] !in frontier by {
+            if path[1 + i] in frontier { assert 0 < 1 + i < |path| && path[1 + i] in frontier; }
+          }
+        }
+      }
+      assert fuel - 1 >= |suffix| by { assert |suffix| == |path| - 1; }
+      BidirectedBFSLoop_FollowsFreshNoDupPath(sm, suffix, nextFrontier, newVisited, fuel - 1);
+      assert suffix[|suffix| - 1] == path[|path| - 1];
+      assert frontier != {};
+      assert BidirectedBFSLoop(sm, frontier, visited, fuel) ==
+        BidirectedBFSLoop(sm, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  lemma CComponentCompiled_Correct(sm: SMGraph, v: Node)
     requires WellFormedSM(sm)
     requires v in SMNodes(sm)
     ensures CComponentCompiled(sm, v) == CComponent(sm, v)
+  {
+    var fuel := |SMNodes(sm)|;
+    // Soundness: BFS ⊆ CComponent(sm, v).
+    BidirectedBFSLoop_Sound(sm, v, {v}, {}, fuel);
+    // Completeness: CComponent(sm, v) ⊆ BFS.
+    forall u | u in CComponent(sm, v) ensures u in CComponentCompiled(sm, v) {
+      // u ∈ CComponent(sm, v) → BCC(sm, u, v).
+      assert BidirectedConnected(sm, u, v);
+      // BCC_Symmetric → BCC(sm, v, u).
+      BCC_Symmetric(sm, u, v, fuel);
+      assert BidirectedConnected(sm, v, u);
+      // Extract a bipath from v to u.
+      BCC_ExtractPath(sm, v, u, fuel);
+      var path :| IsBiPath(sm, path) && path[0] == v && path[|path|-1] == u && |path| <= fuel + 1;
+      // Shorten to a NoDup path of length ≤ fuel.
+      IsBiPath_ToNoDup(sm, path);
+      var simple :| IsBiPath(sm, simple) && simple[0] == path[0] &&
+                    simple[|simple|-1] == path[|path|-1] && NoDupSeq(simple) &&
+                    |simple| <= fuel;
+      assert simple[0] == v;
+      assert simple[|simple|-1] == u;
+      // Apply completeness lemma (visited = {}, all nodes trivially fresh).
+      BidirectedBFSLoop_FollowsFreshNoDupPath(sm, simple, {v}, {}, fuel);
+      assert u in CComponentCompiled(sm, v);
+    }
+  }
 
   // ==================================================================
   // 3.  Graph Operations on SMGraphs
