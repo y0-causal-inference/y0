@@ -638,9 +638,119 @@ class TestConceptDAGAcyclicity:
         assert found == [], (
             f"Concept DAG has {len(found)} cycle(s) — each line shows one cycle:\n"
             + "\n".join("  " + " → ".join(c) for c in found)
-            + "\n\nRoot cause: extra_edges in proof_dag_concepts.yaml use "
-            "prerequisite-first direction (A→B = 'B needs A') while auto-generated "
-            "proof-call edges use caller-first direction (A→B = 'A calls B'). "
-            "Any pair captured by both directions creates a cycle. "
-            "Remove the conflicting extra_edges entry to fix each cycle."
+            + "\n\nBoth auto-generated edges (callee \u2192 caller, prerequisite-first) and "
+            "extra_edges use the same prerequisite-first convention. A cycle indicates "
+            "a genuine conceptual circularity or a misplaced extra_edges entry."
         )
+
+
+# ---------------------------------------------------------------------------
+# Concept proof counts — integration test against real sources + YAML
+# ---------------------------------------------------------------------------
+
+
+def _build_concept_nodes() -> dict:
+    """Return collapse_to_concepts output for the full real codebase."""
+    from generate_proof_dag import parse_dafny, parse_lean, collapse_to_concepts, _parse_minimal_yaml
+
+    repo_root = Path(__file__).parent.parent
+    src_root = repo_root / "src"
+    yaml_path = repo_root / "scripts" / "proof_dag_concepts.yaml"
+
+    all_nodes: dict = {}
+    all_edges: list = []
+    for dfy in sorted((src_root / "dafny").glob("*.dfy")):
+        n, e = parse_dafny(dfy)
+        all_nodes.update(n)
+        all_edges.extend(e)
+    for lean in sorted((src_root / "lean").rglob("*.lean")):
+        n, e = parse_lean(lean)
+        all_nodes.update(n)
+        all_edges.extend(e)
+
+    text = yaml_path.read_text(encoding="utf-8")
+    data = _parse_minimal_yaml(text)
+    concept_labels = {cid: info.get("label", cid) for cid, info in data.get("concepts", {}).items()}
+    concept_nodes, _ = collapse_to_concepts(all_nodes, all_edges, yaml_path, concept_labels)
+    return concept_nodes
+
+
+class TestConceptProofCounts:
+    """Verify that concept nodes report plausible proved/total counts.
+
+    These tests guard against regressions where YAML membership changes
+    silently break the fraction display (e.g. a class: override hiding counts,
+    or members being removed and leaving a concept with 0/0).
+
+    Each assertion is a *lower bound* on proved count so that adding more
+    proved members never breaks the test — only losing credit does.
+    """
+
+    def setup_method(self):
+        self.nodes = _build_concept_nodes()
+
+    # --- REACH: 26 BFS helpers + base members, all proved except the axiom ---
+    def test_reach_has_many_dafny_members(self):
+        r = self.nodes["REACH"]
+        assert r["dafny_total"] >= 30, (
+            f"REACH should have ≥30 Dafny members (BFS + helpers), got {r['dafny_total']}"
+        )
+
+    def test_reach_most_members_proved(self):
+        r = self.nodes["REACH"]
+        assert r["dafny_proved"] >= 29, (
+            f"REACH should have ≥29 proved Dafny members, got {r['dafny_proved']}"
+        )
+
+    # --- ANC: ForwardTrail helpers ---
+    def test_anc_has_multiple_dafny_members(self):
+        a = self.nodes["ANC"]
+        assert a["dafny_total"] >= 10, (
+            f"ANC should have ≥10 Dafny members, got {a['dafny_total']}"
+        )
+
+    def test_anc_all_proved(self):
+        a = self.nodes["ANC"]
+        assert a["dafny_proved"] == a["dafny_total"], (
+            f"ANC should be fully proved, got {a['dafny_proved']}/{a['dafny_total']}"
+        )
+
+    # --- KAHN_PROOF: one helper added ---
+    def test_kahn_proof_dafny_proved(self):
+        kp = self.nodes["KAHN_PROOF"]
+        assert kp["dafny_proved"] >= 1
+        assert kp["dafny_total"] >= 1
+
+    # --- TRAIL: includes IsCollider_Prefix/Suffix ---
+    def test_trail_has_collider_helpers(self):
+        t = self.nodes["TRAIL"]
+        assert t["dafny_total"] >= 20, (
+            f"TRAIL should have ≥20 Dafny members, got {t['dafny_total']}"
+        )
+
+    # --- R1: includes InterventionSemantics (axiom) ---
+    def test_r1_has_intervention_semantics(self):
+        r1 = self.nodes["R1"]
+        # InterventionSemantics is {:axiom}, so total > proved
+        assert r1["dafny_total"] >= 6, (
+            f"R1 should have ≥6 Dafny members, got {r1['dafny_total']}"
+        )
+        assert r1["dafny_proved"] >= 4, (
+            f"R1 should have ≥4 proved Dafny members, got {r1['dafny_proved']}"
+        )
+
+    # --- No concept with YAML members should have 0/0 (unmapped) ---
+    def test_no_named_concept_has_zero_total(self):
+        """Every concept with YAML members should have at least 1 member counted
+        in either Dafny or Lean.  A 0/0 means all members are absent from source,
+        which is a YAML maintenance error."""
+        # Concepts with no code members by design (abstract/manual concepts):
+        exempt = {"K", "MARKOV", "PMF", "PROD", "TRUNC"}
+        for cid, node in self.nodes.items():
+            if cid in exempt:
+                continue
+            total = node["dafny_total"] + node["lean_total"]
+            assert total > 0, (
+                f"Concept {cid!r} has 0 members counted — "
+                "all YAML members may be absent from source files"
+            )

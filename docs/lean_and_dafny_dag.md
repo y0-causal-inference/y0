@@ -8,11 +8,11 @@ flowchart TD
     classDef algo       fill:#ead6ff,stroke:#6622cc,color:#000,padding:12px,font-size:13px
     classDef mathlib    fill:#ffe0b2,stroke:#cc6600,color:#000,padding:12px,font-size:13px
     n_ANC["Ancestors / Descendants\nancestors_correct (L)\ndescendants_correct (L)
-(D: 12/12 · L: 2/3 proved)"]:::dafnyOnly
+(D: 11/11 · L: 2/3 proved)"]:::dafnyOnly
     n_BKD["Backdoor Criterion\nBackdoorAdjustment
 (D: 0/1 proved)"]:::unproved
     n_CCOMP["C-Component Membership\ncComponent_correct (L)\nComputeCComponents_Correct (D)
-(D: 1/1 · L: 2/2 proved)"]:::bothProved
+(D: 2/2 · L: 2/2 proved)"]:::bothProved
     n_CONT["d-Sep Contraction\nDSep_Contraction (D) · dSep_contraction (L)
 (D: 1/1 · L: 1/1 proved)"]:::bothProved
     n_DEC["d-Sep Decomposition\nDSep_Decomposition (D) · dSep_decomposition (L)
@@ -36,18 +36,20 @@ flowchart TD
 (D: 1/1 proved)"]:::dafnyOnly
     n_LMARKOV["Local Markov Property\nLocalMarkov (D)
 (D: 4/4 proved)"]:::dafnyOnly
-    n_MARKOV["Markov Factorization\nP = ∏ P(Vᵢ | Pa(Vᵢ))"]:::dafnyOnly
+    n_MARKOV["Markov Factorization\nP = ∏ P(Vᵢ | Pa(Vᵢ))
+(D: 2/2 proved)"]:::dafnyOnly
     n_PMF["PMF well-formedness\npmf_tsum_one · pmf_additivity
 (L: 1/1 proved)"]:::leanOnly
     n_PROD["Product PMF\npmfProd_tsum_one
-(L: 1/1 proved)"]:::leanOnly
+(D: 0/1 · L: 1/1 proved)"]:::leanOnly
     n_R1["Do-Calculus Rule 1\nInsert/Delete Observation\nRule1Plus proved (D)
-(D: 4/5 proved)"]:::partial
+(D: 4/6 proved)"]:::partial
     n_R2["Do-Calculus Rule 2\nAction/Observation Exchange
 (D: 1/2 proved)"]:::partial
     n_R3["Do-Calculus Rule 3\nInsert/Delete Action
 (D: 2/3 proved)"]:::partial
-    n_REACH["Graph Reachability Axioms\nBFS ancestors/descendants\nAncestorsCompiled_Correct (D: axiom)"]:::unproved
+    n_REACH["Graph Reachability Axioms\nBFS ancestors/descendants\nAncestorsCompiled_Correct (D: axiom)
+(D: 38/38 proved)"]:::dafnyOnly
     n_SYM["d-Sep Symmetry\nDSep_Symmetry (D) · dSep_symmetry (L)
 (D: 1/1 · L: 1/1 proved)"]:::bothProved
     n_T2["Theorem 2: Soundness of ID\nTheorem2_Soundness
@@ -58,33 +60,38 @@ flowchart TD
 (D: 0/1 proved)"]:::unproved
     n_TRAIL["Trail Helpers\n(path-blocking infrastructure)"]:::algo
     n_TRUNC["TruncatePMF\ndo-operator\ntruncatePMF_tsum_one
-(L: 1/1 proved)"]:::leanOnly
+(D: 0/1 · L: 1/1 proved)"]:::leanOnly
     n_WU["d-Sep Weak Union\nDSep_WeakUnion (D) · dSep_weakUnion (L)
 (D: 1/1 · L: 1/1 proved)"]:::bothProved
 
-    n_ANC --> n_TRAIL
-    n_LMARKOV --> n_ANC
-    n_LMARKOV --> n_TRAIL
-    n_SYM --> n_TRAIL
-    n_WU --> n_TRAIL
-    n_WU --> n_ANC
-    n_CONT --> n_TRAIL
-    n_INTER --> n_TRAIL
-    n_R1 --> n_GM
+    n_REACH --> n_KAHN_PROOF
+    n_TRAIL --> n_ANC
+    n_REACH --> n_ANC
+    n_REACH --> n_TRAIL
+    n_REACH --> n_LMARKOV
+    n_ANC --> n_LMARKOV
+    n_TRAIL --> n_LMARKOV
+    n_TRAIL --> n_SYM
+    n_TRAIL --> n_WU
+    n_REACH --> n_WU
+    n_ANC --> n_WU
+    n_TRAIL --> n_CONT
+    n_TRAIL --> n_INTER
+    n_GM --> n_R1
+    n_ID --> n_T2
+    n_ID --> n_T3
+    n_ID --> n_T4
     n_K --> n_PMF
     n_PMF --> n_PROD
     n_PMF --> n_TRUNC
     n_TRUNC --> n_MARKOV
     n_MARKOV --> n_GM
     n_REACH --> n_KAHN_ALGO
-    n_REACH --> n_ANC
     n_KAHN_ALGO --> n_KAHN_PROOF
     n_KAHN_PROOF --> n_ANC
     n_ANC --> n_CCOMP
-    n_REACH --> n_LMARKOV
     n_REACH --> n_SYM
     n_REACH --> n_DEC
-    n_REACH --> n_WU
     n_WU --> n_CONT
     n_CONT --> n_INTER
     n_LMARKOV --> n_GM
@@ -107,8 +114,6 @@ flowchart TD
     n_KAHN_PROOF --> n_L2
     n_CCOMP --> n_L2
     n_CCOMP --> n_L3L
-    n_ID --> n_T2
-    n_ID --> n_T3
     n_L1 --> n_T3
     n_T2 --> n_T4
     n_T3 --> n_T4

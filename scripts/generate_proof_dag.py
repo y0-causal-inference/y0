@@ -37,7 +37,12 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 DAFNY_DECL = re.compile(
-    r"^\s{0,4}(?:lemma|ghost lemma|theorem)\s+"
+    r"^\s{0,4}"
+    r"(?:lemma|ghost lemma|theorem"
+    r"|function|ghost function"
+    r"|method|ghost method"
+    r"|predicate|ghost predicate"
+    r")\s+"
     r"(?:\{[^}]*\}\s+)*"   # skip optional {:axiom} / {:verify false} / etc.
     r"(\w+)",
     re.MULTILINE,
@@ -49,7 +54,7 @@ def parse_dafny(path: Path) -> tuple[dict[str, dict], list[tuple[str, str]]]:
     """Return (nodes, edges) extracted from a Dafny file.
 
     nodes: {name: {"axiom": bool, "file": str}}
-    edges: [(caller, callee)]
+    edges: [(callee, caller)]  — prerequisite-first, matching extra_edges convention
     """
     src = path.read_text(encoding="utf-8")
     decls = [(m.group(1), m.start()) for m in DAFNY_DECL.finditer(src)]
@@ -79,7 +84,7 @@ def parse_dafny(path: Path) -> tuple[dict[str, dict], list[tuple[str, str]]]:
         body_after_sig = body[body.find("{") + 1 :] if "{" in body else body
         calls = set(call_pat.findall(body_after_sig)) - {name}
         for callee in sorted(calls):
-            edges.append((name, callee))
+            edges.append((callee, name))
 
     return nodes, edges
 
@@ -100,6 +105,11 @@ LEAN_BARE_AXIOM = re.compile(
 
 
 def parse_lean(path: Path) -> tuple[dict[str, dict], list[tuple[str, str]]]:
+    """Return (nodes, edges) extracted from a Lean 4 file.
+
+    nodes: {name: {"axiom": bool, "file": str}}
+    edges: [(callee, caller)]  — prerequisite-first, matching extra_edges convention
+    """
     src = path.read_text(encoding="utf-8")
     decls = [(m.group(1), m.start()) for m in LEAN_DECL.finditer(src)]
     if not decls:
@@ -132,7 +142,7 @@ def parse_lean(path: Path) -> tuple[dict[str, dict], list[tuple[str, str]]]:
         body_after_decl = body[body.find(":=") + 2 :] if ":=" in body else body
         calls = set(ref_pat.findall(body_after_decl)) - {name}
         for callee in sorted(calls):
-            edges.append((name, callee))
+            edges.append((callee, name))
 
     return nodes, edges
 
@@ -520,8 +530,47 @@ def main() -> None:
         out = Path(args.output)
         out.write_text(mermaid + "\n", encoding="utf-8")
         print(f"Wrote {out}", file=sys.stderr)
+        # Also splice the diagram into any Markdown files that contain the
+        # auto-generated diagram markers adjacent to this output file.
+        _splice_into_narratives(out, mermaid)
     else:
         print(mermaid)
+
+
+_BEGIN_MARKER = "<!-- begin auto-generated diagram"
+_END_MARKER = "<!-- end auto-generated diagram -->"
+
+
+def _splice_into_narratives(dag_path: Path, mermaid: str) -> None:
+    """Replace the content between the auto-generated diagram markers in any
+    sibling *.md file that references *dag_path* by name."""
+    docs_dir = dag_path.parent
+    tag = dag_path.name
+    for md in sorted(docs_dir.glob("*.md")):
+        if md == dag_path:
+            continue
+        text = md.read_text(encoding="utf-8")
+        begin_idx = text.find(_BEGIN_MARKER)
+        if begin_idx == -1:
+            continue
+        # Check that this marker references our output file
+        marker_line_end = text.index("\n", begin_idx)
+        marker_line = text[begin_idx:marker_line_end]
+        if tag not in marker_line:
+            continue
+        end_idx = text.find(_END_MARKER, begin_idx)
+        if end_idx == -1:
+            continue
+        end_idx_after = end_idx + len(_END_MARKER)
+        new_text = (
+            text[:begin_idx]
+            + f"{_BEGIN_MARKER} ({tag}) -->\n\n"
+            + mermaid
+            + f"\n\n{_END_MARKER}"
+            + text[end_idx_after:]
+        )
+        md.write_text(new_text, encoding="utf-8")
+        print(f"Spliced diagram into {md}", file=sys.stderr)
 
 
 if __name__ == "__main__":

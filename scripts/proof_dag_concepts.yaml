@@ -52,12 +52,12 @@ concepts:
     label: "Markov Factorization\nP = ∏ P(Vᵢ | Pa(Vᵢ))"
     members:
       - MarkovFactorization
+      - MarkovFactorization_IsDistribution
       - markovFactorization
       - Markov_Factorization
 
   REACH:
     label: "Graph Reachability Axioms\nBFS ancestors/descendants\nAncestorsCompiled_Correct (D: axiom)"
-    class: unproved
     members:
       - AncestorsCompiled_Correct
       - DescendantsCompiled_Correct
@@ -65,6 +65,43 @@ concepts:
       - DescendantsCompiled
       - ReachableBFS
       - ReachableParentBFS
+      # BFS correctness helpers (exclusively support REACH)
+      - AncestorsCompiled_Complete
+      - AncestorsCompiled_Sound
+      - BFSForwardInvariant_Apply
+      - BFSInvariant_Apply
+      - Children_InNodes
+      - DescendantsCompiled_Complete
+      - DescendantsCompiled_Sound
+      - IsAncestorBounded_EndInNodes
+      - IsAncestorBounded_ExtractPath
+      - IsAncestorBounded_StartInNodes
+      - IsAncestorBounded_TopoTight
+      - IsAncestor_DAGTight
+      - IsDAG_ParentsInNodes
+      - IsParentPath_Prefix
+      - ReachableBFS_FollowsFreshChildPath
+      - ReachableBFS_InNodes
+      - ReachableBFS_Mono
+      - ReachableBFS_Sound
+      - ReachableBFS_VisitedSubset
+      - ReachableParentBFS_FollowsFreshParentPath
+      - ReachableParentBFS_InNodes
+      - ReachableParentBFS_Mono
+      - ReachableParentBFS_Sound
+      - ReachableParentBFS_VisitedSubset
+      - SeqIndex_NoDup_Unique
+      - TopoSort_ParentBefore
+      # Shared with ANC/LMARKOV — belongs here as the upstream concept
+      - TopologicalSort_Length
+      # IsTopologicalSort predicate: used by BFS correctness (REACH) and KAHN_PROOF
+      # — belongs in REACH as it is the more upstream concept
+      - IsTopologicalSort
+      # Abstract ancestor/descendant definitions called by BFS correctness proofs
+      - Ancestors
+      - Descendants
+      - IsAncestorBounded_Monotone
+      - IsAncestorBounded_Transitive
 
   KAHN_ALGO:
     label: "Kahn's Algorithm\nkahnSort · KahnAux"
@@ -75,6 +112,7 @@ concepts:
       - KahnsAlgorithm
       - KahnSort
       - FilterSort_NoDup
+      - FilterSort_Contains
       - InDegree
       - InDegreeMap
       - RemoveIncoming
@@ -89,19 +127,14 @@ concepts:
     members:
       - KahnsAlgorithm_Correct
       - kahnSort_spec
-      - IsTopologicalSort
 
   ANC:
     label: "Ancestors / Descendants\nancestors_correct (L)\ndescendants_correct (L)"
     members:
       - ancestors_correct
       - descendants_correct
-      - Ancestors
-      - Descendants
       - NonDescendants
       - AncestorsBounded
-      - IsAncestorBounded_Monotone
-      - IsAncestorBounded_Transitive
       - forwardTrail_of_mem_descendants
       - IsAncestorBounded_ImpliesForwardTrail
       - ForwardTrail_EndInDescendants
@@ -158,6 +191,8 @@ concepts:
     members:
       - ColliderOpenedByNewConditioning
       - BlockingAddedByConditioningAtPos
+      - IsCollider_Prefix
+      - IsCollider_Suffix
       - TrailConnects_Concat
       - TrailConnects_Prefix
       - ValidTrail_Concat
@@ -213,6 +248,7 @@ concepts:
       - Rule1_InsertDeleteObservation
       - ConditioningOnIntervenedIsVacuous
       - Line1_Uses_Rule3
+      - InterventionSemantics
 
   R2:
     label: "Do-Calculus Rule 2\nAction/Observation Exchange"
@@ -310,6 +346,7 @@ extra_edges:
   - DEC --> GM
   - WU --> GM
   # Do-calculus
+  - GM --> R1
   - GM --> R2
   - GM --> R3
   - R1 --> BKD
