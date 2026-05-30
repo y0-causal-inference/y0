@@ -709,6 +709,62 @@ module Interventional {
     SumAssignmentMasses_Nonneg(sub);
   }
 
+  // L4b': Filtering on a larger scope (more constraints) produces a
+  // sub-map of the smaller-scope filter, so MarginalMass decreases.
+  //
+  //   S ⊆ T  ⟹  MarginalMass(q, T, ref) ≤ MarginalMass(q, S, ref)
+  //
+  // Proof: MatchingSubmap(q, T, ref).Keys ⊆ MatchingSubmap(q, S, ref).Keys
+  // (more constraints = smaller set of qualifying assignments).
+  // Partition MatchingSubmap(q, S, ref) at the T-submap boundary and bound
+  // the complement from below by 0 using L4a.
+  lemma MarginalMass_SubsetMonotone(
+    q: AssignmentPMF, S: set<Node>, T: set<Node>, ref: Assignment
+  )
+    requires AssignmentPMF_AllNonNeg(q)
+    requires S <= T
+    ensures MarginalMass(q, T, ref) <= MarginalMass(q, S, ref)
+  {
+    var outer := MatchingSubmap(q, S, ref);
+    var inner := MatchingSubmap(q, T, ref);
+
+    // inner.Keys ⊆ outer.Keys: agreeing on T (⊇ S) implies agreeing on S.
+    assert inner.Keys <= outer.Keys by {
+      forall a | a in inner.Keys ensures a in outer.Keys {
+        assert forall u :: u in T ==> u in a.Keys && u in ref.Keys && a[u] == ref[u];
+        assert forall u :: u in S ==> u in a.Keys && u in ref.Keys && a[u] == ref[u];
+      }
+    }
+
+    // inner and outer carry the same values (both equal q[a]).
+    MatchingSubmap_IsSubmap(q, S, ref);
+    MatchingSubmap_IsSubmap(q, T, ref);
+    assert (map a | a in inner.Keys :: outer[a]) == inner by {
+      assert (map a | a in inner.Keys :: outer[a]).Keys == inner.Keys;
+      forall a | a in inner.Keys
+        ensures (map a | a in inner.Keys :: outer[a])[a] == inner[a]
+      {
+        assert outer[a] == q[a];
+        assert inner[a] == q[a];
+      }
+    }
+
+    // Partition outer by inner.Keys.
+    SumAssignmentMasses_Partition(outer, inner.Keys);
+    // SumAssignmentMasses(outer)
+    //   == SumAssignmentMasses(inner) + SumAssignmentMasses(complement)
+
+    // complement is non-negative.
+    var complement := map a | a in outer.Keys - inner.Keys :: q[a];
+    assert AssignmentPMF_AllNonNeg(complement) by {
+      forall a | a in complement ensures complement[a] >= 0.0 {
+        assert a in outer.Keys;
+        assert outer[a] == q[a];
+      }
+    }
+    SumAssignmentMasses_Nonneg(complement);
+  }
+
   // L4c: ConditionalFactorConcrete is non-negative.
   lemma ConditionalFactorConcrete_Nonneg(
     G: Graph, q: AssignmentPMF, v: Node, ref: Assignment
