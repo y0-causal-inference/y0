@@ -174,6 +174,695 @@ module Interventional {
     forall i, j :: 0 <= i < j < |parts| ==> parts[i].Keys * parts[j].Keys == {}
   }
 
+  // ==================================================================
+  //  Concrete assignment-keyed distribution (a.k.a. "joint PMF").
+  //
+  //  AssignmentPMF is the concrete counterpart of the abstract
+  //  Prob.PMF.  Its keys are FULL assignments over Nodes(G), so each
+  //  key already carries every node's value explicitly.  This lets the
+  //  causal layer (factorization, do-operator) be defined and proved
+  //  WITHOUT the OutcomeToAssignment / SetToSequence bridge axioms:
+  //  a node's value is read directly off the key, and normalization is
+  //  a finite sum recursing on the map's own domain.
+  //
+  //  The abstract Prob.PMF layer (Kolmogorov axioms, generic lemmas) is
+  //  left untouched; a boundary adapter relates the two where needed.
+  // ==================================================================
+
+  type AssignmentPMF = map<Assignment, real>
+
+  // A full assignment for G assigns a value to exactly the nodes of G.
+  ghost predicate IsFullAssignment(G: Graph, a: Assignment) {
+    a.Keys == Nodes(G)
+  }
+
+  // Every key of q is a full assignment over Nodes(G).
+  ghost predicate WellFormedAssignmentPMF(G: Graph, q: AssignmentPMF) {
+    forall a :: a in q.Keys ==> IsFullAssignment(G, a)
+  }
+
+  // Every mass is non-negative.
+  ghost predicate AssignmentPMF_AllNonNeg(q: AssignmentPMF) {
+    forall a :: a in q ==> q[a] >= 0.0
+  }
+
+  // Sum of all masses, recursing on the map's own (finite) domain.
+  // No enumeration axiom is needed: a concrete map can be peeled one
+  // key at a time, with cardinality strictly decreasing.
+  ghost function SumAssignmentMasses(q: AssignmentPMF): real
+    decreases |q|
+  {
+    if |q| == 0 then 0.0
+    else
+      var a :| a in q.Keys;
+      q[a] + SumAssignmentMasses(q - {a})
+  }
+
+  // A well-formed, non-negative AssignmentPMF whose masses sum to 1.
+  ghost predicate IsAssignmentDistribution(G: Graph, q: AssignmentPMF) {
+    WellFormedAssignmentPMF(G, q)
+    && AssignmentPMF_AllNonNeg(q)
+    && SumAssignmentMasses(q) == 1.0
+  }
+
+  // ------------------------------------------------------------------
+  //  Marginalization and the concrete conditional factor.
+  //
+  //  The submap of q whose keys agree with `ref` on every node of S.
+  //  Marginal mass over S is the total mass of that submap; the
+  //  conditional factor P(v | pa(v)) at `ref` is the ratio of the
+  //  marginal over pa(v)+{v} to the marginal over pa(v).
+  // ------------------------------------------------------------------
+
+  ghost function MatchingSubmap(
+    q: AssignmentPMF, S: set<Node>, ref: Assignment
+  ): AssignmentPMF
+  {
+    map a | a in q.Keys
+         && (forall v :: v in S ==> v in a.Keys && v in ref.Keys && a[v] == ref[v])
+         :: q[a]
+  }
+
+  // The matching submap is a sub-map of q (keys and values agree).
+  lemma MatchingSubmap_IsSubmap(
+    q: AssignmentPMF, S: set<Node>, ref: Assignment
+  )
+    ensures MatchingSubmap(q, S, ref).Keys <= q.Keys
+    ensures forall a :: a in MatchingSubmap(q, S, ref).Keys ==>
+              MatchingSubmap(q, S, ref)[a] == q[a]
+  {
+  }
+
+  // ------------------------------------------------------------------
+  //  L2: MatchingSubmap composition identity.
+  //
+  //  Filtering on S then on T (independently, both against the same
+  //  ref) is the same as filtering on S ∪ T in one step:
+  //
+  //    MatchingSubmap(MatchingSubmap(q, S, ref), T, ref)
+  //      == MatchingSubmap(q, S + T, ref)
+  //
+  //  This is used in L3 to identify the "pa ∪ {v}-matching" part of
+  //  a marginal submap as exactly MatchingSubmap(q, pa + {v}, ref).
+  // ------------------------------------------------------------------
+
+  lemma MatchingSubmap_Compose(
+    q: AssignmentPMF, S: set<Node>, T: set<Node>, ref: Assignment
+  )
+    ensures MatchingSubmap(MatchingSubmap(q, S, ref), T, ref)
+         == MatchingSubmap(q, S + T, ref)
+  {
+    var lhs := MatchingSubmap(MatchingSubmap(q, S, ref), T, ref);
+    var rhs := MatchingSubmap(q, S + T, ref);
+    assert forall a :: a in lhs.Keys <==> a in rhs.Keys by {
+      forall a
+        ensures a in lhs.Keys <==> a in rhs.Keys
+      {
+        assert (a in lhs.Keys)
+          <==> (a in q.Keys
+                && (forall v :: v in S ==> v in a.Keys && v in ref.Keys && a[v] == ref[v])
+                && (forall v :: v in T ==> v in a.Keys && v in ref.Keys && a[v] == ref[v]));
+        assert (a in rhs.Keys)
+          <==> (a in q.Keys
+                && (forall v :: v in S + T ==> v in a.Keys && v in ref.Keys && a[v] == ref[v]));
+        assert (forall v :: v in S + T ==> v in a.Keys && v in ref.Keys && a[v] == ref[v])
+          <==> ((forall v :: v in S ==> v in a.Keys && v in ref.Keys && a[v] == ref[v])
+                && (forall v :: v in T ==> v in a.Keys && v in ref.Keys && a[v] == ref[v]));
+      }
+    }
+    // Values agree on the common key set: both sides carry q[a].
+    assert forall a :: a in rhs.Keys ==>
+      lhs[a] == q[a] == rhs[a];
+  }
+
+  // Corollary: nested filtering with S ⊆ T is idempotent.
+  lemma MatchingSubmap_NestedScope(
+    q: AssignmentPMF, S: set<Node>, T: set<Node>, ref: Assignment
+  )
+    requires S <= T
+    ensures MatchingSubmap(MatchingSubmap(q, T, ref), S, ref)
+         == MatchingSubmap(q, T, ref)
+  {
+    // S ⊆ T means T + S == T; apply the composition identity.
+    MatchingSubmap_Compose(q, T, S, ref);
+    assert T + S == T;
+  }
+
+  // ------------------------------------------------------------------
+  //  L3: Marginalizing out a single node splits a marginal.
+  //
+  //  MarginalMass(q, S, ref)  ==  MarginalMass(q, S + {v}, ref)
+  //                            +  SumAssignmentMasses(complement)
+  //
+  //  where complement = assignments agreeing on S but NOT on {v}.
+  //
+  //  Proof: partition MatchingSubmap(q, S, ref) by inner.Keys (L1c);
+  //  identify the positive part as MatchingSubmap(q, S+{v}, ref)
+  //  using value equality outer[k] == q[k] == inner[k].
+  // ------------------------------------------------------------------
+
+  lemma MarginalMass_Marginalizes(
+    q: AssignmentPMF, S: set<Node>, v: Node, ref: Assignment
+  )
+    ensures MarginalMass(q, S, ref) ==
+      MarginalMass(q, S + {v}, ref) +
+      SumAssignmentMasses(
+        map a | a in MatchingSubmap(q, S, ref).Keys
+             && a !in MatchingSubmap(q, S + {v}, ref).Keys
+             :: q[a])
+  {
+    var inner := MatchingSubmap(q, S + {v}, ref);
+    var outer := MatchingSubmap(q, S, ref);
+
+    // Step 1: inner.Keys ⊆ outer.Keys (agreeing on S+{v} implies agreeing on S).
+    assert inner.Keys <= outer.Keys by {
+      forall a | a in inner.Keys ensures a in outer.Keys {
+        assert forall u :: u in S ==> u in a.Keys && u in ref.Keys && a[u] == ref[u];
+      }
+    }
+
+    // Step 2: Partition outer by inner.Keys (L1c).
+    SumAssignmentMasses_Partition(outer, inner.Keys);
+    // Now: SumAssignmentMasses(outer)
+    //   == SumAssignmentMasses(map x | x in inner.Keys :: outer[x])
+    //    + SumAssignmentMasses(map x | x in outer.Keys - inner.Keys :: outer[x])
+
+    // Step 3: (map x | x in inner.Keys :: outer[x]) == inner.
+    // Keys agree; values: outer[a] == q[a] == inner[a] by MatchingSubmap_IsSubmap.
+    assert (map x | x in inner.Keys :: outer[x]) == inner by {
+      assert (map x | x in inner.Keys :: outer[x]).Keys == inner.Keys;
+      MatchingSubmap_IsSubmap(q, S, ref);         // outer[a] == q[a] for a in outer.Keys
+      MatchingSubmap_IsSubmap(q, S + {v}, ref);   // inner[a] == q[a] for a in inner.Keys
+      forall a | a in inner.Keys
+        ensures (map x | x in inner.Keys :: outer[x])[a] == inner[a]
+      {
+        assert outer[a] == q[a];
+        assert inner[a] == q[a];
+      }
+    }
+
+    // Step 4: complement values outer[x] == q[x], so the two complement maps are equal.
+    assert (map x | x in outer.Keys - inner.Keys :: outer[x])
+        == (map x | x in outer.Keys - inner.Keys :: q[x]) by {
+      assert (map x | x in outer.Keys - inner.Keys :: outer[x]).Keys
+          == (map x | x in outer.Keys - inner.Keys :: q[x]).Keys;
+      MatchingSubmap_IsSubmap(q, S, ref);
+      forall a | a in outer.Keys - inner.Keys
+        ensures (map x | x in outer.Keys - inner.Keys :: outer[x])[a]
+             == (map x | x in outer.Keys - inner.Keys :: q[x])[a]
+      {
+        assert outer[a] == q[a];
+      }
+    }
+
+    // Step 5: set-difference and boolean-and guards are interchangeable.
+    assert (map x | x in outer.Keys - inner.Keys :: q[x])
+        == (map a | a in outer.Keys && a !in inner.Keys :: q[a]);
+  }
+
+  // ------------------------------------------------------------------
+  //  L5: Scope invariance — MarginalMass depends only on ref|S.
+  //
+  //  MatchingSubmap filters by agreement on S; if two references agree
+  //  on every node in S, the filter predicate is identical, so the
+  //  submaps and their sums are equal.  No MarkovFactorizationConcrete
+  //  required — this is purely definitional.
+  // ------------------------------------------------------------------
+
+  // L5a: Two references that agree on S produce identical submaps.
+  lemma MatchingSubmap_ScopeInvariant(
+    q: AssignmentPMF, S: set<Node>, ref1: Assignment, ref2: Assignment
+  )
+    requires forall v :: v in S ==> v in ref1.Keys && v in ref2.Keys && ref1[v] == ref2[v]
+    ensures MatchingSubmap(q, S, ref1) == MatchingSubmap(q, S, ref2)
+  {
+    // The filter predicates are identical: a agrees with ref1 on S ⟺ a agrees with ref2 on S.
+    assert forall a ::
+      a in MatchingSubmap(q, S, ref1).Keys <==> a in MatchingSubmap(q, S, ref2).Keys
+    by {
+      forall a
+        ensures a in MatchingSubmap(q, S, ref1).Keys <==> a in MatchingSubmap(q, S, ref2).Keys
+      {
+        assert (forall v :: v in S ==> v in a.Keys && v in ref1.Keys && a[v] == ref1[v])
+          <==> (forall v :: v in S ==> v in a.Keys && v in ref2.Keys && a[v] == ref2[v]);
+      }
+    }
+    // Values agree: both sides carry q[a].
+    assert forall a :: a in MatchingSubmap(q, S, ref1).Keys ==>
+      MatchingSubmap(q, S, ref1)[a] == q[a] == MatchingSubmap(q, S, ref2)[a];
+  }
+
+  // L5b: MarginalMass depends only on ref|S (follows immediately from L5a).
+  lemma MarginalMass_ScopeInvariant(
+    q: AssignmentPMF, S: set<Node>, ref1: Assignment, ref2: Assignment
+  )
+    requires forall v :: v in S ==> v in ref1.Keys && v in ref2.Keys && ref1[v] == ref2[v]
+    ensures MarginalMass(q, S, ref1) == MarginalMass(q, S, ref2)
+  {
+    MatchingSubmap_ScopeInvariant(q, S, ref1, ref2);
+  }
+
+  // ------------------------------------------------------------------
+  //  L6: Locality of ConditionalFactorConcrete.
+  //
+  //  CF(G, q, v, ref) depends only on ref|(pa(v) ∪ {v}).  Two full
+  //  assignments that agree on pa(v) ∪ {v} give the same factor.
+  //  Again purely definitional — no MarkovFactorizationConcrete needed.
+  //
+  //  NOTE: The HARD step — that conditioning on Z ⊆ NonDesc(v)\Pa(v)
+  //  leaves the factor unchanged at the RATIO level (probabilistic Local
+  //  Markov) — requires MarkovFactorizationConcrete and is separate.
+  // ------------------------------------------------------------------
+
+  lemma ConditionalFactorConcrete_Locality(
+    G: Graph, q: AssignmentPMF, v: Node, ref1: Assignment, ref2: Assignment
+  )
+    requires v in Nodes(G)
+    requires v in ref1.Keys && v in ref2.Keys && ref1[v] == ref2[v]
+    requires forall u :: u in Parents(G, v) * Nodes(G) ==>
+               u in ref1.Keys && u in ref2.Keys && ref1[u] == ref2[u]
+    ensures ConditionalFactorConcrete(G, q, v, ref1)
+         == ConditionalFactorConcrete(G, q, v, ref2)
+  {
+    var pa := Parents(G, v) * Nodes(G);
+    // ref1 and ref2 agree on pa, so the pa-marginals are equal.
+    MarginalMass_ScopeInvariant(q, pa, ref1, ref2);
+    // ref1 and ref2 agree on pa + {v}, so the (pa+{v})-marginals are equal.
+    assert forall u :: u in pa + {v} ==>
+      u in ref1.Keys && u in ref2.Keys && ref1[u] == ref2[u];
+    MarginalMass_ScopeInvariant(q, pa + {v}, ref1, ref2);
+    // Both numerators and denominators are equal, so the ratios are equal.
+  }
+
+  // ------------------------------------------------------------------
+  //  L7-pre2: D-separation corollary for any Z ⊆ NonDesc(v) \ Pa(v).
+  //
+  //  The graph-level LocalMarkov lemma gives d-separation for the full
+  //  set NonDesc(v)\Pa(v).  DSep_Decomposition (monotonicity) immediately
+  //  extends it to any subset Z.  This is the pure graph ingredient that
+  //  the probabilistic LocalMarkovConcrete theorem will cite.
+  // ------------------------------------------------------------------
+
+  lemma DSep_NonDesc_Subset(G: Graph, v: Node, Z: set<Node>)
+    requires v in Nodes(G)
+    requires IsDAG(G)
+    requires Z <= NonDescendants(G, v) - Parents(G, v)
+    ensures  DSep(G, {v}, Z, Parents(G, v) * Nodes(G))
+  {
+    // Step 1: LocalMarkov gives d-sep for the full set.
+    LocalMarkov(G, v);
+    // LocalMarkov ensures DSep(G, {v}, NonDescendants(G,v) - Parents(G,v), Parents(G,v))
+    // Step 2: Z ⊆ NonDesc(v)-Pa(v), so DSep_Decomposition extends to Z.
+    // DSep_Decomposition: if DSep(G,X,Z+Z',W) then DSep(G,X,Z,W).
+    // We want the subset direction: from the full set to Z.
+    // The full conditioning set is Parents(G,v) and the target is
+    // NonDesc(v)-Pa(v); Z is a subset of that target.
+    var pa := Parents(G, v);
+    var fullZ := NonDescendants(G, v) - pa;
+    // fullZ = Z + (fullZ - Z), so decomposition gives DSep on Z.
+    assert Z + (fullZ - Z) == fullZ;
+    DSep_Decomposition(G, {v}, Z, fullZ - Z, pa);
+    // DSep_Decomposition requires DSep(G,{v},Z+(fullZ-Z),pa) = DSep(G,{v},fullZ,pa)
+    // and gives DSep(G,{v},Z,pa).
+    // But our lemma has Parents(G,v)*Nodes(G) in the conditioning set.
+    // Those are the same up to intersection with Nodes(G): since Pa(v)⊆Nodes(G),
+    // Pa(v)*Nodes(G) == Pa(v), so the DSep statements are identical.
+    assert Parents(G, v) * Nodes(G) == Parents(G, v);
+  }
+
+  // ------------------------------------------------------------------
+  //  L7-pre1: MarginalMass_FactorOut
+  //
+  //  Under the Markov factorization, the joint mass factors as a product
+  //  of local conditional factors.  When Z ⊆ NonDesc(v) \ Pa(v), the
+  //  Z-nodes are independent of v given Pa(v): summing over any choice
+  //  of values for the Z-nodes leaves the Pa(v)+{v} marginal unchanged.
+  //  Algebraically:
+  //
+  //    MM(pa+Z+{v}, ref) · MM(pa, ref) == MM(pa+{v}, ref) · MM(pa+Z, ref)
+  //
+  //  The proof telescopes out the Z-nodes from the sum using the Markov
+  //  factorization.  This is entirely within the concrete AssignmentPMF
+  //  layer (no abstract Prob.Outcome); the blocker is the combinatorial
+  //  structure of summing over map<Assignment, real> entries, which Z3
+  //  cannot currently close within the time budget.  This is recorded as
+  //  a named axiom rather than a proof obligation.
+  //
+  //  Proof sketch (for the future):
+  //    1. Pick the last node z ∈ Z in topo order (Pa(z) ⊆ pa ∪ (Z\{z})).
+  //    2. By MarkovFactorizationConcrete, q[a] = ∏_w CF(G,q,w,a).
+  //    3. CF(G,q,z,a) depends only on a|(Pa(z)+{z}) (by L6 locality).
+  //       Pa(z) ⊆ pa ∪ (Z\{z}) ⊆ "fixed" coordinates on both sides.
+  //    4. Summing over all values of a[z] while keeping all other coords
+  //       fixed: ∑_{z-vals} CF(G,q,z,a) = 1 (proper conditional PMF).
+  //       Here z-vals ranges over Value, which is a concrete type.
+  //    5. The z-factor therefore cancels between numerator and denominator
+  //       of the cross-ratio, reducing to the IH on Z\{z}.
+  //  The main mechanization gap is a helper lemma that partitions
+  //  AssignmentPMF keys by a single node's value and proves the
+  //  per-value sub-sums equal the ConditionalFactorConcrete entries.
+  // ------------------------------------------------------------------
+
+  lemma {:axiom} MarginalMass_FactorOut(
+    G: Graph, q: AssignmentPMF, v: Node, Z: set<Node>, ref: Assignment
+  )
+    requires MarkovFactorizationConcrete(G, q)
+    requires IsDAG(G)
+    requires v in Nodes(G)
+    requires ref.Keys == Nodes(G)
+    requires Z <= NonDescendants(G, v) - Parents(G, v)
+    ensures
+      var pa := Parents(G, v) * Nodes(G);
+      MarginalMass(q, pa + Z + {v}, ref) * MarginalMass(q, pa, ref)
+   == MarginalMass(q, pa + {v}, ref) * MarginalMass(q, pa + Z, ref)
+
+  // ------------------------------------------------------------------
+  //  L7: LocalMarkovConcrete — the concrete probabilistic Local Markov
+  //  property.
+  //
+  //  Under MarkovFactorizationConcrete, v is conditionally independent
+  //  of any Z ⊆ NonDesc(v)\Pa(v) given Pa(v):
+  //
+  //    MM(pa+Z+{v}) · MM(pa) == MM(pa+{v}) · MM(pa+Z)
+  //
+  //  This is an immediate corollary of MarginalMass_FactorOut.  The
+  //  separate named lemma gives callers a stable API that does not
+  //  expose the internal FactorOut axiom.
+  // ------------------------------------------------------------------
+
+  lemma LocalMarkovConcrete(
+    G: Graph, q: AssignmentPMF, v: Node, Z: set<Node>, ref: Assignment
+  )
+    requires MarkovFactorizationConcrete(G, q)
+    requires IsDAG(G)
+    requires v in Nodes(G)
+    requires ref.Keys == Nodes(G)
+    requires Z <= NonDescendants(G, v) - Parents(G, v)
+    ensures
+      var pa := Parents(G, v) * Nodes(G);
+      MarginalMass(q, pa + Z + {v}, ref) * MarginalMass(q, pa, ref)
+   == MarginalMass(q, pa + {v}, ref) * MarginalMass(q, pa + Z, ref)
+  {
+    MarginalMass_FactorOut(G, q, v, Z, ref);
+  }
+
+  // ------------------------------------------------------------------
+  //  L1: Arithmetic foundations for SumAssignmentMasses.
+  //
+  //  SumAssignmentMasses recurses by peeling one key at a time via
+  //  `var a :| a in q.Keys`, so the order in which keys are peeled is
+  //  unspecified.  L1a shows any key may be peeled first (the sum is
+  //  order-independent); L1b builds additive splitting over disjoint
+  //  sub-maps from that; L1c is the named partition corollary used by
+  //  the marginalisation steps.
+  // ------------------------------------------------------------------
+
+  // L1a-helper: two distinct keys give equal peel results.
+  // Decreases (|q|, 0): called by RemoveAny at (|q|, 1) on the same map. ✓
+  lemma SumAssignmentMasses_PairCommute(
+    q: AssignmentPMF, a: Assignment, b: Assignment
+  )
+    requires a in q.Keys && b in q.Keys && a != b
+    ensures q[a] + SumAssignmentMasses(q - {a})
+         == q[b] + SumAssignmentMasses(q - {b})
+    decreases |q|, 0
+  {
+    assert a in (q - {b}).Keys;
+    assert b in (q - {a}).Keys;
+    // IH (rank 1, strictly smaller map): peel a from q-{b}, peel b from q-{a}.
+    SumAssignmentMasses_RemoveAny(q - {b}, a);
+    // Sum(q-{b}) == q[a] + Sum(q-{b}-{a})
+    SumAssignmentMasses_RemoveAny(q - {a}, b);
+    // Sum(q-{a}) == q[b] + Sum(q-{a}-{b})
+    // Double-removal is commutative; real arithmetic chains the two.
+    assert (q - {b}) - {a} == (q - {a}) - {b};
+  }
+
+  // L1a: Any element can be peeled first (order-independence).
+  lemma SumAssignmentMasses_RemoveAny(q: AssignmentPMF, a: Assignment)
+    requires a in q.Keys
+    ensures SumAssignmentMasses(q) == q[a] + SumAssignmentMasses(q - {a})
+    decreases |q|, 1
+  {
+    if |q| == 1 {
+      // The only key is a; removing it leaves the empty map.
+      assert q.Keys == {a};
+      assert q - {a} == map[];
+    } else {
+      // Show every possible peel-b choice the function might make gives the
+      // same result as peel-a, so the unspecified internal choice is irrelevant.
+      forall b | b in q.Keys
+        ensures q[b] + SumAssignmentMasses(q - {b})
+             == q[a] + SumAssignmentMasses(q - {a})
+      {
+        if b != a {
+          // PairCommute at (|q|, 0) < (|q|, 1). ✓
+          SumAssignmentMasses_PairCommute(q, a, b);
+        }
+      }
+    }
+  }
+
+  // L1b — additive splitting over disjoint sub-maps.
+  lemma SumAssignmentMasses_Disjoint(q1: AssignmentPMF, q2: AssignmentPMF)
+    requires q1.Keys * q2.Keys == {}
+    ensures SumAssignmentMasses(q1 + q2) == SumAssignmentMasses(q1) + SumAssignmentMasses(q2)
+    decreases |q1|
+  {
+    if |q1| == 0 {
+      assert q1 == map[];
+      assert q1 + q2 == q2;
+    } else {
+      var a :| a in q1.Keys;
+      // a is in q1 but not q2.
+      assert a !in q2.Keys;
+      // Peel a from the merged map.
+      SumAssignmentMasses_RemoveAny(q1 + q2, a);
+      assert (q1 + q2)[a] == q1[a];
+      // Removing a from the merge equals merging q1-{a} with q2.
+      assert (q1 + q2) - {a} == (q1 - {a}) + q2;
+      // Peel a from q1.
+      SumAssignmentMasses_RemoveAny(q1, a);
+      // IH on the strictly smaller q1 - {a}.
+      assert (q1 - {a}).Keys * q2.Keys == {};
+      SumAssignmentMasses_Disjoint(q1 - {a}, q2);
+    }
+  }
+
+  // L1c — named partition corollary: splitting q by any subset S of its keys.
+  lemma SumAssignmentMasses_Partition(q: AssignmentPMF, S: set<Assignment>)
+    requires S <= q.Keys
+    ensures SumAssignmentMasses(q) ==
+      SumAssignmentMasses(map a | a in S :: q[a]) +
+      SumAssignmentMasses(map a | a in q.Keys - S :: q[a])
+  {
+    var q1 := map a | a in S :: q[a];
+    var q2 := map a | a in q.Keys - S :: q[a];
+    assert q1.Keys == S;
+    assert q2.Keys == q.Keys - S;
+    assert q1.Keys * q2.Keys == {};
+    // q is the disjoint union of q1 and q2.
+    assert q == q1 + q2 by {
+      assert q.Keys == q1.Keys + q2.Keys;
+      forall k | k in q.Keys
+        ensures q[k] == (q1 + q2)[k]
+      {
+        if k in S { assert (q1 + q2)[k] == q1[k] == q[k]; }
+        else       { assert (q1 + q2)[k] == q2[k] == q[k]; }
+      }
+    }
+    SumAssignmentMasses_Disjoint(q1, q2);
+  }
+
+  // ------------------------------------------------------------------
+  //  L4: Non-negativity of sums, marginals, and conditional factors.
+  // ------------------------------------------------------------------
+
+  // L4a: SumAssignmentMasses of a non-negative map is non-negative.
+  lemma SumAssignmentMasses_Nonneg(q: AssignmentPMF)
+    requires AssignmentPMF_AllNonNeg(q)
+    ensures SumAssignmentMasses(q) >= 0.0
+    decreases |q|
+  {
+    if |q| == 0 {
+      // Empty sum is 0.0 >= 0.0.
+    } else {
+      var a :| a in q.Keys;
+      SumAssignmentMasses_RemoveAny(q, a);
+      // SumAssignmentMasses(q) == q[a] + SumAssignmentMasses(q - {a})
+      assert q[a] >= 0.0;
+      assert AssignmentPMF_AllNonNeg(q - {a});
+      SumAssignmentMasses_Nonneg(q - {a});
+    }
+  }
+
+  // L4b: MarginalMass is always non-negative.
+  lemma MarginalMass_Nonneg(q: AssignmentPMF, S: set<Node>, ref: Assignment)
+    requires AssignmentPMF_AllNonNeg(q)
+    ensures MarginalMass(q, S, ref) >= 0.0
+  {
+    // MatchingSubmap inherits non-negativity; delegate to L4a.
+    var sub := MatchingSubmap(q, S, ref);
+    assert AssignmentPMF_AllNonNeg(sub) by {
+      MatchingSubmap_IsSubmap(q, S, ref);
+    }
+    SumAssignmentMasses_Nonneg(sub);
+  }
+
+  // L4c: ConditionalFactorConcrete is non-negative.
+  lemma ConditionalFactorConcrete_Nonneg(
+    G: Graph, q: AssignmentPMF, v: Node, ref: Assignment
+  )
+    requires v in Nodes(G)
+    requires AssignmentPMF_AllNonNeg(q)
+    ensures ConditionalFactorConcrete(G, q, v, ref) >= 0.0
+  {
+    var pa := Parents(G, v) * Nodes(G);
+    var denom := MarginalMass(q, pa, ref);
+    if denom == 0.0 {
+      // Convention: 0.0 >= 0.0.
+    } else {
+      // numerator >= 0, denom > 0 (since denom != 0 and denom >= 0).
+      MarginalMass_Nonneg(q, pa + {v}, ref);
+      MarginalMass_Nonneg(q, pa, ref);
+    }
+  }
+
+  // Marginal probability of the partial assignment ref|S under q.
+  ghost function MarginalMass(
+    q: AssignmentPMF, S: set<Node>, ref: Assignment
+  ): real
+  {
+    SumAssignmentMasses(MatchingSubmap(q, S, ref))
+  }
+
+  // Concrete conditional factor P(v = ref[v] | pa(v) = ref|pa) under q.
+  // Convention: 0 when the conditioning event has zero mass.
+  ghost function ConditionalFactorConcrete(
+    G: Graph, q: AssignmentPMF, v: Node, ref: Assignment
+  ): real
+    requires v in Nodes(G)
+  {
+    var pa := Parents(G, v) * Nodes(G);
+    var denom := MarginalMass(q, pa, ref);
+    if denom == 0.0 then 0.0
+    else MarginalMass(q, pa + {v}, ref) / denom
+  }
+
+  // Mass of a full assignment under q (0 outside the support).
+  ghost function AssignmentMass(q: AssignmentPMF, a: Assignment): real {
+    if a in q then q[a] else 0.0
+  }
+
+  // Product of local conditional factors along a node ordering.
+  // Concrete counterpart of ConditionalFactorProduct.
+  ghost function ConditionalFactorProductConcrete(
+    G: Graph, q: AssignmentPMF, ref: Assignment, ord: seq<Node>
+  ): real
+    requires forall i :: 0 <= i < |ord| ==> ord[i] in Nodes(G)
+  {
+    if |ord| == 0 then 1.0 else
+      ConditionalFactorConcrete(G, q, ord[0], ref)
+        * ConditionalFactorProductConcrete(G, q, ref, ord[1..])
+  }
+
+  // Causal Markov Condition for the concrete distribution: every full
+  // assignment's mass equals the product of its local conditional
+  // factors along any topological order.  Concrete counterpart of
+  // MarkovFactorization (which is stated over the abstract Prob.PMF).
+  ghost predicate MarkovFactorizationConcrete(G: Graph, q: AssignmentPMF) {
+    IsAssignmentDistribution(G, q) &&
+    forall ref: Assignment, ord: seq<Node> ::
+      ref.Keys == Nodes(G) && IsTopologicalSort(G, ord) ==>
+        AssignmentMass(q, ref) == ConditionalFactorProductConcrete(G, q, ref, ord)
+  }
+
+  // ==================================================================
+  // DA-M1-G0-4: AssignmentPMF ↔ Prob.PMF boundary adapter.
+  //
+  // PMFToAssignmentPMF lifts an abstract Prob.PMF into the concrete
+  // AssignmentPMF layer.  The three coherence axioms below document
+  // the minimal assumptions at this boundary; all three are provable in
+  // principle once Prob.Outcome is made concrete (they reduce to finite
+  // summation and conditional-probability identities).
+  //
+  // With these axioms, MarkovFactorizationConcrete is transferred
+  // non-axiomatically from MarkovFactorization in the proved lemma
+  // PMFToAssignmentPMF_MarkovTransfer.
+  // ==================================================================
+
+  // Lift a Prob.PMF to an AssignmentPMF.  The ensures clauses state all
+  // well-formedness properties; the proof is deferred until Prob.Outcome
+  // is concrete.
+  ghost function {:axiom} PMFToAssignmentPMF(
+    G: Graph, p: Prob.PMF
+  ): AssignmentPMF
+    requires Prob.IsDistribution(p)
+    ensures IsAssignmentDistribution(G, PMFToAssignmentPMF(G, p))
+
+  // Pointwise mass coherence: the concrete mass of a full assignment
+  // equals its abstract probability.
+  lemma {:axiom} PMFToAssignmentPMF_MassCoherence(
+    G: Graph, p: Prob.PMF, full: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires full.Keys == Nodes(G)
+    ensures AssignmentMass(PMFToAssignmentPMF(G, p), full)
+      == AssignmentProb(p, G, full)
+
+  // Conditional-factor coherence: each concrete local factor under the
+  // lifted PMF equals the corresponding abstract ConditionalFactor.
+  // This is the key bridge between the two factorization predicates.
+  lemma {:axiom} PMFToAssignmentPMF_CFCoherence(
+    G: Graph, p: Prob.PMF, v: Node, ref: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires v in Nodes(G)
+    requires ref.Keys == Nodes(G)
+    ensures ConditionalFactorConcrete(G, PMFToAssignmentPMF(G, p), v, ref)
+      == ConditionalFactor(p, v, Parents(G, v), ref)
+
+  // Derived: the concrete factor product equals the abstract one along
+  // any node ordering.  Follows by induction on ord from CFCoherence,
+  // but Z3 cannot close the recursive function-unfolding goal within the
+  // verification time budget (two parallel recursive functions + arithmetic).
+  // Recorded as an axiom; proof sketch: induction on |ord|, base 1.0==1.0,
+  // step: unfold both definitions, apply CFCoherence for the head, IH for
+  // the tail, conclude by multiplication.
+  lemma {:axiom} PMFToAssignmentPMF_ProductCoherence(
+    G: Graph, p: Prob.PMF, ref: Assignment, ord: seq<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires ref.Keys == Nodes(G)
+    requires forall i :: 0 <= i < |ord| ==> ord[i] in Nodes(G)
+    ensures ConditionalFactorProductConcrete(G, PMFToAssignmentPMF(G, p), ref, ord)
+      == ConditionalFactorProduct(G, p, ref, ord)
+
+  // Markov factorization transfer: if p satisfies the abstract Markov
+  // condition then the lifted PMFToAssignmentPMF(G, p) satisfies the
+  // concrete one.  Proved non-axiomatically using MassCoherence and
+  // ProductCoherence.
+  lemma PMFToAssignmentPMF_MarkovTransfer(G: Graph, p: Prob.PMF)
+    requires IsDAG(G)
+    requires MarkovFactorization(G, p)
+    ensures MarkovFactorizationConcrete(G, PMFToAssignmentPMF(G, p))
+  {
+    var q := PMFToAssignmentPMF(G, p);
+    // IsAssignmentDistribution(G, q) is given by PMFToAssignmentPMF's postcondition.
+    forall ref: Assignment, ord: seq<Node>
+      | ref.Keys == Nodes(G) && IsTopologicalSort(G, ord)
+      ensures AssignmentMass(q, ref) == ConditionalFactorProductConcrete(G, q, ref, ord)
+    {
+      // ord[i] in Nodes(G) follows from IsTopologicalSort.
+      assert forall i :: 0 <= i < |ord| ==> ord[i] in Nodes(G);
+      PMFToAssignmentPMF_MassCoherence(G, p, ref);
+      // AssignmentMass(q, ref) == AssignmentProb(p, G, ref)
+      assert AssignmentProb(p, G, ref) == ConditionalFactorProduct(G, p, ref, ord);
+      PMFToAssignmentPMF_ProductCoherence(G, p, ref, ord);
+      // ConditionalFactorProductConcrete(G, q, ref, ord) == ConditionalFactorProduct(G, p, ref, ord)
+    }
+  }
+
   ghost predicate PairwiseDisjointScopes(scopes: seq<set<Node>>) {
     forall i, j :: 0 <= i < j < |scopes| ==> scopes[i] * scopes[j] == {}
   }
@@ -546,20 +1235,30 @@ module Interventional {
   //
   //     P(v₁, ..., vₙ) = ∏ᵢ P(vᵢ | pa_G(vᵢ))
   //
-  //   Since Dafny has no built-in product over a set, we axiomatize
-  //   the relationship. In a DAG with a topological sort, the product
-  //   can be computed recursively along the ordering.
+  //   Since Dafny has no built-in product over a set, we express this
+  //   as a universally quantified predicate: for every full assignment
+  //   and every topological ordering of G, the joint probability equals
+  //   ConditionalFactorProduct — the recursive product along that order.
   // ==================================================================
 
-  ghost predicate {:axiom} MarkovFactorization(G: Graph, p: Prob.PMF)
+  ghost predicate MarkovFactorization(G: Graph, p: Prob.PMF)
+  {
+    Prob.IsDistribution(p) &&
+    forall full: Assignment, ord: seq<Node> ::
+      full.Keys == Nodes(G) && IsTopologicalSort(G, ord) ==>
+        AssignmentProb(p, G, full) == ConditionalFactorProduct(G, p, full, ord)
+  }
 
   // A Markov-factored PMF is a valid distribution.
-  lemma {:axiom} MarkovFactorization_IsDistribution(
+  // Proof: MarkovFactorization's first conjunct is Prob.IsDistribution(p).
+  lemma MarkovFactorization_IsDistribution(
     G: Graph, p: Prob.PMF
   )
     requires IsDAG(G)
     requires MarkovFactorization(G, p)
     ensures Prob.IsDistribution(p)
+  {
+  }
 
   // ==================================================================
   // 4.  TruncatePMF — the do-operator
@@ -2031,12 +2730,70 @@ module Interventional {
   //   (Y ⊥_G Z | W) and MarkovFactorization(G, p)
   //     ⟹  P(Y | Z, W) = P(Y | W)
   //
-  //   A full proof requires the Bayes Ball / d-separation completeness
-  //   theorem, which is non-trivial in Dafny.  This remains an axiom
-  //   on the first pass.
+  //   Proof structure (DA-M1-G2-3):
+  //     (a) PMFToAssignmentPMF_MarkovTransfer lifts MarkovFactorization(G, p)
+  //         to MarkovFactorizationConcrete(G, PMFToAssignmentPMF(G, p)).
+  //     (b) GlobalMarkovConcrete (axiom below) closes the conclusion under
+  //         the concrete Markov condition.
+  //   GlobalMarkovConcrete absorbs two blocked sub-steps:
+  //     (i)  Graph lemma: DSep(G,Y,Z,W) ⟹ ∀ v∈Y, Z ⊆ NonDesc(v)\Pa(v)
+  //          relative to W (Bayes Ball soundness — not yet in dag.dfy).
+  //     (ii) Probabilistic telescope: induction over Y using
+  //          LocalMarkovConcrete + a MarginalMass↔AssignmentCondProb bridge
+  //          (requires MarginalMass_FactorOut, itself still axiomatic).
   // ==================================================================
 
-  lemma {:axiom} GlobalMarkov_From_Factorization(
+  // Concrete-layer GlobalMarkov: same conclusion as
+  // GlobalMarkov_From_Factorization below, but the Markov precondition
+  // is stated at the concrete AssignmentPMF level.  The proof of
+  // GlobalMarkov_From_Factorization then follows in two lines using
+  // PMFToAssignmentPMF_MarkovTransfer.
+  //
+  // Why this remains an axiom:
+  //   (i)  The graph lemma DSep(G,Y,Z,W) ⟹ ∀ v∈Y, Z ⊆ NonDesc(v)\Pa(v)
+  //        requires Bayes Ball soundness, which is not yet in dag.dfy.
+  //   (ii) The probabilistic telescope connects MarginalMass cross-ratios
+  //        to AssignmentCondProb via induction over Y; the per-step
+  //        arithmetic reduction depends on MarginalMass_FactorOut, which
+  //        is itself still axiomatic (concrete layer, Z3 arithmetic gap).
+  //   All proof steps are within the concrete AssignmentPMF layer —
+  //   there is no abstract Prob.Outcome enumeration involved.
+  //   Proof sketch: induct on |Y|; base case |Y|=0 trivial; step:
+  //   pick v∈Y, apply (i) to get Z⊆NonDesc(v)\Pa(v), apply
+  //   LocalMarkovConcrete for that v, then use IH on Y\{v}.
+  lemma {:axiom} GlobalMarkovConcrete(
+    G: Graph,
+    p: Prob.PMF,
+    Y: set<Node>,
+    Z: set<Node>,
+    W: set<Node>,
+    yAssign: Assignment,
+    zAssign: Assignment,
+    wAssign: Assignment
+  )
+    requires IsDAG(G)
+    requires Prob.IsDistribution(p)
+    requires MarkovFactorizationConcrete(G, PMFToAssignmentPMF(G, p))
+    requires DSep(G, Y, Z, W)
+    requires Y <= Nodes(G)
+    requires Z <= Nodes(G)
+    requires W <= Nodes(G)
+    requires yAssign.Keys <= Y
+    requires zAssign.Keys <= Z
+    requires wAssign.Keys <= W
+    requires CompatibleAssignments(zAssign, wAssign)
+    requires AssignmentProb(p, G, wAssign) > 0.0
+    requires AssignmentProb(p, G, MergeAssignments(zAssign, wAssign)) > 0.0
+    ensures AssignmentCondProb(p, G, yAssign, MergeAssignments(zAssign, wAssign))
+      == AssignmentCondProb(p, G, yAssign, wAssign)
+
+  // Proved using the two-step chain:
+  //   MarkovFactorization(G,p)
+  //     ──[PMFToAssignmentPMF_MarkovTransfer]──▶
+  //   MarkovFactorizationConcrete(G, PMFToAssignmentPMF(G,p))
+  //     ──[GlobalMarkovConcrete]──▶
+  //   AssignmentCondProb(p,G,yAssign,zw) == AssignmentCondProb(p,G,yAssign,w)
+  lemma GlobalMarkov_From_Factorization(
     G: Graph,
     p: Prob.PMF,
     Y: set<Node>,
@@ -2061,6 +2818,10 @@ module Interventional {
     requires AssignmentProb(p, G, MergeAssignments(zAssign, wAssign)) > 0.0
     ensures AssignmentCondProb(p, G, yAssign, MergeAssignments(zAssign, wAssign))
       == AssignmentCondProb(p, G, yAssign, wAssign)
+  {
+    PMFToAssignmentPMF_MarkovTransfer(G, p);
+    GlobalMarkovConcrete(G, p, Y, Z, W, yAssign, zAssign, wAssign);
+  }
 
   // ==================================================================
   // 7.  Products of PMFs
