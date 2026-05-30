@@ -194,8 +194,12 @@ Recommended tractable order if choosing concrete finite sums:
 5. Define `TruncatePMF`, then prove `TruncatePMF_Empty`,
    `TruncatePMF_IsDistribution`, and `TruncatePMF_Markov`.
 
-Keep `GlobalMarkov_From_Factorization` as a long-horizon boundary unless the
-team decides to formalize Bayes-ball/global Markov completeness in Dafny.
+**Update (2026-05-30):** `GlobalMarkov_From_Factorization` is now **proved**
+(two-line delegation to `PMFToAssignmentPMF_MarkovTransfer` + `GlobalMarkovConcrete`).
+`MarginalMass_FactorOut` — previously blocked by `Prob.Outcome` enumeration — now has
+a concrete proof path via `GlobalMarkovConcrete` + `PMFToAssignmentPMF_MarginalCoherence`.
+Sub-steps: P1 `MarginalMass_SubsetMonotone` proved; P2 `AssignmentCondProb_As_MarginalMass_Ratio`
+in progress; P3 closes `MarginalMass_FactorOut` (−1 axiom on completion).
 
 Exit criterion: PMF constructors used by ID have concrete definitions and basic
 distribution preservation proofs.
