@@ -28,95 +28,146 @@ attributed to whichever prover has a verified proof.
 Before diving in, here is the high-level picture of how every major result
 builds on its predecessors.
 
+> **The diagram below is auto-generated** from the Dafny and Lean 4 source
+> files by `scripts/generate_proof_dag.py`.  Regenerate it at any time with:
+> ```
+> python scripts/generate_proof_dag.py \
+>     --concepts scripts/proof_dag_concepts.yaml \
+>     --output docs/lean_and_dafny_dag.md
+> ```
+> The canonical up-to-date copy lives in [docs/lean_and_dafny_dag.md](lean_and_dafny_dag.md).
+
+<!-- begin auto-generated diagram (lean_and_dafny_dag.md) -->
+
 ```mermaid
-%%{init: {'flowchart': {'nodeSpacing': 45, 'rankSpacing': 70}}}%%
 flowchart TD
     classDef bothProved fill:#d6f5d6,stroke:#2d8a2d,color:#000,padding:12px,font-size:13px
-    classDef leanOnly  fill:#d6eeff,stroke:#1a6fa8,color:#000,padding:12px,font-size:13px
-    classDef dafnyOnly fill:#fff8d6,stroke:#a08800,color:#000,padding:12px,font-size:13px
-    classDef unproved  fill:#ffd6d6,stroke:#cc3333,color:#000,padding:12px,font-size:13px
-    classDef algo      fill:#ead6ff,stroke:#6622cc,color:#000,padding:12px,font-size:13px
-    classDef mathlib   fill:#ffe0b2,stroke:#cc6600,color:#000,padding:12px,font-size:13px
+    classDef leanOnly   fill:#d6eeff,stroke:#1a6fa8,color:#000,padding:12px,font-size:13px
+    classDef dafnyOnly  fill:#fff8d6,stroke:#a08800,color:#000,padding:12px,font-size:13px
+    classDef unproved   fill:#ffd6d6,stroke:#cc3333,color:#000,padding:12px,font-size:13px
+    classDef partial    fill:#ffe8b2,stroke:#cc7700,color:#000,padding:12px,font-size:13px
+    classDef algo       fill:#ead6ff,stroke:#6622cc,color:#000,padding:12px,font-size:13px
+    classDef mathlib    fill:#ffe0b2,stroke:#cc6600,color:#000,padding:12px,font-size:13px
+    n_ANC["Ancestors / Descendants\nancestors_correct (L)\ndescendants_correct (L)
+(D: 11/11 · L: 2/3 proved)"]:::dafnyOnly
+    n_BKD["Backdoor Criterion\nBackdoorAdjustment
+(D: 0/1 proved)"]:::unproved
+    n_CCOMP["C-Component Membership\ncComponent_correct (L)\nComputeCComponents_Correct (D)
+(D: 2/2 · L: 2/2 proved)"]:::bothProved
+    n_CONT["d-Sep Contraction\nDSep_Contraction (D) · dSep_contraction (L)
+(D: 1/1 · L: 1/1 proved)"]:::bothProved
+    n_DEC["d-Sep Decomposition\nDSep_Decomposition (D) · dSep_decomposition (L)
+(D: 1/1 · L: 1/1 proved)"]:::bothProved
+    n_FRD["Frontdoor Criterion\nFrontdoorCriterion
+(D: 0/1 proved)"]:::unproved
+    n_GM["Global Markov Property\nGlobalMarkov · KernelGlobalMarkov
+(D: 3/4 proved)"]:::partial
+    n_ID["ID Algorithm Lines 1–7\nIDImpl / ID"]:::algo
+    n_INTER["d-Sep Intersection\nDSep_Intersection (D)
+(D: 3/3 proved)"]:::dafnyOnly
+    n_K["Kolmogorov Axioms\nnon-negativity · normalization · additivity\nD: 1/3 proved · L: Mathlib PMF type"]:::mathlib
+    n_KAHN_ALGO["Kahn's Algorithm\nkahnSort · KahnAux"]:::algo
+    n_KAHN_PROOF["Topological Sort Correctness\nKahnsAlgorithm_Correct (D)\nkahnSort_spec (L)
+(D: 1/1 · L: 1/1 proved)"]:::bothProved
+    n_L1["Lemma 1\nNon-Identifiability Witness
+(D: 0/1 proved)"]:::unproved
+    n_L2["Lemma 2\nC-Component Factorization
+(D: 1/1 proved)"]:::dafnyOnly
+    n_L3L["Lemma 3\nQ-Value Derivation
+(D: 1/1 proved)"]:::dafnyOnly
+    n_LMARKOV["Local Markov Property\nLocalMarkov (D)
+(D: 4/4 proved)"]:::dafnyOnly
+    n_MARKOV["Markov Factorization\nP = ∏ P(Vᵢ | Pa(Vᵢ))
+(D: 2/2 proved)"]:::dafnyOnly
+    n_PMF["PMF well-formedness\npmf_tsum_one · pmf_additivity
+(L: 1/1 proved)"]:::leanOnly
+    n_PROD["Product PMF\npmfProd_tsum_one
+(D: 0/1 · L: 1/1 proved)"]:::leanOnly
+    n_R1["Do-Calculus Rule 1\nInsert/Delete Observation\nRule1Plus proved (D)
+(D: 4/6 proved)"]:::partial
+    n_R2["Do-Calculus Rule 2\nAction/Observation Exchange
+(D: 1/2 proved)"]:::partial
+    n_R3["Do-Calculus Rule 3\nInsert/Delete Action
+(D: 2/3 proved)"]:::partial
+    n_REACH["Graph Reachability Axioms\nBFS ancestors/descendants\nAncestorsCompiled_Correct (D: axiom)
+(D: 38/38 proved)"]:::dafnyOnly
+    n_SYM["d-Sep Symmetry\nDSep_Symmetry (D) · dSep_symmetry (L)
+(D: 1/1 · L: 1/1 proved)"]:::bothProved
+    n_T2["Theorem 2: Soundness of ID\nTheorem2_Soundness
+(D: 1/1 proved)"]:::dafnyOnly
+    n_T3["Theorem 3: Completeness of ID\nTheorem3_Completeness
+(D: 0/1 proved)"]:::unproved
+    n_T4["Theorem 4: Do-Calculus Completeness\nTheorem4_DoCalculusCompleteness
+(D: 0/1 proved)"]:::unproved
+    n_TRAIL["Trail Helpers\n(path-blocking infrastructure)"]:::algo
+    n_TRUNC["TruncatePMF\ndo-operator\ntruncatePMF_tsum_one
+(D: 0/1 · L: 1/1 proved)"]:::leanOnly
+    n_WU["d-Sep Weak Union\nDSep_WeakUnion (D) · dSep_weakUnion (L)
+(D: 1/1 · L: 1/1 proved)"]:::bothProved
 
-    K["Kolmogorov Axioms\nnon-negativity · normalization · additivity\nD: 1/3 proved · L: Mathlib PMF type"]:::mathlib
-    REACH["Graph Reachability Axioms\nAncestorsCompiled_Correct (D: axiom)\nforwardTrail_of_mem_descendants (L: axiom)"]:::unproved
-    PMF["PMF well-formedness\npmf_tsum_one\npmf_additivity"]:::leanOnly
-    PROD["Product PMF\npmfProd_tsum_one"]:::leanOnly
-    TRUNC["TruncatePMF\ndo-operator\ntruncatePMF_tsum_one"]:::leanOnly
-    MARKOV["Markov Factorization\nP = ∏ P(Vᵢ | Pa(Vᵢ))\nMarkovFactorization"]:::unproved
-    KAHN_ALGO["Kahn's Algorithm\nkahnSort\nKahnAux"]:::algo
-    KAHN_PROOF["Topological Sort Correctness\nKahnsAlgorithm_Correct\nkahnSort_spec"]:::bothProved
-    ANC["Ancestors / Descendants Correct\nancestors_correct\ndescendants_correct"]:::leanOnly
-    CCOMP["C-Component Membership\ncComponent_correct"]:::bothProved
-    LMARKOV["Local Markov Property\nLocalMarkov"]:::dafnyOnly
-    SYM["d-Sep Symmetry\nDSep_Symmetry\ndSep_symmetry"]:::bothProved
-    DEC["d-Sep Decomposition\nDSep_Decomposition\ndSep_decomposition"]:::bothProved
-    WU["d-Sep Weak Union\nDSep_WeakUnion\ndSep_weakUnion"]:::bothProved
-    CONT["d-Sep Contraction\nDSep_Contraction\ndSep_contraction"]:::bothProved
-    INTER["d-Sep Intersection\nDSep_Intersection"]:::dafnyOnly
-    GM["Global Markov Property\nGlobalMarkov\nKernelGlobalMarkov"]:::unproved
-    R1["Do-Calculus Rule 1\nInsert/Delete Observation\nRule1Plus proved · Rule1 axiom"]:::dafnyOnly
-    R2["Do-Calculus Rule 2\nAction/Observation Exchange\nRule2_ActionObservationExchange"]:::unproved
-    R3["Do-Calculus Rule 3\nInsert/Delete Action\nRule3_InsertDeleteAction"]:::unproved
-    BKD["Backdoor Criterion\nBackdoorAdjustment"]:::unproved
-    FRD["Frontdoor Criterion\nFrontdoorCriterion"]:::unproved
-    L1["Lemma 1\nNon-Identifiability Witness\nLemma1_NonIdentifiabilityWitness"]:::unproved
-    L2["Lemma 2\nC-Component Factorization\nLemma2_CComponentFactorization"]:::unproved
-    L3L["Lemma 3\nQ-Value Derivation\nLemma3_QValueDerivation"]:::unproved
-    ID["ID Algorithm Lines 1–7\nIDImpl / ID"]:::algo
-    T2["Theorem 2: Soundness of ID\nTheorem2_Soundness"]:::unproved
-    T3["Theorem 3: Completeness of ID\nTheorem3_Completeness"]:::unproved
-    T4["Theorem 4: Do-Calculus Completeness\nTheorem4_DoCalculusCompleteness"]:::unproved
-
-    K --> PMF
-    PMF --> PROD
-    PMF --> TRUNC
-    TRUNC --> MARKOV
-    MARKOV --> GM
-    REACH --> KAHN_ALGO
-    REACH --> ANC
-    KAHN_ALGO --> KAHN_PROOF
-    KAHN_PROOF --> ANC
-    ANC --> CCOMP
-    REACH --> LMARKOV
-    REACH --> SYM
-    REACH --> DEC
-    REACH --> WU
-    WU --> CONT
-    CONT --> INTER
-    LMARKOV --> GM
-    SYM --> GM
-    DEC --> GM
-    WU --> GM
-    GM --> R1
-    GM --> R2
-    GM --> R3
-    R1 --> BKD
-    R2 --> BKD
-    R1 --> FRD
-    R2 --> FRD
-    R3 --> FRD
-    R1 --> ID
-    R2 --> ID
-    R3 --> ID
-    L1 --> T3
-    L2 --> ID
-    L3L --> ID
-    MARKOV --> L2
-    KAHN_PROOF --> L2
-    CCOMP --> L2
-    CCOMP --> L3L
-    ID --> T2
-    ID --> T3
-    T2 --> T4
-    T3 --> T4
+    n_REACH --> n_KAHN_PROOF
+    n_TRAIL --> n_ANC
+    n_REACH --> n_ANC
+    n_REACH --> n_TRAIL
+    n_REACH --> n_LMARKOV
+    n_ANC --> n_LMARKOV
+    n_TRAIL --> n_LMARKOV
+    n_TRAIL --> n_SYM
+    n_TRAIL --> n_WU
+    n_REACH --> n_WU
+    n_ANC --> n_WU
+    n_TRAIL --> n_CONT
+    n_TRAIL --> n_INTER
+    n_GM --> n_R1
+    n_ID --> n_T2
+    n_ID --> n_T3
+    n_ID --> n_T4
+    n_K --> n_PMF
+    n_PMF --> n_PROD
+    n_PMF --> n_TRUNC
+    n_TRUNC --> n_MARKOV
+    n_MARKOV --> n_GM
+    n_REACH --> n_KAHN_ALGO
+    n_KAHN_ALGO --> n_KAHN_PROOF
+    n_KAHN_PROOF --> n_ANC
+    n_ANC --> n_CCOMP
+    n_REACH --> n_SYM
+    n_REACH --> n_DEC
+    n_WU --> n_CONT
+    n_CONT --> n_INTER
+    n_LMARKOV --> n_GM
+    n_SYM --> n_GM
+    n_DEC --> n_GM
+    n_WU --> n_GM
+    n_GM --> n_R2
+    n_GM --> n_R3
+    n_R1 --> n_BKD
+    n_R2 --> n_BKD
+    n_R1 --> n_FRD
+    n_R2 --> n_FRD
+    n_R3 --> n_FRD
+    n_R1 --> n_ID
+    n_R2 --> n_ID
+    n_R3 --> n_ID
+    n_L2 --> n_ID
+    n_L3L --> n_ID
+    n_MARKOV --> n_L2
+    n_KAHN_PROOF --> n_L2
+    n_CCOMP --> n_L2
+    n_CCOMP --> n_L3L
+    n_L1 --> n_T3
+    n_T2 --> n_T4
+    n_T3 --> n_T4
 ```
+
+<!-- end auto-generated diagram -->
 
 > **Color key:** 🟩 Dark green = proved in **both** Lean and Dafny · 🔵 Blue = proved in **Lean only** (Dafny has `{:axiom}`) · 🟨 Yellow = proved in **Dafny only** (not yet ported to Lean) · 🟥 Red = unproved in both · 🟣 Purple = algorithm definition · 🟠 Orange = encoded as a **Mathlib type definition** (not a proof, but a definitional consequence — e.g. Kolmogorov axioms hold by construction from `PMF Outcome`)
 
-Read the arrows as *"is used by"*.  Everything ultimately flows from three
-primitive facts: the Kolmogorov axioms for probability, the axioms of graph
-reachability, and the semi-graphoid axioms for d-separation.
+Read the arrows as *"is a prerequisite for"*.  Everything ultimately flows
+from three primitive facts: the Kolmogorov axioms for probability, the axioms
+of graph reachability, and the definition of d-separation from which the
+semi-graphoid properties are derived.
 
 ---
 
@@ -254,7 +305,7 @@ frontier is always a subset of the final component.
 
 ---
 
-## Part III — D-Separation and the Semi-Graphoid Axioms
+## Part III — D-Separation and the Semi-Graphoid Properties
 
 ### What is d-separation?
 
@@ -271,9 +322,36 @@ Both provers represent trails as sequences of typed steps (`TrailStep`), with
 each step labelled `Forward` (following a directed edge) or `Backward`
 (traversing against a directed edge).  Blocking is then a predicate on positions.
 
-### The Four Semi-Graphoid Axioms
+### The Four Semi-Graphoid Properties
 
-The following four axioms characterise d-separation as a *semi-graphoid*.
+> **A note on the word "axiom."**  In the literature on probabilistic
+> independence, *symmetry, decomposition, weak union,* and *contraction* are
+> traditionally called the *semi-graphoid axioms* — they are the properties
+> that any well-behaved notion of conditional independence is *postulated* to
+> satisfy.  In an abstract setting (e.g., when reasoning about an arbitrary
+> independence model $\mathcal{I}$) they genuinely are axioms: you cannot
+> derive them from anything more primitive; you simply declare that
+> $\mathcal{I}$ has these properties.
+>
+> In **this formalisation**, however, d-separation has a concrete algorithmic
+> definition: a trail is blocked by a conditioning set if and only if it
+> contains a non-collider in the set, or a collider whose descendants are all
+> outside the set.  Given that explicit definition, the four properties are no
+> longer postulates — they are *theorems*, proved from first principles and
+> verified by the SMT solver (Dafny) or the type-theoretic kernel (Lean 4).
+>
+> This is a strictly stronger result than Pearl's original presentation:
+> rather than *assuming* d-separation is a semi-graphoid, we *prove* it.
+> A different separation criterion — m-separation in acyclic directed mixed
+> graphs, $\sigma$-separation in ancestral graphs, etc. — would require its
+> own separate proofs of the same properties, and might satisfy only a subset
+> of them.
+>
+> The Dafny annotation `{:axiom}` (an unverified assumption) is a completely
+> separate concept and has no connection to the mathematical term
+> "semi-graphoid axiom."
+
+The following four properties characterise d-separation as a *semi-graphoid*.
 They are the backbone of all probabilistic independence reasoning in causal
 inference.  All four are **fully machine-verified** in both Dafny and Lean 4.
 
@@ -748,8 +826,8 @@ Here is the complete logical chain, from first principles to Theorem 4:
 5. **BFS on bidirected graph** $\to$ C-component membership.
 6. **Trail blocking** $\to$ d-separation definition.
 7. **Symmetry, Decomposition, Weak Union, Contraction, Intersection** $\to$
-   semi-graphoid axioms (the four fundamental rules of conditional independence
-   expressed graphically).
+   semi-graphoid properties proved from the d-separation definition
+   (not postulated as axioms — derived as theorems).
 8. **Local Markov Property** $\to$ every node is independent of its
    non-descendants given its parents.
 9. **Global Markov Property** $\to$ d-separation $\Rightarrow$ independence.
@@ -812,6 +890,7 @@ meaning they are *stated* and *used* but their proofs are deferred:
 | `Theorem3_Completeness` | Dafny axiom | Hedge model construction |
 | `truncatePMF_markov` | Lean `sorry` | L6-level graph-surgery reasoning |
 | `MarkovFactorization` body | Lean `opaque` | Requires `OutcomeToAssignment` machinery |
+| `MarginalMass_FactorOut` | Dafny axiom — **de-axiomitization in progress** | Under active proof (DA-M1-G2-L7p1). Two helper lemmas proved as of 2026-05-29: `MarginalMass_SubsetMonotone` (subset monotonicity of marginal sums) and `AssignmentCondProb_As_MarginalMass_Ratio` (conditional probability as a ratio of `MarginalMass` terms, proved via `{:vcs_split_on_every_assert}` + `calc` chain). Remaining step (P3): apply `GlobalMarkovConcrete` + `PMFToAssignmentPMF_MarkovTransfer` to close the cross-multiplication form. |
 
 The key insight is that the *algorithmic* content of the ID algorithm — the
 branching logic, recursion structure, and well-formedness invariants — is
@@ -821,4 +900,4 @@ representation.
 
 ---
 
-*Document generated: 2026-05-28.  Source: `src/dafny/*.dfy` and `src/lean/Y0Lean/*.lean`.*
+*Document generated: 2026-05-28.  Last updated: 2026-05-29.  Source: `src/dafny/*.dfy` and `src/lean/Y0Lean/*.lean`.*
