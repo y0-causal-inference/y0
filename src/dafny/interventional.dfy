@@ -491,6 +491,99 @@ module Interventional {
   }
 
   // ------------------------------------------------------------------
+  //  P2: AssignmentCondProb_As_MarginalMass_Ratio
+  //
+  //  Connects the abstract AssignmentCondProb (ratio of ProbEvents) to
+  //  the concrete MarginalMass ratio under PMFToAssignmentPMF.
+  //
+  //    AssignmentCondProb(p, G, target, given)
+  //      == MarginalMass(q, merge.Keys, merge) / MarginalMass(q, given.Keys, given)
+  //
+  //  where merge = MergeAssignments(target, given).
+  //
+  //  Proof chain:
+  //    (1) Unfold AssignmentCondProb → ProbCond → ProbJoint / ProbEvent.
+  //    (2) ProbJoint(A,B) = ProbEvent(A ∩ B) = ProbEvent(AssignmentEvent(merge))
+  //        by AssignmentEvent_Intersection_Compatible.
+  //    (3) ProbEvent(AssignmentEvent(merge)) = AssignmentProb(p,G,merge)  [defn]
+  //        = MarginalMass(q, merge.Keys, merge)  [PMFToAssignmentPMF_MarginalCoherence]
+  //    (4) ProbEvent(AssignmentEvent(given)) = AssignmentProb(p,G,given)  [defn]
+  //        = MarginalMass(q, given.Keys, given)  [PMFToAssignmentPMF_MarginalCoherence]
+  //    (5) Divide.
+  // ------------------------------------------------------------------
+
+  lemma {:vcs_split_on_every_assert} AssignmentCondProb_As_MarginalMass_Ratio(
+    G: Graph, p: Prob.PMF, q: AssignmentPMF,
+    target: Assignment, given: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires q == PMFToAssignmentPMF(G, p)
+    requires target.Keys <= Nodes(G)
+    requires given.Keys <= Nodes(G)
+    requires CompatibleAssignments(target, given)
+    requires AssignmentProb(p, G, given) > 0.0
+    ensures MarginalMass(q, given.Keys, given) > 0.0
+    ensures
+      var merge := MergeAssignments(target, given);
+      AssignmentCondProb(p, G, target, given) * MarginalMass(q, given.Keys, given)
+        == MarginalMass(q, merge.Keys, merge)
+  {
+    var merge := MergeAssignments(target, given);
+    assert merge.Keys <= Nodes(G) by { assert merge.Keys == target.Keys + given.Keys; }
+
+    // Materialize q == PMFToAssignmentPMF(G, p) so Z3 doesn't chase it at every step.
+    assert q == PMFToAssignmentPMF(G, p);
+
+    var A := AssignmentEvent(p, G, target);
+    var B := AssignmentEvent(p, G, given);
+
+    // Step 1: MarginalMass(given) via MarginalCoherence (ensures uses PMFToAssignmentPMF, not q).
+    PMFToAssignmentPMF_MarginalCoherence(G, p, given);
+    assert MarginalMass(PMFToAssignmentPMF(G, p), given.Keys, given) == AssignmentProb(p, G, given);
+    assert MarginalMass(q, given.Keys, given) == AssignmentProb(p, G, given);
+    assert AssignmentProb(p, G, given) == Prob.ProbEvent(p, B);
+    assert MarginalMass(q, given.Keys, given) == Prob.ProbEvent(p, B);
+
+    // Step 2: positivity.
+    assert Prob.ProbEvent(p, B) > 0.0;
+
+    // Step 3: MarginalMass(merge) via MarginalCoherence.
+    PMFToAssignmentPMF_MarginalCoherence(G, p, merge);
+    assert MarginalMass(PMFToAssignmentPMF(G, p), merge.Keys, merge) == AssignmentProb(p, G, merge);
+    assert MarginalMass(q, merge.Keys, merge) == AssignmentProb(p, G, merge);
+    assert AssignmentProb(p, G, merge) == Prob.ProbEvent(p, AssignmentEvent(p, G, merge));
+    assert MarginalMass(q, merge.Keys, merge) == Prob.ProbEvent(p, AssignmentEvent(p, G, merge));
+
+    // Step 4: intersection event.
+    AssignmentEvent_Intersection_Compatible(p, G, target, given);
+    assert A * B == AssignmentEvent(p, G, merge);
+    assert Prob.ProbEvent(p, A * B) == Prob.ProbEvent(p, AssignmentEvent(p, G, merge));
+
+    // Step 5: connect ProbEvent(A * B) to MarginalMass(merge).
+    assert Prob.ProbEvent(p, A * B) == MarginalMass(q, merge.Keys, merge);
+
+    // Step 6: ChainRule.
+    Prob.ChainRule(p, A, B);
+    assert Prob.ProbCond(p, A, B) * Prob.ProbEvent(p, B) == Prob.ProbEvent(p, A * B);
+
+    // Step 7: unfold AssignmentCondProb.
+    assert AssignmentCondProb(p, G, target, given) == Prob.ProbCond(p, A, B);
+
+    // Final combination via calc — Dafny handles transitivity, Z3 closes each hop.
+    calc {
+      AssignmentCondProb(p, G, target, given) * MarginalMass(q, given.Keys, given);
+      == // step 7 + step 1: substitute ProbCond(A,B) and ProbEvent(B)
+      Prob.ProbCond(p, A, B) * Prob.ProbEvent(p, B);
+      == { Prob.ChainRule(p, A, B); } // ProbCond*ProbEvent == ProbJoint == ProbEvent(A*B)
+      Prob.ProbEvent(p, A * B);
+      == // step 4: A*B == AssignmentEvent(merge)
+      Prob.ProbEvent(p, AssignmentEvent(p, G, merge));
+      == // step 3: MarginalMass(merge) == ProbEvent(AssignmentEvent(merge))
+      MarginalMass(q, merge.Keys, merge);
+    }
+  }
+
+  // ------------------------------------------------------------------
   //  L7-pre1: MarginalMass_FactorOut
   //
   //  Under the Markov factorization, the joint mass factors as a product
