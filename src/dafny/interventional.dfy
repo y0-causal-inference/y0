@@ -863,6 +863,37 @@ module Interventional {
     }
   }
 
+  // ==================================================================
+  // DA-M1-G0-5: PMFToAssignmentPMF_MarginalCoherence  [AXIOM — DEFERRED]
+  //
+  //   MarginalMass(PMFToAssignmentPMF(G, p), S, partial)
+  //     == AssignmentProb(p, G, partial)
+  //
+  //   This follows from MassCoherence by a double-sum exchange:
+  //     MarginalMass(q, S, ref)
+  //       = Σ_{a ∈ MatchingSubmap(q,S,ref).Keys} q[a]
+  //       = Σ_{a ∈ q.Keys, a|S=ref|S} AssignmentProb(p, G, a)     (MassCoherence)
+  //       = Σ_{omega ∈ p.Keys, MatchesAssignment(G,omega,ref)} p[omega]
+  //       = AssignmentProb(p, G, ref)
+  //   The third equality needs fiber-partition reasoning:
+  //     (i)  Fibers {omega : OutcomeToAssignment(G,omega) = a} are disjoint.
+  //     (ii) Their union over {a ∈ q.Keys, a|S=ref|S} equals
+  //          {omega ∈ p.Keys : MatchesAssignment(G,omega,ref)},
+  //          because any omega in the RHS with OtA(G,omega) ∉ q.Keys has
+  //          mass 0 in p (MassCoherence gives AssignmentProb(p,G,a)=0 ⟹ p(fiber)=0).
+  //   Formalizing the sum-exchange requires Prob.Additivity over
+  //   AssignmentPMF-indexed partitions.  Stated as axiom pending that
+  //   partition infrastructure.
+  // ==================================================================
+
+  lemma {:axiom} PMFToAssignmentPMF_MarginalCoherence(
+    G: Graph, p: Prob.PMF, partial: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires partial.Keys <= Nodes(G)
+    ensures MarginalMass(PMFToAssignmentPMF(G, p), partial.Keys, partial)
+         == AssignmentProb(p, G, partial)
+
   ghost predicate PairwiseDisjointScopes(scopes: seq<set<Node>>) {
     forall i, j :: 0 <= i < j < |scopes| ==> scopes[i] * scopes[j] == {}
   }
