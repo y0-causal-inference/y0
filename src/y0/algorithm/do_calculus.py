@@ -2,14 +2,121 @@
 
 from typing import Annotated
 
+import networkx as nx
+
 from .conditional_independencies import are_d_separated
 from ..dsl import Variable
 from ..graph import NxMixedGraph
 from ..util import InPaperAs
 
 __all__ = [
+    "rule_1_of_do_calculus_applies",
     "rule_2_of_do_calculus_applies",
+    "rule_3_of_do_calculus_applies",
+    "satisfies_backdoor",
+    "satisfies_frontdoor",
 ]
+
+
+def rule_1_of_do_calculus_applies(
+    graph: NxMixedGraph,
+    *,
+    treatments: set[Variable],
+    outcomes: set[Variable],
+    conditions: set[Variable],
+    observation: Variable,
+) -> bool:
+    """Check if Rule 1 of the Do-Calculus applies. Ref: do_calculus.dfy Rule1_InsertDeleteObservation."""
+    mutilated = graph.remove_in_edges(treatments)
+    return all(
+        are_d_separated(mutilated, outcome, observation, conditions=treatments | conditions)
+        for outcome in outcomes
+    )
+
+
+def rule_3_of_do_calculus_applies(
+    graph: NxMixedGraph,
+    *,
+    treatments: set[Variable],
+    outcomes: set[Variable],
+    conditions: set[Variable],
+    action: Variable,
+) -> bool:
+    """Check if Rule 3 of the Do-Calculus applies. Ref: do_calculus.dfy Rule3_InsertDeleteAction."""
+    gx = graph.remove_in_edges(treatments)
+    ancestors_of_w = gx.ancestors_inclusive(conditions)
+    # Only remove in-edges of action if it is NOT an ancestor of any condition
+    z_not_anc = {action} - ancestors_of_w
+    gxz = gx.remove_in_edges(z_not_anc)
+    return all(
+        are_d_separated(gxz, outcome, action, conditions=treatments | conditions)
+        for outcome in outcomes
+    )
+
+
+def satisfies_backdoor(
+    graph: NxMixedGraph,
+    *,
+    outcomes: set[Variable],
+    treatments: set[Variable],
+    adjustment: set[Variable],
+) -> bool:
+    """Check if adjustment set satisfies the backdoor criterion. Ref: do_calculus.dfy BackdoorAdjustment."""
+    # (i) No adjustment variable may be a proper descendant of any treatment
+    descendants_of_x = graph.descendants_inclusive(treatments)
+    if adjustment & (descendants_of_x - treatments):
+        return False
+    # (ii) Adjustment blocks all backdoor paths (paths through X's parents).
+    # Check Y ⊥ X | Z in G with X's outgoing edges removed — this removes causal
+    # paths and leaves only backdoor paths, matching Dafny DSep which ignores
+    # direct single-step trails between the query nodes.
+    g_xout = graph.remove_out_edges(treatments)
+    return all(
+        are_d_separated(g_xout, outcome, treatment, conditions=adjustment)
+        for outcome in outcomes
+        for treatment in treatments
+    )
+
+
+def satisfies_frontdoor(
+    graph: NxMixedGraph,
+    *,
+    outcomes: set[Variable],
+    treatments: set[Variable],
+    mediators: set[Variable],
+) -> bool:
+    """Check if mediator set satisfies the frontdoor criterion.
+
+    Three conditions (Pearl 2000, Theorem 3.3.4):
+
+    1. M intercepts all directed paths from X to Y (structural check).
+    2. M ⊥ X | {} in G with X's outgoing edges removed.
+    3. M ⊥ Y | X in G with M's outgoing edges removed.
+
+    Ref: do_calculus.dfy FrontdoorCriterion DSep(RemoveOutgoing(G, X), M, X, {})
+    and DSep(RemoveOutgoing(G, M), M, Y, X).
+    """
+    # (i) Every directed path from any treatment to any outcome must pass through M.
+    for treatment in treatments:
+        for outcome in outcomes:
+            for path in nx.all_simple_paths(graph.directed, treatment, outcome):
+                if not any(node in mediators for node in path[1:-1]):
+                    return False
+    # (ii) No unblocked backdoor path from X to M: M ⊥ X | {} in G_{X̲}.
+    g_xout = graph.remove_out_edges(treatments)
+    if not all(
+        are_d_separated(g_xout, mediator, treatment, conditions=set()).separated
+        for mediator in mediators
+        for treatment in treatments
+    ):
+        return False
+    # (iii) All backdoor paths from M to Y blocked by X: M ⊥ Y | X in G_{M̲}.
+    g_mout = graph.remove_out_edges(mediators)
+    return all(
+        are_d_separated(g_mout, mediator, outcome, conditions=treatments).separated
+        for mediator in mediators
+        for outcome in outcomes
+    )
 
 
 # TODO implement rule 1 condition

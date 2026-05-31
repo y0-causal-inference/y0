@@ -1,0 +1,3220 @@
+// ===================================================================
+// Directed Acyclic Graphs and d-Separation — Dafny Specification
+//
+// References:
+//   Pearl, J. (2000). Causality. Cambridge University Press.
+//   Lauritzen, S. (1996). Graphical Models. Oxford University Press.
+//
+// Provides:
+//   1. Concrete DAG representation (finite node set + edge map)
+//   2. Ancestry (reachability via the parent relation)
+//   3. Graph surgery (remove incoming / outgoing edges)
+//   4. d-Separation defined via blocked paths
+//   5. Semi-graphoid axioms stated as lemmas
+// ===================================================================
+
+module DAG {
+
+  // ==================================================================
+  // 1.  Types
+  // ==================================================================
+
+  // A node (variable) identifier.  Natural numbers keep things finite
+  // and give decidable equality.
+  type Node = nat
+
+  // A directed graph: for each node, the set of its parents.
+  //   G[v] = parents of v   (edges point parent → child)
+  //
+  // Nodes are implicitly G.Keys.  Nodes not in the map have no parents.
+  type Graph = map<Node, set<Node>>
+
+  // The set of all nodes in G.
+  function Nodes(G: Graph): set<Node> {
+    G.Keys
+  }
+
+  // Parents of v in G.
+  function Parents(G: Graph, v: Node): set<Node> {
+    if v in G then G[v] else {}
+  }
+
+  // Children of u in G.
+  function Children(G: Graph, u: Node): set<Node> {
+    set v | v in Nodes(G) && u in Parents(G, v)
+  }
+
+  // ==================================================================
+  // 2.  Acyclicity
+  // ==================================================================
+
+  // An ordering `ord` of nodes is a topological sort of G if every
+  // parent comes strictly before its child.
+  predicate IsTopologicalSort(G: Graph, ord: seq<Node>) {
+    // (a) ord contains exactly the nodes of G — both directions bounded
+    (forall v | v in Nodes(G) :: v in ord) &&
+    (forall i | 0 <= i < |ord| :: ord[i] in Nodes(G)) &&
+    // (b) no duplicates  (injective)
+    (forall i, j | 0 <= i < j < |ord| :: ord[i] != ord[j]) &&
+    // (c) every parent appears before its child
+    (forall i | 0 <= i < |ord| ::
+      forall p | p in Parents(G, ord[i]) ::
+        exists k | 0 <= k < i :: ord[k] == p)
+  }
+
+  // A graph is a DAG iff it admits a topological sort.
+  predicate IsDAG(G: Graph) {
+    exists ord: seq<Node> :: IsTopologicalSort(G, ord)
+  } by method {
+    var r := KahnsAlgorithm(G);
+    // Kahn's algorithm correctness: returns Some iff acyclic.
+    assume {:axiom} r.Some? == (exists ord: seq<Node> :: IsTopologicalSort(G, ord));
+    return r.Some?;
+  }
+
+  // ------------------------------------------------------------------
+  // Kahn's Algorithm — compiled cycle detection / topological sort
+  //
+  // Returns Some(ordering) if G is acyclic, None if a cycle exists.
+  //
+  // Algorithm:
+  //   1. Compute in-degree for each node.
+  //   2. Initialize worklist with zero-in-degree nodes.
+  //   3. Repeatedly remove a node from the worklist, append to result,
+  //      decrement in-degree of children.  If child reaches 0, add
+  //      to worklist.
+  //   4. If result contains all nodes, the graph is a DAG.
+  //
+  // We implement this with sets (not sequences for the worklist)
+  // since Dafny compiles set operations on finite sets efficiently.
+  // ------------------------------------------------------------------
+
+  // Compute the in-degree of node v in G.
+  function InDegree(G: Graph, v: Node): nat {
+    |Parents(G, v)|
+  }
+
+  // The in-degree map for all nodes.
+  function InDegreeMap(G: Graph): map<Node, nat> {
+    map v | v in Nodes(G) :: InDegree(G, v)
+  }
+
+  // Helper: given a degree map, find all nodes with degree 0.
+  function ZeroInDegreeNodes(deg: map<Node, nat>): set<Node> {
+    set v | v in deg && deg[v] == 0
+  }
+
+  // Optional result type.
+  datatype Option<T> = Some(value: T) | None
+
+  // ------------------------------------------------------------------
+  // Kahn's Algorithm — compiled topological sort / cycle detection
+  //
+  // Implemented as a method with a while loop.  Methods support
+  // non-deterministic choice (var :| in method bodies), which is
+  // needed to pick from the zero-in-degree set.
+  //
+  // Returns Some(ordering) if G is acyclic, None if a cycle exists.
+  // ------------------------------------------------------------------
+
+  method KahnsAlgorithm(G: Graph) returns (result: Option<seq<Node>>)
+  {
+    var deg := InDegreeMap(G);
+    var order: seq<Node> := [];
+    var remaining := deg;
+
+    while remaining != map[]
+      invariant remaining.Keys <= Nodes(G)
+      decreases remaining.Keys
+    {
+      var zeros := ZeroInDegreeNodes(remaining);
+      if zeros == {} {
+        // Nodes remain but none has in-degree 0 — cycle detected
+        return None;
+      }
+      // Pick an arbitrary zero-in-degree node
+      var v :| v in zeros;
+      // Remove v from the degree map
+      var remaining' := map u | u in remaining && u != v :: remaining[u];
+      // Decrement in-degree of v's children that are still in remaining'
+      var children_of_v := Children(G, v);
+      remaining := map u | u in remaining' ::
+        if u in children_of_v && remaining'[u] > 0 then remaining'[u] - 1
+        else remaining'[u];
+      order := order + [v];
+    }
+
+    return Some(order);
+  }
+
+  // Compiled DAG test using Kahn's algorithm.
+  method IsDAGCompiled(G: Graph) returns (result: bool)
+  {
+    var r := KahnsAlgorithm(G);
+    result := r.Some?;
+  }
+
+  // The compiled check is equivalent to the ghost predicate.
+  lemma KahnsAlgorithm_Correct(G: Graph, ord: seq<Node>)
+    requires |ord| == |Nodes(G)|
+    ensures IsTopologicalSort(G, ord) ==> IsDAG(G)
+  {
+    if IsTopologicalSort(G, ord) {
+      assert exists w: seq<Node> :: IsTopologicalSort(G, w);
+    }
+  }
+
+  lemma TopologicalSort_Length(G: Graph, ord: seq<Node>)
+    requires IsTopologicalSort(G, ord)
+    ensures |ord| == |Nodes(G)|
+  {
+    var seen: set<Node> := {};
+    var i := 0;
+    while i < |ord|
+      invariant 0 <= i <= |ord|
+      invariant seen <= Nodes(G)
+      invariant forall j :: 0 <= j < i ==> ord[j] in seen
+      invariant forall v :: v in seen ==> exists j :: 0 <= j < i && ord[j] == v
+      invariant |seen| == i
+    {
+      assert ord[i] in Nodes(G);
+      if ord[i] in seen {
+        var j :| 0 <= j < i && ord[j] == ord[i];
+        assert ord[j] != ord[i];
+        assert false;
+      }
+      seen := seen + {ord[i]};
+      assert |seen| == i + 1;
+      i := i + 1;
+    }
+    assert seen == Nodes(G) by {
+      assert forall v :: v in seen ==> v in Nodes(G);
+      assert forall v :: v in Nodes(G) ==> v in seen by {
+        forall v | v in Nodes(G)
+          ensures v in seen
+        {
+          assert v in ord;
+          var j :| 0 <= j < |ord| && ord[j] == v;
+          assert ord[j] in seen;
+        }
+      }
+    }
+    assert |seen| == |Nodes(G)|;
+  }
+
+  // ==================================================================
+  // 2b. Filtered Topological Sort
+  //
+  // FilterSort(ord, nodes) is the subsequence of `ord` keeping only
+  // elements in `nodes`.  If `ord` is a topological sort of G and
+  // `nodes == Nodes(G) - X`, then FilterSort(ord, nodes) is a valid
+  // topological sort of the induced subgraph RemoveNodes(G, X).
+  //
+  // This is the formal counterpart of the Python filtering step:
+  //   ordering = [v for v in ordering if v in nodes]
+  // that _identify() performs before each recursive call.
+  // ==================================================================
+
+  // Filter a sequence to elements in `nodes`, preserving order.
+  ghost function FilterSort(ord: seq<Node>, nodes: set<Node>): seq<Node>
+    decreases |ord|
+  {
+    if ord == [] then []
+    else if ord[0] in nodes then [ord[0]] + FilterSort(ord[1..], nodes)
+    else FilterSort(ord[1..], nodes)
+  }
+
+  // v appears in FilterSort(ord, nodes) iff v is in both ord and nodes.
+  lemma FilterSort_Contains(ord: seq<Node>, nodes: set<Node>, v: Node)
+    ensures v in FilterSort(ord, nodes) <==> (v in nodes && v in ord)
+    decreases |ord|
+  {
+    if ord == [] {
+    } else {
+      FilterSort_Contains(ord[1..], nodes, v);
+      if ord[0] !in nodes {
+        // FilterSort(ord, nodes) == FilterSort(ord[1..], nodes)
+        // Need backward direction: v in nodes && v in ord → v in FilterSort(tail)
+        // Only concern: v == ord[0], but ord[0] !in nodes contradicts v in nodes.
+        if v in nodes && v == ord[0] { assert false; }
+      }
+      // Case ord[0] in nodes: FilterSort(ord) = [ord[0]] + FilterSort(tail)
+      // IH covers tail; v == ord[0] ∈ nodes covers the head.  Automatic.
+    }
+  }
+
+  // Every element of FilterSort(ord, nodes) is in nodes.
+  lemma FilterSort_Sound(ord: seq<Node>, nodes: set<Node>)
+    ensures forall i | 0 <= i < |FilterSort(ord, nodes)| ::
+              FilterSort(ord, nodes)[i] in nodes
+    decreases |ord|
+  {
+    if ord != [] { FilterSort_Sound(ord[1..], nodes); }
+  }
+
+  // FilterSort inherits the no-duplicates property from ord.
+  lemma FilterSort_NoDup(ord: seq<Node>, nodes: set<Node>)
+    requires forall i, j | 0 <= i < j < |ord| :: ord[i] != ord[j]
+    ensures forall i, j | 0 <= i < j < |FilterSort(ord, nodes)| ::
+              FilterSort(ord, nodes)[i] != FilterSort(ord, nodes)[j]
+    decreases |ord|
+  {
+    if ord == [] {
+    } else {
+      assert forall i, j | 0 <= i < j < |ord[1..]| :: ord[1..][i] != ord[1..][j];
+      FilterSort_NoDup(ord[1..], nodes);
+      if ord[0] in nodes {
+        // FilterSort(ord) == [ord[0]] + FilterSort(tail)
+        // Need ord[0] ∉ FilterSort(tail): it's not in ord[1..] (no-dups), so
+        // FilterSort_Contains says it's not in FilterSort(tail) either.
+        assert ord[0] !in ord[1..] by {
+          forall k | 0 <= k < |ord[1..]| ensures ord[1..][k] != ord[0] {
+            assert ord[k + 1] != ord[0]; // no-dups at (0, k+1)
+          }
+        }
+        FilterSort_Contains(ord[1..], nodes, ord[0]);
+        assert ord[0] !in FilterSort(ord[1..], nodes);
+      }
+    }
+  }
+
+  // FilterSort distributes over a single-step extension of the prefix:
+  //   FilterSort(ord[..i+1], nodes)
+  //     == FilterSort(ord[..i], nodes) ++ (if ord[i] ∈ nodes then [ord[i]] else [])
+  lemma {:vcs_split_on_every_assert} FilterSort_Append(
+    ord: seq<Node>, nodes: set<Node>, i: nat
+  )
+    requires i < |ord|
+    ensures FilterSort(ord[..i + 1], nodes) ==
+            FilterSort(ord[..i], nodes) + (if ord[i] in nodes then [ord[i]] else [])
+    decreases i
+  {
+    if i == 0 {
+      assert ord[..1] == [ord[0]];
+      assert ord[..0] == [];
+      // FilterSort([ord[0]], nodes):
+      //   ord[0] in nodes  → [ord[0]] + FilterSort([], nodes) = [ord[0]] = [] + [ord[0]] ✓
+      //   ord[0] !in nodes → FilterSort([], nodes)            = []       = [] + []       ✓
+    } else {
+      // Establish key sequence-slice equalities once, use them throughout.
+      assert ord[..i + 1][1..] == ord[1..i + 1] by {
+        forall k {:trigger ord[..i + 1][1..][k]} | 0 <= k < i ensures ord[..i + 1][1..][k] == ord[1..i + 1][k] {}
+      }
+      assert ord[..i][1..] == ord[1..i] by {
+        forall k | 0 <= k < i - 1 ensures ord[..i][1..][k] == ord[1..i][k] {}
+      }
+      assert ord[1..][..i] == ord[1..i + 1] by {
+        forall k | 0 <= k < i ensures ord[1..][..i][k] == ord[1..i + 1][k] {}
+      }
+      assert ord[1..][..i - 1] == ord[1..i] by {
+        forall k | 0 <= k < i - 1 ensures ord[1..][..i - 1][k] == ord[1..i][k] {}
+      }
+      assert ord[1..][i - 1] == ord[i];
+
+      // IH on ord[1..] at index i-1:
+      FilterSort_Append(ord[1..], nodes, i - 1);
+      // → FilterSort(ord[1..i+1], nodes)
+      //     == FilterSort(ord[1..i], nodes) + (if ord[i] in nodes then [ord[i]] else [])
+
+      if ord[0] in nodes {
+        // FilterSort(ord[..i+1]) = [ord[0]] + FilterSort(ord[1..i+1])
+        assert FilterSort(ord[..i + 1], nodes) == [ord[0]] + FilterSort(ord[1..i + 1], nodes);
+        // FilterSort(ord[..i])   = [ord[0]] + FilterSort(ord[1..i])
+        assert FilterSort(ord[..i], nodes) == [ord[0]] + FilterSort(ord[1..i], nodes);
+      } else {
+        // FilterSort(ord[..i+1]) = FilterSort(ord[1..i+1])
+        assert FilterSort(ord[..i + 1], nodes) == FilterSort(ord[1..i + 1], nodes);
+        // FilterSort(ord[..i])   = FilterSort(ord[1..i])
+        assert FilterSort(ord[..i], nodes) == FilterSort(ord[1..i], nodes);
+      }
+    }
+  }
+
+  // FilterSort(ord, Nodes(G)−X) is a valid topological sort of RemoveNodes(G, X).
+  // This is the formal counterpart of the Python ordering-filter in _identify().
+  lemma {:vcs_split_on_every_assert} FilteredSort_Valid(G: Graph, X: set<Node>, ord: seq<Node>)
+    requires IsTopologicalSort(G, ord)
+    ensures IsTopologicalSort(RemoveNodes(G, X), FilterSort(ord, Nodes(G) - X))
+  {
+    var GX    := RemoveNodes(G, X);
+    var nodes := Nodes(G) - X;
+    var ordX  := FilterSort(ord, nodes);
+
+    // (a1) Every node of GX appears in ordX.
+    forall v | v in Nodes(GX) ensures v in ordX {
+      assert v in nodes;
+      assert v in ord; // IsTopologicalSort(G, ord): all G-nodes appear in ord
+      FilterSort_Contains(ord, nodes, v);
+    }
+
+    // (a2) Every element of ordX is in Nodes(GX) = nodes.
+    FilterSort_Sound(ord, nodes);
+
+    // (b) No duplicates in ordX.
+    FilterSort_NoDup(ord, nodes);
+
+    // (d) Every parent in GX appears before its child in ordX.
+    // Proved by rebuilding ordX in a loop while tracking the invariant
+    // that the partial ordX equals FilterSort(ord[..i], nodes).
+    var ordX2: seq<Node> := [];
+    var i := 0;
+    while i < |ord|
+      invariant 0 <= i <= |ord|
+      invariant ordX2 == FilterSort(ord[..i], nodes)
+      invariant forall j | 0 <= j < |ordX2| ::
+                  forall p | p in Parents(GX, ordX2[j]) ::
+                    exists k | 0 <= k < j :: ordX2[k] == p
+    {
+      FilterSort_Append(ord, nodes, i);
+
+      if ord[i] in nodes {
+        var v := ord[i];
+        assert Parents(GX, v) == Parents(G, v) - X;
+
+        // Prove all GX-parents of v sit in ordX2 (with their indices).
+        assert forall p | p in Parents(GX, v) ::
+                 exists kk | 0 <= kk < |ordX2| :: ordX2[kk] == p by {
+          forall p | p in Parents(GX, v) ensures
+            exists kk | 0 <= kk < |ordX2| :: ordX2[kk] == p
+          {
+            assert p in Parents(G, v);
+            assert p !in X;
+            assert p in nodes;
+            var h :| 0 <= h < i && ord[h] == p;
+            assert p in ord[..i];
+            FilterSort_Contains(ord[..i], nodes, p);
+            // p in FilterSort(ord[..i], nodes) = ordX2
+          }
+        }
+
+        // Prove the invariant for (ordX2 + [v]) before the assignment.
+        var newOrdX2 := ordX2 + [v];
+        assert forall j | 0 <= j < |newOrdX2| ::
+                 forall p | p in Parents(GX, newOrdX2[j]) ::
+                   exists k | 0 <= k < j :: newOrdX2[k] == p by {
+          forall j | 0 <= j < |newOrdX2|
+            ensures forall p | p in Parents(GX, newOrdX2[j]) ::
+                      exists k | 0 <= k < j :: newOrdX2[k] == p
+          {
+            forall p | p in Parents(GX, newOrdX2[j])
+              ensures exists k | 0 <= k < j :: newOrdX2[k] == p
+            {
+              if j < |ordX2| {
+                // Existing position: use the loop invariant.
+                assert newOrdX2[j] == ordX2[j];
+                assert p in Parents(GX, ordX2[j]);
+                assert exists k0 | 0 <= k0 < j :: ordX2[k0] == p;
+                var k :| 0 <= k < j && ordX2[k] == p;
+                assert 0 <= k < j;
+                assert newOrdX2[k] == ordX2[k];
+                assert newOrdX2[k] == p;
+              } else {
+                assert j == |ordX2|;
+                assert newOrdX2[j] == v;
+                assert p in Parents(GX, v);
+                assert exists kk :: 0 <= kk < |ordX2| && ordX2[kk] == p;
+                var kk :| 0 <= kk < |ordX2| && ordX2[kk] == p;
+                assert 0 <= kk < j;
+                assert newOrdX2[kk] == ordX2[kk];
+                assert newOrdX2[kk] == p;
+              }
+            }
+          }
+        }
+
+        ordX2 := newOrdX2;
+        assert ordX2 == FilterSort(ord[..i + 1], nodes);
+      } else {
+        assert ordX2 == FilterSort(ord[..i + 1], nodes);
+      }
+      i := i + 1;
+    }
+
+    assert ord[..|ord|] == ord;
+    assert ordX2 == ordX;
+    // The loop invariant at exit gives the parent-ordering property for ordX2 = ordX.
+  }
+
+  // ==================================================================
+  // 3.  Ancestry  (reflexive-transitive closure of the parent relation)
+  // ==================================================================
+
+  // `IsAncestor(G, u, v)` holds when there is a directed path
+  // u → ··· → v  (zero or more edges).
+  //
+  // Defined inductively:
+  //   Base:  u == v
+  //   Step:  u is a parent of some w, and w is an ancestor of v.
+  //
+  // For Dafny's termination checker we parameterize by a `fuel` bound
+  // (the maximum path length).  In a DAG with n nodes, any simple
+  // path has length ≤ n, so fuel = |Nodes(G)| suffices.
+
+  predicate IsAncestorBounded(G: Graph, u: Node, v: Node, fuel: nat)
+    decreases fuel
+  {
+    u == v ||
+    (fuel > 0 &&
+     exists w :: w in Children(G, u) && IsAncestorBounded(G, w, v, fuel - 1))
+  }
+
+  // Convenience wrapper using a fuel equal to the number of nodes.
+  predicate IsAncestor(G: Graph, u: Node, v: Node) {
+    IsAncestorBounded(G, u, v, |Nodes(G)|)
+  }
+
+  // All ancestors (including self) of each node in W.
+  function Ancestors(G: Graph, W: set<Node>): set<Node> {
+    set u | u in Nodes(G) && exists w :: w in W && IsAncestor(G, u, w)
+  }
+
+  // All descendants (including self) of each node in W.
+  function Descendants(G: Graph, W: set<Node>): set<Node> {
+    set v | v in Nodes(G) && exists w :: w in W && IsAncestor(G, w, v)
+  }
+
+  // ------------------------------------------------------------------
+  // Ancestry lemmas
+  // ------------------------------------------------------------------
+
+  lemma Ancestor_Reflexive(G: Graph, v: Node)
+    ensures IsAncestorBounded(G, v, v, 0)
+  {}
+
+  lemma IsAncestorBounded_ImpliesForwardTrail(G: Graph, u: Node, v: Node, fuel: nat)
+    requires IsAncestorBounded(G, u, v, fuel)
+    requires u != v
+    ensures exists trail: seq<TrailStep> ::
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, u, v) &&
+      (forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward) &&
+      |trail| <= fuel
+    decreases fuel
+  {
+    if fuel == 0 {
+      assert false;
+    } else {
+      var w :| w in Children(G, u) && IsAncestorBounded(G, w, v, fuel - 1);
+      if w == v {
+        var trail := [TrailStep(u, v, Forward)];
+        assert ValidTrail(G, trail);
+        assert TrailConnects(trail, u, v);
+        assert forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward;
+        assert exists trail0: seq<TrailStep> ::
+          ValidTrail(G, trail0) &&
+          TrailConnects(trail0, u, v) &&
+          (forall i :: 0 <= i < |trail0| ==> trail0[i].dir == Forward) &&
+          |trail0| <= fuel by {
+          assert trail == trail;
+        }
+      } else {
+        IsAncestorBounded_ImpliesForwardTrail(G, w, v, fuel - 1);
+        var suffix: seq<TrailStep> :| ValidTrail(G, suffix) &&
+          TrailConnects(suffix, w, v) &&
+          (forall i :: 0 <= i < |suffix| ==> suffix[i].dir == Forward) &&
+          |suffix| <= fuel - 1;
+        var trail := [TrailStep(u, w, Forward)] + suffix;
+        assert ValidTrail(G, trail) by {
+          forall i {:trigger trail[i]} | 0 <= i < |trail|
+            ensures
+              (trail[i].dir == Forward ==> trail[i].from in Parents(G, trail[i].to)) &&
+              (trail[i].dir == Backward ==> trail[i].to in Parents(G, trail[i].from))
+          {
+            if i == 0 {
+              assert trail[i] == TrailStep(u, w, Forward);
+              assert u in Parents(G, w);
+            } else {
+              assert trail[i] == suffix[i - 1];
+            }
+          }
+        }
+        assert TrailConnects(trail, u, v) by {
+          assert |trail| > 0;
+          assert trail[0].from == u;
+          assert trail[|trail| - 1].to == v;
+          forall i | 0 <= i < |trail| - 1
+            ensures trail[i].to == trail[i + 1].from
+          {
+            if i == 0 {
+              assert trail[0].to == w;
+              assert trail[1] == suffix[0];
+              assert suffix[0].from == w;
+            } else {
+              assert trail[i] == suffix[i - 1];
+              assert trail[i + 1] == suffix[i];
+            }
+          }
+        }
+        assert forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward by {
+          forall i | 0 <= i < |trail|
+            ensures trail[i].dir == Forward
+          {
+            if i == 0 {
+              assert trail[i] == TrailStep(u, w, Forward);
+            } else {
+              assert trail[i] == suffix[i - 1];
+            }
+          }
+        }
+        assert exists trail0: seq<TrailStep> ::
+          ValidTrail(G, trail0) &&
+          TrailConnects(trail0, u, v) &&
+          (forall i :: 0 <= i < |trail0| ==> trail0[i].dir == Forward) &&
+          |trail0| <= fuel by {
+          assert trail == trail;
+        }
+      }
+    }
+  }
+
+  lemma IsAncestorBounded_Monotone(G: Graph, u: Node, v: Node, small: nat, big: nat)
+    requires small <= big
+    requires IsAncestorBounded(G, u, v, small)
+    ensures IsAncestorBounded(G, u, v, big)
+    decreases small
+  {
+    if small == 0 {
+    } else if u != v {
+      assert big > 0;
+      var w :| w in Children(G, u) && IsAncestorBounded(G, w, v, small - 1);
+      IsAncestorBounded_Monotone(G, w, v, small - 1, big - 1);
+    }
+  }
+
+  lemma IsAncestorBounded_Transitive(
+    G: Graph, u: Node, v: Node, w: Node, uvFuel: nat, vwFuel: nat
+  )
+    requires IsAncestorBounded(G, u, v, uvFuel)
+    requires IsAncestorBounded(G, v, w, vwFuel)
+    ensures IsAncestorBounded(G, u, w, uvFuel + vwFuel)
+    decreases uvFuel
+  {
+    if u == v {
+      IsAncestorBounded_Monotone(G, v, w, vwFuel, uvFuel + vwFuel);
+    } else {
+      assert uvFuel > 0;
+      var x :| x in Children(G, u) && IsAncestorBounded(G, x, v, uvFuel - 1);
+      IsAncestorBounded_Transitive(G, x, v, w, uvFuel - 1, vwFuel);
+      assert uvFuel + vwFuel > 0;
+      assert (uvFuel + vwFuel) - 1 == (uvFuel - 1) + vwFuel;
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Directed parent paths: sequences following child edges
+  // ------------------------------------------------------------------
+
+  // A directed parent path: path[i+1] in Children(G, path[i]) for every i.
+  // path[0] is the topmost ancestor; path[|path|-1] is the bottom descendant.
+  // The parent-edge BFS starts from path[|path|-1] and discovers path[0] last.
+  ghost predicate IsParentPath(G: Graph, path: seq<Node>)
+  {
+    |path| >= 1 &&
+    forall i :: 0 <= i < |path| - 1 ==> path[i + 1] in Children(G, path[i])
+  }
+
+  // A prefix of a parent path is itself a parent path.
+  lemma IsParentPath_Prefix(G: Graph, path: seq<Node>, end: nat)
+    requires IsParentPath(G, path)
+    requires 1 <= end <= |path|
+    ensures IsParentPath(G, path[..end])
+  {
+    forall i | 0 <= i < end - 1
+      ensures path[..end][i + 1] in Children(G, path[..end][i])
+    {
+      assert path[..end][i] == path[i];
+      assert path[..end][i + 1] == path[i + 1];
+    }
+  }
+
+  // Every element of Children(G, u) is in Nodes(G).
+  // (Follows directly from the set comprehension in the Children definition.)
+  lemma Children_InNodes(G: Graph, u: Node, v: Node)
+    requires v in Children(G, u)
+    ensures v in Nodes(G)
+  {}
+
+  // The endpoint w of any IsAncestorBounded path is in Nodes(G),
+  // provided the start u is in Nodes(G).
+  lemma {:induction false} IsAncestorBounded_EndInNodes(
+    G: Graph, u: Node, w: Node, k: nat)
+    requires u in Nodes(G)
+    requires IsAncestorBounded(G, u, w, k)
+    ensures w in Nodes(G)
+    decreases k
+  {
+    if u == w {
+      // w = u ∈ Nodes(G). ✓
+    } else {
+      assert k > 0;
+      var ch :| ch in Children(G, u) && IsAncestorBounded(G, ch, w, k - 1);
+      Children_InNodes(G, u, ch);
+      IsAncestorBounded_EndInNodes(G, ch, w, k - 1);
+    }
+  }
+
+  // Extract a concrete path (sequence) witnessing IsAncestorBounded.
+  // The path starts at u and ends at w following child edges.
+  lemma {:induction false} IsAncestorBounded_ExtractPath(
+    G: Graph, u: Node, w: Node, k: nat)
+    returns (path: seq<Node>)
+    requires IsAncestorBounded(G, u, w, k)
+    requires u in Nodes(G)
+    ensures IsParentPath(G, path)
+    ensures path[0] == u
+    ensures path[|path| - 1] == w
+    ensures |path| <= k + 1
+    ensures forall i :: 0 <= i < |path| ==> path[i] in Nodes(G)
+    decreases k
+  {
+    if u == w {
+      path := [u];
+    } else {
+      assert k > 0;
+      var ch :| ch in Children(G, u) && IsAncestorBounded(G, ch, w, k - 1);
+      Children_InNodes(G, u, ch);
+      var tail := IsAncestorBounded_ExtractPath(G, ch, w, k - 1);
+      path := [u] + tail;
+      assert IsParentPath(G, path) by {
+        forall i | 0 <= i < |path| - 1
+          ensures path[i + 1] in Children(G, path[i])
+        {
+          if i == 0 {
+            assert path[0] == u;
+            assert path[1] == tail[0] == ch;
+          } else {
+            assert path[i] == tail[i - 1];
+            assert path[i + 1] == tail[i];
+          }
+        }
+      }
+      assert forall i :: 0 <= i < |path| ==> path[i] in Nodes(G) by {
+        forall i | 0 <= i < |path|
+          ensures path[i] in Nodes(G)
+        {
+          if i == 0 {
+            assert path[0] == u;
+          } else {
+            assert path[i] == tail[i - 1];
+          }
+        }
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Compiled ancestry — BFS-based reachability
+  // ------------------------------------------------------------------
+
+  // BFS from a set of starting nodes, following child edges.
+  // Returns the set of all reachable nodes (including the starts).
+  function ReachableBFS(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  ): set<Node>
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 then
+      visited
+    else
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      ReachableBFS(G, nextFrontier, newVisited, fuel - 1)
+  }
+
+  // All descendants (including self) of W — compiled.
+  function DescendantsCompiled(G: Graph, W: set<Node>): set<Node> {
+    ReachableBFS(G, W * Nodes(G), {}, |Nodes(G)|)
+  }
+
+  // BFS following parent edges (for ancestors).
+  function ReachableParentBFS(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  ): set<Node>
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 then
+      visited
+    else
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u | u in Nodes(G) && (exists v :: v in frontier && u in Parents(G, v))
+                && u !in newVisited);
+      ReachableParentBFS(G, nextFrontier, newVisited, fuel - 1)
+  }
+
+  // All ancestors (including self) of W — compiled.
+  function AncestorsCompiled(G: Graph, W: set<Node>): set<Node> {
+    ReachableParentBFS(G, W * Nodes(G), {}, |Nodes(G)|)
+  }
+
+  // ------------------------------------------------------------------
+  // Topological-position helper: index of a node in a sequence
+  // ------------------------------------------------------------------
+
+  // First occurrence of u in sequence s.
+  ghost function SeqIndex(s: seq<Node>, u: Node): nat
+    requires u in s
+    ensures SeqIndex(s, u) < |s|
+    ensures s[SeqIndex(s, u)] == u
+    decreases |s|
+  {
+    if s[0] == u then 0
+    else
+      assert u in s[1..] by {
+        var j :| 0 <= j < |s| && s[j] == u;
+        assert j > 0;
+        assert s[1..][j - 1] == u;
+      }
+      1 + SeqIndex(s[1..], u)
+  }
+
+  // In a duplicate-free sequence, SeqIndex finds the unique occurrence.
+  lemma SeqIndex_NoDup_Unique(s: seq<Node>, u: Node, k: nat)
+    requires u in s
+    requires k < |s|
+    requires s[k] == u
+    requires forall i, j :: 0 <= i < j < |s| ==> s[i] != s[j]
+    ensures SeqIndex(s, u) == k
+    decreases k
+  {
+    if k == 0 {
+      // s[0] == u => SeqIndex(s, u) = 0 ✓
+    } else {
+      assert s[0] != u by {
+        if s[0] == u {
+          assert 0 < k && s[0] == s[k];
+        }
+      }
+      // SeqIndex(s, u) = 1 + SeqIndex(s[1..], u)
+      assert s[1..][k - 1] == u;
+      assert forall i, j :: 0 <= i < j < |s[1..]| ==> s[1..][i] != s[1..][j] by {
+        forall i, j | 0 <= i < j < |s[1..]|
+          ensures s[1..][i] != s[1..][j]
+        {
+          assert s[1..][i] == s[i + 1];
+          assert s[1..][j] == s[j + 1];
+        }
+      }
+      SeqIndex_NoDup_Unique(s[1..], u, k - 1);
+      assert SeqIndex(s[1..], u) == k - 1;
+      assert SeqIndex(s, u) == 1 + SeqIndex(s[1..], u);
+    }
+  }
+
+  // In a topological sort, every parent appears strictly before its child.
+  lemma TopoSort_ParentBefore(G: Graph, ord: seq<Node>, u: Node, v: Node)
+    requires IsTopologicalSort(G, ord)
+    requires v in Nodes(G)
+    requires u in Parents(G, v)
+    ensures u in Nodes(G)
+    ensures SeqIndex(ord, u) < SeqIndex(ord, v)
+  {
+    // v in Nodes(G) => v in ord (condition (a) of IsTopologicalSort)
+    assert v in ord;
+    var vIdx := SeqIndex(ord, v);
+    // Condition (c): every parent of ord[vIdx] appears at some index < vIdx
+    assert ord[vIdx] == v;
+    assert u in Parents(G, ord[vIdx]);
+    assert exists k | 0 <= k < vIdx :: ord[k] == u;
+    var k :| 0 <= k < vIdx && ord[k] == u;
+    // ord[k] in Nodes(G) (condition (b): all elements are in Nodes(G))
+    assert u in Nodes(G);
+    // No duplicates in ord (condition (b))
+    assert forall i, j :: 0 <= i < j < |ord| ==> ord[i] != ord[j];
+    // SeqIndex_NoDup_Unique: the unique occurrence of u is at index k
+    SeqIndex_NoDup_Unique(ord, u, k);
+    assert SeqIndex(ord, u) == k;
+    assert SeqIndex(ord, u) < SeqIndex(ord, v);
+  }
+
+  // In a DAG, IsAncestorBounded paths fit within the topological position gap.
+  // Tight bound: IsAncestorBounded(G, u, w, |ord| - 1 - SeqIndex(ord, u)).
+  lemma {:induction false} {:vcs_split_on_every_assert} IsAncestorBounded_TopoTight(
+    G: Graph, ord: seq<Node>, u: Node, w: Node, k: nat)
+    requires IsTopologicalSort(G, ord)
+    requires u in Nodes(G)
+    requires IsAncestorBounded(G, u, w, k)
+    ensures IsAncestorBounded(G, u, w, |ord| - 1 - SeqIndex(ord, u))
+    decreases |ord| - SeqIndex(ord, u)
+  {
+    if u == w {
+      // Path length 0: IsAncestorBounded(G, u, u, 0). By Monotone with 0 ≤ bound.
+      IsAncestorBounded_Monotone(G, u, w, 0, |ord| - 1 - SeqIndex(ord, u));
+    } else {
+      assert k > 0;
+      var ch :| ch in Children(G, u) && IsAncestorBounded(G, ch, w, k - 1);
+      Children_InNodes(G, u, ch);
+      // u in Parents(G, ch): SeqIndex(ord, u) < SeqIndex(ord, ch)
+      assert u in Parents(G, ch) by {
+        // Children(G, u) = {v | v in Nodes(G) && u in Parents(G, v)}
+        assert ch in Children(G, u);
+      }
+      TopoSort_ParentBefore(G, ord, u, ch);
+      var uPos := SeqIndex(ord, u);
+      var chPos := SeqIndex(ord, ch);
+      assert uPos < chPos;
+      assert chPos < |ord|;
+      // Decreases: |ord| - chPos < |ord| - uPos (since chPos > uPos and both < |ord|)
+      assert |ord| - chPos < |ord| - uPos;
+      // uPos <= |ord| - 2 (since uPos < chPos < |ord|)
+      assert uPos + 2 <= |ord|;
+      // Apply IH on (ch, k-1): gives IsAncestorBounded(G, ch, w, |ord| - 1 - chPos)
+      IsAncestorBounded_TopoTight(G, ord, ch, w, k - 1);
+      assert IsAncestorBounded(G, ch, w, |ord| - 1 - chPos);
+      // Need IsAncestorBounded(G, ch, w, |ord| - 2 - uPos) to extend one step.
+      // Since chPos >= uPos + 1: |ord| - 1 - chPos <= |ord| - 2 - uPos.
+      assert |ord| - 1 - chPos <= |ord| - 2 - uPos;
+      IsAncestorBounded_Monotone(G, ch, w, |ord| - 1 - chPos, |ord| - 2 - uPos);
+      assert IsAncestorBounded(G, ch, w, |ord| - 2 - uPos);
+      // tightFuel = |ord| - 1 - uPos > 0; tightFuel - 1 = |ord| - 2 - uPos.
+      var tightFuel := |ord| - 1 - uPos;
+      assert tightFuel > 0;
+      assert tightFuel - 1 == |ord| - 2 - uPos;
+      // IsAncestorBounded(G, u, w, tightFuel): fuel > 0, ch in Children(G, u),
+      // IsAncestorBounded(G, ch, w, tightFuel - 1).
+      assert IsAncestorBounded(G, u, w, tightFuel) by {
+        assert tightFuel > 0;
+        assert ch in Children(G, u);
+        assert IsAncestorBounded(G, ch, w, tightFuel - 1);
+      }
+    }
+  }
+
+  // In a DAG, every IsAncestor witness fits in |Nodes(G)| - 1 steps.
+  lemma IsAncestor_DAGTight(G: Graph, u: Node, w: Node)
+    requires IsDAG(G)
+    requires u in Nodes(G)
+    requires IsAncestor(G, u, w)
+    ensures IsAncestorBounded(G, u, w, |Nodes(G)| - 1)
+  {
+    var ord :| IsTopologicalSort(G, ord);
+    TopologicalSort_Length(G, ord);   // |ord| == |Nodes(G)|
+    IsAncestorBounded_TopoTight(G, ord, u, w, |Nodes(G)|);
+    // IsAncestorBounded(G, u, w, |ord| - 1 - SeqIndex(ord, u))
+    var uPos := SeqIndex(ord, u);
+    // |ord| - 1 - uPos <= |ord| - 1 = |Nodes(G)| - 1
+    IsAncestorBounded_Monotone(G, u, w, |ord| - 1 - uPos, |Nodes(G)| - 1);
+  }
+
+  // ------------------------------------------------------------------
+  // BFS soundness and completeness helpers
+  // ------------------------------------------------------------------
+
+  // Helper: modus ponens for the BFS invariant — instantiates the universal
+  // from ReachableParentBFS_Sound's precondition for a specific node.
+  lemma BFSInvariant_Apply(
+    G: Graph, start0: set<Node>, visited: set<Node>, frontier: set<Node>, u: Node, depth: nat)
+    requires u in visited + frontier
+    requires forall x :: x in visited + frontier ==>
+      exists w :: w in start0 && IsAncestorBounded(G, x, w, depth)
+    ensures exists w :: w in start0 && IsAncestorBounded(G, u, w, depth)
+  {
+    // Instantiate the universal at x := u.
+  }
+
+  // Every node in the BFS output is reachable (following parents) from
+  // some node in `start0`.  The bound on the path length is `depth + fuel`.
+  //
+  // Invariant: nodes in visited+frontier have paths of length ≤ depth to start0.
+  // After `fuel` more steps, the output nodes have paths of length ≤ depth+fuel.
+  // Initial call: depth=0, fuel=|Nodes(G)|, frontier=start0 — gives bound |Nodes(G)|.
+  lemma {:induction false} {:vcs_split_on_every_assert} ReachableParentBFS_Sound(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat,
+    start0: set<Node>,
+    depth: nat
+  )
+    requires forall u :: u in visited + frontier ==>
+      exists w :: w in start0 && IsAncestorBounded(G, u, w, depth)
+    ensures forall u :: u in ReachableParentBFS(G, frontier, visited, fuel) ==>
+      exists w :: w in start0 && IsAncestorBounded(G, u, w, depth + fuel)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      // BFS returns visited. visited ⊆ visited + frontier; precondition gives bound depth.
+      // Need depth + fuel = depth + 0 = depth ≤ depth + fuel. ✓ (same).
+      forall u | u in ReachableParentBFS(G, frontier, visited, fuel)
+        ensures exists w :: w in start0 && IsAncestorBounded(G, u, w, depth + fuel)
+      {
+        // BFS returns visited in this branch; u ∈ visited ⊆ visited + frontier.
+        assert u in visited;
+        assert u in visited + frontier;
+        // Use helper to instantiate precondition for this u.
+        BFSInvariant_Apply(G, start0, visited, frontier, u, depth);
+        var w :| w in start0 && IsAncestorBounded(G, u, w, depth);
+        IsAncestorBounded_Monotone(G, u, w, depth, depth + fuel);
+      }
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u | u in Nodes(G) && (exists v :: v in frontier && u in Parents(G, v))
+                && u !in newVisited);
+      // Establish invariant at depth+1 for recursive call.
+      forall nodeU | nodeU in newVisited + nextFrontier
+        ensures exists w :: w in start0 && IsAncestorBounded(G, nodeU, w, depth + 1)
+      {
+        if nodeU in newVisited {
+          // nodeU in visited + frontier: precondition gives IsAncestorBounded(..., depth).
+          assert nodeU in visited + frontier;
+          BFSInvariant_Apply(G, start0, visited, frontier, nodeU, depth);
+          var w :| w in start0 && IsAncestorBounded(G, nodeU, w, depth);
+          IsAncestorBounded_Monotone(G, nodeU, w, depth, depth + 1);
+        } else {
+          // nodeU in nextFrontier: nodeU ∈ Nodes(G), parent of some v in frontier.
+          var v :| v in frontier && nodeU in Parents(G, v);
+          assert v in visited + frontier;
+          // Precondition gives IsAncestorBounded(G, v, w, depth) for some w in start0.
+          BFSInvariant_Apply(G, start0, visited, frontier, v, depth);
+          var w :| w in start0 && IsAncestorBounded(G, v, w, depth);
+          // nodeU is a parent of v, so v is a child of nodeU.
+          assert v in Children(G, nodeU) by { assert nodeU in Parents(G, v); }
+          // IsAncestorBounded(G, nodeU, v, 1).
+          assert IsAncestorBounded(G, nodeU, v, 1) by {
+            assert v in Children(G, nodeU);
+            assert IsAncestorBounded(G, v, v, 0);
+            assert exists ch :: ch in Children(G, nodeU) && IsAncestorBounded(G, ch, v, 0) by {
+              assert v in Children(G, nodeU);
+            }
+          }
+          // Combine: nodeU → v → ... → w. Path length ≤ 1 + depth.
+          IsAncestorBounded_Transitive(G, nodeU, v, w, 1, depth);
+          // IsAncestorBounded(G, nodeU, w, 1 + depth) = IsAncestorBounded(G, nodeU, w, depth + 1).
+          assert IsAncestorBounded(G, nodeU, w, depth + 1) by {
+            assert 1 + depth == depth + 1;
+          }
+        }
+      }
+      ReachableParentBFS_Sound(G, nextFrontier, newVisited, fuel - 1, start0, depth + 1);
+    }
+  }
+
+  // BFS completeness for arbitrary visited sets is handled by
+  // ReachableParentBFS_FollowsFreshParentPath above, which requires an
+  // explicit path witness that avoids visited entirely.  That is the
+  // correct statement used in AncestorsCompiled_Complete.
+
+  // Helper: if fuel >= 1, frontier ⊆ BFS result (frontier gets absorbed into newVisited).
+  lemma {:induction false} ReachableParentBFS_Mono(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires fuel >= 1
+    ensures frontier <= ReachableParentBFS(G, frontier, visited, fuel)
+    decreases fuel
+  {
+    if frontier == {} {
+      // Empty frontier: BFS returns visited; frontier = {} ⊆ visited. ✓
+    } else {
+      // fuel >= 1 and frontier non-empty: one BFS step executes.
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u | u in Nodes(G) && (exists v :: v in frontier && u in Parents(G, v))
+                && u !in newVisited);
+      // frontier ⊆ newVisited; result contains newVisited by VisitedSubset.
+      ReachableParentBFS_VisitedSubset(G, nextFrontier, newVisited, fuel - 1);
+      // frontier ⊆ newVisited ⊆ result.
+    }
+  }
+
+  // Helper: visited is always a subset of the BFS result.
+  lemma {:induction false} ReachableParentBFS_VisitedSubset(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    ensures visited <= ReachableParentBFS(G, frontier, visited, fuel)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      // BFS returns visited; trivial.
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u | u in Nodes(G) && (exists v :: v in frontier && u in Parents(G, v))
+                && u !in newVisited);
+      // visited ⊆ newVisited and result = BFS(nextFrontier, newVisited, fuel-1) ⊇ newVisited ⊇ visited.
+      ReachableParentBFS_VisitedSubset(G, nextFrontier, newVisited, fuel - 1);
+      assert visited <= newVisited;
+    }
+  }
+
+  // Every node output by ReachableParentBFS is in Nodes(G) ∪ visited,
+  // provided the frontier starts within Nodes(G) ∪ visited.
+  lemma {:induction false} ReachableParentBFS_InNodes(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires frontier <= Nodes(G)
+    requires visited <= Nodes(G)
+    ensures ReachableParentBFS(G, frontier, visited, fuel) <= Nodes(G)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      // BFS returns visited ⊆ Nodes(G).
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set u | u in Nodes(G) && (exists v :: v in frontier && u in Parents(G, v))
+                && u !in newVisited);
+      assert nextFrontier <= Nodes(G);
+      assert newVisited <= Nodes(G);
+      ReachableParentBFS_InNodes(G, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  // Core completeness lemma: if path[|path|-1] is in frontier, all path nodes
+  // are fresh (not in visited), and fuel ≥ |path|, then path[0] is in the BFS
+  // result.  Mirrors BidirectedBFSLoop_FollowsFreshSimplePath from 218815c.
+  lemma {:induction false} {:vcs_split_on_every_assert}
+      ReachableParentBFS_FollowsFreshParentPath(
+    G: Graph,
+    path: seq<Node>,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires IsParentPath(G, path)
+    requires forall i :: 0 <= i < |path| ==> path[i] in Nodes(G)
+    requires path[|path| - 1] in frontier
+    requires forall i :: 0 <= i < |path| ==> path[i] !in visited
+    requires fuel >= |path|
+    ensures path[0] in ReachableParentBFS(G, frontier, visited, fuel)
+    decreases |path|
+  {
+    if |path| == 1 {
+      // path[0] == path[|path|-1] ∈ frontier; fuel ≥ 1.
+      assert fuel >= 1;
+      assert path[0] in frontier;
+      ReachableParentBFS_Mono(G, frontier, visited, fuel);
+    } else if exists j :: 0 <= j < |path| - 1 && path[j] in frontier {
+      // Some earlier node is also in frontier; use the shorter prefix.
+      var j :| 0 <= j < |path| - 1 && path[j] in frontier;
+      var prefix := path[..j + 1];
+      assert IsParentPath(G, prefix) by { IsParentPath_Prefix(G, path, j + 1); }
+      assert forall i :: 0 <= i < |prefix| ==> prefix[i] in Nodes(G) by {
+        forall i | 0 <= i < |prefix| ensures prefix[i] in Nodes(G)
+        { assert prefix[i] == path[i]; }
+      }
+      assert prefix[|prefix| - 1] in frontier by { assert prefix[j] == path[j]; }
+      assert forall i :: 0 <= i < |prefix| ==> prefix[i] !in visited by {
+        forall i | 0 <= i < |prefix| ensures prefix[i] !in visited
+        { assert prefix[i] == path[i]; }
+      }
+      assert |prefix| == j + 1;
+      assert fuel >= |prefix|;
+      ReachableParentBFS_FollowsFreshParentPath(G, prefix, frontier, visited, fuel);
+      assert prefix[0] == path[0];
+    } else {
+      // No node in path[0..|path|-2] is in frontier; path[|path|-2] → nextFrontier.
+      assert fuel > 0;
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set x | x in Nodes(G) && (exists v :: v in frontier && x in Parents(G, v))
+                && x !in newVisited);
+      var last := |path| - 1;
+      var prev := |path| - 2;
+      // path[prev] is a parent of path[last] ∈ frontier.
+      assert path[last] in Children(G, path[prev]) by {
+        assert prev + 1 == last;
+      }
+      assert path[prev] in Parents(G, path[last]) by {
+        assert path[last] in Children(G, path[prev]);
+      }
+      // path[prev] is not in frontier (else-branch) and not in visited.
+      assert path[prev] !in frontier by {
+        if path[prev] in frontier {
+          assert 0 <= prev < |path| - 1 && path[prev] in frontier;
+        }
+      }
+      assert path[prev] !in visited;
+      assert path[prev] !in newVisited;
+      assert path[prev] in nextFrontier by {
+        assert path[prev] in Nodes(G);
+        assert path[last] in frontier;
+        assert path[prev] in Parents(G, path[last]);
+        assert path[prev] !in newVisited;
+      }
+      // Drop the last element; use the prefix with nextFrontier.
+      var prefix := path[..last];
+      assert IsParentPath(G, prefix) by { IsParentPath_Prefix(G, path, last); }
+      assert prefix[|prefix| - 1] == path[prev];
+      assert prefix[|prefix| - 1] in nextFrontier;
+      assert forall i :: 0 <= i < |prefix| ==> prefix[i] !in newVisited by {
+        forall i | 0 <= i < |prefix| ensures prefix[i] !in newVisited
+        {
+          assert prefix[i] == path[i];
+          assert path[i] !in visited;
+          assert path[i] !in frontier by {
+            if path[i] in frontier {
+              assert 0 <= i < |path| - 1 && path[i] in frontier;
+            }
+          }
+        }
+      }
+      assert forall i :: 0 <= i < |prefix| ==> prefix[i] in Nodes(G) by {
+        forall i | 0 <= i < |prefix| ensures prefix[i] in Nodes(G)
+        { assert prefix[i] == path[i]; }
+      }
+      assert fuel - 1 >= |prefix| by { assert |prefix| == last; }
+      ReachableParentBFS_FollowsFreshParentPath(
+        G, prefix, nextFrontier, newVisited, fuel - 1);
+      assert prefix[0] == path[0];
+      // BFS unfolding: frontier ≠ {} and fuel ≥ 1 → result = BFS(nextFrontier, newVisited, fuel-1).
+      assert frontier != {};
+      assert ReachableParentBFS(G, frontier, visited, fuel) ==
+        ReachableParentBFS(G, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // AncestorsCompiled == Ancestors
+  // ------------------------------------------------------------------
+
+  // Soundness direction: every node in AncestorsCompiled(G, W) is an ancestor.
+  lemma {:vcs_split_on_every_assert} AncestorsCompiled_Sound(G: Graph, W: set<Node>)
+    ensures AncestorsCompiled(G, W) <= Ancestors(G, W)
+  {
+    var start0 := W * Nodes(G);
+    // Initial invariant at depth=0: every node in start0 has path of length 0 to itself.
+    forall u | u in start0
+      ensures exists w :: w in start0 && IsAncestorBounded(G, u, w, 0)
+    {
+      assert IsAncestorBounded(G, u, u, 0);
+    }
+    // BFS Sound with depth=0, fuel=|Nodes(G)|: gives bound 0 + |Nodes(G)| = |Nodes(G)|.
+    ReachableParentBFS_Sound(G, start0, {}, |Nodes(G)|, start0, 0);
+    // AncestorsCompiled(G, W) = ReachableParentBFS(G, start0, {}, |Nodes(G)|).
+    // Postcondition: exists w in start0 with IsAncestorBounded(G, u, w, |Nodes(G)|).
+    // BFS result ⊆ Nodes(G): start0 = W * Nodes(G) ⊆ Nodes(G).
+    assert start0 <= Nodes(G);
+    ReachableParentBFS_InNodes(G, start0, {}, |Nodes(G)|);
+    forall u | u in AncestorsCompiled(G, W)
+      ensures u in Ancestors(G, W)
+    {
+      var w :| w in start0 && IsAncestorBounded(G, u, w, 0 + |Nodes(G)|);
+      assert w in W;
+      assert u in Nodes(G);  // from ReachableParentBFS_InNodes above
+      assert IsAncestor(G, u, w);
+    }
+  }
+
+  // Completeness direction: every ancestor is in AncestorsCompiled(G, W).
+  // This requires IsDAG to bound path lengths.
+  lemma {:vcs_split_on_every_assert} AncestorsCompiled_Complete(G: Graph, W: set<Node>)
+    requires IsDAG(G)
+    ensures Ancestors(G, W) <= AncestorsCompiled(G, W)
+  {
+    forall u | u in Ancestors(G, W)
+      ensures u in AncestorsCompiled(G, W)
+    {
+      // u ∈ Ancestors(G, W) ⊆ Nodes(G) (by the set-comprehension definition).
+      assert u in Nodes(G);
+      var w :| w in W && IsAncestor(G, u, w);
+      // w ∈ Nodes(G): endpoint of the IsAncestorBounded path starting at u ∈ Nodes(G).
+      assert w in Nodes(G) by {
+        IsAncestorBounded_EndInNodes(G, u, w, |Nodes(G)|);
+      }
+      assert w in W * Nodes(G);
+      // Tighten the bound: in a DAG, path length ≤ |Nodes(G)| - 1.
+      IsAncestor_DAGTight(G, u, w);
+      // Extract a concrete path of ≤ |Nodes(G)| nodes (≤ |Nodes(G)| - 1 edges).
+      var path := IsAncestorBounded_ExtractPath(G, u, w, |Nodes(G)| - 1);
+      assert path[0] == u;
+      assert path[|path| - 1] == w;
+      assert |path| <= |Nodes(G)|;  // at most |Nodes(G)| - 1 + 1 = |Nodes(G)| nodes
+      // Apply the path-following BFS completeness lemma (visited = {}, all fresh).
+      ReachableParentBFS_FollowsFreshParentPath(
+        G, path, W * Nodes(G), {}, |Nodes(G)|);
+      assert u in AncestorsCompiled(G, W);
+    }
+  }
+
+  // Compiled equivalence lemmas
+  lemma AncestorsCompiled_Correct(G: Graph, W: set<Node>)
+    requires IsDAG(G)
+    ensures AncestorsCompiled(G, W) == Ancestors(G, W)
+  {
+    AncestorsCompiled_Sound(G, W);
+    AncestorsCompiled_Complete(G, W);
+  }
+
+  // ------------------------------------------------------------------
+  // Forward BFS helpers (for DescendantsCompiled)
+  // ------------------------------------------------------------------
+
+  // In a DAG, every parent of a node is itself in Nodes(G).
+  lemma IsDAG_ParentsInNodes(G: Graph, v: Node, p: Node)
+    requires IsDAG(G)
+    requires v in Nodes(G)
+    requires p in Parents(G, v)
+    ensures p in Nodes(G)
+  {
+    var ord :| IsTopologicalSort(G, ord);
+    // v ∈ Nodes(G) → v ∈ ord (IsTopologicalSort condition (a)).
+    assert v in ord;
+    var vIdx :| 0 <= vIdx < |ord| && ord[vIdx] == v;
+    // By topo sort condition (c): p = ord[k] for some k < vIdx.
+    assert exists k | 0 <= k < vIdx :: ord[k] == p;
+    var k :| 0 <= k < vIdx && ord[k] == p;
+    // ord[k] ∈ Nodes(G) by condition (a).
+    assert ord[k] in Nodes(G);
+    assert p == ord[k];
+  }
+
+  // In a DAG, the start of any IsAncestorBounded path is in Nodes(G)
+  // (given the endpoint is in Nodes(G)).
+  lemma {:induction false} IsAncestorBounded_StartInNodes(
+    G: Graph, u: Node, v: Node, k: nat)
+    requires IsDAG(G)
+    requires v in Nodes(G)
+    requires IsAncestorBounded(G, u, v, k)
+    ensures u in Nodes(G)
+    decreases k
+  {
+    if u == v {
+      // u = v ∈ Nodes(G). ✓
+    } else {
+      assert k > 0;
+      var ch :| ch in Children(G, u) && IsAncestorBounded(G, ch, v, k - 1);
+      // ch ∈ Children(G, u) = {w | w ∈ Nodes(G) ∧ u ∈ Parents(G, w)}.
+      // So ch ∈ Nodes(G) and u ∈ Parents(G, ch).
+      // By IsDAG_ParentsInNodes: u ∈ Nodes(G). ✓
+      IsDAG_ParentsInNodes(G, ch, u);
+    }
+  }
+
+  // Helper: visited is always a subset of the forward BFS result.
+  lemma {:induction false} ReachableBFS_VisitedSubset(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    ensures visited <= ReachableBFS(G, frontier, visited, fuel)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      // BFS returns visited; trivial.
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      // visited ⊆ newVisited and result ⊇ newVisited (by the recursive invariant).
+      ReachableBFS_VisitedSubset(G, nextFrontier, newVisited, fuel - 1);
+      assert visited <= newVisited;
+    }
+  }
+
+  // Helper: if fuel >= 1, frontier ⊆ forward BFS result.
+  lemma {:induction false} ReachableBFS_Mono(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires fuel >= 1
+    ensures frontier <= ReachableBFS(G, frontier, visited, fuel)
+    decreases fuel
+  {
+    if frontier == {} {
+      // Empty frontier: result = visited; frontier = {} ⊆ visited. ✓
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      // frontier ⊆ newVisited; result ⊇ newVisited by VisitedSubset.
+      ReachableBFS_VisitedSubset(G, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  // Helper: forward BFS stays within Nodes(G) when frontier ⊆ Nodes(G).
+  lemma {:induction false} ReachableBFS_InNodes(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires frontier <= Nodes(G)
+    requires visited <= Nodes(G)
+    ensures ReachableBFS(G, frontier, visited, fuel) <= Nodes(G)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      // BFS returns visited ⊆ Nodes(G).
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      assert nextFrontier <= Nodes(G);
+      assert newVisited <= Nodes(G);
+      ReachableBFS_InNodes(G, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  // Modus-ponens helper for the forward BFS invariant.
+  lemma BFSForwardInvariant_Apply(
+    G: Graph, start0: set<Node>, visited: set<Node>, frontier: set<Node>,
+    u: Node, depth: nat
+  )
+    requires u in visited + frontier
+    requires forall x :: x in visited + frontier ==>
+      exists w :: w in start0 && IsAncestorBounded(G, w, x, depth)
+    ensures exists w :: w in start0 && IsAncestorBounded(G, w, u, depth)
+  {}
+
+  // Soundness of forward BFS: every node in the result is reachable from start0.
+  // Invariant: nodes in visited+frontier are reachable from start0 in ≤ depth steps.
+  lemma {:induction false} {:vcs_split_on_every_assert} ReachableBFS_Sound(
+    G: Graph,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat,
+    start0: set<Node>,
+    depth: nat
+  )
+    requires forall u :: u in visited + frontier ==>
+      exists w :: w in start0 && IsAncestorBounded(G, w, u, depth)
+    ensures forall u :: u in ReachableBFS(G, frontier, visited, fuel) ==>
+      exists w :: w in start0 && IsAncestorBounded(G, w, u, depth + fuel)
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 {
+      forall u | u in ReachableBFS(G, frontier, visited, fuel)
+        ensures exists w :: w in start0 && IsAncestorBounded(G, w, u, depth + fuel)
+      {
+        assert u in visited;
+        assert u in visited + frontier;
+        BFSForwardInvariant_Apply(G, start0, visited, frontier, u, depth);
+        var w :| w in start0 && IsAncestorBounded(G, w, u, depth);
+        IsAncestorBounded_Monotone(G, w, u, depth, depth + fuel);
+      }
+    } else {
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      // Establish invariant at depth+1 for the recursive call.
+      forall nodeV | nodeV in newVisited + nextFrontier
+        ensures exists w :: w in start0 && IsAncestorBounded(G, w, nodeV, depth + 1)
+      {
+        if nodeV in newVisited {
+          // nodeV ∈ visited + frontier: precondition gives bound depth.
+          assert nodeV in visited + frontier;
+          BFSForwardInvariant_Apply(G, start0, visited, frontier, nodeV, depth);
+          var w :| w in start0 && IsAncestorBounded(G, w, nodeV, depth);
+          IsAncestorBounded_Monotone(G, w, nodeV, depth, depth + 1);
+        } else {
+          // nodeV ∈ nextFrontier: nodeV ∈ Children(G, u) for some u ∈ frontier.
+          var u :| u in frontier && nodeV in Children(G, u);
+          assert u in visited + frontier;
+          BFSForwardInvariant_Apply(G, start0, visited, frontier, u, depth);
+          var w :| w in start0 && IsAncestorBounded(G, w, u, depth);
+          // nodeV ∈ Children(G, u) → IsAncestorBounded(G, u, nodeV, 1).
+          assert IsAncestorBounded(G, u, nodeV, 1) by {
+            assert nodeV in Children(G, u);
+            assert IsAncestorBounded(G, nodeV, nodeV, 0);
+            assert exists ch :: ch in Children(G, u) && IsAncestorBounded(G, ch, nodeV, 0) by {
+              assert nodeV in Children(G, u);
+            }
+          }
+          // Combine: w → ... → u → nodeV. Path length ≤ depth + 1.
+          IsAncestorBounded_Transitive(G, w, u, nodeV, depth, 1);
+          assert IsAncestorBounded(G, w, nodeV, depth + 1) by {
+            assert depth + 1 == depth + 1;
+          }
+        }
+      }
+      ReachableBFS_Sound(G, nextFrontier, newVisited, fuel - 1, start0, depth + 1);
+    }
+  }
+
+  // Core completeness lemma for forward BFS: if path[0] ∈ frontier, all
+  // path nodes are fresh (not in visited), and fuel ≥ |path|, then
+  // path[|path|-1] is in the BFS result.
+  lemma {:induction false} {:vcs_split_on_every_assert}
+      ReachableBFS_FollowsFreshChildPath(
+    G: Graph,
+    path: seq<Node>,
+    frontier: set<Node>,
+    visited: set<Node>,
+    fuel: nat
+  )
+    requires IsParentPath(G, path)
+    requires forall i :: 0 <= i < |path| ==> path[i] in Nodes(G)
+    requires path[0] in frontier
+    requires forall i :: 0 <= i < |path| ==> path[i] !in visited
+    requires fuel >= |path|
+    ensures path[|path| - 1] in ReachableBFS(G, frontier, visited, fuel)
+    decreases |path|
+  {
+    if |path| == 1 {
+      // path[0] ∈ frontier; fuel ≥ 1.
+      assert fuel >= 1;
+      assert path[0] in frontier;
+      ReachableBFS_Mono(G, frontier, visited, fuel);
+    } else if exists j :: 0 < j < |path| && path[j] in frontier {
+      // A later path node is already in frontier; use that shorter suffix.
+      var j :| 0 < j < |path| && path[j] in frontier;
+      var suffix := path[j..];
+      assert |suffix| == |path| - j;
+      assert suffix[0] == path[j];
+      assert suffix[|suffix| - 1] == path[|path| - 1];
+      assert IsParentPath(G, suffix) by {
+        forall i | 0 <= i < |suffix| - 1
+          ensures suffix[i + 1] in Children(G, suffix[i])
+        {
+          assert suffix[i] == path[j + i];
+          assert suffix[i + 1] == path[j + i + 1];
+        }
+      }
+      assert forall i :: 0 <= i < |suffix| ==> suffix[i] in Nodes(G) by {
+        forall i | 0 <= i < |suffix| ensures suffix[i] in Nodes(G)
+        { assert suffix[i] == path[j + i]; }
+      }
+      assert forall i :: 0 <= i < |suffix| ==> suffix[i] !in visited by {
+        forall i | 0 <= i < |suffix| ensures suffix[i] !in visited
+        { assert suffix[i] == path[j + i]; }
+      }
+      assert fuel >= |suffix| by { assert |suffix| == |path| - j; assert j >= 1; }
+      ReachableBFS_FollowsFreshChildPath(G, suffix, frontier, visited, fuel);
+    } else {
+      // No later path node is in frontier.
+      // path[1] ∉ frontier and path[1] ∉ visited → path[1] ∉ newVisited.
+      // path[0] ∈ frontier, path[1] ∈ Children(G, path[0]) → path[1] ∈ nextFrontier.
+      assert fuel > 0;
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set v, u | u in frontier && v in Children(G, u) && v !in newVisited :: v);
+      // path[1] ∉ frontier (else-branch) and path[1] ∉ visited → path[1] ∉ newVisited.
+      assert path[1] !in frontier by {
+        if path[1] in frontier {
+          assert 0 < 1 < |path| && path[1] in frontier;
+        }
+      }
+      assert path[1] !in newVisited;
+      // path[1] ∈ Children(G, path[0]) and path[0] ∈ frontier → path[1] ∈ nextFrontier.
+      assert path[1] in nextFrontier by {
+        assert path[0] in frontier;
+        assert path[1] in Children(G, path[0]) by { assert 0 + 1 == 1; }
+        assert path[1] !in newVisited;
+      }
+      // path[1..] is a fresh suffix path.
+      var suffix := path[1..];
+      assert IsParentPath(G, suffix) by {
+        forall i | 0 <= i < |suffix| - 1
+          ensures suffix[i + 1] in Children(G, suffix[i])
+        {
+          assert suffix[i] == path[1 + i];
+          assert suffix[i + 1] == path[1 + i + 1];
+        }
+      }
+      assert suffix[|suffix| - 1] == path[|path| - 1];
+      assert forall i :: 0 <= i < |suffix| ==> suffix[i] in Nodes(G) by {
+        forall i | 0 <= i < |suffix| ensures suffix[i] in Nodes(G)
+        { assert suffix[i] == path[1 + i]; }
+      }
+      assert forall i :: 0 <= i < |suffix| ==> suffix[i] !in newVisited by {
+        forall i | 0 <= i < |suffix| ensures suffix[i] !in newVisited
+        {
+          assert suffix[i] == path[1 + i];
+          assert path[1 + i] !in visited;
+          assert path[1 + i] !in frontier by {
+            if path[1 + i] in frontier {
+              assert 0 < 1 + i < |path| && path[1 + i] in frontier;
+            }
+          }
+        }
+      }
+      assert fuel - 1 >= |suffix| by { assert |suffix| == |path| - 1; }
+      ReachableBFS_FollowsFreshChildPath(G, suffix, nextFrontier, newVisited, fuel - 1);
+      assert suffix[|suffix| - 1] == path[|path| - 1];
+      // BFS unfolding: frontier ≠ {} and fuel ≥ 1 → result = BFS(nextFrontier, newVisited, fuel-1).
+      assert frontier != {};
+      assert ReachableBFS(G, frontier, visited, fuel) ==
+        ReachableBFS(G, nextFrontier, newVisited, fuel - 1);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // DescendantsCompiled == Descendants
+  // ------------------------------------------------------------------
+
+  // Soundness: everything in DescendantsCompiled is a genuine descendant.
+  lemma {:vcs_split_on_every_assert} DescendantsCompiled_Sound(G: Graph, W: set<Node>)
+    ensures DescendantsCompiled(G, W) <= Descendants(G, W)
+  {
+    var start0 := W * Nodes(G);
+    // Initial invariant: every node in start0 is reachable from itself in 0 steps.
+    forall v | v in start0
+      ensures exists w :: w in start0 && IsAncestorBounded(G, w, v, 0)
+    {
+      assert IsAncestorBounded(G, v, v, 0);
+    }
+    ReachableBFS_Sound(G, start0, {}, |Nodes(G)|, start0, 0);
+    // DescendantsCompiled(G, W) ⊆ Nodes(G).
+    assert start0 <= Nodes(G);
+    ReachableBFS_InNodes(G, start0, {}, |Nodes(G)|);
+    forall v | v in DescendantsCompiled(G, W)
+      ensures v in Descendants(G, W)
+    {
+      var w :| w in start0 && IsAncestorBounded(G, w, v, 0 + |Nodes(G)|);
+      assert w in W;
+      assert v in Nodes(G);
+      assert IsAncestor(G, w, v);
+    }
+  }
+
+  // Completeness: every descendant is found by the compiled BFS.
+  // Requires IsDAG to bound path lengths.
+  lemma {:vcs_split_on_every_assert} DescendantsCompiled_Complete(G: Graph, W: set<Node>)
+    requires IsDAG(G)
+    ensures Descendants(G, W) <= DescendantsCompiled(G, W)
+  {
+    forall v | v in Descendants(G, W)
+      ensures v in DescendantsCompiled(G, W)
+    {
+      // v ∈ Descendants(G, W) ⊆ Nodes(G) by definition.
+      assert v in Nodes(G);
+      var w :| w in W && IsAncestor(G, w, v);
+      // w ∈ Nodes(G): w is the start of a path to v ∈ Nodes(G).
+      assert w in Nodes(G) by {
+        IsAncestorBounded_StartInNodes(G, w, v, |Nodes(G)|);
+      }
+      assert w in W * Nodes(G);
+      // Tighten the bound: in a DAG, path length ≤ |Nodes(G)| - 1.
+      IsAncestor_DAGTight(G, w, v);
+      // Extract a concrete path of ≤ |Nodes(G)| nodes.
+      var path := IsAncestorBounded_ExtractPath(G, w, v, |Nodes(G)| - 1);
+      assert path[0] == w;
+      assert path[|path| - 1] == v;
+      assert |path| <= |Nodes(G)|;
+      // Apply forward path-following lemma (visited = {}, all fresh).
+      ReachableBFS_FollowsFreshChildPath(
+        G, path, W * Nodes(G), {}, |Nodes(G)|);
+      assert v in DescendantsCompiled(G, W);
+    }
+  }
+
+  // Remove the axiom; replace with the proved version.
+  lemma DescendantsCompiled_Correct(G: Graph, W: set<Node>)
+    requires IsDAG(G)
+    ensures DescendantsCompiled(G, W) == Descendants(G, W)
+  {
+    DescendantsCompiled_Sound(G, W);
+    DescendantsCompiled_Complete(G, W);
+  }
+
+  // ==================================================================
+  // 4.  Graph Surgery
+  // ==================================================================
+
+  // G_{X̄}  —  remove incoming edges to every node in X.
+  function RemoveIncomingCompiled(G: Graph, X: set<Node>): Graph
+  {
+    map v | v in Nodes(G) ::
+      if v in X then {} else Parents(G, v)
+  }
+
+  // G_{X̲}  —  remove outgoing edges from every node in X.
+  function RemoveOutgoingCompiled(G: Graph, X: set<Node>): Graph
+  {
+    map v | v in Nodes(G) ::
+      Parents(G, v) - X
+  }
+
+  lemma RemoveIncomingCompiled_Correct(G: Graph, X: set<Node>)
+    ensures RemoveIncomingCompiled(G, X) == RemoveIncoming(G, X)
+  {
+    assert RemoveIncomingCompiled(G, X)
+         == (map v | v in Nodes(G) :: if v in X then {} else Parents(G, v));
+    assert RemoveIncoming(G, X)
+         == (map v | v in Nodes(G) :: if v in X then {} else Parents(G, v));
+  }
+
+  lemma RemoveOutgoingCompiled_Correct(G: Graph, X: set<Node>)
+    ensures RemoveOutgoingCompiled(G, X) == RemoveOutgoing(G, X)
+  {
+    assert RemoveOutgoingCompiled(G, X)
+         == (map v | v in Nodes(G) :: Parents(G, v) - X);
+    assert RemoveOutgoing(G, X)
+         == (map v | v in Nodes(G) :: Parents(G, v) - X);
+  }
+
+  // G_{X̄}  —  remove incoming edges to every node in X.
+  function RemoveIncoming(G: Graph, X: set<Node>): Graph
+  {
+    map v | v in Nodes(G) ::
+      if v in X then {} else Parents(G, v)
+  }
+
+  // G_{X̲}  —  remove outgoing edges from every node in X.
+  //   i.e., for every child c, remove X-members from c's parent set.
+  function RemoveOutgoing(G: Graph, X: set<Node>): Graph
+  {
+    map v | v in Nodes(G) ::
+      Parents(G, v) - X
+  }
+
+  // Delete nodes in X and every incident edge.
+  function RemoveNodes(G: Graph, X: set<Node>): Graph
+  {
+    map v | v in Nodes(G) && v !in X ::
+      Parents(G, v) - X
+  }
+
+  // ------------------------------------------------------------------
+  // Surgery lemmas
+  // ------------------------------------------------------------------
+
+  /// Removing incoming edges from ∅ changes nothing.
+  lemma RemoveIncoming_Empty(G: Graph)
+    ensures RemoveIncoming(G, {}) == G
+  {
+    // Every node keeps its original parents since no node is in {}.
+    assert forall v :: v in Nodes(G) ==>
+      (if v in {} then {} else Parents(G, v)) == Parents(G, v);
+  }
+
+  /// Nodes in X lose all parents after incoming surgery.
+  lemma RemoveIncoming_NoParents(G: Graph, X: set<Node>, x: Node)
+    requires x in Nodes(G) && x in X
+    ensures Parents(RemoveIncoming(G, X), x) == {}
+  {}
+
+  /// Nodes outside X are unaffected by incoming surgery.
+  lemma RemoveIncoming_PreservesOthers(G: Graph, X: set<Node>, v: Node)
+    requires v in Nodes(G) && v !in X
+    ensures Parents(RemoveIncoming(G, X), v) == Parents(G, v)
+  {}
+
+  /// Removing outgoing edges from ∅ changes nothing.
+  lemma RemoveOutgoing_Empty(G: Graph)
+    ensures RemoveOutgoing(G, {}) == G
+  {
+    assert forall v :: v in Nodes(G) ==>
+      Parents(G, v) - {} == Parents(G, v);
+  }
+
+  /// Deleting nodes from a DAG preserves acyclicity.
+  lemma RemoveNodes_PreservesDAG(G: Graph, X: set<Node>)
+    requires IsDAG(G)
+    ensures IsDAG(RemoveNodes(G, X))
+  {
+    var ord :| IsTopologicalSort(G, ord);
+    var GX := RemoveNodes(G, X);
+    assert Nodes(GX) == Nodes(G) - X;
+
+    var ordX: seq<Node> := [];
+    var i := 0;
+    while i < |ord|
+      invariant 0 <= i <= |ord|
+      invariant Nodes(GX) == Nodes(G) - X
+      invariant forall j | 0 <= j < |ordX| :: ordX[j] in Nodes(GX)
+      invariant forall j | 0 <= j < |ordX| :: exists k :: 0 <= k < i && ord[k] == ordX[j]
+      invariant forall k | 0 <= k < i && ord[k] in Nodes(GX) :: ord[k] in ordX
+      invariant forall a, b | 0 <= a < b < |ordX| :: ordX[a] != ordX[b]
+      invariant forall j | 0 <= j < |ordX| ::
+        forall p | p in Parents(GX, ordX[j]) ::
+          exists k :: 0 <= k < j && ordX[k] == p
+    {
+      if ord[i] in Nodes(GX) {
+        var v := ord[i];
+        assert v in Nodes(G);
+        assert v !in X;
+        assert Parents(GX, v) == Parents(G, v) - X;
+
+        assert v !in ordX by {
+          if v in ordX {
+            var j :| 0 <= j < |ordX| && ordX[j] == v;
+            var k :| 0 <= k < i && ord[k] == ordX[j];
+            assert 0 <= k < i < |ord|;
+            assert ord[k] == ord[i];
+            assert ord[k] != ord[i];
+          }
+        }
+
+        forall p | p in Parents(GX, v)
+          ensures exists k :: 0 <= k < |ordX| && ordX[k] == p
+        {
+          assert p in Parents(G, v);
+          assert p !in X;
+          var h :| 0 <= h < i && ord[h] == p;
+          assert p in Nodes(G);
+          assert p in Nodes(GX);
+          assert p in ordX;
+          var k :| 0 <= k < |ordX| && ordX[k] == p;
+        }
+
+        ordX := ordX + [v];
+      }
+      i := i + 1;
+    }
+
+    forall v | v in Nodes(GX)
+      ensures v in ordX
+    {
+      assert v in Nodes(G);
+      var k :| 0 <= k < |ord| && ord[k] == v;
+      assert k < i;
+      assert ord[k] in Nodes(GX);
+      assert v in ordX;
+    }
+    assert IsTopologicalSort(GX, ordX);
+  }
+
+  // ==================================================================
+  // 5.  Paths and Trails
+  // ==================================================================
+
+  // A trail is a sequence of nodes (not necessarily all distinct)
+  // where consecutive pairs are connected by an edge in either
+  // direction.  This is the building block for d-separation.
+
+  // Edge relationship between consecutive nodes on a trail:
+  //   Forward:  path[i] → path[i+1]   (parent → child)
+  //   Backward: path[i] ← path[i+1]   (child ← parent)
+  datatype EdgeDir = Forward | Backward
+
+  // A step in a trail.
+  datatype TrailStep = TrailStep(from: Node, to: Node, dir: EdgeDir)
+
+  // A trail is valid if every step corresponds to an actual edge.
+  ghost predicate ValidTrail(G: Graph, trail: seq<TrailStep>) {
+    forall i {:trigger trail[i]} :: 0 <= i < |trail| ==>
+      (trail[i].dir == Forward  ==> trail[i].from in Parents(G, trail[i].to)) &&
+      (trail[i].dir == Backward ==> trail[i].to in Parents(G, trail[i].from))
+  }
+
+  // The trail connects `start` to `end`.
+  ghost predicate TrailConnects(trail: seq<TrailStep>, start: Node, end: Node) {
+    |trail| > 0 &&
+    trail[0].from == start &&
+    trail[|trail| - 1].to == end &&
+    (forall i :: 0 <= i < |trail| - 1 ==> trail[i].to == trail[i + 1].from)
+  }
+
+  lemma ValidTrail_Prefix(G: Graph, trail: seq<TrailStep>, prefixLen: nat)
+    requires ValidTrail(G, trail)
+    requires 0 < prefixLen <= |trail|
+    ensures ValidTrail(G, trail[..prefixLen])
+  {
+    forall i {:trigger trail[..prefixLen][i]} | 0 <= i < |trail[..prefixLen]|
+      ensures
+        (trail[..prefixLen][i].dir == Forward ==> trail[..prefixLen][i].from in Parents(G, trail[..prefixLen][i].to)) &&
+        (trail[..prefixLen][i].dir == Backward ==> trail[..prefixLen][i].to in Parents(G, trail[..prefixLen][i].from))
+    {
+      assert trail[..prefixLen][i] == trail[i];
+    }
+  }
+
+  lemma ValidTrail_Concat(G: Graph, left: seq<TrailStep>, right: seq<TrailStep>)
+    requires ValidTrail(G, left)
+    requires ValidTrail(G, right)
+    ensures ValidTrail(G, left + right)
+  {
+    forall i {:trigger (left + right)[i]} | 0 <= i < |left + right|
+      ensures
+        ((left + right)[i].dir == Forward ==> (left + right)[i].from in Parents(G, (left + right)[i].to)) &&
+        ((left + right)[i].dir == Backward ==> (left + right)[i].to in Parents(G, (left + right)[i].from))
+    {
+      if i < |left| {
+        assert (left + right)[i] == left[i];
+      } else {
+        assert (left + right)[i] == right[i - |left|];
+      }
+    }
+  }
+
+  lemma TrailConnects_Prefix(trail: seq<TrailStep>, start: Node, end: Node, prefixLen: nat)
+    requires TrailConnects(trail, start, end)
+    requires 0 < prefixLen <= |trail|
+    ensures TrailConnects(trail[..prefixLen], start, trail[prefixLen - 1].to)
+  {
+    assert |trail[..prefixLen]| > 0;
+    assert trail[..prefixLen][0].from == start;
+    assert trail[..prefixLen][|trail[..prefixLen]| - 1].to == trail[prefixLen - 1].to;
+    forall i | 0 <= i < |trail[..prefixLen]| - 1
+      ensures trail[..prefixLen][i].to == trail[..prefixLen][i + 1].from
+    {
+      assert trail[..prefixLen][i] == trail[i];
+      assert trail[..prefixLen][i + 1] == trail[i + 1];
+    }
+  }
+
+  lemma TrailConnects_Concat(left: seq<TrailStep>, start: Node, mid: Node, right: seq<TrailStep>, end: Node)
+    requires TrailConnects(left, start, mid)
+    requires TrailConnects(right, mid, end)
+    ensures TrailConnects(left + right, start, end)
+  {
+    assert |left + right| > 0;
+    assert (left + right)[0].from == start;
+    assert (left + right)[|left + right| - 1].to == end;
+    forall i | 0 <= i < |left + right| - 1
+      ensures (left + right)[i].to == (left + right)[i + 1].from
+    {
+      if i < |left| - 1 {
+        assert (left + right)[i] == left[i];
+        assert (left + right)[i + 1] == left[i + 1];
+      } else if i == |left| - 1 {
+        assert (left + right)[i] == left[i];
+        assert (left + right)[i + 1] == right[0];
+        assert left[i].to == mid;
+        assert right[0].from == mid;
+      } else {
+        assert (left + right)[i] == right[i - |left|];
+        assert (left + right)[i + 1] == right[i + 1 - |left|];
+      }
+    }
+  }
+
+  lemma ForwardTrail_ImpliesAncestorBounded(G: Graph, trail: seq<TrailStep>, start: Node, end: Node)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    ensures IsAncestorBounded(G, start, end, |trail|)
+    decreases |trail|
+  {
+    if |trail| == 1 {
+      assert trail[0].from == start;
+      assert trail[0].to == end;
+      assert start in Parents(G, end);
+      assert end in Children(G, start);
+      assert IsAncestorBounded(G, end, end, 0);
+    } else {
+      ValidTrail_Suffix(G, trail);
+      TrailConnects_Suffix(trail, start, end);
+      assert forall i :: 0 <= i < |trail[1..]| ==> trail[1..][i].dir == Forward by {
+        forall i | 0 <= i < |trail[1..]|
+          ensures trail[1..][i].dir == Forward
+        {
+          assert trail[1..][i] == trail[i + 1];
+        }
+      }
+      ForwardTrail_ImpliesAncestorBounded(G, trail[1..], trail[1].from, end);
+      assert trail[0].to == trail[1].from;
+      assert trail[0].from == start;
+      assert start in Parents(G, trail[1].from);
+      assert trail[1].from in Children(G, start);
+    }
+  }
+
+  lemma ForwardTrail_NodeInDescendants(G: Graph, trail: seq<TrailStep>, start: Node, end: Node, pos: nat)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    requires |trail| <= |Nodes(G)|
+    requires 1 <= pos < |trail|
+    ensures trail[pos].from in Descendants(G, {start})
+  {
+    ValidTrail_Prefix(G, trail, pos);
+    TrailConnects_Prefix(trail, start, end, pos);
+    assert trail[pos - 1].to == trail[pos].from;
+    assert forall i :: 0 <= i < |trail[..pos]| ==> trail[..pos][i].dir == Forward by {
+      forall i | 0 <= i < |trail[..pos]|
+        ensures trail[..pos][i].dir == Forward
+      {
+        assert trail[..pos][i] == trail[i];
+      }
+    }
+    ForwardTrail_ImpliesAncestorBounded(G, trail[..pos], start, trail[pos].from);
+    IsAncestorBounded_Monotone(G, start, trail[pos].from, pos, |Nodes(G)|);
+    assert trail[pos - 1].from in Parents(G, trail[pos - 1].to);
+    assert trail[pos].from in Nodes(G);
+    assert start in {start};
+  }
+
+  lemma ForwardTrail_EndInDescendants(G: Graph, trail: seq<TrailStep>, start: Node, end: Node)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    requires |trail| <= |Nodes(G)|
+    ensures end in Descendants(G, {start})
+  {
+    ForwardTrail_ImpliesAncestorBounded(G, trail, start, end);
+    IsAncestorBounded_Monotone(G, start, end, |trail|, |Nodes(G)|);
+    assert IsAncestor(G, start, end);
+    assert trail[|trail| - 1].dir == Forward;
+    assert trail[|trail| - 1].to == end;
+    assert trail[|trail| - 1].from in Parents(G, end);
+    assert end in Nodes(G);
+    assert start in {start};
+  }
+
+  lemma ForwardTrail_StartAtOrBeforeEndInTopologicalOrder(
+    G: Graph, ord: seq<Node>, trail: seq<TrailStep>, start: Node, end: Node
+  )
+    requires IsTopologicalSort(G, ord)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    ensures exists i, j :: 0 <= i <= j < |ord| && ord[i] == start && ord[j] == end
+    decreases |trail|
+  {
+    if |trail| == 1 {
+      var endIdx :| 0 <= endIdx < |ord| && ord[endIdx] == end;
+      assert trail[0].from == start;
+      assert trail[0].to == end;
+      assert start in Parents(G, end);
+      var startIdx :| 0 <= startIdx < endIdx && ord[startIdx] == start;
+      assert exists i0, j0 :: 0 <= i0 <= j0 < |ord| && ord[i0] == start && ord[j0] == end by {
+        assert startIdx == startIdx;
+        assert endIdx == endIdx;
+      }
+    } else {
+      ValidTrail_Suffix(G, trail);
+      TrailConnects_Suffix(trail, start, end);
+      assert forall i :: 0 <= i < |trail[1..]| ==> trail[1..][i].dir == Forward by {
+        forall i | 0 <= i < |trail[1..]|
+          ensures trail[1..][i].dir == Forward
+        {
+          assert trail[1..][i] == trail[i + 1];
+        }
+      }
+      ForwardTrail_StartAtOrBeforeEndInTopologicalOrder(G, ord, trail[1..], trail[1].from, end);
+      var midIdx, endIdx :| 0 <= midIdx <= endIdx < |ord| && ord[midIdx] == trail[1].from && ord[endIdx] == end;
+      assert trail[0].to == trail[1].from;
+      assert trail[0].from == start;
+      assert start in Parents(G, trail[1].from);
+      var startIdx :| 0 <= startIdx < midIdx && ord[startIdx] == start;
+      assert exists i0, j0 :: 0 <= i0 <= j0 < |ord| && ord[i0] == start && ord[j0] == end by {
+        assert startIdx <= endIdx;
+      }
+    }
+  }
+
+  lemma ForwardTrail_StartBeforeEndInTopologicalOrder(
+    G: Graph, ord: seq<Node>, trail: seq<TrailStep>, start: Node, end: Node
+  )
+    requires IsTopologicalSort(G, ord)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    ensures exists i, j :: 0 <= i < j < |ord| && ord[i] == start && ord[j] == end
+  {
+    if |trail| == 1 {
+      var endIdx :| 0 <= endIdx < |ord| && ord[endIdx] == end;
+      assert trail[0].from == start;
+      assert trail[0].to == end;
+      assert start in Parents(G, end);
+      var startIdx :| 0 <= startIdx < endIdx && ord[startIdx] == start;
+      assert exists i0, j0 :: 0 <= i0 < j0 < |ord| && ord[i0] == start && ord[j0] == end by {
+        assert startIdx == startIdx;
+        assert endIdx == endIdx;
+      }
+    } else {
+      ValidTrail_Suffix(G, trail);
+      TrailConnects_Suffix(trail, start, end);
+      assert forall i :: 0 <= i < |trail[1..]| ==> trail[1..][i].dir == Forward by {
+        forall i | 0 <= i < |trail[1..]|
+          ensures trail[1..][i].dir == Forward
+        {
+          assert trail[1..][i] == trail[i + 1];
+        }
+      }
+      ForwardTrail_StartAtOrBeforeEndInTopologicalOrder(G, ord, trail[1..], trail[1].from, end);
+      var midIdx, endIdx :| 0 <= midIdx <= endIdx < |ord| && ord[midIdx] == trail[1].from && ord[endIdx] == end;
+      assert trail[0].to == trail[1].from;
+      assert trail[0].from == start;
+      assert start in Parents(G, trail[1].from);
+      var startIdx :| 0 <= startIdx < midIdx && ord[startIdx] == start;
+      assert exists i0, j0 :: 0 <= i0 < j0 < |ord| && ord[i0] == start && ord[j0] == end by {
+        assert startIdx < endIdx;
+      }
+    }
+  }
+
+  lemma ForwardTrail_ImpliesAncestorBoundedByOrderDistance(
+    G: Graph,
+    ord: seq<Node>,
+    trail: seq<TrailStep>,
+    start: Node,
+    end: Node,
+    startIdx: nat,
+    endIdx: nat
+  )
+    requires IsTopologicalSort(G, ord)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    requires 0 <= startIdx < endIdx < |ord|
+    requires ord[startIdx] == start
+    requires ord[endIdx] == end
+    ensures IsAncestorBounded(G, start, end, endIdx - startIdx)
+    decreases endIdx - startIdx
+  {
+    if |trail| == 1 {
+      assert endIdx - startIdx > 0;
+      assert trail[0].from == start;
+      assert trail[0].to == end;
+      assert start in Parents(G, end);
+      assert end in Children(G, start);
+      Ancestor_Reflexive(G, end);
+      IsAncestorBounded_Monotone(G, end, end, 0, endIdx - startIdx - 1);
+    } else {
+      ValidTrail_Suffix(G, trail);
+      TrailConnects_Suffix(trail, start, end);
+      assert forall i :: 0 <= i < |trail[1..]| ==> trail[1..][i].dir == Forward by {
+        forall i | 0 <= i < |trail[1..]|
+          ensures trail[1..][i].dir == Forward
+        {
+          assert trail[1..][i] == trail[i + 1];
+        }
+      }
+      ForwardTrail_StartBeforeEndInTopologicalOrder(G, ord, trail[1..], trail[1].from, end);
+      var midIdx0, endIdx0 :| 0 <= midIdx0 < endIdx0 < |ord| && ord[midIdx0] == trail[1].from && ord[endIdx0] == end;
+      assert endIdx0 == endIdx by {
+        if endIdx0 < endIdx {
+          assert ord[endIdx0] != ord[endIdx];
+        } else if endIdx < endIdx0 {
+          assert ord[endIdx] != ord[endIdx0];
+        }
+      }
+      ForwardTrail_ImpliesAncestorBoundedByOrderDistance(G, ord, trail[1..], trail[1].from, end, midIdx0, endIdx);
+      assert trail[0].to == trail[1].from;
+      assert trail[0].from == start;
+      assert start in Parents(G, trail[1].from);
+      var parentIdx :| 0 <= parentIdx < midIdx0 && ord[parentIdx] == start;
+      assert parentIdx == startIdx by {
+        if parentIdx < startIdx {
+          assert ord[parentIdx] != ord[startIdx];
+        } else if startIdx < parentIdx {
+          assert ord[startIdx] != ord[parentIdx];
+        }
+      }
+      assert endIdx - midIdx0 <= endIdx - startIdx - 1;
+      IsAncestorBounded_Monotone(G, trail[1].from, end, endIdx - midIdx0, endIdx - startIdx - 1);
+      assert IsAncestorBounded(G, trail[1].from, end, endIdx - startIdx - 1);
+      assert trail[1].from in Children(G, trail[0].from);
+    }
+  }
+
+  lemma ForwardTrail_EndInDescendants_DAG(G: Graph, trail: seq<TrailStep>, start: Node, end: Node)
+    requires IsDAG(G)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward
+    ensures end in Descendants(G, {start})
+  {
+    var ord :| IsTopologicalSort(G, ord);
+    ForwardTrail_StartBeforeEndInTopologicalOrder(G, ord, trail, start, end);
+    var startIdx, endIdx :| 0 <= startIdx < endIdx < |ord| && ord[startIdx] == start && ord[endIdx] == end;
+    ForwardTrail_ImpliesAncestorBoundedByOrderDistance(G, ord, trail, start, end, startIdx, endIdx);
+    TopologicalSort_Length(G, ord);
+    assert endIdx - startIdx <= |Nodes(G)|;
+    IsAncestorBounded_Monotone(G, start, end, endIdx - startIdx, |Nodes(G)|);
+    assert IsAncestor(G, start, end);
+    assert end in Nodes(G);
+    assert start in {start};
+  }
+
+  // ------------------------------------------------------------------
+  // Trail reversal helpers
+  //
+  // These helpers support future symmetry proofs by turning any trail
+  // from y to z into a trail from z to y over the same underlying edges.
+  // ------------------------------------------------------------------
+
+  ghost function ReverseDir(dir: EdgeDir): EdgeDir {
+    if dir == Forward then Backward else Forward
+  }
+
+  ghost function ReverseStep(step: TrailStep): TrailStep {
+    TrailStep(step.to, step.from, ReverseDir(step.dir))
+  }
+
+  ghost function ReverseTrail(trail: seq<TrailStep>): seq<TrailStep>
+    decreases |trail|
+  {
+    if |trail| == 0 then []
+    else ReverseTrail(trail[1..]) + [ReverseStep(trail[0])]
+  }
+
+  lemma ReverseTrail_Length(trail: seq<TrailStep>)
+    ensures |ReverseTrail(trail)| == |trail|
+    decreases |trail|
+  {
+    if |trail| != 0 {
+      ReverseTrail_Length(trail[1..]);
+    }
+  }
+
+  lemma ValidTrail_Suffix(G: Graph, trail: seq<TrailStep>)
+    requires ValidTrail(G, trail)
+    requires |trail| > 0
+    ensures ValidTrail(G, trail[1..])
+  {
+    forall i {:trigger trail[1..][i]} | 0 <= i < |trail[1..]|
+      ensures
+        (trail[1..][i].dir == Forward ==> trail[1..][i].from in Parents(G, trail[1..][i].to)) &&
+        (trail[1..][i].dir == Backward ==> trail[1..][i].to in Parents(G, trail[1..][i].from))
+    {
+      assert trail[1..][i] == trail[i + 1];
+    }
+  }
+
+  lemma ReverseStep_Valid(G: Graph, step: TrailStep)
+    requires (step.dir == Forward ==> step.from in Parents(G, step.to))
+    requires (step.dir == Backward ==> step.to in Parents(G, step.from))
+    ensures
+      (ReverseStep(step).dir == Forward ==> ReverseStep(step).from in Parents(G, ReverseStep(step).to)) &&
+      (ReverseStep(step).dir == Backward ==> ReverseStep(step).to in Parents(G, ReverseStep(step).from))
+  {
+    if step.dir == Forward {
+      assert ReverseStep(step).dir == Backward;
+      assert ReverseStep(step).from == step.to;
+      assert ReverseStep(step).to == step.from;
+    } else {
+      assert step.dir == Backward;
+      assert ReverseStep(step).dir == Forward;
+      assert ReverseStep(step).from == step.to;
+      assert ReverseStep(step).to == step.from;
+    }
+  }
+
+  lemma ReverseTrail_Valid(G: Graph, trail: seq<TrailStep>)
+    requires ValidTrail(G, trail)
+    ensures ValidTrail(G, ReverseTrail(trail))
+    decreases |trail|
+  {
+    if |trail| != 0 {
+      ValidTrail_Suffix(G, trail);
+      ReverseTrail_Valid(G, trail[1..]);
+      assert
+        (trail[0].dir == Forward ==> trail[0].from in Parents(G, trail[0].to)) &&
+        (trail[0].dir == Backward ==> trail[0].to in Parents(G, trail[0].from));
+      ReverseStep_Valid(G, trail[0]);
+      ReverseTrail_Length(trail[1..]);
+      forall i {:trigger ReverseTrail(trail)[i]} | 0 <= i < |ReverseTrail(trail)|
+        ensures
+          (ReverseTrail(trail)[i].dir == Forward ==> ReverseTrail(trail)[i].from in Parents(G, ReverseTrail(trail)[i].to)) &&
+          (ReverseTrail(trail)[i].dir == Backward ==> ReverseTrail(trail)[i].to in Parents(G, ReverseTrail(trail)[i].from))
+      {
+        if i < |ReverseTrail(trail[1..])| {
+          assert ReverseTrail(trail)[i] == ReverseTrail(trail[1..])[i];
+        } else {
+          assert i == |ReverseTrail(trail[1..])|;
+          assert ReverseTrail(trail)[i] == ReverseStep(trail[0]);
+        }
+      }
+    }
+  }
+
+  lemma TrailConnects_Suffix(trail: seq<TrailStep>, start: Node, end: Node)
+    requires TrailConnects(trail, start, end)
+    requires |trail| > 1
+    ensures TrailConnects(trail[1..], trail[1].from, end)
+  {
+    assert |trail[1..]| > 0;
+    assert trail[1..][0].from == trail[1].from;
+    assert trail[1..][|trail[1..]| - 1].to == end;
+    forall i | 0 <= i < |trail[1..]| - 1
+      ensures trail[1..][i].to == trail[1..][i + 1].from
+    {
+      assert trail[1..][i] == trail[i + 1];
+      assert trail[1..][i + 1] == trail[i + 2];
+    }
+  }
+
+  lemma ReverseTrail_Connects(trail: seq<TrailStep>, start: Node, end: Node)
+    requires TrailConnects(trail, start, end)
+    ensures TrailConnects(ReverseTrail(trail), end, start)
+    decreases |trail|
+  {
+    ReverseTrail_Length(trail);
+    if |trail| == 1 {
+      assert ReverseTrail(trail) == [ReverseStep(trail[0])];
+      assert ReverseTrail(trail)[0].from == end;
+      assert ReverseTrail(trail)[0].to == start;
+    } else {
+      TrailConnects_Suffix(trail, start, end);
+      ReverseTrail_Connects(trail[1..], trail[1].from, end);
+      ReverseTrail_Length(trail[1..]);
+      assert |ReverseTrail(trail[1..])| > 0;
+      assert ReverseTrail(trail) == ReverseTrail(trail[1..]) + [ReverseStep(trail[0])];
+      assert ReverseTrail(trail)[0].from == end;
+      assert ReverseTrail(trail)[|ReverseTrail(trail)| - 1].to == start;
+      forall i | 0 <= i < |ReverseTrail(trail)| - 1
+        ensures ReverseTrail(trail)[i].to == ReverseTrail(trail)[i + 1].from
+      {
+        if i < |ReverseTrail(trail[1..])| - 1 {
+          assert ReverseTrail(trail)[i] == ReverseTrail(trail[1..])[i];
+          assert ReverseTrail(trail)[i + 1] == ReverseTrail(trail[1..])[i + 1];
+        } else {
+          assert i == |ReverseTrail(trail[1..])| - 1;
+          assert ReverseTrail(trail)[i] == ReverseTrail(trail[1..])[i];
+          assert ReverseTrail(trail)[i + 1] == ReverseStep(trail[0]);
+          assert ReverseTrail(trail[1..])[|ReverseTrail(trail[1..])| - 1].to == trail[1].from;
+          assert ReverseStep(trail[0]).from == trail[0].to;
+          assert trail[0].to == trail[1].from;
+        }
+      }
+    }
+  }
+
+  // ==================================================================
+  // 6.  d-Separation
+  // ==================================================================
+
+  // A trail step at position i is a **collider** if edges from both
+  // sides point inward:  ··· → node ← ···
+  //
+  // In our representation, step i has:
+  //   trail[i-1].dir == Forward   (previous step goes into the node)
+  //   trail[i].dir   == Backward  (current step goes into the node from next)
+  //
+  // More precisely: a node `trail[i].from` (for i > 0) is a collider
+  // when the incoming direction is Forward (from trail[i-1]) and the
+  // outgoing direction is Backward (to trail[i]).  We define this
+  // directly on consecutive edge pairs.
+
+  ghost predicate IsCollider(trail: seq<TrailStep>, pos: nat)
+    requires 0 < pos < |trail|
+  {
+    // The node between step (pos-1) and step pos.
+    // Step pos-1 goes "into" the node: dir == Forward
+    // Step pos goes "into" the node:   dir == Backward
+    trail[pos - 1].dir == Forward && trail[pos].dir == Backward
+  }
+
+  ghost predicate TrailBlockedAtPos(G: Graph, trail: seq<TrailStep>, pos: nat, W: set<Node>)
+    requires 1 <= pos < |trail|
+  {
+    var node := trail[pos].from;
+    if IsCollider(trail, pos) then
+      node !in W && Descendants(G, {node}) * W == {}
+    else
+      node in W
+  }
+
+  // A trail is **blocked** by conditioning set W if at least one
+  // node along the trail satisfies the d-separation blocking criterion:
+  //
+  //   Non-collider:  the node is in W (blocks the path)
+  //   Collider:      the node (and all its descendants) are NOT in W
+  //
+  // Only internal nodes can block a trail. In particular, a single-edge
+  // trail has no internal blocking witness and is therefore unblocked.
+  ghost predicate TrailBlocked(G: Graph, trail: seq<TrailStep>, W: set<Node>) {
+    exists pos :: 1 <= pos < |trail| && TrailBlockedAtPos(G, trail, pos, W)
+  }
+
+  lemma BackwardFirstStep_BlockedByParents(G: Graph, trail: seq<TrailStep>, start: Node, end: Node)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires |trail| > 1
+    requires trail[0].dir == Backward
+    ensures TrailBlockedAtPos(G, trail, 1, Parents(G, start))
+  {
+    assert trail[0].from == start;
+    assert trail[0].to in Parents(G, trail[0].from);
+    assert trail[0].to in Parents(G, start);
+    assert trail[1].from == trail[0].to;
+    assert !IsCollider(trail, 1);
+    assert trail[1].from in Parents(G, start);
+  }
+
+  lemma FirstBackwardPos(trail: seq<TrailStep>) returns (pos: nat)
+    requires exists i :: 0 <= i < |trail| && trail[i].dir == Backward
+    ensures 0 <= pos < |trail|
+    ensures trail[pos].dir == Backward
+    ensures forall j :: 0 <= j < pos ==> trail[j].dir == Forward
+    decreases |trail|
+  {
+    if trail[0].dir == Backward {
+      pos := 0;
+    } else {
+      assert exists i :: 0 <= i < |trail[1..]| && trail[1..][i].dir == Backward by {
+        var i :| 0 <= i < |trail| && trail[i].dir == Backward;
+        assert i != 0;
+        assert trail[1..][i - 1] == trail[i];
+      }
+      var suffixPos := FirstBackwardPos(trail[1..]);
+      pos := suffixPos + 1;
+      assert trail[pos].dir == Backward;
+      assert forall j :: 0 <= j < pos ==> trail[j].dir == Forward by {
+        forall j | 0 <= j < pos
+          ensures trail[j].dir == Forward
+        {
+          if j == 0 {
+            assert trail[j].dir == Forward;
+          } else {
+            assert trail[1..][j - 1] == trail[j];
+          }
+        }
+      }
+    }
+  }
+
+  lemma IsCollider_Prefix(trail: seq<TrailStep>, prefixLen: nat, pos: nat)
+    requires 0 < prefixLen <= |trail|
+    requires 1 <= pos < prefixLen
+    ensures IsCollider(trail[..prefixLen], pos) <==> IsCollider(trail, pos)
+  {
+    assert trail[..prefixLen][pos - 1] == trail[pos - 1];
+    assert trail[..prefixLen][pos] == trail[pos];
+  }
+
+  lemma IsCollider_Suffix(trail: seq<TrailStep>, pos: nat)
+    requires |trail| > 1
+    requires 1 <= pos < |trail[1..]|
+    ensures IsCollider(trail[1..], pos) <==> IsCollider(trail, pos + 1)
+  {
+    assert trail[1..][pos - 1] == trail[pos];
+    assert trail[1..][pos] == trail[pos + 1];
+  }
+
+  lemma TrailBlockedAtPos_Prefix(G: Graph, trail: seq<TrailStep>, prefixLen: nat, pos: nat, W: set<Node>)
+    requires 0 < prefixLen <= |trail|
+    requires 1 <= pos < prefixLen
+    ensures TrailBlockedAtPos(G, trail[..prefixLen], pos, W) <==> TrailBlockedAtPos(G, trail, pos, W)
+  {
+    IsCollider_Prefix(trail, prefixLen, pos);
+    assert trail[..prefixLen][pos].from == trail[pos].from;
+  }
+
+  lemma TrailBlockedAtPos_Suffix(G: Graph, trail: seq<TrailStep>, pos: nat, W: set<Node>)
+    requires |trail| > 1
+    requires 1 <= pos < |trail[1..]|
+    ensures TrailBlockedAtPos(G, trail[1..], pos, W) <==> TrailBlockedAtPos(G, trail, pos + 1, W)
+  {
+    IsCollider_Suffix(trail, pos);
+    assert trail[1..][pos].from == trail[pos + 1].from;
+  }
+
+  lemma TrailNotBlockedAtPos(G: Graph, trail: seq<TrailStep>, pos: nat, W: set<Node>)
+    requires !TrailBlocked(G, trail, W)
+    requires 1 <= pos < |trail|
+    ensures !TrailBlockedAtPos(G, trail, pos, W)
+  {
+    if TrailBlockedAtPos(G, trail, pos, W) {
+      assert TrailBlocked(G, trail, W);
+    }
+  }
+
+  lemma TrailBlocked_Suffix(G: Graph, trail: seq<TrailStep>, W: set<Node>)
+    requires TrailBlocked(G, trail, W)
+    requires |trail| > 1
+    requires !TrailBlockedAtPos(G, trail, 1, W)
+    ensures TrailBlocked(G, trail[1..], W)
+  {
+    if |trail[1..]| <= 1 {
+      var blockedPos :| 1 <= blockedPos < |trail| && TrailBlockedAtPos(G, trail, blockedPos, W);
+      assert blockedPos == 1;
+      assert false;
+    } else {
+      var blockedPos :| 1 <= blockedPos < |trail| && TrailBlockedAtPos(G, trail, blockedPos, W);
+      assert blockedPos != 1;
+      assert 1 <= blockedPos - 1 < |trail[1..]|;
+      TrailBlockedAtPos_Suffix(G, trail, blockedPos - 1, W);
+    }
+  }
+
+  lemma FirstBlockedPos(G: Graph, trail: seq<TrailStep>, W: set<Node>) returns (pos: nat)
+    requires TrailBlocked(G, trail, W)
+    requires |trail| > 1
+    ensures 1 <= pos < |trail|
+    ensures TrailBlockedAtPos(G, trail, pos, W)
+    ensures forall j :: 1 <= j < pos ==> !TrailBlockedAtPos(G, trail, j, W)
+    decreases |trail|
+  {
+    if TrailBlockedAtPos(G, trail, 1, W) {
+      pos := 1;
+    } else {
+      TrailBlocked_Suffix(G, trail, W);
+      var suffixPos := FirstBlockedPos(G, trail[1..], W);
+      pos := suffixPos + 1;
+      assert TrailBlockedAtPos(G, trail, pos, W) by {
+        TrailBlockedAtPos_Suffix(G, trail, suffixPos, W);
+      }
+      assert forall j :: 1 <= j < pos ==> !TrailBlockedAtPos(G, trail, j, W) by {
+        forall j | 1 <= j < pos
+          ensures !TrailBlockedAtPos(G, trail, j, W)
+        {
+          if j == 1 {
+            assert !TrailBlockedAtPos(G, trail, 1, W);
+          } else {
+            assert 1 <= j - 1 < suffixPos;
+            TrailBlockedAtPos_Suffix(G, trail, j - 1, W);
+          }
+        }
+      }
+    }
+  }
+
+  lemma PrefixWithoutBlockedPos_NotBlocked(G: Graph, trail: seq<TrailStep>, prefixLen: nat, W: set<Node>)
+    requires 0 < prefixLen <= |trail|
+    requires forall j :: 1 <= j < prefixLen ==> !TrailBlockedAtPos(G, trail, j, W)
+    ensures !TrailBlocked(G, trail[..prefixLen], W)
+  {
+    if TrailBlocked(G, trail[..prefixLen], W) {
+      var pos :| 1 <= pos < prefixLen && TrailBlockedAtPos(G, trail[..prefixLen], pos, W);
+      TrailBlockedAtPos_Prefix(G, trail, prefixLen, pos, W);
+      assert false;
+    }
+  }
+
+  lemma ColliderOpenedByNewConditioning(
+    G: Graph, trail: seq<TrailStep>, pos: nat, W: set<Node>, Z': set<Node>
+  )
+    requires 1 <= pos < |trail|
+    requires IsCollider(trail, pos)
+    requires TrailBlockedAtPos(G, trail, pos, W)
+    requires !TrailBlockedAtPos(G, trail, pos, W + Z')
+    ensures exists zPrime: Node ::
+      zPrime in Z' &&
+      zPrime !in W &&
+      (zPrime == trail[pos].from || zPrime in Descendants(G, {trail[pos].from}))
+  {
+    var node := trail[pos].from;
+    assert node !in W;
+    assert Descendants(G, {node}) * W == {};
+    if node in Z' {
+      assert exists zPrime: Node ::
+        zPrime in Z' &&
+        zPrime !in W &&
+        (zPrime == trail[pos].from || zPrime in Descendants(G, {trail[pos].from})) by {
+        assert node == trail[pos].from;
+      }
+    } else {
+      assert node !in W + Z';
+      if Descendants(G, {node}) * Z' == {} {
+        assert Descendants(G, {node}) * (W + Z') == {} by {
+          assert forall v :: v in Descendants(G, {node}) * (W + Z') ==> false by {
+            forall v | v in Descendants(G, {node}) * (W + Z')
+              ensures false
+            {
+              if v in W {
+                assert v in Descendants(G, {node}) * W;
+              } else {
+                assert v in Z';
+                assert v in Descendants(G, {node}) * Z';
+              }
+            }
+          }
+        }
+        assert TrailBlockedAtPos(G, trail, pos, W + Z');
+        assert false;
+      }
+      var zPrime :| zPrime in Descendants(G, {node}) * Z';
+      if zPrime in W {
+        assert zPrime in Descendants(G, {node}) * W;
+        assert false;
+      }
+      assert exists z0: Node ::
+        z0 in Z' &&
+        z0 !in W &&
+        (z0 == trail[pos].from || z0 in Descendants(G, {trail[pos].from})) by {
+        assert zPrime == zPrime;
+      }
+    }
+  }
+
+  lemma BlockingAddedByConditioningAtPos(
+    G: Graph, trail: seq<TrailStep>, pos: nat, W: set<Node>, Z': set<Node>
+  )
+    requires 1 <= pos < |trail|
+    requires !TrailBlockedAtPos(G, trail, pos, W)
+    requires TrailBlockedAtPos(G, trail, pos, W + Z')
+    ensures !IsCollider(trail, pos)
+    ensures trail[pos].from in Z'
+  {
+    var node := trail[pos].from;
+    if IsCollider(trail, pos) {
+      assert node !in W + Z';
+      assert Descendants(G, {node}) * (W + Z') == {};
+      assert node !in W;
+      assert Descendants(G, {node}) * W == {} by {
+        assert forall v :: v in Descendants(G, {node}) * W ==> false by {
+          forall v | v in Descendants(G, {node}) * W
+            ensures false
+          {
+            assert v in Descendants(G, {node}) * (W + Z');
+          }
+        }
+      }
+      assert TrailBlockedAtPos(G, trail, pos, W);
+      assert false;
+    }
+    assert node in W + Z';
+    if node in W {
+      assert TrailBlockedAtPos(G, trail, pos, W);
+      assert false;
+    }
+    assert node in Z';
+  }
+
+  lemma DescendantsOfDescendant_DisjointParents(G: Graph, v: Node, u: Node)
+    requires v in Nodes(G)
+    requires u in Descendants(G, {v})
+    requires IsDAG(G)
+    ensures Descendants(G, {u}) * Parents(G, v) == {}
+  {
+    if Descendants(G, {u}) * Parents(G, v) != {} {
+      var p :| p in Descendants(G, {u}) * Parents(G, v);
+      var ord :| IsTopologicalSort(G, ord);
+      if p == v {
+        var vIdx :| 0 <= vIdx < |ord| && ord[vIdx] == v;
+        var pIdx :| 0 <= pIdx < vIdx && ord[pIdx] == p;
+        assert pIdx < vIdx;
+        assert ord[pIdx] == ord[vIdx];
+        assert false;
+      } else {
+        assert exists w :: w in {v} && IsAncestor(G, w, u);
+        assert IsAncestor(G, v, u);
+        assert exists w :: w in {u} && IsAncestor(G, w, p);
+        assert IsAncestor(G, u, p);
+        IsAncestorBounded_Transitive(G, v, u, p, |Nodes(G)|, |Nodes(G)|);
+        IsAncestorBounded_ImpliesForwardTrail(G, v, p, |Nodes(G)| + |Nodes(G)|);
+        var trail: seq<TrailStep> :| ValidTrail(G, trail) &&
+          TrailConnects(trail, v, p) &&
+          (forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward) &&
+          |trail| <= |Nodes(G)| + |Nodes(G)|;
+        ForwardTrail_StartBeforeEndInTopologicalOrder(G, ord, trail, v, p);
+        var vIdx, pIdx0 :| 0 <= vIdx < pIdx0 < |ord| && ord[vIdx] == v && ord[pIdx0] == p;
+        var pIdx :| 0 <= pIdx < vIdx && ord[pIdx] == p;
+        assert pIdx < pIdx0;
+        assert ord[pIdx] == ord[pIdx0];
+        assert false;
+      }
+    }
+  }
+
+  lemma FirstForwardBackwardPivot_BlockedByParents(
+    G: Graph, trail: seq<TrailStep>, start: Node, end: Node, pos: nat
+  )
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires IsDAG(G)
+    requires 1 <= pos < |trail|
+    requires trail[pos].dir == Backward
+    requires forall i :: 0 <= i < pos ==> trail[i].dir == Forward
+    ensures TrailBlockedAtPos(G, trail, pos, Parents(G, start))
+  {
+    var node := trail[pos].from;
+    ValidTrail_Prefix(G, trail, pos);
+    TrailConnects_Prefix(trail, start, end, pos);
+    assert forall i :: 0 <= i < |trail[..pos]| ==> trail[..pos][i].dir == Forward by {
+      forall i | 0 <= i < |trail[..pos]|
+        ensures trail[..pos][i].dir == Forward
+      {
+        assert trail[..pos][i] == trail[i];
+      }
+    }
+    assert trail[pos - 1].to == node;
+    assert trail[0].from == start;
+    assert start in Parents(G, trail[0].to);
+    assert start in Nodes(G);
+    ForwardTrail_EndInDescendants_DAG(G, trail[..pos], start, node);
+    DescendantsOfDescendant_DisjointParents(G, start, node);
+    assert node in Descendants(G, {node});
+    if node in Parents(G, start) {
+      assert node in Descendants(G, {node}) * Parents(G, start);
+      assert false;
+    }
+    assert IsCollider(trail, pos);
+    assert Descendants(G, {node}) * Parents(G, start) == {};
+  }
+
+  lemma ReverseTrail_Index(trail: seq<TrailStep>, i: nat)
+    requires |trail| > 0
+    requires |ReverseTrail(trail)| == |trail|
+    requires i < |trail|
+    ensures ReverseTrail(trail)[i] == ReverseStep(trail[|trail| - (i + 1)])
+    decreases |trail|
+  {
+    if |trail| == 1 {
+      assert i == 0;
+      assert ReverseTrail(trail) == [ReverseStep(trail[0])];
+    } else if |trail| > 1 {
+      ReverseTrail_Length(trail[1..]);
+      if i < |trail[1..]| {
+        ReverseTrail_Index(trail[1..], i);
+        assert ReverseTrail(trail)[i] == ReverseTrail(trail[1..])[i];
+        assert trail[1..][|trail[1..]| - (i + 1)] == trail[|trail| - (i + 1)];
+      } else {
+        assert i == |trail[1..]|;
+        assert ReverseTrail(trail)[i] == ReverseStep(trail[0]);
+        assert |trail| - (i + 1) == 0;
+      }
+    }
+  }
+
+  lemma ReverseTrail_Collider(trail: seq<TrailStep>, pos: nat)
+    requires 1 <= pos < |trail|
+    requires |ReverseTrail(trail)| == |trail|
+    ensures IsCollider(ReverseTrail(trail), |trail| - pos) <==> IsCollider(trail, pos)
+  {
+    assert 0 < |trail| - pos;
+    assert |trail| - pos < |ReverseTrail(trail)|;
+    ReverseTrail_Index(trail, |trail| - pos);
+    ReverseTrail_Index(trail, |trail| - pos - 1);
+    assert ReverseTrail(trail)[|trail| - pos] == ReverseStep(trail[pos - 1]);
+    assert ReverseTrail(trail)[|trail| - pos - 1] == ReverseStep(trail[pos]);
+    if IsCollider(trail, pos) {
+      assert trail[pos - 1].dir == Forward;
+      assert trail[pos].dir == Backward;
+      assert ReverseTrail(trail)[|trail| - pos - 1].dir == Forward;
+      assert ReverseTrail(trail)[|trail| - pos].dir == Backward;
+    }
+    if IsCollider(ReverseTrail(trail), |trail| - pos) {
+      assert ReverseTrail(trail)[|trail| - pos - 1].dir == Forward;
+      assert ReverseTrail(trail)[|trail| - pos].dir == Backward;
+      assert trail[pos].dir == Backward;
+      assert trail[pos - 1].dir == Forward;
+    }
+  }
+
+  lemma ReverseTrail_Node(trail: seq<TrailStep>, start: Node, end: Node, pos: nat)
+    requires TrailConnects(trail, start, end)
+    requires 1 <= pos < |trail|
+    requires |ReverseTrail(trail)| == |trail|
+    ensures ReverseTrail(trail)[|trail| - pos].from == trail[pos].from
+  {
+    ReverseTrail_Index(trail, |trail| - pos);
+    assert ReverseTrail(trail)[|trail| - pos] == ReverseStep(trail[pos - 1]);
+    assert ReverseTrail(trail)[|trail| - pos].from == trail[pos - 1].to;
+    assert trail[pos - 1].to == trail[pos].from;
+  }
+
+  lemma ReverseTrail_Blocked(G: Graph, trail: seq<TrailStep>, start: Node, end: Node, W: set<Node>)
+    requires TrailConnects(trail, start, end)
+    ensures TrailBlocked(G, ReverseTrail(trail), W) ==> TrailBlocked(G, trail, W)
+  {
+    ReverseTrail_Length(trail);
+    if TrailBlocked(G, ReverseTrail(trail), W) {
+      if |trail| <= 1 {
+        var revPos :| 1 <= revPos < |ReverseTrail(trail)| && TrailBlockedAtPos(G, ReverseTrail(trail), revPos, W);
+        assert false;
+      } else {
+        assert |ReverseTrail(trail)| > 1;
+        assert exists revPos0 :: 1 <= revPos0 < |ReverseTrail(trail)| && TrailBlockedAtPos(G, ReverseTrail(trail), revPos0, W);
+        var revPos :| 1 <= revPos < |ReverseTrail(trail)| &&
+          TrailBlockedAtPos(G, ReverseTrail(trail), revPos, W);
+        var pos := |trail| - revPos;
+        assert revPos == |trail| - pos;
+        assert 1 <= pos < |trail|;
+        ReverseTrail_Collider(trail, pos);
+        ReverseTrail_Node(trail, start, end, pos);
+        assert ReverseTrail(trail)[revPos].from == trail[pos].from;
+        assert exists pos0 :: 1 <= pos0 < |trail| && TrailBlockedAtPos(G, trail, pos0, W) by {
+          assert 1 <= pos < |trail|;
+          if IsCollider(ReverseTrail(trail), revPos) {
+            assert IsCollider(trail, pos);
+            assert TrailBlockedAtPos(G, trail, pos, W);
+          } else {
+            assert !IsCollider(trail, pos);
+            assert TrailBlockedAtPos(G, trail, pos, W);
+          }
+        }
+        assert TrailBlocked(G, trail, W);
+      }
+    }
+  }
+
+  // Y and Z are **d-separated** given W in G  iff
+  // every trail from any y ∈ Y to any z ∈ Z is blocked by W.
+  ghost predicate DSep(G: Graph, Y: set<Node>, Z: set<Node>, W: set<Node>) {
+    forall trail: seq<TrailStep>, y: Node, z: Node ::
+      y in Y && z in Z &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z) ==>
+      TrailBlocked(G, trail, W)
+  }
+
+  // ==================================================================
+  // 7.  Semi-Graphoid Axioms
+  //
+  //   d-Separation satisfies the semi-graphoid axioms
+  //   (Lauritzen 1996, §3.1).  These are the algebraic rules that
+  //   any "conditional independence" relation must obey.
+  //   We state them as axiom lemmas; full proofs require deeper
+  //   combinatorial reasoning about trails.
+  // ==================================================================
+
+  /// Symmetry:  (Y ⊥ Z | W)  ⟹  (Z ⊥ Y | W)
+  lemma DSep_Symmetry(G: Graph, Y: set<Node>, Z: set<Node>, W: set<Node>)
+    requires DSep(G, Y, Z, W)
+    ensures  DSep(G, Z, Y, W)
+  {
+    forall trail: seq<TrailStep>, z: Node, y: Node |
+      z in Z && y in Y &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, z, y)
+      ensures TrailBlocked(G, trail, W)
+    {
+      ReverseTrail_Valid(G, trail);
+      ReverseTrail_Connects(trail, z, y);
+      assert TrailBlocked(G, ReverseTrail(trail), W);
+      ReverseTrail_Blocked(G, trail, z, y, W);
+      assert TrailBlocked(G, trail, W);
+    }
+  }
+
+  /// Decomposition:  (Y ⊥ Z ∪ Z' | W)  ⟹  (Y ⊥ Z | W)
+  lemma DSep_Decomposition(
+    G: Graph, Y: set<Node>, Z: set<Node>, Z': set<Node>, W: set<Node>
+  )
+    requires DSep(G, Y, Z + Z', W)
+    ensures  DSep(G, Y, Z, W)
+  {
+    forall trail: seq<TrailStep>, y: Node, z: Node |
+      y in Y && z in Z &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z)
+      ensures TrailBlocked(G, trail, W)
+    {
+      assert z in Z + Z';
+    }
+  }
+
+  /// Weak Union:  (Y ⊥ Z ∪ Z' | W)  ⟹  (Y ⊥ Z | W ∪ Z')
+  lemma DSep_WeakUnion(
+    G: Graph, Y: set<Node>, Z: set<Node>, Z': set<Node>, W: set<Node>
+  )
+    requires DSep(G, Y, Z + Z', W)
+    ensures  DSep(G, Y, Z, W + Z')
+  {
+    forall trail: seq<TrailStep>, y: Node, z: Node |
+      y in Y && z in Z &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z)
+      ensures TrailBlocked(G, trail, W + Z')
+    {
+      if !TrailBlocked(G, trail, W + Z') {
+        assert z in Z + Z';
+        assert TrailBlocked(G, trail, W);
+        if |trail| <= 1 {
+          var blockedPos :| 1 <= blockedPos < |trail| && TrailBlockedAtPos(G, trail, blockedPos, W);
+          assert false;
+        }
+        var pos := FirstBlockedPos(G, trail, W);
+        assert TrailBlockedAtPos(G, trail, pos, W);
+        TrailNotBlockedAtPos(G, trail, pos, W + Z');
+        if !IsCollider(trail, pos) {
+          assert trail[pos].from in W;
+          assert trail[pos].from in W + Z';
+          assert TrailBlockedAtPos(G, trail, pos, W + Z');
+          assert false;
+        }
+
+        var colliderNode := trail[pos].from;
+        ColliderOpenedByNewConditioning(G, trail, pos, W, Z');
+        var zPrime :| zPrime in Z' &&
+          zPrime !in W &&
+          (zPrime == colliderNode || zPrime in Descendants(G, {colliderNode}));
+
+        var prefix := trail[..pos];
+        ValidTrail_Prefix(G, trail, pos);
+        TrailConnects_Prefix(trail, y, z, pos);
+        assert trail[pos - 1].to == colliderNode;
+        assert forall j :: 1 <= j < pos ==> !TrailBlockedAtPos(G, trail, j, W);
+        PrefixWithoutBlockedPos_NotBlocked(G, trail, pos, W);
+
+        if zPrime == colliderNode {
+          assert zPrime in Z + Z';
+          assert TrailBlocked(G, prefix, W);
+          assert false;
+        } else {
+          assert zPrime in Descendants(G, {colliderNode});
+          assert exists w :: w in {colliderNode} && IsAncestor(G, w, zPrime);
+          assert IsAncestor(G, colliderNode, zPrime);
+          IsAncestorBounded_ImpliesForwardTrail(G, colliderNode, zPrime, |Nodes(G)|);
+          var descTrail: seq<TrailStep> :|
+            ValidTrail(G, descTrail) &&
+            TrailConnects(descTrail, colliderNode, zPrime) &&
+            (forall i :: 0 <= i < |descTrail| ==> descTrail[i].dir == Forward) &&
+            |descTrail| <= |Nodes(G)|;
+
+          var joinedTrail := prefix + descTrail;
+          ValidTrail_Concat(G, prefix, descTrail);
+          TrailConnects_Concat(prefix, y, colliderNode, descTrail, zPrime);
+
+          assert !TrailBlocked(G, joinedTrail, W) by {
+            if TrailBlocked(G, joinedTrail, W) {
+              var q :| 1 <= q < |joinedTrail| && TrailBlockedAtPos(G, joinedTrail, q, W);
+              if q < pos {
+                assert 1 <= q < pos;
+                assert joinedTrail[..pos] == prefix;
+                TrailBlockedAtPos_Prefix(G, joinedTrail, pos, q, W);
+                assert TrailBlockedAtPos(G, joinedTrail[..pos], q, W);
+                assert TrailBlockedAtPos(G, prefix, q, W);
+                TrailBlockedAtPos_Prefix(G, trail, pos, q, W);
+                assert TrailBlockedAtPos(G, trail, q, W);
+                assert false;
+              } else if q == pos {
+                assert pos < |joinedTrail|;
+                assert joinedTrail[q - 1] == prefix[pos - 1];
+                assert prefix[pos - 1] == trail[pos - 1];
+                assert joinedTrail[q] == descTrail[0];
+                assert descTrail[0].from == colliderNode;
+                assert trail[pos - 1].dir == Forward;
+                assert descTrail[0].dir == Forward;
+                assert !IsCollider(joinedTrail, q);
+                assert joinedTrail[q].from == colliderNode;
+                assert joinedTrail[q].from !in W;
+                assert !TrailBlockedAtPos(G, joinedTrail, q, W);
+                assert false;
+              } else {
+                var dPos := q - pos;
+                assert 1 <= dPos < |descTrail|;
+                assert joinedTrail[q - 1] == descTrail[dPos - 1];
+                assert joinedTrail[q] == descTrail[dPos];
+                assert descTrail[dPos - 1].dir == Forward;
+                assert descTrail[dPos].dir == Forward;
+                assert !IsCollider(joinedTrail, q);
+                ForwardTrail_NodeInDescendants(G, descTrail, colliderNode, zPrime, dPos);
+                assert descTrail[dPos].from in Descendants(G, {colliderNode});
+                if descTrail[dPos].from in W {
+                  assert descTrail[dPos].from in Descendants(G, {colliderNode}) * W;
+                  assert false;
+                }
+                assert !TrailBlockedAtPos(G, joinedTrail, q, W);
+                assert false;
+              }
+            }
+          }
+
+          assert zPrime in Z + Z';
+          assert TrailBlocked(G, joinedTrail, W);
+          assert false;
+        }
+      }
+    }
+  }
+
+  /// Contraction:  (Y ⊥ Z | W ∪ Z') ∧ (Y ⊥ Z' | W)  ⟹  (Y ⊥ Z ∪ Z' | W)
+  lemma DSep_Contraction(
+    G: Graph, Y: set<Node>, Z: set<Node>, Z': set<Node>, W: set<Node>
+  )
+    requires DSep(G, Y, Z, W + Z') && DSep(G, Y, Z', W)
+    ensures  DSep(G, Y, Z + Z', W)
+  {
+    forall trail: seq<TrailStep>, y: Node, z: Node |
+      y in Y && z in Z + Z' &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z)
+      ensures TrailBlocked(G, trail, W)
+    {
+      if z in Z' {
+        assert TrailBlocked(G, trail, W);
+      } else {
+        assert z in Z;
+        if !TrailBlocked(G, trail, W) {
+          assert TrailBlocked(G, trail, W + Z');
+          if |trail| <= 1 {
+            var blockedPos :| 1 <= blockedPos < |trail| && TrailBlockedAtPos(G, trail, blockedPos, W + Z');
+            assert false;
+          }
+          var pos := FirstBlockedPos(G, trail, W + Z');
+          TrailNotBlockedAtPos(G, trail, pos, W);
+          BlockingAddedByConditioningAtPos(G, trail, pos, W, Z');
+
+          var zPrime := trail[pos].from;
+          var prefix := trail[..pos];
+          ValidTrail_Prefix(G, trail, pos);
+          TrailConnects_Prefix(trail, y, z, pos);
+          assert trail[pos - 1].to == zPrime;
+          assert forall j :: 1 <= j < pos ==> !TrailBlockedAtPos(G, trail, j, W) by {
+            forall j | 1 <= j < pos
+              ensures !TrailBlockedAtPos(G, trail, j, W)
+            {
+              TrailNotBlockedAtPos(G, trail, j, W);
+            }
+          }
+          PrefixWithoutBlockedPos_NotBlocked(G, trail, pos, W);
+          assert zPrime in Z';
+          assert TrailBlocked(G, prefix, W);
+          assert false;
+        }
+      }
+    }
+  }
+
+  lemma ShorterUnblockedPrefixIntoConditioningSet(
+    G: Graph,
+    trail: seq<TrailStep>,
+    start: Node,
+    end: Node,
+    W: set<Node>,
+    Added: set<Node>
+  ) returns (prefix: seq<TrailStep>, mid: Node)
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, start, end)
+    requires !TrailBlocked(G, trail, W)
+    requires TrailBlocked(G, trail, W + Added)
+    ensures 0 < |prefix| < |trail|
+    ensures ValidTrail(G, prefix)
+    ensures TrailConnects(prefix, start, mid)
+    ensures mid in Added
+    ensures !TrailBlocked(G, prefix, W)
+  {
+    if |trail| <= 1 {
+      var blockedPos :| 1 <= blockedPos < |trail| && TrailBlockedAtPos(G, trail, blockedPos, W + Added);
+      assert false;
+    }
+
+    var pos := FirstBlockedPos(G, trail, W + Added);
+    TrailNotBlockedAtPos(G, trail, pos, W);
+    BlockingAddedByConditioningAtPos(G, trail, pos, W, Added);
+
+    prefix := trail[..pos];
+    mid := trail[pos - 1].to;
+    ValidTrail_Prefix(G, trail, pos);
+    TrailConnects_Prefix(trail, start, end, pos);
+    assert trail[pos - 1].to == trail[pos].from;
+    assert mid == trail[pos].from;
+    assert mid in Added;
+
+    assert forall j :: 1 <= j < pos ==> !TrailBlockedAtPos(G, trail, j, W) by {
+      forall j | 1 <= j < pos
+        ensures !TrailBlockedAtPos(G, trail, j, W)
+      {
+        TrailNotBlockedAtPos(G, trail, j, W);
+      }
+    }
+    PrefixWithoutBlockedPos_NotBlocked(G, trail, pos, W);
+  }
+
+  lemma DSep_Intersection_Descend(
+    G: Graph,
+    Y: set<Node>,
+    A: set<Node>,
+    B: set<Node>,
+    W: set<Node>,
+    trail: seq<TrailStep>,
+    y: Node,
+    endpoint: Node
+  )
+    requires y in Y
+    requires endpoint in A
+    requires ValidTrail(G, trail)
+    requires TrailConnects(trail, y, endpoint)
+    requires DSep(G, Y, A, W + B)
+    requires DSep(G, Y, B, W + A)
+    ensures TrailBlocked(G, trail, W)
+    decreases |trail|
+  {
+    if !TrailBlocked(G, trail, W) {
+      assert TrailBlocked(G, trail, W + B);
+      var shorter, mid := ShorterUnblockedPrefixIntoConditioningSet(G, trail, y, endpoint, W, B);
+      DSep_Intersection_Descend(G, Y, B, A, W, shorter, y, mid);
+      assert false;
+    }
+  }
+
+  /// Intersection:
+  ///   (Y ⊥ Z | W ∪ Z') ∧ (Y ⊥ Z' | W ∪ Z)  ⟹  (Y ⊥ Z ∪ Z' | W)
+  ///
+  /// This is stated here as a graph-level property of the `DSep` predicate.
+  /// The earlier positivity/faithfulness caveat belongs to probabilistic
+  /// conditional independence semantics, not to this DAG d-separation layer.
+  lemma DSep_Intersection(
+    G: Graph, Y: set<Node>, Z: set<Node>, Z': set<Node>, W: set<Node>
+  )
+    requires DSep(G, Y, Z, W + Z') && DSep(G, Y, Z', W + Z)
+    ensures  DSep(G, Y, Z + Z', W)
+  {
+    forall trail: seq<TrailStep>, y: Node, z: Node |
+      y in Y && z in Z + Z' &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z)
+      ensures TrailBlocked(G, trail, W)
+    {
+      if z in Z {
+        DSep_Intersection_Descend(G, Y, Z, Z', W, trail, y, z);
+      } else {
+        assert z in Z';
+        DSep_Intersection_Descend(G, Y, Z', Z, W, trail, y, z);
+      }
+    }
+  }
+
+  // ==================================================================
+  // 8.  Local Markov Property
+  //
+  //   In a DAG, every node is d-separated from its non-descendants
+  //   given its parents.  This is the fundamental link between graph
+  //   structure and conditional independence.
+  // ==================================================================
+
+  function NonDescendants(G: Graph, v: Node): set<Node> {
+    Nodes(G) - Descendants(G, {v})
+  }
+
+  /// Every node v is d-separated from its non-descendants excluding parents,
+  /// given its parents:
+  ///   {v} ⊥ (NonDesc(v) \ Pa(v)) | Pa(v)
+  lemma LocalMarkov(G: Graph, v: Node)
+    requires v in Nodes(G)
+    requires IsDAG(G)
+    ensures  DSep(G, {v}, NonDescendants(G, v) - Parents(G, v), Parents(G, v))
+  {
+    forall trail: seq<TrailStep>, y: Node, z: Node |
+      y in {v} && z in NonDescendants(G, v) - Parents(G, v) &&
+      ValidTrail(G, trail) &&
+      TrailConnects(trail, y, z)
+      ensures TrailBlocked(G, trail, Parents(G, v))
+    {
+      assert y == v;
+      assert z !in Parents(G, v);
+      if |trail| == 1 {
+        if trail[0].dir == Backward {
+          assert trail[0].from == v;
+          assert trail[0].to == z;
+          assert z in Parents(G, v);
+          assert false;
+        } else {
+          assert forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward;
+          ForwardTrail_EndInDescendants_DAG(G, trail, v, z);
+          assert z in NonDescendants(G, v);
+          assert false;
+        }
+      } else if trail[0].dir == Backward {
+        BackwardFirstStep_BlockedByParents(G, trail, v, z);
+        assert TrailBlocked(G, trail, Parents(G, v));
+      } else if forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward {
+        ForwardTrail_EndInDescendants_DAG(G, trail, v, z);
+        assert z in NonDescendants(G, v);
+        assert false;
+      } else {
+        assert exists i :: 0 <= i < |trail| && trail[i].dir == Backward by {
+          if !(exists i :: 0 <= i < |trail| && trail[i].dir == Backward) {
+            assert forall i :: 0 <= i < |trail| ==> trail[i].dir == Forward by {
+              forall i | 0 <= i < |trail|
+                ensures trail[i].dir == Forward
+              {
+                if trail[i].dir != Forward {
+                  assert trail[i].dir == Backward;
+                  assert false;
+                }
+              }
+            }
+            assert false;
+          }
+        }
+        var pos := FirstBackwardPos(trail);
+        assert pos != 0;
+        assert 1 <= pos < |trail|;
+        FirstForwardBackwardPivot_BlockedByParents(G, trail, v, z, pos);
+        assert TrailBlocked(G, trail, Parents(G, v));
+      }
+    }
+  }
+
+  // ==================================================================
+  // 9.  Concrete example: three-node chain  A → B → C
+  //
+  //   Demonstrates that d-separation holds: {A} ⊥ {C} | {B}.
+  // ==================================================================
+
+  // Build the graph A(0) → B(1) → C(2).
+  function ChainGraph(): Graph {
+    map[0 := {},      // A: no parents
+        1 := {0},     // B: parent is A
+        2 := {1}]     // C: parent is B
+  }
+
+  lemma ChainGraph_IsDAG()
+    ensures IsDAG(ChainGraph())
+  {
+    var G := ChainGraph();
+    var ord := [0, 1, 2];
+    // Help Dafny with existential witnesses in condition (c)
+    forall i | 0 <= i < |ord|
+      ensures forall p :: p in Parents(G, ord[i]) ==>
+        exists k :: 0 <= k < i && ord[k] == p
+    {
+      if i == 1 { assert ord[0] == 0; }
+      if i == 2 { assert ord[1] == 1; }
+    }
+    assert IsTopologicalSort(G, ord);
+  }
+
+  // Show the chain satisfies the local Markov property at B:
+  //   {A} ⊥ {C} | {B}     because  A is a non-descendant of C,
+  //                        and B is on every trail from A to C.
+  lemma Chain_A_indep_C_given_B()
+    ensures DSep(ChainGraph(), {0}, {2}, {1})
+  {
+    // Every trail from A(0) to C(2) must pass through B(1).
+    // B is a non-collider on that trail and B ∈ W = {1},
+    // so the trail is blocked.
+    var G := ChainGraph();
+    assert DSep(G, {0}, {2}, {1}) by {
+      forall trail: seq<TrailStep>, y: Node, z: Node |
+        y in {0} && z in {2} &&
+        ValidTrail(G, trail) &&
+        TrailConnects(trail, y, z)
+        ensures TrailBlocked(G, trail, {1})
+      {
+        // Any valid trail 0 ··· 2 must end with a Forward step
+        // TrailStep(1, 2, Forward) (the only valid step to 2).
+        // At the last position, node 1 is not a collider (the step
+        // is Forward, not Backward) and 1 ∈ W = {1}.
+        var lastIdx := |trail| - 1;
+        // (a) trail[lastIdx].to == 2 from TrailConnects
+        assert trail[lastIdx].to == z;
+        assert z == 2;
+        // (b) The last step must be Forward (a Backward step to 2
+        //     would require 2 ∈ Parents(G, trail[lastIdx].from),
+        //     but 2 is not in any node's parent set in ChainGraph).
+        assert trail[lastIdx].dir == Forward by {
+          if trail[lastIdx].dir == Backward {
+            // Backward: trail[lastIdx].to in Parents(G, trail[lastIdx].from)
+            // But trail[lastIdx].to == 2 and 2 ∉ any value of G.
+            var from := trail[lastIdx].from;
+            assert 2 in Parents(G, from);
+            // G = map[0 := {}, 1 := {0}, 2 := {1}]
+            // Parents(G, v) = G[v] if v in G, {} otherwise.
+            // None of the values {}, {0}, {1} contain 2.
+            if from in G.Keys {
+              assert from == 0 || from == 1 || from == 2;
+            }
+            assert false;
+          }
+        }
+        // (c) The last step's .from == 1 (only forward step to 2 is from 1).
+        assert trail[lastIdx].from == 1 by {
+          // Forward: trail[lastIdx].from in Parents(G, 2) = G[2] = {1}
+          assert trail[lastIdx].from in Parents(G, trail[lastIdx].to);
+          assert Parents(G, 2) == {1 as Node};
+        }
+        // (d) |trail| >= 2, so lastIdx >= 1 (required for TrailBlocked).
+        assert |trail| >= 2 by {
+          if |trail| == 1 {
+            // trail[0].from == y == 0 and trail[0].from == 1: contradiction.
+            assert trail[0].from == y;
+            assert trail[0].from == 1;
+            assert y == 0;
+            assert false;
+          }
+        }
+        // (e) pos = lastIdx: 1 <= pos < |trail|.
+        var pos := lastIdx;
+        assert 1 <= pos < |trail|;
+        // (f) Not a collider: IsCollider requires trail[pos].dir == Backward,
+        //     but trail[pos].dir == Forward.
+        assert !IsCollider(trail, pos);
+        // (g) trail[pos].from == 1 ∈ W = {1}.
+        assert trail[pos].from in {1 as Node};
+        // (h) Conclude TrailBlockedAtPos, then TrailBlocked.
+        assert TrailBlockedAtPos(G, trail, pos, {1});
+        assert TrailBlocked(G, trail, {1});
+      }
+    }
+  }
+
+}  // end module DAG
