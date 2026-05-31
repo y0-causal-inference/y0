@@ -253,7 +253,17 @@ module Interventional {
   {
   }
 
-  // ------------------------------------------------------------------
+  // Helper: explicit membership test for MatchingSubmap.
+  lemma MatchingSubmap_Contains(
+    q: AssignmentPMF, S: set<Node>, ref: Assignment, a: Assignment
+  )
+    requires a in q.Keys
+    requires forall v :: v in S ==> v in a.Keys && v in ref.Keys && a[v] == ref[v]
+    ensures a in MatchingSubmap(q, S, ref).Keys
+  {
+  }
+
+
   //  L2: MatchingSubmap composition identity.
   //
   //  Filtering on S then on T (independently, both against the same
@@ -1429,6 +1439,257 @@ module Interventional {
   }
 
   // ==================================================================
+  // DA-M1-G0-5 Helpers: Fiber-partition infrastructure for
+  //   PMFToAssignmentPMF_MarginalCoherence.
+  //
+  //   Math sketch:
+  //     MarginalMass(q, S, partial)
+  //       = Σ_{a ∈ MatchingSubmap(q,S,partial)} q[a]          (definition)
+  //       = Σ_{a ∈ sub} AssignmentProb(p, G, a)               (MassCoherence)
+  //       = Σ_{a ∈ sub} ProbEvent(p, AssignmentEvent(p,G,a))  (definition)
+  //       = ProbEvent(p, ⋃_{a ∈ sub} AssignmentEvent(p,G,a))  (H9: fibers disjoint)
+  //       = ProbEvent(p, AssignmentEvent(p,G,partial))         (E_sub = event + 0-mass rem.)
+  //       = AssignmentProb(p, G, partial)                      (definition)
+  // ==================================================================
+
+  // H1: Keys of MatchingSubmap(PMFToAssignmentPMF(G,p), ...) are full assignments.
+  lemma MatchingSubmap_KeysAreFull(G: Graph, p: Prob.PMF, S: set<Node>, ref: Assignment)
+    requires Prob.IsDistribution(p)
+    requires ref.Keys <= Nodes(G)
+    ensures forall a :: a in MatchingSubmap(PMFToAssignmentPMF(G, p), S, ref).Keys
+              ==> a.Keys == Nodes(G)
+  {
+    var q := PMFToAssignmentPMF(G, p);
+    MatchingSubmap_IsSubmap(q, S, ref);
+    assert IsAssignmentDistribution(G, q);
+    assert WellFormedAssignmentPMF(G, q);
+  }
+
+  // H2: Distinct full assignments are conflicting.
+  lemma FullAssignments_Distinct_Conflicting(G: Graph, a: Assignment, b: Assignment)
+    requires a.Keys == Nodes(G)
+    requires b.Keys == Nodes(G)
+    requires a != b
+    ensures ConflictingAssignments(a, b)
+  {
+    if forall v :: v in a.Keys ==> a[v] == b[v] {
+      assert a == b;
+      assert false;
+    }
+    var v :| v in a.Keys && a[v] != b[v];
+    assert v in a.Keys * b.Keys && a[v] != b[v];
+  }
+
+  // H3: Distinct full assignments have disjoint outcome events.
+  lemma FullAssignmentEvents_Disjoint(p: Prob.PMF, G: Graph, a: Assignment, b: Assignment)
+    requires a.Keys == Nodes(G)
+    requires b.Keys == Nodes(G)
+    requires a != b
+    ensures AssignmentEvent(p, G, a) * AssignmentEvent(p, G, b) == {}
+  {
+    FullAssignments_Distinct_Conflicting(G, a, b);
+    AssignmentEvent_Intersection_Incompatible(p, G, a, b);
+  }
+
+  // H4: Every outcome matches its own OutcomeToAssignment.
+  lemma OutcomeInOwnFiber(G: Graph, omega: Prob.Outcome)
+    ensures MatchesAssignment(G, omega, OutcomeToAssignment(G, omega))
+  {
+    var a := OutcomeToAssignment(G, omega);
+    forall v | v in a.Keys
+      ensures OutcomeToAssignment(G, omega)[v] == a[v]
+    { }
+  }
+
+  // H5: AssignmentEvent for a full extension is a subset of the partial event.
+  lemma AssignmentEvent_FullExtension_Subset(
+    p: Prob.PMF, G: Graph, full: Assignment, partial: Assignment
+  )
+    requires full.Keys == Nodes(G)
+    requires partial.Keys <= Nodes(G)
+    requires ExtendsAssignment(partial, full)
+    ensures AssignmentEvent(p, G, full) <= AssignmentEvent(p, G, partial)
+  {
+    forall omega | omega in AssignmentEvent(p, G, full)
+      ensures omega in AssignmentEvent(p, G, partial)
+    {
+      assert MatchesAssignment(G, omega, full);
+      MatchesAssignment_Extension(G, omega, partial, full);
+    }
+  }
+
+  // H6: If ProbEvent(p, E) == 0 then every outcome in E ∩ p.Keys has p-mass 0.
+  lemma ProbEvent_Zero_AllEntriesZero(p: Prob.PMF, E: Prob.Event)
+    requires Prob.IsDistribution(p)
+    requires Prob.ProbEvent(p, E) == 0.0
+    ensures forall omega :: omega in E && omega in p.Keys ==> p[omega] == 0.0
+  {
+    forall omega | omega in E && omega in p.Keys
+      ensures p[omega] == 0.0
+    {
+      // p[omega] >= 0 from AllNonNeg
+      assert p[omega] >= 0.0;
+      if p[omega] != 0.0 {
+        assert p[omega] > 0.0;
+        // ProbEvent(p, {omega}) = p[omega]
+        assert Prob.ProbEvent(p, {omega}) == p[omega] by {
+          assert {omega} * p.Keys == {omega};
+          Prob.FiniteSupportSum_AnyDistinctEnumeration(p, {omega}, [omega]);
+          assert Prob.SumOutcomeMasses(p, [omega]) == Prob.OutcomeMass(p, omega);
+          assert Prob.OutcomeMass(p, omega) == p[omega];
+        }
+        // E = {omega} + (E - {omega}) with E - {omega} disjoint from {omega}
+        assert {omega} * (E - {omega}) == {};
+        Prob.Axiom_Additivity(p, {omega}, E - {omega});
+        assert {omega} + (E - {omega}) == E;
+        Prob.Axiom_NonNegativity(p, E - {omega});
+        assert Prob.ProbEvent(p, E) == p[omega] + Prob.ProbEvent(p, E - {omega});
+        assert Prob.ProbEvent(p, E) >= p[omega] > 0.0;
+        assert false;
+      }
+    }
+  }
+
+  // H7: If OutcomeToAssignment(G, omega) is not in q.Keys, then p[omega] == 0.
+  lemma ZeroMass_Fiber_Implies_ZeroOutcome(
+    G: Graph, p: Prob.PMF, q: AssignmentPMF, omega: Prob.Outcome
+  )
+    requires Prob.IsDistribution(p)
+    requires q == PMFToAssignmentPMF(G, p)
+    requires omega in p.Keys
+    requires OutcomeToAssignment(G, omega) !in q.Keys
+    ensures p[omega] == 0.0
+  {
+    var a0 := OutcomeToAssignment(G, omega);
+    // a0 is a full assignment by the axiom's ensures
+    assert a0.Keys == Nodes(G);
+    // AssignmentMass(q, a0) = 0 since a0 ∉ q.Keys
+    assert AssignmentMass(q, a0) == 0.0;
+    // MassCoherence: AssignmentMass(q, a0) == AssignmentProb(p, G, a0)
+    PMFToAssignmentPMF_MassCoherence(G, p, a0);
+    assert AssignmentProb(p, G, a0) == 0.0;
+    assert Prob.ProbEvent(p, AssignmentEvent(p, G, a0)) == 0.0;
+    // omega ∈ AssignmentEvent(p, G, a0) by H4
+    OutcomeInOwnFiber(G, omega);
+    assert omega in AssignmentEvent(p, G, a0);
+    // By H6: p[omega] = 0
+    ProbEvent_Zero_AllEntriesZero(p, AssignmentEvent(p, G, a0));
+  }
+
+  // H8: ProbEvent splits additively over disjoint events.
+  lemma ProbEvent_DisjointSplit(p: Prob.PMF, A: Prob.Event, B: Prob.Event)
+    requires Prob.IsDistribution(p)
+    requires A * B == {}
+    ensures Prob.ProbEvent(p, A + B) == Prob.ProbEvent(p, A) + Prob.ProbEvent(p, B)
+  {
+    Prob.Axiom_Additivity(p, A, B);
+  }
+
+  // H9: Inductive fiber-partition lemma.
+  //   For any sub-map of PMFToAssignmentPMF(G, p), the sum of masses equals
+  //   the ProbEvent of the union of fiber events.
+  lemma {:vcs_split_on_every_assert} SumAssignmentMasses_FiberPartition(
+    G: Graph, p: Prob.PMF, q: AssignmentPMF, sub: AssignmentPMF
+  )
+    requires Prob.IsDistribution(p)
+    requires q == PMFToAssignmentPMF(G, p)
+    requires sub.Keys <= q.Keys
+    requires forall a :: a in sub.Keys ==> sub[a] == q[a]
+    ensures SumAssignmentMasses(sub) ==
+      Prob.ProbEvent(p,
+        set omega: Prob.Outcome | omega in p.Keys &&
+          exists a :: a in sub.Keys && MatchesAssignment(G, omega, a))
+    decreases |sub|
+  {
+    var E := set omega: Prob.Outcome | omega in p.Keys &&
+                exists a :: a in sub.Keys && MatchesAssignment(G, omega, a);
+    if sub.Keys == {} {
+      assert SumAssignmentMasses(sub) == 0.0;
+      assert E == {};
+      assert E * p.Keys == {};
+      assert Prob.FiniteSupportSum(p, E * p.Keys) == 0.0 by {
+        Prob.FiniteSupportSum_AllZero(p, E * p.Keys);
+      }
+      assert Prob.ProbEvent(p, E) == 0.0;
+    } else {
+      var a0 :| a0 in sub.Keys;
+      var rest := sub - {a0};
+      assert rest.Keys == sub.Keys - {a0};
+      assert forall a :: a in rest.Keys ==> rest[a] == sub[a];
+      assert forall a :: a in rest.Keys ==> rest[a] == q[a];
+      assert rest.Keys <= q.Keys;
+      // a0 is a full assignment
+      assert a0 in q.Keys;
+      assert IsAssignmentDistribution(G, q);
+      assert WellFormedAssignmentPMF(G, q);
+      assert a0.Keys == Nodes(G);
+      // Split sum: sub = {a0} + rest
+      SumAssignmentMasses_RemoveAny(sub, a0);
+      assert SumAssignmentMasses(sub) == sub[a0] + SumAssignmentMasses(rest);
+      // sub[a0] = q[a0] = AssignmentProb(p, G, a0)
+      assert sub[a0] == q[a0];
+      assert AssignmentMass(q, a0) == q[a0];
+      PMFToAssignmentPMF_MassCoherence(G, p, a0);
+      assert AssignmentMass(q, a0) == AssignmentProb(p, G, a0);
+      assert AssignmentProb(p, G, a0) == Prob.ProbEvent(p, AssignmentEvent(p, G, a0));
+      assert sub[a0] == Prob.ProbEvent(p, AssignmentEvent(p, G, a0));
+      // Define E0 and E_rest
+      var E0 := AssignmentEvent(p, G, a0);
+      var E_rest := set omega: Prob.Outcome | omega in p.Keys &&
+                      exists a :: a in rest.Keys && MatchesAssignment(G, omega, a);
+      // E = E0 + E_rest
+      assert E == E0 + E_rest by {
+        forall omega
+          ensures (omega in E) <==> (omega in E0 || omega in E_rest)
+        {
+          if omega in E {
+            var a :| a in sub.Keys && MatchesAssignment(G, omega, a);
+            if a == a0 {
+              assert omega in E0;
+            } else {
+              assert a in rest.Keys;
+              assert omega in E_rest;
+            }
+          }
+          if omega in E0 {
+            assert MatchesAssignment(G, omega, a0);
+            assert a0 in sub.Keys;
+            assert omega in E;
+          }
+          if omega in E_rest {
+            var a :| a in rest.Keys && MatchesAssignment(G, omega, a);
+            assert a in sub.Keys;
+            assert omega in E;
+          }
+        }
+      }
+      // E0 * E_rest == {}
+      assert E0 * E_rest == {} by {
+        forall omega | omega in E0 && omega in E_rest
+          ensures false
+        {
+          assert MatchesAssignment(G, omega, a0);
+          var a1 :| a1 in rest.Keys && MatchesAssignment(G, omega, a1);
+          assert a1 != a0;
+          assert a1 in q.Keys;
+          assert a1.Keys == Nodes(G);
+          FullAssignmentEvents_Disjoint(p, G, a0, a1);
+          assert omega in AssignmentEvent(p, G, a0);
+          assert omega in AssignmentEvent(p, G, a1);
+        }
+      }
+      // IH on rest
+      SumAssignmentMasses_FiberPartition(G, p, q, rest);
+      assert SumAssignmentMasses(rest) == Prob.ProbEvent(p, E_rest);
+      // Combine
+      ProbEvent_DisjointSplit(p, E0, E_rest);
+      assert Prob.ProbEvent(p, E0 + E_rest) == Prob.ProbEvent(p, E0) + Prob.ProbEvent(p, E_rest);
+      assert Prob.ProbEvent(p, E) == Prob.ProbEvent(p, E0) + Prob.ProbEvent(p, E_rest);
+      assert SumAssignmentMasses(sub) == Prob.ProbEvent(p, E0) + Prob.ProbEvent(p, E_rest);
+    }
+  }
+
+  // ==================================================================
   // DA-M1-G0-5: PMFToAssignmentPMF_MarginalCoherence  [AXIOM — DEFERRED]
   //
   //   MarginalMass(PMFToAssignmentPMF(G, p), S, partial)
@@ -1451,13 +1712,98 @@ module Interventional {
   //   partition infrastructure.
   // ==================================================================
 
-  lemma {:axiom} PMFToAssignmentPMF_MarginalCoherence(
+  lemma {:vcs_split_on_every_assert} PMFToAssignmentPMF_MarginalCoherence(
     G: Graph, p: Prob.PMF, partial: Assignment
   )
     requires Prob.IsDistribution(p)
     requires partial.Keys <= Nodes(G)
     ensures MarginalMass(PMFToAssignmentPMF(G, p), partial.Keys, partial)
          == AssignmentProb(p, G, partial)
+  {
+    var q := PMFToAssignmentPMF(G, p);
+    var sub := MatchingSubmap(q, partial.Keys, partial);
+    MatchingSubmap_IsSubmap(q, partial.Keys, partial);
+    assert sub.Keys <= q.Keys;
+    assert forall a :: a in sub.Keys ==> sub[a] == q[a];
+    assert MarginalMass(q, partial.Keys, partial) == SumAssignmentMasses(sub);
+    // Step 1: fiber-partition induction
+    SumAssignmentMasses_FiberPartition(G, p, q, sub);
+    var E_sub := set omega: Prob.Outcome | omega in p.Keys &&
+                   exists a :: a in sub.Keys && MatchesAssignment(G, omega, a);
+    assert SumAssignmentMasses(sub) == Prob.ProbEvent(p, E_sub);
+    // Step 2: E_sub ⊆ eventPartial
+    var eventPartial := AssignmentEvent(p, G, partial);
+    assert E_sub <= eventPartial by {
+      forall omega | omega in E_sub
+        ensures omega in eventPartial
+      {
+        var a :| a in sub.Keys && MatchesAssignment(G, omega, a);
+        assert forall v :: v in partial.Keys ==>
+          v in a.Keys && a[v] == partial[v];
+        assert forall v :: v in partial.Keys ==>
+          OutcomeToAssignment(G, omega)[v] == a[v];
+        assert MatchesAssignment(G, omega, partial);
+      }
+    }
+    // Step 3: Remainder has zero mass
+    var remainder := eventPartial - E_sub;
+    assert forall omega :: omega in remainder && omega in p.Keys ==> p[omega] == 0.0 by {
+      forall omega | omega in remainder && omega in p.Keys
+        ensures p[omega] == 0.0
+      {
+        assert omega in eventPartial;
+        assert omega !in E_sub;
+        var a0 := OutcomeToAssignment(G, omega);
+        assert a0.Keys == Nodes(G);
+        // a0 not in sub.Keys
+        assert a0 !in sub.Keys by {
+          if a0 in sub.Keys {
+            OutcomeInOwnFiber(G, omega);
+            assert MatchesAssignment(G, omega, a0);
+            assert omega in E_sub;
+            assert false;
+          }
+        }
+        // a0 not in q.Keys: if it were, omega ∈ eventPartial means
+        // a0[v] == partial[v] for all v ∈ partial.Keys, so MatchingSubmap_Contains gives a0 in sub
+        assert a0 !in q.Keys by {
+          if a0 in q.Keys {
+            assert MatchesAssignment(G, omega, partial);
+            // OutcomeToAssignment(G, omega) = a0, so a0[v] == partial[v] for v ∈ partial.Keys
+            assert forall v :: v in partial.Keys ==>
+              OutcomeToAssignment(G, omega)[v] == partial[v];
+            assert forall v :: v in partial.Keys ==>
+              v in a0.Keys && v in partial.Keys && a0[v] == partial[v];
+            MatchingSubmap_Contains(q, partial.Keys, partial, a0);
+            assert a0 in sub.Keys;
+            assert false;
+          }
+        }
+        ZeroMass_Fiber_Implies_ZeroOutcome(G, p, q, omega);
+      }
+    }
+    assert Prob.ProbEvent(p, remainder) == 0.0 by {
+      assert forall omega :: omega in remainder * p.Keys ==>
+        Prob.OutcomeMass(p, omega) == 0.0 by {
+        forall omega | omega in remainder * p.Keys
+          ensures Prob.OutcomeMass(p, omega) == 0.0
+        {
+          assert p[omega] == 0.0;
+          assert Prob.OutcomeMass(p, omega) == p[omega];
+        }
+      }
+      Prob.FiniteSupportSum_AllZero(p, remainder * p.Keys);
+    }
+    // Step 4: additivity gives ProbEvent(eventPartial) == ProbEvent(E_sub)
+    assert eventPartial == E_sub + remainder;
+    assert E_sub * remainder == {};
+    ProbEvent_DisjointSplit(p, E_sub, remainder);
+    assert Prob.ProbEvent(p, eventPartial) ==
+      Prob.ProbEvent(p, E_sub) + Prob.ProbEvent(p, remainder);
+    assert Prob.ProbEvent(p, eventPartial) == Prob.ProbEvent(p, E_sub);
+    assert AssignmentProb(p, G, partial) == Prob.ProbEvent(p, eventPartial);
+    assert MarginalMass(q, partial.Keys, partial) == AssignmentProb(p, G, partial);
+  }
 
   ghost predicate PairwiseDisjointScopes(scopes: seq<set<Node>>) {
     forall i, j :: 0 <= i < j < |scopes| ==> scopes[i] * scopes[j] == {}
