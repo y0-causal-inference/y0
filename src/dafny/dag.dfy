@@ -298,7 +298,7 @@ module DAG {
     } else {
       // Establish key sequence-slice equalities once, use them throughout.
       assert ord[..i + 1][1..] == ord[1..i + 1] by {
-        forall k | 0 <= k < i ensures ord[..i + 1][1..][k] == ord[1..i + 1][k] {}
+        forall k {:trigger ord[..i + 1][1..][k]} | 0 <= k < i ensures ord[..i + 1][1..][k] == ord[1..i + 1][k] {}
       }
       assert ord[..i][1..] == ord[1..i] by {
         forall k | 0 <= k < i - 1 ensures ord[..i][1..][k] == ord[1..i][k] {}

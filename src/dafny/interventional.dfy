@@ -594,40 +594,454 @@ module Interventional {
   //
   //    MM(pa+Z+{v}, ref) · MM(pa, ref) == MM(pa+{v}, ref) · MM(pa+Z, ref)
   //
-  //  The proof telescopes out the Z-nodes from the sum using the Markov
-  //  factorization.  This is entirely within the concrete AssignmentPMF
-  //  layer (no abstract Prob.Outcome); the blocker is the combinatorial
-  //  structure of summing over map<Assignment, real> entries, which Z3
-  //  cannot currently close within the time budget.  This is recorded as
-  //  a named axiom rather than a proof obligation.
+  //  Proof (P3): route through GlobalMarkovConcrete + AssignmentCondProb_As_MarginalMass_Ratio (P2).
   //
-  //  Proof sketch (for the future):
-  //    1. Pick the last node z ∈ Z in topo order (Pa(z) ⊆ pa ∪ (Z\{z})).
-  //    2. By MarkovFactorizationConcrete, q[a] = ∏_w CF(G,q,w,a).
-  //    3. CF(G,q,z,a) depends only on a|(Pa(z)+{z}) (by L6 locality).
-  //       Pa(z) ⊆ pa ∪ (Z\{z}) ⊆ "fixed" coordinates on both sides.
-  //    4. Summing over all values of a[z] while keeping all other coords
-  //       fixed: ∑_{z-vals} CF(G,q,z,a) = 1 (proper conditional PMF).
-  //       Here z-vals ranges over Value, which is a concrete type.
-  //    5. The z-factor therefore cancels between numerator and denominator
-  //       of the cross-ratio, reducing to the IH on Z\{z}.
-  //  The main mechanization gap is a helper lemma that partitions
-  //  AssignmentPMF keys by a single node's value and proves the
-  //  per-value sub-sums equal the ConditionalFactorConcrete entries.
+  //  Key insight: GlobalMarkovConcrete (axiom) gives
+  //    P(v | Z, pa) = P(v | pa)
+  //  which is exactly the conditional independence statement implied by
+  //  DSep(G, {v}, Z, pa).  P2 converts each conditional probability to a
+  //  ratio of MarginalMass values.  Cross-multiplying closes the goal.
+  //
+  //  Proof structure:
+  //    1. PMFToAssignmentPMF_MarkovTransfer gives MarkovFactorizationConcrete(G,q).
+  //    2. DSep_NonDesc_Subset gives DSep(G,{v},Z,pa).
+  //    3. Zero case (mmPa == 0): SubsetMonotone + Nonneg force all four MM = 0.
+  //    4. Zero case (mmPaZ == 0): SubsetMonotone + Nonneg force mmPaZV = 0.
+  //    5. Non-zero case: construct paRef, zRef, vRef, zpRef from ref.
+  //       CompatibleAssignments(zRef,paRef): Z ∩ pa = {} (Z ⊆ NonDesc\Pa).
+  //       CompatibleAssignments(vRef,zpRef): v ∉ Z (v ∈ Desc(v)) and v ∉ pa (DAG).
+  //       ScopeInvariant + MarginalCoherence: AssignmentProb(p,G,paRef) = mmPa > 0
+  //                                           AssignmentProb(p,G,zpRef) = mmPaZ > 0.
+  //       GlobalMarkovConcrete: acp(vRef|zpRef) == acp(vRef|paRef).
+  //       P2 × 2: acp_zp * mmPaZ == mmPaZV; acp_pa * mmPa == mmPaV.
+  //       Algebra: mmPaZV * mmPa == (acp_zp*mmPaZ)*mmPa == (acp_pa*mmPaZ)*mmPa
+  //                              == (acp_pa*mmPa)*mmPaZ == mmPaV*mmPaZ.
+  //
+  //  Signature change: adds p:Prob.PMF; replaces MarkovFactorizationConcrete precondition
+  //  with MarkovFactorization(G,p) + q == PMFToAssignmentPMF(G,p).
+  //  Net axiom change: -1 (MarginalMass_FactorOut removed; GlobalMarkovConcrete stays).
   // ------------------------------------------------------------------
 
-  lemma {:axiom} MarginalMass_FactorOut(
-    G: Graph, q: AssignmentPMF, v: Node, Z: set<Node>, ref: Assignment
+  // Helper lemmas for set-union commutativity/associativity.  Isolated so that Z3
+  // works in a minimal context (no lemma preconditions) and can finish instantly.
+  lemma SetUnionAssocComm<T>(A: set<T>, B: set<T>, C: set<T>)
+    ensures A + (B + C) == (A + C) + B
+  {
+    forall x { assert x in A + (B + C) <==> x in (A + C) + B; }
+  }
+  lemma SetUnionComm<T>(A: set<T>, B: set<T>)
+    ensures A + B == B + A
+  {
+    forall x { assert x in A + B <==> x in B + A; }
+  }
+  lemma SetUnionPermute3<T>(A: set<T>, B: set<T>, C: set<T>)
+    ensures A + B + C == C + B + A
+  {
+    forall x { assert x in A + B + C <==> x in C + B + A; }
+  }
+
+  // P2Bridge: invokes P2 in minimal context so Z3 can easily bridge
+  // acp * MM(given) == MM(mergedRef).  Called from within MarginalMass_FactorOut_Core
+  // at the point where the surrounding proof state would otherwise be too large.
+  lemma MarginalMass_FactorOut_P2Bridge(
+    G: Graph, p: Prob.PMF, q: AssignmentPMF,
+    target: Assignment, given: Assignment, mergedRef: Assignment, acp: real
   )
-    requires MarkovFactorizationConcrete(G, q)
+    requires Prob.IsDistribution(p)
+    requires q == PMFToAssignmentPMF(G, p)
+    requires target.Keys <= Nodes(G)
+    requires given.Keys <= Nodes(G)
+    requires CompatibleAssignments(target, given)
+    requires AssignmentProb(p, G, given) > 0.0
+    requires mergedRef == MergeAssignments(target, given)
+    requires acp == AssignmentCondProb(p, G, target, given)
+    ensures acp * MarginalMass(q, given.Keys, given)
+         == MarginalMass(q, mergedRef.Keys, mergedRef)
+  {
+    AssignmentCondProb_As_MarginalMass_Ratio(G, p, q, target, given);
+    assert acp == AssignmentCondProb(p, G, target, given);
+    assert mergedRef == MergeAssignments(target, given);
+  }
+
+  // Substitution helper: (x * a == b) ∧ (a == a') ∧ (b == b') ⟹ x * a' == b'
+  // Isolated so Z3 works in minimal context (just 3 premises, no quantifiers).
+  lemma RealMul_Subst(x: real, a: real, b: real, a': real, b': real)
+    requires x * a == b
+    requires a == a'
+    requires b == b'
+    ensures x * a' == b'
+  {}
+
+  // Technique #11: extract the heavy proof into a Core lemma that takes `pa`
+  // as an explicit parameter.  Its `ensures` is in terms of `pa`, so the
+  // ensures-VCS never has to bridge `pa` → `Parents(G,v)*Nodes(G)`.
+  // The thin outer wrapper (MarginalMass_FactorOut below) does the bridging
+  // in a context with only two premises, making it trivially fast for Z3.
+  lemma {:vcs_split_on_every_assert} MarginalMass_FactorOut_Core(
+    G: Graph, p: Prob.PMF, q: AssignmentPMF, v: Node, Z: set<Node>,
+    ref: Assignment, pa: set<Node>
+  )
+    requires Prob.IsDistribution(p)
+    requires q == PMFToAssignmentPMF(G, p)
+    requires MarkovFactorization(G, p)
+    requires IsDAG(G)
+    requires v in Nodes(G)
+    requires ref.Keys == Nodes(G)
+    requires Z <= NonDescendants(G, v) - Parents(G, v)
+    requires pa == Parents(G, v) * Nodes(G)
+    ensures
+      MarginalMass(q, pa + Z + {v}, ref) * MarginalMass(q, pa, ref)
+   == MarginalMass(q, pa + {v}, ref) * MarginalMass(q, pa + Z, ref)
+  {
+
+    // Step 1: Transfer Markov condition to concrete layer.
+    PMFToAssignmentPMF_MarkovTransfer(G, p);
+    assert MarkovFactorizationConcrete(G, PMFToAssignmentPMF(G, p));
+    assert MarkovFactorizationConcrete(G, q);
+    assert IsAssignmentDistribution(G, q);
+    assert AssignmentPMF_AllNonNeg(q);
+
+    // Step 2: v is not in pa (no self-loops in a DAG via topological sort).
+    assert v !in Parents(G, v) by {
+      var ord :| IsTopologicalSort(G, ord);
+      if v in Parents(G, v) {
+        TopoSort_ParentBefore(G, ord, v, v);
+        assert SeqIndex(ord, v) < SeqIndex(ord, v);
+        assert false;
+      }
+    }
+    assert v !in pa;
+
+    // Step 3: v is not in Z (v is a descendant of itself).
+    assert v in Descendants(G, {v}) by {
+      Ancestor_Reflexive(G, v);
+      IsAncestorBounded_Monotone(G, v, v, 0, |Nodes(G)|);
+      assert IsAncestor(G, v, v);
+    }
+    assert v !in NonDescendants(G, v);
+    assert v !in Z;
+
+    // Step 4: Z and pa are disjoint (Z ⊆ NonDesc(v) - Pa(v), pa ⊆ Pa(v)).
+    assert Z * pa == {} by {
+      forall u | u in Z * pa ensures false {
+        assert u in pa;
+        assert u in Parents(G, v) * Nodes(G);
+        assert u in Parents(G, v);
+        assert u in Z;
+        assert u in NonDescendants(G, v) - Parents(G, v);
+        assert u !in Parents(G, v);
+        assert false;
+      }
+    }
+
+    // Step 5: DSep(G, {v}, Z, pa).
+    DSep_NonDesc_Subset(G, v, Z);
+    assert DSep(G, {v}, Z, pa);
+
+    // Marginal masses named for readability.
+    var mmPa   := MarginalMass(q, pa,         ref);
+    var mmPaZ  := MarginalMass(q, pa + Z,     ref);
+    var mmPaV  := MarginalMass(q, pa + {v},   ref);
+    var mmPaZV := MarginalMass(q, pa + Z + {v}, ref);
+
+    if mmPa == 0.0 {
+      // pa ⊆ pa+{v}, pa ⊆ pa+Z, pa ⊆ pa+Z+{v}: SubsetMonotone forces all ≤ 0.
+      MarginalMass_SubsetMonotone(q, pa, pa + {v},     ref);
+      MarginalMass_SubsetMonotone(q, pa, pa + Z,       ref);
+      MarginalMass_SubsetMonotone(q, pa, pa + Z + {v}, ref);
+      MarginalMass_Nonneg(q, pa + {v},     ref);
+      MarginalMass_Nonneg(q, pa + Z,       ref);
+      MarginalMass_Nonneg(q, pa + Z + {v}, ref);
+      assert mmPaV  == 0.0;
+      assert mmPaZ  == 0.0;
+      assert mmPaZV == 0.0;
+      // Bridge to ensures (pa-terms match ensures exactly).
+      assert MarginalMass(q, pa + Z + {v}, ref) * MarginalMass(q, pa, ref)
+          == MarginalMass(q, pa + {v}, ref) * MarginalMass(q, pa + Z, ref);
+    } else if mmPaZ == 0.0 {
+      // pa+Z ⊆ pa+Z+{v}: SubsetMonotone forces mmPaZV ≤ 0.
+      MarginalMass_SubsetMonotone(q, pa + Z, pa + Z + {v}, ref);
+      MarginalMass_Nonneg(q, pa + Z + {v}, ref);
+      assert mmPaZV == 0.0;
+      // Bridge: LHS = 0 * mmPa = 0; RHS = mmPaV * 0 = 0.
+      MarginalMass_Nonneg(q, pa + {v}, ref);
+      assert MarginalMass(q, pa + Z + {v}, ref) * MarginalMass(q, pa, ref)
+          == MarginalMass(q, pa + {v}, ref) * MarginalMass(q, pa + Z, ref);
+    } else {
+      // Non-zero case: both mmPa > 0 and mmPaZ > 0.
+
+      // Construct partial assignments from ref.
+      var paRef := map u | u in pa :: ref[u];
+      var zRef  := map u | u in Z  :: ref[u];
+      var vRef  := map[v := ref[v]];
+      assert paRef.Keys == pa;
+      assert zRef.Keys  == Z;
+      assert vRef.Keys  == {v};
+
+      // CompatibleAssignments(zRef, paRef): Z ∩ pa = {} so keys are disjoint.
+      assert CompatibleAssignments(zRef, paRef) by {
+        forall u | u in zRef.Keys * paRef.Keys ensures zRef[u] == paRef[u] {
+          assert u in Z && u in pa;
+          assert u in Parents(G, v);
+          assert u in NonDescendants(G, v) - Parents(G, v);
+          assert false;
+        }
+      }
+
+      var zpRef := MergeAssignments(zRef, paRef);
+      assert zpRef.Keys == Z + pa;
+      assert zpRef.Keys == pa + Z;
+
+      // CompatibleAssignments(vRef, zpRef): {v} ∩ (pa+Z) = {} since v ∉ pa and v ∉ Z.
+      assert CompatibleAssignments(vRef, zpRef) by {
+        forall u | u in vRef.Keys * zpRef.Keys ensures vRef[u] == zpRef[u] {
+          assert u == v && (v in Z || v in pa);
+          assert false;
+        }
+      }
+
+      // CompatibleAssignments(vRef, paRef): {v} ∩ pa = {}.
+      assert CompatibleAssignments(vRef, paRef) by {
+        forall u | u in vRef.Keys * paRef.Keys ensures vRef[u] == paRef[u] {
+          assert u == v && v in pa;
+          assert false;
+        }
+      }
+
+      // Coherence for paRef: AssignmentProb(p, G, paRef) = mmPa > 0.
+      // Chain: mmPa = MM(q, pa, ref) = MM(q, pa, paRef) [ScopeInvariant, paRef|pa == ref|pa]
+      //        = MM(PMFToAssignmentPMF(G,p), paRef.Keys, paRef)  [q == PMFToAssignmentPMF; paRef.Keys == pa]
+      //        = AssignmentProb(p, G, paRef)  [MarginalCoherence]
+      assert forall u :: u in pa ==> u in paRef.Keys && u in ref.Keys && paRef[u] == ref[u];
+      MarginalMass_ScopeInvariant(q, pa, paRef, ref);
+      // MM(q, pa, paRef) == MM(q, pa, ref) == mmPa
+      assert q == PMFToAssignmentPMF(G, p);
+      PMFToAssignmentPMF_MarginalCoherence(G, p, paRef);
+      // MarginalMass(PMFToAssignmentPMF(G, p), paRef.Keys, paRef) == AssignmentProb(p, G, paRef)
+      // paRef.Keys == pa, so MarginalMass(PMFToAssignmentPMF(G, p), pa, paRef) == AssignmentProb(p, G, paRef)
+      calc {
+        AssignmentProb(p, G, paRef);
+        == MarginalMass(PMFToAssignmentPMF(G, p), paRef.Keys, paRef);
+        == MarginalMass(q, pa, paRef);  // q == PMFToAssignmentPMF(G,p) and paRef.Keys == pa
+        == MarginalMass(q, pa, ref);    // ScopeInvariant
+        == mmPa;
+      }
+      // Make the > 0.0 chain explicit: nonneg + != 0 + equality from calc.
+      assert mmPa >= 0.0 by { MarginalMass_Nonneg(q, pa, ref); }
+      assert mmPa > 0.0;
+      assert AssignmentProb(p, G, paRef) == mmPa;
+      assert AssignmentProb(p, G, paRef) > 0.0;
+
+      // Coherence for zpRef: AssignmentProb(p, G, zpRef) = mmPaZ > 0.
+      // zpRef agrees with ref on pa+Z (z-part from zRef=ref|Z, pa-part from paRef=ref|pa).
+      assert forall u :: u in pa + Z ==>
+        u in zpRef.Keys && u in ref.Keys && zpRef[u] == ref[u] by {
+        forall u | u in pa + Z
+          ensures u in zpRef.Keys && u in ref.Keys && zpRef[u] == ref[u] {
+          assert u in zpRef.Keys;
+          assert u in ref.Keys by { assert ref.Keys == Nodes(G); }
+          if u in Z {
+            assert u !in paRef.Keys by { assert paRef.Keys == pa; assert u !in pa; }
+            assert zpRef[u] == zRef[u] == ref[u];
+          } else {
+            assert u in pa;
+            assert u !in zRef.Keys by { assert zRef.Keys == Z; assert u !in Z; }
+            assert zpRef[u] == paRef[u] == ref[u];
+          }
+        }
+      }
+      MarginalMass_ScopeInvariant(q, pa + Z, zpRef, ref);
+      assert zpRef.Keys <= Nodes(G) by { assert zpRef.Keys == pa + Z; }
+      PMFToAssignmentPMF_MarginalCoherence(G, p, zpRef);
+      calc {
+        AssignmentProb(p, G, zpRef);
+        == MarginalMass(PMFToAssignmentPMF(G, p), zpRef.Keys, zpRef);
+        == MarginalMass(q, pa + Z, zpRef);  // q == PMFToAssignmentPMF; zpRef.Keys == pa+Z
+        == MarginalMass(q, pa + Z, ref);    // ScopeInvariant
+        == mmPaZ;
+      }
+      // Make the > 0.0 chain explicit.
+      assert mmPaZ >= 0.0 by { MarginalMass_Nonneg(q, pa + Z, ref); }
+      assert mmPaZ > 0.0;
+      assert AssignmentProb(p, G, zpRef) == mmPaZ;
+      assert AssignmentProb(p, G, zpRef) > 0.0;
+
+      // GlobalMarkov_From_Factorization: P(v | Z, pa) == P(v | pa).
+      // Preconditions: DSep(G,{v},Z,pa), CompatibleAssignments(zRef,paRef),
+      //                AssignmentProb(p,G,paRef) > 0, AssignmentProb(p,G,zpRef) > 0.
+      // MergeAssignments(zRef, paRef) == zpRef (by definition).
+      GlobalMarkov_From_Factorization(G, p, {v}, Z, pa, vRef, zRef, paRef);
+      assert AssignmentCondProb(p, G, vRef, zpRef)
+          == AssignmentCondProb(p, G, vRef, paRef);
+      var acp_zp := AssignmentCondProb(p, G, vRef, zpRef);
+      var acp_pa := AssignmentCondProb(p, G, vRef, paRef);
+      assert acp_zp == acp_pa;
+
+      // P2 for (target=vRef, given=zpRef): P2Bridge called after vzpRef is defined.
+      var vzpRef := MergeAssignments(vRef, zpRef);
+      // vzpRef.Keys: step down from MergeAssignments postcondition.
+      assert vzpRef.Keys == vRef.Keys + zpRef.Keys;
+      assert vRef.Keys == {v};
+      assert zpRef.Keys == pa + Z;
+      // Commutativity via isolated helper (minimal context → Z3 finishes fast).
+      SetUnionAssocComm({v}, pa, Z);
+      assert {v} + (pa + Z) == {v} + Z + pa;
+      assert vzpRef.Keys == {v} + Z + pa by {
+        assert vzpRef.Keys == vRef.Keys + zpRef.Keys;
+        assert vRef.Keys + zpRef.Keys == {v} + (pa + Z);
+      }
+      // Anchor the var definition so Z3 can unfold the map comprehension.
+      assert vzpRef == MergeAssignments(vRef, zpRef);
+      // vzpRef agrees with ref on pa+Z+{v} (precondition for ScopeInvariant).
+      forall u | u in pa + Z + {v}
+        ensures u in vzpRef.Keys && u in ref.Keys && vzpRef[u] == ref[u] {
+          assert vzpRef == MergeAssignments(vRef, zpRef);
+          assert u in vzpRef.Keys by { assert vzpRef.Keys == {v} + Z + pa; }
+          assert u in ref.Keys by { assert ref.Keys == Nodes(G); }
+          if u == v {
+            assert u in vRef.Keys;
+            assert vzpRef[u] == vRef[u];
+            assert vRef[u] == ref[u];
+          } else if u in Z {
+            assert u !in vRef.Keys;
+            assert u !in paRef.Keys by { assert paRef.Keys == pa; assert u !in pa; }
+            assert vzpRef[u] == zpRef[u];
+            assert zpRef[u] == zRef[u];
+            assert zRef[u] == ref[u];
+          } else {
+            assert u in pa;
+            assert u !in vRef.Keys;
+            assert u !in zRef.Keys by { assert zRef.Keys == Z; assert u !in Z; }
+            assert vzpRef[u] == zpRef[u];
+            assert zpRef[u] == paRef[u];
+            assert paRef[u] == ref[u];
+          }
+        }
+      MarginalMass_ScopeInvariant(q, pa + Z + {v}, vzpRef, ref);
+      // P2Bridge in minimal context: acp_zp * MM(zpRef) == MM(vzpRef).
+      MarginalMass_FactorOut_P2Bridge(G, p, q, vRef, zpRef, vzpRef, acp_zp);
+      // Pin the postcondition so by-blocks and calc steps can reference it.
+      assert acp_zp * MarginalMass(q, zpRef.Keys, zpRef) == MarginalMass(q, vzpRef.Keys, vzpRef);
+      // Commutativity via isolated helper.
+      SetUnionPermute3(pa, Z, {v});
+      assert pa + Z + {v} == {v} + Z + pa;
+      assert MarginalMass(q, zpRef.Keys, zpRef) == mmPaZ by {
+        assert zpRef.Keys == pa + Z;
+        assert MarginalMass(q, pa + Z, zpRef) == MarginalMass(q, pa + Z, ref);
+        assert MarginalMass(q, pa + Z, ref) == mmPaZ;
+      }
+      assert MarginalMass(q, vzpRef.Keys, vzpRef) == mmPaZV by {
+        assert vzpRef.Keys == {v} + Z + pa;
+        assert pa + Z + {v} == {v} + Z + pa;
+        assert MarginalMass(q, pa + Z + {v}, vzpRef) == MarginalMass(q, pa + Z + {v}, ref);
+        assert MarginalMass(q, pa + Z + {v}, ref) == mmPaZV;
+      }
+      calc {
+        acp_zp * mmPaZ;
+        == { assert MarginalMass(q, zpRef.Keys, zpRef) == mmPaZ; }
+        acp_zp * MarginalMass(q, zpRef.Keys, zpRef);
+        == { assert acp_zp * MarginalMass(q, zpRef.Keys, zpRef) == MarginalMass(q, vzpRef.Keys, vzpRef); }
+        MarginalMass(q, vzpRef.Keys, vzpRef);
+        == { assert MarginalMass(q, vzpRef.Keys, vzpRef) == mmPaZV; }
+        mmPaZV;
+      }
+
+      // P2 for (target=vRef, given=paRef): P2Bridge called after vpRef is defined.
+      var vpRef := MergeAssignments(vRef, paRef);
+      assert vpRef.Keys == vRef.Keys + paRef.Keys;
+      assert vpRef.Keys == {v} + pa;
+      assert vpRef == MergeAssignments(vRef, paRef);
+      // vpRef agrees with ref on pa+{v}.
+      forall u | u in pa + {v}
+        ensures u in vpRef.Keys && u in ref.Keys && vpRef[u] == ref[u] {
+          assert vpRef == MergeAssignments(vRef, paRef);
+          assert u in vpRef.Keys by { assert vpRef.Keys == {v} + pa; }
+          assert u in ref.Keys by { assert ref.Keys == Nodes(G); }
+          if u == v {
+            assert u in vRef.Keys;
+            assert vpRef[u] == vRef[u] by {
+              assert vpRef == MergeAssignments(vRef, paRef);
+              assert u in vRef.Keys;
+            }
+            assert vRef[u] == ref[u];
+          } else {
+            assert u in pa;
+            assert u !in vRef.Keys;
+            assert u in paRef.Keys by { assert paRef.Keys == pa; }
+            assert vpRef[u] == paRef[u] by {
+              assert vpRef == MergeAssignments(vRef, paRef);
+              assert u !in vRef.Keys;
+              assert u in paRef.Keys;
+            }
+            assert paRef[u] == ref[u];
+          }
+        }
+      MarginalMass_ScopeInvariant(q, pa + {v}, vpRef, ref);
+      // P2Bridge in minimal context: acp_pa * MM(paRef) == MM(vpRef).
+      MarginalMass_FactorOut_P2Bridge(G, p, q, vRef, paRef, vpRef, acp_pa);
+      // Pin the postcondition.
+      assert acp_pa * MarginalMass(q, paRef.Keys, paRef) == MarginalMass(q, vpRef.Keys, vpRef);
+      // Commutativity: pa+{v} == {v}+pa.
+      SetUnionComm(pa, {v});
+      assert pa + {v} == {v} + pa;
+      assert MarginalMass(q, paRef.Keys, paRef) == mmPa by {
+        assert paRef.Keys == pa;
+        assert MarginalMass(q, pa, paRef) == MarginalMass(q, pa, ref);
+        assert MarginalMass(q, pa, ref) == mmPa;
+      }
+      assert MarginalMass(q, vpRef.Keys, vpRef) == mmPaV by {
+        assert vpRef.Keys == {v} + pa;
+        assert pa + {v} == {v} + pa;
+        assert MarginalMass(q, pa + {v}, vpRef) == MarginalMass(q, pa + {v}, ref);
+        assert MarginalMass(q, pa + {v}, ref) == mmPaV;
+      }
+      calc {
+        acp_pa * mmPa;
+        == { assert MarginalMass(q, paRef.Keys, paRef) == mmPa; }
+        acp_pa * MarginalMass(q, paRef.Keys, paRef);
+        == { assert acp_pa * MarginalMass(q, paRef.Keys, paRef) == MarginalMass(q, vpRef.Keys, vpRef); }
+        MarginalMass(q, vpRef.Keys, vpRef);
+        == { assert MarginalMass(q, vpRef.Keys, vpRef) == mmPaV; }
+        mmPaV;
+      }
+
+      // Algebra: close the cross-ratio identity.
+      calc {
+        mmPaZV * mmPa;
+        == { assert acp_zp * mmPaZ == mmPaZV; }
+        (acp_zp * mmPaZ) * mmPa;
+        == { assert acp_zp == acp_pa; }
+        (acp_pa * mmPaZ) * mmPa;
+        ==
+        (acp_pa * mmPa) * mmPaZ;
+        == { assert acp_pa * mmPa == mmPaV; }
+        mmPaV * mmPaZ;
+      }
+      // Bridge to ensures for the non-zero branch.
+      assert MarginalMass(q, pa + Z + {v}, ref) * MarginalMass(q, pa, ref)
+          == MarginalMass(q, pa + {v}, ref) * MarginalMass(q, pa + Z, ref);
+    }
+  }
+
+  lemma MarginalMass_FactorOut(
+    G: Graph, p: Prob.PMF, q: AssignmentPMF, v: Node, Z: set<Node>, ref: Assignment
+  )
+    requires Prob.IsDistribution(p)
+    requires q == PMFToAssignmentPMF(G, p)
+    requires MarkovFactorization(G, p)
     requires IsDAG(G)
     requires v in Nodes(G)
     requires ref.Keys == Nodes(G)
     requires Z <= NonDescendants(G, v) - Parents(G, v)
     ensures
-      var pa := Parents(G, v) * Nodes(G);
-      MarginalMass(q, pa + Z + {v}, ref) * MarginalMass(q, pa, ref)
-   == MarginalMass(q, pa + {v}, ref) * MarginalMass(q, pa + Z, ref)
+      MarginalMass(q, Parents(G, v) * Nodes(G) + Z + {v}, ref)
+        * MarginalMass(q, Parents(G, v) * Nodes(G), ref)
+     == MarginalMass(q, Parents(G, v) * Nodes(G) + {v}, ref)
+        * MarginalMass(q, Parents(G, v) * Nodes(G) + Z, ref)
+  {
+    var pa := Parents(G, v) * Nodes(G);
+    MarginalMass_FactorOut_Core(G, p, q, v, Z, ref, pa);
+  }
 
   // ------------------------------------------------------------------
   //  L7: LocalMarkovConcrete — the concrete probabilistic Local Markov
@@ -639,24 +1053,26 @@ module Interventional {
   //    MM(pa+Z+{v}) · MM(pa) == MM(pa+{v}) · MM(pa+Z)
   //
   //  This is an immediate corollary of MarginalMass_FactorOut.  The
-  //  separate named lemma gives callers a stable API that does not
-  //  expose the internal FactorOut axiom.
+  //  separate named lemma gives callers a stable API.
   // ------------------------------------------------------------------
 
   lemma LocalMarkovConcrete(
-    G: Graph, q: AssignmentPMF, v: Node, Z: set<Node>, ref: Assignment
+    G: Graph, p: Prob.PMF, q: AssignmentPMF, v: Node, Z: set<Node>, ref: Assignment
   )
-    requires MarkovFactorizationConcrete(G, q)
+    requires Prob.IsDistribution(p)
+    requires q == PMFToAssignmentPMF(G, p)
+    requires MarkovFactorization(G, p)
     requires IsDAG(G)
     requires v in Nodes(G)
     requires ref.Keys == Nodes(G)
     requires Z <= NonDescendants(G, v) - Parents(G, v)
     ensures
-      var pa := Parents(G, v) * Nodes(G);
-      MarginalMass(q, pa + Z + {v}, ref) * MarginalMass(q, pa, ref)
-   == MarginalMass(q, pa + {v}, ref) * MarginalMass(q, pa + Z, ref)
+      MarginalMass(q, Parents(G, v) * Nodes(G) + Z + {v}, ref)
+        * MarginalMass(q, Parents(G, v) * Nodes(G), ref)
+     == MarginalMass(q, Parents(G, v) * Nodes(G) + {v}, ref)
+        * MarginalMass(q, Parents(G, v) * Nodes(G) + Z, ref)
   {
-    MarginalMass_FactorOut(G, q, v, Z, ref);
+    MarginalMass_FactorOut(G, p, q, v, Z, ref);
   }
 
   // ------------------------------------------------------------------
