@@ -1324,6 +1324,63 @@ module Interventional {
     else MarginalMass(q, pa + {v}, ref) / denom
   }
 
+  // A2 helper: MatchingSubmap only inspects ref on the nodes of S, so
+  // overwriting ref at a node v outside S leaves the submap unchanged.
+  lemma MatchingSubmap_Invariant_OutsideScope(
+    q: AssignmentPMF, S: set<Node>, ref: Assignment, v: Node, val: Value
+  )
+    requires v !in S
+    ensures MatchingSubmap(q, S, ref) == MatchingSubmap(q, S, ref[v := val])
+  {
+    var lhs := MatchingSubmap(q, S, ref);
+    var rhs := MatchingSubmap(q, S, ref[v := val]);
+    var ref2 := ref[v := val];
+    // For every w in S we have w != v, so the matching predicate sees the
+    // same key-membership and the same value in ref and ref[v := val].
+    assert lhs == rhs by {
+      assert lhs.Keys == rhs.Keys by {
+        forall a
+          ensures a in lhs.Keys <==> a in rhs.Keys
+        {
+          if a in q.Keys {
+            assert (forall w :: w in S ==>
+                      w in a.Keys && w in ref.Keys && a[w] == ref[w])
+                <==>
+                   (forall w :: w in S ==>
+                      w in a.Keys && w in ref2.Keys && a[w] == ref2[w]);
+          }
+        }
+      }
+      forall a | a in lhs.Keys
+        ensures lhs[a] == rhs[a]
+      {
+        MatchingSubmap_IsSubmap(q, S, ref);
+        MatchingSubmap_IsSubmap(q, S, ref2);
+      }
+    }
+  }
+
+  // A2: ConditionalFactorConcrete for node u ignores ref at any node v that
+  // is neither u nor a parent of u.  Overwriting ref[v] leaves the factor
+  // unchanged, since the factor only marginalizes over pa(u) and pa(u)+{u}.
+  lemma CFC_Invariant_OutsideParents(
+    G: Graph, q: AssignmentPMF, u: Node, v: Node, ref: Assignment, val: Value
+  )
+    requires u in Nodes(G)
+    requires v !in Parents(G, u)
+    requires v != u
+    ensures ConditionalFactorConcrete(G, q, u, ref)
+         == ConditionalFactorConcrete(G, q, u, ref[v := val])
+  {
+    var pa := Parents(G, u) * Nodes(G);
+    // v is outside both scopes the factor inspects.
+    assert v !in pa;
+    assert v !in pa + {u};
+    MatchingSubmap_Invariant_OutsideScope(q, pa, ref, v, val);
+    MatchingSubmap_Invariant_OutsideScope(q, pa + {u}, ref, v, val);
+    // Both marginal masses are unchanged, hence so is their ratio.
+  }
+
   // Mass of a full assignment under q (0 outside the support).
   ghost function AssignmentMass(q: AssignmentPMF, a: Assignment): real {
     if a in q then q[a] else 0.0

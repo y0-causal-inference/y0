@@ -2744,6 +2744,79 @@ module DAG {
   //   combinatorial reasoning about trails.
   // ==================================================================
 
+  /// Projection: if v ∈ Y and (Y ⊥ Z | W) then ({v} ⊥ Z | W).
+  /// Proved by symmetry + decomposition + symmetry.
+  lemma DSep_ExtractSingle(
+    G: Graph, Y: set<Node>, Z: set<Node>, W: set<Node>, v: Node
+  )
+    requires v in Y
+    requires DSep(G, Y, Z, W)
+    ensures  DSep(G, {v}, Z, W)
+  {
+    // DSep(Y, Z, W) → DSep(Z, Y, W)  [Symmetry]
+    DSep_Symmetry(G, Y, Z, W);
+    // DSep(Z, Y, W) → DSep(Z, {v}, W)  [Decomposition: Y = {v} + (Y\{v})]
+    assert Y == {v} + (Y - {v});
+    DSep_Decomposition(G, Z, {v}, Y - {v}, W);
+    // DSep(Z, {v}, W) → DSep({v}, Z, W)  [Symmetry]
+    DSep_Symmetry(G, Z, {v}, W);
+  }
+
+  /// No-direct-edge: if z is a parent of y and DSep(G, Y, Z, W),
+  /// then z ∈ W or y ∈ W.
+  /// Reason: the 1-step backward trail y ← z has length 1, so there
+  /// are no internal positions (1 ≤ pos < 1 is vacuously false), so it
+  /// is never TrailBlocked — contradicting DSep.
+  lemma DSep_NoDirectEdge(
+    G: Graph, Y: set<Node>, Z: set<Node>, W: set<Node>
+  )
+    requires IsDAG(G)
+    requires DSep(G, Y, Z, W)
+    ensures forall y, z :: y in Y && z in Z && z in Parents(G, y)
+              ==> y in W || z in W
+  {
+    forall y, z | y in Y && z in Z && z in Parents(G, y)
+      ensures y in W || z in W
+    {
+      if y !in W && z !in W {
+        // Build the 1-step backward trail y ← z.
+        var trail := [TrailStep(y, z, Backward)];
+        // ValidTrail: the single step goes Backward from y to z, i.e.
+        //   z in Parents(G, y), which holds by hypothesis.
+        assert ValidTrail(G, trail) by {
+          forall i | 0 <= i < |trail| ensures
+            (trail[i].dir == Forward  ==> trail[i].from in Parents(G, trail[i].to)) &&
+            (trail[i].dir == Backward ==> trail[i].to in Parents(G, trail[i].from))
+          {
+            assert i == 0;
+            assert trail[0].dir == Backward;
+            assert trail[0].to == z;
+            assert trail[0].from == y;
+            assert z in Parents(G, y);
+          }
+        }
+        // TrailConnects: starts at y, ends at z.
+        assert TrailConnects(trail, y, z) by {
+          assert |trail| == 1;
+          assert trail[0].from == y;
+          assert trail[0].to == z;
+        }
+        // DSep requires TrailBlocked, but the trail has no internal positions.
+        assert TrailBlocked(G, trail, W) by {
+          assert y in Y && z in Z;
+          assert ValidTrail(G, trail);
+          assert TrailConnects(trail, y, z);
+        }
+        // TrailBlocked requires exists pos with 1 ≤ pos < 1 — impossible.
+        assert !TrailBlocked(G, trail, W) by {
+          assert forall pos :: 1 <= pos < |trail| ==> false;
+          assert |trail| == 1;
+        }
+        assert false;
+      }
+    }
+  }
+
   /// Symmetry:  (Y ⊥ Z | W)  ⟹  (Z ⊥ Y | W)
   lemma DSep_Symmetry(G: Graph, Y: set<Node>, Z: set<Node>, W: set<Node>)
     requires DSep(G, Y, Z, W)
@@ -3040,6 +3113,105 @@ module DAG {
         DSep_Intersection_Descend(G, Y, Z', Z, W, trail, y, z);
       }
     }
+  }
+
+  // ==================================================================
+  // 7b.  Bayes Ball — reachability-based d-separation witness
+  //
+  //   BallSide(G, v, W) is the set of nodes reachable from v by the
+  //   Bayes Ball algorithm conditioning on W.  A node z is in
+  //   BallSide(G, v, W) iff there exists an active trail from v to z
+  //   given W — i.e., a trail that is NOT blocked by W.
+  //
+  //   Direction semantics (mirrors Lean TrailDir):
+  //     IntoNode  — the ball arrived at this node via a forward edge
+  //                 (a parent sent the ball downward, so this node is
+  //                 acting as a non-collider entered from above).
+  //     OutOfNode — the ball arrived at this node via a backward edge
+  //                 (a child sent the ball upward, so this node is
+  //                 acting as a non-collider entered from below, or
+  //                 as a collider that may be activated).
+  //
+  //   Propagation table (standard Bayes Ball, Shachter 1998):
+  //
+  //     State (u, IntoNode)  — ball came down to u:
+  //       u ∉ W  → pass up:   emit (p, OutOfNode) for each p ∈ Pa(u)
+  //              → pass down: emit (c, IntoNode)  for each c ∈ Ch(u)
+  //       u ∈ W  → blocked    (non-collider observed)
+  //
+  //     State (u, OutOfNode) — ball came up to u (collider candidate):
+  //       u ∈ W  → activate: emit (p, OutOfNode) for each p ∈ Pa(u)
+  //                                emit (c, IntoNode)  for each c ∈ Ch(u)
+  //       u ∉ W AND Desc(u)∩W ≠ {} → activate (ancestral activation):
+  //                                emit (p, OutOfNode) for each p ∈ Pa(u)
+  //                                emit (c, IntoNode)  for each c ∈ Ch(u)
+  //       u ∉ W AND Desc(u)∩W = {} → blocked (collider not activated)
+  //
+  //   Fuel: each node can be visited in at most 2 directions, so
+  //   fuel = 2 * |Nodes(G)| suffices.
+  // ==================================================================
+
+  datatype BallDir = IntoNode | OutOfNode
+  datatype BallState = BallState(node: Node, dir: BallDir)
+
+  // One BFS step: expand a single frontier state into its successors.
+  ghost function BallStep(G: Graph, W: set<Node>, s: BallState): set<BallState>
+  {
+    var u := s.node;
+    match s.dir {
+      case IntoNode =>
+        // Ball came down to u (non-collider position).
+        if u in W then
+          // Observed non-collider: blocked.
+          {}
+        else
+          // Unobserved: pass both up and down.
+          (set p | p in Parents(G, u) :: BallState(p, OutOfNode)) +
+          (set c | c in Children(G, u) :: BallState(c, IntoNode))
+      case OutOfNode =>
+        // Ball came up to u (collider position).
+        if u in W || Descendants(G, {u}) * W != {} then
+          // Activated collider: pass both up and down.
+          (set p | p in Parents(G, u) :: BallState(p, OutOfNode)) +
+          (set c | c in Children(G, u) :: BallState(c, IntoNode))
+        else
+          // Unactivated collider: blocked.
+          {}
+    }
+  }
+
+  // BFS over (node, direction) states, with fuel to ensure termination.
+  ghost function BallSideBFS(
+    G: Graph,
+    W: set<Node>,
+    frontier: set<BallState>,
+    visited: set<BallState>,
+    fuel: nat
+  ): set<BallState>
+    decreases fuel
+  {
+    if frontier == {} || fuel == 0 then
+      visited
+    else
+      var newVisited := visited + frontier;
+      var nextFrontier :=
+        (set s, t | s in frontier && t in BallStep(G, W, s) :: t) - newVisited;
+      BallSideBFS(G, W, nextFrontier, newVisited, fuel - 1)
+  }
+
+  // The set of nodes reachable from v by the Bayes Ball algorithm
+  // conditioning on W.  The initial ball departs v going OutOfNode
+  // (ball leaves v as if sent upward — it has not yet arrived at any
+  // intermediate node, so v itself is always included).
+  ghost function BallSide(G: Graph, v: Node, W: set<Node>): set<Node>
+  {
+    var states := BallSideBFS(
+      G, W,
+      {BallState(v, OutOfNode)},
+      {},
+      2 * |Nodes(G)|
+    );
+    {v} + (set s | s in states :: s.node)
   }
 
   // ==================================================================
