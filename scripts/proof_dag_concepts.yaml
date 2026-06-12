@@ -1,0 +1,372 @@
+# proof_dag_concepts.yaml
+#
+# Maps low-level Dafny/Lean lemma names to high-level concept nodes for the
+# proof narrative DAG.  Each entry specifies:
+#
+#   label:   display label inside the Mermaid node
+#   class:   optional Mermaid classDef override (mathlib, algo, unproved, …)
+#            if omitted, class is inferred from axiom status + prover
+#   members: list of Dafny or Lean lemma/theorem names that belong to this concept
+#
+# Run:
+#   python scripts/generate_proof_dag.py --concepts scripts/proof_dag_concepts.yaml
+#   python scripts/generate_proof_dag.py --concepts scripts/proof_dag_concepts.yaml \
+#       --output docs/high-level-dag.md
+
+concepts:
+  K:
+    label: "Kolmogorov Axioms\nnon-negativity · normalization · additivity\nD: 1/3 proved · L: Mathlib PMF type"
+    class: mathlib
+    members:
+      - pmf_apply_nonneg
+      - pmf_tsum_one
+      - pmf_additivity
+      - Axiom_NonNegativity
+      - Axiom_Normalization
+      - Axiom_Additivity
+
+  PMF:
+    label: "PMF well-formedness\npmf_tsum_one · pmf_additivity"
+    members:
+      - PMF
+      - PMFWellFormed
+      - pmf_well_formed
+      - PMF_tsum_one
+      - PMF_additivity
+
+  PROD:
+    label: "Product PMF\npmfProd_tsum_one"
+    members:
+      - pmfProd_tsum_one
+      - ProductPMF
+      - productPMF_tsum_one
+
+  TRUNC:
+    label: "TruncatePMF\ndo-operator\ntruncatePMF_tsum_one"
+    members:
+      - TruncatePMF
+      - truncatePMF_tsum_one
+      - TruncatePMF_tsum_one
+
+  MARKOV:
+    label: "Markov Factorization\nP = ∏ P(Vᵢ | Pa(Vᵢ))"
+    members:
+      - MarkovFactorization
+      - MarkovFactorization_IsDistribution
+      - markovFactorization
+      - Markov_Factorization
+
+  REACH:
+    label: "Graph Reachability Axioms\nBFS ancestors/descendants\nAncestorsCompiled_Correct (D: axiom)"
+    members:
+      - AncestorsCompiled_Correct
+      - DescendantsCompiled_Correct
+      - AncestorsCompiled
+      - DescendantsCompiled
+      - ReachableBFS
+      - ReachableParentBFS
+      # BFS correctness helpers (exclusively support REACH)
+      - AncestorsCompiled_Complete
+      - AncestorsCompiled_Sound
+      - BFSForwardInvariant_Apply
+      - BFSInvariant_Apply
+      - Children_InNodes
+      - DescendantsCompiled_Complete
+      - DescendantsCompiled_Sound
+      - IsAncestorBounded_EndInNodes
+      - IsAncestorBounded_ExtractPath
+      - IsAncestorBounded_StartInNodes
+      - IsAncestorBounded_TopoTight
+      - IsAncestor_DAGTight
+      - IsDAG_ParentsInNodes
+      - IsParentPath_Prefix
+      - ReachableBFS_FollowsFreshChildPath
+      - ReachableBFS_InNodes
+      - ReachableBFS_Mono
+      - ReachableBFS_Sound
+      - ReachableBFS_VisitedSubset
+      - ReachableParentBFS_FollowsFreshParentPath
+      - ReachableParentBFS_InNodes
+      - ReachableParentBFS_Mono
+      - ReachableParentBFS_Sound
+      - ReachableParentBFS_VisitedSubset
+      - SeqIndex_NoDup_Unique
+      - TopoSort_ParentBefore
+      # Shared with ANC/LMARKOV — belongs here as the upstream concept
+      - TopologicalSort_Length
+      # IsTopologicalSort predicate: used by BFS correctness (REACH) and KAHN_PROOF
+      # — belongs in REACH as it is the more upstream concept
+      - IsTopologicalSort
+      # Abstract ancestor/descendant definitions called by BFS correctness proofs
+      - Ancestors
+      - Descendants
+      - IsAncestorBounded_Monotone
+      - IsAncestorBounded_Transitive
+
+  KAHN_ALGO:
+    label: "Kahn's Algorithm\nkahnSort · KahnAux"
+    class: algo
+    members:
+      - kahnSort
+      - KahnAux
+      - KahnsAlgorithm
+      - KahnSort
+      - FilterSort_NoDup
+      - FilterSort_Contains
+      - InDegree
+      - InDegreeMap
+      - RemoveIncoming
+      - RemoveIncomingCompiled
+      - RemoveIncomingCompiled_Correct
+      - RemoveIncoming_Empty
+      - RemoveIncoming_NoParents
+      - RemoveIncoming_PreservesOthers
+
+  KAHN_PROOF:
+    label: "Topological Sort Correctness\nKahnsAlgorithm_Correct (D)\nkahnSort_spec (L)"
+    members:
+      - KahnsAlgorithm_Correct
+      - kahnSort_spec
+
+  ANC:
+    label: "Ancestors / Descendants\nancestors_correct (L)\ndescendants_correct (L)"
+    members:
+      - ancestors_correct
+      - descendants_correct
+      - NonDescendants
+      - AncestorsBounded
+      - forwardTrail_of_mem_descendants
+      - IsAncestorBounded_ImpliesForwardTrail
+      - ForwardTrail_EndInDescendants
+      - ForwardTrail_EndInDescendants_DAG
+      - ForwardTrail_ImpliesAncestorBounded
+      - ForwardTrail_ImpliesAncestorBoundedByOrderDistance
+      - ForwardTrail_StartBeforeEndInTopologicalOrder
+      - ForwardTrail_StartAtOrBeforeEndInTopologicalOrder
+      - ForwardTrail_NodeInDescendants
+      - DescendantsOfDescendant_DisjointParents
+      - Ancestor_Reflexive
+
+  CCOMP:
+    label: "C-Component Membership\ncComponent_correct (L)\nComputeCComponents_Correct (D)"
+    members:
+      - cComponent_correct
+      - ComputeCComponents_Correct
+      - CComponent
+      - cComponent
+      - computeCComponents
+
+  LMARKOV:
+    label: "Local Markov Property\nLocalMarkov (D)"
+    members:
+      - LocalMarkov
+      - localMarkov
+      - BackwardFirstStep_BlockedByParents
+      - FirstBackwardPos
+      - FirstForwardBackwardPivot_BlockedByParents
+
+  SYM:
+    label: "d-Sep Symmetry\nDSep_Symmetry (D) · dSep_symmetry (L)"
+    members:
+      - DSep_Symmetry
+      - dSep_symmetry
+
+  DEC:
+    label: "d-Sep Decomposition\nDSep_Decomposition (D) · dSep_decomposition (L)"
+    members:
+      - DSep_Decomposition
+      - dSep_decomposition
+
+  WU:
+    label: "d-Sep Weak Union\nDSep_WeakUnion (D) · dSep_weakUnion (L)"
+    members:
+      - DSep_WeakUnion
+      - dSep_weakUnion
+
+  # Trail helper lemmas shared across multiple d-sep proofs.
+  # Grouped separately so they don't inflate individual theorem counts.
+  TRAIL:
+    label: "Trail Helpers\n(path-blocking infrastructure)"
+    class: algo
+    members:
+      - ColliderOpenedByNewConditioning
+      - BlockingAddedByConditioningAtPos
+      - IsCollider_Prefix
+      - IsCollider_Suffix
+      - TrailConnects_Concat
+      - TrailConnects_Prefix
+      - ValidTrail_Concat
+      - ValidTrail_Prefix
+      - TrailNotBlockedAtPos
+      - FirstBlockedPos
+      - PrefixWithoutBlockedPos_NotBlocked
+      - TrailBlockedAtPos_Prefix
+      - TrailBlockedAtPos_Suffix
+      - TrailBlocked_Suffix
+      - TrailConnects_Suffix
+      - ValidTrail_Suffix
+      - TrailConnects_Suffix
+      - ValidTrail_Suffix
+      - TrailBlocked_Suffix
+      - ReverseTrail_Valid
+      - ReverseTrail_Connects
+      - ReverseTrail_Blocked
+      - ReverseTrail_Collider
+      - ReverseTrail_Length
+      - ReverseTrail_Node
+      - ReverseTrail_Index
+      - ReverseStep_Valid
+
+  CONT:
+    label: "d-Sep Contraction\nDSep_Contraction (D) · dSep_contraction (L)"
+    members:
+      - DSep_Contraction
+      - dSep_contraction
+
+  INTER:
+    label: "d-Sep Intersection\nDSep_Intersection (D)"
+    members:
+      - DSep_Intersection
+      - DSep_Intersection_Descend
+      - ShorterUnblockedPrefixIntoConditioningSet
+      - dSep_intersection
+
+  GM:
+    label: "Global Markov Property\nGlobalMarkov · KernelGlobalMarkov"
+    members:
+      - GlobalMarkov
+      - KernelGlobalMarkov
+      - kernelGlobalMarkov
+      - KernelPoint_EmptyIntervention
+      - PureDSepErasesObservation
+
+  R1:
+    label: "Do-Calculus Rule 1\nInsert/Delete Observation\nRule1Plus proved (D)"
+    members:
+      - Rule1Plus_InsertDeleteObservation
+      - Rule1Plus_FromLegacyPrecondition
+      - Rule1_InsertDeleteObservation
+      - ConditioningOnIntervenedIsVacuous
+      - Line1_Uses_Rule3
+      - InterventionSemantics
+
+  R2:
+    label: "Do-Calculus Rule 2\nAction/Observation Exchange"
+    members:
+      - Rule2_ActionObservationExchange
+      - Line2_Uses_Rule1
+
+  R3:
+    label: "Do-Calculus Rule 3\nInsert/Delete Action"
+    members:
+      - Rule3_InsertDeleteAction
+      - Line3_Uses_Rule3
+      - Line4_Uses_Rules2and3
+
+  BKD:
+    label: "Backdoor Criterion\nBackdoorAdjustment"
+    members:
+      - BackdoorAdjustment
+      - backdoorAdjustment
+
+  FRD:
+    label: "Frontdoor Criterion\nFrontdoorCriterion"
+    members:
+      - FrontdoorCriterion
+      - frontdoorCriterion
+
+  L1:
+    label: "Lemma 1\nNon-Identifiability Witness"
+    members:
+      - Lemma1_NonIdentifiabilityWitness
+
+  L2:
+    label: "Lemma 2\nC-Component Factorization"
+    members:
+      - Lemma2_CComponentFactorization
+
+  L3L:
+    label: "Lemma 3\nQ-Value Derivation"
+    members:
+      - Lemma3_QValueDerivation
+      - QValue_Lemma
+      - QValueDerivation
+
+  ID:
+    label: "ID Algorithm Lines 1–7\nIDImpl / ID"
+    class: algo
+    members:
+      - IDImpl
+      - ID
+      - idImpl
+      - id_algorithm
+
+  T2:
+    label: "Theorem 2: Soundness of ID\nTheorem2_Soundness"
+    members:
+      - Theorem2_Soundness
+
+  T3:
+    label: "Theorem 3: Completeness of ID\nTheorem3_Completeness"
+    members:
+      - Theorem3_Completeness
+
+  T4:
+    label: "Theorem 4: Do-Calculus Completeness\nTheorem4_DoCalculusCompleteness"
+    members:
+      - Theorem4_DoCalculusCompleteness
+
+# ---------------------------------------------------------------------------
+# Semantic edges: hand-specified conceptual dependencies that are not always
+# captured by literal proof-call analysis.  Format: "- FROM --> TO"
+# ---------------------------------------------------------------------------
+extra_edges:
+  # Probability foundation
+  - K --> PMF
+  - PMF --> PROD
+  - PMF --> TRUNC
+  - TRUNC --> MARKOV
+  - MARKOV --> GM
+  # Graph structure
+  - REACH --> KAHN_ALGO
+  - REACH --> ANC
+  - KAHN_ALGO --> KAHN_PROOF
+  - KAHN_PROOF --> ANC
+  - ANC --> CCOMP
+  # D-separation / semi-graphoid (independent of each other, rooted in graph)
+  - REACH --> LMARKOV
+  - REACH --> SYM
+  - REACH --> DEC
+  - REACH --> WU
+  - WU --> CONT
+  - CONT --> INTER
+  # Global Markov follows from local Markov + semi-graphoid axioms
+  - LMARKOV --> GM
+  - SYM --> GM
+  - DEC --> GM
+  - WU --> GM
+  # Do-calculus
+  - GM --> R1
+  - GM --> R2
+  - GM --> R3
+  - R1 --> BKD
+  - R2 --> BKD
+  - R1 --> FRD
+  - R2 --> FRD
+  - R3 --> FRD
+  # ID algorithm
+  - R1 --> ID
+  - R2 --> ID
+  - R3 --> ID
+  - L2 --> ID
+  - L3L --> ID
+  - MARKOV --> L2
+  - KAHN_PROOF --> L2
+  - CCOMP --> L2
+  - CCOMP --> L3L
+  # Soundness / completeness theorems
+  - ID --> T2
+  - ID --> T3
+  - L1 --> T3
+  - T2 --> T4
+  - T3 --> T4

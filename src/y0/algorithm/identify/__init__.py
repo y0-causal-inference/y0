@@ -72,12 +72,15 @@ Counterfactual Transportability :mod:`y0.algorithm.counterfactual_transport`
 from .api import identify_outcomes
 from .cyclic_id import cyclic_id
 from .id_c import idc
+from .id_dispatch import IDEngine, identify_with_engine
+from .id_generated import identify_generated
 from .id_star import id_star
 from .id_std import identify
 from .idc_star import idc_star
 from .utils import Identification, Query, Unidentifiable
 
 __all__ = [
+    "IDEngine",
     "Identification",
     "Query",
     "Unidentifiable",
@@ -86,5 +89,7 @@ __all__ = [
     "idc",
     "idc_star",
     "identify",
+    "identify_generated",
     "identify_outcomes",
+    "identify_with_engine",
 ]

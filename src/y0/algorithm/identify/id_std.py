@@ -291,6 +291,12 @@ def line_4(identification: Identification) -> list[Identification]:
     ] = graph_without_treatments.districts()
     if len(districts_without_treatment) <= 1:
         raise ValueError("Line 4 precondition not met")
+
+    ordered_districts_without_treatment = sorted(
+        districts_without_treatment,
+        key=lambda district: tuple(sorted(str(variable) for variable in district)),
+    )
+
     return [
         Identification.from_parts(
             outcomes=district_without_treatment,
@@ -298,7 +304,7 @@ def line_4(identification: Identification) -> list[Identification]:
             estimand=estimand,
             graph=graph,
         )
-        for district_without_treatment in districts_without_treatment
+        for district_without_treatment in ordered_districts_without_treatment
     ]
 
 

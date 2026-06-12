@@ -157,6 +157,12 @@ skip = [
 # MyPy, see https://mypy.readthedocs.io/en/stable/config_file.html
 [tool.mypy]
 plugins = []
+exclude = '''(?x)(
+        ^src/y0/algorithm/identify/_dafny_id_line1_extracted_py/
+    | ^src/dafny/id_line1_extracted-py/
+    | ^\.cache/y0/dafny/id_line1_extracted_py/
+    | ^\.cache/y0/dafny/id_line2_extracted_py/
+)$'''
 
 # Doc8, see https://doc8.readthedocs.io/en/stable/readme.html#ini-file-usage
 [tool.doc8]
@@ -206,6 +212,9 @@ exclude_lines = [
 [tool.ruff]
 line-length = 100
 extend-include = ["*.ipynb"]
+exclude = [
+    ".github/claude-scientific-writer",
+]
 
 [tool.ruff.lint]
 # See https://docs.astral.sh/ruff/rules
@@ -243,6 +252,23 @@ ignore = [
 "notebooks/**/*.ipynb" = ["T201", "S101", "N811", "N802", "N803"]
 "src/y0/algorithm/separation/sigma_separation.py" = ["RUF002", "RUF003"]
 "src/y0/algorithm/separation/__init__.py" = ["RUF002", "RUF003"]
+# Auto-generated conformance tests use uppercase Variable names (X, Y, Z) by design
+"tests/test_dafny_correspondence.py" = ["N806", "RUF001", "RUF002"]
+# Generator script has math symbols in docstrings and complex main function
+"scripts/generate_dafny_conformance_tests.py" = ["RUF001", "C901", "T201"]
+# Utility script is intentionally CLI-oriented and uses user-facing prints
+"notebooks/convert_pdfs_to_png.py" = ["T201"]
+# Extracted runtime smoke scripts are intentionally CLI-style and generated-shape aware
+"scripts/check_dafny_id_*_extracted_runtime.py" = ["D205", "N812", "T201"]
+"scripts/check_dafny_id_full_runtime.py" = ["C901", "D103"]
+"scripts/run_ruff_on_tracked.py" = ["D103", "S603", "S607", "T201"]
+# Transitional generated routing and route-order tests are intentionally branch-heavy
+"src/y0/algorithm/identify/id_generated.py" = ["C901"]
+"src/y0/algorithm/identify/id_extracted_bridge.py" = ["C901"]
+"tests/test_algorithm/test_id_generated_parity.py" = ["C901", "S101"]
+# Gate-routing contract tests and oracle correspondence tests use plain pytest assert
+"tests/test_algorithm/test_id_extracted_routing.py" = ["S101"]
+"tests/test_dafny_id_correspondence.py" = ["N806", "RUF001", "RUF002", "S101"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

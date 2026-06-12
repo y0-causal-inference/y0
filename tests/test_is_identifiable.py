@@ -2,9 +2,12 @@
 
 import unittest
 
-from y0.algorithm.identify import Identification, Unidentifiable, identify
+from y0.algorithm.identify import Identification, Unidentifiable
+from y0.algorithm.identify.id_dispatch import IDEngine, identify_with_engine
 from y0.dsl import Distribution, P, Probability, X, Y
 from y0.graph import NxMixedGraph
+
+ENGINES: tuple[IDEngine, ...] = ("handwritten", "generated")
 
 
 class TestNotIdentifiable(unittest.TestCase):
@@ -18,8 +21,11 @@ class TestNotIdentifiable(unittest.TestCase):
         self, graph: NxMixedGraph, query: Probability | Distribution
     ) -> None:
         """Asset the graph is not identifiable under the given query."""
-        with self.assertRaises(Unidentifiable):
-            identify(Identification.from_expression(graph=graph, query=query))
+        identification = Identification.from_expression(graph=graph, query=query)
+        for engine in ENGINES:
+            with self.subTest(engine=engine):
+                with self.assertRaises(Unidentifiable):
+                    identify_with_engine(identification, engine=engine)
 
     def test_figure_1a(self):
         """Test Figure 1A."""
@@ -104,8 +110,11 @@ class TestIdentifiable(unittest.TestCase):
 
     def assert_identifiable(self, graph: NxMixedGraph, query: Probability | Distribution) -> None:
         """Assert the graph is identifiable under the given query."""
-        estimand = identify(Identification.from_expression(graph=graph, query=query))
-        self.assertIsNotNone(estimand)
+        identification = Identification.from_expression(graph=graph, query=query)
+        for engine in ENGINES:
+            with self.subTest(engine=engine):
+                estimand = identify_with_engine(identification, engine=engine)
+                self.assertIsNotNone(estimand)
 
     def test_figure_2a(self):
         """Test Figure 2a."""
