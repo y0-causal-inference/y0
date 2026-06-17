@@ -9,6 +9,8 @@ m-separation [drton2003]_ A generalization of d-separation in an acyclic directe
                           graph
 σ-separation [forre2018]_ Identifies nodes in any directed mixed graph as               :func:`y0.algorithm.separation.are_sigma_separated`
                           probabilistically dependent (cycles allowed)
+σ-single-door [forre2018] Graphical admissibility test and adjustment-set finder for    :func:`y0.algorithm.separation.is_sigma_single_door_admissible`,
+                          the σ-separation single-door criterion (cycles allowed)       :func:`y0.algorithm.separation.find_sigma_single_door_sets`
 ========================= ============================================================= ====================================================================
 
 .. [forre2018] `Constraint-based Causal Discovery for Non-Linear Structural Causal Models
@@ -21,10 +23,13 @@ m-separation [drton2003]_ A generalization of d-separation in an acyclic directe
     Inference <https://doi.org/10.1017/CBO9780511803161>`_
 """
 
-from .sigma_separation import are_sigma_separated
 from ..conditional_independencies import are_d_separated
+from .sigma_separation import are_sigma_separated
+from .sigma_single_door import find_sigma_single_door_sets, is_sigma_single_door_admissible
 
 __all__ = [
     "are_d_separated",
     "are_sigma_separated",
+    "find_sigma_single_door_sets",
+    "is_sigma_single_door_admissible",
 ]
