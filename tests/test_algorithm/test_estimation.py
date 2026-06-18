@@ -123,8 +123,7 @@ class TestGetSingleDoor(unittest.TestCase):
             weights=self.weights,
         )
         rows = [
-            {variable.name: value for variable, value in scm.trial().items()}
-            for _ in range(self.N)
+            {variable.name: value for variable, value in scm.trial().items()} for _ in range(self.N)
         ]
         self.data = pd.DataFrame(rows)
 
@@ -198,8 +197,7 @@ class TestGetSigmaSingleDoor(unittest.TestCase):
             weights=self.weights,
         )
         rows = [
-            {variable.name: value for variable, value in scm.trial().items()}
-            for _ in range(self.N)
+            {variable.name: value for variable, value in scm.trial().items()} for _ in range(self.N)
         ]
         self.data = pd.DataFrame(rows)
 

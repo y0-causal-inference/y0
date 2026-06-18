@@ -68,6 +68,7 @@ dependencies = [
     "statsmodels",
     "scipy",
     "typing-extensions",
+    "sympy>=1.14.0",
 ]
 
 # see https://peps.python.org/pep-0735/ and https://docs.astral.sh/uv/concepts/dependencies/#dependency-groups
@@ -206,6 +207,10 @@ exclude_lines = [
 [tool.ruff]
 line-length = 100
 extend-include = ["*.ipynb"]
+exclude = [
+    "src/y0/algorithm/identify/_dafny_id_line1_extracted_py",
+    "src/lean",
+]
 
 [tool.ruff.lint]
 # See https://docs.astral.sh/ruff/rules
@@ -242,7 +247,10 @@ ignore = [
 # Prints are okay in notebooks
 "notebooks/**/*.ipynb" = ["T201", "S101", "N811", "N802", "N803"]
 "src/y0/algorithm/separation/sigma_separation.py" = ["RUF002", "RUF003"]
+"src/y0/algorithm/separation/sigma_single_door.py" = ["RUF002", "RUF003"]
 "src/y0/algorithm/separation/__init__.py" = ["RUF002", "RUF003"]
+"src/y0/algorithm/estimation/linear_scm.py" = ["RUF002", "RUF003"]
+"tests/test_algorithm/test_sigma_single_door_criterion.py" = ["RUF002", "RUF003"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

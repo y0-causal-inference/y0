@@ -155,9 +155,7 @@ class TestFindSigmaSingleDoorSets(unittest.TestCase):
 
     def test_max_conditions_excludes_larger_sets(self) -> None:
         """max_conditions=1 should not yield sets of size > 1."""
-        graph = NxMixedGraph.from_edges(
-            directed=[(Z1, X), (Z2, X), (X, Y), (Z1, Y), (Z2, Y)]
-        )
+        graph = NxMixedGraph.from_edges(directed=[(Z1, X), (Z2, X), (X, Y), (Z1, Y), (Z2, Y)])
         for z in find_sigma_single_door_sets(graph, X, Y, max_conditions=1):
             with self.subTest(z=z):
                 self.assertLessEqual(len(z), 1)

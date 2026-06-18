@@ -23,9 +23,9 @@ m-separation [drton2003]_ A generalization of d-separation in an acyclic directe
     Inference <https://doi.org/10.1017/CBO9780511803161>`_
 """
 
-from ..conditional_independencies import are_d_separated
 from .sigma_separation import are_sigma_separated
 from .sigma_single_door import find_sigma_single_door_sets, is_sigma_single_door_admissible
+from ..conditional_independencies import are_d_separated
 
 __all__ = [
     "are_d_separated",
