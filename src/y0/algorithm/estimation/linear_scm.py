@@ -28,9 +28,9 @@ def _estimate_edge(
     target: Variable,
     adjustment_sets: Iterable[frozenset[str]],
 ) -> float:
-    """Estimate the direct-effect coefficient for source → target via OLS.
+    r"""Estimate the direct-effect coefficient for source -> target via OLS.
 
-    For each adjustment set Z, regresses *target* on {source} ∪ Z using
+    For each adjustment set Z, regresses *target* on :math:`\{source\} \cup Z` using
     :class:`sklearn.linear_model.LinearRegression` and extracts the
     coefficient for *source*.  Returns the mean across all adjustment sets.
 
@@ -55,7 +55,7 @@ def _estimate_edge(
 def get_single_door(
     graph: NxMixedGraph, data: pd.DataFrame
 ) -> dict[tuple[Variable, Variable], float]:
-    """Estimate parameter values for a linear SCM using backdoor adjustment.
+    r"""Estimate parameter values for a linear SCM using backdoor adjustment.
 
     Restricted to **DAGs** (uses pgmpy's d-separation back-door enumeration).
     For directed graphs with cycles, use :func:`get_sigma_single_door`.
@@ -63,7 +63,7 @@ def get_single_door(
     :param graph: An acyclic directed mixed graph (ADMG / DAG).
     :param data: Observed data; columns must match node names in *graph*.
     :returns: A mapping from each directed edge (source, target) to the
-        estimated linear coefficient β(source → target).
+        estimated linear coefficient :math:`\beta(source \to target)`.
     """
     inference = graph.to_pgmpy_causal_inference()
     rv = {}
@@ -87,15 +87,15 @@ def get_sigma_single_door(
     *,
     max_conditions: int | None = None,
 ) -> dict[tuple[Variable, Variable], float]:
-    """Estimate linear-SCM coefficients via the σ-separation single-door criterion.
+    r"""Estimate linear-SCM coefficients via the :math:`\sigma`-separation single-door criterion.
 
     Cyclic generalization of :func:`get_single_door`: replaces d-separation
-    back-door adjustment (DAG-only, via pgmpy) with σ-separation admissible
+    back-door adjustment (DAG-only, via pgmpy) with :math:`\sigma`-separation admissible
     sets (valid for directed graphs with cycles, per Forré & Mooij 2018).
 
-    For each directed edge source → target, enumerates σ-separation admissible
+    For each directed edge source -> target, enumerates :math:`\sigma`-separation admissible
     adjustment sets Z using :func:`~y0.algorithm.separation.sigma_single_door.\
-find_sigma_single_door_sets`, regresses *target* on {source} ∪ Z, and
+find_sigma_single_door_sets`, regresses *target* on :math:`\{source\} \cup Z`, and
     averages the source coefficient across all admissible sets.  Edges for
     which no admissible set exists are **omitted** from the result (they are
     not identifiable via the single-door criterion).
@@ -107,11 +107,11 @@ find_sigma_single_door_sets`, regresses *target* on {source} ∪ Z, and
         **Warning:** enumeration is O(2^k) in the candidate pool size; set a
         cap for large graphs.
     :returns: A mapping from each identifiable directed edge (source, target)
-        to the estimated linear coefficient β(source → target).
+        to the estimated linear coefficient :math:`\beta(source \to target)`.
 
     .. note::
         On acyclic graphs, results should numerically agree with
-        :func:`get_single_door` (up to sampling noise), since σ-separation
+        :func:`get_single_door` (up to sampling noise), since :math:`\sigma`-separation
         reduces to d-separation on DAGs.
 
     References
@@ -121,14 +121,14 @@ find_sigma_single_door_sets`, regresses *target* on {source} ∪ Z, and
     """
     rv = {}
     for source, target in graph.directed.edges():
-        # Collect all σ-admissible adjustment sets (as frozensets of Variable)
+        # Collect all sigma-admissible adjustment sets (as frozensets of Variable)
         admissible_variable_sets = list(
             find_sigma_single_door_sets(graph, source, target, max_conditions=max_conditions)
         )
         if not admissible_variable_sets:
-            # Edge is not identifiable via the single-door criterion — skip it.
+            # Edge is not identifiable via the single-door criterion -- skip it.
             continue
-        # Convert Variable frozensets → string frozensets for _estimate_edge
+        # Convert Variable frozensets -> string frozensets for _estimate_edge
         admissible_str_sets: list[frozenset[str]] = [
             frozenset(v.name for v in z) for z in admissible_variable_sets
         ]
