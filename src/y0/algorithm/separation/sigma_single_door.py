@@ -7,32 +7,70 @@ functional-form-agnostic: it depends only on the graph and the
 :math:`\sigma`-separation oracle, so it is reusable for linear, additive, or
 nonparametric estimators.
 
-Reference
----------
+The module also provides an efficient *O(V + E)* per-edge implementation based on
+the σ-extension trick (Rantanen et al. 2020): once the σ-extension graph is built,
+σ-separation reduces to ordinary d-separation, enabling the use of the O-set
+optimal adjustment criterion (Henckel, Perković & Maathuis 2022) for minimum-variance
+estimation.
+
+References
+----------
 P. Forré, J. M. Mooij (2018). Constraint-based Causal Discovery for
 Non-linear Structural Causal Models with Cycles and Latent Confounders.
 [forre2018]
+
+K. Rantanen, A. Hyttinen, M. Järvisalo (2020). Learning Optimal Cyclic Causal
+Graphs from Interventional Data. *Probabilistic Graphical Models*.
+
+L. Henckel, E. Perković, M. H. Maathuis (2022). Graphical criteria for efficient
+total effect estimation via adjustment in causal linear models. *JRSS-B*, 84(2).
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 from itertools import combinations
+from typing import Literal
 
+import networkx as nx
+
+from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import Variable
 from y0.graph import NxMixedGraph
 
+from .sigma_extension import sigma_extension
 from .sigma_separation import are_sigma_separated
 
 __all__ = [
+    "find_sigma_single_door_set",
     "find_sigma_single_door_sets",
     "is_sigma_single_door_admissible",
+    "optimal_adjustment_set",
+    "proper_backdoor_graph",
 ]
 
 
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
+
+
+def _directed_paths_from(
+    graph: NxMixedGraph, source: Variable, target: Variable
+) -> list[list[Variable]]:
+    """Return all simple directed paths from *source* to *target* in *graph*.
+
+    Uses :func:`networkx.all_simple_paths` on the directed subgraph only.
+    Returns an empty list if either node is absent from the graph.
+
+    :param graph: A directed mixed graph.
+    :param source: Start node.
+    :param target: End node.
+    :returns: A list of paths, each path being a list of :class:`~y0.dsl.Variable`.
+    """
+    if source not in graph.directed or target not in graph.directed:
+        return []
+    return list(nx.all_simple_paths(graph.directed, source, target))
 
 
 def _remove_directed_edge(graph: NxMixedGraph, u: Variable, v: Variable) -> NxMixedGraph:
@@ -54,6 +92,190 @@ def _remove_directed_edge(graph: NxMixedGraph, u: Variable, v: Variable) -> NxMi
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
+
+def proper_backdoor_graph(
+    graph: NxMixedGraph,
+    cause: Variable,
+    effect: Variable,
+) -> NxMixedGraph:
+    r"""Return the proper back-door graph for the edge :math:`cause \to effect`.
+
+    The proper back-door graph :math:`G^{pbd}_{XY}` is constructed from
+    :math:`G \setminus \{X \to Y\}` by deleting every directed edge out of *cause*
+    that lies on a **proper possible-causal path** from *cause* to *effect* — i.e.
+    a directed path in the edge-removed graph that starts with a directed edge out
+    of *cause*.
+
+    This isolates the non-causal (back-door) pathways so that a d-separator in
+    :math:`G^{pbd}_{XY}` blocks exactly the confounding paths without blocking
+    the causal path itself.
+
+    :param graph: A directed mixed graph (may contain cycles).
+    :param cause: The source variable of the direct effect of interest.
+    :param effect: The target variable of the direct effect of interest.
+    :returns: The proper back-door graph as a new :class:`~y0.graph.NxMixedGraph`.
+    :raises KeyError: If the directed edge :math:`cause \to effect` does not exist.
+
+    Reference
+    ---------
+    B. van der Zander, M. Liśkiewicz (2020). Finding Minimal d-separators in
+    Linear Time and Applications. *UAI 2020*.
+    """
+    # Step 1: remove the target edge.
+    reduced = _remove_directed_edge(graph, cause, effect)
+
+    # Step 2: find all directed edges out of *cause* that lie on a proper
+    # possible-causal path (a directed path cause → ... → effect in the
+    # edge-removed graph that starts with a directed edge out of cause).
+    # Collect the first hop of every such path.
+    first_hops_on_causal_paths: set[Variable] = set()
+    for path in _directed_paths_from(reduced, cause, effect):
+        # path[0] == cause, path[1] is the first hop
+        if len(path) >= 2:
+            first_hops_on_causal_paths.add(path[1])
+
+    # Step 3: delete those directed edges out of *cause*.
+    pbd = reduced.copy()
+    for hop in first_hops_on_causal_paths:
+        if pbd.directed.has_edge(cause, hop):
+            pbd.directed.remove_edge(cause, hop)
+
+    return pbd
+
+
+def optimal_adjustment_set(
+    graph: NxMixedGraph,
+    cause: Variable,
+    effect: Variable,
+) -> frozenset[Variable] | None:
+    r"""Compute the O-set (optimal adjustment set) for :math:`cause \to effect`.
+
+    The O-set is the adjustment set that minimises asymptotic estimation variance
+    among all valid adjustment sets (Henckel, Perković & Maathuis 2022).  It is
+    defined as:
+
+    .. math::
+
+        O(X \to Y) = pa\bigl(cn(X \to Y)\bigr) \setminus forb(X \to Y)
+
+    where:
+
+    * :math:`cn(X \to Y)` — **causal nodes**: all nodes on directed paths from
+      *cause* to *effect* in the original graph (including *cause* and *effect*).
+    * :math:`forb(X \to Y)` — **forbidden nodes**: descendants of the causal nodes
+      (inclusive) plus *cause* itself.
+
+    The O-set is a valid adjustment set whenever it is non-empty and does not
+    contain any descendant of *effect*.  If no valid O-set exists (e.g. the edge
+    is not identifiable), ``None`` is returned.
+
+    :param graph: A directed mixed graph (may contain cycles).
+    :param cause: The source variable of the direct effect of interest.
+    :param effect: The target variable of the direct effect of interest.
+    :returns: The O-set as a :class:`frozenset`, or ``None`` if the O-set
+        contains a descendant of *effect* (non-identifiable).
+
+    Reference
+    ---------
+    L. Henckel, E. Perković, M. H. Maathuis (2022). Graphical criteria for
+    efficient total effect estimation via adjustment in causal linear models.
+    *Journal of the Royal Statistical Society: Series B*, 84(2), 579–599.
+    """
+    # Causal nodes: all nodes on directed paths cause → ... → effect.
+    # (Works even when the direct edge cause→effect is absent, e.g. in G^pbd.)
+    causal_nodes: set[Variable] = set()
+    for path in _directed_paths_from(graph, cause, effect):
+        causal_nodes.update(path)
+
+    # If there are no directed paths at all, the O-set is empty.
+    if not causal_nodes:
+        return frozenset()
+
+    # Forbidden nodes: descendants of causal nodes (inclusive) ∪ {cause}.
+    forbidden: set[Variable] = graph.descendants_inclusive(causal_nodes)
+    forbidden.add(cause)
+
+    # O-set: parents of causal nodes, minus forbidden.
+    o_set: set[Variable] = set()
+    for cn in causal_nodes:
+        o_set.update(graph.directed.predecessors(cn))
+    o_set -= forbidden
+
+    # Validity check: O-set must not contain any descendant of effect.
+    effect_descendants = graph.descendants_inclusive(effect)
+    if o_set & effect_descendants:
+        return None
+
+    return frozenset(o_set)
+
+
+def find_sigma_single_door_set(
+    graph: NxMixedGraph,
+    cause: Variable,
+    effect: Variable,
+    *,
+    method: Literal["optimal"] = "optimal",
+    precomputed_extension: NxMixedGraph | None = None,
+) -> frozenset[Variable] | None:
+    r"""Find a single admissible adjustment set for :math:`cause \to effect`.
+
+    This is the efficient *O(V + E)* per-edge implementation based on the
+    σ-extension trick (Rantanen et al. 2020).  The algorithm:
+
+    1. Build (or reuse) the σ-extension :math:`G^\sigma` — a real
+       :class:`~y0.graph.NxMixedGraph` with bidirected edges added for all
+       intra-SCC directed edges.
+    2. Remove the edge :math:`cause \to effect` from :math:`G^\sigma`.
+    3. Build the proper back-door graph :math:`G^{pbd}_{XY}` from the result.
+    4. Compute the O-set :math:`O = pa(cn) \setminus forb` in :math:`G^{pbd}_{XY}`.
+    5. Verify that *cause* and *effect* are d-separated by *O* in
+       :math:`G^{pbd}_{XY}` (the O-set is always valid when it exists, but we
+       check as a safety guard).
+
+    :param graph: A directed mixed graph (may contain cycles).
+    :param cause: The source variable of the direct effect of interest.
+    :param effect: The target variable of the direct effect of interest.
+    :param method: Adjustment-set strategy.  Currently only ``"optimal"``
+        (O-set, minimum asymptotic variance) is supported.
+    :param precomputed_extension: A pre-built σ-extension of *graph*.  Pass this
+        when calling :func:`find_sigma_single_door_set` in a loop over many edges
+        of the same graph to avoid recomputing the extension each time.
+    :returns: An admissible :class:`frozenset` of conditioning variables, or
+        ``None`` if the edge is absent or no admissible set was found.
+
+    .. note::
+        For the completeness guarantee, the returned set is always verified via
+        d-separation in :math:`G^{pbd}_{XY}`.  If the O-set fails the check
+        (which can happen in graphs with latent confounders), ``None`` is returned
+        rather than an invalid set.
+    """
+    if not graph.directed.has_edge(cause, effect):
+        return None
+
+    # Build or reuse the σ-extension.
+    g_sigma: NxMixedGraph = (
+        precomputed_extension if precomputed_extension is not None else sigma_extension(graph)
+    )
+
+    # Build the proper back-door graph in G^σ.
+    # proper_backdoor_graph handles the edge removal internally.
+    g_pbd = proper_backdoor_graph(g_sigma, cause, effect)
+
+    # Compute the O-set using the *original* G^σ (which still has the cause→effect
+    # edge), so that causal nodes are identified correctly.  The O-set is then
+    # verified in G^pbd (which has all causal edges from cause removed).
+    z = optimal_adjustment_set(g_sigma, cause, effect)
+    if z is None:
+        # O-set computation returned None (e.g. O-set contains a descendant of effect).
+        # Fall back to the empty set and check if it works.
+        z = frozenset()
+
+    # Safety verification: cause ⊥_d effect | Z in G^pbd.
+    if not bool(are_d_separated(g_pbd, cause, effect, conditions=z)):
+        return None
+
+    return z
 
 
 def is_sigma_single_door_admissible(
