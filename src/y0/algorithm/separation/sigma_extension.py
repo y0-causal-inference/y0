@@ -80,9 +80,7 @@ def sigma_extension(graph: NxMixedGraph) -> NxMixedGraph:
     """
     # Compute SCCs on the directed subgraph only (bidirected edges are ignored,
     # matching the definition in Bongers et al. 2021 / Forré & Mooij 2018).
-    sccs: list[set[Variable]] = list(
-        nx.strongly_connected_components(graph.directed)
-    )
+    sccs: list[set[Variable]] = list(nx.strongly_connected_components(graph.directed))
     # Build a node → SCC-id mapping for O(1) same-SCC lookup.
     node_to_scc: dict[Variable, int] = {}
     for scc_id, scc in enumerate(sccs):

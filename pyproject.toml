@@ -243,6 +243,10 @@ ignore = [
 "notebooks/**/*.ipynb" = ["T201", "S101", "N811", "N802", "N803"]
 "src/y0/algorithm/separation/sigma_separation.py" = ["RUF002", "RUF003"]
 "src/y0/algorithm/separation/__init__.py" = ["RUF002", "RUF003"]
+"src/y0/algorithm/separation/sigma_extension.py" = ["RUF002", "RUF003"]
+"src/y0/algorithm/separation/sigma_single_door.py" = ["RUF002", "RUF003"]
+"tests/test_algorithm/test_sigma_extension.py" = ["RUF001", "RUF002", "RUF003"]
+"tests/test_algorithm/test_sigma_single_door_new.py" = ["RUF002", "RUF003", "S101"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"

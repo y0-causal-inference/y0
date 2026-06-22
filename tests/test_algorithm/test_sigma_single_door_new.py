@@ -128,9 +128,7 @@ class TestOptimalAdjustmentSet(unittest.TestCase):
 
     def test_two_confounders(self) -> None:
         """Z1 -> X -> Y, Z2 -> X -> Y, Z1 -> Y, Z2 -> Y: both Z1, Z2 in O-set."""
-        g = NxMixedGraph.from_edges(
-            directed=[(Z1, X), (Z2, X), (X, Y), (Z1, Y), (Z2, Y)]
-        )
+        g = NxMixedGraph.from_edges(directed=[(Z1, X), (Z2, X), (X, Y), (Z1, Y), (Z2, Y)])
         o = optimal_adjustment_set(g, X, Y)
         self.assertIsNotNone(o)
         assert o is not None
