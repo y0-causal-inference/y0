@@ -13,6 +13,24 @@ the σ-extension trick (Rantanen et al. 2020): once the σ-extension graph is bu
 optimal adjustment criterion (Henckel, Perković & Maathuis 2022) for minimum-variance
 estimation.
 
+Complexity note
+---------------
+The O-set construction is O(|V| + |E|) per edge when implemented with
+reachability (BFS/DFS descendants and ancestors).  An earlier version of this
+module used ``nx.all_simple_paths`` to enumerate causal nodes, which is
+worst-case exponential in the number of simple paths between cause and effect.
+That approach caused severe timeouts on graphs with large strongly connected
+components (SCCs), where the path count grows super-exponentially.  The current
+implementation uses two graph-traversal sweeps instead:
+
+    cn   = descendants(cause) ∩ ancestors(effect) − {cause}
+    forb = descendants(cn) ∪ {cause}
+    O-set = pa(cn) − forb
+
+and the proper-backdoor graph is built by removing edges out of *cause* whose
+targets are reachable from *cause* and can reach *effect* in the edge-removed
+graph — again a reachability query, not a path enumeration.
+
 References
 ----------
 P. Forré, J. M. Mooij (2018). Constraint-based Causal Discovery for
@@ -111,6 +129,10 @@ def proper_backdoor_graph(
     :math:`G^{pbd}_{XY}` blocks exactly the confounding paths without blocking
     the causal path itself.
 
+    Implementation note: the first-hop identification uses two reachability
+    queries (O(|V|+|E|) each) rather than enumerating all simple paths, which
+    would be exponential in graphs with large SCCs.
+
     :param graph: A directed mixed graph (may contain cycles).
     :param cause: The source variable of the direct effect of interest.
     :param effect: The target variable of the direct effect of interest.
@@ -125,15 +147,25 @@ def proper_backdoor_graph(
     # Step 1: remove the target edge.
     reduced = _remove_directed_edge(graph, cause, effect)
 
-    # Step 2: find all directed edges out of *cause* that lie on a proper
-    # possible-causal path (a directed path cause → ... → effect in the
-    # edge-removed graph that starts with a directed edge out of cause).
-    # Collect the first hop of every such path.
-    first_hops_on_causal_paths: set[Variable] = set()
-    for path in _directed_paths_from(reduced, cause, effect):
-        # path[0] == cause, path[1] is the first hop
-        if len(path) >= 2:
-            first_hops_on_causal_paths.add(path[1])
+    # Step 2: identify first-hops on proper causal paths using reachability.
+    # A successor `hop` of `cause` lies on a proper causal path iff:
+    #   (a) cause can reach `hop` (trivially true — it's a direct successor), AND
+    #   (b) `hop` can reach `effect` in the edge-removed graph.
+    # This is O(|V|+|E|) via a single reverse-BFS from `effect`.
+    if effect in reduced.directed:
+        # Nodes that can reach `effect` in the edge-removed graph (ancestors of effect).
+        can_reach_effect: set[Variable] = set(
+            nx.ancestors(reduced.directed, effect)
+        )
+        can_reach_effect.add(effect)
+    else:
+        can_reach_effect = set()
+
+    first_hops_on_causal_paths: set[Variable] = {
+        hop
+        for hop in reduced.directed.successors(cause)
+        if hop in can_reach_effect
+    }
 
     # Step 3: delete those directed edges out of *cause*.
     pbd = reduced.copy()
@@ -182,14 +214,27 @@ def optimal_adjustment_set(
     efficient total effect estimation via adjustment in causal linear models.
     *Journal of the Royal Statistical Society: Series B*, 84(2), 579–599.
     """
-    # Causal nodes: all nodes on directed paths cause → ... → effect.
-    # (Works even when the direct edge cause→effect is absent, e.g. in G^pbd.)
-    causal_nodes: set[Variable] = set()
-    for path in _directed_paths_from(graph, cause, effect):
-        causal_nodes.update(path)
+    # Causal nodes: nodes on directed paths cause → ... → effect.
+    # Equivalent to: descendants(cause) ∩ ancestors(effect) ∪ {cause, effect}
+    # when both cause and effect are in the graph.
+    # This is O(|V|+|E|) via two BFS sweeps — no path enumeration needed.
+    if cause not in graph.directed or effect not in graph.directed:
+        return frozenset()
 
-    # If there are no directed paths at all, the O-set is empty.
-    if not causal_nodes:
+    desc_cause: set[Variable] = set(nx.descendants(graph.directed, cause))
+    desc_cause.add(cause)
+    anc_effect: set[Variable] = set(nx.ancestors(graph.directed, effect))
+    anc_effect.add(effect)
+
+    causal_nodes: set[Variable] = desc_cause & anc_effect
+
+    # If there are no directed paths at all (only cause itself is in the
+    # intersection when cause == effect, or the intersection is empty), return
+    # an empty O-set.
+    if not causal_nodes or causal_nodes == {cause} and cause != effect:
+        return frozenset()
+    # If cause has no path to effect (effect not reachable from cause), empty.
+    if effect not in desc_cause:
         return frozenset()
 
     # Forbidden nodes: descendants of causal nodes (inclusive) ∪ {cause}.
