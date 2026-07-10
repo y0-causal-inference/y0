@@ -1,21 +1,21 @@
-r"""σ-extension graph construction for efficient cyclic adjustment-set computation.
+r""":math:`\sigma`-extension graph construction for efficient cyclic adjustment-set computation.
 
-The **σ-extension** (Rantanen et al. 2020) transforms a cyclic directed mixed graph
-*G* into an extended graph *G*\ :sup:`σ` by adding a bidirected edge for every
+The **\sigma-extension** (Rantanen et al. 2020) transforms a cyclic directed mixed graph
+*G* into an extended graph *G*\ :sup:`\sigma` by adding a bidirected edge for every
 directed edge whose endpoints belong to the same strongly-connected component (SCC).
 The key theorem is:
 
-    *X* and *Y* are σ-separated given *Z* in *G*
+    *X* and *Y* are :math:`\sigma`-separated given *Z* in *G*
     **if and only if**
-    *X* and *Y* are d-separated given *Z* in *G*\ :sup:`σ`.
+    *X* and *Y* are d-separated given *Z* in *G*\ :sup:`\sigma`.
 
-This reduction lets us replace the expensive path-augmentation σ-separation oracle
+This reduction lets us replace the expensive path-augmentation :math:`\sigma`-separation oracle
 (:func:`~y0.algorithm.separation.sigma_separation.are_sigma_separated`) with the
 standard, linear-time d-separation algorithm
 (:func:`~y0.algorithm.conditional_independencies.are_d_separated`) for all
 adjustment-set computations.
 
-**Complexity:** Building *G*\ :sup:`σ` is *O(V + E)* (one SCC pass + one edge scan).
+**Complexity:** Building *G*\ :sup:`\sigma` is *O(V + E)* (one SCC pass + one edge scan).
 The per-edge adjustment-set computation in
 :func:`~y0.algorithm.separation.sigma_single_door.find_sigma_single_door_set` then
 runs in *O(V + E)* per edge, giving *O(E · (V + E))* total — tractable for large
@@ -40,7 +40,7 @@ __all__ = [
 
 
 def sigma_extension(graph: NxMixedGraph) -> NxMixedGraph:
-    r"""Build the σ-extension *G*\ :sup:`σ` of a directed mixed graph.
+    r"""Build the :math:`\sigma`-extension *G*\ :sup:`\sigma` of a directed mixed graph.
 
     For every directed edge :math:`u \to v` in *graph* where *u* and *v* belong
     to the **same strongly-connected component** (SCC), a bidirected edge
@@ -56,14 +56,14 @@ def sigma_extension(graph: NxMixedGraph) -> NxMixedGraph:
         X \perp_d Y \mid Z \text{ in } G^\sigma
 
     so standard d-separation algorithms can be used in place of the more expensive
-    σ-separation oracle.
+    :math:`\sigma`-separation oracle.
 
     :param graph: A directed mixed graph (may contain directed cycles).
     :returns: A new :class:`~y0.graph.NxMixedGraph` equal to *graph* plus
         bidirected edges for all intra-SCC directed edges.
 
     .. note::
-        On a DAG (no non-trivial SCCs), the σ-extension is identical to the
+        On a DAG (no non-trivial SCCs), the :math:`\sigma`-extension is identical to the
         original graph — no bidirected edges are added.
 
     Examples

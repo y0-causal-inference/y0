@@ -51,9 +51,7 @@ def _old_directed_paths_from(
     return list(nx.all_simple_paths(graph.directed, source, target))
 
 
-def _old_remove_directed_edge(
-    graph: NxMixedGraph, u: Variable, v: Variable
-) -> NxMixedGraph:
+def _old_remove_directed_edge(graph: NxMixedGraph, u: Variable, v: Variable) -> NxMixedGraph:
     reduced = graph.copy()
     reduced.directed.remove_edge(u, v)
     return reduced
@@ -62,7 +60,7 @@ def _old_remove_directed_edge(
 def _old_proper_backdoor_graph(
     graph: NxMixedGraph, cause: Variable, effect: Variable
 ) -> NxMixedGraph:
-    """Reference implementation using all_simple_paths."""
+    """Compute the reference proper backdoor graph using all_simple_paths."""
     reduced = _old_remove_directed_edge(graph, cause, effect)
     first_hops: set[Variable] = set()
     for path in _old_directed_paths_from(reduced, cause, effect):
@@ -78,7 +76,7 @@ def _old_proper_backdoor_graph(
 def _old_optimal_adjustment_set(
     graph: NxMixedGraph, cause: Variable, effect: Variable
 ) -> frozenset[Variable] | None:
-    """Reference implementation using all_simple_paths."""
+    """Compute the reference optimal adjustment set using all_simple_paths."""
     causal_nodes: set[Variable] = set()
     for path in _old_directed_paths_from(graph, cause, effect):
         causal_nodes.update(path)
@@ -141,16 +139,14 @@ def random_dag_with_xy(draw: st.DrawFn) -> NxMixedGraph:
     """Draw a random DAG (no directed cycles) that always contains X→Y."""
     n_extra = draw(st.integers(min_value=0, max_value=4))
     extra_nodes = _NODES[:n_extra]
-    all_nodes = [X, Y] + extra_nodes
+    all_nodes = [X, Y, *extra_nodes]
 
     # Build a random DAG by only allowing edges u→v where u comes before v
     # in a fixed topological order.
     order = draw(st.permutations(all_nodes))
     rank = {v: i for i, v in enumerate(order)}
 
-    possible_directed = [
-        (u, v) for u in all_nodes for v in all_nodes if rank[u] < rank[v]
-    ]
+    possible_directed = [(u, v) for u in all_nodes for v in all_nodes if rank[u] < rank[v]]
     if not possible_directed:
         # Degenerate: only X and Y, force X→Y
         return NxMixedGraph.from_edges(directed=[(X, Y)])
@@ -187,11 +183,9 @@ def random_mixed_graph_with_xy(draw: st.DrawFn) -> NxMixedGraph:
     """Draw a random NxMixedGraph (possibly cyclic) that always contains X→Y."""
     n_extra = draw(st.integers(min_value=0, max_value=4))
     extra_nodes = _NODES[:n_extra]
-    all_nodes = [X, Y] + extra_nodes
+    all_nodes = [X, Y, *extra_nodes]
 
-    possible_directed = [
-        (u, v) for u in all_nodes for v in all_nodes if u != v
-    ]
+    possible_directed = [(u, v) for u in all_nodes for v in all_nodes if u != v]
     n_directed = draw(st.integers(min_value=1, max_value=min(len(possible_directed), 8)))
     chosen_directed = draw(
         st.lists(
@@ -232,9 +226,9 @@ def _oset_from_definition(
 ) -> frozenset[Variable] | None:
     """Compute O-set directly from the Henckel et al. definition.
 
-    cn   = desc(cause) ∩ anc(effect)   [reachability, handles cycles]
-    forb = desc_inclusive(cn) ∪ {cause}
-    O    = pa(cn) − forb
+    cn   = desc(cause) & anc(effect)   [reachability, handles cycles]
+    forb = desc_inclusive(cn) | {cause}
+    O    = pa(cn) - forb
     Returns None if O contains a descendant of effect.
     """
     if cause not in g.directed or effect not in g.directed:
@@ -265,9 +259,7 @@ def _oset_from_definition(
 class TestOptimalAdjustmentSetReachabilityUnit(unittest.TestCase):
     """Unit tests verifying the reachability O-set on specific graphs."""
 
-    def _assert_agrees_with_old(
-        self, g: NxMixedGraph, cause: Variable, effect: Variable
-    ) -> None:
+    def _assert_agrees_with_old(self, g: NxMixedGraph, cause: Variable, effect: Variable) -> None:
         """On DAGs, new and old must agree."""
         assert _is_dag(g), "Use this helper only for DAGs"
         new = optimal_adjustment_set(g, cause, effect)
@@ -275,29 +267,31 @@ class TestOptimalAdjustmentSetReachabilityUnit(unittest.TestCase):
         self.assertEqual(
             new,
             old,
-            f"Disagreement on DAG {list(g.directed.edges())}:\n"
-            f"  new={new}, old={old}",
+            f"Disagreement on DAG {list(g.directed.edges())}:\n  new={new}, old={old}",
         )
 
     def test_simple_dag(self) -> None:
+        """Check O-set agreement on a trivial X→Y DAG."""
         g = NxMixedGraph.from_edges(directed=[(X, Y)])
         self._assert_agrees_with_old(g, X, Y)
 
     def test_fork_confounder(self) -> None:
+        """Check O-set agreement on a graph with a single fork confounder Z."""
         g = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
         self._assert_agrees_with_old(g, X, Y)
 
     def test_mediator(self) -> None:
+        """Check O-set agreement on a graph with a mediator M and confounder Z."""
         g = NxMixedGraph.from_edges(directed=[(Z, X), (X, M), (M, Y)])
         self._assert_agrees_with_old(g, X, Y)
 
     def test_two_confounders(self) -> None:
-        g = NxMixedGraph.from_edges(
-            directed=[(Z1, X), (Z2, X), (X, Y), (Z1, Y), (Z2, Y)]
-        )
+        """Check O-set agreement on a graph with two independent confounders."""
+        g = NxMixedGraph.from_edges(directed=[(Z1, X), (Z2, X), (X, Y), (Z1, Y), (Z2, Y)])
         self._assert_agrees_with_old(g, X, Y)
 
     def test_no_path(self) -> None:
+        """Check that the O-set is empty when there is no path from X to Y."""
         g = NxMixedGraph.from_edges(directed=[(X, Z)])
         # Y not in graph — returns empty
         result = optimal_adjustment_set(g, X, Y)
@@ -328,9 +322,9 @@ class TestOptimalAdjustmentSetReachabilityUnit(unittest.TestCase):
         """W→X→Y→X, W→Y: W is external confounder; new impl correctly includes W."""
         g = NxMixedGraph.from_edges(directed=[(W, X), (X, Y), (Y, X), (W, Y)])
         result = optimal_adjustment_set(g, X, Y)
-        # cn = desc(X)∩anc(Y) = {X,Y}∩{Y,X,W} = {X,Y}
-        # forb = desc_inclusive({X,Y}) ∪ {X} = {X,Y} ∪ {X} = {X,Y}
-        # pa({X,Y}) = {W,Y} ∪ {X,W} = {W,X,Y}
+        # cn = desc(X)&anc(Y) = {X,Y}&{Y,X,W} = {X,Y}
+        # forb = desc_inclusive({X,Y}) | {X} = {X,Y} | {X} = {X,Y}
+        # pa({X,Y}) = {W,Y} | {X,W} = {W,X,Y}
         # o_set = {W,X,Y} - {X,Y} = {W}
         self.assertEqual(result, frozenset({W}))
 
@@ -339,8 +333,8 @@ class TestOptimalAdjustmentSetReachabilityUnit(unittest.TestCase):
 
         Old path-enum returns frozenset() (misses A as causal node).
         New reachability correctly returns frozenset({B}).
-        cn = desc(X)∩anc(Y) = {X,A}∩{Y,X,A,B} = {X,A,Y}
-        forb = desc_inclusive({X,A,Y}) ∪ {X} = {X,A,Y}
+        cn = desc(X)&anc(Y) = {X,A}&{Y,X,A,B} = {X,A,Y}
+        forb = desc_inclusive({X,A,Y}) | {X} = {X,A,Y}
         pa({X,A,Y}) = {A,B,X}
         o_set = {A,B,X} - {X,A,Y} = {B}
         """
@@ -373,9 +367,7 @@ class TestOptimalAdjustmentSetReachabilityUnit(unittest.TestCase):
 class TestProperBackdoorGraphReachabilityUnit(unittest.TestCase):
     """Unit tests verifying the reachability proper_backdoor_graph on specific graphs."""
 
-    def _assert_pbd_agrees(
-        self, g: NxMixedGraph, cause: Variable, effect: Variable
-    ) -> None:
+    def _assert_pbd_agrees(self, g: NxMixedGraph, cause: Variable, effect: Variable) -> None:
         """On DAGs, new and old PBD must agree."""
         assert _is_dag(g), "Use this helper only for DAGs"
         new_pbd = proper_backdoor_graph(g, cause, effect)
@@ -390,14 +382,17 @@ class TestProperBackdoorGraphReachabilityUnit(unittest.TestCase):
         )
 
     def test_simple_dag(self) -> None:
+        """Check PBD agreement on a trivial X→Y DAG."""
         g = NxMixedGraph.from_edges(directed=[(X, Y)])
         self._assert_pbd_agrees(g, X, Y)
 
     def test_fork(self) -> None:
+        """Check PBD agreement on a graph with a single fork confounder Z."""
         g = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
         self._assert_pbd_agrees(g, X, Y)
 
     def test_mediator(self) -> None:
+        """Check PBD agreement on a graph with a mediator M."""
         g = NxMixedGraph.from_edges(directed=[(X, M), (M, Y), (X, Y)])
         self._assert_pbd_agrees(g, X, Y)
 
@@ -442,8 +437,7 @@ class TestOptimalAdjustmentSetHypothesis(unittest.TestCase):
         self.assertEqual(
             new,
             old,
-            f"Disagreement on DAG {list(g.directed.edges())}:\n"
-            f"  new={new}, old={old}",
+            f"Disagreement on DAG {list(g.directed.edges())}:\n  new={new}, old={old}",
         )
 
     @given(random_mixed_graph_with_xy())

@@ -24,15 +24,15 @@ def are_sigma_separated(
     conditions: Iterable[Variable] | None = None,
     cutoff: int | None = None,
 ) -> bool:
-    """Test if two variables are sigma-separated.
+    r"""Test if two variables are sigma-separated.
 
     Sigma separation is a generalization of d-separation that works not only for
     directed acyclic graphs, but also for directed graphs containing cycles. It was
     originally introduced in [forre2018]_.
 
-    We say that X and Y are σ-connected by Z or not σ-separated by Z if there exists a
-    path π (with some n ≥ 1 nodes) in G with one endnode in X and one endnode in Y that
-    is Z-σ-open. σ-separated is the opposite of σ-connected (logical not).
+    We say that X and Y are :math:`\sigma`-connected by Z or not :math:`\sigma`-separated by Z if there exists a
+    path pi (with some n >= 1 nodes) in G with one endnode in X and one endnode in Y that
+    is Z-:math:`\sigma`-open. :math:`\sigma`-separated is the opposite of :math:`\sigma`-connected (logical not).
 
     :param graph: Graph to test
     :param left: A node in the graph
@@ -110,7 +110,7 @@ def _triple_has_correct_form(
         return True
     # augment with backtracks, since you're allowed to go back (just like Season 5 of Lost).
     # this is a better solution than generating infinite paths, but might still be mathematically
-    # incomplete. In this setup, 𝑣3→𝑣4↔𝑣6 becomes 𝑣3→𝑣4→𝑣5←𝑣4↔𝑣6 to get some sweet backtrack paths
+    # incomplete. In this setup, v3->v4<->v6 becomes v3->v4->v5<-v4<->v6 to get some sweet backtrack paths
     # through the middle node to a neighbor and then back before going to the right node.
     neighbors = {n for n in graph.disorient().neighbors(middle) if n != middle}
     for neighbor in neighbors:
@@ -253,21 +253,22 @@ def is_non_collider_fork(
 
 
 def get_equivalence_classes(graph: NxMixedGraph) -> dict[Variable, set[Variable]]:
-    """Get equivalence classes.
+    r"""Get equivalence classes.
 
     :param graph: A mixed graph
 
     :returns: A mapping from variables to their equivalence class, defined as the second
         option from the paper (see below)
 
-    1. The finest/trivial σ-CG structure of a mixed graph G is given by σ(v) := {v} for
-       all v ∈ V . In this way σ-separation in G coincides with the usual notion of
-       d-separation in a d-connection graph (d-CG) G (see [19]). We will take this as
-       the definition of d-separation and d-CG in the following.
-    2. The coarsest σ-CG structure of a mixed graph G is given by σ(v) := ScG(v) :=
-       AncG(v) ∩ DescG(v) w.r.t. the underlying directed graph. Note that the definition
-       of strongly connected component totally ignores the bi- and undirected edges of
-       the σ-CG.
+    1. The finest/trivial :math:`\sigma`-CG structure of a mixed graph G is given by
+       :math:`\sigma(v) := \{v\}` for all v in V. In this way :math:`\sigma`-separation
+       in G coincides with the usual notion of d-separation in a d-connection graph
+       (d-CG) G (see [19]). We will take this as the definition of d-separation and
+       d-CG in the following.
+    2. The coarsest :math:`\sigma`-CG structure of a mixed graph G is given by
+       :math:`\sigma(v) := ScG(v) := AncG(v) \cap DescG(v)` w.r.t. the underlying
+       directed graph. Note that the definition of strongly connected component totally
+       ignores the bi- and undirected edges of the :math:`\sigma`-CG.
     """
     return {node: _get_scc(graph, node) for node in graph.nodes()}
 

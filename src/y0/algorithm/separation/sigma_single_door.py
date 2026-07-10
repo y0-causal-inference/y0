@@ -8,8 +8,8 @@ functional-form-agnostic: it depends only on the graph and the
 nonparametric estimators.
 
 The module also provides an efficient *O(V + E)* per-edge implementation based on
-the σ-extension trick (Rantanen et al. 2020): once the σ-extension graph is built,
-σ-separation reduces to ordinary d-separation, enabling the use of the O-set
+the :math:`\sigma`-extension trick (Rantanen et al. 2020): once the :math:`\sigma`-extension graph is built,
+:math:`\sigma`-separation reduces to ordinary d-separation, enabling the use of the O-set
 optimal adjustment criterion (Henckel, Perković & Maathuis 2022) for minimum-variance
 estimation.
 
@@ -23,9 +23,9 @@ That approach caused severe timeouts on graphs with large strongly connected
 components (SCCs), where the path count grows super-exponentially.  The current
 implementation uses two graph-traversal sweeps instead:
 
-    cn   = descendants(cause) ∩ ancestors(effect) − {cause}
-    forb = descendants(cn) ∪ {cause}
-    O-set = pa(cn) − forb
+    cn   = descendants(cause) & ancestors(effect) - {cause}
+    forb = descendants(cn) | {cause}
+    O-set = pa(cn) - forb
 
 and the proper-backdoor graph is built by removing edges out of *cause* whose
 targets are reachable from *cause* and can reach *effect* in the edge-removed
@@ -154,17 +154,13 @@ def proper_backdoor_graph(
     # This is O(|V|+|E|) via a single reverse-BFS from `effect`.
     if effect in reduced.directed:
         # Nodes that can reach `effect` in the edge-removed graph (ancestors of effect).
-        can_reach_effect: set[Variable] = set(
-            nx.ancestors(reduced.directed, effect)
-        )
+        can_reach_effect: set[Variable] = set(nx.ancestors(reduced.directed, effect))
         can_reach_effect.add(effect)
     else:
         can_reach_effect = set()
 
     first_hops_on_causal_paths: set[Variable] = {
-        hop
-        for hop in reduced.directed.successors(cause)
-        if hop in can_reach_effect
+        hop for hop in reduced.directed.successors(cause) if hop in can_reach_effect
     }
 
     # Step 3: delete those directed edges out of *cause*.
@@ -212,12 +208,12 @@ def optimal_adjustment_set(
     ---------
     L. Henckel, E. Perković, M. H. Maathuis (2022). Graphical criteria for
     efficient total effect estimation via adjustment in causal linear models.
-    *Journal of the Royal Statistical Society: Series B*, 84(2), 579–599.
+    *Journal of the Royal Statistical Society: Series B*, 84(2), 579-599.
     """
-    # Causal nodes: nodes on directed paths cause → ... → effect.
-    # Equivalent to: descendants(cause) ∩ ancestors(effect) ∪ {cause, effect}
+    # Causal nodes: nodes on directed paths cause -> ... -> effect.
+    # Equivalent to: descendants(cause) & ancestors(effect) | {cause, effect}
     # when both cause and effect are in the graph.
-    # This is O(|V|+|E|) via two BFS sweeps — no path enumeration needed.
+    # This is O(|V|+|E|) via two BFS sweeps -- no path enumeration needed.
     if cause not in graph.directed or effect not in graph.directed:
         return frozenset()
 
@@ -231,13 +227,13 @@ def optimal_adjustment_set(
     # If there are no directed paths at all (only cause itself is in the
     # intersection when cause == effect, or the intersection is empty), return
     # an empty O-set.
-    if not causal_nodes or causal_nodes == {cause} and cause != effect:
+    if not causal_nodes or (causal_nodes == {cause} and cause != effect):
         return frozenset()
     # If cause has no path to effect (effect not reachable from cause), empty.
     if effect not in desc_cause:
         return frozenset()
 
-    # Forbidden nodes: descendants of causal nodes (inclusive) ∪ {cause}.
+    # Forbidden nodes: descendants of causal nodes (inclusive) | {cause}.
     forbidden: set[Variable] = graph.descendants_inclusive(causal_nodes)
     forbidden.add(cause)
 
@@ -266,58 +262,91 @@ def find_sigma_single_door_set(
     r"""Find a single admissible adjustment set for :math:`cause \to effect`.
 
     This is the efficient *O(V + E)* per-edge implementation based on the
-    σ-extension trick (Rantanen et al. 2020).  The algorithm:
+    :math:`\sigma`-extension trick (Rantanen et al. 2020).  The algorithm:
 
-    1. Build (or reuse) the σ-extension :math:`G^\sigma` — a real
+    1. Build (or reuse) the :math:`\sigma`-extension :math:`G^\sigma` -- a real
        :class:`~y0.graph.NxMixedGraph` with bidirected edges added for all
        intra-SCC directed edges.
-    2. Remove the edge :math:`cause \to effect` from :math:`G^\sigma`.
-    3. Build the proper back-door graph :math:`G^{pbd}_{XY}` from the result.
-    4. Compute the O-set :math:`O = pa(cn) \setminus forb` in :math:`G^{pbd}_{XY}`.
-    5. Verify that *cause* and *effect* are d-separated by *O* in
-       :math:`G^{pbd}_{XY}` (the O-set is always valid when it exists, but we
-       check as a safety guard).
+    2. Remove *only* the edge :math:`cause \to effect` from :math:`G^\sigma`,
+       giving :math:`G^+`. The single-door criterion requires that *Z*
+       block **every** path between *cause* and *effect* in :math:`G^+` —
+       including other directed (mediating) paths, not just back-door /
+       confounding paths — so :math:`G^+` must retain every edge except the
+       one being classified. (An earlier version of this function verified
+       against the *proper back-door graph*, which additionally removes
+       every other edge out of *cause* that lies on a causal path to
+       *effect*; that is the wrong construction for this criterion and
+       could accept a *Z* that leaves an alternate causal path open.)
+    3. Generate a candidate *Z*: the O-set (Henckel et al. 2022), which
+       blocks back-door paths into *cause*, unioned with any *other*
+       causal-path nodes between *cause* and *effect* (mediators on paths
+       besides the direct edge), which blocks alternate directed paths —
+       conditioning on the middle node of a chain blocks that chain.
+    4. Verify :math:`cause \perp_d effect \mid Z` in :math:`G^+` (the ground
+       truth check — if the candidate fails, ``None`` is returned rather
+       than an unsound set).
 
     :param graph: A directed mixed graph (may contain cycles).
     :param cause: The source variable of the direct effect of interest.
     :param effect: The target variable of the direct effect of interest.
     :param method: Adjustment-set strategy.  Currently only ``"optimal"``
-        (O-set, minimum asymptotic variance) is supported.
-    :param precomputed_extension: A pre-built σ-extension of *graph*.  Pass this
+        (O-set plus mediator closure) is supported.
+    :param precomputed_extension: A pre-built :math:`\sigma`-extension of *graph*.  Pass this
         when calling :func:`find_sigma_single_door_set` in a loop over many edges
         of the same graph to avoid recomputing the extension each time.
     :returns: An admissible :class:`frozenset` of conditioning variables, or
         ``None`` if the edge is absent or no admissible set was found.
 
     .. note::
-        For the completeness guarantee, the returned set is always verified via
-        d-separation in :math:`G^{pbd}_{XY}`.  If the O-set fails the check
-        (which can happen in graphs with latent confounders), ``None`` is returned
-        rather than an invalid set.
+        The returned set is always verified via d-separation in :math:`G^+`
+        (the graph with *only* the classified edge removed). This function
+        is deliberately conservative: if the candidate fails the check
+        (e.g. because the O-set-plus-mediators heuristic didn't find a
+        working separator, or conditioning on a mediator opens an
+        unanticipated collider path), ``None`` is returned rather than an
+        invalid set. Soundness (never returning an invalid *Z*) is
+        guaranteed; completeness (always finding a *Z* when one exists) is
+        not — use :func:`find_sigma_single_door_sets` for an exhaustive
+        (but exponential) search when completeness matters more than speed.
     """
     if not graph.directed.has_edge(cause, effect):
         return None
 
-    # Build or reuse the σ-extension.
+    # Build or reuse the sigma-extension.
     g_sigma: NxMixedGraph = (
         precomputed_extension if precomputed_extension is not None else sigma_extension(graph)
     )
 
-    # Build the proper back-door graph in G^σ.
-    # proper_backdoor_graph handles the edge removal internally.
-    g_pbd = proper_backdoor_graph(g_sigma, cause, effect)
+    # Candidate Z: the O-set (blocks back-door/confounding paths into cause)
 
-    # Compute the O-set using the *original* G^σ (which still has the cause→effect
-    # edge), so that causal nodes are identified correctly.  The O-set is then
-    # verified in G^pbd (which has all causal edges from cause removed).
-    z = optimal_adjustment_set(g_sigma, cause, effect)
-    if z is None:
-        # O-set computation returned None (e.g. O-set contains a descendant of effect).
-        # Fall back to the empty set and check if it works.
-        z = frozenset()
+    # unioned with any other causal-path nodes between cause and effect
+    # (blocks alternate directed/mediating paths as chains). Causal nodes
+    # are identified against g_sigma, which still has the direct edge, so
+    # descendants(cause)/ancestors(effect) correctly include mediators on
+    # paths other than the direct edge.
+    o_set = optimal_adjustment_set(g_sigma, cause, effect) or frozenset()
 
-    # Safety verification: cause ⊥_d effect | Z in G^pbd.
-    if not bool(are_d_separated(g_pbd, cause, effect, conditions=z)):
+    desc_cause = g_sigma.descendants_inclusive(cause)
+    anc_effect = g_sigma.ancestors_inclusive(effect)
+    effect_descendants = g_sigma.descendants_inclusive(effect)
+    mediators = (desc_cause & anc_effect) - {cause, effect} - effect_descendants
+
+    z = frozenset(o_set | mediators)
+
+    # A valid Z can never contain a descendant of effect.
+    if z & effect_descendants:
+        return None
+
+    # Safety verification using the sigma-extension + d-separation equivalence
+    # (Rantanen et al. 2020): X perp_sigma Y | Z in G  <=>  X perp_d Y | Z in G^sigma.
+    # We recompute the sigma-extension of the *reduced* graph (G with only the
+    # classified edge removed) so that the equivalence theorem applies cleanly
+    # to the pair (reduced, sigma_extension(reduced)).  This is O(V+E) and
+    # avoids the exponential all_simple_paths enumeration inside
+    # are_sigma_separated.
+    reduced = _remove_directed_edge(graph, cause, effect)
+    reduced_sigma = sigma_extension(reduced)
+    if not are_d_separated(reduced_sigma, cause, effect, conditions=z):
         return None
 
     return z

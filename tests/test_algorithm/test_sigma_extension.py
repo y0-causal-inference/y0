@@ -1,12 +1,12 @@
-"""Unit tests for sigma_extension.py.
+r"""Unit tests for sigma_extension.py.
 
 Tests cover:
-- DAG input → Gσ == G (no bidirected edges added)
-- 2-node SCC → exactly one bidirected edge added
-- Self-loop → bidirected self-loop added
-- Larger SCC → all intra-SCC directed edges gain bidirected counterparts
+- DAG input -> G\ :math:`\sigma` == G (no bidirected edges added)
+- 2-node SCC -> exactly one bidirected edge added
+- Self-loop -> bidirected self-loop added
+- Larger SCC -> all intra-SCC directed edges gain bidirected counterparts
 - Pre-existing bidirected edges are preserved
-- σ≡d equivalence: sigma-separation in G == d-separation in Gσ
+- :math:`\sigma`\ =d equivalence: sigma-separation in G == d-separation in G\ :math:`\sigma`
 """
 
 from __future__ import annotations
@@ -101,10 +101,10 @@ class TestSigmaExtensionCycles(unittest.TestCase):
 
 
 class TestSigmaExtensionEquivalence(unittest.TestCase):
-    r"""σ≡d equivalence: sigma-separation in G == d-separation in Gσ.
+    r""":math:`\sigma`\ =d equivalence: sigma-separation in G == d-separation in G\ :math:`\sigma`.
 
     For each fixture, we enumerate (left, right, conditions) triples and
-    assert that are_sigma_separated(G, ...) == bool(are_d_separated(Gσ, ...)).
+    assert that are_sigma_separated(G, ...) == bool(are_d_separated(G_sigma, ...)).
     """
 
     def _check_equivalence(
@@ -121,13 +121,13 @@ class TestSigmaExtensionEquivalence(unittest.TestCase):
                     sigma_result,
                     d_result,
                     msg=(
-                        f"σ-sep({left},{right}|{conds}) in G = {sigma_result} "
-                        f"but d-sep({left},{right}|{conds}) in Gσ = {d_result}"
+                        f"sigma-sep({left},{right}|{conds}) in G = {sigma_result} "
+                        f"but d-sep({left},{right}|{conds}) in G_sigma = {d_result}"
                     ),
                 )
 
     def test_dag_equivalence(self) -> None:
-        """On a DAG, Gσ == G, so σ-sep and d-sep must agree on all triples."""
+        """On a DAG, G_sigma == G, so sigma-sep and d-sep must agree on all triples."""
         g = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
         triples: list[tuple[Variable, Variable, set[Variable]]] = [
             (X, Y, set()),
@@ -139,7 +139,7 @@ class TestSigmaExtensionEquivalence(unittest.TestCase):
         self._check_equivalence(g, triples)
 
     def test_two_cycle_equivalence(self) -> None:
-        """X -> Y -> X: σ-sep and d-sep in Gσ must agree."""
+        """X -> Y -> X: sigma-sep and d-sep in G_sigma must agree."""
         g = NxMixedGraph.from_edges(directed=[(X, Y), (Y, X)])
         triples: list[tuple[Variable, Variable, set[Variable]]] = [
             (X, Y, set()),
@@ -148,7 +148,7 @@ class TestSigmaExtensionEquivalence(unittest.TestCase):
         self._check_equivalence(g, triples)
 
     def test_cycle_with_confounder_equivalence(self) -> None:
-        """W -> X -> Y -> X, W -> Y: σ-sep and d-sep in Gσ must agree."""
+        """W -> X -> Y -> X, W -> Y: sigma-sep and d-sep in G_sigma must agree."""
         g = NxMixedGraph.from_edges(directed=[(W, X), (X, Y), (Y, X), (W, Y)])
         triples: list[tuple[Variable, Variable, set[Variable]]] = [
             (X, Y, set()),

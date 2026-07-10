@@ -181,7 +181,7 @@ class TestFindSigmaSingleDoorSet(unittest.TestCase):
         self.assertIn(z, all_admissible)
 
     def test_precomputed_extension_gives_same_result(self) -> None:
-        """Passing a precomputed σ-extension gives the same result as computing it fresh."""
+        """Passing a precomputed sigma-extension gives the same result as computing it fresh."""
         from y0.algorithm.separation.sigma_extension import sigma_extension
 
         g = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
@@ -195,7 +195,7 @@ class TestFindSigmaSingleDoorSet(unittest.TestCase):
         g = NxMixedGraph.from_edges(directed=[(W, X), (X, Y), (Y, X), (W, Y)])
         z = find_sigma_single_door_set(g, X, Y)
         # W is an external confounder; conditioning on W should work
-        # (result may be None if the cycle makes it non-identifiable via σ-sep)
+        # (result may be None if the cycle makes it non-identifiable via sigma-sep)
         # We just assert the function returns without error and the result is
         # either None or a frozenset
         self.assertTrue(z is None or isinstance(z, frozenset))
