@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import lru_cache, partial
-from typing import Any, Literal, NamedTuple, cast, overload
+from typing import Any, Literal, NamedTuple, overload
 
 import pandas as pd
 
@@ -236,7 +236,7 @@ class DSeparationJudgement:
             significance_level=significance_level,
         )
         if boolean:
-            return cast(bool, result)
+            return bool(result)
         # Person's correlation returns a pair with the first element being the Person's correlation
         # and the second being the p-value. The other methods return a triple with the first element
         # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of
@@ -263,11 +263,11 @@ def _ensure_method(method: CITest | None, df: pd.DataFrame, skip: bool = False) 
             return DEFAULT_DISCRETE_CI_TEST
         else:
             return DEFAULT_CONTINUOUS_CI_TEST
-    elif binary and method == "pearson":
+    elif binary and method in {"pearson", "pillai"}:
         raise ValueError(
             f"using continuous data test ({method}) on binary data: {_summarize_df(df)}"
         )
-    elif not binary and method != "pearson":
+    elif not binary and method not in {"pearson", "pillai"}:
         raise ValueError(f"using binary data test ({method}) on continuous data")
     return method
 
