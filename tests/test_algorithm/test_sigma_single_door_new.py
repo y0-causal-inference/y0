@@ -4,6 +4,8 @@ Tests cover:
 - proper_backdoor_graph: edge removal, causal-path edge deletion
 - optimal_adjustment_set: O-set computation on textbook fixtures
 - find_sigma_single_door_set: DAG and cyclic fixtures, precomputed extension
+- find_sigma_single_door_set strategy="greedy": minimal sigma-separator via greedy shrink
+- find_sigma_single_door_set strategy="acyclify": minimal m-separator via acyclification
 """
 
 from __future__ import annotations
@@ -12,6 +14,7 @@ import unittest
 
 from y0.algorithm.separation.sigma_single_door import (
     find_sigma_single_door_set,
+    is_sigma_single_door_admissible,
     optimal_adjustment_set,
     proper_backdoor_graph,
 )
@@ -199,3 +202,165 @@ class TestFindSigmaSingleDoorSet(unittest.TestCase):
         # We just assert the function returns without error and the result is
         # either None or a frozenset
         self.assertTrue(z is None or isinstance(z, frozenset))
+
+
+class TestFindSigmaSingleDoorSetGreedy(unittest.TestCase):
+    """Tests for find_sigma_single_door_set with strategy='greedy'."""
+
+    def _assert_admissible(
+        self, graph: NxMixedGraph, cause: Variable, effect: Variable, z: frozenset[Variable]
+    ) -> None:
+        """Assert that z is a valid sigma-single-door adjustment set."""
+        self.assertTrue(
+            is_sigma_single_door_admissible(graph, cause, effect, z),
+            msg=f"strategy='greedy' returned {z} which is NOT admissible for {cause}->{effect}",
+        )
+
+    def test_simple_dag_returns_empty_set(self) -> None:
+        """X -> Y: greedy strategy returns empty set (no confounders)."""
+        g = NxMixedGraph.from_edges(directed=[(X, Y)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="greedy")
+        self.assertIsNotNone(z)
+        assert z is not None
+        self.assertEqual(frozenset(), z)
+        self._assert_admissible(g, X, Y, z)
+
+    def test_fork_dag_returns_confounder(self) -> None:
+        """Z -> X -> Y, Z -> Y: greedy returns a set containing Z."""
+        g = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="greedy")
+        self.assertIsNotNone(z)
+        assert z is not None
+        self.assertIn(Z, z)
+        self._assert_admissible(g, X, Y, z)
+
+    def test_missing_edge_returns_none(self) -> None:
+        """Returns None when the directed edge cause->effect is absent."""
+        g = NxMixedGraph.from_edges(directed=[(X, Z)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="greedy")
+        self.assertIsNone(z)
+
+    def test_two_cycle_returns_none(self) -> None:
+        """X -> Y -> X: non-identifiable, greedy returns None."""
+        g = NxMixedGraph.from_edges(directed=[(X, Y), (Y, X)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="greedy")
+        self.assertIsNone(z)
+
+    def test_chain_single_mediator(self) -> None:
+        """Z -> X -> M -> Y: greedy should find {Z} (blocks back-door via Z)."""
+        g = NxMixedGraph.from_edges(directed=[(Z, X), (X, M), (M, Y)])
+        z = find_sigma_single_door_set(g, X, M, strategy="greedy")
+        # X->M is the edge; Z is a confounder for X
+        self.assertTrue(z is None or isinstance(z, frozenset))
+        if z is not None:
+            self._assert_admissible(g, X, M, z)
+
+    def test_parallel_mediators(self) -> None:
+        """Z -> X -> Y, Z -> X -> M -> Y: two paths from X to Y."""
+        g = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (X, M), (M, Y)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="greedy")
+        self.assertTrue(z is None or isinstance(z, frozenset))
+        if z is not None:
+            self._assert_admissible(g, X, Y, z)
+
+    def test_result_is_minimal(self) -> None:
+        """Greedy result is minimal: no proper subset is also admissible."""
+        g = NxMixedGraph.from_edges(directed=[(Z1, X), (Z2, X), (X, Y), (Z1, Y)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="greedy")
+        if z is None:
+            return  # non-identifiable; skip minimality check
+        # Check no proper subset is also admissible
+        for node in z:
+            smaller = z - {node}
+            self.assertFalse(
+                is_sigma_single_door_admissible(g, X, Y, smaller),
+                msg=f"Proper subset {smaller} of {z} is also admissible — not minimal",
+            )
+
+    def test_greedy_vs_optimal_both_valid(self) -> None:
+        """Both greedy and optimal return valid sets (may differ in size)."""
+        g = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
+        z_opt = find_sigma_single_door_set(g, X, Y, strategy="optimal")
+        z_greedy = find_sigma_single_door_set(g, X, Y, strategy="greedy")
+        # Both should be non-None and admissible
+        self.assertIsNotNone(z_opt)
+        self.assertIsNotNone(z_greedy)
+        assert z_opt is not None and z_greedy is not None
+        self._assert_admissible(g, X, Y, z_opt)
+        self._assert_admissible(g, X, Y, z_greedy)
+
+
+class TestFindSigmaSingleDoorSetAcyclify(unittest.TestCase):
+    """Tests for find_sigma_single_door_set with strategy='acyclify'."""
+
+    def _assert_admissible(
+        self, graph: NxMixedGraph, cause: Variable, effect: Variable, z: frozenset[Variable]
+    ) -> None:
+        """Assert that z is a valid sigma-single-door adjustment set."""
+        self.assertTrue(
+            is_sigma_single_door_admissible(graph, cause, effect, z),
+            msg=f"strategy='acyclify' returned {z} which is NOT admissible for {cause}->{effect}",
+        )
+
+    def test_simple_dag_returns_empty_set(self) -> None:
+        """X -> Y: acyclify strategy returns empty set (no confounders)."""
+        g = NxMixedGraph.from_edges(directed=[(X, Y)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="acyclify")
+        self.assertIsNotNone(z)
+        assert z is not None
+        self.assertEqual(frozenset(), z)
+        self._assert_admissible(g, X, Y, z)
+
+    def test_fork_dag_returns_confounder(self) -> None:
+        """Z -> X -> Y, Z -> Y: acyclify returns a set containing Z."""
+        g = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="acyclify")
+        self.assertIsNotNone(z)
+        assert z is not None
+        self.assertIn(Z, z)
+        self._assert_admissible(g, X, Y, z)
+
+    def test_missing_edge_returns_none(self) -> None:
+        """Returns None when the directed edge cause->effect is absent."""
+        g = NxMixedGraph.from_edges(directed=[(X, Z)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="acyclify")
+        self.assertIsNone(z)
+
+    def test_two_cycle_returns_none(self) -> None:
+        """X -> Y -> X: non-identifiable, acyclify returns None."""
+        g = NxMixedGraph.from_edges(directed=[(X, Y), (Y, X)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="acyclify")
+        self.assertIsNone(z)
+
+    def test_dag_chain_with_confounder(self) -> None:
+        """Z -> X -> Y, Z -> Y: acyclify finds {Z}."""
+        g = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
+        z = find_sigma_single_door_set(g, X, Y, strategy="acyclify")
+        self.assertTrue(z is None or isinstance(z, frozenset))
+        if z is not None:
+            self._assert_admissible(g, X, Y, z)
+
+    def test_acyclify_vs_optimal_both_valid(self) -> None:
+        """Both acyclify and optimal return valid sets on a DAG."""
+        g = NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)])
+        z_opt = find_sigma_single_door_set(g, X, Y, strategy="optimal")
+        z_ac = find_sigma_single_door_set(g, X, Y, strategy="acyclify")
+        self.assertIsNotNone(z_opt)
+        assert z_opt is not None
+        self._assert_admissible(g, X, Y, z_opt)
+        # acyclify may return None if are_sigma_separated is incomplete,
+        # but if it returns a set it must be admissible
+        if z_ac is not None:
+            self._assert_admissible(g, X, Y, z_ac)
+
+    def test_acyclify_result_is_admissible_when_not_none(self) -> None:
+        """Any non-None result from acyclify strategy is admissible."""
+        graphs = [
+            NxMixedGraph.from_edges(directed=[(X, Y)]),
+            NxMixedGraph.from_edges(directed=[(Z, X), (X, Y), (Z, Y)]),
+            NxMixedGraph.from_edges(directed=[(Z1, X), (Z2, X), (X, Y), (Z1, Y)]),
+        ]
+        for g in graphs:
+            z = find_sigma_single_door_set(g, X, Y, strategy="acyclify")
+            if z is not None:
+                self._assert_admissible(g, X, Y, z)

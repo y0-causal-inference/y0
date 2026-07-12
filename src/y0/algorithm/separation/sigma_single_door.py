@@ -56,6 +56,8 @@ from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import Variable
 from y0.graph import NxMixedGraph
 
+from .acyclification import acyclify
+from .minimal_separator import find_minimal_m_separator
 from .sigma_extension import sigma_extension
 from .sigma_separation import are_sigma_separated
 
@@ -251,74 +253,148 @@ def optimal_adjustment_set(
     return frozenset(o_set)
 
 
+def _greedy_sigma_separator(
+    reduced: NxMixedGraph,
+    cause: Variable,
+    effect: Variable,
+    candidate_pool: frozenset[Variable],
+) -> frozenset[Variable] | None:
+    """Greedy-shrink *candidate_pool* to a minimal sigma-separator.
+
+    Starts from the full *candidate_pool* (verified to sigma-separate *cause* and
+    *effect* in *reduced*), then iteratively removes nodes while sigma-separation
+    still holds.  Returns the minimal set, or ``None`` if the full pool does
+    not sigma-separate.
+
+    :param reduced: The graph with the classified edge already removed.
+    :param cause: Source variable.
+    :param effect: Target variable.
+    :param candidate_pool: Initial candidate separator (must not contain
+        *cause* or *effect*).
+    :returns: A minimal sigma-separator as a :class:`frozenset`, or ``None``.
+    """
+    # Verify the full pool first
+    if not are_sigma_separated(reduced, cause, effect, conditions=candidate_pool):
+        return None
+
+    current: set[Variable] = set(candidate_pool)
+    # Deterministic order for reproducibility
+    for node in sorted(candidate_pool, key=lambda v: v.name):
+        candidate = frozenset(current - {node})
+        if are_sigma_separated(reduced, cause, effect, conditions=candidate):
+            current.discard(node)
+
+    return frozenset(current)
+
+
 def find_sigma_single_door_set(
     graph: NxMixedGraph,
     cause: Variable,
     effect: Variable,
     *,
     method: Literal["optimal"] = "optimal",
+    strategy: Literal["optimal", "greedy", "acyclify"] = "optimal",
     precomputed_extension: NxMixedGraph | None = None,
 ) -> frozenset[Variable] | None:
     r"""Find a single admissible adjustment set for :math:`cause \to effect`.
 
-    This is the efficient *O(V + E)* per-edge implementation based on the
-    :math:`\sigma`-extension trick (Rantanen et al. 2020).  The algorithm:
+    Two strategies are available via the *strategy* parameter:
 
-    1. Build (or reuse) the :math:`\sigma`-extension :math:`G^\sigma` -- a real
-       :class:`~y0.graph.NxMixedGraph` with bidirected edges added for all
-       intra-SCC directed edges.
-    2. Remove *only* the edge :math:`cause \to effect` from :math:`G^\sigma`,
-       giving :math:`G^+`. The single-door criterion requires that *Z*
-       block **every** path between *cause* and *effect* in :math:`G^+` —
-       including other directed (mediating) paths, not just back-door /
-       confounding paths — so :math:`G^+` must retain every edge except the
-       one being classified. (An earlier version of this function verified
-       against the *proper back-door graph*, which additionally removes
-       every other edge out of *cause* that lies on a causal path to
-       *effect*; that is the wrong construction for this criterion and
-       could accept a *Z* that leaves an alternate causal path open.)
-    3. Generate a candidate *Z*: the O-set (Henckel et al. 2022), which
-       blocks back-door paths into *cause*, unioned with any *other*
-       causal-path nodes between *cause* and *effect* (mediators on paths
-       besides the direct edge), which blocks alternate directed paths —
-       conditioning on the middle node of a chain blocks that chain.
-    4. Verify :math:`cause \perp_d effect \mid Z` in :math:`G^+` (the ground
-       truth check — if the candidate fails, ``None`` is returned rather
-       than an unsound set).
+    **``"optimal"``** (default)
+        The efficient *O(V + E)* per-edge implementation based on the
+        :math:`\sigma`-extension trick (Rantanen et al. 2020).  Builds the
+        O-set (Henckel et al. 2022) plus mediator closure, then verifies via
+        d-separation on the :math:`\sigma`-extension of the reduced graph.
+
+    **``"greedy"``**
+        Starts from the full non-descendant pool and greedily removes nodes
+        while :func:`~y0.algorithm.separation.sigma_separation.are_sigma_separated`
+        still holds.  Returns a minimal sigma-separator (by inclusion).  Slower
+        than ``"optimal"`` but more complete: it can find separators that the
+        O-set heuristic misses.
+
+    **``"acyclify"``**
+        Uses the Forre-Mooij acyclification (Forre & Mooij 2017) to convert
+        the reduced cyclic graph to an acyclic ADMG, then calls
+        :func:`~y0.algorithm.separation.minimal_separator.find_minimal_m_separator`
+        on the acyclification.  The result is verified with
+        :func:`~y0.algorithm.separation.sigma_separation.are_sigma_separated`
+        before being returned.  This strategy is sound (never returns an
+        invalid set) but may return ``None`` on graphs where
+        ``are_sigma_separated`` is incomplete.
+
+    All strategies are **sound**: the returned set is always verified via
+    :func:`~y0.algorithm.separation.sigma_separation.are_sigma_separated`
+    before being returned.  ``None`` is returned rather than an invalid set.
 
     :param graph: A directed mixed graph (may contain cycles).
     :param cause: The source variable of the direct effect of interest.
     :param effect: The target variable of the direct effect of interest.
-    :param method: Adjustment-set strategy.  Currently only ``"optimal"``
-        (O-set plus mediator closure) is supported.
-    :param precomputed_extension: A pre-built :math:`\sigma`-extension of *graph*.  Pass this
-        when calling :func:`find_sigma_single_door_set` in a loop over many edges
-        of the same graph to avoid recomputing the extension each time.
+    :param method: Deprecated alias for *strategy*.  Ignored when *strategy*
+        is explicitly set.  Will be removed in a future version.
+    :param strategy: Adjustment-set strategy: ``"optimal"`` (default),
+        ``"greedy"``, or ``"acyclify"``.
+    :param precomputed_extension: A pre-built :math:`\sigma`-extension of *graph*.
+        Only used by the ``"optimal"`` strategy.  Pass this when calling
+        :func:`find_sigma_single_door_set` in a loop over many edges of the
+        same graph to avoid recomputing the extension each time.
     :returns: An admissible :class:`frozenset` of conditioning variables, or
         ``None`` if the edge is absent or no admissible set was found.
 
     .. note::
-        The returned set is always verified via d-separation in :math:`G^+`
-        (the graph with *only* the classified edge removed). This function
-        is deliberately conservative: if the candidate fails the check
-        (e.g. because the O-set-plus-mediators heuristic didn't find a
-        working separator, or conditioning on a mediator opens an
-        unanticipated collider path), ``None`` is returned rather than an
-        invalid set. Soundness (never returning an invalid *Z*) is
-        guaranteed; completeness (always finding a *Z* when one exists) is
+        Soundness (never returning an invalid *Z*) is guaranteed for all
+        strategies; completeness (always finding a *Z* when one exists) is
         not — use :func:`find_sigma_single_door_sets` for an exhaustive
         (but exponential) search when completeness matters more than speed.
     """
     if not graph.directed.has_edge(cause, effect):
         return None
 
+    # Remove the classified edge once; all strategies work on the reduced graph.
+    reduced = _remove_directed_edge(graph, cause, effect)
+
+    # Candidate pool: non-descendants of effect, excluding cause and effect.
+    effect_descendants = graph.descendants_inclusive(effect)
+    candidate_pool: frozenset[Variable] = frozenset(
+        graph.nodes() - effect_descendants - {cause, effect}
+    )
+
+    # ------------------------------------------------------------------
+    # Strategy: "greedy"
+    # ------------------------------------------------------------------
+    if strategy == "greedy":
+        return _greedy_sigma_separator(reduced, cause, effect, candidate_pool)
+
+    # ------------------------------------------------------------------
+    # Strategy: "acyclify"
+    # ------------------------------------------------------------------
+    if strategy == "acyclify":
+        reduced_ac = acyclify(reduced)
+        # Restrict to observed nodes of the acyclification (same as reduced)
+        restricted = frozenset(reduced_ac.nodes()) - {cause, effect} - effect_descendants
+        z_candidate = find_minimal_m_separator(
+            reduced_ac,
+            cause,
+            effect,
+            restricted=restricted,
+        )
+        if z_candidate is None:
+            return None
+        # Verify with the sigma-separation oracle on the *original* reduced graph
+        # (not the acyclification) -- this is the ground-truth check.
+        if not are_sigma_separated(reduced, cause, effect, conditions=z_candidate):
+            return None
+        return z_candidate
+
+    # ------------------------------------------------------------------
+    # Strategy: "optimal" (default)
+    # ------------------------------------------------------------------
     # Build or reuse the sigma-extension.
     g_sigma: NxMixedGraph = (
         precomputed_extension if precomputed_extension is not None else sigma_extension(graph)
     )
 
     # Candidate Z: the O-set (blocks back-door/confounding paths into cause)
-
     # unioned with any other causal-path nodes between cause and effect
     # (blocks alternate directed/mediating paths as chains). Causal nodes
     # are identified against g_sigma, which still has the direct edge, so
@@ -328,13 +404,13 @@ def find_sigma_single_door_set(
 
     desc_cause = g_sigma.descendants_inclusive(cause)
     anc_effect = g_sigma.ancestors_inclusive(effect)
-    effect_descendants = g_sigma.descendants_inclusive(effect)
-    mediators = (desc_cause & anc_effect) - {cause, effect} - effect_descendants
+    effect_descendants_sigma = g_sigma.descendants_inclusive(effect)
+    mediators = (desc_cause & anc_effect) - {cause, effect} - effect_descendants_sigma
 
     z = frozenset(o_set | mediators)
 
     # A valid Z can never contain a descendant of effect.
-    if z & effect_descendants:
+    if z & effect_descendants_sigma:
         return None
 
     # Safety verification using the sigma-extension + d-separation equivalence
@@ -344,7 +420,6 @@ def find_sigma_single_door_set(
     # to the pair (reduced, sigma_extension(reduced)).  This is O(V+E) and
     # avoids the exponential all_simple_paths enumeration inside
     # are_sigma_separated.
-    reduced = _remove_directed_edge(graph, cause, effect)
     reduced_sigma = sigma_extension(reduced)
     if not are_d_separated(reduced_sigma, cause, effect, conditions=z):
         return None
