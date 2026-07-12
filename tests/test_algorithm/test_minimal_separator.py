@@ -13,6 +13,7 @@ from __future__ import annotations
 import random
 import unittest
 from itertools import combinations
+from typing import ClassVar
 
 from y0.algorithm.separation.minimal_separator import are_m_separated, find_minimal_m_separator
 from y0.dsl import Variable
@@ -376,9 +377,9 @@ class TestMinimalSeparatorProperties(unittest.TestCase):
 
     SEED = 99
     N_GRAPHS = 30
-    NODES_3 = [A, B, C]
-    NODES_4 = [A, B, C, D]
-    NODES_5 = [A, B, C, D, E]
+    NODES_3: ClassVar[list[Variable]] = [A, B, C]
+    NODES_4: ClassVar[list[Variable]] = [A, B, C, D]
+    NODES_5: ClassVar[list[Variable]] = [A, B, C, D, E]
 
     def _run_battery(self, nodes: list[Variable], rng: random.Random) -> None:
         for trial in range(self.N_GRAPHS):
@@ -405,15 +406,15 @@ class TestMinimalSeparatorProperties(unittest.TestCase):
 
     def test_random_3_nodes(self) -> None:
         """Property test on 3-node random ADMGs."""
-        rng = random.Random(self.SEED + 3)
+        rng = random.Random(self.SEED + 3)  # noqa: S311
         self._run_battery(self.NODES_3, rng)
 
     def test_random_4_nodes(self) -> None:
         """Property test on 4-node random ADMGs."""
-        rng = random.Random(self.SEED + 4)
+        rng = random.Random(self.SEED + 4)  # noqa: S311
         self._run_battery(self.NODES_4, rng)
 
     def test_random_5_nodes(self) -> None:
         """Property test on 5-node random ADMGs."""
-        rng = random.Random(self.SEED + 5)
+        rng = random.Random(self.SEED + 5)  # noqa: S311
         self._run_battery(self.NODES_5, rng)

@@ -1,4 +1,4 @@
-"""Tests for acyclify (Forré & Mooij 2017 acyclification).
+r"""Tests for acyclify (Forre & Mooij 2017 acyclification).
 
 Covers:
 - Structural correctness: output is always acyclic.
@@ -6,7 +6,7 @@ Covers:
 - 2-cycle: X->Y->X becomes X<->Y with no directed edges.
 - 3-cycle with external parent: parent is broadcast to all SCC members.
 - Existing bidirected edges are preserved.
-- σ-separation equivalence property: are_sigma_separated(G, x, y, Z) ==
+- \sigma-separation equivalence property: are_sigma_separated(G, x, y, Z) ==
   are_m_separated(acyclify(G), x, y, Z) for random graphs.
 """
 
@@ -15,6 +15,7 @@ from __future__ import annotations
 import random
 import unittest
 from itertools import combinations
+from typing import ClassVar
 
 import networkx as nx
 
@@ -111,8 +112,8 @@ class TestAcyclifyStructure(unittest.TestCase):
         self.assertEqual(set(g.nodes()), set(gac.nodes()))
 
     def test_output_always_acyclic(self) -> None:
-        """acyclify always produces an acyclic directed subgraph."""
-        rng = random.Random(42)
+        """Acyclify always produces an acyclic directed subgraph."""
+        rng = random.Random(42)  # noqa: S311
         nodes = [A, B, C, X, Y]
         for _ in range(50):
             g = _random_dmg(nodes, rng=rng)
@@ -124,17 +125,17 @@ class TestAcyclifyStructure(unittest.TestCase):
 
 
 class TestAcyclifyEquivalence(unittest.TestCase):
-    """Property test: σ-separation in G ⟺ m-separation in acyclify(G).
+    r"""Property test: \sigma-separation in G iff m-separation in acyclify(G).
 
-    The full equivalence (Forré & Mooij 2017, Theorem 3.5) is:
-        σ-sep(G, x, y | Z)  ⟺  m-sep(acyclify(G), x, y | Z)
+    The full equivalence (Forre & Mooij 2017, Theorem 3.5) is:
+        \sigma-sep(G, x, y | Z)  iff  m-sep(acyclify(G), x, y | Z)
 
     **Known limitation**: ``are_sigma_separated`` has documented incompleteness
-    bugs — it can return ``False`` when the true answer is ``True`` (i.e. it
-    misses some active σ-connecting paths).  This means random-graph property
+    bugs -- it can return ``False`` when the true answer is ``True`` (i.e. it
+    misses some active \sigma-connecting paths).  This means random-graph property
     tests against ``are_sigma_separated`` are unreliable as an oracle.
 
-    The random-graph battery tests are therefore marked ``xfail`` — they
+    The random-graph battery tests are therefore marked ``xfail`` -- they
     document the *intended* equivalence and will pass once ``are_sigma_separated``
     is fixed, but are expected to fail against the current incomplete oracle.
 
@@ -144,13 +145,11 @@ class TestAcyclifyEquivalence(unittest.TestCase):
 
     SEED = 77
     N_GRAPHS = 40
-    NODES_3 = [A, B, C]
-    NODES_4 = [A, B, C, X]
+    NODES_3: ClassVar[list[Variable]] = [A, B, C]
+    NODES_4: ClassVar[list[Variable]] = [A, B, C, X]
 
-    def _run_battery_m_implies_sigma(
-        self, nodes: list[Variable], rng: random.Random
-    ) -> None:
-        """m-sep(acyclify(G)) = True ⟹ σ-sep(G) = True.
+    def _run_battery_m_implies_sigma(self, nodes: list[Variable], rng: random.Random) -> None:
+        r"""m-sep(acyclify(G)) = True => \sigma-sep(G) = True.
 
         Fails when are_sigma_separated misses an active path (returns False
         when the answer is True).
@@ -171,31 +170,31 @@ class TestAcyclifyEquivalence(unittest.TestCase):
                                 sigma_sep,
                                 msg=(
                                     f"[trial={trial}] m-sep(acyclify(G),{x},{y}|{z})=True but "
-                                    f"σ-sep(G,{x},{y}|{z})=False"
+                                    f"\\sigma-sep(G,{x},{y}|{z})=False"
                                 ),
                             )
 
     def test_equivalence_3_nodes(self) -> None:
-        """m-sep(acyclify) ⟹ σ-sep: 3-node random DMGs.
+        r"""m-sep(acyclify) => \sigma-sep: 3-node random DMGs.
 
         With 3 nodes the equivalence holds for this seed (no counterexample
         found in the random battery).  Larger graphs expose the known
         incompleteness in ``are_sigma_separated`` (see test_equivalence_4_nodes).
         """
-        rng = random.Random(self.SEED + 3)
+        rng = random.Random(self.SEED + 3)  # noqa: S311
         self._run_battery_m_implies_sigma(self.NODES_3, rng)
 
     @unittest.expectedFailure
     def test_equivalence_4_nodes(self) -> None:
-        """m-sep(acyclify) ⟹ σ-sep: 4-node random DMGs.
+        r"""m-sep(acyclify) => \sigma-sep: 4-node random DMGs.
 
         Expected to fail due to known incompleteness in are_sigma_separated.
         """
-        rng = random.Random(self.SEED + 4)
+        rng = random.Random(self.SEED + 4)  # noqa: S311
         self._run_battery_m_implies_sigma(self.NODES_4, rng)
 
     def test_known_two_cycle(self) -> None:
-        """2-cycle X->Y->X: σ-sep(X,Y|{}) = False; m-sep(acyclify,X,Y|{}) = False."""
+        r"""2-cycle X->Y->X: \sigma-sep(X,Y|{}) = False; m-sep(acyclify,X,Y|{}) = False."""
         g = NxMixedGraph.from_edges(directed=[(X, Y), (Y, X)])
         gac = acyclify(g)
         # Both should agree: X and Y are NOT separated (they share a bidirected edge)
@@ -203,28 +202,28 @@ class TestAcyclifyEquivalence(unittest.TestCase):
         self.assertFalse(are_m_separated(gac, X, Y, conditions=set()))
 
     def test_known_dag_chain(self) -> None:
-        """DAG X->Z->Y: σ-sep(X,Y|{Z}) = True; m-sep(acyclify,X,Y|{Z}) = True."""
+        r"""DAG X->Z->Y: \sigma-sep(X,Y|{Z}) = True; m-sep(acyclify,X,Y|{Z}) = True."""
         g = NxMixedGraph.from_edges(directed=[(X, Z), (Z, Y)])
         gac = acyclify(g)
         self.assertTrue(are_sigma_separated(g, X, Y, conditions={Z}))
         self.assertTrue(are_m_separated(gac, X, Y, conditions={Z}))
 
     def test_known_fork(self) -> None:
-        """DAG Z->X, Z->Y: σ-sep(X,Y|{Z}) = True; m-sep(acyclify,X,Y|{Z}) = True."""
+        r"""DAG Z->X, Z->Y: \sigma-sep(X,Y|{Z}) = True; m-sep(acyclify,X,Y|{Z}) = True."""
         g = NxMixedGraph.from_edges(directed=[(Z, X), (Z, Y)])
         gac = acyclify(g)
         self.assertTrue(are_sigma_separated(g, X, Y, conditions={Z}))
         self.assertTrue(are_m_separated(gac, X, Y, conditions={Z}))
 
     def test_known_collider_unblocked(self) -> None:
-        """DAG X->Z<-Y: σ-sep(X,Y|{Z}) = False (collider opened); m-sep agrees."""
+        r"""DAG X->Z<-Y: \sigma-sep(X,Y|{Z}) = False (collider opened); m-sep agrees."""
         g = NxMixedGraph.from_edges(directed=[(X, Z), (Y, Z)])
         gac = acyclify(g)
         self.assertFalse(are_sigma_separated(g, X, Y, conditions={Z}))
         self.assertFalse(are_m_separated(gac, X, Y, conditions={Z}))
 
     def test_known_two_cycle_with_confounder(self) -> None:
-        """X->Y->X, Z->X, Z->Y: σ-sep(X,Y|{Z}) = False; m-sep(acyclify) = False."""
+        r"""X->Y->X, Z->X, Z->Y: \sigma-sep(X,Y|{Z}) = False; m-sep(acyclify) = False."""
         g = NxMixedGraph.from_edges(directed=[(X, Y), (Y, X), (Z, X), (Z, Y)])
         gac = acyclify(g)
         self.assertFalse(are_sigma_separated(g, X, Y, conditions={Z}))

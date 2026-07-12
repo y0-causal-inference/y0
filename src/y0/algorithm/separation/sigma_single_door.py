@@ -477,7 +477,7 @@ def is_sigma_single_door_admissible(
 
     # Condition (ii): sigma-separation of cause and effect given Z in G \ {cause -> effect}
     reduced = _remove_directed_edge(graph, cause, effect)
-    return are_sigma_separated(reduced, cause, effect, conditions=conditions_set)
+    return bool(are_sigma_separated(reduced, cause, effect, conditions=conditions_set))
 
 
 def find_sigma_single_door_sets(

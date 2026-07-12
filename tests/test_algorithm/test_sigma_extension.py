@@ -115,7 +115,7 @@ class TestSigmaExtensionEquivalence(unittest.TestCase):
         gs = sigma_extension(graph)
         for left, right, conds in triples:
             with self.subTest(left=left, right=right, conds=conds):
-                sigma_result = are_sigma_separated(graph, left, right, conditions=conds)
+                sigma_result = bool(are_sigma_separated(graph, left, right, conditions=conds))
                 d_result = bool(are_d_separated(gs, left, right, conditions=conds))
                 self.assertEqual(
                     sigma_result,

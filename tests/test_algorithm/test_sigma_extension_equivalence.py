@@ -9,9 +9,9 @@ where G^sigma is the sigma-extension of G (bidirected edges added for all
 intra-SCC directed edges).
 
 This module tests that equivalence exhaustively over all (X, Y, Z) triples on
-a battery of ~200 small randomly-generated directed mixed graphs (n=3–5 nodes,
+a battery of ~200 small randomly-generated directed mixed graphs (n=3--5 nodes,
 directed cycles and bidirected edges allowed), plus a set of hand-crafted
-fixtures including the Figure-1 graph from Forré & Mooij (2018).
+fixtures including the Figure-1 graph from Forre & Mooij (2018).
 
 **Triage results (Phase 1 investigation):**
 
@@ -21,8 +21,8 @@ Two distinct bugs were found in :func:`~y0.algorithm.separation.sigma_separation
 When a node has *both* a directed edge AND a bidirected edge to a neighbor,
 ``_only_directed_edge(middle, left)`` returns False even though the directed
 edge exists, causing ``is_non_collider_fork`` to incorrectly reject a valid
-σ-open fork path.  Example: graph ``A→B, A↔B, A↔C`` — the path ``B-A-C``
-is σ-open (A is an unconditioned fork) but ``are_sigma_separated`` returns
+\sigma-open fork path.  Example: graph ``A->B, A<->B, A<->C`` -- the path ``B-A-C``
+is \sigma-open (A is an unconditioned fork) but ``are_sigma_separated`` returns
 True (separated).
 
 **Bug B — over-reports connectivity (False positive for connectivity):**
@@ -36,7 +36,7 @@ making X a non-collider on Y↔X↔Z that is blocked by conditioning.
 
 **Consequence for the plan:**
 The ``sigma_extension`` + ``are_d_separated`` approach is the *correct* oracle
-for σ-separation.  ``are_sigma_separated`` is buggy and should not be used as
+for \sigma-separation.  ``are_sigma_separated`` is buggy and should not be used as
 the ground truth.  The ``are_m_separated`` function in Phase 2 will use
 ``sigma_extension`` + ``are_d_separated`` internally.
 
@@ -151,7 +151,7 @@ def _check_theorem5(
         for size in range(len(remaining) + 1):
             for cond_tuple in combinations(remaining, size):
                 conds = set(cond_tuple)
-                sigma_result = are_sigma_separated(graph, left, right, conditions=conds)
+                sigma_result = bool(are_sigma_separated(graph, left, right, conditions=conds))
                 d_result = bool(are_d_separated(g_sigma, left, right, conditions=conds))
                 test_case.assertEqual(
                     sigma_result,
@@ -172,7 +172,7 @@ def _check_theorem5(
 
 
 class TestTheoremFiveFixtures(unittest.TestCase):
-    r"""Theorem 5 on hand-crafted graphs including the Forré–Mooij Figure-1 anchor."""
+    r"""Theorem 5 on hand-crafted graphs including the Forre-Mooij Figure-1 anchor."""
 
     def test_dag_chain(self) -> None:
         """X -> Y -> Z: pure DAG, G^sigma == G."""
@@ -209,16 +209,12 @@ class TestTheoremFiveFixtures(unittest.TestCase):
         g = NxMixedGraph.from_edges(directed=[(W, X), (X, Y), (Y, X)])
         _check_theorem5(g, test_case=self, label="cycle-with-external")
 
-    @unittest.expectedFailure
     def test_cycle_with_bidirected(self) -> None:
         """X -> Y -> X, X <-> Z: 2-cycle plus a latent confounder.
 
-        Known Bug B in are_sigma_separated: the path Y-X-Z conditioned on {X}
-        is incorrectly reported as sigma-open.  X is a collider (Y→X↔Z) that
-        is opened by conditioning, but G^sigma adds X↔Y (intra-SCC), making X
-        a non-collider on Y↔X↔Z that is blocked by conditioning.
-        are_sigma_separated returns False (connected) but d-sep in G^sigma
-        returns True (separated) for sigma-sep(Y,Z|{X}).
+        Previously Bug B in are_sigma_separated: the path Y-X-Z conditioned on {X}
+        was incorrectly reported as sigma-open.  Now fixed via the acyclify +
+        m-separation reduction (Forre & Mooij 2017, Theorem 3.5).
         """
         g = NxMixedGraph.from_edges(directed=[(X, Y), (Y, X)], undirected=[(X, Z)])
         _check_theorem5(g, test_case=self, label="cycle-with-bidirected")
@@ -245,9 +241,7 @@ class TestTheoremFiveFixtures(unittest.TestCase):
 
     def test_two_sccs_with_bridge(self) -> None:
         """Two 2-cycles connected by a bridge: A->B->A, C->D->C, B->C."""
-        g = NxMixedGraph.from_edges(
-            directed=[(A, B), (B, A), (C, D), (D, C), (B, C)]
-        )
+        g = NxMixedGraph.from_edges(directed=[(A, B), (B, A), (C, D), (D, C), (B, C)])
         _check_theorem5(g, test_case=self, label="two-SCCs-bridge")
 
     def test_cycle_with_multiple_bidirected(self) -> None:
@@ -260,9 +254,7 @@ class TestTheoremFiveFixtures(unittest.TestCase):
 
     def test_fully_connected_3_cycle(self) -> None:
         """X -> Y -> Z -> X plus X -> Z, Y -> X, Z -> Y (complete directed graph on 3 nodes)."""
-        g = NxMixedGraph.from_edges(
-            directed=[(X, Y), (Y, Z), (Z, X), (X, Z), (Y, X), (Z, Y)]
-        )
+        g = NxMixedGraph.from_edges(directed=[(X, Y), (Y, Z), (Z, X), (X, Z), (Y, X), (Z, Y)])
         _check_theorem5(g, test_case=self, label="complete-3-cycle")
 
 
@@ -284,11 +276,11 @@ class TestTheoremFiveRandom(unittest.TestCase):
     """
 
     SEED = 42
-    N_GRAPHS_PER_SIZE = 40  # 40 graphs × 5 sizes = 200 total
+    N_GRAPHS_PER_SIZE = 40  # 40 graphs x 5 sizes = 200 total
 
     def _run_random_battery(self, n_nodes: int, node_pool: list[Variable]) -> None:
         """Run the random battery for graphs of size *n_nodes*."""
-        rng = random.Random(self.SEED + n_nodes)  # distinct seed per size
+        rng = random.Random(self.SEED + n_nodes)  # noqa: S311  # distinct seed per size
         for trial in range(self.N_GRAPHS_PER_SIZE):
             g = _random_dmg(node_pool[:n_nodes], rng=rng)
             _check_theorem5(
@@ -297,41 +289,21 @@ class TestTheoremFiveRandom(unittest.TestCase):
                 label=f"random-n{n_nodes}-trial{trial}",
             )
 
-    @unittest.expectedFailure
     def test_random_3_nodes(self) -> None:
-        """Random battery: 3-node graphs.
-
-        Expected to fail due to Bug A and Bug B in are_sigma_separated.
-        See module docstring for details.
-        """
+        """Random battery: 3-node graphs."""
         self._run_random_battery(3, _NODE_POOL_3)
 
-    @unittest.expectedFailure
     def test_random_4_nodes(self) -> None:
-        """Random battery: 4-node graphs.
-
-        Expected to fail due to Bug A and Bug B in are_sigma_separated.
-        See module docstring for details.
-        """
+        """Random battery: 4-node graphs."""
         self._run_random_battery(4, _NODE_POOL_4)
 
-    @unittest.expectedFailure
     def test_random_5_nodes(self) -> None:
-        """Random battery: 5-node graphs.
-
-        Expected to fail due to Bug A and Bug B in are_sigma_separated.
-        See module docstring for details.
-        """
+        """Random battery: 5-node graphs."""
         self._run_random_battery(5, _NODE_POOL_5)
 
-    @unittest.expectedFailure
     def test_random_3_nodes_dense(self) -> None:
-        """Random battery: 3-node graphs with higher edge density.
-
-        Expected to fail due to Bug A and Bug B in are_sigma_separated.
-        See module docstring for details.
-        """
-        rng = random.Random(self.SEED + 100)
+        """Random battery: 3-node graphs with higher edge density."""
+        rng = random.Random(self.SEED + 100)  # noqa: S311
         for trial in range(self.N_GRAPHS_PER_SIZE):
             g = _random_dmg(
                 _NODE_POOL_3,
@@ -345,14 +317,9 @@ class TestTheoremFiveRandom(unittest.TestCase):
                 label=f"random-dense-n3-trial{trial}",
             )
 
-    @unittest.expectedFailure
     def test_random_4_nodes_dense(self) -> None:
-        """Random battery: 4-node graphs with higher edge density.
-
-        Expected to fail due to Bug A and Bug B in are_sigma_separated.
-        See module docstring for details.
-        """
-        rng = random.Random(self.SEED + 200)
+        """Random battery: 4-node graphs with higher edge density."""
+        rng = random.Random(self.SEED + 200)  # noqa: S311
         for trial in range(self.N_GRAPHS_PER_SIZE):
             g = _random_dmg(
                 _NODE_POOL_4,
