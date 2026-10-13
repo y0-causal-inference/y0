@@ -115,12 +115,13 @@ Apply an algorithm to an Acyclic Directed Mixed Graph (ADMG) and a causal query
 to generate an estimand represented in the DSL like:
 
 ```python
-from y0.dsl import P, X, Y
+from y0.dsl import P, Sum, X, Y, Z1, Z2
 from y0.examples import napkin
 from y0.algorithm.identify import identify_outcomes
 
 estimand = identify_outcomes(napkin, treatments=X, outcomes=Y)
-assert estimand == P(Y | X)
+numerator = Sum[Z2](P(X | Z1, Z2) * P(Y | X, Z1, Z2) * P(Z2))
+assert estimand == numerator / Sum[Y](numerator)
 ```
 
 ## 🚀 Installation
