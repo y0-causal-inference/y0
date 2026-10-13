@@ -303,7 +303,8 @@ class NxMixedGraph:
         """Moralize the graph.
 
         :returns: A moralized ADMG in which all nodes $U$ and $v$ that are parents of
-            some node $N$ are connected with an undirected edge.
+            some node $N$, or more generally that are joined by a collider path (see
+            :func:`iter_moral_links`), are connected with an undirected edge.
 
         .. seealso::
 
@@ -998,7 +999,13 @@ def _markov_blanket_overlap(graph: NxMixedGraph, u: Variable, v: Variable) -> bo
 
 
 def iter_moral_links(graph: NxMixedGraph) -> Iterable[tuple[Variable, Variable]]:
-    """Generate links to ensure all co-parents in a graph are linked.
+    """Generate links to ensure all nodes joined by a collider path are linked.
+
+    In a directed acyclic graph, these are the co-parents of each node. In an acyclic
+    directed mixed graph, a collider path can also pass through bidirected edges (e.g.,
+    ``A -> B <-> C``), so the nodes of each district and the parents of that district
+    are all linked to each other. This gives the augmented graph used for m-separation
+    in `Richardson (2003) <https://doi.org/10.1111/1467-9469.00323>`_.
 
     May generate links that already exist as we assume we are not working on a
     multi-graph.
@@ -1011,6 +1018,9 @@ def iter_moral_links(graph: NxMixedGraph) -> Iterable[tuple[Variable, Variable]]
     yield from chain.from_iterable(
         combinations(graph.directed.predecessors(node), 2) for node in graph.nodes()
     )
+    for district in graph.districts():
+        if len(district) > 1:
+            yield from combinations(district | graph.get_markov_pillow(district), 2)
 
 
 def get_nodes_in_directed_paths(
