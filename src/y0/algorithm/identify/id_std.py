@@ -142,7 +142,7 @@ def _identify(  # noqa:C901
     # line 6, if S ∈ C(G)
     if district_without_treatment in graph.districts():
         return Sum.safe(
-            expression=_district_product(district_without_treatment, ordering),
+            expression=_district_product(district_without_treatment, ordering, estimand),
             ranges=district_without_treatment - outcomes,
         )
 
@@ -153,7 +153,7 @@ def _identify(  # noqa:C901
                 graph=graph.subgraph(district),
                 outcomes=outcomes,
                 treatments=treatments & district,
-                estimand=_district_product(district, ordering),
+                estimand=_district_product(district, ordering, estimand),
                 ordering=ordering,
             )
 
@@ -369,7 +369,7 @@ def line_6(
 
     if ordering is None:
         ordering = graph.topological_sort()
-    expression = _district_product(district_without_treatments, ordering)
+    expression = _district_product(district_without_treatments, ordering, identification.estimand)
     ranges = district_without_treatments - outcomes
     return Sum.safe(expression=expression, ranges=ranges)
 
@@ -421,15 +421,47 @@ def line_7(
             return Identification.from_parts(
                 outcomes=outcomes,
                 treatments=treatments & district,
-                estimand=_district_product(district, ordering),
+                estimand=_district_product(district, ordering, identification.estimand),
                 graph=graph.subgraph(district),
             )
 
     raise ValueError("Could not identify suitable district")
 
 
-def _district_product(district: frozenset[Variable], ordering: Sequence[Variable]) -> Expression:
-    return Product.safe(p_parents(v, ordering) for v in district)
+def _district_product(
+    district: frozenset[Variable], ordering: Sequence[Variable], estimand: Expression
+) -> Expression:
+    return Product.safe(_conditional(v, ordering, estimand) for v in district)
+
+
+def _conditional(child: Variable, ordering: Sequence[Variable], estimand: Expression) -> Expression:
+    r"""Get :math:`P(v_i|v_\pi^{(i-1)})` for the distribution passed down the recursion.
+
+    Lines 6 and 7 condition the *current* distribution, which is the observational
+    distribution (or a marginal of it) until line 7 replaces it with a product of
+    conditionals. After that, a conditional of the observational distribution is no
+    longer a conditional of the current one, so it is computed from the estimand.
+
+    :param child: The child variable
+    :param ordering: A topological ordering of the variables of the estimand. All
+        occurring before the child are conditioned on.
+    :param estimand: The current distribution
+
+    :returns: A probability expression
+    """
+    if _is_observational(estimand):
+        return p_parents(child, ordering)
+    rest = ordering[ordering.index(child) :]
+    return Sum.safe(expression=estimand, ranges=rest[1:]) / Sum.safe(
+        expression=estimand, ranges=rest
+    )
+
+
+def _is_observational(estimand: Expression) -> bool:
+    """Check if the estimand is a joint probability or a marginal of one."""
+    if isinstance(estimand, Sum):
+        return _is_observational(estimand.expression)
+    return isinstance(estimand, Probability) and not estimand.parents
 
 
 def p_parents(child: Variable, ordering: Sequence[Variable]) -> Probability:

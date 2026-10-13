@@ -1,6 +1,8 @@
 """Tests for the identify algorithm."""
 
+import fractions
 import itertools as itt
+from collections import defaultdict
 
 import y0.examples
 from tests.test_algorithm import cases
@@ -26,12 +28,16 @@ from y0.dsl import (
     W2,
     Y1,
     Y2,
+    Z1,
+    Z2,
     Expression,
+    Fraction,
     M,
     P,
     Probability,
     Product,
     Sum,
+    Variable,
     X,
     Y,
     Z,
@@ -45,11 +51,76 @@ from y0.examples import (
     line_5_example,
     line_6_example,
     line_7_example,
+    napkin,
 )
 from y0.graph import NxMixedGraph
 
 P_XY = P(X, Y)
 P_XYZ = P(X, Y, Z)
+
+#: The order of the values in the keys of :func:`_napkin_joint`
+NAPKIN_ORDER = (Z2, Z1, X, Y)
+
+Joint = dict[tuple[int, ...], fractions.Fraction]
+
+
+def _napkin_joint(treatment: int | None = None) -> Joint:
+    """Get the exact joint distribution of a binary model of the napkin graph.
+
+    The latent U1 is behind ``Z2 <-> X`` and U2 behind ``Z2 <-> Y``. With private noise
+    N for each node, ``Z2 = U1 ^ U2 ^ N``, ``Z1 = Z2 ^ N``, ``X = Z1 ^ U1 ^ N``, and
+    ``Y = X ^ U2 ^ N``. If a treatment is given, ``X`` is set to it, giving the joint
+    distribution under ``do(X)``.
+    """
+    p_one = [fractions.Fraction(*nd) for nd in ((1, 3), (2, 7), (1, 5), (1, 4), (1, 6), (1, 7))]
+    rv: defaultdict[tuple[int, ...], fractions.Fraction] = defaultdict(fractions.Fraction)
+    for values in itt.product((0, 1), repeat=len(p_one)):
+        u1, u2, n_z2, n_z1, n_x, n_y = values
+        weight = fractions.Fraction(1)
+        for value, p in zip(values, p_one, strict=True):
+            weight *= p if value else 1 - p
+        z2 = u1 ^ u2 ^ n_z2
+        z1 = z2 ^ n_z1
+        x = z1 ^ u1 ^ n_x if treatment is None else treatment
+        rv[z2, z1, x, x ^ u2 ^ n_y] += weight
+    return dict(rv)
+
+
+def _marginal(joint: Joint, values: dict[Variable, int]) -> fractions.Fraction:
+    index = {variable: i for i, variable in enumerate(NAPKIN_ORDER)}
+    return sum(
+        (p for key, p in joint.items() if all(key[index[v]] == x for v, x in values.items())),
+        fractions.Fraction(0),
+    )
+
+
+def _evaluate(
+    expression: Expression, joint: Joint, values: dict[Variable, int]
+) -> fractions.Fraction:
+    """Evaluate an expression over an observational joint distribution, exactly."""
+    if isinstance(expression, Probability):
+        parents = {v: values[v] for v in expression.parents}
+        children = {v: values[v] for v in expression.children}
+        return _marginal(joint, parents | children) / _marginal(joint, parents)
+    if isinstance(expression, Product):
+        rv = fractions.Fraction(1)
+        for subexpression in expression.expressions:
+            rv *= _evaluate(subexpression, joint, values)
+        return rv
+    if isinstance(expression, Sum):
+        ranges = sorted(expression.ranges, key=str)
+        return sum(
+            (
+                _evaluate(expression.expression, joint, values | dict(zip(ranges, xs, strict=True)))
+                for xs in itt.product((0, 1), repeat=len(ranges))
+            ),
+            fractions.Fraction(0),
+        )
+    if isinstance(expression, Fraction):
+        return _evaluate(expression.numerator, joint, values) / _evaluate(
+            expression.denominator, joint, values
+        )
+    raise TypeError(f"can not evaluate {expression}")
 
 
 class TestIdentify(cases.GraphTestCase):
@@ -304,3 +375,25 @@ class TestIdentify(cases.GraphTestCase):
             Sum[W1, X, Y1, Y2](P(W1, W2, X, Y1, Y2)) * Sum[W1](P(W1) * P(Y1 | W1, X)) * P(Y2 | W2)
         )
         self.assert_identify(cond_expr, graph, P(Y1 @ X, Y2 @ X))
+
+    def test_napkin(self):
+        """Test the napkin estimand against the interventional distribution of an exact model.
+
+        The ID algorithm reaches line 6 on the napkin graph after line 7 and line 2, so
+        the conditional in line 6 has to be taken of the distribution passed down by line
+        7 rather than of the observational distribution. The back-door path ``X <- Z1 <-
+        Z2 <-> Y`` is open, so ``P(Y | X)`` is not ``P(Y | do(X))``.
+        """
+        estimand = identify_outcomes(napkin, treatments=X, outcomes=Y)
+        numerator = Sum[Z2](P(X | Z1, Z2) * P(Y | X, Z1, Z2) * P(Z2))
+        self.assert_expr_equal(numerator / Sum[Y](numerator), estimand)
+
+        observational = _napkin_joint()
+        for x, y in itt.product((0, 1), repeat=2):
+            truth = _marginal(_napkin_joint(treatment=x), {Y: y})
+            self.assertNotEqual(truth, _evaluate(P(Y | X), observational, {X: x, Y: y}))
+            for z1 in (0, 1):
+                with self.subTest(x=x, y=y, z1=z1):
+                    self.assertEqual(
+                        truth, _evaluate(estimand, observational, {X: x, Y: y, Z1: z1})
+                    )
