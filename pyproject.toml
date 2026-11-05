@@ -90,7 +90,7 @@ docs = [
     "texext",
 ]
 lint = [
-    "ruff",
+    "ruff<0.16",
 ]
 typing = [
     { include-group = "tests" },
