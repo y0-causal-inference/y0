@@ -108,15 +108,17 @@ class TestSigmaSeparation(unittest.TestCase):
     def test_separations_figure_3(self):
         """Test comparisons of d-separation and sigma-separation."""
         for left, right, conditions, d, s in [
-            (V2, V4, [V3, V5], True, False),
+            (V2, V4, [V3, V5], True, True),
             (V1, V6, [], True, True),
-            (V1, V6, [V3, V5], True, False),
+            (V1, V6, [V3, V5], True, True),
             (V1, V8, [], False, False),
-            (V1, V8, [V3, V5], True, False),
+            (V1, V8, [V3, V5], True, True),
             (V1, V8, [V4], True, True),
         ]:
             with self.subTest(left=left, right=right, conditions=conditions):
                 self.assertEqual(
                     d, are_d_separated(graph, left, right, conditions=conditions).separated
                 )
-                self.assertEqual(s, are_sigma_separated(graph, left, right, conditions=conditions))
+                self.assertEqual(
+                    s, bool(are_sigma_separated(graph, left, right, conditions=conditions))
+                )

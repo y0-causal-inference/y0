@@ -263,11 +263,11 @@ def _ensure_method(method: CITest | None, df: pd.DataFrame, skip: bool = False) 
             return DEFAULT_DISCRETE_CI_TEST
         else:
             return DEFAULT_CONTINUOUS_CI_TEST
-    elif binary and method == "pearson":
+    elif binary and method in {"pearson", "pillai"}:
         raise ValueError(
             f"using continuous data test ({method}) on binary data: {_summarize_df(df)}"
         )
-    elif not binary and method != "pearson":
+    elif not binary and method not in {"pearson", "pillai"}:
         raise ValueError(f"using binary data test ({method}) on continuous data")
     return method
 

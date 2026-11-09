@@ -12,3 +12,4 @@
 
 .. automodule:: y0.algorithm.separation.sigma_separation
     :members:
+

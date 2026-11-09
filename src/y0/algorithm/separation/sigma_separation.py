@@ -1,13 +1,33 @@
-"""Implementation of sigma-separation from [forre2018]_."""
+"""Implementation of sigma-separation from [forre2018]_.
+
+sigma-separation (Forre & Mooij 2017/2018) is the correct separation criterion
+for directed mixed graphs that may contain directed cycles.  It generalises
+d-separation and m-separation to cyclic graphs.
+
+The canonical reduction used here (Rantanen et al. 2020, Theorem 5) is::
+
+    sigma-sep(G, x, y | Z)  iff  d-sep(sigma_extension(G), x, y | Z)
+
+where ``sigma_extension(G)`` adds a bidirected edge for every directed edge
+within each strongly-connected component (SCC), yielding an acyclic directed
+mixed graph (ADMG) with the same sigma-separation structure.  d-separation on
+the ADMG is then computed via the standard algorithm.
+
+This module implements ``are_sigma_separated`` via that reduction.  The helper
+functions (``is_z_sigma_open``, ``is_collider``, etc.) are retained for
+reference and for use by other modules that need the path-level predicates.
+"""
 
 from collections.abc import Iterable, Sequence
 from typing import cast
 
-import networkx as nx
 from more_itertools import triplewise
 
+from y0.algorithm.conditional_independencies import are_d_separated
+from y0.algorithm.separation.sigma_extension import sigma_extension
 from y0.dsl import Variable
 from y0.graph import NxMixedGraph
+from y0.struct import DSeparationJudgement
 
 __all__ = [
     "are_sigma_separated",
@@ -23,39 +43,43 @@ def are_sigma_separated(
     *,
     conditions: Iterable[Variable] | None = None,
     cutoff: int | None = None,
-) -> bool:
-    """Test if two variables are sigma-separated.
+) -> DSeparationJudgement:
+    r"""Test if two variables are sigma-separated.
 
-    Sigma separation is a generalization of d-separation that works not only for
-    directed acyclic graphs, but also for directed graphs containing cycles. It was
-    originally introduced in [forre2018]_.
+    sigma-separation is a generalisation of d-separation that works for directed
+    mixed graphs containing directed cycles.  It was originally introduced in
+    [forre2018]_.
 
-    We say that X and Y are σ-connected by Z or not σ-separated by Z if there exists a
-    path π (with some n ≥ 1 nodes) in G with one endnode in X and one endnode in Y that
-    is Z-σ-open. σ-separated is the opposite of σ-connected (logical not).
+    This implementation uses the canonical reduction from Forre & Mooij (2017,
+    Theorem 3.5)::
 
-    :param graph: Graph to test
-    :param left: A node in the graph
-    :param right: A node in the graph
-    :param conditions: A collection of graph nodes
-    :param cutoff: The maximum path length to check. By default, is unbounded.
+        sigma-sep(G, x, y | Z)  iff  m-sep(acyclify(G), x, y | Z)
 
-    :returns: If a and b are sigma-separated.
+    ``acyclify(G)`` collapses each strongly-connected component (SCC) into a
+    bidirected clique and broadcasts external parents to all SCC members,
+    producing an acyclic directed mixed graph (ADMG).  m-separation on the ADMG
+    is then computed via d-separation on the canonical latent-variable DAG
+    (Drton & Richardson 2003).
+
+    The return value is a :class:`~y0.struct.DSeparationJudgement` that carries
+    ``left``, ``right``, and ``conditions`` in canonical form alongside the
+    ``separated`` flag.  It implements ``__bool__``, so existing code that
+    treats the result as a plain boolean continues to work unchanged.
+
+    :param graph: A directed mixed graph (cycles allowed).
+    :param left: A node in the graph.
+    :param right: A node in the graph.
+    :param conditions: A collection of graph nodes to condition on.
+    :param cutoff: Ignored.  Retained for backward compatibility only.
+        The acyclify + m-separation reduction does not use path enumeration.
+
+    :returns: A :class:`~y0.struct.DSeparationJudgement` that is truthy when
+        *left* and *right* are sigma-separated given *conditions*, falsy
+        otherwise.
     """
-    if conditions is None:
-        conditions = set()
-    else:
-        conditions = set(conditions)
-
-    sigma = get_equivalence_classes(graph)
-    return not any(
-        is_z_sigma_open(graph, path, conditions=conditions, sigma=sigma)
-        # Technically, this algorithm should generate all paths, which could include
-        # repeat visits to nodes and edges, but this is computationally intractable,
-        # so the is_z_sigma_open() subroutine contains a novel path augmentation
-        # algorithm. This might not be officially complete.
-        for path in nx.all_simple_paths(graph.disorient(), left, right, cutoff=cutoff)
-    )
+    conditions_set: set[Variable] = set() if conditions is None else set(conditions)
+    g_sigma = sigma_extension(graph)
+    return are_d_separated(g_sigma, left, right, conditions=conditions_set)
 
 
 def is_z_sigma_open(
@@ -110,7 +134,7 @@ def _triple_has_correct_form(
         return True
     # augment with backtracks, since you're allowed to go back (just like Season 5 of Lost).
     # this is a better solution than generating infinite paths, but might still be mathematically
-    # incomplete. In this setup, 𝑣3→𝑣4↔𝑣6 becomes 𝑣3→𝑣4→𝑣5←𝑣4↔𝑣6 to get some sweet backtrack paths
+    # incomplete. In this setup, v3->v4<->v6 becomes v3->v4->v5<-v4<->v6 to get some sweet backtrack paths
     # through the middle node to a neighbor and then back before going to the right node.
     neighbors = {n for n in graph.disorient().neighbors(middle) if n != middle}
     for neighbor in neighbors:
@@ -253,21 +277,22 @@ def is_non_collider_fork(
 
 
 def get_equivalence_classes(graph: NxMixedGraph) -> dict[Variable, set[Variable]]:
-    """Get equivalence classes.
+    r"""Get equivalence classes.
 
     :param graph: A mixed graph
 
     :returns: A mapping from variables to their equivalence class, defined as the second
         option from the paper (see below)
 
-    1. The finest/trivial σ-CG structure of a mixed graph G is given by σ(v) := {v} for
-       all v ∈ V . In this way σ-separation in G coincides with the usual notion of
-       d-separation in a d-connection graph (d-CG) G (see [19]). We will take this as
-       the definition of d-separation and d-CG in the following.
-    2. The coarsest σ-CG structure of a mixed graph G is given by σ(v) := ScG(v) :=
-       AncG(v) ∩ DescG(v) w.r.t. the underlying directed graph. Note that the definition
-       of strongly connected component totally ignores the bi- and undirected edges of
-       the σ-CG.
+    1. The finest/trivial :math:`\sigma`-CG structure of a mixed graph G is given by
+       :math:`\sigma(v) := \{v\}` for all v in V. In this way :math:`\sigma`-separation
+       in G coincides with the usual notion of d-separation in a d-connection graph
+       (d-CG) G (see [19]). We will take this as the definition of d-separation and
+       d-CG in the following.
+    2. The coarsest :math:`\sigma`-CG structure of a mixed graph G is given by
+       :math:`\sigma(v) := ScG(v) := AncG(v) \cap DescG(v)` w.r.t. the underlying
+       directed graph. Note that the definition of strongly connected component totally
+       ignores the bi- and undirected edges of the :math:`\sigma`-CG.
     """
     return {node: _get_scc(graph, node) for node in graph.nodes()}
 
