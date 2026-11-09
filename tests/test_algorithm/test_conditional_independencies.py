@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import typing
 import unittest
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from functools import partial
+from itertools import combinations, groupby, pairwise
 
 from tests import requires_pgmpy
 from y0.algorithm.conditional_independencies import (
@@ -21,6 +23,91 @@ from y0.examples import (
 )
 from y0.graph import NxMixedGraph, iter_moral_links
 from y0.struct import CITestTuple, DSeparationJudgement
+from y0.util.combinatorics import powerset
+
+
+def _legacy_judgement_grouper(judgement: DSeparationJudgement) -> tuple[Variable, Variable]:
+    """Group legacy judgements by queried pair."""
+    return judgement.left, judgement.right
+
+
+def _legacy_topological_policy(
+    judgement: DSeparationJudgement, order: list[Variable]
+) -> tuple[int, int]:
+    """Apply the legacy topological tie-breaker."""
+    return (
+        len(judgement.conditions),
+        sum(order.index(v) for v in judgement.conditions),
+    )
+
+
+def _legacy_get_topological_policy(
+    graph: NxMixedGraph,
+) -> Callable[[DSeparationJudgement], tuple[int, int]]:
+    """Build the legacy topological policy for the given graph."""
+    order = list(graph.topological_sort())
+    return partial(_legacy_topological_policy, order=order)
+
+
+def _legacy_minimal(
+    judgements: Iterable[DSeparationJudgement],
+    graph: NxMixedGraph,
+) -> set[DSeparationJudgement]:
+    """Reproduce the legacy minimal-judgement reduction."""
+    policy = _legacy_get_topological_policy(graph)
+    judgements = sorted(judgements, key=_legacy_judgement_grouper)
+    return {min(vs, key=policy) for _, vs in groupby(judgements, _legacy_judgement_grouper)}
+
+
+def _legacy_d_separations(
+    graph: NxMixedGraph,
+    *,
+    max_conditions: int | None = None,
+) -> Iterable[DSeparationJudgement]:
+    """Reproduce the legacy exhaustive separator search."""
+    vertices = set(graph.nodes())
+    for a, b in combinations(vertices, 2):
+        for conditions in powerset(vertices - {a, b}, stop=max_conditions):
+            judgement = are_d_separated(graph, a, b, conditions=conditions)
+            if judgement.separated:
+                yield judgement
+                break
+
+
+def _legacy_get_conditional_independencies(
+    graph: NxMixedGraph,
+    *,
+    max_conditions: int | None = None,
+) -> set[DSeparationJudgement]:
+    """Reproduce legacy conditional independencies for regression comparison."""
+    return _legacy_minimal(
+        _legacy_d_separations(graph, max_conditions=max_conditions),
+        graph,
+    )
+
+
+def _build_separator_search_graph(width: int = 4, depth: int = 3) -> NxMixedGraph:
+    """Build a small dense layered graph that stresses separator search."""
+    directed = []
+    layers = []
+    for layer_index in range(depth):
+        layer = [f"L{layer_index}_{node_index}" for node_index in range(width)]
+        layers.append(layer)
+    for source_layer, target_layer in pairwise(layers):
+        for source in source_layer:
+            for target in target_layer:
+                directed.append((source, target))
+    return NxMixedGraph.from_str_edges(directed=directed)
+
+
+def _build_ci_throughput_graph(components: int = 4, chain_length: int = 4) -> NxMixedGraph:
+    """Build disconnected chains that yield many implied independencies."""
+    directed = []
+    for component_index in range(components):
+        prefix = f"C{component_index}"
+        for node_index in range(chain_length - 1):
+            directed.append((f"{prefix}_{node_index}", f"{prefix}_{node_index + 1}"))
+    return NxMixedGraph.from_str_edges(directed=directed)
 
 
 class TestDSeparation(unittest.TestCase):
@@ -287,3 +374,31 @@ class TestGetConditionalIndependencies(unittest.TestCase):
         # Test that an error is thrown if using a continous test on discrete data
         with self.assertRaises(ValueError):
             judgement.test(data, method="pearson", boolean=True)
+
+    def test_optimized_separator_search_matches_legacy(self) -> None:
+        """Test optimized separator search preserves legacy pair coverage and condition complexity."""
+        for graph in [
+            _build_separator_search_graph(),
+            _build_ci_throughput_graph(),
+        ]:
+            with self.subTest(graph=graph):
+                observed = get_conditional_independencies(graph, max_conditions=2)
+                expected = _legacy_get_conditional_independencies(graph, max_conditions=2)
+
+                observed_pairs = {
+                    (judgement.left.name, judgement.right.name) for judgement in observed
+                }
+                expected_pairs = {
+                    (judgement.left.name, judgement.right.name) for judgement in expected
+                }
+                self.assertEqual(expected_pairs, observed_pairs)
+
+                observed_by_pair = {
+                    (judgement.left.name, judgement.right.name): judgement for judgement in observed
+                }
+                for judgement in expected:
+                    pair = (judgement.left.name, judgement.right.name)
+                    self.assertLessEqual(
+                        len(observed_by_pair[pair].conditions),
+                        len(judgement.conditions),
+                    )

@@ -1,9 +1,9 @@
 """An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Collection, Iterable, Sequence
 from functools import partial
 from itertools import combinations, groupby
-from typing import Any, Literal, TypeAlias, overload
+from typing import Any, Literal, NamedTuple, Self, TypeAlias, overload
 
 import networkx as nx
 import pandas as pd
@@ -144,6 +144,75 @@ def test_conditional_independencies(
 Policy: TypeAlias = Callable[[DSeparationJudgement], Any]
 
 
+class PairSeparationContext(NamedTuple):
+    """Pair-specific graph state reused across conditioning sets."""
+
+    evidence_graph: nx.Graph
+    condition_candidates: Sequence[Variable]
+
+    @classmethod
+    def prepare(
+        cls,
+        graph: NxMixedGraph,
+        a: Variable,
+        b: Variable,
+    ) -> Self:
+        named = {a, b}
+        keep = graph.ancestors_inclusive(named)
+        evidence_graph = graph.subgraph(keep).moralize().disorient()
+        condition_candidates = _order_condition_candidates(
+            evidence_graph,
+            a,
+            b,
+            candidates=set(evidence_graph.nodes) - named,
+        )
+        return cls(
+            evidence_graph=evidence_graph,
+            condition_candidates=condition_candidates,
+        )
+
+    def is_d_separated(
+        self,
+        a: Variable,
+        b: Variable,
+        *,
+        conditions: Collection[Variable] | None = None,
+    ) -> bool:
+        """Check if the variables are d-separated."""
+        if conditions:
+            evidence_graph = self.evidence_graph.subgraph(
+                set(self.evidence_graph.nodes).difference(conditions)
+            )
+        else:
+            evidence_graph = self.evidence_graph
+        return not nx.has_path(evidence_graph, a, b)
+
+
+def _order_condition_candidates(
+    evidence_graph: nx.Graph,
+    a: Variable,
+    b: Variable,
+    *,
+    candidates: Iterable[Variable],
+) -> Sequence[Variable]:
+    """Prioritize nodes closer to the queried pair for earlier separator discovery."""
+    a_distances = nx.single_source_shortest_path_length(evidence_graph, a)
+    b_distances = nx.single_source_shortest_path_length(evidence_graph, b)
+    condition_candidates = sorted(candidates, key=_get_key(a_distances, b_distances))
+    return condition_candidates
+
+
+def _get_key(a_distances: dict[Variable, int], b_distances: dict[Variable, float]) -> Callable[[Variable], tuple[float, float, float, str]]:
+    def key(node: Variable) -> tuple[float, float, float, str]:
+        """Rank condition candidates by closeness to the queried pair."""
+        a_distance: float = a_distances.get(node, float("inf"))
+        b_distance: float = b_distances.get(node, float("inf"))
+        # TODO what is the meaning of this key?
+        return (a_distance + b_distance, min(a_distance, b_distance), a_distance, str(node))
+
+    return key
+
+
 def get_conditional_independencies(
     graph: NxMixedGraph,
     *,
@@ -171,6 +240,15 @@ def get_conditional_independencies(
 
         Original issue https://github.com/y0-causal-inference/y0/issues/24
     """
+    if not return_all:
+        return set(
+            d_separations(
+                graph,
+                max_conditions=max_conditions,
+                return_all=return_all,
+                verbose=verbose,
+            )
+        )
     if policy is None:
         policy = get_topological_policy(graph)
     return minimal(
@@ -289,12 +367,8 @@ def are_d_separated(
     # Filter to ancestors
     keep = graph.ancestors_inclusive(named)
     evidence_graph = graph.subgraph(keep).moralize().disorient()
-
-    keep = set(evidence_graph.nodes) - set(conditions)
-    evidence_graph = evidence_graph.subgraph(keep)
-
-    # check for path....
-    separated = not nx.has_path(evidence_graph, a, b)  # If no path, then d-separated!
+    context = PairSeparationContext(evidence_graph=evidence_graph, condition_candidates=())
+    separated = context.is_d_separated(a, b, conditions=conditions)
 
     return DSeparationJudgement.create(left=a, right=b, conditions=conditions, separated=separated)
 
@@ -316,17 +390,20 @@ def d_separations(
 
     :yields: True d-separation judgments
     """
-    vertices = set(graph.nodes())
+    n_nodes = graph.directed.number_of_nodes()
     for a, b in tqdm(
-        combinations(vertices, 2),
+        combinations(graph.nodes(), 2),
         disable=not verbose,
         desc="Checking d-separations",
         unit="pair",
-        total=len(vertices) * (len(vertices) - 1) // 2,
+        total=n_nodes * (n_nodes - 1) // 2,
     ):
-        for conditions in powerset(vertices - {a, b}, stop=max_conditions):
-            judgement = are_d_separated(graph, a, b, conditions=conditions)
-            if judgement.separated:
-                yield judgement
+        # FIXME why can't conditions be applied when preparing the graph here?
+        context = PairSeparationContext.prepare(graph, a, b)
+        for conditions in powerset(context.condition_candidates, stop=max_conditions):
+            if context.is_d_separated(a, b, conditions=conditions):
+                yield DSeparationJudgement.create(
+                    left=a, right=b, conditions=conditions, separated=True
+                )
                 if not return_all:
                     break
