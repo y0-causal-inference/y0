@@ -28,9 +28,7 @@ class TestComponents(unittest.TestCase):
         targets: set[Variable] = set()
         district = {Y}
 
-        with self.assertRaises(
-            ValueError,
-        ):
+        with self.assertRaises(ValueError):
             validate_preconditions(graph, targets, district)
 
     def test_empty_district_raises_error(self) -> None:
@@ -39,9 +37,7 @@ class TestComponents(unittest.TestCase):
         targets = {Y}
         district: set[Variable] = set()
 
-        with self.assertRaises(
-            ValueError,
-        ):
+        with self.assertRaises(ValueError):
             validate_preconditions(graph, targets, district)
 
     def test_targets_not_subset_of_district_raises_error(self) -> None:
@@ -50,9 +46,7 @@ class TestComponents(unittest.TestCase):
         targets = {Y, Z}
         district = {Y}  # Z is not in district
 
-        with self.assertRaises(
-            ValueError,
-        ):
+        with self.assertRaises(ValueError):
             validate_preconditions(graph, targets, district)
 
     def test_district_not_subset_of_nodes_raises_error(self) -> None:
@@ -387,9 +381,11 @@ class TestIDCDFunction(cases.GraphTestCase):
 
         mock_subgraph.ancestors_inclusive.return_value = {X, Y}
 
-        with patch.object(graph, "subgraph", return_value=mock_subgraph):
-            with self.assertRaises(ValueError):
-                idcd(graph=graph, outcomes=targets, district=district)
+        with (
+            patch.object(graph, "subgraph", return_value=mock_subgraph),
+            self.assertRaises(ValueError),
+        ):
+            idcd(graph=graph, outcomes=targets, district=district)
 
 
 class TestComputeSCCDistributions(cases.GraphTestCase):

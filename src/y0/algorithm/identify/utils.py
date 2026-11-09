@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from itertools import chain
-from typing import Any, cast
+from typing import cast
 
 import networkx as nx
 
@@ -42,7 +42,7 @@ class Query:
         self,
         outcomes: Variable | Iterable[Variable],
         treatments: Variable | Iterable[Variable],
-        conditions: None | Variable | Iterable[Variable] = None,
+        conditions: Variable | Iterable[Variable] | None = None,
     ) -> None:
         """Instantiate an identification.
 
@@ -54,7 +54,7 @@ class Query:
         self.treatments = _ensure_set(treatments)
         self.conditions = _ensure_set(conditions) if conditions is not None else set()
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check if the outcomes, treatments, and conditions are equal."""
         return (
             isinstance(other, Query)
@@ -304,7 +304,7 @@ class Identification:
             f'conditions="{self.conditions}",  graph="{self.graph!r}", estimand="{self.estimand}")'
         )
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check if the query, estimand, and graph are equal."""
         return (
             isinstance(other, Identification)

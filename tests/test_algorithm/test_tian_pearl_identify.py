@@ -147,7 +147,6 @@ tian_pearl_figure_9a_graph = NxMixedGraph.from_edges(
     ],
 )
 
-
 logger = logging.getLogger(__name__)
 
 

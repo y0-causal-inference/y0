@@ -1491,7 +1491,7 @@ class One(Expression):
     def __mul__(self, expression: Expression) -> Expression:
         return expression
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, One)  # all ones are equal
 
     def _iter_variables(self) -> Iterable[Variable]:
@@ -1528,7 +1528,7 @@ class Zero(Expression):
             raise ZeroDivisionError
         return self
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, Zero)  # all zeros are equal
 
     def _iter_variables(self) -> Iterable[Variable]:

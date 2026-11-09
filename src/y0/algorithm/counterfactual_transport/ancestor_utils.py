@@ -14,7 +14,7 @@ __all__ = [
     "minimize_counterfactual",
 ]
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def get_ancestors_of_counterfactual(event: Variable, graph: NxMixedGraph) -> set[Variable]:

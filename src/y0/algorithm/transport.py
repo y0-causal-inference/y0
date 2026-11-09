@@ -459,7 +459,7 @@ def trso_line9(query: TRSOQuery, district: set[Variable]) -> Expression:
     if isinstance(query.expression, Zero):  # pragma: no cover
         # TODO if we can't create an integration test (i.e., a call to trso)
         #  that triggers this line, then it can be safely removed
-        raise RuntimeError
+        raise RuntimeError  # noqa:TRY004
 
     ordering = query.graphs[query.domain].topological_sort()
     ordering_set = set(ordering)

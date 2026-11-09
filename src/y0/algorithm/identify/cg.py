@@ -53,31 +53,18 @@ def has_same_function(node1: Variable, node2: Variable) -> bool:
     ) == is_not_self_intervened(node2)
 
 
-def nodes_attain_same_value(  # noqa:C901
-    graph: NxMixedGraph, event: Event, a: Variable, b: Variable
-) -> bool:
+def nodes_attain_same_value(graph: NxMixedGraph, event: Event, a: Variable, b: Variable) -> bool:
     """Check if the two nodes attain the same value."""
     if a == b:
         return True
-    if not has_same_confounders(graph, a, b):
-        return False
-    elif a.get_base() != b.get_base():
+    if not has_same_confounders(graph, a, b) or a.get_base() != b.get_base():
         return False
     elif a in event and b in event:
-        if event[a] != event[b]:
-            return False  # D and D @ -d  events = {D: -d}
-        else:
-            return True
+        return event[a] == event[b]
     elif a in event:
-        if not isinstance(b, CounterfactualVariable) or event[a] not in b.interventions:
-            return False
-        else:
-            return True
+        return not (not isinstance(b, CounterfactualVariable) or event[a] not in b.interventions)
     elif b in event:
-        if not isinstance(a, CounterfactualVariable) or event[b] not in a.interventions:
-            return False
-        else:
-            return True
+        return not (not isinstance(a, CounterfactualVariable) or event[b] not in a.interventions)
     elif isinstance(a, CounterfactualVariable) or isinstance(b, CounterfactualVariable):
         return False
     return True
@@ -179,9 +166,7 @@ def nodes_have_same_domain_of_values(
         return True
     if is_not_self_intervened(a) or is_not_self_intervened(b):
         return False
-    if value_of_self_intervention(a) == value_of_self_intervention(b):
-        return True
-    return False
+    return value_of_self_intervention(a) == value_of_self_intervention(b)
 
 
 def value_of_self_intervention(a: Variable) -> Intervention | None:

@@ -80,7 +80,7 @@ def idc_star(
             conditions,
         )
         if isinstance(id_star(graph, conditions), Zero):
-            raise ValueError("The ID* algorithm returned 0, so IDC* cannot be applied.")
+            raise ValueError("The ID* algorithm returned 0, so IDC* cannot be applied.")  # noqa:TRY004
         else:
             logger.debug(
                 "[%d]: line 1 IDC* algorithm: ID* algorithm is not inconsistent", _number_recursions

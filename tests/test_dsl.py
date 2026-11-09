@@ -160,17 +160,14 @@ class TestDSL(unittest.TestCase):
             (P(Y @ -X), "P[X](Y)"),
             (P(Y @ ~X), "P[+X](Y)"),
             (P(Y @ +X), "P[+X](Y)"),
-            #
             (P(-Y @ X), "P[X](-Y)"),
             (P(-Y @ -X), "P[X](-Y)"),
             (P(-Y @ ~X), "P[+X](-Y)"),
             (P(-Y @ +X), "P[+X](-Y)"),
-            #
             (P(~Y @ X), "P[X](+Y)"),
             (P(~Y @ -X), "P[X](+Y)"),
             (P(~Y @ ~X), "P[+X](+Y)"),
             (P(~Y @ +X), "P[+X](+Y)"),
-            #
             (P(+Y @ X), "P[X](+Y)"),
             (P(+Y @ -X), "P[X](+Y)"),
             (P(+Y @ ~X), "P[+X](+Y)"),
@@ -180,7 +177,6 @@ class TestDSL(unittest.TestCase):
             (P(Y @ -X | ~X, ~Y), "P(Y @ -X | +X, +Y)"),
             (P(Y @ +X | ~X, ~Y), "P(Y @ +X | +X, +Y)"),
             (P(Y @ ~X | ~X, ~Y), "P(Y @ +X | +X, +Y)"),
-            #
             (P(~(Y @ ~X) | X, Y), "P(+Y @ +X | X, Y)"),
             (P(~Y @ ~X | X, Y), "P(+Y @ +X | X, Y)"),  # should be same as above
             # Counterfactuals can live inside the conditions

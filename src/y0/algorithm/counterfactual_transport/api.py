@@ -144,7 +144,7 @@ def _any_variables_with_inconsistent_values(
                 for intervention in variable.interventions
             )
         )
-        for variable in reflexive_variable_to_value_mappings.keys()
+        for variable in reflexive_variable_to_value_mappings
     )
 
 
@@ -184,7 +184,7 @@ def _remove_repeated_variables_and_values(event: Event) -> dict[Variable, set[In
     variable_to_value_mappings: defaultdict[Variable, set[Intervention | None]] = defaultdict(set)
     for variable, value in event:
         variable_to_value_mappings[variable].add(value)
-    for variable in variable_to_value_mappings.keys():
+    for variable in variable_to_value_mappings:
         if (
             len(variable_to_value_mappings[variable]) > 1
             and None in variable_to_value_mappings[variable]
@@ -920,7 +920,6 @@ def validate_inputs_for_transport_district_intervening_on_parents(  # noqa:C901
                     f". Node missing from the graph: {v}"
                     f". Nodes in the graph: {graph_vertices_without_transportability_nodes}"
                 )
-    return
 
 
 def _no_intervention_variables_in_domain(
@@ -1113,8 +1112,7 @@ def _transport_unconditional_counterfactual_query_line_2(
         ancestral_set.update(get_ancestors_of_counterfactual(variable, graph))
     outcome_value_dict = dict(event)
     ancestral_set_with_values: set[tuple[Variable, Intervention | None]] = {
-        (variable, outcome_value_dict[variable] if variable in outcome_value_dict else None)
-        for variable in ancestral_set
+        (variable, outcome_value_dict.get(variable, None)) for variable in ancestral_set
     }
     logger.debug(
         "In _transport_unconditional_counterfactual_query_line_2: ancestral_set_with_values = "
@@ -1557,16 +1555,13 @@ def _validate_transport_unconditional_counterfactual_query_input(  # noqa:C901
         #    That covers a corner case where a user wishes to run this algorithm with a single domain and
         #    without specifying a population for the graph probability. In that case the problem reduces
         #    to running ID* anyway, so it's not likely to get much usage.
-        if str(p_xx.population) == str(TARGET_DOMAIN):
-            if domain_graph != target_domain_graph:
-                raise ValueError(
-                    "In _validate_transport_unconditional_counterfactual_query_input: the domain_data input contains "
-                    + 'a graph probability expression from the target domain (i.e., "pi*"), but the corresponding '
-                    + "domain_graph is not the same graph as the target_domain_graph. Domain index "
-                    + "(zero-indexed): "
-                    + str(k)
-                )
-    return
+        if str(p_xx.population) == str(TARGET_DOMAIN) and domain_graph != target_domain_graph:
+            raise ValueError(
+                "In _validate_transport_unconditional_counterfactual_query_input: the domain_data input contains "
+                f'a graph probability expression from the target domain (i.e., "pi*"), but the corresponding '
+                f"domain_graph is not the same graph as the target_domain_graph. Domain index "
+                f"(zero-indexed): {k}"
+            )
 
 
 @dataclass
@@ -2007,10 +2002,10 @@ def _transport_conditional_counterfactual_query_line_2(
             outcome_ancestral_component_variables_and_values.append((variable, None))
         else:
             # There could be redundant values for a variable, and Simplify() will catch them
-            if variable in outcome_variable_to_value_mappings.keys():
+            if variable in outcome_variable_to_value_mappings:
                 for value in outcome_variable_to_value_mappings[variable]:
                     outcome_ancestral_component_variables_and_values.append((variable, value))
-            if variable in conditioned_variable_to_value_mappings.keys():
+            if variable in conditioned_variable_to_value_mappings:
                 for value in conditioned_variable_to_value_mappings[variable]:
                     outcome_ancestral_component_variables_and_values.append((variable, value))
     logger.debug(
@@ -2096,7 +2091,7 @@ def _validate_transport_conditional_counterfactual_query_line_4_output(
     #    in the conditions.
     if any(
         name not in outcome_and_conditioned_variable_names
-        for name in simplified_event_variable_names_to_values.keys()
+        for name in simplified_event_variable_names_to_values
         if simplified_event_variable_names_to_values[name] is not None
     ):
         raise KeyError(
@@ -2767,15 +2762,13 @@ def _validate_transport_conditional_counterfactual_query_input(  # noqa:C901
         #    That covers a corner case where a user wishes to run this algorithm with a single domain and
         #    without specifying a population for the graph probability. In that case the problem reduces
         #    to running ID* anyway, so it's not likely to get much usage.
-        if str(p_xx.population) == str(TARGET_DOMAIN):
-            if domain_graph != target_domain_graph:
-                raise ValueError(
-                    "In _validate_transport_conditional_counterfactual_query_input: the domain_data contain "
-                    'a graph probability expression from the target domain (i.e., "pi*"), but the '
-                    "corresponding domain_graph is not the same graph as the target_domain_graph. "
-                    f"Check your inputs. Domain index (zero-indexed): {k}"
-                )
-    return
+        if str(p_xx.population) == str(TARGET_DOMAIN) and domain_graph != target_domain_graph:
+            raise ValueError(
+                "In _validate_transport_conditional_counterfactual_query_input: the domain_data contain "
+                'a graph probability expression from the target domain (i.e., "pi*"), but the '
+                "corresponding domain_graph is not the same graph as the target_domain_graph. "
+                f"Check your inputs. Domain index (zero-indexed): {k}"
+            )
 
 
 def _is_valid_ordering(ordering: Sequence[Variable], graph: NxMixedGraph) -> bool:

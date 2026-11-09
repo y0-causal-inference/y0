@@ -32,7 +32,7 @@ DEFAULT_SUFFIX = "_prime"
 def evans_simplify(
     graph: NxMixedGraph,
     *,
-    latents: None | Variable | Iterable[Variable] = None,
+    latents: Variable | Iterable[Variable] | None = None,
     tag: str | None = None,
 ) -> NxMixedGraph:
     """Reduce the ADMG based on Evans' simplification rules in [evans2012]_ and [evans2016]_.
