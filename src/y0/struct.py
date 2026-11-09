@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import lru_cache, partial
-from typing import Any, Literal, NamedTuple, cast, overload
+from typing import Any, Literal, NamedTuple, overload
 
 import pandas as pd
 
@@ -236,7 +236,7 @@ class DSeparationJudgement:
             significance_level=significance_level,
         )
         if boolean:
-            return cast(bool, result)
+            return bool(result)
         # Person's correlation returns a pair with the first element being the Person's correlation
         # and the second being the p-value. The other methods return a triple with the first element
         # being the Chi^2 statistic, the second being the p-value, and the third being the degrees of

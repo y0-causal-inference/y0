@@ -90,7 +90,7 @@ class NxMixedGraph:
 
     def __iter__(self) -> Iterator[Variable]:
         """Iterate over nodes in the graph."""
-        return iter(self.directed.nodes())  # type:ignore
+        return iter(self.directed.nodes())
 
     def __len__(self) -> int:
         """Count the nodes in the graph."""
