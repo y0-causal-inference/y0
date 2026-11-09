@@ -7,15 +7,10 @@ import itertools as itt
 import json
 import unittest
 import warnings
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from itertools import chain, combinations
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Literal,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import networkx as nx
 from networkx.classes.reportviews import NodeView
@@ -84,7 +79,7 @@ class NxMixedGraph:
         self.directed.graph[NO_SET_LATENT_FLAG] = True
         self.undirected.graph[NO_SET_LATENT_FLAG] = True
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check for equality of nodes, directed edges, and undirected edges."""
         return (
             isinstance(other, NxMixedGraph)
@@ -93,9 +88,9 @@ class NxMixedGraph:
             and (self.undirected.edges() == other.undirected.edges())
         )
 
-    def __iter__(self) -> Iterable[Variable]:
+    def __iter__(self) -> Iterator[Variable]:
         """Iterate over nodes in the graph."""
-        return iter(self.directed.nodes())  # type:ignore
+        return iter(self.directed.nodes())
 
     def __len__(self) -> int:
         """Count the nodes in the graph."""
@@ -351,7 +346,7 @@ class NxMixedGraph:
 
     def draw(
         self,
-        ax: None | matplotlib.axes.Axes = None,
+        ax: matplotlib.axes.Axes | None = None,
         title: str | None = None,
         prog: str | None = None,
         latex: bool = True,
@@ -859,7 +854,7 @@ def _get_latex(node: str | Variable) -> str:
 
         try:
             expr = parse_y0(node)
-        except Exception:
+        except Exception:  # noqa:BLE001
             return node
         else:
             return expr._repr_latex_()
@@ -941,7 +936,6 @@ def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
 
     :returns: bool
     """
-    # Iterate over all pairs of vertices
     for u, v in itt.combinations(graph.nodes(), 2):
         # Check if the pair is not adjacent
         if not (
@@ -952,10 +946,8 @@ def is_markov_blanket_shielded(graph: NxMixedGraph) -> bool:
                     graph.undirected.has_edge(u, v),
                 ]
             )
-        ):
-            # If one is in the Markov blanket of the other, then it is not mb-shielded
-            if _markov_blanket_overlap(graph, u, v):
-                return False
+        ) and _markov_blanket_overlap(graph, u, v):
+            return False
     return True
 
 

@@ -63,7 +63,7 @@ def get_primal_ipw_point_estimate(
     data: pd.DataFrame,
     graph: NxMixedGraph,
     treatment: Variable,
-    treatment_value: int | float,
+    treatment_value: float,
     outcome: Variable,
 ) -> float:
     """Estimate the counterfactual mean E[Y(t)] with the Primal IPW estimator on p-fixable graphs."""
@@ -83,7 +83,7 @@ def get_beta_primal(
     graph: NxMixedGraph,
     treatment: Variable,
     outcome: Variable,
-    treatment_value: int | float,
+    treatment_value: float,
 ) -> np.ndarray[Any, np.dtype[Any]]:
     """Return the beta primal value for each row in the data.
 

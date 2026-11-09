@@ -23,7 +23,7 @@ class TestCausalEffect(unittest.TestCase):
         """Make imports for the class."""
         try:
             prepare_renv([CAUSALEFFECT, IGRAPH])
-        except Exception as e:
+        except ModuleNotFoundError as e:
             raise unittest.SkipTest(f"R packages not properly installed.\n\n{e}") from None
 
     def test_verma_constraint(self):

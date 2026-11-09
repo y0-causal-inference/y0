@@ -22,7 +22,6 @@ from y0.examples import examples
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-
 HERE = Path(__file__).parent.resolve()
 
 

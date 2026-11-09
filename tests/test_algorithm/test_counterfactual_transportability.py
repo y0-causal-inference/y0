@@ -119,7 +119,6 @@ figure_1_graph_no_transportability_nodes_topo = (
     figure_1_graph_no_transportability_nodes.topological_sort()
 )
 
-
 # The graph for Domain 1 as described by the text of Example 1.1 and
 # Figure 1 of [correa22a]_. The graph isn't in any figures in the
 # paper, but a reader can infer it.
@@ -130,7 +129,6 @@ figure_1_graph_domain_1_with_interventions = NxMixedGraph.from_edges(
 figure_1_graph_domain_1_with_interventions_topo = (
     figure_1_graph_domain_1_with_interventions.topological_sort()
 )
-
 
 # From [correa22a]_, Figure 2a.
 figure_2a_graph = NxMixedGraph.from_edges(
