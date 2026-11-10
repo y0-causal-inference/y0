@@ -1,6 +1,7 @@
 """Tests for the identify algorithm."""
 
 import itertools as itt
+from unittest.mock import patch
 
 import y0.examples
 from tests.test_algorithm import cases
@@ -32,6 +33,7 @@ from y0.dsl import (
     Probability,
     Product,
     Sum,
+    Variable,
     X,
     Y,
     Z,
@@ -191,6 +193,32 @@ class TestIdentify(cases.GraphTestCase):
                 )
             )
 
+    def test_line_4_deterministic_component_order(self):
+        """Line 4 should return subproblems in a deterministic district order."""
+        treatment = Variable("X0")
+        a = Variable("A")
+        b = Variable("B")
+
+        identification = Identification.from_parts(
+            outcomes={a},
+            treatments={treatment},
+            estimand=P(treatment, a, b),
+            graph=NxMixedGraph.from_edges(nodes=[treatment, a, b], directed=[(treatment, a)]),
+        )
+
+        original_districts = NxMixedGraph.districts
+
+        def _districts(graph: NxMixedGraph):
+            if set(graph.nodes()) == {a, b}:
+                return [frozenset({b}), frozenset({a})]
+            return original_districts(graph)
+
+        with patch.object(NxMixedGraph, "districts", autospec=True, side_effect=_districts):
+            parts = line_4(identification)
+
+        observed = [tuple(sorted(str(v) for v in part.outcomes)) for part in parts]
+        self.assertEqual([("A",), ("B",)], observed)
+
     def test_line_5(self):
         r"""Test line 5 of the identification algorithm.
 
@@ -251,6 +279,63 @@ class TestIdentify(cases.GraphTestCase):
             self.assert_expr_equal(
                 Sum.safe(expression=P(Y1 | (W1, X)) * P(W1), ranges=[W1]), identify(id_in)
             )
+
+    def test_line_6_with_explicit_ordering(self):
+        """Test line_6 with an explicit ordering (covers ordering-is-not-None branch)."""
+        for identification in line_6_example.identifications:
+            id_in = identification["id_in"][0]
+            id_out = identification["id_out"][0]
+            ordering = id_in.graph.topological_sort()
+            self.assert_expr_equal(
+                expected=id_out.estimand,
+                actual=line_6(id_in, ordering=ordering),
+            )
+
+    def test_line_7_without_ordering(self):
+        """Test line_7 without an explicit ordering (triggers topological_sort call inside)."""
+        for identification in line_7_example.identifications:
+            id_out = identification["id_out"][0]
+            id_in = identification["id_in"][0]
+            self.assertEqual(id_out, line_7(id_in))
+
+    def test_line_7_no_suitable_district(self):
+        """Test line_7 raises ValueError when no district properly contains the treatment-free district.
+
+        Graph: X -> Y, Y <-> Z (bidirected)
+        G.districts() = [{X}, {Y, Z}]
+        graph_without_X.districts() = [{Y, Z}]
+        district_without_treatment = {Y, Z}
+        No district in G is a strict superset of {Y, Z}, so ValueError is raised.
+        """
+        graph = NxMixedGraph.from_edges(
+            directed=[(X, Y)],
+            undirected=[(Y, Z)],
+        )
+        identification = Identification.from_parts(
+            outcomes={Y},
+            treatments={X},
+            estimand=P(X, Y, Z),
+            graph=graph,
+        )
+        with self.assertRaises(ValueError):
+            line_7(identification)
+
+    def test_get_single_district_multiple_districts(self):
+        """Test that a graph with multiple treatment-free districts raises RuntimeError.
+
+        Graph: X -> Y, X -> Z (no bidirected edges)
+        graph_without_X.districts() = [{Y}, {Z}] (2 districts)
+        _get_single_district raises RuntimeError because len(districts) != 1.
+        """
+        graph = NxMixedGraph.from_edges(directed=[(X, Y), (X, Z)])
+        identification = Identification.from_parts(
+            outcomes={Y},
+            treatments={X},
+            estimand=P(X, Y, Z),
+            graph=graph,
+        )
+        with self.assertRaises(RuntimeError):
+            line_7(identification)
 
     def test_figure_2a(self):
         """Test Figure 2A. from Shpitser *et al.*, (2008)."""

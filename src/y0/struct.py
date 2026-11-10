@@ -17,6 +17,7 @@ __all__ = [
 ]
 
 DEFAULT_SIGNIFICANCE = 0.01
+_CONTINUOUS_CI_TESTS: frozenset[CITest] = frozenset({"pearson", "pillai"})
 
 
 class VermaConstraint(NamedTuple):
@@ -263,11 +264,11 @@ def _ensure_method(method: CITest | None, df: pd.DataFrame, skip: bool = False) 
             return DEFAULT_DISCRETE_CI_TEST
         else:
             return DEFAULT_CONTINUOUS_CI_TEST
-    elif binary and method == "pearson":
+    elif binary and method in _CONTINUOUS_CI_TESTS:
         raise ValueError(
             f"using continuous data test ({method}) on binary data: {_summarize_df(df)}"
         )
-    elif not binary and method != "pearson":
+    elif not binary and method not in _CONTINUOUS_CI_TESTS:
         raise ValueError(f"using binary data test ({method}) on continuous data")
     return method
 

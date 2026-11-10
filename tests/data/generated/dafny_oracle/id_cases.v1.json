@@ -1,0 +1,675 @@
+{
+  "schema_version": 1,
+  "source": {
+    "dafny_files": [
+      "src/dafny/identification.dfy",
+      "src/dafny/id_line1_extracted.dfy",
+      "src/dafny/id_line2_extracted.dfy",
+      "src/dafny/id_line3_extracted.dfy",
+      "src/dafny/id_line4_extracted.dfy",
+      "src/dafny/id_line5_extracted.dfy",
+      "src/dafny/id_line6_extracted.dfy",
+      "src/dafny/id_line7_extracted.dfy",
+      "src/dafny/id_full_extracted.dfy"
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "id.line1.extracted.identifiable",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine1ToIR",
+        "line": 44
+      },
+      "query": {
+        "graph_id": "smoke_line1",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [],
+        "ordering": [
+          "X",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "1",
+          "engine": "id",
+          "query": {
+            "graph_id": "smoke_line1",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [],
+            "ordering": [
+              "X",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "sum",
+            "over": [
+              "X"
+            ],
+            "body": {
+              "tag": "prob",
+              "vars": [
+                "X",
+                "Y"
+              ],
+              "given": [],
+              "intervened": []
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line4.frontdoor_small.identifiable",
+      "module": "identification",
+      "anchor": {
+        "symbol": "ID_Line4",
+        "line": 584
+      },
+      "query": {
+        "graph_id": "frontdoor_small",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Z",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "1",
+          "engine": "id",
+          "query": {
+            "graph_id": "frontdoor_small",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Z",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "sum",
+            "over": [
+              "Z"
+            ],
+            "body": {
+              "tag": "product",
+              "factors": [
+                {
+                  "tag": "prob",
+                  "vars": [
+                    "Z"
+                  ],
+                  "given": [
+                    "X"
+                  ],
+                  "intervened": []
+                },
+                {
+                  "tag": "sum",
+                  "over": [
+                    "X"
+                  ],
+                  "body": {
+                    "tag": "product",
+                    "factors": [
+                      {
+                        "tag": "prob",
+                        "vars": [
+                          "X"
+                        ],
+                        "given": [],
+                        "intervened": []
+                      },
+                      {
+                        "tag": "prob",
+                        "vars": [
+                          "Y"
+                        ],
+                        "given": [
+                          "X",
+                          "Z"
+                        ],
+                        "intervened": []
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line5.figure1a.hedge",
+      "module": "identification",
+      "anchor": {
+        "symbol": "ID_Line5",
+        "line": 617
+      },
+      "query": {
+        "graph_id": "figure1a_like",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "exception",
+        "value": {
+          "type": "Unidentifiable",
+          "classification": "hedge",
+          "witness": {
+            "F_nodes": [
+              "X",
+              "Y"
+            ],
+            "Fprime_nodes": [
+              "Y"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line2.chain_with_isolated.reduction",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine2ToIR",
+        "line": 87
+      },
+      "query": {
+        "graph_id": "chain_isolated",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Y",
+          "Z"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "2",
+          "engine": "id",
+          "query": {
+            "graph_id": "chain_isolated",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Y",
+              "Z"
+            ]
+          },
+          "result": {
+            "tag": "recursive",
+            "reduced_nodes": [
+              "X",
+              "Y"
+            ],
+            "reduced_treatments": [
+              "X"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line2.multipath_with_irrelevant.reduction",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine2ToIR",
+        "line": 87
+      },
+      "query": {
+        "graph_id": "multipath_irrelevant",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Z",
+          "Y",
+          "W"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "2",
+          "engine": "id",
+          "query": {
+            "graph_id": "multipath_irrelevant",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Z",
+              "Y",
+              "W"
+            ]
+          },
+          "result": {
+            "tag": "recursive",
+            "reduced_nodes": [
+              "X",
+              "Z",
+              "Y"
+            ],
+            "reduced_treatments": [
+              "X"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line5.extracted.bowarc.hedge",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine5ToIR",
+        "line": 114
+      },
+      "query": {
+        "graph_id": "line5_bowarc",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "5",
+          "engine": "id",
+          "query": {
+            "graph_id": "line5_bowarc",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "fail",
+            "kind": "hedge",
+            "F_nodes": [
+              "X",
+              "Y"
+            ],
+            "Fprime_nodes": [
+              "Y"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line4.extracted.frontdoor_small.identifiable",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine4ToIR",
+        "line": 125
+      },
+      "query": {
+        "graph_id": "line4_frontdoor_small",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Z",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "4",
+          "engine": "id",
+          "query": {
+            "graph_id": "line4_frontdoor_small",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Z",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "sum",
+            "over": [
+              "Z"
+            ],
+            "body": {
+              "tag": "product",
+              "factors": [
+                {
+                  "tag": "prob",
+                  "vars": [
+                    "Z"
+                  ],
+                  "given": [
+                    "X"
+                  ],
+                  "intervened": []
+                },
+                {
+                  "tag": "sum",
+                  "over": [
+                    "X"
+                  ],
+                  "body": {
+                    "tag": "prob",
+                    "vars": [
+                      "Y",
+                      "X"
+                    ],
+                    "given": [
+                      "Z"
+                    ],
+                    "intervened": []
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line6.extracted.single_district_formula",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine6ToIR",
+        "line": 118
+      },
+      "query": {
+        "graph_id": "line6_single_district",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "Z",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "6",
+          "engine": "id",
+          "query": {
+            "graph_id": "line6_single_district",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "X",
+              "Z",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "sum",
+            "over": [
+              "Z"
+            ],
+            "body": {
+              "tag": "product",
+              "factors": [
+                {
+                  "tag": "prob",
+                  "vars": [
+                    "Z"
+                  ],
+                  "given": [
+                    "X"
+                  ],
+                  "intervened": []
+                },
+                {
+                  "tag": "prob",
+                  "vars": [
+                    "Y"
+                  ],
+                  "given": [
+                    "X",
+                    "Z"
+                  ],
+                  "intervened": []
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.full.line3.recursive_like",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDToIR",
+        "line": 249
+      },
+      "query": {
+        "graph_id": "full.line3.recursive_like",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "Z",
+          "X",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "ir",
+        "value": {
+          "version": "1",
+          "engine": "id",
+          "query": {
+            "graph_id": "full.line3.recursive_like",
+            "outcomes": [
+              "Y"
+            ],
+            "treatments": [
+              "X"
+            ],
+            "ordering": [
+              "Z",
+              "X",
+              "Y"
+            ]
+          },
+          "result": {
+            "tag": "sum",
+            "over": [
+              "Z",
+              "X"
+            ],
+            "body": {
+              "tag": "prob",
+              "vars": [
+                "Z",
+                "X",
+                "Y"
+              ],
+              "given": [],
+              "intervened": [
+                "Z",
+                "X"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.full.line7.recursive_like",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDToIR",
+        "line": 249
+      },
+      "query": {
+        "graph_id": "full.line7.recursive_like",
+        "outcomes": [
+          "Y"
+        ],
+        "treatments": [
+          "X"
+        ],
+        "ordering": [
+          "X",
+          "W",
+          "Y"
+        ]
+      },
+      "expectation": {
+        "kind": "exception",
+        "value": {
+          "type": "Unidentifiable",
+          "classification": "hedge",
+          "witness": {
+            "F_nodes": [
+              "X",
+              "W",
+              "Y"
+            ],
+            "Fprime_nodes": [
+              "W",
+              "Y"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "id.line1.boundary.nonempty_treatments_no_path",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine1ToIR",
+        "line": 44
+      },
+      "query": {
+        "graph_id": "line1.boundary.no_path",
+        "graph_def": {
+          "directed": [["X", "Z"]],
+          "undirected": [],
+          "extra_nodes": ["Y"]
+        },
+        "outcomes": ["Y"],
+        "treatments": ["X"],
+        "ordering": ["X", "Y", "Z"],
+        "line_number": 1
+      },
+      "expectation": {
+        "kind": "gate_check",
+        "value": {
+          "ok_expected": true,
+          "description": "X ∩ An(Y)_{G_bar_X} = ∅ because Y is isolated; Line 1 applies even though X ≠ ∅"
+        }
+      }
+    },
+    {
+      "case_id": "id.line1.boundary.treatments_with_path",
+      "module": "identification",
+      "anchor": {
+        "symbol": "IDLine1ToIR",
+        "line": 44
+      },
+      "query": {
+        "graph_id": "line1.boundary.with_path",
+        "graph_def": {
+          "directed": [["X", "Y"]],
+          "undirected": [],
+          "extra_nodes": []
+        },
+        "outcomes": ["Y"],
+        "treatments": ["X"],
+        "ordering": ["X", "Y"],
+        "line_number": 1
+      },
+      "expectation": {
+        "kind": "gate_check",
+        "value": {
+          "ok_expected": false,
+          "description": "X → Y so X ∈ An(Y)_{G_bar_X}; Line 1 does NOT apply"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+{
+  "cases": [
+    {
+      "version": "1",
+      "engine": "id",
+      "query": {
+        "graph_id": "line1",
+        "outcomes": ["Y"],
+        "treatments": [],
+        "ordering": ["X", "Y"]
+      },
+      "result": {
+        "tag": "sum",
+        "over": ["X"],
+        "body": {
+          "tag": "prob",
+          "vars": ["X", "Y"],
+          "given": [],
+          "intervened": []
+        }
+      }
+    },
+    {
+      "version": "1",
+      "engine": "id",
+      "query": {
+        "graph_id": "line2",
+        "outcomes": ["Y"],
+        "treatments": ["X"],
+        "ordering": ["W", "X", "Y"]
+      },
+      "result": {
+        "tag": "sum",
+        "over": ["W"],
+        "body": {
+          "tag": "prob",
+          "vars": ["X", "Y", "W"],
+          "given": [],
+          "intervened": []
+        }
+      }
+    },
+    {
+      "version": "1",
+      "engine": "id",
+      "query": {
+        "graph_id": "line3",
+        "outcomes": ["Y"],
+        "treatments": ["W", "X"],
+        "ordering": ["W", "X", "Y"]
+      },
+      "result": {
+        "tag": "prob",
+        "vars": ["Y"],
+        "given": ["W", "X"],
+        "intervened": []
+      }
+    },
+    {
+      "version": "1",
+      "engine": "id",
+      "query": {
+        "graph_id": "line4",
+        "outcomes": ["Y"],
+        "treatments": ["X"],
+        "ordering": ["X", "Z", "Y"]
+      },
+      "result": {
+        "tag": "sum",
+        "over": ["Z"],
+        "body": {
+          "tag": "product",
+          "factors": [
+            {
+              "tag": "prob",
+              "vars": ["Y"],
+              "given": ["Z", "X"],
+              "intervened": []
+            },
+            {
+              "tag": "prob",
+              "vars": ["Z"],
+              "given": ["X"],
+              "intervened": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "version": "1",
+      "engine": "id",
+      "query": {
+        "graph_id": "line5",
+        "outcomes": ["Y"],
+        "treatments": ["X"],
+        "ordering": ["X", "Y"]
+      },
+      "result": {
+        "tag": "fail",
+        "kind": "hedge",
+        "F_nodes": ["X", "Y"],
+        "Fprime_nodes": ["Y"]
+      }
+    },
+    {
+      "version": "1",
+      "engine": "id",
+      "query": {
+        "graph_id": "line6",
+        "outcomes": ["Y"],
+        "treatments": ["X"],
+        "ordering": ["X", "Z", "Y"]
+      },
+      "result": {
+        "tag": "sum",
+        "over": ["Z"],
+        "body": {
+          "tag": "product",
+          "factors": [
+            {
+              "tag": "prob",
+              "vars": ["Y"],
+              "given": ["X", "Z"],
+              "intervened": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "version": "1",
+      "engine": "id",
+      "query": {
+        "graph_id": "line7",
+        "outcomes": ["Y"],
+        "treatments": ["X"],
+        "ordering": ["X", "W", "Y"]
+      },
+      "result": {
+        "tag": "frac",
+        "numer": {
+          "tag": "prob",
+          "vars": ["Y", "W"],
+          "given": ["X"],
+          "intervened": []
+        },
+        "denom": {
+          "tag": "sum",
+          "over": ["Y"],
+          "body": {
+            "tag": "prob",
+            "vars": ["Y", "W"],
+            "given": ["X"],
+            "intervened": []
+          }
+        }
+      }
+    },
+    {
+      "version": "1",
+      "engine": "id",
+      "query": {
+        "graph_id": "line4_nesting",
+        "outcomes": ["Y"],
+        "treatments": ["X"],
+        "ordering": ["X", "M", "Z", "Y"]
+      },
+      "result": {
+        "tag": "sum",
+        "over": ["M"],
+        "body": {
+          "tag": "sum",
+          "over": ["Z"],
+          "body": {
+            "tag": "product",
+            "factors": [
+              {
+                "tag": "prob",
+                "vars": ["Y"],
+                "given": ["M", "Z", "X"],
+                "intervened": []
+              },
+              {
+                "tag": "prob",
+                "vars": ["M"],
+                "given": ["Z", "X"],
+                "intervened": []
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
