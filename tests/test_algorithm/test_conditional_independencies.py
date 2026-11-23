@@ -38,6 +38,15 @@ class TestDSeparation(unittest.TestCase):
         self.assertFalse(are_d_separated(graph, D, E, conditions=[AA, B]))
         self.assertFalse(are_d_separated(graph, G, G, conditions=[C]))
 
+    def test_bidirected_edges_warn(self) -> None:
+        """d-separation warns when the graph contains bidirected edges."""
+        graph = NxMixedGraph.from_edges(directed=[(X, Z)], undirected=[(Z, Y)])
+
+        with self.assertWarnsRegex(UserWarning, "use m-separation"):
+            judgement = are_d_separated(graph, X, Y)
+
+        self.assertFalse(judgement.separated)
+
     def test_examples(self) -> None:
         """Check that example conditional independencies are d-separations and conditions (if present) are required.
 

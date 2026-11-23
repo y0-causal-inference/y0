@@ -1,5 +1,6 @@
 """An implementation to get conditional independencies of an ADMG from [pearl2009]_."""
 
+import warnings
 from collections.abc import Callable, Iterable, Sequence
 from functools import partial
 from itertools import combinations, groupby
@@ -247,7 +248,7 @@ def are_d_separated(
     *,
     conditions: Iterable[Variable] | None = None,
 ) -> DSeparationJudgement:
-    """Test if nodes named by a & b are d-separated in G as described in [pearl2009]_.
+    """Test if nodes named by a & b are d-separated in a directed acyclic graph.
 
     a & b can be provided in either order and the order of conditions does not matter.
     However, DSeparationJudgement may put things in canonical order.
@@ -262,11 +263,20 @@ def are_d_separated(
     :raises TypeError: if the left/right arguments or any conditions are not Variable
         instances
     :raises KeyError: if the left/right arguments or any conditions are not in the graph
+    :raises UserWarning: if the graph contains bidirected edges
 
     .. seealso::
 
         NetworkX implementation :func:`nx.d_separated`
     """
+    if graph.undirected.number_of_edges():
+        warnings.warn(
+            "d-separation is not defined for graphs with bidirected edges; "
+            "use m-separation instead.",
+            UserWarning,
+            stacklevel=2,
+        )
+
     if conditions is None:
         conditions = set()
     conditions = set(conditions)
