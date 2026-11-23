@@ -11,7 +11,7 @@ from y0.algorithm.conditional_independencies import (
     are_d_separated,
     get_conditional_independencies,
 )
-from y0.dsl import AA, B, C, D, E, F, G, Variable, X, Y
+from y0.dsl import AA, B, C, D, E, F, G, Variable, X, Y, Z
 from y0.examples import (
     Example,
     d_separation_example,
