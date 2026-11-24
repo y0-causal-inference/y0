@@ -1,6 +1,6 @@
 r"""m-separation and minimal m-separator for acyclic directed mixed graphs (ADMGs).
 
-m-separation (Richardson 2003) is the standard separation criterion for acyclic directed
+m-separation [richa2003]_ is the standard separation criterion for acyclic directed
 mixed graphs (ADMGs) -- DAGs with bidirected edges representing latent common causes. It
 generalises d-separation to graphs with bidirected edges by reducing to d-separation on
 the canonical latent-variable DAG (LVM) obtained by replacing each bidirected edge ``u
@@ -16,15 +16,6 @@ This module provides:
 Both functions work on **acyclic** ADMGs. For cyclic graphs, use
 :func:`~y0.algorithm.separation.sigma_extension.sigma_extension` to first convert to an
 acyclic ADMG and then call these functions on the result.
-
-References
-----------
-
-T. S. Richardson (2003). Markov Properties for Acyclic Directed Mixed Graphs.
-Scandinavian Journal of Statistics, 30: 145-157.
-
-J. Pearl (2009). *Causality: Models, Reasoning and Inference* (2nd ed.). Cambridge
-University Press.
 """
 
 from __future__ import annotations
