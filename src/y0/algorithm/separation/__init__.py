@@ -3,7 +3,7 @@
 ========================= ===================================================================================== ===================================================
 Algorithm                 Description                                                                           Implementation
 ========================= ===================================================================================== ===================================================
-d-separation [pearl2009]_ Identifies nodes in a directed acyclic graph as probabilistically independent         :func:`y0.algorithm.separation.are_d_separated`
+d-separation [pearl2009]_ Identifies nodes in an acyclic directed mixed graph as probabilistically independent  :func:`y0.algorithm.separation.are_d_separated`
 m-separation [richa2003]_ A generalization of d-separation in an acyclic directed mixed graph                   :func:`y0.algorithm.separation.are_m_separated`
 σ-separation [forre2018]_ Identifies nodes in any directed mixed graph as probabilistically independent (cycles :func:`y0.algorithm.separation.are_sigma_separated`
                           allowed)
