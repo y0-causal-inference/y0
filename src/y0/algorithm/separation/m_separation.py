@@ -20,7 +20,7 @@ acyclic ADMG and then call these functions on the result.
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable
+from collections.abc import Collection
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 from y0.algorithm.conditional_independencies import are_d_separated
 from y0.dsl import Variable
+from y0.graph import DEFAULT_TAG as DEFAULT_LATENT_TAG
 from y0.graph import NxMixedGraph
 from y0.struct import DSeparationJudgement
 
@@ -35,15 +36,6 @@ __all__ = [
     "are_m_separated",
     "find_minimal_m_separator",
 ]
-
-# The default tag key used by NxMixedGraph.to_latent_variable_dag() to mark
-# latent nodes.  Kept in sync with y0.graph.DEFAULT_TAG.
-_DEFAULT_LATENT_TAG = "hidden"
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
 
 
 def _build_lvm(graph: NxMixedGraph) -> tuple[NxMixedGraph, frozenset[Variable]]:
@@ -60,39 +52,12 @@ def _build_lvm(graph: NxMixedGraph) -> tuple[NxMixedGraph, frozenset[Variable]]:
         :class:`~y0.dsl.Variable` objects.
     """
     lvdag: nx.DiGraph = graph.to_latent_variable_dag()
-    tag = _DEFAULT_LATENT_TAG
     latent_nodes: frozenset[Variable] = frozenset(
-        node for node in lvdag.nodes() if lvdag.nodes[node].get(tag, False)
+        node for node in lvdag.nodes() if lvdag.nodes[node].get(DEFAULT_LATENT_TAG, False)
     )
     # Wrap as NxMixedGraph (pure DAG -- only directed edges)
     lvm = NxMixedGraph.from_edges(directed=list(lvdag.edges()))
     return lvm, latent_nodes
-
-
-def _ancestors_of(graph: NxMixedGraph, nodes: Iterable[Variable]) -> frozenset[Variable]:
-    """Return the set of ancestors (inclusive) of *nodes* in *graph*.
-
-    Uses the directed part of the graph only.
-
-    :param graph: The graph to query.
-    :param nodes: Seed nodes.
-
-    :returns: All ancestors of *nodes* including *nodes* themselves.
-    """
-    result: set[Variable] = set()
-    queue = list(nodes)
-    while queue:
-        node = queue.pop()
-        if node in result:
-            continue
-        result.add(node)
-        queue.extend(graph.directed.predecessors(node))
-    return frozenset(result)
-
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
 
 
 def are_m_separated(
@@ -138,15 +103,13 @@ def are_m_separated(
     observed_nodes: frozenset[Variable] = frozenset(graph.nodes())
 
     # Validate inputs
-    for node in (x, y):
-        if node not in observed_nodes:
-            raise ValueError(f"Node {node!r} is not in the graph.")
-    for node in conditions:
-        if node not in observed_nodes:
-            raise ValueError(
-                f"Conditioning node {node!r} is not in the graph. "
-                "Only observed (non-latent) nodes may be conditioned on."
-            )
+    if missing_test_nodes := frozenset((x, y)) - observed_nodes:
+        raise ValueError(f"Nodes {missing_test_nodes!r} is not in the graph.")
+    if missing_condition_nodes := conditions - observed_nodes:
+        raise ValueError(
+            f"Conditioning node(s) {missing_condition_nodes!r} are not in the graph. "
+            "Only observed (non-latent) nodes may be conditioned on."
+        )
 
     # Trivial case: x == y -- by convention, a node is not separated from itself.
     if x == y:
@@ -198,13 +161,13 @@ def _resolve_candidate_pool(
     """
     if restricted is not None:
         restricted_set = frozenset(restricted)
-        for node in restricted_set:
-            if node not in observed_nodes:
-                raise ValueError(f"Restricted node {node!r} is not in the graph.")
+        if missing_restricted_set_nodes := restricted_set - observed_nodes:
+            raise ValueError(f"Restricted nodes {missing_restricted_set_nodes!r} are not in the graph.")
         return restricted_set - {x, y} - latent_nodes
     # Default: ancestors of {x, y} \cup included, minus {x, y}
     seed = set(included) | {x, y}
-    return _ancestors_of(graph, seed) - {x, y} - latent_nodes
+    ancestors = frozenset(graph.ancestors_inclusive(seed))
+    return ancestors - {x, y} - latent_nodes
 
 
 def _greedy_shrink(
@@ -248,12 +211,10 @@ def _validate_separator_inputs(
 
     :raises ValueError: If *x*, *y*, or any included node is not in the graph.
     """
-    for node in (x, y):
-        if node not in observed_nodes:
-            raise ValueError(f"Node {node!r} is not in the graph.")
-    for node in included:
-        if node not in observed_nodes:
-            raise ValueError(f"Included node {node!r} is not in the graph.")
+    if missing_test_nodes := frozenset((x, y)) - observed_nodes:
+        raise ValueError(f"Nodes {missing_test_nodes!r} are not in the graph.")
+    if missing_included_nodes := included - observed_nodes:
+        raise ValueError(f"Included nodes {missing_included_nodes!r} are not in the graph.")
 
 
 def find_minimal_m_separator(
