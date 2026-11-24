@@ -1,30 +1,30 @@
 r"""m-separation and minimal m-separator for acyclic directed mixed graphs (ADMGs).
 
-m-separation (Richardson 2003) is the standard separation criterion for
-acyclic directed mixed graphs (ADMGs) -- DAGs with bidirected edges representing
-latent common causes.  It generalises d-separation to graphs with bidirected
-edges by reducing to d-separation on the canonical latent-variable DAG (LVM)
-obtained by replacing each bidirected edge ``u <-> v`` with a fresh latent node
-``L`` and directed edges ``L -> u``, ``L -> v``.
+m-separation (Richardson 2003) is the standard separation criterion for acyclic directed
+mixed graphs (ADMGs) -- DAGs with bidirected edges representing latent common causes. It
+generalises d-separation to graphs with bidirected edges by reducing to d-separation on
+the canonical latent-variable DAG (LVM) obtained by replacing each bidirected edge ``u
+<-> v`` with a fresh latent node ``L`` and directed edges ``L -> u``, ``L -> v``.
 
 This module provides:
 
 - :func:`are_m_separated` -- m-separation oracle for an :class:`~y0.graph.NxMixedGraph`.
   Operates directly on the ADMG; the latent-projection DAG is built internally.
-- :func:`find_minimal_m_separator` -- finds a minimal m-separator between two
-  nodes within optional ``included`` / ``restricted`` constraints.
+- :func:`find_minimal_m_separator` -- finds a minimal m-separator between two nodes
+  within optional ``included`` / ``restricted`` constraints.
 
-Both functions work on **acyclic** ADMGs.  For cyclic graphs, use
-:func:`~y0.algorithm.separation.sigma_extension.sigma_extension` to first
-convert to an acyclic ADMG and then call these functions on the result.
+Both functions work on **acyclic** ADMGs. For cyclic graphs, use
+:func:`~y0.algorithm.separation.sigma_extension.sigma_extension` to first convert to an
+acyclic ADMG and then call these functions on the result.
 
 References
 ----------
+
 T. S. Richardson (2003). Markov Properties for Acyclic Directed Mixed Graphs.
 Scandinavian Journal of Statistics, 30: 145-157.
 
-J. Pearl (2009). *Causality: Models, Reasoning and Inference* (2nd ed.).
-Cambridge University Press.
+J. Pearl (2009). *Causality: Models, Reasoning and Inference* (2nd ed.). Cambridge
+University Press.
 """
 
 from __future__ import annotations
@@ -58,15 +58,15 @@ _DEFAULT_LATENT_TAG = "hidden"
 def _build_lvm(graph: NxMixedGraph) -> tuple[NxMixedGraph, frozenset[Variable]]:
     """Build the canonical latent-variable DAG for *graph*.
 
-    Each bidirected edge ``u <-> v`` becomes a fresh latent node ``L`` with
-    directed edges ``L -> u`` and ``L -> v``.  The returned :class:`NxMixedGraph`
-    is a pure DAG (no bidirected edges); the second element is the frozenset of
-    latent node names.
+    Each bidirected edge ``u <-> v`` becomes a fresh latent node ``L`` with directed
+    edges ``L -> u`` and ``L -> v``. The returned :class:`NxMixedGraph` is a pure DAG
+    (no bidirected edges); the second element is the frozenset of latent node names.
 
     :param graph: An acyclic directed mixed graph.
-    :returns: ``(lvm, latent_nodes)`` where *lvm* is the latent-variable DAG
-        as an :class:`~y0.graph.NxMixedGraph` and *latent_nodes* is the set of
-        latent :class:`~y0.dsl.Variable` objects.
+
+    :returns: ``(lvm, latent_nodes)`` where *lvm* is the latent-variable DAG as an
+        :class:`~y0.graph.NxMixedGraph` and *latent_nodes* is the set of latent
+        :class:`~y0.dsl.Variable` objects.
     """
     lvdag: nx.DiGraph = graph.to_latent_variable_dag()
     tag = _DEFAULT_LATENT_TAG
@@ -85,6 +85,7 @@ def _ancestors_of(graph: NxMixedGraph, nodes: Iterable[Variable]) -> frozenset[V
 
     :param graph: The graph to query.
     :param nodes: Seed nodes.
+
     :returns: All ancestors of *nodes* including *nodes* themselves.
     """
     result: set[Variable] = set()
@@ -112,31 +113,31 @@ def are_m_separated(
 ) -> DSeparationJudgement:
     """Test whether *x* and *y* are m-separated given *conditions* in *graph*.
 
-    m-separation is the standard separation criterion for acyclic directed
-    mixed graphs (ADMGs).  It reduces to d-separation on the canonical
-    latent-variable DAG (LVM) obtained by replacing each bidirected edge
-    ``u <-> v`` with a fresh latent node and two directed edges.
+    m-separation is the standard separation criterion for acyclic directed mixed graphs
+    (ADMGs). It reduces to d-separation on the canonical latent-variable DAG (LVM)
+    obtained by replacing each bidirected edge ``u <-> v`` with a fresh latent node and
+    two directed edges.
 
-    The latent-projection DAG is built internally; callers never see it.
-    Conditioning nodes must be observed (non-latent) nodes of *graph* -- the
-    function raises :class:`ValueError` if a conditioning node is not in the
-    graph.
+    The latent-projection DAG is built internally; callers never see it. Conditioning
+    nodes must be observed (non-latent) nodes of *graph* -- the function raises
+    :class:`ValueError` if a conditioning node is not in the graph.
 
-    The return value is a :class:`~y0.struct.DSeparationJudgement` that carries
-    the ``left``, ``right``, and ``conditions`` in canonical form alongside the
-    ``separated`` flag.  It implements ``__bool__``, so existing code that
-    treats the result as a plain boolean (``if are_m_separated(...)``,
-    ``assert are_m_separated(...)``, etc.) continues to work unchanged.
+    The return value is a :class:`~y0.struct.DSeparationJudgement` that carries the
+    ``left``, ``right``, and ``conditions`` in canonical form alongside the
+    ``separated`` flag. It implements ``__bool__``, so existing code that treats the
+    result as a plain boolean (``if are_m_separated(...)``, ``assert
+    are_m_separated(...)``, etc.) continues to work unchanged.
 
     :param graph: An acyclic directed mixed graph (:class:`~y0.graph.NxMixedGraph`).
     :param x: The first variable.
     :param y: The second variable.
-    :param conditions: The conditioning set (observed nodes only).  Defaults
-        to the empty set.
-    :returns: A :class:`~y0.struct.DSeparationJudgement` that is truthy when
-        *x* and *y* are m-separated given *conditions*, falsy otherwise.
-    :raises ValueError: If *x*, *y*, or any conditioning node is not a node
-        of *graph*.
+    :param conditions: The conditioning set (observed nodes only). Defaults to the empty
+        set.
+
+    :returns: A :class:`~y0.struct.DSeparationJudgement` that is truthy when *x* and *y*
+        are m-separated given *conditions*, falsy otherwise.
+
+    :raises ValueError: If *x*, *y*, or any conditioning node is not a node of *graph*.
     """
     if conditions is None:
         conditions = frozenset()
@@ -188,18 +189,20 @@ def _resolve_candidate_pool(
 ) -> frozenset[Variable] | None:
     """Determine the candidate pool for the separator search.
 
-    Returns the candidate pool as a frozenset, or ``None`` if the constraints
-    are infeasible (a restricted node is not in the graph).
+    Returns the candidate pool as a frozenset, or ``None`` if the constraints are
+    infeasible (a restricted node is not in the graph).
 
     :param graph: The ADMG being queried.
     :param x: Source variable.
     :param y: Target variable.
     :param included: Nodes that must be in the separator.
-    :param restricted: Optional explicit pool; if ``None`` the default
-        ancestor-based pool is used.
+    :param restricted: Optional explicit pool; if ``None`` the default ancestor-based
+        pool is used.
     :param observed_nodes: All observed nodes of *graph*.
     :param latent_nodes: All latent nodes introduced by the LVM construction.
+
     :returns: The candidate pool, or ``None`` on infeasible constraints.
+
     :raises ValueError: If a restricted node is not in the graph.
     """
     if restricted is not None:
@@ -220,13 +223,14 @@ def _greedy_shrink(
 ) -> frozenset[Variable]:
     r"""Greedily remove nodes from *z0* while m-separation is preserved.
 
-    Iterates over nodes in ``z0 \\ included_valid`` in deterministic order and
-    removes each one if the oracle still confirms m-separation without it.
+    Iterates over nodes in ``z0 \included_valid`` in deterministic order and removes
+    each one if the oracle still confirms m-separation without it.
 
     :param z0: The initial (full) candidate separator.
     :param included_valid: Nodes that must remain in the separator.
-    :param oracle: A callable ``(frozenset[Variable]) -> bool`` that returns
-        ``True`` when the given set m-separates *x* and *y*.
+    :param oracle: A callable ``(frozenset[Variable]) -> bool`` that returns ``True``
+        when the given set m-separates *x* and *y*.
+
     :returns: A minimal subset of *z0* that still m-separates.
     """
     current = set(z0)
@@ -250,6 +254,7 @@ def _validate_separator_inputs(
     :param y: Target variable.
     :param included: Nodes that must be in the separator.
     :param observed_nodes: All observed nodes of the graph.
+
     :raises ValueError: If *x*, *y*, or any included node is not in the graph.
     """
     for node in (x, y):
@@ -275,35 +280,36 @@ def find_minimal_m_separator(
     1. ``Z`` m-separates *x* and *y* in *graph*.
     2. Every node in *included* is in ``Z``.
     3. Every node in ``Z`` is in *restricted* (if given).
-    4. No proper subset of ``Z`` that still contains *included* also
-       m-separates *x* and *y*.
+    4. No proper subset of ``Z`` that still contains *included* also m-separates *x* and
+       *y*.
 
     If no valid separator exists within the constraints, returns ``None``.
 
     Algorithm
     ---------
-    1. **Candidate pool**: start from *restricted* (default: ancestors of
-       ``{x, y} \cup included`` in the ADMG, minus ``{x, y}`` themselves).
-       Exclude *x*, *y*, and any latent nodes (latents are never conditioned on).
-    2. **Initial separator**: ``Z0 = candidate_pool`` (the full restricted set).
-       Verify it m-separates; if not, return ``None``.
-    3. **Greedy shrink**: iterate over nodes in ``Z0 \\ included``.  Remove a
-       node if m-separation still holds without it.  Repeat until no more
-       removals are possible.
+
+    1. **Candidate pool**: start from *restricted* (default: ancestors of ``{x, y} \cup
+       included`` in the ADMG, minus ``{x, y}`` themselves). Exclude *x*, *y*, and any
+       latent nodes (latents are never conditioned on).
+    2. **Initial separator**: ``Z0 = candidate_pool`` (the full restricted set). Verify
+       it m-separates; if not, return ``None``.
+    3. **Greedy shrink**: iterate over nodes in ``Z0 \included``. Remove a node if
+       m-separation still holds without it. Repeat until no more removals are possible.
 
     The result is minimal by inclusion within the constraints.
 
     :param graph: An acyclic directed mixed graph.
     :param x: The source variable.
     :param y: The target variable.
-    :param included: Nodes that *must* be in the separator.  Defaults to the
-        empty set.
-    :param restricted: The pool of nodes from which the separator may be drawn.
-        Defaults to the ancestors of ``{x, y} \cup included`` minus ``{x, y}``.
-    :returns: A minimal m-separator as a :class:`frozenset`, or ``None`` if no
-        valid separator exists within the constraints.
-    :raises ValueError: If *x*, *y*, or any node in *included* / *restricted*
-        is not an observed node of *graph*.
+    :param included: Nodes that *must* be in the separator. Defaults to the empty set.
+    :param restricted: The pool of nodes from which the separator may be drawn. Defaults
+        to the ancestors of ``{x, y} \cup included`` minus ``{x, y}``.
+
+    :returns: A minimal m-separator as a :class:`frozenset`, or ``None`` if no valid
+        separator exists within the constraints.
+
+    :raises ValueError: If *x*, *y*, or any node in *included* / *restricted* is not an
+        observed node of *graph*.
     """
     if included is None:
         included = frozenset()

@@ -1,15 +1,13 @@
 """Separation algorithms.
 
-========================== ============================================================= ====================================================================
-Algorithm                  Description                                                   Implementation
-========================== ============================================================= ====================================================================
-d-separation [pearl2009]_  Identifies nodes in a directed acyclic graph as               :func:`y0.algorithm.separation.are_d_separated`
-                           probabilistically independent
-m-separation [richa2003]_  A generalization of d-separation in an acyclic directed mixed :func:`y0.algorithm.separation.are_m_separated`
-                           graph
-σ-separation [forre2018]_  Identifies nodes in any directed mixed graph as               :func:`y0.algorithm.separation.are_sigma_separated`
-                           probabilistically independent (cycles allowed)
-========================== ============================================================= ====================================================================
+========================= ===================================================================================== ===================================================
+Algorithm                 Description                                                                           Implementation
+========================= ===================================================================================== ===================================================
+d-separation [pearl2009]_ Identifies nodes in a directed acyclic graph as probabilistically independent         :func:`y0.algorithm.separation.are_d_separated`
+m-separation [richa2003]_ A generalization of d-separation in an acyclic directed mixed graph                   :func:`y0.algorithm.separation.are_m_separated`
+σ-separation [forre2018]_ Identifies nodes in any directed mixed graph as probabilistically independent (cycles :func:`y0.algorithm.separation.are_sigma_separated`
+                          allowed)
+========================= ===================================================================================== ===================================================
 
 .. [forre2018] `Constraint-based Causal Discovery for Non-Linear Structural Causal Models
     with Cycles and Latent Confounders <https://arxiv.org/abs/1807.03024>`_
