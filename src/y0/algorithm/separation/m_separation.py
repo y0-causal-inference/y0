@@ -162,7 +162,9 @@ def _resolve_candidate_pool(
     if restricted is not None:
         restricted_set = frozenset(restricted)
         if missing_restricted_set_nodes := restricted_set - observed_nodes:
-            raise ValueError(f"Restricted nodes {missing_restricted_set_nodes!r} are not in the graph.")
+            raise ValueError(
+                f"Restricted nodes {missing_restricted_set_nodes!r} are not in the graph."
+            )
         return restricted_set - {x, y} - latent_nodes
     # Default: ancestors of {x, y} \cup included, minus {x, y}
     seed = set(included) | {x, y}
