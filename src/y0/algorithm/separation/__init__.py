@@ -1,30 +1,26 @@
 """Separation algorithms.
 
-========================= ============================================================= ====================================================================
-Algorithm                 Description                                                   Implementation
-========================= ============================================================= ====================================================================
-d-separation [pearl2009]_ Identifies nodes in an acyclic directed mixed graph as        :func:`y0.algorithm.separation.are_d_separated`
-                          probabilistically independent
-m-separation [drton2003]_ A generalization of d-separation in an acyclic directed mixed `Issue #204 <https://github.com/y0-causal-inference/y0/issues/204>`_
-                          graph
-σ-separation [forre2018]_ Identifies nodes in any directed mixed graph as               :func:`y0.algorithm.separation.are_sigma_separated`
-                          probabilistically dependent (cycles allowed)
-========================= ============================================================= ====================================================================
+========================= ===================================================================================== ===================================================
+Algorithm                 Description                                                                           Implementation
+========================= ===================================================================================== ===================================================
+d-separation [pearl2009]_ Identifies nodes in an acyclic directed mixed graph as probabilistically independent  :func:`y0.algorithm.separation.are_d_separated`
+m-separation [richa2003]_ A generalization of d-separation in an acyclic directed mixed graph                   :func:`y0.algorithm.separation.are_m_separated`
+σ-separation [forre2018]_ Identifies nodes in any directed mixed graph as probabilistically independent (cycles :func:`y0.algorithm.separation.are_sigma_separated`
+                          allowed)
+========================= ===================================================================================== ===================================================
 
 .. [forre2018] `Constraint-based Causal Discovery for Non-Linear Structural Causal Models
     with Cycles and Latent Confounders <https://arxiv.org/abs/1807.03024>`_
 
-.. [drton2003] `Iterative Conditional Fitting for Gaussian Ancestral Graph Models
-    <https://stat.uw.edu/sites/default/files/files/reports/2003/tr437.pdf>`_
+.. [richa2003] `Markov Properties for Acyclic Directed Mixed Graphs
+    <https://doi.org/10.1111/1467-9469.00323>`_
 
 .. [pearl2009] `Causality: Models, Reasoning and Inference: Models, Reasoning and
     Inference <https://doi.org/10.1017/CBO9780511803161>`_
 """
 
+from .m_separation import are_m_separated, find_minimal_m_separator
 from .sigma_separation import are_sigma_separated
 from ..conditional_independencies import are_d_separated
 
-__all__ = [
-    "are_d_separated",
-    "are_sigma_separated",
-]
+__all__ = ["are_d_separated", "are_m_separated", "are_sigma_separated", "find_minimal_m_separator"]

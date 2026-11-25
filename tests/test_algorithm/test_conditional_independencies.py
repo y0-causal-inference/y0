@@ -11,7 +11,7 @@ from y0.algorithm.conditional_independencies import (
     are_d_separated,
     get_conditional_independencies,
 )
-from y0.dsl import AA, B, C, D, E, F, G, Variable, X, Y
+from y0.dsl import AA, B, C, D, E, F, G, Variable, X, Y, Z
 from y0.examples import (
     Example,
     d_separation_example,
@@ -37,6 +37,18 @@ class TestDSeparation(unittest.TestCase):
         self.assertFalse(are_d_separated(graph, D, E))
         self.assertFalse(are_d_separated(graph, D, E, conditions=[AA, B]))
         self.assertFalse(are_d_separated(graph, G, G, conditions=[C]))
+
+    def test_bidirected_edges_warn(self) -> None:
+        """d-separation warns when the graph contains bidirected edges."""
+        graph = NxMixedGraph.from_edges(directed=[(X, Z)], undirected=[(Z, Y)])
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            r"d-separation is not defined for graphs with bidirected edges; use m-separation instead\.",
+        ):
+            judgement = are_d_separated(graph, X, Y, conditions=[Z])
+
+        self.assertTrue(judgement.separated)  # d-separation incorrectly finds them separated
 
     def test_examples(self) -> None:
         """Check that example conditional independencies are d-separations and conditions (if present) are required.
