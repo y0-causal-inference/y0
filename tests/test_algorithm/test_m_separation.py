@@ -3,7 +3,7 @@
 import unittest
 
 from y0.algorithm.conditional_independencies import are_d_separated
-from y0.algorithm.separation import are_m_separated
+from y0.algorithm.separation import are_m_separated, find_minimal_m_separator
 from y0.dsl import Variable, X, Y, Z
 from y0.graph import NxMixedGraph
 
@@ -75,3 +75,90 @@ class TestMSeparation(unittest.TestCase):
             are_m_separated(graph, X, unknown)
         with self.assertRaises(ValueError):
             are_m_separated(graph, X, Y, conditions=[unknown])
+
+
+class TestMinimalMSeparator(unittest.TestCase):
+    """Test minimal m-separator search and its constraints."""
+
+    def test_default_pool_returns_minimal_separator(self) -> None:
+        """The default ancestor pool shrinks to the two necessary blockers."""
+        a, b, irrelevant = map(Variable, ["a", "b", "irrelevant"])
+        graph = NxMixedGraph.from_edges(
+            nodes=[X, Y, a, b, irrelevant],
+            directed=[(X, a), (a, Y), (X, b), (b, Y), (irrelevant, a)],
+        )
+
+        separator = find_minimal_m_separator(graph, X, Y)
+
+        self.assertEqual(frozenset({a, b}), separator)
+        self.assertTrue(are_m_separated(graph, X, Y, conditions=separator))
+        for node in separator:
+            self.assertFalse(are_m_separated(graph, X, Y, conditions=separator - {node}))
+
+    def test_restricted_pool_and_included_nodes(self) -> None:
+        """Keep mandatory nodes while removing unnecessary allowed nodes."""
+        a, required, irrelevant = map(Variable, ["a", "required", "irrelevant"])
+        graph = NxMixedGraph.from_edges(
+            nodes=[X, Y, a, required, irrelevant],
+            directed=[(X, a), (a, Y)],
+        )
+
+        separator = find_minimal_m_separator(
+            graph,
+            X,
+            Y,
+            included=[required],
+            restricted=[a, required, irrelevant],
+        )
+
+        self.assertEqual(frozenset({a, required}), separator)
+
+    def test_included_ancestor_enters_default_pool(self) -> None:
+        """An included node is retained even when it is not needed to block a path."""
+        included = Variable("included")
+        graph = NxMixedGraph.from_edges(
+            nodes=[X, Y, Z, included],
+            directed=[(X, Z), (Z, Y)],
+        )
+
+        self.assertEqual(
+            frozenset({Z, included}),
+            find_minimal_m_separator(graph, X, Y, included=[included]),
+        )
+
+    def test_no_separator_with_available_candidates(self) -> None:
+        """A direct edge cannot be blocked by the available restricted nodes."""
+        irrelevant = Variable("irrelevant")
+        graph = NxMixedGraph.from_edges(
+            nodes=[X, Y, irrelevant],
+            directed=[(X, Y)],
+        )
+
+        self.assertIsNone(find_minimal_m_separator(graph, X, Y))
+        self.assertIsNone(find_minimal_m_separator(graph, X, Y, restricted=[irrelevant]))
+
+    def test_included_node_outside_restricted_pool_is_infeasible(self) -> None:
+        """An explicitly required node must be allowed by the restricted pool."""
+        required = Variable("required")
+        graph = NxMixedGraph.from_edges(nodes=[X, Y, required], directed=[(X, Y)])
+
+        self.assertIsNone(find_minimal_m_separator(graph, X, Y, included=[required], restricted=[]))
+
+    def test_isolated_endpoint_has_empty_separator(self) -> None:
+        """An isolated query endpoint is already separated from the other endpoint."""
+        isolated = Variable("isolated")
+        graph = NxMixedGraph.from_edges(nodes=[X, Y, isolated], directed=[(X, Y)])
+
+        self.assertEqual(frozenset(), find_minimal_m_separator(graph, X, isolated))
+
+    def test_unknown_query_included_and_restricted_nodes_raise(self) -> None:
+        """All query and constraint nodes must be observed graph nodes."""
+        unknown = Variable("unknown")
+        graph = NxMixedGraph.from_edges(directed=[(X, Y)])
+
+        with self.assertRaises(ValueError):
+            find_minimal_m_separator(graph, X, unknown)
+        with self.assertRaises(ValueError):
+            find_minimal_m_separator(graph, X, Y, included=[unknown])
+        with self.assertRaises(ValueError):
+            find_minimal_m_separator(graph, X, Y, restricted=[unknown])
