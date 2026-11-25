@@ -248,7 +248,7 @@ def are_d_separated(
     *,
     conditions: Iterable[Variable] | None = None,
 ) -> DSeparationJudgement:
-    """Test if nodes named by a & b are d-separated in a directed acyclic graph.
+    """Test if nodes named by a & b are d-separated in G (a DAG) as described in [pearl2009]_.
 
     a & b can be provided in either order and the order of conditions does not matter.
     However, DSeparationJudgement may put things in canonical order.
